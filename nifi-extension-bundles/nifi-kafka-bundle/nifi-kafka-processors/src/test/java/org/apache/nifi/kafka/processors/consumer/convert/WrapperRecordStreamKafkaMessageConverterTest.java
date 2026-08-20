@@ -83,7 +83,8 @@ class WrapperRecordStreamKafkaMessageConverterTest {
                 offsetTracker,
                 logger,
                 "brokerUri",
-                OutputStrategy.USE_WRAPPER
+                OutputStrategy.USE_WRAPPER,
+                new CreateNewFlowFileGrouping(writerFactory, logger, "brokerUri", true)
         );
 
         // Create ByteRecords

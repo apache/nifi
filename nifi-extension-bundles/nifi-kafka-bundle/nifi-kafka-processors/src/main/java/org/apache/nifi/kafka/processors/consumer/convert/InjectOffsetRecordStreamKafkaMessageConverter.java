@@ -54,7 +54,8 @@ public class InjectOffsetRecordStreamKafkaMessageConverter extends AbstractRecor
             final boolean commitOffsets,
             final OffsetTracker offsetTracker,
             final ComponentLog logger,
-            final String brokerUri
+            final String brokerUri,
+            final RecordGroupingStrategy recordGroupingStrategy
     ) {
         super(
                 readerFactory,
@@ -65,7 +66,8 @@ public class InjectOffsetRecordStreamKafkaMessageConverter extends AbstractRecor
                 commitOffsets,
                 offsetTracker,
                 logger,
-                brokerUri
+                brokerUri,
+                recordGroupingStrategy
         );
     }
 

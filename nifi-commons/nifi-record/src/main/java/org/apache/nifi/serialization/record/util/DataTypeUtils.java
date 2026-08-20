@@ -59,6 +59,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -1603,14 +1604,7 @@ public class DataTypeUtils {
         }
 
         final List<RecordField> otherFields = otherSchema.getFields();
-        if (otherFields.isEmpty()) {
-            return thisSchema;
-        }
-
         final List<RecordField> thisFields = thisSchema.getFields();
-        if (thisFields.isEmpty()) {
-            return otherSchema;
-        }
 
         final Map<String, Integer> fieldIndices = new HashMap<>();
         final List<RecordField> fields = new ArrayList<>();
@@ -1627,6 +1621,7 @@ public class DataTypeUtils {
             fields.add(field);
         }
 
+        final BitSet matchedFieldIndices = new BitSet(thisFields.size());
         for (final RecordField otherField : otherFields) {
             Integer fieldIndex = fieldIndices.get(otherField.getFieldName());
 
@@ -1642,16 +1637,26 @@ public class DataTypeUtils {
             }
 
             // If there is no field with the same name then just add 'otherField'.
+            // Fields present in only one schema are nullable in the merged schema,
+            // since the merged schema is a superset of both inputs.
             if (fieldIndex == null) {
-                fields.add(otherField);
+                fields.add(makeNullable(otherField));
                 continue;
             }
+
+            matchedFieldIndices.set(fieldIndex);
 
             // Merge the two fields, if necessary
             final RecordField thisField = fields.get(fieldIndex);
             if (isMergeRequired(thisField, otherField)) {
                 final RecordField mergedField = merge(thisField, otherField);
                 fields.set(fieldIndex, mergedField);
+            }
+        }
+
+        for (int i = 0; i < thisFields.size(); i++) {
+            if (!matchedFieldIndices.get(i)) {
+                fields.set(i, makeNullable(fields.get(i)));
             }
         }
 
@@ -1667,7 +1672,19 @@ public class DataTypeUtils {
             return true;
         }
 
+        if (thisField.isNullable() != otherField.isNullable()) {
+            return true;
+        }
+
         return !Objects.equals(thisField.getDefaultValue(), otherField.getDefaultValue());
+    }
+
+    private static RecordField makeNullable(final RecordField field) {
+        if (field.isNullable()) {
+            return field;
+        }
+
+        return new RecordField(field.getFieldName(), field.getDataType(), field.getDefaultValue(), field.getAliases(), true);
     }
 
     public static RecordField merge(final RecordField thisField, final RecordField otherField) {

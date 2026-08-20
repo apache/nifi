@@ -58,8 +58,10 @@ public class WrapperRecordStreamKafkaMessageConverter extends AbstractRecordStre
             final OffsetTracker offsetTracker,
             final ComponentLog logger,
             final String brokerUri,
-            final OutputStrategy outputStrategy) {
-        super(readerFactory, writerFactory, headerValueConverter, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, logger, brokerUri);
+            final OutputStrategy outputStrategy,
+            final RecordGroupingStrategy recordGroupingStrategy) {
+        super(readerFactory, writerFactory, headerValueConverter, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, logger, brokerUri,
+                recordGroupingStrategy);
         this.keyReaderFactory = keyReaderFactory;
         this.keyFormat = keyFormat;
         this.outputStrategy = outputStrategy;

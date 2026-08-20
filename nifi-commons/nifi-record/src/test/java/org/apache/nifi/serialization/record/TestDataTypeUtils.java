@@ -47,6 +47,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.DoubleAdder;
@@ -1298,14 +1299,14 @@ public class TestDataTypeUtils {
     @Test
     public void testMergeDataTypesMergesRecordSchemasInsteadOfCreatingChoice() {
         final RecordSchema schemaA = new SimpleRecordSchema(List.of(
-            new RecordField("firstName", RecordFieldType.STRING.getDataType()),
-            new RecordField("lastName", RecordFieldType.STRING.getDataType()),
-            new RecordField("address", RecordFieldType.STRING.getDataType())));
+            new RecordField("firstName", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("lastName", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("address", RecordFieldType.STRING.getDataType(), false)));
 
         final RecordSchema schemaB = new SimpleRecordSchema(List.of(
-            new RecordField("firstName", RecordFieldType.STRING.getDataType()),
-            new RecordField("lastName", RecordFieldType.STRING.getDataType()),
-            new RecordField("age", RecordFieldType.INT.getDataType())));
+            new RecordField("firstName", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("lastName", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("age", RecordFieldType.INT.getDataType(), false)));
 
         final DataType recordTypeA = RecordFieldType.RECORD.getRecordDataType(schemaA);
         final DataType recordTypeB = RecordFieldType.RECORD.getRecordDataType(schemaB);
@@ -1319,6 +1320,10 @@ public class TestDataTypeUtils {
         assertTrue(mergedSchema.getField("lastName").isPresent());
         assertTrue(mergedSchema.getField("address").isPresent());
         assertTrue(mergedSchema.getField("age").isPresent());
+        assertFalse(mergedSchema.getField("firstName").orElseThrow().isNullable());
+        assertFalse(mergedSchema.getField("lastName").orElseThrow().isNullable());
+        assertTrue(mergedSchema.getField("address").orElseThrow().isNullable());
+        assertTrue(mergedSchema.getField("age").orElseThrow().isNullable());
     }
 
     @Test
@@ -1391,5 +1396,296 @@ public class TestDataTypeUtils {
         assertTrue(finalSchema.getField("commonField").isPresent());
         assertTrue(finalSchema.getField("field_0").isPresent());
         assertTrue(finalSchema.getField("field_4999").isPresent());
+    }
+
+    @Test
+    public void testMergeSchemasMakesSingleSideFieldsNullable() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("name", RecordFieldType.STRING.getDataType(), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertEquals(2, merged.getFieldCount());
+        assertTrue(merged.getField("id").orElseThrow().isNullable());
+        assertTrue(merged.getField("name").orElseThrow().isNullable());
+    }
+
+    @Test
+    public void testMergeSchemasWhenOneSchemaIsStrictSubset() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("x", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("shared", RecordFieldType.STRING.getDataType(), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("shared", RecordFieldType.STRING.getDataType(), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertEquals(2, merged.getFieldCount());
+        assertTrue(merged.getField("x").orElseThrow().isNullable());
+        assertFalse(merged.getField("shared").orElseThrow().isNullable());
+    }
+
+    @Test
+    public void testMergeSchemasKeepsSharedNonNullableFieldNonNullable() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertEquals(1, merged.getFieldCount());
+        assertFalse(merged.getField("id").orElseThrow().isNullable());
+    }
+
+    @Test
+    public void testMergeSchemasPreservesNullableWhenLeftIsNullable() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), true)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertTrue(merged.getField("id").orElseThrow().isNullable());
+    }
+
+    @Test
+    public void testMergeSchemasPreservesNullableWhenRightIsNullable() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), true)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertTrue(merged.getField("id").orElseThrow().isNullable());
+    }
+
+    @Test
+    public void testMergeSchemasWidensTypesAndNullifiesSingleSideFields() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.INT.getDataType(), false),
+            new RecordField("onlyA", RecordFieldType.STRING.getDataType(), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.LONG.getDataType(), true),
+            new RecordField("onlyB", RecordFieldType.STRING.getDataType(), Set.of("bAlias"), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertEquals(3, merged.getFieldCount());
+        final RecordField idField = merged.getField("id").orElseThrow();
+        assertEquals(RecordFieldType.LONG, idField.getDataType().getFieldType());
+        assertTrue(idField.isNullable());
+        assertTrue(merged.getField("onlyA").orElseThrow().isNullable());
+        assertTrue(merged.getField("onlyB").orElseThrow().isNullable());
+    }
+
+    @Test
+    public void testMergeSchemasIdenticalSchemasRetainNullability() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("required", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("optional", RecordFieldType.INT.getDataType(), true)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("required", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("optional", RecordFieldType.INT.getDataType(), true)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertEquals(2, merged.getFieldCount());
+        assertFalse(merged.getField("required").orElseThrow().isNullable());
+        assertTrue(merged.getField("optional").orElseThrow().isNullable());
+    }
+
+    @Test
+    public void testMergeSchemasMakesNestedSingleSideFieldsNullable() {
+        final RecordSchema nestedA = new SimpleRecordSchema(List.of(
+            new RecordField("street", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("city", RecordFieldType.STRING.getDataType(), false)));
+        final RecordSchema nestedB = new SimpleRecordSchema(List.of(
+            new RecordField("street", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("zip", RecordFieldType.STRING.getDataType(), false)));
+
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("address", RecordFieldType.RECORD.getRecordDataType(nestedA), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("address", RecordFieldType.RECORD.getRecordDataType(nestedB), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+        final RecordField addressField = merged.getField("address").orElseThrow();
+        assertFalse(addressField.isNullable());
+
+        final RecordSchema nestedMerged = ((RecordDataType) addressField.getDataType()).getChildSchema();
+        assertEquals(3, nestedMerged.getFieldCount());
+        assertFalse(nestedMerged.getField("street").orElseThrow().isNullable());
+        assertTrue(nestedMerged.getField("city").orElseThrow().isNullable());
+        assertTrue(nestedMerged.getField("zip").orElseThrow().isNullable());
+    }
+
+    @Test
+    public void testMergeSchemasMakesArrayOfRecordSingleSideFieldsNullable() {
+        final RecordSchema elementA = new SimpleRecordSchema(List.of(
+            new RecordField("x", RecordFieldType.INT.getDataType(), false),
+            new RecordField("shared", RecordFieldType.STRING.getDataType(), false)));
+        final RecordSchema elementB = new SimpleRecordSchema(List.of(
+            new RecordField("y", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("shared", RecordFieldType.STRING.getDataType(), false)));
+
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("items", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(elementA)), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("items", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(elementB)), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+        final RecordField itemsField = merged.getField("items").orElseThrow();
+        assertFalse(itemsField.isNullable());
+
+        final DataType elementType = ((ArrayDataType) itemsField.getDataType()).getElementType();
+        final RecordSchema elementMerged = ((RecordDataType) elementType).getChildSchema();
+        assertEquals(3, elementMerged.getFieldCount());
+        assertFalse(elementMerged.getField("shared").orElseThrow().isNullable());
+        assertTrue(elementMerged.getField("x").orElseThrow().isNullable());
+        assertTrue(elementMerged.getField("y").orElseThrow().isNullable());
+    }
+
+    @Test
+    public void testMergeSchemasNullifiesTopLevelRecordFieldPresentOnOnlyOneSide() {
+        final RecordSchema nested = new SimpleRecordSchema(List.of(
+            new RecordField("value", RecordFieldType.STRING.getDataType(), false)));
+
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("details", RecordFieldType.RECORD.getRecordDataType(nested), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertFalse(merged.getField("id").orElseThrow().isNullable());
+        assertTrue(merged.getField("details").orElseThrow().isNullable());
+        final RecordSchema detailsSchema = ((RecordDataType) merged.getField("details").orElseThrow().getDataType()).getChildSchema();
+        assertFalse(detailsSchema.getField("value").orElseThrow().isNullable());
+    }
+
+    @Test
+    public void testMergeSchemasMakesDeeplyNestedSingleSideFieldsNullable() {
+        final RecordSchema leafA = new SimpleRecordSchema(List.of(
+            new RecordField("aOnly", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("common", RecordFieldType.INT.getDataType(), false)));
+        final RecordSchema leafB = new SimpleRecordSchema(List.of(
+            new RecordField("bOnly", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("common", RecordFieldType.INT.getDataType(), false)));
+
+        final RecordSchema midA = new SimpleRecordSchema(List.of(
+            new RecordField("leaf", RecordFieldType.RECORD.getRecordDataType(leafA), false)));
+        final RecordSchema midB = new SimpleRecordSchema(List.of(
+            new RecordField("leaf", RecordFieldType.RECORD.getRecordDataType(leafB), false)));
+
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("mid", RecordFieldType.RECORD.getRecordDataType(midA), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("mid", RecordFieldType.RECORD.getRecordDataType(midB), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+        final RecordSchema midMerged = ((RecordDataType) merged.getField("mid").orElseThrow().getDataType()).getChildSchema();
+        final RecordSchema leafMerged = ((RecordDataType) midMerged.getField("leaf").orElseThrow().getDataType()).getChildSchema();
+
+        assertFalse(leafMerged.getField("common").orElseThrow().isNullable());
+        assertTrue(leafMerged.getField("aOnly").orElseThrow().isNullable());
+        assertTrue(leafMerged.getField("bOnly").orElseThrow().isNullable());
+    }
+
+    @Test
+    public void testMergeSchemasMatchesFieldsByAliasWithoutNullifying() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), Set.of("identifier"), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertEquals(1, merged.getFieldCount());
+        final RecordField mergedField = merged.getField("id").orElseThrow();
+        assertFalse(mergedField.isNullable());
+        assertTrue(mergedField.getAliases().contains("identifier"));
+    }
+
+    @Test
+    public void testMergeSchemasWithEmptySchemaMakesOtherFieldsNullable() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), false)));
+        final RecordSchema empty = new SimpleRecordSchema(List.of());
+
+        final RecordSchema mergedWithEmptyOther = DataTypeUtils.merge(schemaA, empty);
+        final RecordSchema mergedWithEmptyThis = DataTypeUtils.merge(empty, schemaA);
+
+        assertEquals(1, mergedWithEmptyOther.getFieldCount());
+        assertTrue(mergedWithEmptyOther.getField("id").orElseThrow().isNullable());
+        assertEquals(1, mergedWithEmptyThis.getFieldCount());
+        assertTrue(mergedWithEmptyThis.getField("id").orElseThrow().isNullable());
+    }
+
+    @Test
+    public void testMergeSchemasPreservesDefaultValueWhenNullifyingSingleSideField() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("onlyA", RecordFieldType.STRING.getDataType(), "keep-me", false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("onlyB", RecordFieldType.STRING.getDataType(), "also-keep", false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertTrue(merged.getField("onlyA").orElseThrow().isNullable());
+        assertEquals("keep-me", merged.getField("onlyA").orElseThrow().getDefaultValue());
+        assertTrue(merged.getField("onlyB").orElseThrow().isNullable());
+        assertEquals("also-keep", merged.getField("onlyB").orElseThrow().getDefaultValue());
+    }
+
+    @Test
+    public void testMergeSchemasMatchesFieldUsingLeftAlias() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("identifier", RecordFieldType.STRING.getDataType(), Set.of("id"), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertEquals(1, merged.getFieldCount());
+        final RecordField mergedField = merged.getField("identifier").orElseThrow();
+        assertFalse(mergedField.isNullable());
+        assertTrue(mergedField.getAliases().contains("id"));
+    }
+
+    @Test
+    public void testMergeSchemasPreservesLeftFieldOrderThenAppendsRightOnlyFields() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("b", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("a", RecordFieldType.STRING.getDataType(), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("c", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("a", RecordFieldType.STRING.getDataType(), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertEquals(List.of("b", "a", "c"), merged.getFieldNames());
+        assertTrue(merged.getField("b").orElseThrow().isNullable());
+        assertFalse(merged.getField("a").orElseThrow().isNullable());
+        assertTrue(merged.getField("c").orElseThrow().isNullable());
+    }
+
+    @Test
+    public void testMergeSchemasSingleSideNestedArrayFieldBecomesNullable() {
+        final RecordSchema schemaA = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), false),
+            new RecordField("tags", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType(), false), false)));
+        final RecordSchema schemaB = new SimpleRecordSchema(List.of(
+            new RecordField("id", RecordFieldType.STRING.getDataType(), false)));
+
+        final RecordSchema merged = DataTypeUtils.merge(schemaA, schemaB);
+
+        assertFalse(merged.getField("id").orElseThrow().isNullable());
+        assertTrue(merged.getField("tags").orElseThrow().isNullable());
+        assertFalse(((ArrayDataType) merged.getField("tags").orElseThrow().getDataType()).isElementsNullable());
     }
 }
