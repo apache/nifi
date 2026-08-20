@@ -46,6 +46,7 @@ public class StandardRebaseEngine implements RebaseEngine {
         registerHandler(new PositionChangedRebaseHandler());
         registerHandler(new SizeChangedRebaseHandler());
         registerHandler(new BendpointsChangedRebaseHandler());
+        registerHandler(new ComponentAddedRebaseHandler());
         registerHandler(new PropertyChangedRebaseHandler());
         registerHandler(new PropertyAddedRebaseHandler());
         registerHandler(new CommentsChangedRebaseHandler());
