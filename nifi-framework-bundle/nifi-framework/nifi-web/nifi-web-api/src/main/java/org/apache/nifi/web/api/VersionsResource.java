@@ -59,12 +59,12 @@ import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedFlowState;
+import org.apache.nifi.web.FlowUpdateImpact;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowUpdateRequestDTO;
-import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.CreateActiveRequestEntity;
 import org.apache.nifi.web.api.entity.CreateFlowBranchRequestEntity;
 import org.apache.nifi.web.api.entity.Entity;
@@ -1511,12 +1511,12 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         final UnresolvedReferences unresolvedReferences = AuthorizeFlowUpdate.resolveReferences(groupId, flowSnapshotContainer, serviceFacade, user);
 
         // Step 1: Determine which components will be affected by updating the version
-        final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByFlowUpdate(groupId, flowSnapshot);
+        final FlowUpdateImpact flowUpdateImpact = serviceFacade.getFlowUpdateImpact(groupId, flowSnapshot);
 
         // build a request wrapper
         final InitiateUpdateFlowRequestWrapper requestWrapper =
                 new InitiateUpdateFlowRequestWrapper(requestEntity, componentLifecycle, "revert-requests", getAbsolutePath(),
-                        "/nifi-api/versions/process-groups/" + groupId, affectedComponents, replicateRequest, flowSnapshot);
+                        "/nifi-api/versions/process-groups/" + groupId, flowUpdateImpact, replicateRequest, flowSnapshot);
 
         final Revision requestRevision = getRevision(requestEntity.getProcessGroupRevision(), groupId);
         return withWriteLock(

@@ -68,6 +68,8 @@ public interface AsynchronousWebRequest<R, T> {
      */
     void fail(String explanation);
 
+    void appendFailureDetail(String detail);
+
     /**
      * Indicates the reason that the request failed, or <code>null</code> if the request has not failed
      *
