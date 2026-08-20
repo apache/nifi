@@ -219,7 +219,8 @@ public class StandardSshClientProvider implements SshClientProvider {
 
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions(attributes).getValue();
         final int port = context.getProperty(PORT).evaluateAttributeExpressions(attributes).asInteger();
-        final InetSocketAddress remoteAddress = new InetSocketAddress(hostname, port);
+        // Create unresolved Socket Address for labeling without DNS resolution
+        final InetSocketAddress remoteAddress = InetSocketAddress.createUnresolved(hostname, port);
 
         final Duration socketTimeout = context.getProperty(SFTPTransfer.DATA_TIMEOUT).asDuration();
         final StandardNettyIoServiceFactoryFactory ioServiceFactoryFactory = new StandardNettyIoServiceFactoryFactory(remoteAddress, proxyConfiguration, socketTimeout);
