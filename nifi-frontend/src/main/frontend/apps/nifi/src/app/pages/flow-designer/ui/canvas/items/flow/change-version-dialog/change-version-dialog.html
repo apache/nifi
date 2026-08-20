@@ -121,6 +121,32 @@
                             </td>
                         </ng-container>
 
+                        <!-- Actions Column -->
+                        <ng-container matColumnDef="actions">
+                            <th mat-header-cell *matHeaderCellDef></th>
+                            <td mat-cell *matCellDef="let item">
+                                <div class="flex items-center justify-end">
+                                    <button
+                                        mat-icon-button
+                                        type="button"
+                                        [matMenuTriggerFor]="actionMenu"
+                                        aria-label="Version actions"
+                                        class="version-actions-button flex items-center justify-center icon global-menu"
+                                        data-qa="version-actions-button">
+                                        <i class="fa fa-ellipsis-v"></i>
+                                    </button>
+                                    <mat-menu #actionMenu="matMenu" xPosition="before">
+                                        <button
+                                            mat-menu-item
+                                            (click)="openFlowDiff(item)"
+                                            data-qa="view-flow-diff-button">
+                                            View flow version diff
+                                        </button>
+                                    </mat-menu>
+                                </div>
+                            </td>
+                        </ng-container>
+
                         <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
                         <tr
                             mat-row
