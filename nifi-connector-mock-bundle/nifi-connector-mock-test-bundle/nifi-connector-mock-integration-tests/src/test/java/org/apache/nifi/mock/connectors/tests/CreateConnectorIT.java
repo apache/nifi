@@ -65,7 +65,7 @@ public class CreateConnectorIT {
             assertEquals("org.apache.nifi.lookup.SimpleKeyValueLookupService", controllerServices.iterator().next().getType());
 
             testRunner.startConnector();
-            testRunner.stopConnector();
+            assertDoesNotThrow(() -> testRunner.stopConnector(Duration.ofSeconds(120)));
         }
     }
 
