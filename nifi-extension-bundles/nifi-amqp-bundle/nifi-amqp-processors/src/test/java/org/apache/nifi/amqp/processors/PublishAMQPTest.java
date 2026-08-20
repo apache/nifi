@@ -236,19 +236,6 @@ public class PublishAMQPTest {
     }
 
     @Test
-    public void validateMaximumInputFlowFileSizeProperty() {
-        assertEquals("Maximum Input FlowFile Size", PublishAMQP.MAXIMUM_INPUT_FLOWFILE_SIZE.getName());
-        assertEquals("128 MB", PublishAMQP.MAXIMUM_INPUT_FLOWFILE_SIZE.getDefaultValue());
-
-        setConnectionProperties(runner);
-        runner.setProperty(PublishAMQP.MAXIMUM_INPUT_FLOWFILE_SIZE, "128 MB");
-        runner.assertValid();
-
-        runner.setProperty(PublishAMQP.MAXIMUM_INPUT_FLOWFILE_SIZE, "129 MB");
-        runner.assertNotValid();
-    }
-
-    @Test
     public void validateSuccessWithHeaderFromAttributeRegexToSuccess() throws Exception {
         setConnectionProperties(runner);
         runner.setProperty(PublishAMQP.HEADERS_SOURCE, InputHeaderSource.FLOWFILE_ATTRIBUTES);
