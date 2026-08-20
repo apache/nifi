@@ -57,6 +57,25 @@ public class RemovedConnectionDrainClassifierTest {
     }
 
     @Test
+    public void testUnknownQueueStateDoesNotSkipDrain() {
+        final RemovedConnectionDescriptor removedConnection = createDescriptor("c-unknown-queue", "c-unknown-queue-v", ROOT_GROUP_ID,
+                "source", "source-v", ROOT_GROUP_ID, ConnectableType.PROCESSOR,
+                "destination", "destination-v", ROOT_GROUP_ID, ConnectableType.PROCESSOR,
+                RemovalReason.COMPONENT_REMOVED);
+
+        final TestContext context = new TestContext()
+                .addGroup(ROOT_GROUP_ID, null)
+                .addConnection("c-unknown-queue", "source", "destination", false)
+                .addProcessor("source", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID)
+                .addProcessor("destination", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID);
+
+        final RemovedConnectionDrainClassifier.BatchResult result = classifier.classify(createImpact(Set.of(removedConnection), Set.of(), Set.of()), context);
+
+        assertTrue(result.isSupported());
+        assertEquals(RemovedConnectionDrainClassifier.Classification.CANDIDATE, result.connectionResults().getFirst().classification());
+    }
+
+    @Test
     public void testNonEmptySourceChangedRemovalIsUnsupported() {
         final RemovedConnectionDescriptor removedConnection = createDescriptor("c-source-changed", "c-source-changed-v", ROOT_GROUP_ID,
                 "source", "source-v", ROOT_GROUP_ID, ConnectableType.PROCESSOR,

@@ -68,7 +68,8 @@ public final class RemovedConnectionDrainCoordinator {
         Objects.requireNonNull(groupId, "Group ID required");
         Objects.requireNonNull(cancellationHandle, "Cancellation Handle required");
 
-        final RemovedConnectionDrainClassifier.BatchResult batchResult = classifier.classify(flowUpdateImpact, context);
+        final RemovedConnectionDrainClassifier.Context queueAwareContext = createQueueAwareContext(flowUpdateImpact, context, componentLifecycle, requestUri);
+        final RemovedConnectionDrainClassifier.BatchResult batchResult = classifier.classify(flowUpdateImpact, queueAwareContext);
         if (!batchResult.isSupported()) {
             throw new LifecycleManagementException(buildClassificationFailureMessage(batchResult));
         }
@@ -77,6 +78,7 @@ public final class RemovedConnectionDrainCoordinator {
                 .filter(result -> result.classification() == RemovedConnectionDrainClassifier.Classification.CANDIDATE)
                 .map(result -> result.connection().getConnectionInstanceId())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+
         if (candidateConnectionIds.isEmpty()) {
             return DrainResult.success(Collections.emptySet(), Collections.emptySet());
         }
@@ -85,7 +87,7 @@ public final class RemovedConnectionDrainCoordinator {
                 .collect(Collectors.toMap(AffectedComponentEntity::getId, entity -> entity, (left, right) -> left, LinkedHashMap::new));
         final Set<AffectedComponentEntity> componentsToStop = new LinkedHashSet<>();
         for (final String producerBarrierComponentId : batchResult.producerBarrierComponentIds()) {
-            final AffectedComponentEntity entity = getProducerBarrierEntity(affectedComponentsById, context, producerBarrierComponentId);
+            final AffectedComponentEntity entity = getProducerBarrierEntity(affectedComponentsById, queueAwareContext, producerBarrierComponentId);
             if (entity == null || entity.getComponent() == null) {
                 continue;
             }
@@ -132,7 +134,7 @@ public final class RemovedConnectionDrainCoordinator {
 
             throw new LifecycleManagementException(buildQueueTimeoutMessage(candidateConnectionIds));
         } catch (final LifecycleManagementException e) {
-            final Set<AffectedComponentEntity> stoppedComponents = getStoppedComponentsToRestore(context, componentsToStop, drainStoppedComponents);
+            final Set<AffectedComponentEntity> stoppedComponents = getStoppedComponentsToRestore(queueAwareContext, componentsToStop, drainStoppedComponents);
             if (cancellationHandle.isCancelled()) {
                 return restoreAfterCancellation(componentLifecycle, requestUri, groupId, candidateConnectionIds, stoppedComponents);
             }
@@ -267,6 +269,25 @@ public final class RemovedConnectionDrainCoordinator {
 
         componentLifecycle.scheduleComponents(requestUri, groupId, stoppedComponents, ScheduledState.RUNNING,
                 pauseFactory.createRestorationPause(), InvalidComponentAction.SKIP);
+    }
+
+    private RemovedConnectionDrainClassifier.Context createQueueAwareContext(final FlowUpdateImpact flowUpdateImpact,
+                                                                             final RemovedConnectionDrainClassifier.Context context,
+                                                                             final ComponentLifecycle componentLifecycle,
+                                                                             final URI requestUri) throws LifecycleManagementException {
+        final Map<String, Boolean> knownQueueEmptyByConnectionId = new LinkedHashMap<>();
+        final Pause noWaitPause = NoWaitPause.INSTANCE;
+        for (final RemovedConnectionDescriptor removedConnection : flowUpdateImpact.getRemovedConnections()) {
+            final String connectionId = removedConnection.getConnectionInstanceId();
+            if (connectionId == null) {
+                continue;
+            }
+
+            final boolean knownQueueEmpty = componentLifecycle.waitForConnectionQueuesEmpty(requestUri, Set.of(connectionId), noWaitPause);
+            knownQueueEmptyByConnectionId.put(connectionId, knownQueueEmpty);
+        }
+
+        return new QueueAwareContext(context, knownQueueEmptyByConnectionId);
     }
 
     private boolean allComponentsStopped(final Set<AffectedComponentEntity> componentsToStop, final Set<AffectedComponentEntity> updatedStoppedComponents) {
@@ -463,6 +484,48 @@ public final class RemovedConnectionDrainCoordinator {
             }
 
             return !cancelled && nanoTimeSupplier.getAsLong() < deadlineNanos;
+        }
+    }
+
+    private enum NoWaitPause implements Pause {
+        INSTANCE;
+
+        @Override
+        public boolean pause() {
+            return false;
+        }
+    }
+
+    private record QueueAwareContext(RemovedConnectionDrainClassifier.Context delegate,
+                                     Map<String, Boolean> knownQueueEmptyByConnectionId) implements RemovedConnectionDrainClassifier.Context {
+        private QueueAwareContext {
+            delegate = Objects.requireNonNull(delegate, "Removed Connection Drain Context required");
+            knownQueueEmptyByConnectionId = Collections.unmodifiableMap(new LinkedHashMap<>(knownQueueEmptyByConnectionId));
+        }
+
+        @Override
+        public RemovedConnectionDrainClassifier.LiveConnection getConnection(final String connectionId) {
+            final RemovedConnectionDrainClassifier.LiveConnection connection = delegate.getConnection(connectionId);
+            if (connection == null) {
+                return null;
+            }
+
+            final Boolean knownQueueEmpty = knownQueueEmptyByConnectionId.get(connectionId);
+            if (knownQueueEmpty == null) {
+                return connection;
+            }
+
+            return new RemovedConnectionDrainClassifier.LiveConnection(connection.id(), connection.sourceId(), connection.destinationId(), knownQueueEmpty);
+        }
+
+        @Override
+        public RemovedConnectionDrainClassifier.LiveConnectable getConnectable(final String connectableId) {
+            return delegate.getConnectable(connectableId);
+        }
+
+        @Override
+        public RemovedConnectionDrainClassifier.LiveProcessGroup getProcessGroup(final String processGroupId) {
+            return delegate.getProcessGroup(processGroupId);
         }
     }
 
