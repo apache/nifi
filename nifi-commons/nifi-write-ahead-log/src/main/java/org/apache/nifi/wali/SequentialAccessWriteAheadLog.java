@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BooleanSupplier;
 import java.util.regex.Pattern;
 
 /**
@@ -53,6 +54,14 @@ import java.util.regex.Pattern;
  * that records are recovered correctly if two threads simultaneously update the write-ahead log
  * with updates for the same record.
  * </p>
+ *
+ * <p>
+ * A maximum journal size may be provided. When it is, an update that causes the amount of storage consumed by the
+ * journal to reach that size triggers a checkpoint, which rolls over to a new journal and reclaims the storage that
+ * was consumed by the previous one. The size is a trigger rather than a strict cap, because the update that crosses
+ * the threshold is always written in full before the journal is rolled over. When no maximum journal size is provided,
+ * the journal grows until the owner of this repository chooses to checkpoint.
+ * </p>
  */
 public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T> {
     private static final int PARTITION_INDEX = 0;
@@ -65,6 +74,7 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
     private final File journalsDirectory;
     protected final SerDeFactory<T> serdeFactory;
     private final SyncListener syncListener;
+    private final Long maxJournalBytes;
     private final Set<String> recoveredSwapLocations = new HashSet<>();
 
     private final ReadWriteLock journalRWLock = new ReentrantReadWriteLock();
@@ -88,6 +98,25 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
     }
 
     public SequentialAccessWriteAheadLog(final File storageDirectory, final SerDeFactory<T> serdeFactory, final SyncListener syncListener) throws IOException {
+        this(storageDirectory, serdeFactory, syncListener, null);
+    }
+
+    /**
+     * Creates a Write-Ahead Log that optionally checkpoints whenever its journal reaches a given size.
+     *
+     * @param storageDirectory the directory in which the snapshot and journals are stored
+     * @param serdeFactory the factory for creating the serializer/deserializer to use for records
+     * @param syncListener the listener to notify when data is synchronized to disk
+     * @param maxJournalBytes the amount of storage that the journal may consume before an update triggers a checkpoint, or
+     *            <code>null</code> if the journal is to grow until the caller explicitly checkpoints. When provided, the value must be
+     *            greater than 0.
+     * @throws IOException if unable to create or access the storage directory
+     */
+    public SequentialAccessWriteAheadLog(final File storageDirectory, final SerDeFactory<T> serdeFactory, final SyncListener syncListener, final Long maxJournalBytes) throws IOException {
+        if (maxJournalBytes != null && maxJournalBytes <= 0) {
+            throw new IllegalArgumentException("Maximum Journal Size must be greater than 0 bytes but was " + maxJournalBytes);
+        }
+
         if (!storageDirectory.exists() && !storageDirectory.mkdirs()) {
             throw new IOException("Directory " + storageDirectory + " does not exist and cannot be created");
         }
@@ -109,6 +138,7 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
 
         this.serdeFactory = serdeFactory;
         this.syncListener = (syncListener == null) ? SyncListener.NOP_SYNC_LISTENER : syncListener;
+        this.maxJournalBytes = maxJournalBytes;
     }
 
     @Override
@@ -117,6 +147,7 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
             throw new IllegalStateException("Cannot update repository until record recovery has been performed");
         }
 
+        final boolean maxJournalSizeReached;
         journalReadLock.lock();
         try {
             journal.update(records, recordLookup);
@@ -127,8 +158,18 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
             }
 
             snapshot.update(records);
+
+            maxJournalSizeReached = maxJournalBytes != null && journal.getBytesWritten() >= maxJournalBytes;
         } finally {
             journalReadLock.unlock();
+        }
+
+        // The checkpoint requires the write lock, so it must be performed only after the read lock has been released. Because the
+        // journal may be rolled over by another thread in the meantime, the checkpoint verifies that the journal is still large
+        // enough to warrant rolling over.
+        if (maxJournalSizeReached) {
+            logger.debug("Checkpointing Write-Ahead Log at {} because its journal has reached the maximum size of {} bytes", storageDirectory, maxJournalBytes);
+            checkpointIfJournalExceedsLimit();
         }
 
         return PARTITION_INDEX;
@@ -252,12 +293,41 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
     }
 
     private int checkpoint(final Set<String> swapLocations) throws IOException {
+        return checkpoint(swapLocations, () -> true);
+    }
+
+    /**
+     * Checkpoints only if the journal still consumes at least the configured maximum number of bytes. Because the update that triggered
+     * this call must release the journal read lock before a checkpoint can acquire the write lock, another thread may have already
+     * rolled the journal over. In that case, no checkpoint is performed.
+     *
+     * @throws IOException if unable to write the snapshot or create the new journal
+     */
+    private void checkpointIfJournalExceedsLimit() throws IOException {
+        checkpoint(null, () -> journal != null && journal.getBytesWritten() >= maxJournalBytes);
+    }
+
+    /**
+     * Writes a snapshot of the current state of the repository and rolls over to a new journal.
+     *
+     * @param swapLocations the swap locations to include in the snapshot, or <code>null</code> to use the swap locations that are already known
+     * @param checkpointRequired evaluated while the journal write lock is held; if it returns <code>false</code>, no checkpoint is performed. This allows a checkpoint
+     *            that was triggered by the size of a journal to be abandoned if that journal has already been rolled over by another thread
+     * @return the number of records that are stored in the snapshot
+     * @throws IOException if unable to write the snapshot or create the new journal
+     */
+    private int checkpoint(final Set<String> swapLocations, final BooleanSupplier checkpointRequired) throws IOException {
         final SnapshotCapture<T> snapshotCapture;
 
         final long startNanos = System.nanoTime();
         final File[] existingJournals;
+        long checkpointedJournalBytes = 0L;
         journalWriteLock.lock();
         try {
+            if (!checkpointRequired.getAsBoolean()) {
+                return snapshot.getRecordCount();
+            }
+
             if (journal != null) {
                 final JournalSummary journalSummary = journal.getSummary();
                 if (journalSummary.getTransactionCount() == 0 && journal.isHealthy()) {
@@ -265,6 +335,8 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
                     syncListener.onGlobalSync();
                     return snapshot.getRecordCount();
                 }
+
+                checkpointedJournalBytes = journal.getBytesWritten();
 
                 try {
                     journal.fsync();
@@ -314,14 +386,14 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         snapshot.writeSnapshot(snapshotCapture);
 
         for (final File existingJournal : existingJournals) {
-            final WriteAheadJournal journal = new LengthDelimitedJournal<>(existingJournal, serdeFactory, streamPool, nextTransactionId);
-            journal.dispose();
+            final WriteAheadJournal<T> existingWriteAheadJournal = new LengthDelimitedJournal<>(existingJournal, serdeFactory, streamPool, nextTransactionId);
+            existingWriteAheadJournal.dispose();
         }
 
         final long totalNanos = System.nanoTime() - startNanos;
         final long millis = TimeUnit.NANOSECONDS.toMillis(totalNanos);
-        logger.info("Checkpointed Write-Ahead Log with {} Records and {} Swap Files in {} milliseconds (Stop-the-world time = {} milliseconds), max Transaction ID {}",
-                snapshotCapture.getRecords().size(), snapshotCapture.getSwapLocations().size(), millis, stopTheWorldMillis, snapshotCapture.getMaxTransactionId());
+        logger.info("Checkpointed Write-Ahead Log with {} Records and {} Swap Files in {} milliseconds (Stop-the-world time = {} milliseconds), max Transaction ID {}, reclaiming {} bytes of storage",
+                snapshotCapture.getRecords().size(), snapshotCapture.getSwapLocations().size(), millis, stopTheWorldMillis, snapshotCapture.getMaxTransactionId(), checkpointedJournalBytes);
 
         return snapshotCapture.getRecords().size();
     }
@@ -337,4 +409,5 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
             journalWriteLock.unlock();
         }
     }
+
 }

@@ -102,6 +102,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private final int maxCharactersToCache;
     private final long truncationThreshold;
     private final boolean truncationEnabled;
+    private final Long maximumJournalBytes;
 
     private volatile Collection<SerializedRepositoryRecord> recoveredRecords = null;
     private final Set<ResourceClaim> orphanedResourceClaims = Collections.synchronizedSet(new HashSet<>());
@@ -150,6 +151,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         maxCharactersToCache = 0;
         truncationThreshold = Long.MAX_VALUE;
         truncationEnabled = false;
+        maximumJournalBytes = null;
     }
 
     public WriteAheadFlowFileRepository(final NiFiProperties nifiProperties) {
@@ -170,6 +172,9 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         flowFileRepositoryPaths.add(new File(directoryName));
 
         checkpointDelayMillis = FormatUtils.getTimeDuration(nifiProperties.getFlowFileRepositoryCheckpointInterval(), TimeUnit.MILLISECONDS);
+
+        final String maximumJournalSize = nifiProperties.getFlowFileRepositoryMaxJournalSize();
+        maximumJournalBytes = (maximumJournalSize == null) ? null : DataUnit.parseDataSize(maximumJournalSize, DataUnit.B).longValue();
 
         checkpointExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
             final Thread t = Executors.defaultThreadFactory().newThread(r);
@@ -202,7 +207,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // delete backup. On restore, if no files exist in partition's directory, would have to check backup directory
         this.serdeFactory = serdeFactory;
 
-        wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this);
+        wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this, maximumJournalBytes);
         logger.info("Initialized FlowFile Repository");
     }
 

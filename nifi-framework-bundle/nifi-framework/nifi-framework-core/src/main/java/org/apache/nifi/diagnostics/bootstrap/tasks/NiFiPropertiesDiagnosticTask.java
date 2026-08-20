@@ -44,6 +44,7 @@ public class NiFiPropertiesDiagnosticTask implements DiagnosticTask {
         "nifi.content.repository.archive.max.retention.period",
         "nifi.content.repository.archive.max.usage.percentage",
         "nifi.flowfile.repository.checkpoint.interval",
+        "nifi.flowfile.repository.checkpoint.max.journal.size",
         "nifi.flowfile.repository.always.sync",
         "nifi.components.status.snapshot.frequency",
         "nifi.bored.yield.duration",

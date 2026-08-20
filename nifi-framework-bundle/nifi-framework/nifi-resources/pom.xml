@@ -58,6 +58,7 @@
         <nifi.flowfile.repository.wal.implementation>org.apache.nifi.wali.SequentialAccessWriteAheadLog</nifi.flowfile.repository.wal.implementation>
         <nifi.flowfile.repository.directory>./flowfile_repository</nifi.flowfile.repository.directory>
         <nifi.flowfile.repository.checkpoint.interval>20 secs</nifi.flowfile.repository.checkpoint.interval>
+        <nifi.flowfile.repository.checkpoint.max.journal.size />
         <nifi.flowfile.repository.always.sync>false</nifi.flowfile.repository.always.sync>
         <nifi.flowfile.repository.retain.orphaned.flowfiles>true</nifi.flowfile.repository.retain.orphaned.flowfiles>
         <nifi.swap.manager.implementation>org.apache.nifi.controller.FileSystemSwapManager</nifi.swap.manager.implementation>

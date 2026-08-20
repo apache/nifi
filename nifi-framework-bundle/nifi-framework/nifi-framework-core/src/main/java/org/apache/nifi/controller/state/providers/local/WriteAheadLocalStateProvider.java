@@ -25,12 +25,14 @@ import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.controller.state.StateMapSerDe;
 import org.apache.nifi.controller.state.StateMapUpdate;
 import org.apache.nifi.controller.state.providers.AbstractStateProvider;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wali.SerDe;
 import org.wali.SerDeFactory;
+import org.wali.SyncListener;
 import org.wali.UpdateType;
 import org.wali.WriteAheadRepository;
 
@@ -99,6 +101,13 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         .required(true)
         .build();
 
+    static final PropertyDescriptor MAXIMUM_JOURNAL_SIZE = new PropertyDescriptor.Builder()
+        .name("Maximum Journal Size")
+        .description("The amount of data that may be written to the write-ahead log's journal before a checkpoint is performed. If not specified, checkpoints occur only on the Checkpoint Interval.")
+        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .required(false)
+        .build();
+
     private WriteAheadRepository<StateMapUpdate> writeAheadLog;
     private AtomicLong versionGenerator;
 
@@ -130,7 +139,11 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         }
 
         versionGenerator = new AtomicLong(-1L);
-        writeAheadLog = new SequentialAccessWriteAheadLog<>(basePath, new SerdeFactory(serde));
+
+        final Double maximumJournalSize = context.getProperty(MAXIMUM_JOURNAL_SIZE).asDataSize(DataUnit.B);
+        final Long maximumJournalBytes = (maximumJournalSize == null) ? null : maximumJournalSize.longValue();
+
+        writeAheadLog = new SequentialAccessWriteAheadLog<>(basePath, new SerdeFactory(serde), SyncListener.NOP_SYNC_LISTENER, maximumJournalBytes);
 
         final Collection<StateMapUpdate> updates = writeAheadLog.recoverRecords();
         long maxRecordVersion = EMPTY_VERSION;
@@ -165,6 +178,7 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         properties.add(ALWAYS_SYNC);
         properties.add(CHECKPOINT_INTERVAL);
         properties.add(NUM_PARTITIONS);
+        properties.add(MAXIMUM_JOURNAL_SIZE);
         return properties;
     }
 
