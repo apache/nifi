@@ -126,7 +126,8 @@ public class ClasspathVerifyIT extends NiFiSystemIT {
 
         getClientUtil().configureConnectorWithReferences(connector.getId(), METHOD_SIGNATURE_STEP_NAME, createMethodSignatureReferences(assetId, APPLICATION_PROCESSOR_PROPERTY));
 
-        final List<ConfigVerificationResultDTO> results = getClientUtil().verifyConnectorStepConfigWithReferences(connector.getId(), METHOD_SIGNATURE_STEP_NAME, createMethodSignatureReferences(assetId, APPLICATION_PROCESSOR_PROPERTY));
+        final List<ConfigVerificationResultDTO> results = getClientUtil().verifyConnectorStepConfigWithReferences(
+                connector.getId(), METHOD_SIGNATURE_STEP_NAME, createMethodSignatureReferences(assetId, APPLICATION_PROCESSOR_PROPERTY));
 
         assertSuccessfulClasspathStep(results, METHOD_SIGNATURE_STEP);
     }
@@ -138,7 +139,8 @@ public class ClasspathVerifyIT extends NiFiSystemIT {
 
         getClientUtil().configureConnectorWithReferences(connector.getId(), METHOD_SIGNATURE_STEP_NAME, createMethodSignatureReferences(assetId, APPLICATION_CONTROLLER_SERVICE_PROPERTY));
 
-        final List<ConfigVerificationResultDTO> results = getClientUtil().verifyConnectorStepConfigWithReferences(connector.getId(), METHOD_SIGNATURE_STEP_NAME, createMethodSignatureReferences(assetId, APPLICATION_CONTROLLER_SERVICE_PROPERTY));
+        final List<ConfigVerificationResultDTO> results = getClientUtil().verifyConnectorStepConfigWithReferences(
+                connector.getId(), METHOD_SIGNATURE_STEP_NAME, createMethodSignatureReferences(assetId, APPLICATION_CONTROLLER_SERVICE_PROPERTY));
 
         assertSuccessfulClasspathStep(results, METHOD_SIGNATURE_STEP);
     }
