@@ -2771,25 +2771,29 @@ public class NiFiClientUtil {
         logger.info("Submitting Change Flow Version request to change Group with ID {} to Version {}", processGroupId, version);
 
         try {
-            final ProcessGroupEntity groupEntity = nifiClient.getProcessGroupClient().getProcessGroup(processGroupId);
-            final ProcessGroupDTO groupDto = groupEntity.getComponent();
-            final VersionControlInformationDTO vciDto = groupDto.getVersionControlInformation();
-            if (vciDto == null) {
-                throw new IllegalArgumentException("Process Group with ID " + processGroupId + " is not under Version Control");
-            }
-
-            vciDto.setVersion(version);
-
-            final VersionControlInformationEntity requestEntity = new VersionControlInformationEntity();
-            requestEntity.setProcessGroupRevision(groupEntity.getRevision());
-            requestEntity.setVersionControlInformation(vciDto);
-
-            final VersionedFlowUpdateRequestEntity result = nifiClient.getVersionsClient().updateVersionControlInfo(processGroupId, requestEntity);
+            final VersionedFlowUpdateRequestEntity result = initiateFlowVersionChange(processGroupId, version);
             return waitForVersionFlowUpdateComplete(result.getRequest().getRequestId(), throwOnFailure);
         } catch (final Exception e) {
             logger.error("Failed to change flow version for Process Group {} to version {}", processGroupId, version);
             throw e;
         }
+    }
+
+    public VersionedFlowUpdateRequestEntity initiateFlowVersionChange(final String processGroupId, final String version)
+            throws NiFiClientException, IOException {
+        final ProcessGroupEntity groupEntity = nifiClient.getProcessGroupClient().getProcessGroup(processGroupId);
+        final ProcessGroupDTO groupDto = groupEntity.getComponent();
+        final VersionControlInformationDTO vciDto = groupDto.getVersionControlInformation();
+        if (vciDto == null) {
+            throw new IllegalArgumentException("Process Group with ID " + processGroupId + " is not under Version Control");
+        }
+
+        vciDto.setVersion(version);
+
+        final VersionControlInformationEntity requestEntity = new VersionControlInformationEntity();
+        requestEntity.setProcessGroupRevision(groupEntity.getRevision());
+        requestEntity.setVersionControlInformation(vciDto);
+        return nifiClient.getVersionsClient().updateVersionControlInfo(processGroupId, requestEntity);
     }
 
     public VersionedFlowUpdateRequestEntity waitForVersionFlowUpdateComplete(final String updateRequestId, final boolean throwOnFailure) throws NiFiClientException, IOException, InterruptedException {

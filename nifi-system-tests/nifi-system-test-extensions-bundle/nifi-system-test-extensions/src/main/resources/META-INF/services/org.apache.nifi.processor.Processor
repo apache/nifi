@@ -32,6 +32,7 @@ org.apache.nifi.processors.tests.system.FakeProcessor
 org.apache.nifi.processors.tests.system.FakeDynamicPropertiesProcessor
 org.apache.nifi.processors.tests.system.GenerateAndCountCallbacks
 org.apache.nifi.processors.tests.system.GenerateFlowFile
+org.apache.nifi.processors.tests.system.GatedPassThrough
 org.apache.nifi.processors.tests.system.GenerateTruncatableFlowFiles
 org.apache.nifi.processors.tests.system.HoldInput
 org.apache.nifi.processors.tests.system.IngestFile

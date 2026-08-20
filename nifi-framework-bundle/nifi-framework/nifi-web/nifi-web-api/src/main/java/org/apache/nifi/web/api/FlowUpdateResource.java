@@ -35,7 +35,9 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
+import org.apache.nifi.web.FlowUpdateImpact;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.RemovedConnectionDrainCoordinator;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.ResumeFlowException;
 import org.apache.nifi.web.Revision;
@@ -208,12 +210,12 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         final Set<String> unresolvedParameterProviders = serviceFacade.resolveParameterProviders(flowSnapshot, user);
 
         // Step 1: Determine which components will be affected by updating the flow
-        final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByFlowUpdate(groupId, flowSnapshot);
+        final FlowUpdateImpact flowUpdateImpact = serviceFacade.getFlowUpdateImpact(groupId, flowSnapshot);
 
         // build a request wrapper
         final InitiateUpdateFlowRequestWrapper requestWrapper =
                 new InitiateUpdateFlowRequestWrapper(requestEntity, componentLifecycle, requestType, getAbsolutePath(), replicateUriPath,
-                        affectedComponents, replicateRequest, flowSnapshot);
+                        flowUpdateImpact, replicateRequest, flowSnapshot);
 
         final Revision requestRevision = getRevision(revisionDto, groupId);
         return withWriteLock(
@@ -284,14 +286,14 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         // result in stopping components, which can take an indeterminate amount of time.
         final String requestId = UUID.randomUUID().toString();
         final AsynchronousWebRequest<T, T> request =
-                new StandardAsynchronousWebRequest<>(requestId, wrapper.getRequestEntity(), groupId, user, getUpdateFlowSteps());
+                new StandardAsynchronousWebRequest<>(requestId, wrapper.getRequestEntity(), groupId, user, getUpdateFlowSteps(requestType));
 
         // Submit the request to be performed in the background
         final Consumer<AsynchronousWebRequest<T, T>> updateTask =
                 vcur -> {
                     try {
                         updateFlow(groupId, wrapper.getComponentLifecycle(), wrapper.getRequestUri(),
-                                wrapper.getAffectedComponents(), wrapper.isReplicateRequest(), wrapper.getReplicateUriPath(),
+                                wrapper.getFlowUpdateImpact(), wrapper.isReplicateRequest(), wrapper.getReplicateUriPath(),
                                 revision, wrapper.getRequestEntity(), wrapper.getFlowSnapshot(), request,
                                 idGenerationSeed, allowDirtyFlowUpdate, requestType);
 
@@ -331,11 +333,13 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
      * Perform the specified flow update
      */
     private void updateFlow(final String groupId, final ComponentLifecycle componentLifecycle, final URI requestUri,
-                            final Set<AffectedComponentEntity> affectedComponents, final boolean replicateRequest,
+                            final FlowUpdateImpact flowUpdateImpact, final boolean replicateRequest,
                             final String replicateUriPath, final Revision revision, final T requestEntity,
                             final RegisteredFlowSnapshot flowSnapshot, final AsynchronousWebRequest<T, T> asyncRequest,
                             final String idGenerationSeed, final boolean allowDirtyFlowUpdate, final String requestType)
             throws LifecycleManagementException, ResumeFlowException {
+
+        final Set<AffectedComponentEntity> affectedComponents = flowUpdateImpact.getAffectedComponents();
 
         // Steps 5-6: Determine which components must be stopped and stop them.
         final Set<String> stoppableReferenceTypes = new HashSet<>();
@@ -349,7 +353,21 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         final Set<AffectedComponentEntity> runningComponents = affectedComponents.stream()
                 .filter(entity -> stoppableReferenceTypes.contains(entity.getComponent().getReferenceType()))
                 .filter(entity -> isActive(entity.getComponent()))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        if ("update-requests".equals(requestType)) {
+            final RemovedConnectionDrainCoordinator.DrainResult drainResult = preDrainRemovedConnections(
+                    flowUpdateImpact, componentLifecycle, requestUri, groupId, asyncRequest);
+            if (drainResult.cancelled()) {
+                if (drainResult.restorationFailure() != null) {
+                    logger.warn("Failed to restore components after removed connection drain cancellation", drainResult.restorationFailure());
+                    asyncRequest.appendFailureDetail("restoration failed: " + drainResult.restorationFailure().getMessage());
+                }
+                return;
+            }
+            runningComponents.addAll(drainResult.drainStoppedComponents());
+            asyncRequest.markStepComplete();
+        }
 
         logger.info("Stopping {} Processors", runningComponents.size());
         final CancellableTimedPause stopComponentsPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
@@ -621,14 +639,35 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
     /**
      * Get a list of steps to perform for upload flow
      */
-    private static List<UpdateStep> getUpdateFlowSteps() {
+    static List<UpdateStep> getUpdateFlowSteps(final String requestType) {
         final List<UpdateStep> updateSteps = new ArrayList<>();
+        if ("update-requests".equals(requestType)) {
+            updateSteps.add(new StandardUpdateStep("Draining Removed Connections"));
+        }
         updateSteps.add(new StandardUpdateStep("Stopping Affected Processors"));
         updateSteps.add(new StandardUpdateStep("Disabling Affected Controller Services"));
         updateSteps.add(new StandardUpdateStep("Updating Flow"));
         updateSteps.add(new StandardUpdateStep("Re-Enabling Controller Services"));
         updateSteps.add(new StandardUpdateStep("Restarting Affected Processors"));
         return updateSteps;
+    }
+
+    protected RemovedConnectionDrainCoordinator.DrainResult preDrainRemovedConnections(
+            final FlowUpdateImpact flowUpdateImpact, final ComponentLifecycle componentLifecycle, final URI requestUri,
+            final String groupId, final AsynchronousWebRequest<T, T> asyncRequest) throws LifecycleManagementException {
+        return new RemovedConnectionDrainCoordinator().coordinateDrain(
+                flowUpdateImpact, serviceFacade.getRemovedConnectionDrainContext(), componentLifecycle, requestUri, groupId,
+                new RemovedConnectionDrainCoordinator.CancellationHandle() {
+                    @Override
+                    public boolean isCancelled() {
+                        return asyncRequest.isCancelled();
+                    }
+
+                    @Override
+                    public void setCancelCallback(final Runnable runnable) {
+                        asyncRequest.setCancelCallback(runnable);
+                    }
+                });
     }
 
     /**
@@ -773,20 +812,20 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         private final String requestType;
         private final URI requestUri;
         private final String replicateUriPath;
-        private final Set<AffectedComponentEntity> affectedComponents;
+        private final FlowUpdateImpact flowUpdateImpact;
         private final boolean replicateRequest;
         private final RegisteredFlowSnapshot flowSnapshot;
 
         public InitiateUpdateFlowRequestWrapper(final T requestEntity, final ComponentLifecycle componentLifecycle,
                                                 final String requestType, final URI requestUri, final String replicateUriPath,
-                                                final Set<AffectedComponentEntity> affectedComponents,
+                                                final FlowUpdateImpact flowUpdateImpact,
                                                 final boolean replicateRequest, final RegisteredFlowSnapshot flowSnapshot) {
             this.requestEntity = requestEntity;
             this.componentLifecycle = componentLifecycle;
             this.requestType = requestType;
             this.requestUri = requestUri;
             this.replicateUriPath = replicateUriPath;
-            this.affectedComponents = affectedComponents;
+            this.flowUpdateImpact = flowUpdateImpact;
             this.replicateRequest = replicateRequest;
             this.flowSnapshot = flowSnapshot;
         }
@@ -812,7 +851,11 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         }
 
         public Set<AffectedComponentEntity> getAffectedComponents() {
-            return affectedComponents;
+            return flowUpdateImpact.getAffectedComponents();
+        }
+
+        public FlowUpdateImpact getFlowUpdateImpact() {
+            return flowUpdateImpact;
         }
 
         public boolean isReplicateRequest() {
