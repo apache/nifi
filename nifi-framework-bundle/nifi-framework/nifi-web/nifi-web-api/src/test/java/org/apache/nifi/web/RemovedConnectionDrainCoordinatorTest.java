@@ -279,7 +279,7 @@ class RemovedConnectionDrainCoordinatorTest {
         assertTrue(exception.getMessage().contains("Removed connection drain timed out"));
         assertTrue(exception.getMessage().contains("connectionIds=[connection-a]"));
         assertSame(deadlinePause, lifecycle.queueWaitPause);
-        assertEquals(2, deadlinePause.pauseInvocations);
+        assertEquals(3, deadlinePause.pauseInvocations);
         assertEquals(1, pauseFactory.restorationPauseCreations);
         assertEquals(List.of(
                 new ScheduleCall(ScheduledState.STOPPED, Set.of("source-a")),
@@ -569,6 +569,7 @@ class RemovedConnectionDrainCoordinatorTest {
         private final List<Set<String>> queueWaitCalls = new ArrayList<>();
         private final Map<String, AffectedComponentEntity> stoppedResultById = new LinkedHashMap<>();
         private final Map<String, AffectedComponentEntity> runningResultById = new LinkedHashMap<>();
+        private final Set<String> initiallyEmptyConnectionIds = new LinkedHashSet<>();
         private boolean queueWaitResult;
         private boolean cancelAfterStop;
         private boolean cancelDuringQueueWait;
@@ -619,6 +620,10 @@ class RemovedConnectionDrainCoordinatorTest {
 
         @Override
         public boolean waitForConnectionQueuesEmpty(final URI exampleUri, final Set<String> connectionIds, final Pause pause) throws LifecycleManagementException {
+            if (connectionIds.size() == 1 && !pause.pause()) {
+                return initiallyEmptyConnectionIds.contains(connectionIds.iterator().next());
+            }
+
             queueWaitCalls.add(Set.copyOf(connectionIds));
             queueWaitPause = pause;
 

@@ -27,10 +27,10 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
+import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
-import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
@@ -46,6 +46,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -118,11 +119,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         while (continuePolling) {
             boolean allQueuesEmpty = true;
             for (final String connectionId : orderedConnectionIds) {
-                final ConnectionStatusEntity connectionStatusEntity = serviceFacade.getConnectionStatus(connectionId);
-                if (connectionStatusEntity == null || connectionStatusEntity.getConnectionStatus() == null
-                        || connectionStatusEntity.getConnectionStatus().getAggregateSnapshot() == null
-                        || connectionStatusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued() == null
-                        || connectionStatusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued() != 0) {
+                if (!isConnectionQueueEmpty(connectionId)) {
                     allQueuesEmpty = false;
                     break;
                 }
@@ -136,6 +133,21 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         }
 
         return false;
+    }
+
+    private boolean isConnectionQueueEmpty(final String connectionId) {
+        final String requestId = UUID.randomUUID().toString();
+        try {
+            final ListingRequestDTO listingRequest = serviceFacade.createFlowFileListingRequest(connectionId, requestId);
+            return listingRequest != null
+                    && listingRequest.getQueueSize() != null
+                    && listingRequest.getQueueSize().getObjectCount() == 0;
+        } finally {
+            try {
+                serviceFacade.deleteFlowFileListingRequest(connectionId, requestId);
+            } catch (final Exception ignored) {
+            }
+        }
     }
 
     private void startComponents(final String processGroupId, final Map<String, Revision> componentRevisions, final Map<String, AffectedComponentEntity> affectedComponents, final Pause pause,
