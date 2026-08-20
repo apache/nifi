@@ -95,8 +95,14 @@ public class StandaloneParameterContextFacade implements ParameterContextFacade 
         final Map<String, Parameter> updatedParameters = createParameterMap(updatedValues);
         managedProcessGroup.getParameterContext().setParameters(updatedParameters);
 
-        allReferencingProcessors.forEach(ProcessorNode::resetValidationState);
+        // A component whose additional classpath resources are supplied by a Parameter must be reloaded so that its ClassLoader reflects the
+        // updated Parameter values. Components that are not running are not restarted below, so reloading here is the only point at which their
+        // ClassLoader is rebuilt.
+        allReferencingServices.forEach(ControllerServiceNode::reloadAdditionalResourcesIfNecessary);
+        allReferencingProcessors.forEach(ProcessorNode::reloadAdditionalResourcesIfNecessary);
+
         allReferencingServices.forEach(ControllerServiceNode::resetValidationState);
+        allReferencingProcessors.forEach(ProcessorNode::resetValidationState);
 
         logger.info("Parameter Context updated {} parameter. Restarting {} affected components.", updatedValues.size(), activeSet.getComponentCount());
         activeSet.start();

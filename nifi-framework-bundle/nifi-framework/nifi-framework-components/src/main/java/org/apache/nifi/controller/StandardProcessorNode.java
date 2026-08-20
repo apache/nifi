@@ -2023,7 +2023,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public List<ConnectorMethod> getConnectorMethods() {
+    public List<ConnectorMethod> getConnectorMethods() throws InvocationFailedException {
         return getConnectorMethods(getProcessor().getClass());
     }
 
@@ -2082,6 +2082,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             } catch (final Exception e) {
                 throw new InvocationFailedException(e);
             }
+        } catch (final LinkageError e) {
+            // Argument types, return types, and the invoked method body can all reference classes supplied by additional classpath
+            // resources. Those failures are LinkageError, not Exception, so they would otherwise escape as an uncaught Error.
+            throw new InvocationFailedException("Failed to invoke Connector Method '" + methodName + "' on " + this
+                + " because a class required by the component could not be loaded from the component's ClassLoader", e);
         }
     }
 

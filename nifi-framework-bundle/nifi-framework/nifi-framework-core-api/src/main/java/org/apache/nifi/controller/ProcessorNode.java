@@ -353,5 +353,5 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
 
     public abstract String invokeConnectorMethod(String methodName, Map<String, String> jsonArguments, ProcessContext processContext) throws InvocationFailedException;
 
-    public abstract List<ConnectorMethod> getConnectorMethods();
+    public abstract List<ConnectorMethod> getConnectorMethods() throws InvocationFailedException;
 }
