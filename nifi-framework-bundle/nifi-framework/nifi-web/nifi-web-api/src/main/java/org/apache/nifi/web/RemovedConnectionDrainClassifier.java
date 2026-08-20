@@ -84,7 +84,7 @@ public final class RemovedConnectionDrainClassifier {
                 continue;
             }
 
-            if (liveConnection.queueEmpty()) {
+            if (liveConnection.knownQueueEmpty()) {
                 initialResults.put(descriptor.getConnectionInstanceId(), ConnectionResult.noDrain(descriptor));
                 continue;
             }
@@ -386,7 +386,7 @@ public final class RemovedConnectionDrainClassifier {
         FUNNEL_SOURCE_WITHOUT_SUPPORTED_PRODUCER
     }
 
-    record LiveConnection(String id, String sourceId, String destinationId, boolean queueEmpty) {
+    record LiveConnection(String id, String sourceId, String destinationId, boolean knownQueueEmpty) {
     }
 
     record LiveConnectable(String id, ConnectableType type, String processGroupId,
