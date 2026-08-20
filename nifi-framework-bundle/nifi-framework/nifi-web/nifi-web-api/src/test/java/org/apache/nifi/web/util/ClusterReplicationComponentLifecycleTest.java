@@ -51,7 +51,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -176,6 +175,44 @@ class ClusterReplicationComponentLifecycleTest {
     }
 
     @Test
+    void testWaitForConnectionQueuesEmptyRejectsIncompleteAsyncResponse() throws Exception {
+        final ClusterReplicationComponentLifecycle lifecycle = createLifecycle();
+        final TestPause pause = new TestPause(false);
+        final AsyncClusterResponse createResponse = asyncResponse(
+                mergedNodeResponse("connection-a", 0),
+                completedResponses(successfulNodeResponse(NODE_1), successfulNodeResponse(NODE_2)), false);
+        final AsyncClusterResponse deleteResponse = asyncResponse(deleteResponse(), completedResponses(deleteNodeResponse(NODE_1), deleteNodeResponse(NODE_2)));
+
+        when(clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED)).thenReturn(EXPECTED_NODES);
+        stubReplicate(HttpMethod.POST, createResponse);
+        stubReplicate(HttpMethod.DELETE, deleteResponse);
+
+        final boolean result = lifecycle.waitForConnectionQueuesEmpty(EXAMPLE_URI, Set.of("connection-a"), pause);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void testWaitForConnectionQueuesEmptyRejectsCompletedIdentifiersThatMissExpectedNodeId() throws Exception {
+        final ClusterReplicationComponentLifecycle lifecycle = createLifecycle();
+        final TestPause pause = new TestPause(false);
+        final NodeIdentifier unexpectedNode = new NodeIdentifier("node-3", "localhost", 8083, "localhost", 9083, "localhost", 10083, 11083, false);
+        final AsyncClusterResponse createResponse = asyncResponse(
+                mergedNodeResponse("connection-a", 0),
+                Set.of(NODE_1, unexpectedNode),
+                completedResponses(successfulNodeResponse(NODE_1), successfulNodeResponse(NODE_2)));
+        final AsyncClusterResponse deleteResponse = asyncResponse(deleteResponse(), completedResponses(deleteNodeResponse(NODE_1), deleteNodeResponse(NODE_2)));
+
+        when(clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED)).thenReturn(EXPECTED_NODES);
+        stubReplicate(HttpMethod.POST, createResponse);
+        stubReplicate(HttpMethod.DELETE, deleteResponse);
+
+        final boolean result = lifecycle.waitForConnectionQueuesEmpty(EXAMPLE_URI, Set.of("connection-a"), pause);
+
+        assertFalse(result);
+    }
+
+    @Test
     void testWaitForConnectionQueuesEmptyRejectsNonEmptyAggregateEvenWithFullCoverage() throws Exception {
         final ClusterReplicationComponentLifecycle lifecycle = createLifecycle();
         final TestPause pause = new TestPause(false);
@@ -226,6 +263,24 @@ class ClusterReplicationComponentLifecycleTest {
         verifyReplicate(HttpMethod.DELETE, 1);
     }
 
+    @Test
+    void testWaitForConnectionQueuesEmptyTreatsDeleteCleanupAsBestEffort() throws Exception {
+        final ClusterReplicationComponentLifecycle lifecycle = createLifecycle();
+        final TestPause pause = new TestPause(false);
+        final AsyncClusterResponse createResponse = asyncResponse(mergedNodeResponse("connection-a", 0), completedResponses(successfulNodeResponse(NODE_1), successfulNodeResponse(NODE_2)));
+        final AsyncClusterResponse deleteResponse = asyncResponse(failedDeleteResponse(), completedResponses(deleteNodeResponse(NODE_1), failedDeleteNodeResponse(NODE_2, 404)));
+
+        when(clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED)).thenReturn(EXPECTED_NODES);
+        stubReplicate(HttpMethod.POST, createResponse);
+        stubReplicate(HttpMethod.DELETE, deleteResponse);
+
+        final boolean result = lifecycle.waitForConnectionQueuesEmpty(EXAMPLE_URI, Set.of("connection-a"), pause);
+
+        assertTrue(result);
+        verifyReplicate(HttpMethod.POST, 1);
+        verifyReplicate(HttpMethod.DELETE, 1);
+    }
+
     private ClusterReplicationComponentLifecycle createLifecycle() {
         final ClusterReplicationComponentLifecycle lifecycle = new ClusterReplicationComponentLifecycle();
         lifecycle.setClusterCoordinator(clusterCoordinator);
@@ -235,23 +290,41 @@ class ClusterReplicationComponentLifecycleTest {
     }
 
     private void stubReplicate(final String method, final AsyncClusterResponse... responses) {
-        when(requestReplicator.replicate(same(EXPECTED_NODES), eq(user), eq(method), any(URI.class), eq(Collections.emptyMap()), eq(Collections.emptyMap()), eq(true), eq(false)))
+        when(requestReplicator.replicate(eq(EXPECTED_NODES), eq(user), eq(method), any(URI.class), eq(Collections.emptyMap()), eq(Collections.emptyMap()), eq(true), eq(true)))
             .thenReturn(responses[0], java.util.Arrays.copyOfRange(responses, 1, responses.length));
     }
 
     private void verifyReplicate(final String method, final int times) {
-        verify(requestReplicator, times(times)).replicate(same(EXPECTED_NODES), eq(user), eq(method), any(URI.class), eq(Collections.emptyMap()), eq(Collections.emptyMap()), eq(true), eq(false));
+        verify(requestReplicator, times(times)).replicate(eq(EXPECTED_NODES), eq(user), eq(method), any(URI.class), eq(Collections.emptyMap()), eq(Collections.emptyMap()), eq(true), eq(true));
     }
 
     private AsyncClusterResponse asyncResponse(final NodeResponse mergedResponse, final Set<NodeResponse> completedResponses) throws Exception {
         final Set<NodeIdentifier> completedNodeIdentifiers = completedResponses.stream()
             .map(NodeResponse::getNodeId)
             .collect(Collectors.toUnmodifiableSet());
+        return asyncResponse(mergedResponse, completedNodeIdentifiers, completedResponses, true);
+    }
+
+    private AsyncClusterResponse asyncResponse(final NodeResponse mergedResponse, final Set<NodeResponse> completedResponses, final boolean complete) throws Exception {
+        final Set<NodeIdentifier> completedNodeIdentifiers = completedResponses.stream()
+            .map(NodeResponse::getNodeId)
+            .collect(Collectors.toUnmodifiableSet());
+        return asyncResponse(mergedResponse, completedNodeIdentifiers, completedResponses, complete);
+    }
+
+    private AsyncClusterResponse asyncResponse(final NodeResponse mergedResponse, final Set<NodeIdentifier> completedNodeIdentifiers,
+                                               final Set<NodeResponse> completedResponses) throws Exception {
+        return asyncResponse(mergedResponse, completedNodeIdentifiers, completedResponses, true);
+    }
+
+    private AsyncClusterResponse asyncResponse(final NodeResponse mergedResponse, final Set<NodeIdentifier> completedNodeIdentifiers,
+                                               final Set<NodeResponse> completedResponses, final boolean complete) throws Exception {
         final AsyncClusterResponse asyncResponse = mock(AsyncClusterResponse.class);
         when(asyncResponse.awaitMergedResponse()).thenReturn(mergedResponse);
         lenient().when(asyncResponse.getNodesInvolved()).thenReturn(completedNodeIdentifiers);
         lenient().when(asyncResponse.getCompletedNodeIdentifiers()).thenReturn(completedNodeIdentifiers);
         lenient().when(asyncResponse.getCompletedNodeResponses()).thenReturn(completedResponses);
+        lenient().when(asyncResponse.isComplete()).thenReturn(complete);
         return asyncResponse;
     }
 
@@ -284,12 +357,21 @@ class ClusterReplicationComponentLifecycleTest {
         return new NodeResponse(NODE_1, HttpMethod.DELETE, EXAMPLE_URI, response, 0L, "delete");
     }
 
+    private NodeResponse failedDeleteResponse() {
+        final Response response = Response.status(404).build();
+        return new NodeResponse(NODE_1, HttpMethod.DELETE, EXAMPLE_URI, response, 0L, "delete");
+    }
+
     private NodeResponse successfulNodeResponse(final NodeIdentifier nodeIdentifier) {
         return new NodeResponse(nodeIdentifier, HttpMethod.POST, EXAMPLE_URI, Response.accepted().build(), 0L, nodeIdentifier.getId());
     }
 
     private NodeResponse deleteNodeResponse(final NodeIdentifier nodeIdentifier) {
         return new NodeResponse(nodeIdentifier, HttpMethod.DELETE, EXAMPLE_URI, Response.ok().build(), 0L, nodeIdentifier.getId() + "-delete");
+    }
+
+    private NodeResponse failedDeleteNodeResponse(final NodeIdentifier nodeIdentifier, final int status) {
+        return new NodeResponse(nodeIdentifier, HttpMethod.DELETE, EXAMPLE_URI, Response.status(status).build(), 0L, nodeIdentifier.getId() + "-delete");
     }
 
     private NodeResponse failedNodeResponse(final NodeIdentifier nodeIdentifier, final int status) {
