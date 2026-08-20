@@ -643,7 +643,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             return true;
         }
 
-        final Set<NodeIdentifier> expectedNodes = Set.copyOf(clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED));
+        final Set<NodeIdentifier> expectedNodes = new HashSet<>(clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED));
         final List<String> orderedConnectionIds = connectionIds.stream()
             .sorted(Comparator.naturalOrder())
             .toList();
@@ -661,7 +661,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                 final String listingRequestId = getListingRequestId(listingRequest.entity());
                 final boolean listingDeleted = deleteFlowFileListingRequest(user, originalUri, connectionId, listingRequestId, expectedNodes);
                 if (!listingDeleted) {
-                    allQueuesEmpty = false;
+                    logger.debug("Failed to delete replicated flow file listing request {} for connection {}", listingRequestId, connectionId);
                 }
 
                 if (!allQueuesEmpty) {
@@ -750,7 +750,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                 return new ListingRequestResult(listingRequestEntity, false);
             }
 
-            if (!mergedResponse.is2xx()) {
+            if (mergedResponse == null || !mergedResponse.is2xx()) {
                 return new ListingRequestResult(listingRequestEntity, false);
             }
 
@@ -779,7 +779,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             final AsyncClusterResponse clusterResponse = replicateFlowFileListingRequest(expectedNodes, user, HttpMethod.DELETE, listingRequestUri);
 
             final NodeResponse mergedResponse = clusterResponse.awaitMergedResponse();
-            return mergedResponse.is2xx() && hasExpectedSuccessfulNodeCoverage(clusterResponse, expectedNodes);
+            return mergedResponse != null && mergedResponse.is2xx() && hasExpectedSuccessfulNodeCoverage(clusterResponse, expectedNodes);
         } catch (final Exception e) {
             logger.debug("Failed to delete replicated flow file listing request {} for connection {}", requestId, connectionId, e);
             return false;
@@ -787,7 +787,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
     }
 
     private AsyncClusterResponse replicateFlowFileListingRequest(final Set<NodeIdentifier> expectedNodes, final NiFiUser user, final String method, final URI requestUri) {
-        return getRequestReplicator().replicate(expectedNodes, user, method, requestUri, Collections.emptyMap(), Collections.emptyMap(), true, false);
+        return getRequestReplicator().replicate(expectedNodes, user, method, requestUri, Collections.emptyMap(), Collections.emptyMap(), true, true);
     }
 
     private String getListingRequestId(final ListingRequestEntity entity) {
@@ -802,7 +802,16 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
     }
 
     private boolean hasExpectedSuccessfulNodeCoverage(final AsyncClusterResponse clusterResponse, final Set<NodeIdentifier> expectedNodes) {
-        if (clusterResponse == null || !expectedNodes.equals(clusterResponse.getNodesInvolved()) || !expectedNodes.equals(clusterResponse.getCompletedNodeIdentifiers())) {
+        if (clusterResponse == null || !clusterResponse.isComplete()) {
+            return false;
+        }
+
+        final Set<String> expectedNodeIds = getExpectedNodeIds(expectedNodes);
+        if (!hasExpectedNodeIds(clusterResponse.getNodesInvolved(), expectedNodeIds)) {
+            return false;
+        }
+
+        if (!hasExpectedNodeIds(clusterResponse.getCompletedNodeIdentifiers(), expectedNodeIds)) {
             return false;
         }
 
@@ -811,19 +820,45 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             return false;
         }
 
-        final Set<NodeIdentifier> completedNodes = new HashSet<>();
+        final Set<String> completedNodeIds = new HashSet<>();
         for (final NodeResponse nodeResponse : completedNodeResponses) {
             if (nodeResponse == null || nodeResponse.getNodeId() == null || !nodeResponse.is2xx()) {
                 return false;
             }
 
-            final NodeIdentifier nodeIdentifier = nodeResponse.getNodeId();
-            if (!expectedNodes.contains(nodeIdentifier) || !completedNodes.add(nodeIdentifier)) {
+            final String nodeId = nodeResponse.getNodeId().getId();
+            if (nodeId == null || !expectedNodeIds.contains(nodeId) || !completedNodeIds.add(nodeId)) {
                 return false;
             }
         }
 
-        return completedNodes.equals(expectedNodes);
+        return completedNodeIds.equals(expectedNodeIds);
+    }
+
+    private Set<String> getExpectedNodeIds(final Set<NodeIdentifier> expectedNodes) {
+        final Set<String> expectedNodeIds = new HashSet<>();
+        for (final NodeIdentifier nodeIdentifier : expectedNodes) {
+            if (nodeIdentifier == null || nodeIdentifier.getId() == null || !expectedNodeIds.add(nodeIdentifier.getId())) {
+                throw new IllegalArgumentException("Expected connected nodes must contain unique node identifiers");
+            }
+        }
+
+        return expectedNodeIds;
+    }
+
+    private boolean hasExpectedNodeIds(final Set<NodeIdentifier> actualNodes, final Set<String> expectedNodeIds) {
+        if (actualNodes == null || actualNodes.size() != expectedNodeIds.size()) {
+            return false;
+        }
+
+        final Set<String> actualNodeIds = new HashSet<>();
+        for (final NodeIdentifier actualNode : actualNodes) {
+            if (actualNode == null || actualNode.getId() == null || !actualNodeIds.add(actualNode.getId())) {
+                return false;
+            }
+        }
+
+        return actualNodeIds.equals(expectedNodeIds);
     }
 
     private boolean isQueueEmpty(final ListingRequestEntity entity) {
