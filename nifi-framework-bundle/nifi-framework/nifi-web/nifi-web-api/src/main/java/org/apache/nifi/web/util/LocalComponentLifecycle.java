@@ -30,6 +30,7 @@ import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
@@ -40,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -100,6 +102,40 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
             .map(componentEntity -> serviceFacade.getControllerService(componentEntity.getId(), false))
             .map(dtoFactory::createAffectedComponentEntity)
             .collect(Collectors.toSet());
+    }
+
+    @Override
+    public boolean waitForConnectionQueuesEmpty(final URI exampleUri, final Set<String> connectionIds, final Pause pause) throws LifecycleManagementException {
+        if (connectionIds.isEmpty()) {
+            return true;
+        }
+
+        final List<String> orderedConnectionIds = connectionIds.stream()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+
+        boolean continuePolling = true;
+        while (continuePolling) {
+            boolean allQueuesEmpty = true;
+            for (final String connectionId : orderedConnectionIds) {
+                final ConnectionStatusEntity connectionStatusEntity = serviceFacade.getConnectionStatus(connectionId);
+                if (connectionStatusEntity == null || connectionStatusEntity.getConnectionStatus() == null
+                        || connectionStatusEntity.getConnectionStatus().getAggregateSnapshot() == null
+                        || connectionStatusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued() == null
+                        || connectionStatusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued() != 0) {
+                    allQueuesEmpty = false;
+                    break;
+                }
+            }
+
+            if (allQueuesEmpty) {
+                return true;
+            }
+
+            continuePolling = pause.pause();
+        }
+
+        return false;
     }
 
     private void startComponents(final String processGroupId, final Map<String, Revision> componentRevisions, final Map<String, AffectedComponentEntity> affectedComponents, final Pause pause,

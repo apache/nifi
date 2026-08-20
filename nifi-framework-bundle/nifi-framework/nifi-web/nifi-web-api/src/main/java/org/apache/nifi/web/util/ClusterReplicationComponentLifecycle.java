@@ -27,6 +27,7 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -41,10 +42,13 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
+import org.apache.nifi.web.api.dto.status.NodeConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -60,7 +64,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -631,6 +637,41 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             .collect(Collectors.toSet());
     }
 
+    @Override
+    public boolean waitForConnectionQueuesEmpty(final URI originalUri, final Set<String> connectionIds, final Pause pause) throws LifecycleManagementException {
+        if (connectionIds.isEmpty()) {
+            return true;
+        }
+
+        final Set<String> expectedNodeIds = clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED).stream()
+                .map(NodeIdentifier::getId)
+                .collect(Collectors.toUnmodifiableSet());
+        final List<String> orderedConnectionIds = connectionIds.stream()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        boolean continuePolling = true;
+        while (continuePolling) {
+            boolean allQueuesEmpty = true;
+            for (final String connectionId : orderedConnectionIds) {
+                final ConnectionStatusEntity entity = getConnectionStatusEntity(user, originalUri, connectionId);
+                if (!isQueueEmptyForExpectedNodes(entity, expectedNodeIds)) {
+                    allQueuesEmpty = false;
+                    break;
+                }
+            }
+
+            if (allQueuesEmpty) {
+                return true;
+            }
+
+            continuePolling = pause.pause();
+        }
+
+        return false;
+    }
+
     private boolean waitForControllerServiceValidation(final NiFiUser user, final URI originalUri, final String groupId,
                                                        final Set<String> serviceIds, final Pause pause)
             throws InterruptedException {
@@ -678,6 +719,65 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         }
 
         return false;
+    }
+
+    private ConnectionStatusEntity getConnectionStatusEntity(final NiFiUser user, final URI originalUri, final String connectionId) throws LifecycleManagementException {
+        final URI connectionStatusUri;
+        try {
+            connectionStatusUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(), originalUri.getPort(),
+                    "/nifi-api/flow/connections/" + connectionId + "/status", null, originalUri.getFragment());
+        } catch (final URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            final NodeResponse clusterResponse;
+            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                clusterResponse = getRequestReplicator().replicate(user, HttpMethod.GET, connectionStatusUri, Collections.emptyMap(), Collections.emptyMap()).awaitMergedResponse();
+            } else {
+                clusterResponse = getRequestReplicator().forwardToCoordinator(
+                        getClusterCoordinatorNode(), user, HttpMethod.GET, connectionStatusUri, Collections.emptyMap(), Collections.emptyMap()).awaitMergedResponse();
+            }
+
+            if (clusterResponse.getStatus() != Status.OK.getStatusCode()) {
+                return null;
+            }
+
+            return getResponseEntity(clusterResponse, ConnectionStatusEntity.class);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new LifecycleManagementException("Interrupted while waiting for connection queues to empty");
+        }
+    }
+
+    private boolean isQueueEmptyForExpectedNodes(final ConnectionStatusEntity entity, final Set<String> expectedNodeIds) {
+        if (entity == null) {
+            return false;
+        }
+
+        final ConnectionStatusDTO connectionStatus = entity.getConnectionStatus();
+        if (connectionStatus == null || connectionStatus.getAggregateSnapshot() == null) {
+            return false;
+        }
+
+        final List<NodeConnectionStatusSnapshotDTO> nodeSnapshots = connectionStatus.getNodeSnapshots();
+        if (nodeSnapshots == null || nodeSnapshots.size() != expectedNodeIds.size()) {
+            return false;
+        }
+
+        final Set<String> seenNodeIds = new HashSet<>();
+        for (final NodeConnectionStatusSnapshotDTO nodeSnapshot : nodeSnapshots) {
+            if (nodeSnapshot == null || nodeSnapshot.getNodeId() == null || nodeSnapshot.getStatusSnapshot() == null) {
+                return false;
+            }
+
+            if (!expectedNodeIds.contains(nodeSnapshot.getNodeId()) || !seenNodeIds.add(nodeSnapshot.getNodeId())) {
+                return false;
+            }
+        }
+
+        final Integer flowFilesQueued = connectionStatus.getAggregateSnapshot().getFlowFilesQueued();
+        return flowFilesQueued != null && flowFilesQueued.intValue() == 0;
     }
 
     private boolean isControllerServiceValidationComplete(final Set<ControllerServiceEntity> controllerServiceEntities, final Map<String, AffectedComponentEntity> affectedComponents) {

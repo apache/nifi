@@ -156,6 +156,12 @@ public class StandardAsynchronousWebRequest<R, T> implements AsynchronousWebRequ
         applyFailure(explanation);
     }
 
+    @Override
+    public synchronized void appendFailureDetail(final String detail) {
+        final String currentFailureReason = Objects.requireNonNull(failureReason, "Request must already have a failure reason");
+        applyFailure(currentFailureReason + "; " + Objects.requireNonNull(detail));
+    }
+
     private void applyFailure(final String explanation) {
         this.failureReason = Objects.requireNonNull(explanation);
         this.complete = true;

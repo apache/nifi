@@ -59,4 +59,6 @@ public interface ComponentLifecycle {
      */
     Set<AffectedComponentEntity> activateControllerServices(URI exampleUri, String groupId, Set<AffectedComponentEntity> servicesToUpdate, Set<AffectedComponentEntity> servicesRequiringDesiredState,
         ControllerServiceState desiredState, Pause pause, InvalidComponentAction invalidComponentAction) throws LifecycleManagementException;
+
+    boolean waitForConnectionQueuesEmpty(URI exampleUri, Set<String> connectionIds, Pause pause) throws LifecycleManagementException;
 }
