@@ -64,6 +64,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -76,6 +77,7 @@ import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -625,6 +627,71 @@ public class TestWriteAheadFlowFileRepository {
         assertNotNull(swappedOutClaims);
         assertEquals(1, swappedOutClaims.size());
         assertEquals(claim2.getResourceClaim(), swappedOutClaims.get(0));
+    }
+
+    /**
+     * Verifies that configuring a maximum journal size causes the repository to checkpoint as soon as its journal reaches that size, even
+     * though the checkpoint interval has not elapsed, and that the FlowFiles written before the checkpoint remain recoverable.
+     */
+    @Test
+    public void testJournalRolledOverWhenMaximumJournalSizeReached() throws IOException {
+        final NiFiProperties boundedJournalProperties = NiFiProperties.createBasicNiFiProperties(
+            TestWriteAheadFlowFileRepository.class.getResource("/conf/nifi.properties").getFile(),
+            Map.of(NiFiProperties.FLOWFILE_REPOSITORY_CHECKPOINT_MAX_JOURNAL_SIZE, "8 KB"));
+
+        final TestQueueProvider queueProvider = new TestQueueProvider();
+        final FlowFileQueue queue = createMockQueue(queueProvider);
+        final int flowFileCount = 100;
+
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(boundedJournalProperties)) {
+            repo.initialize(new StandardResourceClaimManager());
+            repo.loadFlowFiles(queueProvider);
+
+            createFlowFiles(repo, queue, flowFileCount);
+
+            final List<File> journalFiles = getJournalFiles();
+            assertEquals(1, journalFiles.size());
+            assertNotEquals("0.journal", journalFiles.getFirst().getName());
+        }
+
+        try (final WriteAheadFlowFileRepository recoveredRepo = new WriteAheadFlowFileRepository(boundedJournalProperties)) {
+            recoveredRepo.initialize(new StandardResourceClaimManager());
+            assertEquals(flowFileCount, recoveredRepo.loadFlowFiles(queueProvider));
+        }
+    }
+
+    private FlowFileQueue createMockQueue(final TestQueueProvider queueProvider) {
+        final Connection connection = Mockito.mock(Connection.class);
+        when(connection.getIdentifier()).thenReturn("1234");
+
+        final FlowFileQueue queue = Mockito.mock(FlowFileQueue.class);
+        when(queue.getIdentifier()).thenReturn("1234");
+        when(connection.getFlowFileQueue()).thenReturn(queue);
+
+        queueProvider.addConnection(connection);
+
+        return queue;
+    }
+
+    private void createFlowFiles(final WriteAheadFlowFileRepository repository, final FlowFileQueue queue, final int flowFileCount) throws IOException {
+        for (int i = 0; i < flowFileCount; i++) {
+            final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
+                .id(i + 1L)
+                .addAttribute("uuid", UUID.randomUUID().toString())
+                .build();
+
+            final StandardRepositoryRecord record = new StandardRepositoryRecord(queue);
+            record.setWorking(flowFile, false);
+            record.setDestination(queue);
+            repository.updateRepository(List.of(record));
+        }
+    }
+
+    private List<File> getJournalFiles() {
+        final File[] journalFiles = new File("target/test-repo/journals").listFiles(file -> file.getName().endsWith(".journal"));
+        assertNotNull(journalFiles);
+
+        return Arrays.asList(journalFiles);
     }
 
     @Test

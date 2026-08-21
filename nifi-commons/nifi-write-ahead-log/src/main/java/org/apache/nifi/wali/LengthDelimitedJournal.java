@@ -48,6 +48,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     private static final Logger logger = LoggerFactory.getLogger(LengthDelimitedJournal.class);
@@ -73,6 +74,8 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     private long currentTransactionId;
     private int transactionCount;
     private boolean headerWritten = false;
+
+    private final AtomicLong bytesWritten = new AtomicLong(0L);
 
     private volatile Throwable poisonCause = null;
     private volatile boolean closed = false;
@@ -172,6 +175,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
             }
 
             outStream.flush();
+            bytesWritten.addAndGet(outStream.size());
         } catch (final Throwable t) {
             poison(t);
 
@@ -299,6 +303,9 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
                 }
             }
 
+            // The overflow file is fully written and synced at this point, so its length is stable.
+            final long overflowFileLength = (overflowFile == null) ? 0L : overflowFile.length();
+
             final ByteArrayOutputStream baos = bados.getByteArrayOutputStream();
             final OutputStream out = getOutputStream();
 
@@ -318,6 +325,11 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
                     out.write(transactionPreamble.array());
                     baos.writeTo(out);
                     out.flush();
+
+                    // A transaction consumes a single-byte marker, the fixed-length preamble, and the serialized records. Storage for an
+                    // overflow file is counted only now that the transaction referencing it has been written, so that a failed update,
+                    // whose overflow file is deleted, does not inflate the count.
+                    bytesWritten.addAndGet(1L + transactionPreamble.capacity() + baos.size() + overflowFileLength);
                 } catch (final Throwable t) {
                     // While the outer Throwable that wraps this "catch" will call Poison, it is imperative that we call poison()
                     // before the synchronized block is excited. Otherwise, another thread could potentially corrupt the journal before
@@ -610,6 +622,11 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         }
 
         return true;
+    }
+
+    @Override
+    public long getBytesWritten() {
+        return bytesWritten.get();
     }
 
     @Override
