@@ -400,6 +400,31 @@ export interface ReplayLastProvenanceEventRequest {
     nodes: string;
 }
 
+export type ConnectionDirection = 'upstream' | 'downstream';
+
+export interface ViewComponentConnectionsRequest {
+    // the id of the component whose connections are being requested
+    id: string;
+    // the name of the component, or its id when the current user cannot read it
+    name: string;
+    // the type of the component
+    type: ComponentType;
+    // the id of the group that defines the connections. this is the current group for every component
+    // except an Input Port searched upstream or an Output Port searched downstream, whose connections
+    // cross the enclosing group's boundary and are defined in its parent
+    groupId: string;
+    direction: ConnectionDirection;
+}
+
+export interface ComponentConnectionsDialogRequest {
+    componentName: string;
+    componentType: ComponentType;
+    // the group the connections belong to, used when navigating to one of them
+    groupId: string;
+    direction: ConnectionDirection;
+    connections: ConnectionEntity[];
+}
+
 /*
     Snippets
  */
@@ -454,6 +479,21 @@ export interface ComponentEntityWithDimensions extends ComponentEntity {
     dimensions: Dimensions;
 }
 
+/**
+ * A connection as returned by the flow endpoints. The source and destination are duplicated outside
+ * of the permission gated `component` so that a connection the current user cannot read can still be
+ * placed on the canvas. Prefer these fields over `component.source`/`component.destination` when the
+ * connection may be unauthorized.
+ */
+export interface ConnectionEntity extends ComponentEntity {
+    sourceId: string;
+    sourceGroupId: string;
+    sourceType: string;
+    destinationId: string;
+    destinationGroupId: string;
+    destinationType: string;
+}
+
 export interface Dimensions {
     width: number;
     height: number;
@@ -465,7 +505,7 @@ export interface Flow {
     processors: ComponentEntity[];
     inputPorts: ComponentEntity[];
     outputPorts: ComponentEntity[];
-    connections: ComponentEntity[];
+    connections: ConnectionEntity[];
     labels: ComponentEntity[];
     funnels: ComponentEntity[];
 }
