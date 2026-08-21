@@ -24,6 +24,7 @@ import {
     ClearBulletinsForGroupResponse,
     ComponentEntity,
     ConfirmStopVersionControlRequest,
+    ComponentConnectionsDialogRequest,
     CreateComponentRequest,
     CreateComponentResponse,
     CreateConnection,
@@ -98,7 +99,8 @@ import {
     TerminateThreadsRequest,
     UpdatePositionsRequest,
     UploadProcessGroupRequest,
-    VersionControlInformationEntity
+    VersionControlInformationEntity,
+    ViewComponentConnectionsRequest
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 import {
@@ -627,6 +629,16 @@ export const navigateToProvenanceForComponent = createAction(
 export const replayLastProvenanceEvent = createAction(
     `${CANVAS_PREFIX} Replay Last Provenance Event`,
     props<{ request: ReplayLastProvenanceEventRequest }>()
+);
+
+export const viewComponentConnections = createAction(
+    `${CANVAS_PREFIX} View Component Connections`,
+    props<{ request: ViewComponentConnectionsRequest }>()
+);
+
+export const openComponentConnectionsDialog = createAction(
+    `${CANVAS_PREFIX} Open Component Connections Dialog`,
+    props<{ request: ComponentConnectionsDialogRequest }>()
 );
 
 export const enableComponent = createAction(
