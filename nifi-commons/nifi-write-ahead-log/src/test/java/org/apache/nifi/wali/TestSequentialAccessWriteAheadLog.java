@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -207,12 +208,17 @@ public class TestSequentialAccessWriteAheadLog {
     }
 
     private SequentialAccessWriteAheadLog<DummyRecord> createWriteRepo(final TestInfo testInfo, final DummyRecordSerde serde, final Long maxJournalBytes) throws IOException {
+        return createWriteRepo(testInfo, serde, maxJournalBytes, SyncListener.NOP_SYNC_LISTENER);
+    }
+
+    private SequentialAccessWriteAheadLog<DummyRecord> createWriteRepo(final TestInfo testInfo, final DummyRecordSerde serde, final Long maxJournalBytes,
+            final SyncListener syncListener) throws IOException {
         final File storageDir = getStorageDirectory(testInfo);
         deleteRecursively(storageDir);
         assertTrue(storageDir.mkdirs());
 
         final SerDeFactory<DummyRecord> serdeFactory = new SingletonSerDeFactory<>(serde);
-        final SequentialAccessWriteAheadLog<DummyRecord> repo = new SequentialAccessWriteAheadLog<>(storageDir, serdeFactory, SyncListener.NOP_SYNC_LISTENER, maxJournalBytes);
+        final SequentialAccessWriteAheadLog<DummyRecord> repo = new SequentialAccessWriteAheadLog<>(storageDir, serdeFactory, syncListener, maxJournalBytes);
 
         final Collection<DummyRecord> recovered = repo.recoverRecords();
         assertNotNull(recovered);
@@ -273,6 +279,46 @@ public class TestSequentialAccessWriteAheadLog {
 
         repo.shutdown();
 
+        final SequentialAccessWriteAheadLog<DummyRecord> recoveryRepo = createRecoveryRepo(testInfo);
+        final Collection<DummyRecord> recovered = recoveryRepo.recoverRecords();
+        assertEquals(updatesPerJournal, recovered.size());
+        recoveryRepo.shutdown();
+    }
+
+    @Test
+    public void testUpdateSucceedsWhenAutomaticCheckpointFails(final TestInfo testInfo) throws IOException {
+        final SequentialAccessWriteAheadLog<DummyRecord> sizingRepo = createWriteRepo(testInfo);
+        final File sizingJournalFile = getJournalFiles(testInfo).getFirst();
+        final long headerBytes = sizingJournalFile.length();
+        sizingRepo.update(Collections.singleton(new DummyRecord("0", UpdateType.CREATE)), false);
+        final long updateBytes = sizingJournalFile.length() - headerBytes;
+        sizingRepo.shutdown();
+
+        final AtomicBoolean failCheckpoint = new AtomicBoolean(false);
+        final SyncListener failingCheckpointListener = new SyncListener() {
+            @Override
+            public void onSync(final int partitionIndex) {
+            }
+
+            @Override
+            public void onGlobalSync() {
+                if (failCheckpoint.get()) {
+                    throw new RuntimeException("Injected checkpoint failure");
+                }
+            }
+        };
+
+        final int updatesPerJournal = 3;
+        final SequentialAccessWriteAheadLog<DummyRecord> repo = createWriteRepo(testInfo, new DummyRecordSerde(), headerBytes + updatesPerJournal * updateBytes, failingCheckpointListener);
+        failCheckpoint.set(true);
+
+        for (int i = 0; i < updatesPerJournal; i++) {
+            repo.update(Collections.singleton(new DummyRecord(String.valueOf(i), UpdateType.CREATE)), false);
+        }
+
+        repo.shutdown();
+
+        failCheckpoint.set(false);
         final SequentialAccessWriteAheadLog<DummyRecord> recoveryRepo = createRecoveryRepo(testInfo);
         final Collection<DummyRecord> recovered = recoveryRepo.recoverRecords();
         assertEquals(updatesPerJournal, recovered.size());

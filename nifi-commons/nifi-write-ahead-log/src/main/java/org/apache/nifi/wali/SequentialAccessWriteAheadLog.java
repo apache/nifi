@@ -169,7 +169,12 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         // enough to warrant rolling over.
         if (maxJournalSizeReached) {
             logger.debug("Checkpointing Write-Ahead Log at {} because its journal has reached the maximum size of {} bytes", storageDirectory, maxJournalBytes);
-            checkpointIfJournalExceedsLimit();
+            try {
+                checkpointIfJournalExceedsLimit();
+            } catch (final Exception e) {
+                logger.error("Failed to checkpoint Write-Ahead Log at {} after its journal reached the maximum size of {} bytes; the update was already applied",
+                    storageDirectory, maxJournalBytes, e);
+            }
         }
 
         return PARTITION_INDEX;
