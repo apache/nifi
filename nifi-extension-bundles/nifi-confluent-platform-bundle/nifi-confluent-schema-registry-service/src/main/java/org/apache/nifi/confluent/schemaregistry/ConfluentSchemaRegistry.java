@@ -36,6 +36,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -140,6 +141,14 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             .sensitive(true)
             .build();
 
+    static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+            .name("OAuth2 Access Token Provider")
+            .description("OAuth2 Access Token Provider used for Bearer authentication to Confluent Schema Registry")
+            .identifiesControllerService(OAuth2AccessTokenProvider.class)
+            .required(true)
+            .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.OAUTH2.toString())
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         SCHEMA_REGISTRY_URLS,
         SSL_CONTEXT,
@@ -148,7 +157,8 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         CACHE_EXPIRATION,
         AUTHENTICATION_TYPE,
         USERNAME,
-        PASSWORD
+        PASSWORD,
+        OAUTH2_ACCESS_TOKEN_PROVIDER
     );
 
     private volatile SchemaRegistryClient client;
@@ -182,8 +192,15 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
 
         final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextProvider.class);
 
+        final AuthenticationType authenticationType = AuthenticationType.valueOf(context.getProperty(AUTHENTICATION_TYPE).getValue());
         final String username = context.getProperty(USERNAME).getValue();
         final String password = context.getProperty(PASSWORD).getValue();
+
+        OAuth2AccessTokenProvider oauth2AccessTokenProvider = null;
+        if (AuthenticationType.OAUTH2.equals(authenticationType)) {
+            oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+            oauth2AccessTokenProvider.getAccessDetails();
+        }
 
         // generate a map of http headers where the key is the remainder of the property name after
         // the request header prefix
@@ -197,7 +214,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
                         );
 
         final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, timeoutMillis,
-                sslContextProvider, username, password, getLogger(), httpHeaders);
+                sslContextProvider, username, password, oauth2AccessTokenProvider, getLogger(), httpHeaders);
 
         final int cacheSize = context.getProperty(CACHE_SIZE).asInteger();
         final long cacheExpiration = context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS);
