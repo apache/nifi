@@ -33,7 +33,7 @@ import { currentUserFeatureKey } from '../../../../state/current-user';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { ParameterContextEntity, ParameterContextUpdateRequestEntity, ParameterEntity } from '../../../../state/shared';
 
-import { EditParameterContextRequest } from '../index';
+import { EditParameterContextRequest } from '../../../../pages/parameter-contexts/state/parameter-context-listing';
 import { By } from '@angular/platform-browser';
 
 describe('EditParameterContext', () => {

@@ -34,7 +34,7 @@ import {
     takeUntil,
     tap
 } from 'rxjs';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { Router } from '@angular/router';
@@ -355,73 +355,22 @@ export class ParameterContextListingEffects {
                         selectHasPendingPostUpdateNavigation
                     );
 
-                    const navigateToInheritedParameter = (
-                        commands: string[],
-                        commandBoundary: string[],
-                        navigationState?: PostUpdateNavigationState
-                    ): void => {
-                        this.router.navigate(commands, {
-                            state: {
-                                backNavigation: {
-                                    route: ['/parameter-contexts', parameterContextId, 'edit'],
-                                    routeBoundary: commandBoundary,
-                                    context: 'Parameter Context'
-                                } as BackNavigation,
-                                ...navigationState
-                            }
-                        });
-                    };
-
-                    const goTo = (
-                        commands: string[],
-                        commandBoundary: string[],
-                        destination: string,
-                        navigationState?: PostUpdateNavigationState
-                    ): void => {
-                        const editParameterContextForm = editDialogReference.componentInstance.editParameterContextForm;
-
-                        if (editParameterContextForm.dirty) {
-                            const saveChangesDialogReference = this.dialog.open(SaveParameterContextChangesDialog, {
-                                ...SMALL_DIALOG,
-                                data: {
-                                    destination,
-                                    canSave: editParameterContextForm.valid
-                                }
-                            });
-
-                            // Defense in depth: Save is disabled when invalid, but still guard before submit.
-                            saveChangesDialogReference.componentInstance.save
-                                .pipe(takeUntil(saveChangesDialogReference.afterClosed()), take(1))
-                                .subscribe(() => {
-                                    if (!editParameterContextForm.valid) {
-                                        return;
-                                    }
-                                    editDialogReference.componentInstance.submitForm(
-                                        commands,
-                                        commandBoundary,
-                                        navigationState
-                                    );
-                                });
-
-                            saveChangesDialogReference.componentInstance.discard
-                                .pipe(takeUntil(saveChangesDialogReference.afterClosed()), take(1))
-                                .subscribe(() => {
-                                    navigateToInheritedParameter(commands, commandBoundary, navigationState);
-                                });
-                        } else {
-                            navigateToInheritedParameter(commands, commandBoundary, navigationState);
-                        }
-                    };
-
                     editDialogReference.componentInstance.goToParameter = (
                         inheritedParameterContextId: string,
                         parameterName: string
                     ) => {
                         const commandBoundary: string[] = ['/parameter-contexts'];
                         const commands: string[] = [...commandBoundary, inheritedParameterContextId, 'edit'];
-                        goTo(commands, commandBoundary, 'Parameter', {
-                            highlightedParameterName: parameterName
-                        });
+                        this.goToInheritedParameter(
+                            editDialogReference,
+                            parameterContextId,
+                            commands,
+                            commandBoundary,
+                            'Parameter',
+                            {
+                                highlightedParameterName: parameterName
+                            }
+                        );
                     };
 
                     editDialogReference.componentInstance.createNewParameter = (
@@ -508,7 +457,8 @@ export class ParameterContextListingEffects {
                         .subscribe(
                             ([postUpdateNavigation, postUpdateNavigationBoundary, postUpdateNavigationState]) => {
                                 if (postUpdateNavigation) {
-                                    navigateToInheritedParameter(
+                                    this.navigateToInheritedParameter(
+                                        parameterContextId,
                                         postUpdateNavigation,
                                         postUpdateNavigationBoundary ?? ['/parameter-contexts'],
                                         postUpdateNavigationState ?? undefined
@@ -767,4 +717,70 @@ export class ParameterContextListingEffects {
             ),
         { dispatch: false }
     );
+
+    /**
+     * Navigates to the supplied route, recording back navigation to the Parameter Context that was being edited.
+     */
+    private navigateToInheritedParameter(
+        sourceParameterContextId: string,
+        commands: string[],
+        commandBoundary: string[],
+        navigationState?: PostUpdateNavigationState
+    ): void {
+        this.router.navigate(commands, {
+            state: {
+                backNavigation: {
+                    route: ['/parameter-contexts', sourceParameterContextId, 'edit'],
+                    routeBoundary: commandBoundary,
+                    context: 'Parameter Context'
+                } as BackNavigation,
+                ...navigationState
+            }
+        });
+    }
+
+    /**
+     * Navigates to an inherited Parameter. When the Parameter Context edit form has unsaved changes the user is
+     * prompted to save or discard them first. Saving defers the navigation until the update request completes and
+     * the user opts to continue.
+     */
+    private goToInheritedParameter(
+        editDialogReference: MatDialogRef<EditParameterContext>,
+        sourceParameterContextId: string,
+        commands: string[],
+        commandBoundary: string[],
+        destination: string,
+        navigationState?: PostUpdateNavigationState
+    ): void {
+        const editParameterContextForm = editDialogReference.componentInstance.editParameterContextForm;
+
+        if (!editParameterContextForm.dirty) {
+            this.navigateToInheritedParameter(sourceParameterContextId, commands, commandBoundary, navigationState);
+            return;
+        }
+
+        const saveChangesDialogReference = this.dialog.open(SaveParameterContextChangesDialog, {
+            ...SMALL_DIALOG,
+            data: {
+                destination,
+                canSave: editParameterContextForm.valid
+            }
+        });
+
+        // Defense in depth: Save is disabled when invalid, but still guard before submit.
+        saveChangesDialogReference.componentInstance.save
+            .pipe(takeUntil(saveChangesDialogReference.afterClosed()), take(1))
+            .subscribe(() => {
+                if (!editParameterContextForm.valid) {
+                    return;
+                }
+                editDialogReference.componentInstance.submitForm(commands, commandBoundary, navigationState);
+            });
+
+        saveChangesDialogReference.componentInstance.discard
+            .pipe(takeUntil(saveChangesDialogReference.afterClosed()), take(1))
+            .subscribe(() => {
+                this.navigateToInheritedParameter(sourceParameterContextId, commands, commandBoundary, navigationState);
+            });
+    }
 }

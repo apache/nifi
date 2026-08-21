@@ -25,7 +25,7 @@ import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { ReplaySubject, Subject, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import type { Mocked } from 'vitest';
+import type { Mock, Mocked } from 'vitest';
 
 import { ParameterContextListingEffects } from './parameter-context-listing.effects';
 import * as ParameterContextListingActions from './parameter-context-listing.actions';
@@ -252,7 +252,7 @@ describe('ParameterContextListingEffects', () => {
 
             action$.next(ParameterContextListingActions.loadParameterContexts());
 
-            (parameterContextService.getParameterContexts as vi.Mock).mockReturnValueOnce(
+            (parameterContextService.getParameterContexts as Mock).mockReturnValueOnce(
                 of({ parameterContexts: [], currentTime: 't' })
             );
 
@@ -273,7 +273,7 @@ describe('ParameterContextListingEffects', () => {
             action$.next(ParameterContextListingActions.loadParameterContexts());
 
             const error = new HttpErrorResponse({ status: 500 });
-            (parameterContextService.getParameterContexts as vi.Mock).mockImplementationOnce(() =>
+            (parameterContextService.getParameterContexts as Mock).mockImplementationOnce(() =>
                 throwError(() => error)
             );
 
@@ -297,7 +297,7 @@ describe('ParameterContextListingEffects', () => {
             action$.next(ParameterContextListingActions.loadParameterContexts());
 
             const error = new HttpErrorResponse({ status: 500 });
-            (parameterContextService.getParameterContexts as vi.Mock).mockImplementationOnce(() =>
+            (parameterContextService.getParameterContexts as Mock).mockImplementationOnce(() =>
                 throwError(() => error)
             );
 

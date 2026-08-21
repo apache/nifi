@@ -17,11 +17,6 @@
 
 import { ParameterContextEntity, PostUpdateNavigationState } from '../../../state/shared';
 
-export interface EditParameterContextRequest {
-    parameterContext?: ParameterContextEntity;
-    highlightedParameterName?: string;
-}
-
 export interface EditParameterContextUpdate {
     payload: any;
     postUpdateNavigation?: string[];
