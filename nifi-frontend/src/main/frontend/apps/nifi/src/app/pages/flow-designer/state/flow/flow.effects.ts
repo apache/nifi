@@ -53,6 +53,7 @@ import {
 } from 'rxjs';
 import {
     ComponentEntity,
+    ConnectionEntity,
     CreateConnectionDialogRequest,
     CreateProcessGroupDialogRequest,
     DeleteComponentResponse,
@@ -162,6 +163,7 @@ import { ChangeVersionDialog } from '../../ui/canvas/items/flow/change-version-d
 import { ChangeVersionProgressDialog } from '../../ui/canvas/items/flow/change-version-progress-dialog/change-version-progress-dialog';
 import { LocalChangesDialog } from '../../ui/canvas/items/flow/local-changes-dialog/local-changes-dialog';
 import { ProcessorBacklogDialog } from '../../ui/canvas/items/processor/backlog-dialog/backlog-dialog.component';
+import { ComponentConnectionsDialog } from '../../ui/canvas/component-connections-dialog/component-connections-dialog.component';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
@@ -3180,6 +3182,67 @@ export class FlowEffects {
         { dispatch: false }
     );
 
+    /**
+     * Loads the flow of the group that defines the requested component's connections and retains only
+     * the connections attached to that component in the requested direction. The group is the one on
+     * the canvas for most components, and the parent group for the two port cases whose connections
+     * cross the enclosing group's boundary.
+     *
+     * Matching goes through the canvas' own endpoint resolvers rather than comparing the raw ids. A
+     * connection drawn to a Process Group or Remote Process Group actually terminates at a port inside
+     * it, and getConnectionSourceComponentId/getConnectionDestinationComponentId are what collapse that
+     * port back to the group the user sees and selects. They compare against the group currently on the
+     * canvas, which is the right frame of reference for the parent-group searches too: a connection
+     * into an Input Port carries that port's own group as its destination group, so it resolves to the
+     * port rather than to the group.635
+     *
+     *
+     * Both resolvers read the ids on the connection entity rather than on its component, so a
+     * connection the current user cannot read — the kind most worth reporting — is still matched.
+     */
+    viewComponentConnections$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.viewComponentConnections),
+            map((action) => action.request),
+            switchMap((request) => {
+                const attachedTo = (connection: ConnectionEntity): boolean =>
+                    request.direction === 'upstream'
+                        ? this.canvasUtils.getConnectionDestinationComponentId(connection) === request.id
+                        : this.canvasUtils.getConnectionSourceComponentId(connection) === request.id;
+
+                return from(this.flowService.getFlow(request.groupId)).pipe(
+                    map((flowEntity: ProcessGroupFlowEntity) =>
+                        FlowActions.openComponentConnectionsDialog({
+                            request: {
+                                componentName: request.name,
+                                componentType: request.type,
+                                groupId: request.groupId,
+                                direction: request.direction,
+                                connections: flowEntity.processGroupFlow.flow.connections.filter(attachedTo)
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
+                );
+            })
+        )
+    );
+
+    openComponentConnectionsDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openComponentConnectionsDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    this.dialog.open(ComponentConnectionsDialog, {
+                        ...XL_DIALOG,
+                        data: request
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
     showOkDialog$ = createEffect(
         () =>
             this.actions$.pipe(
@@ -4887,7 +4950,7 @@ export class FlowEffects {
                 warnedIds: this.warnedPositionIds
             })
         });
-        const sanitizeConnection = (entity: ComponentEntity): ComponentEntity => ({
+        const sanitizeConnection = (entity: ConnectionEntity): ConnectionEntity => ({
             ...entity,
             position: sanitizePosition(entity.position, {
                 componentId: entity.id,

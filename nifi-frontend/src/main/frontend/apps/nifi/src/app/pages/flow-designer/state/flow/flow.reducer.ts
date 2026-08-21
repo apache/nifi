@@ -712,23 +712,23 @@ function getComponentCollection(draftState: FlowState, componentType: ComponentT
     return collection;
 }
 
-function processComponentCollection(
-    proposedComponents: ComponentEntity[],
-    currentComponents: ComponentEntity[],
+function processComponentCollection<T extends ComponentEntity>(
+    proposedComponents: T[],
+    currentComponents: T[],
     addedCache: string[],
     removedCache: string[],
     overrideRevisionCheck: boolean
-): ComponentEntity[] {
+): T[] {
     // components in the proposed collection but not the current collection
-    const addedComponents: ComponentEntity[] = proposedComponents.filter((proposedComponent) => {
+    const addedComponents: T[] = proposedComponents.filter((proposedComponent) => {
         return !currentComponents.some((currentComponent) => currentComponent.id === proposedComponent.id);
     });
     // components in the current collection that are no longer in the proposed collection
-    const removedComponents: ComponentEntity[] = currentComponents.filter((currentComponent) => {
+    const removedComponents: T[] = currentComponents.filter((currentComponent) => {
         return !proposedComponents.some((proposedComponent) => proposedComponent.id === currentComponent.id);
     });
     // components that are in both the proposed collection and the current collection
-    const updatedComponents: ComponentEntity[] = currentComponents.filter((currentComponent) => {
+    const updatedComponents: T[] = currentComponents.filter((currentComponent) => {
         return proposedComponents.some((proposedComponents) => proposedComponents.id === currentComponent.id);
     });
 
