@@ -270,38 +270,37 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 return;
             }
         }
-        maxValueProperties = getDefaultMaxValueProperties(context, fileToProcess);
-
         final ComponentLog logger = getLogger();
-
-        final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-        final DatabaseDialectService databaseDialectService = getDatabaseDialectService(context);
-        final String databaseType = context.getProperty(DB_TYPE).getValue();
-
-        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(fileToProcess).getValue();
-        final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
-        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
-        final int partitionSize = context.getProperty(PARTITION_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
-        final String columnForPartitioning = context.getProperty(COLUMN_FOR_VALUE_PARTITIONING).evaluateAttributeExpressions(fileToProcess).getValue();
-        final boolean useColumnValsForPaging = !StringUtils.isEmpty(columnForPartitioning);
-        final String customWhereClause = context.getProperty(WHERE_CLAUSE).evaluateAttributeExpressions(fileToProcess).getValue();
-        final String customOrderByColumn = context.getProperty(CUSTOM_ORDERBY_COLUMN).evaluateAttributeExpressions(fileToProcess).getValue();
-        final boolean outputEmptyFlowFileOnZeroResults = context.getProperty(OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS).asBoolean();
-
-        final StateMap stateMap;
-        FlowFile finalFileToProcess = fileToProcess;
-
         try {
-            stateMap = session.getState(Scope.CLUSTER);
-        } catch (final IOException ioe) {
-            logger.error("Failed to retrieve observed maximum values from the State Manager. Will not perform "
-                    + "query until this is accomplished.", ioe);
-            session.rollback();
-            context.yield();
-            return;
-        }
+            maxValueProperties = getDefaultMaxValueProperties(context, fileToProcess);
 
-        try {
+            final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
+            final DatabaseDialectService databaseDialectService = getDatabaseDialectService(context);
+            final String databaseType = context.getProperty(DB_TYPE).getValue();
+
+            final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(fileToProcess).getValue();
+            final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
+            final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
+            final int partitionSize = context.getProperty(PARTITION_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
+            final String columnForPartitioning = context.getProperty(COLUMN_FOR_VALUE_PARTITIONING).evaluateAttributeExpressions(fileToProcess).getValue();
+            final boolean useColumnValsForPaging = !StringUtils.isEmpty(columnForPartitioning);
+            final String customWhereClause = context.getProperty(WHERE_CLAUSE).evaluateAttributeExpressions(fileToProcess).getValue();
+            final String customOrderByColumn = context.getProperty(CUSTOM_ORDERBY_COLUMN).evaluateAttributeExpressions(fileToProcess).getValue();
+            final boolean outputEmptyFlowFileOnZeroResults = context.getProperty(OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS).asBoolean();
+
+            final StateMap stateMap;
+            FlowFile finalFileToProcess = fileToProcess;
+
+            try {
+                stateMap = session.getState(Scope.CLUSTER);
+            } catch (final IOException ioe) {
+                logger.error("Failed to retrieve observed maximum values from the State Manager. Will not perform "
+                        + "query until this is accomplished.", ioe);
+                session.rollback();
+                context.yield();
+                return;
+            }
+
             // Make a mutable copy of the current state property map. This will be updated by the result row callback, and eventually
             // set as the current state map (after the session has been committed)
             final Map<String, String> statePropertyMap = new HashMap<>(stateMap.toMap());

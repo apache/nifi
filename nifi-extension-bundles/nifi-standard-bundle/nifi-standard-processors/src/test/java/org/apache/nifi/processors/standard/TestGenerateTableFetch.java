@@ -23,6 +23,7 @@ import org.apache.nifi.database.dialect.service.api.DatabaseDialectService;
 import org.apache.nifi.database.dialect.service.api.StatementRequest;
 import org.apache.nifi.database.dialect.service.api.StatementResponse;
 import org.apache.nifi.database.dialect.service.api.StatementType;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.MockSessionFactory;
@@ -1125,7 +1126,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
     }
 
     @Test
-    void testUncheckedDialectFailureRollsBackIncomingFlowFile() throws Exception {
+    void testUncheckedDialectFailureRollsBackIncomingFlowFile() throws InitializationException {
         final DatabaseDialectService dialectService = new FailingDatabaseDialectService();
         runner.addControllerService("failing-dialect", dialectService);
         runner.enableControllerService(dialectService);
@@ -1137,6 +1138,20 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
 
         final AssertionError error = assertThrows(AssertionError.class, runner::run);
         assertEquals(IllegalArgumentException.class, error.getCause().getClass());
+
+        final MockProcessSession session = ((MockSessionFactory) runner.getProcessSessionFactory()).getCreatedSessions().iterator().next();
+        session.assertRolledBack();
+        runner.assertQueueNotEmpty();
+    }
+
+    @Test
+    void testInvalidFlowFilePropertyRollsBackIncomingFlowFile() {
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "${tableName}");
+        runner.setProperty(GenerateTableFetch.PARTITION_SIZE, "${partSize}");
+        runner.setIncomingConnection(true);
+        runner.enqueue("", Map.of("tableName", "TEST_QUERY_DB_TABLE", "partSize", "invalid"));
+
+        assertThrows(AssertionError.class, runner::run);
 
         final MockProcessSession session = ((MockSessionFactory) runner.getProcessSessionFactory()).getCreatedSessions().iterator().next();
         session.assertRolledBack();
