@@ -35,6 +35,7 @@
         <nifi.flowservice.writedelay.interval>500 ms</nifi.flowservice.writedelay.interval>
         <nifi.administrative.yield.duration>30 sec</nifi.administrative.yield.duration>
         <nifi.bored.yield.duration>10 millis</nifi.bored.yield.duration>
+        <nifi.scheduler.virtual.threads.enabled>true</nifi.scheduler.virtual.threads.enabled>
         <nifi.queue.backpressure.count>10000</nifi.queue.backpressure.count>
         <nifi.queue.backpressure.size>1 GB</nifi.queue.backpressure.size>
 
