@@ -130,6 +130,7 @@ import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -148,6 +149,7 @@ import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.CopyRequestEntity;
 import org.apache.nifi.web.api.entity.CopyResponseEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
@@ -2789,6 +2791,71 @@ public class StandardNiFiServiceFacadeTest {
         when(connectorNode.getCurrentState()).thenReturn(ConnectorState.STOPPED);
 
         serviceFacade.verifyCanReportConnectorBacklog(connectorId);
+    }
+
+    @Test
+    public void testGeneratedEffectiveParameterUpdateIsInherited() {
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        final Parameter inheritedParameter = new Parameter.Builder().name("fileToIngest").parameterContextId("parent-id").build();
+
+        assertTrue(StandardNiFiServiceFacade.isInheritedParameterUpdate(inheritedParameter, parameterContext, Map.of(), "fileToIngest"));
+    }
+
+    @Test
+    public void testRepeatedEffectiveParameterUpdatePreservesInheritedFlag() {
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        final Parameter parameter = new Parameter.Builder().name("fileToIngest").parameterContextId("parent-id").build();
+        final ParameterEntity originalEntity = createParameterEntity("fileToIngest", true);
+
+        assertTrue(StandardNiFiServiceFacade.isInheritedParameterUpdate(parameter, parameterContext,
+                Map.of("fileToIngest", originalEntity), "fileToIngest"));
+    }
+
+    @Test
+    public void testClientSubmittedParameterUpdateIsLocal() {
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        final Parameter parameter = new Parameter.Builder().name("fileToIngest").parameterContextId("child-id").build();
+        final ParameterEntity originalEntity = createParameterEntity("fileToIngest", false);
+
+        assertFalse(StandardNiFiServiceFacade.isInheritedParameterUpdate(parameter, parameterContext,
+                Map.of("fileToIngest", originalEntity), "fileToIngest"));
+    }
+
+    @Test
+    public void testClientSubmittedDeletionRemainsLocalWhenInheritedParameterBecomesEffective() {
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        final Parameter inheritedParameter = new Parameter.Builder().name("shared").parameterContextId("parent-id").build();
+        final ParameterEntity deletionEntity = createParameterEntity("shared", null);
+
+        assertFalse(StandardNiFiServiceFacade.isInheritedParameterUpdate(inheritedParameter, parameterContext,
+                Map.of("shared", deletionEntity), "shared"));
+    }
+
+    @Test
+    public void testInheritedParameterRemovalUsesLocalParameterDefinitions() {
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        when(parameterContext.getParameters()).thenReturn(Map.of());
+
+        assertTrue(StandardNiFiServiceFacade.isInheritedParameterUpdate(null, parameterContext, Map.of(), "fileToIngest"));
+    }
+
+    @Test
+    public void testLocalParameterRemovalUsesLocalParameterDefinitions() {
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        final ParameterDescriptor descriptor = new ParameterDescriptor.Builder().name("fileToIngest").build();
+        when(parameterContext.getParameters()).thenReturn(Map.of(descriptor, new Parameter.Builder().descriptor(descriptor).value("value").build()));
+
+        assertFalse(StandardNiFiServiceFacade.isInheritedParameterUpdate(null, parameterContext, Map.of(), "fileToIngest"));
+    }
+
+    private static ParameterEntity createParameterEntity(final String name, final Boolean inherited) {
+        final ParameterDTO parameterDto = new ParameterDTO();
+        parameterDto.setName(name);
+        parameterDto.setInherited(inherited);
+
+        final ParameterEntity parameterEntity = new ParameterEntity();
+        parameterEntity.setParameter(parameterDto);
+        return parameterEntity;
     }
 
     @Test
