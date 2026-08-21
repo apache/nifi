@@ -1791,6 +1791,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Map<String, Parameter> parameterUpdates = parameterContextDAO.getParameters(parameterContextDto, parameterContext);
         final List<ParameterContext> inheritedParameterContexts = parameterContextDAO.getInheritedParameterContexts(parameterContextDto);
         final Map<String, Parameter> proposedParameterUpdates = parameterContext.getEffectiveParameterUpdates(parameterUpdates, inheritedParameterContexts);
+        final Map<ParameterDescriptor, Parameter> localParameters = parameterContext.getParameters();
         final Map<String, ParameterEntity> parameterEntities = parameterContextDto.getParameters().stream()
                 .collect(Collectors.toMap(entity -> entity.getParameter().getName(), Function.identity()));
         parameterContextDto.getParameters().clear();
@@ -1798,6 +1799,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         for (final Entry<String, Parameter> entry : proposedParameterUpdates.entrySet()) {
             final String parameterName = entry.getKey();
             final Parameter parameter = entry.getValue();
+            final boolean locallyOwned = localParameters.containsKey(new ParameterDescriptor.Builder().name(parameterName).build());
             final ParameterEntity parameterEntity;
             if (parameterEntities.containsKey(parameterName)) {
                 parameterEntity = parameterEntities.get(parameterName);
@@ -1810,12 +1812,29 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 parameterEntity = dtoFactory.createParameterEntity(parameterContext, parameter, revisionManager, parameterContextDAO);
             }
 
-            // Parameter is inherited if either this is the removal of a parameter not directly in this context, or it's parameter not specified directly in the DTO
-            final boolean isInherited = (parameter == null && !parameterContext.getParameters().containsKey(new ParameterDescriptor.Builder().name(parameterName).build()))
-                    || (parameter != null && !parameterEntities.containsKey(parameterName));
-            parameterEntity.getParameter().setInherited(isInherited);
+            if (parameter == null) {
+                parameterEntity.getParameter().setInherited(!locallyOwned);
+            } else {
+                final ParameterContext containingParameterContext = getContainingParameterContext(parameterContext, parameter, locallyOwned);
+                final boolean isInherited = !locallyOwned && !Objects.equals(parameterContext.getIdentifier(), containingParameterContext.getIdentifier());
+                final ParameterDTO parameterDto = parameterEntity.getParameter();
+                parameterDto.setProvided(parameter.isProvided());
+                parameterDto.setInherited(isInherited);
+                parameterDto.setParameterContext(entityFactory.createParameterReferenceEntity(
+                        dtoFactory.createParameterContextReference(containingParameterContext),
+                        dtoFactory.createPermissionsDto(containingParameterContext)));
+            }
             parameterContextDto.getParameters().add(parameterEntity);
         }
+    }
+
+    private ParameterContext getContainingParameterContext(final ParameterContext parameterContext, final Parameter parameter, final boolean locallyOwned) {
+        final String sourceContextId = parameter.getParameterContextId();
+        if (locallyOwned || sourceContextId == null || Objects.equals(parameterContext.getIdentifier(), sourceContextId)) {
+            return parameterContext;
+        }
+
+        return parameterContextDAO.getParameterContext(sourceContextId);
     }
 
     private void addReferencingComponents(final ControllerServiceNode service, final Set<ComponentNode> affectedComponents, final List<ParameterDTO> affectedParameterDtos,
