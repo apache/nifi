@@ -47,7 +47,13 @@ import { StringListOrphansStrippedEvent } from '../../connector-property-input/c
 import { ErrorBanner } from '../../error-banner/error-banner.component';
 import { StatusBanner } from '../../status-banner/status-banner.component';
 import { StatusBannerDescriptionDirective } from '../../status-banner/status-banner.directives';
-import { fromValueReference, toValueReference, SecretReferenceOptions } from '../../../services/value-reference.helper';
+import {
+    fromValueReference,
+    toValueReference,
+    toBooleanValue,
+    SecretReferenceOptions
+} from '../../../services/value-reference.helper';
+import { isDependencyValueSatisfied } from '../../../utils/dependency-value.utils';
 import {
     AssetInfo,
     AssetReference,
@@ -472,7 +478,11 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
                     const validators = this.buildValidators(property);
                     formConfig[property.name] = [formValue, validators];
                 } else {
-                    const currentValue = unsavedValue ?? apiValue ?? property.defaultValue ?? fallbackValue;
+                    const resolvedValue = unsavedValue ?? apiValue ?? property.defaultValue ?? fallbackValue;
+                    // The descriptor's defaultValue is a wire string even for BOOLEAN, so coerce
+                    // before it enters the form tree: the toggle renders `!!value` and would show
+                    // a stored "false" as checked.
+                    const currentValue = property.type === 'BOOLEAN' ? toBooleanValue(resolvedValue) : resolvedValue;
                     const validators = this.buildValidators(property);
                     formConfig[property.name] = [currentValue, validators];
                 }
@@ -648,13 +658,7 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
 
             const dependentValue = dependentControl.value;
 
-            if (dependency.dependentValues && dependency.dependentValues.length > 0) {
-                // If specific values are required, check if current value matches
-                return dependency.dependentValues.includes(dependentValue as string);
-            } else {
-                // If no specific values, just check if dependent property has any value
-                return dependentValue !== null && dependentValue !== undefined && dependentValue !== '';
-            }
+            return isDependencyValueSatisfied(dependentValue, dependency.dependentValues);
         });
     }
 
@@ -898,8 +902,12 @@ export class SharedConnectorConfigurationStep implements SaveableStep, OnInit, O
 
                             let originalValue = apiValue ?? property.defaultValue ?? fallbackValue;
 
-                            // Normalize assets so comparison matches the form value shape
-                            if (property.type === 'ASSET') {
+                            // Normalize so comparison matches the form value shape
+                            if (property.type === 'BOOLEAN') {
+                                // initializeForm coerces BOOLEAN values to real booleans; without the
+                                // same coercion here a stored "false" would always look changed.
+                                originalValue = toBooleanValue(originalValue);
+                            } else if (property.type === 'ASSET') {
                                 // fromValueReference returns AssetReference|null; form stores string|null
                                 originalValue = originalValue?.id ?? null;
                             } else if (property.type === 'ASSET_LIST') {

@@ -74,22 +74,23 @@ export class PropertyGroupCard {
 
     hasValue(propertyName: string): boolean {
         const valueRef = this.propertyGroup().propertyValues?.[propertyName];
-        if (!valueRef) return false;
-        if (valueRef.valueType === 'SECRET_REFERENCE') return true;
-        if (valueRef.valueType === 'ASSET_REFERENCE') {
+        if (valueRef?.valueType === 'SECRET_REFERENCE') return true;
+        if (valueRef?.valueType === 'ASSET_REFERENCE') {
             return (valueRef.assetReferences?.length ?? 0) > 0;
         }
-        return valueRef.value !== null && valueRef.value !== undefined && valueRef.value !== '';
+
+        const value = valueRef?.value ?? this.getDescriptor(propertyName)?.defaultValue;
+        return value !== null && value !== undefined && value !== '';
     }
 
     getDisplayValueForProperty(propertyName: string): string {
         const valueRef = this.propertyGroup().propertyValues?.[propertyName];
-        if (!valueRef) return '';
-        if (valueRef.valueType === 'SECRET_REFERENCE') return '••••••••';
-        if (valueRef.valueType === 'ASSET_REFERENCE') {
+        if (valueRef?.valueType === 'SECRET_REFERENCE') return '••••••••';
+        if (valueRef?.valueType === 'ASSET_REFERENCE') {
             const refs = valueRef.assetReferences;
             return refs?.map((r: AssetReference) => r.name || r.id).join(', ') || '';
         }
-        return valueRef.value ?? '';
+
+        return valueRef?.value ?? this.getDescriptor(propertyName)?.defaultValue ?? '';
     }
 }

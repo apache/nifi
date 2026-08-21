@@ -146,6 +146,18 @@ describe('PropertyGroupCard', () => {
             expect(component.hasValue('Host')).toBe(false);
         });
 
+        it('should return true when no value reference exists but the descriptor has a default', async () => {
+            const { component } = await setup({
+                propertyGroup: makeGroup({
+                    propertyDescriptors: {
+                        Enabled: { name: 'Enabled', type: 'BOOLEAN', required: false, defaultValue: 'false' }
+                    },
+                    propertyValues: {}
+                })
+            });
+            expect(component.hasValue('Enabled')).toBe(true);
+        });
+
         it('should return false for STRING_LITERAL with null value', async () => {
             const { component } = await setup({
                 propertyGroup: makeGroup({
@@ -259,6 +271,18 @@ describe('PropertyGroupCard', () => {
             });
             expect(component.getDisplayValueForProperty('Host')).toBe('');
         });
+
+        it('should return the descriptor default when no value reference exists', async () => {
+            const { component } = await setup({
+                propertyGroup: makeGroup({
+                    propertyDescriptors: {
+                        Enabled: { name: 'Enabled', type: 'BOOLEAN', required: false, defaultValue: 'false' }
+                    },
+                    propertyValues: {}
+                })
+            });
+            expect(component.getDisplayValueForProperty('Enabled')).toBe('false');
+        });
     });
 
     describe('fieldErrors computed signal', () => {
@@ -346,6 +370,19 @@ describe('PropertyGroupCard', () => {
             const unsetLabels = query('mat-card-content').queryAll(By.css('.unset'));
             expect(unsetLabels.length).toBe(2);
             expect(unsetLabels[0].nativeElement.textContent.trim()).toBe('No value set');
+        });
+
+        it('should display descriptor defaults when property values are absent', async () => {
+            const { query } = await setup({
+                propertyGroup: makeGroup({
+                    propertyDescriptors: {
+                        Enabled: { name: 'Enabled', type: 'BOOLEAN', required: false, defaultValue: 'false' }
+                    },
+                    propertyValues: {}
+                })
+            });
+            const value = query('mat-card-content').query(By.css('.tertiary-color'));
+            expect(value.nativeElement.textContent.trim()).toBe('false');
         });
 
         it('should display the property value for properties with values', async () => {

@@ -489,6 +489,16 @@ describe('ConnectorPropertyInput', () => {
             const toggle = fixture.debugElement.query(By.css('[data-qa="property-input-boolean"]'));
             expect(toggle.componentInstance.checked).toBe(false);
         });
+
+        it('does not coerce values for non-BOOLEAN properties', async () => {
+            const { inputComponent } = await setup({
+                property: makeProp({ type: 'STRING' })
+            });
+
+            inputComponent.writeValue('false');
+
+            expect(inputComponent.formControl.value).toBe('false');
+        });
     });
 
     describe('STRING_LIST rendering', () => {

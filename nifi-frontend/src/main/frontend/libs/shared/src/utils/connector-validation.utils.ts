@@ -23,6 +23,7 @@ import {
     PropertyType,
     buildSecretKey
 } from '../types';
+import { isDependencyValueSatisfied } from './dependency-value.utils';
 
 /**
  * Check if a property has a meaningful value set.
@@ -139,10 +140,7 @@ function evaluatePropertyVisibility(
 
         const dependentValue = findPropertyValue(dependency.propertyName, propertyGroups);
 
-        if (dependency.dependentValues && dependency.dependentValues.length > 0) {
-            return dependentValue !== null && dependency.dependentValues.includes(dependentValue);
-        }
-        return dependentValue !== null && dependentValue !== '';
+        return isDependencyValueSatisfied(dependentValue, dependency.dependentValues);
     });
 }
 
