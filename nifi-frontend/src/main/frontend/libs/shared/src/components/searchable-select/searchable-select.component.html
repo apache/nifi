@@ -152,6 +152,9 @@
                                     {{ getGroupHeaderLabel(item) }}
                                 </div>
                             } @else {
+                                <!-- Virtual highlight is value-based (isOptionActiveByValue). Grouped +
+                                     virtual with duplicate values across groups is unsupported; see
+                                     enableVirtualScrolling input comment. -->
                                 <multi-select-option
                                     [value]="getItemValue(item)"
                                     [disabled]="disabled || getItemDisabled(item)"
@@ -208,12 +211,18 @@
                                             {{ group.groupLabel }}
                                         </div>
                                     }
-                                    @for (option of group.options; track option.value; let optIdx = $index) {
+                                    <!-- Track by object identity: values may not be unique within a group.
+                                         option.value as track would collide and break @for reconciliation. -->
+                                    @for (option of group.options; track option; let optIdx = $index) {
                                         <multi-select-option
                                             [value]="option.value"
                                             [disabled]="disabled || option.disabled"
-                                            [id]="getOptionId(group.groupId + '-' + optIdx)"
-                                            [class.mat-mdc-option-active]="isOptionActiveByValue(option.value)"
+                                            [id]="
+                                                activeOptionRef() === option
+                                                    ? activeOptionId
+                                                    : getOptionId(group.groupId + '-' + optIdx)
+                                            "
+                                            [class.mat-mdc-option-active]="activeOptionRef() === option"
                                             role="option">
                                             @if (option.svgIcon) {
                                                 <mat-icon class="shrink-0" [svgIcon]="option.svgIcon"></mat-icon>
@@ -242,7 +251,7 @@
                                     <multi-select-option
                                         [value]="option.value"
                                         [disabled]="disabled || option.disabled"
-                                        [id]="getOptionId(i)"
+                                        [id]="activeTemplateIndex() === i ? activeOptionId : getOptionId(i)"
                                         [class.mat-mdc-option-active]="activeTemplateIndex() === i"
                                         role="option">
                                         @if (option.svgIcon) {
