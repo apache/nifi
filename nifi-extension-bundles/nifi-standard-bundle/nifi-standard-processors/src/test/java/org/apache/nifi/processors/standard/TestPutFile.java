@@ -16,7 +16,11 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.fileresource.service.StandardFileResourceService;
+import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processors.transfer.ResourceTransferProperties;
+import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -27,6 +31,7 @@ import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
@@ -242,6 +247,42 @@ public class TestPutFile {
         targetPath = Paths.get(TARGET_DIRECTORY + "/targetFile.txt");
         content = Files.readAllBytes(targetPath);
         assertEquals("Another file", new String(content));
+    }
+
+    @Test
+    public void testPutFileFromLocalFile() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(new PutFile());
+        runner.setProperty(PutFile.DIRECTORY, targetDir.getAbsolutePath());
+        runner.setProperty(PutFile.CONFLICT_RESOLUTION, PutFile.REPLACE_RESOLUTION);
+
+        final String attributeName = "file.path";
+        final String serviceId = FileResourceService.class.getSimpleName();
+        final FileResourceService service = new StandardFileResourceService();
+        runner.addControllerService(serviceId, service);
+        runner.setProperty(service, StandardFileResourceService.FILE_PATH, String.format("${%s}", attributeName));
+        runner.enableControllerService(service);
+
+        runner.setProperty(ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE.getValue());
+        runner.setProperty(ResourceTransferProperties.FILE_RESOURCE_SERVICE, serviceId);
+
+        final byte[] fileData = "0123456789".getBytes(StandardCharsets.UTF_8);
+        final Path tempFilePath = Files.createTempFile("PutFile_testPutFileFromLocalFile_", "");
+        Files.write(tempFilePath, fileData);
+
+        try {
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), "targetFile.txt");
+            attributes.put(attributeName, tempFilePath.toString());
+            runner.enqueue(new byte[0], attributes);
+            runner.run();
+
+            runner.assertAllFlowFilesTransferred(PutFile.REL_SUCCESS, 1);
+            final Path targetPath = Paths.get(TARGET_DIRECTORY + "/targetFile.txt");
+            final byte[] content = Files.readAllBytes(targetPath);
+            assertEquals("0123456789", new String(content, StandardCharsets.UTF_8));
+        } finally {
+            Files.deleteIfExists(tempFilePath);
+        }
     }
 
     private TestRunner putFileRunner;
