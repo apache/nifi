@@ -18,7 +18,6 @@
 package org.apache.nifi.controller.queue.clustered.partition;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.controller.queue.BlockingSwappablePriorityQueue;
 import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
@@ -26,6 +25,7 @@ import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.SelectiveDropResult;
+import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.SwapSummary;
@@ -36,33 +36,75 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
 public class StandardRebalancingPartition implements RebalancingPartition {
-    private static final Logger logger = LoggerFactory.getLogger(StandardRebalancingPartition.class);
+    private static final String DESCRIPTION_FORMAT = "RebalancingPartition[queueId=%s]";
     private static final String SWAP_PARTITION_NAME = "rebalance";
+    private static final int DISTRIBUTION_BATCH_SIZE = 1000;
+    private static final long NO_EXPIRATION = -1L;
+    private static final long IDLE_THREAD_TIMEOUT_SECONDS = 15L;
+    private static final long UNPOLLABLE_RETRY_MILLIS = 1000L;
 
-    private final String queueIdentifier;
-    private final BlockingSwappablePriorityQueue queue;
+    private static final Logger logger = LoggerFactory.getLogger(StandardRebalancingPartition.class);
+
+    private final SwappablePriorityQueue queue;
     private final LoadBalancedFlowFileQueue flowFileQueue;
+    private final Executor rebalanceExecutor;
     private final String description;
 
-    private volatile boolean stopped = true;
+    private final ReentrantLock lifecycleLock = new ReentrantLock();
+    private boolean running;
     private RebalanceTask rebalanceTask;
 
-    public StandardRebalancingPartition(final FlowFileSwapManager swapManager, final int swapThreshold, final EventReporter eventReporter,
-                                        final LoadBalancedFlowFileQueue flowFileQueue, final DropFlowFileAction dropAction) {
+    public StandardRebalancingPartition(
+            final FlowFileSwapManager swapManager,
+            final int swapThreshold,
+            final EventReporter eventReporter,
+            final LoadBalancedFlowFileQueue flowFileQueue,
+            final DropFlowFileAction dropAction
+    ) {
+        this(
+                new SwappablePriorityQueue(swapManager, swapThreshold, eventReporter, flowFileQueue, dropAction, SWAP_PARTITION_NAME),
+                flowFileQueue,
+                createExecutor(DESCRIPTION_FORMAT.formatted(flowFileQueue.getIdentifier()))
+        );
+    }
 
-        this.queue = new BlockingSwappablePriorityQueue(swapManager, swapThreshold, eventReporter, flowFileQueue, dropAction, SWAP_PARTITION_NAME);
-        this.queueIdentifier = flowFileQueue.getIdentifier();
+    StandardRebalancingPartition(
+            final SwappablePriorityQueue queue,
+            final LoadBalancedFlowFileQueue flowFileQueue,
+            final Executor rebalanceExecutor
+    ) {
+        this.queue = queue;
         this.flowFileQueue = flowFileQueue;
-        this.description = "RebalancingPartition[queueId=" + queueIdentifier + "]";
+        this.rebalanceExecutor = rebalanceExecutor;
+        this.description = DESCRIPTION_FORMAT.formatted(flowFileQueue.getIdentifier());
+    }
+
+    private static Executor createExecutor(final String threadName) {
+        final ThreadFactory threadFactory = runnable -> {
+            final Thread thread = new Thread(runnable);
+            thread.setName(threadName);
+            thread.setDaemon(true);
+            return thread;
+        };
+
+        // One Thread enforces one Rebalance Task per Partition
+        final ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, IDLE_THREAD_TIMEOUT_SECONDS, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), threadFactory);
+        // Allowing Core Thread Time Out means that a Connection with nothing to rebalance holds no threads
+        executor.allowCoreThreadTimeOut(true);
+        return executor;
     }
 
     @Override
@@ -97,7 +139,9 @@ public class StandardRebalancingPartition implements RebalancingPartition {
 
     @Override
     public SwapSummary recoverSwappedFlowFiles() {
-        return this.queue.recoverSwappedFlowFiles();
+        final SwapSummary swapSummary = queue.recoverSwappedFlowFiles();
+        startRebalanceTask();
+        return swapSummary;
     }
 
     @Override
@@ -108,11 +152,13 @@ public class StandardRebalancingPartition implements RebalancingPartition {
     @Override
     public void put(final FlowFileRecord flowFile) {
         queue.put(flowFile);
+        startRebalanceTask();
     }
 
     @Override
     public void putAll(final Collection<FlowFileRecord> flowFiles) {
         queue.putAll(flowFiles);
+        startRebalanceTask();
     }
 
     @Override
@@ -130,41 +176,60 @@ public class StandardRebalancingPartition implements RebalancingPartition {
         queue.setPriorities(newPriorities);
     }
 
+    /**
+     * Start Rebalancing after acquiring lock and submitting Rebalance Task for polling
+     *
+     * @param partitionerUsed Partitioner used to determine which FlowFiles should belong to this Partition
+     */
     @Override
-    public synchronized void start(final FlowFilePartitioner partitionerUsed) {
-        stopped = false;
-        rebalanceFromQueue();
+    public void start(final FlowFilePartitioner partitionerUsed) {
+        lifecycleLock.lock();
+        try {
+            running = true;
+            submitRebalanceTask();
+        } finally {
+            lifecycleLock.unlock();
+        }
     }
 
+    /**
+     * Stop Rebalancing after acquiring lock and setting flag to prevent additional polling
+     */
     @Override
-    public synchronized void stop() {
-        stopped = true;
-
-        if (this.rebalanceTask != null) {
-            this.rebalanceTask.stop();
+    public void stop() {
+        lifecycleLock.lock();
+        try {
+            running = false;
+            rebalanceTask = null;
+        } finally {
+            lifecycleLock.unlock();
         }
-
-        this.rebalanceTask = null;
     }
 
-    private synchronized void rebalanceFromQueue() {
-        if (stopped) {
-            logger.debug("Will not rebalance from queue because {} is stopped", this);
-            return;
+    private void startRebalanceTask() {
+        lifecycleLock.lock();
+        try {
+            submitRebalanceTask();
+        } finally {
+            lifecycleLock.unlock();
         }
+    }
 
-        // If a task is already defined, do nothing. There's already a thread running.
-        if (rebalanceTask != null) {
-            logger.debug("Rebalance Task already exists for {}", this);
-            return;
+    /**
+     * Submit Rebalance Task must be invoked after acquiring Lifecycle Lock
+     */
+    private void submitRebalanceTask() {
+        if (running) {
+            if (rebalanceTask == null) {
+                rebalanceTask = new RebalanceTask();
+                rebalanceExecutor.execute(rebalanceTask);
+                logger.debug("{} running: Rebalance Task started", description);
+            } else {
+                logger.debug("{} running: Rebalance Task already started", description);
+            }
+        } else {
+            logger.debug("{} not running: Rebalance Task not started", description);
         }
-
-        this.rebalanceTask = new RebalanceTask();
-
-        final Thread rebalanceThread = new Thread(this.rebalanceTask);
-        rebalanceThread.setName("Rebalance queued data for Connection " + queueIdentifier);
-        rebalanceThread.start();
-        logger.debug("No Rebalance Task currently exists for {}. Starting new Rebalance Thread {}", this, rebalanceThread);
     }
 
     @Override
@@ -176,7 +241,7 @@ public class StandardRebalancingPartition implements RebalancingPartition {
         logger.debug("Adding {} to Rebalance queue for {}", queueContents, this);
 
         queue.inheritQueueContents(queueContents);
-        rebalanceFromQueue();
+        startRebalanceTask();
     }
 
     @Override
@@ -184,7 +249,7 @@ public class StandardRebalancingPartition implements RebalancingPartition {
         logger.debug("Adding {} to Rebalance queue for {}", flowFiles, this);
 
         queue.putAll(flowFiles);
-        rebalanceFromQueue();
+        startRebalanceTask();
     }
 
     @Override
@@ -192,67 +257,63 @@ public class StandardRebalancingPartition implements RebalancingPartition {
         return queue.packageForRebalance(newPartitionName);
     }
 
-    private synchronized boolean isComplete() {
-        if (!queue.isEmpty()) {
-            return false;
-        }
-
-        this.rebalanceTask = null;
-        return true;
-    }
-
+    /**
+     * Rebalance Task runs until FlowFile Queue is emptied or the Thread is interrupted
+     */
     private class RebalanceTask implements Runnable {
-        private volatile boolean stopped = false;
-        private final Set<FlowFileRecord> expiredRecords = new HashSet<>();
-        private final long pollWaitMillis = 100L;
-
-        public void stop() {
-            stopped = true;
-        }
+        private static final Set<FlowFileRecord> EXPIRED_RECORDS = Set.of();
 
         @Override
         public void run() {
-            while (!stopped) {
-                final FlowFileRecord polled;
+            boolean taskInterrupted = false;
+            List<FlowFileRecord> nextBatch = pollNextBatch(taskInterrupted);
 
-                expiredRecords.clear();
+            while (nextBatch != null) {
+                if (nextBatch.isEmpty()) {
+                    logger.warn("{} Queue Size [{}] but no FlowFiles found: sleeping for {} ms", StandardRebalancingPartition.this, queue.size(), UNPOLLABLE_RETRY_MILLIS);
 
-                // Wait up to #pollWaitMillis milliseconds to get a FlowFile. If none, then check if stopped
-                // and if not, poll again.
-                try {
-                    polled = queue.poll(expiredRecords, -1, pollWaitMillis, PollStrategy.ALL_FLOWFILES);
-                } catch (final InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    continue;
-                }
-
-                if (polled == null) {
-                    flowFileQueue.handleExpiredRecords(expiredRecords);
-
-                    if (isComplete()) {
-                        logger.debug("Rebalance Task completed for {}", this);
-                        return;
-                    } else {
-                        continue;
+                    try {
+                        Thread.sleep(UNPOLLABLE_RETRY_MILLIS);
+                    } catch (final InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        taskInterrupted = true;
                     }
+                } else {
+                    logger.debug("{} Rebalancing {}", StandardRebalancingPartition.this, nextBatch);
+
+                    // Distribute for partitioning and acknowledge FlowFiles distributed
+                    flowFileQueue.distributeToPartitions(nextBatch);
+                    queue.acknowledge(nextBatch);
                 }
 
-                // We got 1 FlowFile. Try a second poll to obtain up to 999 more (for a total of 1,000).
-                final List<FlowFileRecord> toDistribute = new ArrayList<>();
-                toDistribute.add(polled);
+                nextBatch = pollNextBatch(taskInterrupted);
+            }
+        }
 
-                final List<FlowFileRecord> additionalRecords = queue.poll(999, expiredRecords, -1, PollStrategy.ALL_FLOWFILES);
-                toDistribute.addAll(additionalRecords);
+        private List<FlowFileRecord> pollNextBatch(final boolean taskInterrupted) {
+            lifecycleLock.lock();
+            try {
+                final List<FlowFileRecord> nextBatch;
 
-                flowFileQueue.handleExpiredRecords(expiredRecords);
+                // Check whether this Task is still the active Task before polling to determine Partition stopped status
+                if (rebalanceTask == this) {
+                    final List<FlowFileRecord> polled = queue.poll(DISTRIBUTION_BATCH_SIZE, EXPIRED_RECORDS, NO_EXPIRATION, PollStrategy.ALL_FLOWFILES);
 
-                logger.debug("{} Rebalancing {}", this, toDistribute);
+                    if (polled.isEmpty() && (queue.isEmpty() || taskInterrupted)) {
+                        rebalanceTask = null;
+                        logger.debug("Rebalance Task completed for {}", StandardRebalancingPartition.this);
+                        nextBatch = null;
+                    } else {
+                        nextBatch = polled;
+                    }
+                } else {
+                    logger.debug("Rebalance Task retired for {}", StandardRebalancingPartition.this);
+                    nextBatch = null;
+                }
 
-                // Transfer all of the FlowFiles that we got back to the FlowFileQueue itself. This will cause the data to be
-                // re-partitioned and binned appropriately. We also then need to ensure that we acknowledge the data from our
-                // own SwappablePriorityQueue to ensure that the sizes are kept in check.
-                flowFileQueue.distributeToPartitions(toDistribute);
-                queue.acknowledge(toDistribute);
+                return nextBatch;
+            } finally {
+                lifecycleLock.unlock();
             }
         }
     }
