@@ -31,9 +31,10 @@ import { errorFeatureKey } from '../../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
 import { currentUserFeatureKey } from '../../../../state/current-user';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
-import { ParameterContextEntity, ParameterEntity } from '../../../../state/shared';
+import { ParameterContextEntity, ParameterContextUpdateRequestEntity, ParameterEntity } from '../../../../state/shared';
 
-import { EditParameterContextRequest } from '../index';
+import { EditParameterContextRequest } from '../../../../pages/parameter-contexts/state/parameter-context-listing';
+import { By } from '@angular/platform-browser';
 
 describe('EditParameterContext', () => {
     let component: EditParameterContext;
@@ -268,6 +269,9 @@ describe('EditParameterContext', () => {
         fixture = TestBed.createComponent(EditParameterContext);
         component = fixture.componentInstance;
         component.availableParameterContexts$ = of(parameterContexts);
+        component.hasPendingPostUpdateNavigation$ = of(false);
+        component.updateRequest = of(null);
+        component.saving$ = of(false);
         fixture.detectChanges();
     });
 
@@ -280,12 +284,147 @@ describe('EditParameterContext', () => {
         expect(component.cancelUpdateRequest).toBeInstanceOf(EventEmitter);
     });
 
+    it('should have continuePostUpdateNavigation EventEmitter', () => {
+        expect(component.continuePostUpdateNavigation).toBeDefined();
+        expect(component.continuePostUpdateNavigation).toBeInstanceOf(EventEmitter);
+    });
+
     it('should emit cancelUpdateRequest when called', () => {
         const spy = vi.spyOn(component.cancelUpdateRequest, 'emit');
 
         component.cancelUpdateRequest.emit();
 
         expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    describe('submitForm', () => {
+        it('should include postUpdateNavigation fields on editParameterContext emit', () => {
+            const spy = vi.spyOn(component.editParameterContext, 'next');
+            component.editParameterContextForm.markAsDirty();
+
+            component.submitForm(['/parameter-contexts', 'inherited-id', 'edit'], ['/parameter-contexts'], {
+                highlightedParameterName: 'inherited-param'
+            });
+
+            expect(spy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    payload: expect.objectContaining({
+                        id: data.parameterContext!.id
+                    }),
+                    postUpdateNavigation: ['/parameter-contexts', 'inherited-id', 'edit'],
+                    postUpdateNavigationBoundary: ['/parameter-contexts'],
+                    postUpdateNavigationState: { highlightedParameterName: 'inherited-param' }
+                })
+            );
+        });
+
+        it('should omit postUpdateNavigation fields when not provided', () => {
+            const spy = vi.spyOn(component.editParameterContext, 'next');
+            component.editParameterContextForm.markAsDirty();
+
+            component.submitForm();
+
+            expect(spy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    payload: expect.objectContaining({
+                        id: data.parameterContext!.id
+                    }),
+                    postUpdateNavigation: undefined,
+                    postUpdateNavigationBoundary: undefined,
+                    postUpdateNavigationState: undefined
+                })
+            );
+        });
+    });
+
+    describe('post-update review actions', () => {
+        const completeUpdateRequest: ParameterContextUpdateRequestEntity = {
+            parameterContextRevision: { version: 1 },
+            request: {
+                complete: true,
+                lastUpdated: '2024-01-01T00:00:00.000Z',
+                percentComponent: 100,
+                referencingComponents: [],
+                requestId: 'request-1',
+                state: 'COMPLETE',
+                updateSteps: [],
+                uri: '/nifi-api/parameter-contexts/update-requests/request-1'
+            }
+        };
+
+        async function createReviewFixture(hasPendingNavigation: boolean): Promise<void> {
+            TestBed.resetTestingModule();
+            await TestBed.configureTestingModule({
+                imports: [EditParameterContext, NoopAnimationsModule],
+                providers: [
+                    { provide: MAT_DIALOG_DATA, useValue: data },
+                    provideMockStore({
+                        initialState: {
+                            [errorFeatureKey]: initialErrorState,
+                            [currentUserFeatureKey]: initialCurrentUserState,
+                            [parameterContextsFeatureKey]: {
+                                [parameterContextListingFeatureKey]: initialState
+                            }
+                        }
+                    }),
+                    {
+                        provide: ClusterConnectionService,
+                        useValue: {
+                            isDisconnectionAcknowledged: vi.fn()
+                        }
+                    },
+                    { provide: MatDialogRef, useValue: null }
+                ]
+            }).compileComponents();
+
+            fixture = TestBed.createComponent(EditParameterContext);
+            component = fixture.componentInstance;
+            component.availableParameterContexts$ = of(parameterContexts);
+            component.hasPendingPostUpdateNavigation$ = of(hasPendingNavigation);
+            component.updateRequest = of(completeUpdateRequest);
+            component.saving$ = of(false);
+            fixture.detectChanges();
+        }
+
+        it('should show Close as secondary and Go to Parameter as primary when navigation is pending', async () => {
+            await createReviewFixture(true);
+
+            const closeButton = fixture.debugElement.query(By.css('button[data-qa="edit-parameter-context-close"]'));
+            const goToButton = fixture.debugElement.query(
+                By.css('button[data-qa="edit-parameter-context-go-to-parameter"]')
+            );
+
+            expect(closeButton).toBeTruthy();
+            expect(closeButton.attributes['mat-button']).toBeDefined();
+            expect(goToButton).toBeTruthy();
+            expect(goToButton.attributes['mat-flat-button']).toBeDefined();
+        });
+
+        it('should emit continuePostUpdateNavigation when Go to Parameter is clicked', async () => {
+            await createReviewFixture(true);
+
+            const emitSpy = vi.spyOn(component.continuePostUpdateNavigation, 'emit');
+            const goToButton = fixture.debugElement.query(
+                By.css('button[data-qa="edit-parameter-context-go-to-parameter"]')
+            );
+
+            goToButton.nativeElement.click();
+
+            expect(emitSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it('should show only Close as primary when no post-update navigation is pending', async () => {
+            await createReviewFixture(false);
+
+            const closeButton = fixture.debugElement.query(By.css('button[data-qa="edit-parameter-context-close"]'));
+            const goToButton = fixture.debugElement.query(
+                By.css('button[data-qa="edit-parameter-context-go-to-parameter"]')
+            );
+
+            expect(closeButton).toBeTruthy();
+            expect(closeButton.attributes['mat-flat-button']).toBeDefined();
+            expect(goToButton).toBeNull();
+        });
     });
 
     describe('inheritsParameters', () => {

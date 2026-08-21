@@ -74,3 +74,23 @@ export const selectDeleteUpdateRequestInitiated = createSelector(
     selectParameterContextListingState,
     (state: ParameterContextListingState) => state.deleteUpdateRequestInitiated
 );
+
+export const selectPostUpdateNavigation = createSelector(
+    selectParameterContextListingState,
+    (state: ParameterContextListingState) => state.postUpdateNavigation
+);
+
+export const selectPostUpdateNavigationBoundary = createSelector(
+    selectParameterContextListingState,
+    (state: ParameterContextListingState) => state.postUpdateNavigationBoundary
+);
+
+export const selectPostUpdateNavigationState = createSelector(
+    selectParameterContextListingState,
+    (state: ParameterContextListingState) => state.postUpdateNavigationState
+);
+
+export const selectHasPendingPostUpdateNavigation = createSelector(
+    selectPostUpdateNavigation,
+    (postUpdateNavigation) => postUpdateNavigation != null && postUpdateNavigation.length > 0
+);

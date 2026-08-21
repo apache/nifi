@@ -16,14 +16,18 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { LoadParameterContextsResponse, SelectParameterContextRequest, GetEffectiveParameterContext } from './index';
+import {
+    LoadParameterContextsResponse,
+    SelectParameterContextRequest,
+    GetEffectiveParameterContext,
+    EditParameterContextRequest
+} from './index';
 import { PollParameterContextUpdateSuccess, SubmitParameterContextUpdate } from '../../../../state/shared';
 import {
     CreateParameterContextRequest,
     CreateParameterContextSuccess,
     DeleteParameterContextRequest,
-    DeleteParameterContextSuccess,
-    EditParameterContextRequest
+    DeleteParameterContextSuccess
 } from '../../../../ui/common/parameter-context';
 
 export const loadParameterContexts = createAction('[Parameter Context Listing] Load Parameter Contexts');

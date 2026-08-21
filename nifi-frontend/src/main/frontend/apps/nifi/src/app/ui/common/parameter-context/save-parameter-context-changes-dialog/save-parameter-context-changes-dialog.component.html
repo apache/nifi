@@ -1,0 +1,82 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title data-qa="save-parameter-context-changes-title">Unsaved Changes</h2>
+<mat-dialog-content>
+    @if (request.canSave) {
+        <div class="text-base" data-qa="save-parameter-context-changes-message">
+            This Parameter Context has unsaved changes. Save them before going to this {{ request.destination }}?
+            Choosing "Don't Save" will discard all pending changes.
+        </div>
+    } @else {
+        <div class="text-base" data-qa="save-parameter-context-changes-message">
+            This Parameter Context has unsaved changes, but they can't be saved because the form is not in a saveable
+            state. Choose "Don't Save" to discard all pending changes and continue, or "Cancel" to keep editing.
+        </div>
+    }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+    <button
+        mat-button
+        type="button"
+        mat-dialog-close
+        aria-label="Cancel"
+        data-qa="save-parameter-context-changes-cancel-button">
+        Cancel
+    </button>
+    @if (request.canSave) {
+        <button
+            mat-button
+            type="button"
+            mat-dialog-close
+            aria-label="Don't Save"
+            (click)="discardClicked()"
+            data-qa="save-parameter-context-changes-discard-button">
+            Don't Save
+        </button>
+        <button
+            mat-flat-button
+            cdkFocusInitial
+            type="button"
+            mat-dialog-close
+            aria-label="Save"
+            (click)="saveClicked()"
+            data-qa="save-parameter-context-changes-save-button">
+            Save
+        </button>
+    } @else {
+        <button
+            mat-button
+            cdkFocusInitial
+            type="button"
+            mat-dialog-close
+            aria-label="Don't Save"
+            (click)="discardClicked()"
+            data-qa="save-parameter-context-changes-discard-button">
+            Don't Save
+        </button>
+        <button
+            mat-flat-button
+            type="button"
+            mat-dialog-close
+            disabled
+            aria-label="Save"
+            data-qa="save-parameter-context-changes-save-button">
+            Save
+        </button>
+    }
+</mat-dialog-actions>

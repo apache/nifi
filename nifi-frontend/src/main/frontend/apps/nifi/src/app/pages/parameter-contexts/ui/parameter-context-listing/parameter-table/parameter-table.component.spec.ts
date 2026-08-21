@@ -422,6 +422,167 @@ describe('ParameterTable', () => {
         });
     });
 
+    describe('goToParameterClicked', () => {
+        it('should invoke goToParameter with inherited parameter context id and parameter name', () => {
+            const goToParameterSpy = vi.fn();
+            component.goToParameter = goToParameterSpy;
+
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'inherited-param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: true,
+                        parameterContext: {
+                            id: 'inherited-context-id',
+                            permissions: {
+                                canRead: true,
+                                canWrite: true
+                            },
+                            component: {
+                                id: 'inherited-context-id',
+                                name: 'Inherited Context'
+                            }
+                        }
+                    },
+                    canWrite: true
+                }
+            };
+
+            component.goToParameterClicked(item);
+
+            expect(goToParameterSpy).toHaveBeenCalledWith('inherited-context-id', 'inherited-param');
+        });
+
+        it('should not invoke goToParameter when parameterContext is missing', () => {
+            const goToParameterSpy = vi.fn();
+            component.goToParameter = goToParameterSpy;
+
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'inherited-param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                }
+            };
+
+            component.goToParameterClicked(item);
+
+            expect(goToParameterSpy).not.toHaveBeenCalled();
+        });
+
+        it('should no-op goToParameterClicked when goToParameter callback is not supplied', () => {
+            expect(component.goToParameter).toBeUndefined();
+
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'inherited-param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: true,
+                        parameterContext: {
+                            id: 'inherited-context-id',
+                            permissions: {
+                                canRead: true,
+                                canWrite: true
+                            },
+                            component: {
+                                id: 'inherited-context-id',
+                                name: 'Inherited Context'
+                            }
+                        }
+                    },
+                    canWrite: true
+                }
+            };
+
+            expect(() => component.goToParameterClicked(item)).not.toThrow();
+        });
+
+        it('canGoToParameter returns false when goToParameter callback is not supplied', () => {
+            expect(component.goToParameter).toBeUndefined();
+
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'inherited-param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        inherited: true,
+                        parameterContext: {
+                            id: 'inherited-context-id',
+                            permissions: {
+                                canRead: true,
+                                canWrite: true
+                            },
+                            component: {
+                                id: 'inherited-context-id',
+                                name: 'Inherited Context'
+                            }
+                        }
+                    },
+                    canWrite: true
+                }
+            };
+
+            expect(component.canGoToParameter(item)).toBe(false);
+        });
+    });
+
+    describe('highlightedParameterName', () => {
+        it('selects the row whose name matches highlightedParameterName', () => {
+            component.writeValue([
+                {
+                    parameter: { name: 'alpha', value: 'v', description: '', sensitive: false },
+                    canWrite: true
+                },
+                {
+                    parameter: { name: 'beta', value: 'v', description: '', sensitive: false },
+                    canWrite: true
+                }
+            ]);
+            component.highlightedParameterName = 'beta';
+            component.ngAfterViewInit();
+
+            expect(component.selectedItem?.originalEntity.parameter.name).toBe('beta');
+        });
+
+        it('does not select any row when highlightedParameterName is undefined', () => {
+            component.writeValue([
+                {
+                    parameter: { name: 'alpha', value: 'v', description: '', sensitive: false },
+                    canWrite: true
+                }
+            ]);
+            component.highlightedParameterName = undefined;
+            component.ngAfterViewInit();
+
+            expect(component.selectedItem).toBeNull();
+        });
+    });
+
     describe('canEdit', () => {
         it('should consider inherited and not modified as unable to edit', () => {
             const item: ParameterItem = {

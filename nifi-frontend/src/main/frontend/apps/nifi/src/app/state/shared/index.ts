@@ -549,9 +549,16 @@ export interface ParameterConfig {
     parameters: Parameter[] | null;
 }
 
+export interface PostUpdateNavigationState {
+    highlightedParameterName?: string;
+}
+
 export interface SubmitParameterContextUpdate {
     id: string;
     payload: any;
+    postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
+    postUpdateNavigationState?: PostUpdateNavigationState;
 }
 
 export interface PollParameterContextUpdateSuccess {

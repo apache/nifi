@@ -34,7 +34,7 @@ import {
     takeUntil,
     tap
 } from 'rxjs';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { Router } from '@angular/router';
@@ -46,9 +46,18 @@ import {
     selectSaving,
     selectUpdateRequest,
     selectUpdateRequestParameterContextId,
-    selectDeleteUpdateRequestInitiated
+    selectDeleteUpdateRequestInitiated,
+    selectHasPendingPostUpdateNavigation,
+    selectPostUpdateNavigation,
+    selectPostUpdateNavigationBoundary,
+    selectPostUpdateNavigationState
 } from './parameter-context-listing.selectors';
-import { EditParameterRequest, EditParameterResponse, ParameterContextUpdateRequest } from '../../../../state/shared';
+import {
+    EditParameterRequest,
+    EditParameterResponse,
+    ParameterContextUpdateRequest,
+    PostUpdateNavigationState
+} from '../../../../state/shared';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';
@@ -58,6 +67,8 @@ import { BackNavigation } from '../../../../state/navigation';
 import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG, NiFiCommon, Storage } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../state/error';
 import { EditParameterContext } from '../../../../ui/common/parameter-context/edit-parameter-context/edit-parameter-context.component';
+import { SaveParameterContextChangesDialog } from '../../../../ui/common/parameter-context/save-parameter-context-changes-dialog/save-parameter-context-changes-dialog.component';
+import { EditParameterContextUpdate } from '../../../../ui/common/parameter-context';
 
 @Injectable()
 export class ParameterContextListingEffects {
@@ -295,7 +306,8 @@ export class ParameterContextListingEffects {
                     map((response) =>
                         ParameterContextListingActions.openParameterContextDialog({
                             request: {
-                                parameterContext: response
+                                parameterContext: response,
+                                highlightedParameterName: request.highlightedParameterName
                             }
                         })
                     ),
@@ -326,7 +338,8 @@ export class ParameterContextListingEffects {
                     const editDialogReference = this.dialog.open(EditParameterContext, {
                         ...XL_DIALOG,
                         data: {
-                            parameterContext: request.parameterContext
+                            parameterContext: request.parameterContext,
+                            highlightedParameterName: request.highlightedParameterName
                         }
                     });
 
@@ -338,6 +351,27 @@ export class ParameterContextListingEffects {
                             map((parameterContexts) => parameterContexts.filter((pc) => pc.id != parameterContextId))
                         );
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+                    editDialogReference.componentInstance.hasPendingPostUpdateNavigation$ = this.store.select(
+                        selectHasPendingPostUpdateNavigation
+                    );
+
+                    editDialogReference.componentInstance.goToParameter = (
+                        inheritedParameterContextId: string,
+                        parameterName: string
+                    ) => {
+                        const commandBoundary: string[] = ['/parameter-contexts'];
+                        const commands: string[] = [...commandBoundary, inheritedParameterContextId, 'edit'];
+                        this.goToInheritedParameter(
+                            editDialogReference,
+                            parameterContextId,
+                            commands,
+                            commandBoundary,
+                            'Parameter',
+                            {
+                                highlightedParameterName: parameterName
+                            }
+                        );
+                    };
 
                     editDialogReference.componentInstance.createNewParameter = (
                         existingParameters: string[]
@@ -393,16 +427,45 @@ export class ParameterContextListingEffects {
 
                     editDialogReference.componentInstance.editParameterContext
                         .pipe(takeUntil(editDialogReference.afterClosed()))
-                        .subscribe((payload: any) => {
+                        .subscribe((updateRequest: EditParameterContextUpdate) => {
                             this.store.dispatch(
                                 ParameterContextListingActions.submitParameterContextUpdateRequest({
                                     request: {
                                         id: parameterContextId,
-                                        payload
+                                        payload: updateRequest.payload,
+                                        postUpdateNavigation: updateRequest.postUpdateNavigation,
+                                        postUpdateNavigationBoundary: updateRequest.postUpdateNavigationBoundary,
+                                        postUpdateNavigationState: updateRequest.postUpdateNavigationState
                                     }
                                 })
                             );
                         });
+
+                    editDialogReference.componentInstance.continuePostUpdateNavigation
+                        .pipe(
+                            takeUntil(editDialogReference.afterClosed()),
+                            switchMap(() =>
+                                this.store.select(selectPostUpdateNavigation).pipe(
+                                    take(1),
+                                    concatLatestFrom(() => [
+                                        this.store.select(selectPostUpdateNavigationBoundary),
+                                        this.store.select(selectPostUpdateNavigationState)
+                                    ])
+                                )
+                            )
+                        )
+                        .subscribe(
+                            ([postUpdateNavigation, postUpdateNavigationBoundary, postUpdateNavigationState]) => {
+                                if (postUpdateNavigation) {
+                                    this.navigateToInheritedParameter(
+                                        parameterContextId,
+                                        postUpdateNavigation,
+                                        postUpdateNavigationBoundary ?? ['/parameter-contexts'],
+                                        postUpdateNavigationState ?? undefined
+                                    );
+                                }
+                            }
+                        );
 
                     editDialogReference.componentInstance.cancelUpdateRequest
                         .pipe(takeUntil(editDialogReference.afterClosed()))
@@ -654,4 +717,70 @@ export class ParameterContextListingEffects {
             ),
         { dispatch: false }
     );
+
+    /**
+     * Navigates to the supplied route, recording back navigation to the Parameter Context that was being edited.
+     */
+    private navigateToInheritedParameter(
+        sourceParameterContextId: string,
+        commands: string[],
+        commandBoundary: string[],
+        navigationState?: PostUpdateNavigationState
+    ): void {
+        this.router.navigate(commands, {
+            state: {
+                backNavigation: {
+                    route: ['/parameter-contexts', sourceParameterContextId, 'edit'],
+                    routeBoundary: commandBoundary,
+                    context: 'Parameter Context'
+                } as BackNavigation,
+                ...navigationState
+            }
+        });
+    }
+
+    /**
+     * Navigates to an inherited Parameter. When the Parameter Context edit form has unsaved changes the user is
+     * prompted to save or discard them first. Saving defers the navigation until the update request completes and
+     * the user opts to continue.
+     */
+    private goToInheritedParameter(
+        editDialogReference: MatDialogRef<EditParameterContext>,
+        sourceParameterContextId: string,
+        commands: string[],
+        commandBoundary: string[],
+        destination: string,
+        navigationState?: PostUpdateNavigationState
+    ): void {
+        const editParameterContextForm = editDialogReference.componentInstance.editParameterContextForm;
+
+        if (!editParameterContextForm.dirty) {
+            this.navigateToInheritedParameter(sourceParameterContextId, commands, commandBoundary, navigationState);
+            return;
+        }
+
+        const saveChangesDialogReference = this.dialog.open(SaveParameterContextChangesDialog, {
+            ...SMALL_DIALOG,
+            data: {
+                destination,
+                canSave: editParameterContextForm.valid
+            }
+        });
+
+        // Defense in depth: Save is disabled when invalid, but still guard before submit.
+        saveChangesDialogReference.componentInstance.save
+            .pipe(takeUntil(saveChangesDialogReference.afterClosed()), take(1))
+            .subscribe(() => {
+                if (!editParameterContextForm.valid) {
+                    return;
+                }
+                editDialogReference.componentInstance.submitForm(commands, commandBoundary, navigationState);
+            });
+
+        saveChangesDialogReference.componentInstance.discard
+            .pipe(takeUntil(saveChangesDialogReference.afterClosed()), take(1))
+            .subscribe(() => {
+                this.navigateToInheritedParameter(sourceParameterContextId, commands, commandBoundary, navigationState);
+            });
+    }
 }
