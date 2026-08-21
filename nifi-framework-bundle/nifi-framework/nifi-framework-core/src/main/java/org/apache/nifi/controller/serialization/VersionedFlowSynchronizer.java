@@ -87,6 +87,7 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterGroup;
+import org.apache.nifi.parameter.ParameterNameValidator;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.persistence.FlowConfigurationArchiveManager;
@@ -953,6 +954,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versioned : versionedParameterContext.getParameters()) {
+            ParameterNameValidator.validate(versioned.getName());
             final boolean provided = providerBacked || versioned.isProvided();
             final String parameterValue;
             final String rawValue = versioned.getValue();
