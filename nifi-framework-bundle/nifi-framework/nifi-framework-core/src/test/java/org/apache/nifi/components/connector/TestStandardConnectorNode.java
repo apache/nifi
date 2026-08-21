@@ -37,6 +37,8 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedConfigurationStep;
+import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
@@ -1108,6 +1110,33 @@ public class TestStandardConnectorNode {
         assertTrue(node.isModified());
     }
 
+    @Test
+    public void testVerifyCanStartAfterInheritingConfigurationMissingRequiredPropertyWithDefault() throws FlowUpdateException {
+        final DefaultValueConnector connector = new DefaultValueConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        final Bundle bundle = new Bundle();
+        bundle.setGroup("org.apache.nifi");
+        bundle.setArtifact("test-bundle");
+        bundle.setVersion("1.0.0");
+
+        final VersionedConnectorValueReference greetingReference = new VersionedConnectorValueReference();
+        greetingReference.setValueType("STRING_LITERAL");
+        greetingReference.setValue("Welcome");
+
+        final VersionedConfigurationStep persistedStep = new VersionedConfigurationStep();
+        persistedStep.setName("settings");
+        persistedStep.setProperties(Map.of("Greeting", greetingReference));
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.inheritConfiguration(List.of(persistedStep), List.of(persistedStep), bundle);
+
+        connectorNode.verifyCanStart();
+        assertEquals("Welcome", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("settings", "Greeting").getValue());
+        assertEquals("1", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("settings", "Repeat Count").getValue());
+    }
+
     private static void seedActiveConfiguration(final StandardConnectorNode node, final String stepName, final Map<String, ConnectorValueReference> properties) {
         node.getActiveFlowContext().getConfigurationContext().setProperties(stepName, new StepConfiguration(properties));
     }
@@ -1187,6 +1216,7 @@ public class TestStandardConnectorNode {
 
         final FrameworkConnectorInitializationContext initializationContext = mock(FrameworkConnectorInitializationContext.class);
         when(initializationContext.getSecretsManager()).thenReturn(initializedSecretsManager);
+        when(initializationContext.getAssetManager()).thenReturn(assetManager);
 
         node.initializeConnector(initializationContext);
         node.loadInitialFlow();
@@ -1502,10 +1532,6 @@ public class TestStandardConnectorNode {
         }
     }
 
-    /**
-     * Test connector declaring a single configuration step with two properties that have default values. Used to
-     * exercise the configuration-versus-default comparison performed by {@code isModified()}.
-     */
     private static class DefaultValueConnector extends AbstractConnector {
         @Override
         public VersionedExternalFlow getInitialFlow() {

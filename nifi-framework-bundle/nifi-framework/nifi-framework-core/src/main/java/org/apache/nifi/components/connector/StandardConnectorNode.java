@@ -422,8 +422,48 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         final StandardConnectorPropertyConfiguration propertyConfiguration = new StandardConnectorPropertyConfiguration(initial, this.toString());
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             getConnector().migrateProperties(propertyConfiguration);
+            return applyMissingPropertyDefaults(propertyConfiguration.getMutatedProperties(), getConnector().getConfigurationSteps());
         }
-        return propertyConfiguration.getMutatedProperties();
+    }
+
+    /**
+     * For each property declared on the Connector that has a default but no value in the given configuration,
+     * inserts that default. This is needed when a Connector NAR adds a property: the saved flow has no entry
+     * for it, so without filling in the default the Connector would be invalid. Properties that already have a
+     * value, and properties that have no default, are left unchanged.
+     */
+    private Map<String, StepConfiguration> applyMissingPropertyDefaults(final Map<String, StepConfiguration> migratedProperties, final List<ConfigurationStep> configurationSteps) {
+        if (configurationSteps == null || configurationSteps.isEmpty()) {
+            return migratedProperties;
+        }
+
+        final Map<String, StepConfiguration> propertiesWithDefaults = new HashMap<>(migratedProperties);
+        for (final ConfigurationStep configurationStep : configurationSteps) {
+            final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
+            final StepConfiguration existingConfiguration = propertiesWithDefaults.get(configurationStep.getName());
+            if (existingConfiguration != null && existingConfiguration.getPropertyValues() != null) {
+                propertyValues.putAll(existingConfiguration.getPropertyValues());
+            }
+
+            boolean appliedMissingDefault = false;
+            for (final ConnectorPropertyGroup propertyGroup : configurationStep.getPropertyGroups()) {
+                for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
+                    if (propertyValues.containsKey(descriptor.getName()) || descriptor.getDefaultValue() == null) {
+                        continue;
+                    }
+
+                    propertyValues.put(descriptor.getName(), new StringLiteralValue(descriptor.getDefaultValue()));
+                    appliedMissingDefault = true;
+                    logger.debug("Applied default value for property [{}] of configuration step [{}] on {}", descriptor.getName(), configurationStep.getName(), this);
+                }
+            }
+
+            if (appliedMissingDefault) {
+                propertiesWithDefaults.put(configurationStep.getName(), new StepConfiguration(propertyValues));
+            }
+        }
+
+        return propertiesWithDefaults;
     }
 
     private Map<String, ConnectorValueReference> toValueReferenceMap(final VersionedConfigurationStep step) {
