@@ -201,6 +201,60 @@ public class PublishAMQPTest {
     }
 
     @Test
+    public void validateBlankRoutingKeyAndTransferToFailure() {
+        setConnectionProperties(runner);
+        runner.setProperty(PublishAMQP.ROUTING_KEY, "${routing.key}");
+
+        final Map<String, String> attributes = Collections.singletonMap("routing.key", "   ");
+
+        runner.enqueue("Hello Joe".getBytes(), attributes);
+
+        runner.run();
+
+        assertTrue(runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).isEmpty());
+        final MockFlowFile failureFlowFile = runner.getFlowFilesForRelationship(PublishAMQP.REL_FAILURE).getFirst();
+        assertNotNull(failureFlowFile);
+        assertFalse(failureFlowFile.isPenalized());
+        runner.assertPenalizeCount(0);
+        assertEquals(0, runner.getQueueSize().getObjectCount());
+    }
+
+    @Test
+    public void validateEmptyRoutingKeyAndTransferToFailure() {
+        setConnectionProperties(runner);
+        runner.setProperty(PublishAMQP.ROUTING_KEY, "${routing.key}");
+
+        final Map<String, String> attributes = Collections.singletonMap("routing.key", "");
+        runner.enqueue("Hello Joe".getBytes(), attributes);
+
+        runner.run();
+
+        assertTrue(runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).isEmpty());
+        final MockFlowFile failureFlowFile = runner.getFlowFilesForRelationship(PublishAMQP.REL_FAILURE).getFirst();
+        assertNotNull(failureFlowFile);
+        assertFalse(failureFlowFile.isPenalized());
+        runner.assertPenalizeCount(0);
+        assertEquals(0, runner.getQueueSize().getObjectCount());
+    }
+
+    @Test
+    public void validateMissingRoutingKeyAttributeAndTransferToFailure() {
+        setConnectionProperties(runner);
+        runner.setProperty(PublishAMQP.ROUTING_KEY, "${missing.routing.key}");
+
+        runner.enqueue("Hello Joe".getBytes());
+
+        runner.run();
+
+        assertTrue(runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).isEmpty());
+        final MockFlowFile failureFlowFile = runner.getFlowFilesForRelationship(PublishAMQP.REL_FAILURE).getFirst();
+        assertNotNull(failureFlowFile);
+        assertFalse(failureFlowFile.isPenalized());
+        runner.assertPenalizeCount(0);
+        assertEquals(0, runner.getQueueSize().getObjectCount());
+    }
+
+    @Test
     public void validateFailedPublishAndTransferToFailure() {
         setConnectionProperties(runner);
         runner.setProperty(PublishAMQP.EXCHANGE, "nonExistentExchange");

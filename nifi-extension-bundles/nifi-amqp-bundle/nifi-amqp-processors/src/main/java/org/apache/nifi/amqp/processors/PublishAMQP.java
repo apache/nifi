@@ -204,9 +204,12 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         }
 
         final String routingKey = context.getProperty(ROUTING_KEY).evaluateAttributeExpressions(flowFile).getValue();
-        if (routingKey == null) {
-            throw new IllegalArgumentException("Failed to determine 'routing key' with provided value '"
-                + context.getProperty(ROUTING_KEY) + "' after evaluating it as expression against incoming FlowFile.");
+        if (routingKey == null || routingKey.isBlank()) {
+            getLogger().error("Failed to determine a non-empty Routing Key with configured value '{}' "
+                    + "after evaluating it against incoming FlowFile {}; routing to failure",
+                    context.getProperty(ROUTING_KEY), flowFile);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
         }
 
         InputHeaderSource selectedHeaderSource = context.getProperty(HEADERS_SOURCE).asAllowableValue(InputHeaderSource.class);
