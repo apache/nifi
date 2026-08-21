@@ -1207,6 +1207,27 @@ public class TestStandardConnectorNode {
         assertTrue(connectorNode.getActiveFlowContext().getConfigurationContext().getPropertyNames("legacy").isEmpty());
     }
 
+    @Test
+    public void testInheritingConfigurationKeepsTransitivelyGatedRequiredPropertyIrrelevant() throws FlowUpdateException {
+        final TransitiveDependencyConnector connector = new TransitiveDependencyConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        final VersionedConfigurationStep persistedStep = new VersionedConfigurationStep();
+        persistedStep.setName("settings");
+        persistedStep.setProperties(Map.of());
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.inheritConfiguration(List.of(persistedStep), List.of(persistedStep), createConnectorBundle());
+
+        // "Username" is required with a default, so the back-fill materializes it even though it is gated off by the
+        // unset "Authentication". "Password" is required with no default and depends on "Username". If dependency
+        // evaluation is transitive, "Password" stays gated off because "Authentication" is unset, so materializing
+        // "Username" does not make "Password" required and the Connector remains startable.
+        assertEquals("admin", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("settings", "Username").getValue());
+        connectorNode.verifyCanStart();
+    }
+
     private static Bundle createConnectorBundle() {
         final Bundle bundle = new Bundle();
         bundle.setGroup("org.apache.nifi");
@@ -1876,6 +1897,72 @@ public class TestStandardConnectorNode {
 
         Set<String> getConfiguredStepNames() {
             return configuredStepNames;
+        }
+    }
+
+    private static class TransitiveDependencyConnector extends AbstractConnector {
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor authentication = new ConnectorPropertyDescriptor.Builder()
+                .name("Authentication")
+                .description("Authentication mode")
+                .required(false)
+                .build();
+
+            final ConnectorPropertyDescriptor username = new ConnectorPropertyDescriptor.Builder()
+                .name("Username")
+                .description("Username used for authentication")
+                .required(true)
+                .defaultValue("admin")
+                .dependsOn(authentication, "Basic")
+                .build();
+
+            final ConnectorPropertyDescriptor password = new ConnectorPropertyDescriptor.Builder()
+                .name("Password")
+                .description("Password used for authentication")
+                .required(true)
+                .dependsOn(username)
+                .build();
+
+            final ConnectorPropertyGroup propertyGroup = ConnectorPropertyGroup.builder()
+                .name("Security")
+                .description("Security settings")
+                .properties(List.of(authentication, username, password))
+                .build();
+
+            final ConfigurationStep step = new ConfigurationStep.Builder()
+                .name("settings")
+                .propertyGroups(List.of(propertyGroup))
+                .build();
+
+            return List.of(step);
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
         }
     }
 
