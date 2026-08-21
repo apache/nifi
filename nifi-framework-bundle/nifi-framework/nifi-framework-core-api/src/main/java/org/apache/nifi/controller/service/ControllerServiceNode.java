@@ -278,5 +278,5 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
 
     String invokeConnectorMethod(String methodName, Map<String, String> jsonArguments, ConfigurationContext configurationContext) throws InvocationFailedException;
 
-    List<ConnectorMethod> getConnectorMethods();
+    List<ConnectorMethod> getConnectorMethods() throws InvocationFailedException;
 }

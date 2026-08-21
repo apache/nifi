@@ -114,9 +114,11 @@ public class AsyncRequestManager<R, T> implements RequestManager<R, T> {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
                 task.accept(request);
-            } catch (final Exception e) {
-                logger.error("Failed to perform asynchronous task", e);
-                request.fail("Encountered unexpected error when performing asynchronous task: " + e);
+            } catch (final Throwable t) {
+                // Any Throwable must mark the request as failed. A Throwable that escapes this Runnable is captured by the Future returned from
+                // submit() and is never surfaced, which would leave the request incomplete and cause clients to poll it indefinitely.
+                logger.error("Failed to perform asynchronous task", t);
+                request.fail("Encountered unexpected error when performing asynchronous task: " + t);
             } finally {
                 // clear the authentication token
                 SecurityContextHolder.getContext().setAuthentication(null);
