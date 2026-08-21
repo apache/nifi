@@ -216,11 +216,13 @@ export interface UpdateComponentFailure {
 export interface UpdateProcessorRequest extends UpdateComponentRequest {
     postUpdateNavigation?: string[];
     postUpdateNavigationBoundary?: string[];
+    postUpdateNavigationState?: PostUpdateNavigationState;
 }
 
 export interface UpdateProcessorResponse extends UpdateComponentResponse {
     postUpdateNavigation?: string[];
     postUpdateNavigationBoundary?: string[];
+    postUpdateNavigationState?: PostUpdateNavigationState;
 }
 
 export interface UpdateConnectionRequest extends UpdateComponentRequest {
@@ -330,6 +332,7 @@ export interface UpdateControllerServiceRequest {
     payload: any;
     postUpdateNavigation?: string[];
     postUpdateNavigationBoundary?: string[];
+    postUpdateNavigationState?: PostUpdateNavigationState;
 }
 
 export interface SetEnableControllerServiceDialogRequest {

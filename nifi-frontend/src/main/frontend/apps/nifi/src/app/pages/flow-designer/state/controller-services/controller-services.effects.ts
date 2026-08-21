@@ -35,9 +35,11 @@ import {
     ControllerServiceReferencingComponent,
     EditControllerServiceDialogRequest,
     OpenChangeComponentVersionDialogRequest,
+    PostUpdateNavigationState,
     UpdateControllerServiceRequest
 } from '../../../../state/shared';
 import { Router } from '@angular/router';
+import { extractParameterName } from '../../../../ui/common/utils/parameter.utils';
 import {
     selectCurrentProcessGroupId,
     selectLoadedTimestamp,
@@ -406,7 +408,12 @@ export class ControllerServicesEffects {
                         selectPropertyVerificationStatus
                     );
 
-                    const goTo = (commands: string[], destination: string, commandBoundary?: string[]): void => {
+                    const goTo = (
+                        commands: string[],
+                        destination: string,
+                        commandBoundary?: string[],
+                        navigationState?: PostUpdateNavigationState
+                    ): void => {
                         if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 ...SMALL_DIALOG,
@@ -417,7 +424,11 @@ export class ControllerServicesEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
-                                editDialogReference.componentInstance.submitForm(commands, commandBoundary);
+                                editDialogReference.componentInstance.submitForm(
+                                    commands,
+                                    commandBoundary,
+                                    navigationState
+                                );
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
@@ -434,7 +445,8 @@ export class ControllerServicesEffects {
                                                 ],
                                                 routeBoundary: commandBoundary,
                                                 context: 'Controller Service'
-                                            } as BackNavigation
+                                            } as BackNavigation,
+                                            ...navigationState
                                         }
                                     });
                                 } else {
@@ -455,7 +467,8 @@ export class ControllerServicesEffects {
                                             ],
                                             routeBoundary: commandBoundary,
                                             context: 'Controller Service'
-                                        } as BackNavigation
+                                        } as BackNavigation,
+                                        ...navigationState
                                     }
                                 });
                             } else {
@@ -473,12 +486,18 @@ export class ControllerServicesEffects {
 
                     if (parameterContext != null) {
                         editDialogReference.componentInstance.parameterContext = parameterContext;
-                        editDialogReference.componentInstance.goToParameter = () => {
+                        editDialogReference.componentInstance.goToParameter = (parameterValue: string) => {
                             this.storage.setItem<number>(NiFiCommon.EDIT_PARAMETER_CONTEXT_DIALOG_ID, 1);
 
+                            const parameterName = extractParameterName(parameterValue);
                             const commandBoundary: string[] = ['/parameter-contexts'];
                             const commands: string[] = [...commandBoundary, parameterContext.id, 'edit'];
-                            goTo(commands, 'Parameter', commandBoundary);
+                            goTo(
+                                commands,
+                                'Parameter',
+                                commandBoundary,
+                                parameterName ? { highlightedParameterName: parameterName } : undefined
+                            );
                         };
 
                         editDialogReference.componentInstance.convertToParameter =
@@ -533,7 +552,9 @@ export class ControllerServicesEffects {
                                         payload: updateControllerServiceRequest.payload,
                                         postUpdateNavigation: updateControllerServiceRequest.postUpdateNavigation,
                                         postUpdateNavigationBoundary:
-                                            updateControllerServiceRequest.postUpdateNavigationBoundary
+                                            updateControllerServiceRequest.postUpdateNavigationBoundary,
+                                        postUpdateNavigationState:
+                                            updateControllerServiceRequest.postUpdateNavigationState
                                     }
                                 })
                             );
@@ -570,7 +591,8 @@ export class ControllerServicesEffects {
                                 id: request.id,
                                 controllerService: response,
                                 postUpdateNavigation: request.postUpdateNavigation,
-                                postUpdateNavigationBoundary: request.postUpdateNavigationBoundary
+                                postUpdateNavigationBoundary: request.postUpdateNavigationBoundary,
+                                postUpdateNavigationState: request.postUpdateNavigationState
                             }
                         })
                     ),
@@ -625,7 +647,8 @@ export class ControllerServicesEffects {
                                         ],
                                         routeBoundary: response.postUpdateNavigationBoundary,
                                         context: 'Controller Service'
-                                    } as BackNavigation
+                                    } as BackNavigation,
+                                    ...response.postUpdateNavigationState
                                 }
                             });
                         } else {

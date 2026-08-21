@@ -27,6 +27,7 @@ import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     ParameterContextEntity,
+    PostUpdateNavigationState,
     Property,
     UpdateControllerServiceRequest
 } from '../../../../state/shared';
@@ -179,7 +180,11 @@ export class EditControllerService extends TabbedDialog {
         return this.nifiCommon.formatBundle(entity.component.bundle);
     }
 
-    submitForm(postUpdateNavigation?: string[], postUpdateNavigationBoundary?: string[]) {
+    submitForm(
+        postUpdateNavigation?: string[],
+        postUpdateNavigationBoundary?: string[],
+        postUpdateNavigationState?: PostUpdateNavigationState
+    ) {
         const payload: any = {
             revision: this.client.getRevision(this.request.controllerService),
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
@@ -203,7 +208,8 @@ export class EditControllerService extends TabbedDialog {
         this.editControllerService.next({
             payload,
             postUpdateNavigation,
-            postUpdateNavigationBoundary
+            postUpdateNavigationBoundary,
+            postUpdateNavigationState
         });
     }
 
