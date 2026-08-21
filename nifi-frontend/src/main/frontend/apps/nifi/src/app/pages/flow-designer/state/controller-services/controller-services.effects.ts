@@ -406,7 +406,12 @@ export class ControllerServicesEffects {
                         selectPropertyVerificationStatus
                     );
 
-                    const goTo = (commands: string[], destination: string, commandBoundary?: string[]): void => {
+                    const goTo = (
+                        commands: string[],
+                        destination: string,
+                        commandBoundary?: string[],
+                        additionalState?: Record<string, unknown>
+                    ): void => {
                         if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 ...SMALL_DIALOG,
@@ -434,11 +439,14 @@ export class ControllerServicesEffects {
                                                 ],
                                                 routeBoundary: commandBoundary,
                                                 context: 'Controller Service'
-                                            } as BackNavigation
+                                            } as BackNavigation,
+                                            ...additionalState
                                         }
                                     });
                                 } else {
-                                    this.router.navigate(commands);
+                                    this.router.navigate(commands, {
+                                        state: { ...additionalState }
+                                    });
                                 }
                             });
                         } else {
@@ -455,11 +463,14 @@ export class ControllerServicesEffects {
                                             ],
                                             routeBoundary: commandBoundary,
                                             context: 'Controller Service'
-                                        } as BackNavigation
+                                        } as BackNavigation,
+                                        ...additionalState
                                     }
                                 });
                             } else {
-                                this.router.navigate(commands);
+                                this.router.navigate(commands, {
+                                    state: { ...additionalState }
+                                });
                             }
                         }
                     };
@@ -473,12 +484,12 @@ export class ControllerServicesEffects {
 
                     if (parameterContext != null) {
                         editDialogReference.componentInstance.parameterContext = parameterContext;
-                        editDialogReference.componentInstance.goToParameter = () => {
+                        editDialogReference.componentInstance.goToParameter = (parameterName: string) => {
                             this.storage.setItem<number>(NiFiCommon.EDIT_PARAMETER_CONTEXT_DIALOG_ID, 1);
 
                             const commandBoundary: string[] = ['/parameter-contexts'];
                             const commands: string[] = [...commandBoundary, parameterContext.id, 'edit'];
-                            goTo(commands, 'Parameter', commandBoundary);
+                            goTo(commands, 'Parameter', commandBoundary, { parameterName });
                         };
 
                         editDialogReference.componentInstance.convertToParameter =

@@ -96,6 +96,7 @@ export class EditParameterContext extends TabbedDialog {
     @Input() updateRequest!: Observable<ParameterContextUpdateRequestEntity | null>;
     @Input() availableParameterContexts$!: Observable<ParameterContextEntity[]>;
     @Input() saving$!: Observable<boolean>;
+    @Input() selectedParameterName?: string;
 
     @Output() addParameterContext: EventEmitter<any> = new EventEmitter<any>();
     @Output() editParameterContext: EventEmitter<any> = new EventEmitter<any>();

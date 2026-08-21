@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, ChangeDetectorRef, Component, forwardRef, Input, inject } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, forwardRef, Input, inject } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -74,11 +74,13 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     private store = inject<Store<ParameterContextListingState>>(Store);
     private changeDetector = inject(ChangeDetectorRef);
     private nifiCommon = inject(NiFiCommon);
+    private elementRef = inject(ElementRef);
 
     @Input() createNewParameter!: (existingParameters: string[]) => Observable<EditParameterResponse>;
     @Input() editParameter!: (parameter: Parameter) => Observable<EditParameterResponse>;
     @Input() canAddParameters = true;
     @Input() inheritsParameters = false;
+    @Input() selectedParameterName?: string;
 
     protected readonly TextTip = TextTip;
 
@@ -165,6 +167,28 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     private setPropertyItems(parameterItems: ParameterItem[]): void {
         this.dataSource.data = this.sortEntities(parameterItems, this.activeSort);
         this.initFilter();
+        this.selectAndScrollToParameter(this.selectedParameterName);
+    }
+
+    private selectAndScrollToParameter(parameterName: string | undefined): void {
+        if (!parameterName) {
+            return;
+        }
+
+        const item = this.dataSource.data.find((i) => i.originalEntity.parameter.name === parameterName);
+        if (!item) {
+            return;
+        }
+
+        this.selectParameter(item);
+
+        // wait for the table rows to render before attempting to scroll
+        setTimeout(() => {
+            const row: HTMLElement | null = this.elementRef.nativeElement.querySelector(
+                `tr[data-parameter-name="${parameterName}"]`
+            );
+            row?.scrollIntoView({ block: 'center' });
+        });
     }
 
     private sortEntities(parameters: ParameterItem[], sort: Sort): ParameterItem[] {

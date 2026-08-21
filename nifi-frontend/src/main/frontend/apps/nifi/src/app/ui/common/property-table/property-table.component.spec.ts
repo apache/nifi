@@ -74,13 +74,13 @@ describe('PropertyTable', () => {
             expect(() => component.goToParameterClicked(mockItem)).not.toThrow();
         });
 
-        it('should invoke goToParameter callback when supplied and item.value is non-null', () => {
+        it('should invoke goToParameter callback with the extracted parameter name when supplied and item.value is non-null', () => {
             const goToParameterSpy = vi.fn();
             component.goToParameter = goToParameterSpy;
 
             component.goToParameterClicked(mockItem);
 
-            expect(goToParameterSpy).toHaveBeenCalledWith('#{some-param}');
+            expect(goToParameterSpy).toHaveBeenCalledWith('some-param');
         });
 
         it('should not invoke goToParameter callback when item.value is null', () => {

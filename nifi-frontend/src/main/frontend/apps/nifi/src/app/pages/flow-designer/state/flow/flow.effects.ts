@@ -1564,7 +1564,12 @@ export class FlowEffects {
                         selectPropertyVerificationStatus
                     );
 
-                    const goTo = (commands: string[], commandBoundary: string[], destination: string): void => {
+                    const goTo = (
+                        commands: string[],
+                        commandBoundary: string[],
+                        destination: string,
+                        additionalState?: Record<string, unknown>
+                    ): void => {
                         if (editDialogReference.componentInstance.editProcessorForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 ...SMALL_DIALOG,
@@ -1591,7 +1596,8 @@ export class FlowEffects {
                                             ],
                                             routeBoundary: commandBoundary,
                                             context: 'Processor'
-                                        } as BackNavigation
+                                        } as BackNavigation,
+                                        ...additionalState
                                     }
                                 });
                             });
@@ -1608,7 +1614,8 @@ export class FlowEffects {
                                         ],
                                         routeBoundary: commandBoundary,
                                         context: 'Processor'
-                                    } as BackNavigation
+                                    } as BackNavigation,
+                                    ...additionalState
                                 }
                             });
                         }
@@ -1616,12 +1623,12 @@ export class FlowEffects {
 
                     if (parameterContext != null) {
                         editDialogReference.componentInstance.parameterContext = parameterContext;
-                        editDialogReference.componentInstance.goToParameter = () => {
+                        editDialogReference.componentInstance.goToParameter = (parameterName: string) => {
                             this.storage.setItem<number>(NiFiCommon.EDIT_PARAMETER_CONTEXT_DIALOG_ID, 1);
 
                             const commandBoundary: string[] = ['/parameter-contexts'];
                             const commands: string[] = [...commandBoundary, parameterContext.id, 'edit'];
-                            goTo(commands, commandBoundary, 'Parameter');
+                            goTo(commands, commandBoundary, 'Parameter', { parameterName });
                         };
 
                         editDialogReference.componentInstance.convertToParameter =

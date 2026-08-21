@@ -108,6 +108,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     @Input() supportsParameters = true;
 
     private static readonly PARAM_REF_REGEX: RegExp = /#{(['"]?)[a-zA-Z0-9-_. ]+\1}/;
+    private static readonly PARAM_REF_NAME_REGEX: RegExp = /#{(['"]?)([a-zA-Z0-9-_. ]+)\1}/;
 
     private destroyRef = inject(DestroyRef);
 
@@ -517,9 +518,6 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     }
 
     canGoToParameter(item: PropertyItem): boolean {
-        // TODO - currently parameter context route does not support navigating
-        // directly to a specific parameter so the parameter context link
-        // is not item specific.
         if (this.parameterContext && this.goToParameter && item.value) {
             return this.parameterContext.permissions.canRead && PropertyTable.PARAM_REF_REGEX.test(item.value);
         }
@@ -531,7 +529,16 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         if (!this.goToParameter || item.value == null) {
             return;
         }
-        this.goToParameter(item.value);
+
+        const parameterName = this.extractParameterName(item.value);
+        if (parameterName) {
+            this.goToParameter(parameterName);
+        }
+    }
+
+    private extractParameterName(value: string): string | null {
+        const match = PropertyTable.PARAM_REF_NAME_REGEX.exec(value);
+        return match ? match[2] : null;
     }
 
     canConvertToParameter(item: PropertyItem): boolean {

@@ -172,7 +172,8 @@
                         (click)="selectParameter(row)"
                         (dblclick)="doubleClicked(row)"
                         [class.selected]="isSelected(row)"
-                        [class.even]="even"></tr>
+                        [class.even]="even"
+                        [attr.data-parameter-name]="row.originalEntity.parameter.name"></tr>
                 </table>
             </div>
         </div>
