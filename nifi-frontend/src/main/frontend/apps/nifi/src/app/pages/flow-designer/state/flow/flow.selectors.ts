@@ -19,6 +19,7 @@ import { flowFeatureKey, FlowState, SelectedComponent } from './index';
 import { createSelector } from '@ngrx/store';
 import { CanvasState, selectCanvasState } from '../index';
 import { ComponentType, selectCurrentRoute } from '@nifi/shared';
+import { BreadcrumbEntity } from '../../../../state/shared';
 import {
     detectOverlappingConnections,
     OverlappingConnectionGroup
@@ -292,5 +293,37 @@ export const selectOverlappingConnections = createSelector(
             return [];
         }
         return detectOverlappingConnections(connections, processGroupId);
+    }
+);
+
+// maps the id of every group whose name is known in the current flow to that group's name: the current
+// process group, its ancestors via the breadcrumb chain, and the child process groups and remote process
+// groups it contains. Remote process groups are included alongside process groups because a connection to
+// one reports the remote process group's own id as the source/destination group id of the remote port it
+// terminates at, so the two kinds of id are looked up the same way.
+export const selectProcessGroupIdToNameMap = createSelector(
+    selectBreadcrumbs,
+    selectProcessGroups,
+    selectRemoteProcessGroups,
+    (breadcrumbs: BreadcrumbEntity, processGroups: any[], remoteProcessGroups: any[]): Map<string, string> => {
+        const idToName = new Map<string, string>();
+
+        // the current process group and each of its ancestors
+        let breadcrumbEntity: BreadcrumbEntity | undefined = breadcrumbs;
+        while (breadcrumbEntity) {
+            if (breadcrumbEntity.permissions.canRead) {
+                idToName.set(breadcrumbEntity.id, breadcrumbEntity.breadcrumb.name);
+            }
+            breadcrumbEntity = breadcrumbEntity.parentBreadcrumb;
+        }
+
+        // any child process groups or remote process groups of the current process group
+        [...(processGroups ?? []), ...(remoteProcessGroups ?? [])].forEach((group) => {
+            if (group.permissions.canRead) {
+                idToName.set(group.id, group.component.name);
+            }
+        });
+
+        return idToName;
     }
 );
