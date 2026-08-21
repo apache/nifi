@@ -106,6 +106,7 @@ import {
     EnableComponentRequest,
     OpenChangeComponentVersionDialogRequest,
     ParameterContextEntity,
+    PostUpdateNavigationState,
     RegistryClientEntity,
     StartComponentRequest,
     StopComponentRequest,
@@ -180,6 +181,7 @@ import {
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
+import { extractParameterName } from '../../../../ui/common/utils/parameter.utils';
 import { resetPollingFlowAnalysis } from '../flow-analysis/flow-analysis.actions';
 import { selectDocumentVisibilityState } from '../../../../state/document-visibility/document-visibility.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -1564,7 +1566,12 @@ export class FlowEffects {
                         selectPropertyVerificationStatus
                     );
 
-                    const goTo = (commands: string[], commandBoundary: string[], destination: string): void => {
+                    const goTo = (
+                        commands: string[],
+                        commandBoundary: string[],
+                        destination: string,
+                        navigationState?: PostUpdateNavigationState
+                    ): void => {
                         if (editDialogReference.componentInstance.editProcessorForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 ...SMALL_DIALOG,
@@ -1575,7 +1582,11 @@ export class FlowEffects {
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
-                                editDialogReference.componentInstance.submitForm(commands, commandBoundary);
+                                editDialogReference.componentInstance.submitForm(
+                                    commands,
+                                    commandBoundary,
+                                    navigationState
+                                );
                             });
 
                             saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
@@ -1591,7 +1602,8 @@ export class FlowEffects {
                                             ],
                                             routeBoundary: commandBoundary,
                                             context: 'Processor'
-                                        } as BackNavigation
+                                        } as BackNavigation,
+                                        ...navigationState
                                     }
                                 });
                             });
@@ -1608,7 +1620,8 @@ export class FlowEffects {
                                         ],
                                         routeBoundary: commandBoundary,
                                         context: 'Processor'
-                                    } as BackNavigation
+                                    } as BackNavigation,
+                                    ...navigationState
                                 }
                             });
                         }
@@ -1616,12 +1629,18 @@ export class FlowEffects {
 
                     if (parameterContext != null) {
                         editDialogReference.componentInstance.parameterContext = parameterContext;
-                        editDialogReference.componentInstance.goToParameter = () => {
+                        editDialogReference.componentInstance.goToParameter = (parameterValue: string) => {
                             this.storage.setItem<number>(NiFiCommon.EDIT_PARAMETER_CONTEXT_DIALOG_ID, 1);
 
+                            const parameterName = extractParameterName(parameterValue);
                             const commandBoundary: string[] = ['/parameter-contexts'];
                             const commands: string[] = [...commandBoundary, parameterContext.id, 'edit'];
-                            goTo(commands, commandBoundary, 'Parameter');
+                            goTo(
+                                commands,
+                                commandBoundary,
+                                'Parameter',
+                                parameterName ? { highlightedParameterName: parameterName } : undefined
+                            );
                         };
 
                         editDialogReference.componentInstance.convertToParameter =
@@ -2231,6 +2250,7 @@ export class FlowEffects {
                             type: request.type,
                             postUpdateNavigation: request.postUpdateNavigation,
                             postUpdateNavigationBoundary: request.postUpdateNavigationBoundary,
+                            postUpdateNavigationState: request.postUpdateNavigationState,
                             response
                         };
                         return FlowActions.updateProcessorSuccess({ response: updateProcessorResponse });
@@ -2270,7 +2290,8 @@ export class FlowEffects {
                                     ],
                                     routeBoundary: response.postUpdateNavigationBoundary,
                                     context: 'Processor'
-                                } as BackNavigation
+                                } as BackNavigation,
+                                ...response.postUpdateNavigationState
                             }
                         });
                     } else {

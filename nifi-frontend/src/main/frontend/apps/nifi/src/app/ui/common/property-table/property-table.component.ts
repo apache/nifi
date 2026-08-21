@@ -517,9 +517,6 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     }
 
     canGoToParameter(item: PropertyItem): boolean {
-        // TODO - currently parameter context route does not support navigating
-        // directly to a specific parameter so the parameter context link
-        // is not item specific.
         if (this.parameterContext && this.goToParameter && item.value) {
             return this.parameterContext.permissions.canRead && PropertyTable.PARAM_REF_REGEX.test(item.value);
         }
