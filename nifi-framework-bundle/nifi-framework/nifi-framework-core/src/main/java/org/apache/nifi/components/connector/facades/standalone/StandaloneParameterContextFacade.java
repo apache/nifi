@@ -20,6 +20,7 @@ package org.apache.nifi.components.connector.facades.standalone;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.components.connector.components.ParameterContextFacade;
 import org.apache.nifi.components.connector.components.ParameterValue;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.serialization.AffectedComponentSet;
@@ -97,8 +98,13 @@ public class StandaloneParameterContextFacade implements ParameterContextFacade 
 
         // A component whose additional classpath resources are supplied by a Parameter must be reloaded so that its ClassLoader reflects the
         // updated Parameter values. Components that are not running are not restarted below, so reloading here is the only point at which their
-        // ClassLoader is rebuilt.
-        allReferencingServices.forEach(ControllerServiceNode::reloadAdditionalResourcesIfNecessary);
+        // ClassLoader is rebuilt. Changing a Controller Service property can also change the Classloader Isolation Key of components that
+        // reference that service, matching StandardControllerServiceNode.setProperties().
+        for (final ControllerServiceNode serviceNode : allReferencingServices) {
+            serviceNode.reloadAdditionalResourcesIfNecessary();
+            serviceNode.getReferences().findRecursiveReferences(ComponentNode.class).forEach(ComponentNode::reloadAdditionalResourcesIfNecessary);
+        }
+
         allReferencingProcessors.forEach(ProcessorNode::reloadAdditionalResourcesIfNecessary);
 
         allReferencingServices.forEach(ControllerServiceNode::resetValidationState);

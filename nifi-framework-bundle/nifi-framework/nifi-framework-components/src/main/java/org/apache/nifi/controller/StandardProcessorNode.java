@@ -2082,9 +2082,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             } catch (final Exception e) {
                 throw new InvocationFailedException(e);
             }
-        } catch (final LinkageError e) {
-            // Argument types, return types, and the invoked method body can all reference classes supplied by additional classpath
-            // resources. Those failures are LinkageError, not Exception, so they would otherwise escape as an uncaught Error.
+        } catch (final TypeNotPresentException | LinkageError e) {
+            // MethodArgument.type() throws TypeNotPresentException when an annotation Class member is absent from the component ClassLoader.
+            // Resolving the implementation Method's parameter types can still throw LinkageError. Discovery already wraps LinkageError, and
+            // Errors thrown from the invoked method body are wrapped by Method.invoke as InvocationTargetException.
             throw new InvocationFailedException("Failed to invoke Connector Method '" + methodName + "' on " + this
                 + " because a class required by the component could not be loaded from the component's ClassLoader", e);
         }
