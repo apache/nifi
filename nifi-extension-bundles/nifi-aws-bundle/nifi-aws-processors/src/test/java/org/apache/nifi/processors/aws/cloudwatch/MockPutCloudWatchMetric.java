@@ -30,7 +30,7 @@ public class MockPutCloudWatchMetric extends PutCloudWatchMetric {
 
     protected String actualNamespace;
     protected List<MetricDatum> actualMetricData;
-    protected PutMetricDataResponse result = PutMetricDataResponse.builder().build();
+    protected final PutMetricDataResponse result = PutMetricDataResponse.builder().build();
     protected int putMetricDataCallCount = 0;
 
     @Override

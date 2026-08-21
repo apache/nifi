@@ -64,6 +64,7 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -78,6 +79,8 @@ class StandardProcessSessionTest {
     private static final boolean APPEND_DISABLED = false;
 
     private static final long EXPECTED_BYTES = 32;
+
+    private static final int EXPECTED_FLOWFILES = 1;
 
     private static final byte[] CONTENT = new byte[]{2};
 
@@ -205,6 +208,7 @@ class StandardProcessSessionTest {
         final QueueSize outputQueueSize = mock(QueueSize.class);
         when(outputFlowFileQueue.size()).thenReturn(outputQueueSize);
         when(outputFlowFileQueue.getFlowFileAvailability()).thenReturn(FlowFileAvailability.FLOWFILE_AVAILABLE);
+        doAnswer(inv -> when(outputFlowFileQueue.size()).thenReturn(new QueueSize(EXPECTED_FLOWFILES, EXPECTED_BYTES))).when(outputFlowFileQueue).putAll(any());
 
         final Relationship relationship = new Relationship.Builder().name(Relationship.class.getSimpleName()).build();
         when(repositoryContext.getConnections(eq(relationship))).thenReturn(List.of(outputConnection));
@@ -238,6 +242,8 @@ class StandardProcessSessionTest {
         final ComponentMetricContext secondComponentMetricContext = secondConnectionStatusEvent.getComponentMetricContext();
         assertEquals(OUTPUT_CONNECTION_ID, secondComponentMetricContext.id());
         assertSourceDestinationFound(secondConnectionStatusEvent);
+        assertEquals(EXPECTED_FLOWFILES, secondConnectionStatusEvent.getQueuedCount());
+        assertEquals(EXPECTED_BYTES, secondConnectionStatusEvent.getQueuedBytes());
     }
 
     @Test

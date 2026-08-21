@@ -42,6 +42,8 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -109,10 +111,10 @@ public class TestAvroReaderWithEmbeddedSchema {
             assertEquals(RecordFieldType.DECIMAL, recordSchema.getDataType("decimal").get().getFieldType());
 
             final Record record = reader.nextRecord();
-            assertEquals(new java.sql.Time(millisSinceMidnight), record.getValue("timeMillis"));
-            assertEquals(new java.sql.Time(millisSinceMidnight), record.getValue("timeMicros"));
-            assertEquals(new java.sql.Timestamp(timeLong), record.getValue("timestampMillis"));
-            assertEquals(new java.sql.Timestamp(timeLong), record.getValue("timestampMicros"));
+            assertEquals(new Time(millisSinceMidnight), record.getValue("timeMillis"));
+            assertEquals(new Time(millisSinceMidnight), record.getValue("timeMicros"));
+            assertEquals(new Timestamp(timeLong), record.getValue("timestampMillis"));
+            assertEquals(new Timestamp(timeLong), record.getValue("timestampMicros"));
 
             final Object date = record.getValue("date");
             assertEquals(LocalDate.ofEpochDay(epochDay).toString(), date.toString());

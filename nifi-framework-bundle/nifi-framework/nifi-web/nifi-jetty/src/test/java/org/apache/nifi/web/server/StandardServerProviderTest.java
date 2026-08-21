@@ -23,8 +23,12 @@ import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.server.handler.HeaderWriterHandler;
+import org.apache.nifi.web.server.handler.UnsupportedContentEncodingHandler;
 import org.apache.nifi.web.servlet.shared.ProxyHeader;
+import org.eclipse.jetty.compression.server.CompressionConfig;
+import org.eclipse.jetty.compression.server.CompressionHandler;
 import org.eclipse.jetty.http.HttpHeader;
+import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.rewrite.handler.RewriteHandler;
 import org.eclipse.jetty.server.Connector;
@@ -51,6 +55,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
 import javax.security.auth.x500.X500Principal;
@@ -103,6 +108,11 @@ class StandardServerProviderTest {
 
     private static final String FRONTEND_PATH_TRAILING_SLASH = "/nifi/";
 
+    private static final String ALL_PATHS = "/*";
+    private static final String CONTENT_ENCODING_HEADER = "Content-Encoding";
+    private static final String GZIP_CONTENT_ENCODING = "gzip";
+    private static final String IDENTITY_CONTENT_ENCODING = "identity";
+
     private static final List<String> STANDARD_RESPONSE_HEADERS = List.of(
             "Content-Security-Policy",
             "Strict-Transport-Security",
@@ -149,6 +159,37 @@ class StandardServerProviderTest {
 
         assertStandardConfigurationFound(server);
         assertHttpConnectorFound(server);
+    }
+
+    @Test
+    void testGetServerCompressionHandlerCompressesResponses() {
+        final Properties applicationProperties = new Properties();
+        applicationProperties.setProperty(NiFiProperties.WEB_HTTP_PORT, RANDOM_PORT);
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties((String) null, applicationProperties);
+
+        final StandardServerProvider provider = new StandardServerProvider(null);
+
+        final Server server = provider.getServer(properties);
+
+        final Handler.Collection handlerCollection = (Handler.Collection) server.getHandler();
+        final CompressionHandler compressionHandler = handlerCollection.getDescendant(CompressionHandler.class);
+        assertNotNull(compressionHandler);
+
+        final CompressionConfig compressionConfig = compressionHandler.getConfiguration("/");
+        assertNotNull(compressionConfig);
+
+        final Set<String> compressMethods = compressionConfig.getCompressIncludeMethods();
+        assertTrue(compressMethods.contains(HttpMethod.GET.asString()));
+        assertTrue(compressMethods.contains(HttpMethod.POST.asString()));
+
+        assertFalse(compressionConfig.isDecompressMethodSupported(HttpMethod.POST.asString()));
+        assertFalse(compressionConfig.isDecompressMethodSupported(HttpMethod.PUT.asString()));
+
+        final Set<String> decompressExcludePaths = compressionConfig.getDecompressExcludePaths();
+        assertTrue(decompressExcludePaths.contains(ALL_PATHS));
+
+        final UnsupportedContentEncodingHandler unsupportedContentEncodingHandler = handlerCollection.getDescendant(UnsupportedContentEncodingHandler.class);
+        assertNotNull(unsupportedContentEncodingHandler);
     }
 
     @Test
@@ -259,6 +300,7 @@ class StandardServerProviderTest {
             assertFrontendRedirectRequestsCompleted(httpClient, localhostUri);
             assertBadRequestsCompleted(httpClient, localhostUri);
             assertMisdirectedRequestsCompleted(httpClient, localhostUri);
+            assertContentEncodingRequestsCompleted(httpClient, localhostUri);
 
             assertReplicatedRequestCompleted(httpClient, localhostUri, HttpStatus.MISDIRECTED_REQUEST_421);
             assertForwardedToCoordinatorRequestCompleted(httpClient, localhostUri, HttpStatus.MISDIRECTED_REQUEST_421);
@@ -277,6 +319,7 @@ class StandardServerProviderTest {
             assertRedirectRequestsCompleted(httpClient, localhostUri);
             assertBadRequestsCompleted(httpClient, localhostUri);
             assertMisdirectedRequestsCompleted(httpClient, localhostUri);
+            assertContentEncodingRequestsCompleted(httpClient, localhostUri);
 
             assertReplicatedRequestCompleted(httpClient, localhostUri, HttpStatus.MOVED_TEMPORARILY_302);
             assertForwardedToCoordinatorRequestCompleted(httpClient, localhostUri, HttpStatus.MOVED_TEMPORARILY_302);
@@ -376,6 +419,42 @@ class StandardServerProviderTest {
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
         assertResponseStatusCode(httpClient, localhostAddressRequest, HttpStatus.BAD_REQUEST_400);
+    }
+
+    void assertContentEncodingRequestsCompleted(final HttpClient httpClient, final URI localhostUri) throws IOException, InterruptedException {
+        final HttpRequest identityContentEncodingRequest = HttpRequest.newBuilder(localhostUri)
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .header(CONTENT_ENCODING_HEADER, IDENTITY_CONTENT_ENCODING)
+                .version(HttpClient.Version.HTTP_1_1)
+                .build();
+        assertResponseStatusCode(httpClient, identityContentEncodingRequest, HttpStatus.MOVED_TEMPORARILY_302);
+
+        final HttpRequest gzipContentEncodingRequest = HttpRequest.newBuilder(localhostUri)
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .header(CONTENT_ENCODING_HEADER, GZIP_CONTENT_ENCODING)
+                .version(HttpClient.Version.HTTP_1_1)
+                .build();
+        assertResponseStatusCode(httpClient, gzipContentEncodingRequest, HttpStatus.UNSUPPORTED_MEDIA_TYPE_415);
+
+        final HttpRequest identityGzipContentEncodingRequest = HttpRequest.newBuilder(localhostUri)
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .headers(
+                        CONTENT_ENCODING_HEADER, IDENTITY_CONTENT_ENCODING,
+                        CONTENT_ENCODING_HEADER, GZIP_CONTENT_ENCODING
+                )
+                .version(HttpClient.Version.HTTP_2)
+                .build();
+        assertResponseStatusCode(httpClient, identityGzipContentEncodingRequest, HttpStatus.UNSUPPORTED_MEDIA_TYPE_415);
+
+        final HttpRequest identityGzipUppercasedContentEncodingRequest = HttpRequest.newBuilder(localhostUri)
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .headers(
+                        CONTENT_ENCODING_HEADER, IDENTITY_CONTENT_ENCODING.toUpperCase(),
+                        CONTENT_ENCODING_HEADER, GZIP_CONTENT_ENCODING.toUpperCase()
+                )
+                .version(HttpClient.Version.HTTP_2)
+                .build();
+        assertResponseStatusCode(httpClient, identityGzipUppercasedContentEncodingRequest, HttpStatus.UNSUPPORTED_MEDIA_TYPE_415);
     }
 
     void assertMisdirectedRequestsCompleted(final HttpClient httpClient, final URI localhostUri) throws IOException, InterruptedException {

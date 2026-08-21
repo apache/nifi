@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.provider.extension;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.registry.extension.BundleCoordinate;
 import org.apache.nifi.registry.extension.BundlePersistenceContext;
@@ -74,7 +75,7 @@ public class TestFileSystemBundlePersistenceProvider {
     public void setup() throws IOException {
         bundleStorageDir = new File(EXTENSION_STORAGE_DIR);
         if (bundleStorageDir.exists()) {
-            org.apache.commons.io.FileUtils.cleanDirectory(bundleStorageDir);
+            FileUtils.cleanDirectory(bundleStorageDir);
             bundleStorageDir.delete();
         }
 

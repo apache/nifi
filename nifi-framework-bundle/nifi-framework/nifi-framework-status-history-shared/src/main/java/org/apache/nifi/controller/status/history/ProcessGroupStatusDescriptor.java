@@ -93,7 +93,7 @@ public enum ProcessGroupStatusDescriptor {
         Formatter.DURATION,
         ProcessGroupStatusDescriptor::calculateTaskMillis);
 
-    private MetricDescriptor<ProcessGroupStatus> descriptor;
+    private final MetricDescriptor<ProcessGroupStatus> descriptor;
 
     ProcessGroupStatusDescriptor(final String field, final String label, final String description,
                                final MetricDescriptor.Formatter formatter, final ValueMapper<ProcessGroupStatus> valueFunction) {

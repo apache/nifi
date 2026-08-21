@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.processors.jolt;
 
-import com.fasterxml.jackson.core.StreamReadConstraints;
-import com.fasterxml.jackson.core.json.JsonWriteFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.joltcommunity.jolt.JoltTransform;
 import io.joltcommunity.jolt.JsonUtil;
 import io.joltcommunity.jolt.JsonUtils;
@@ -44,6 +41,11 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import tools.jackson.core.StreamReadConstraints;
+import tools.jackson.core.json.JsonFactory;
+import tools.jackson.core.json.JsonWriteFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -160,15 +162,12 @@ public class JoltTransformJSON extends AbstractJoltTransform {
         final int maxStringLength = context.getProperty(MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
         final StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
 
-        final ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.getFactory().setStreamReadConstraints(streamReadConstraints);
-
         final boolean retainUnicodeEscapeSequences = context.getProperty(RETAIN_UNICODE_ESCAPE_SEQUENCES).asBoolean();
-        if (retainUnicodeEscapeSequences) {
-            objectMapper.getFactory().enable(JsonWriteFeature.ESCAPE_NON_ASCII.mappedFeature());
-        } else {
-            objectMapper.getFactory().disable(JsonWriteFeature.ESCAPE_NON_ASCII.mappedFeature());
-        }
+        final JsonFactory jsonFactory = JsonFactory.builder()
+                .streamReadConstraints(streamReadConstraints)
+                .configure(JsonWriteFeature.ESCAPE_NON_ASCII, retainUnicodeEscapeSequences)
+                .build();
+        final ObjectMapper objectMapper = JsonMapper.builder(jsonFactory).build();
 
         jsonUtil = JsonUtils.customJsonUtil(objectMapper);
 

@@ -19,9 +19,10 @@ package org.apache.nifi.minifi.commons.status.reportingTask;
 
 import org.apache.nifi.minifi.commons.status.common.BulletinStatus;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class ReportingTaskStatus implements java.io.Serializable {
+public class ReportingTaskStatus implements Serializable {
     private String name;
     private ReportingTaskHealth reportingTaskHealth;
     private List<BulletinStatus> bulletinList;

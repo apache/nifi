@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.commons.status.rpg;
 
-public class PortStatus implements java.io.Serializable {
+import java.io.Serializable;
+
+public class PortStatus implements Serializable {
     private String name;
     private boolean targetExists;
     private boolean targetRunning;

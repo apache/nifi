@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "Chat",
+  "namespace": "com.example.chat",
+  "fields": [
+    {
+      "name": "chat_name",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "participants",
+      "type": {
+        "type": "array",
+        "items": { "type": "string", "logicalType": "uuid" }
+      },
+      "default": []
+    }
+  ]
+}

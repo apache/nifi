@@ -406,11 +406,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
      */
     private volatile NodeIdentifier nodeId;
 
-    // guarded by rwLock
     /**
      * true if controller is connected or trying to connect to the cluster
      */
-    private boolean clustered;
+    private volatile boolean clustered;
 
     // guarded by rwLock
     private volatile NodeConnectionStatus connectionStatus;
@@ -2497,6 +2496,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         return initialized.get();
     }
 
+    public boolean isAutoResumeState() {
+        return nifiProperties.getAutoResumeState();
+    }
+
     public boolean isFlowSynchronized() {
         return flowSynchronized.get();
     }
@@ -3006,12 +3009,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
      */
     @Override
     public boolean isClustered() {
-        readLock.lock();
-        try {
-            return clustered;
-        } finally {
-            readLock.unlock("isClustered");
-        }
+        return clustered;
     }
 
     @Override

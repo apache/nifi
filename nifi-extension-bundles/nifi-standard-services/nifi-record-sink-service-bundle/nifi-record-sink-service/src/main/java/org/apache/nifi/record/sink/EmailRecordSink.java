@@ -176,7 +176,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             SMTP_STARTTLS,
             SMTP_SSL,
             HEADER_XMAILER,
-            RecordSinkService.RECORD_WRITER_FACTORY
+            RECORD_WRITER_FACTORY
     );
 
     private volatile RecordSetWriterFactory writerFactory;

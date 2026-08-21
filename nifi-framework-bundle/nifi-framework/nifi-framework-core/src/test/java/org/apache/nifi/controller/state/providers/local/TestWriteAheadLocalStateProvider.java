@@ -32,15 +32,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.wali.WriteAheadRepository;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLContext;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider {
     @TempDir
@@ -104,13 +109,59 @@ public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider 
         }
     }
 
+    /**
+     * Verifies that the Maximum Journal Size property causes the Provider to checkpoint as soon as its journal reaches the configured size,
+     * even though the Checkpoint Interval has not elapsed, and that the state written before the checkpoint remains recoverable.
+     */
+    @Test
+    public void testJournalRolledOverWhenMaximumJournalSizeReached() throws IOException {
+        final Path storageDirectory = temporaryDirectory.resolve("bounded-journal");
+        final String testComponentId = "test-bounded-journal-component";
+
+        final WriteAheadLocalStateProvider boundedProvider = initializeProvider(storageDirectory.toString(), "4 KB");
+        try {
+            updateStateRepeatedly(boundedProvider, testComponentId, 100);
+
+            final List<File> journalFiles = getJournalFiles(storageDirectory);
+            assertEquals(1, journalFiles.size());
+            assertNotEquals("0.journal", journalFiles.getFirst().getName());
+        } finally {
+            boundedProvider.shutdown();
+        }
+
+        final WriteAheadLocalStateProvider recoveredProvider = initializeProvider(storageDirectory.toString(), "4 KB");
+        try {
+            assertEquals(Collections.singletonMap("iteration", "99"), recoveredProvider.getState(testComponentId).toMap());
+        } finally {
+            recoveredProvider.shutdown();
+        }
+    }
+
+    private void updateStateRepeatedly(final StateProvider stateProvider, final String stateComponentId, final int iterations) throws IOException {
+        for (int i = 0; i < iterations; i++) {
+            stateProvider.setState(Collections.singletonMap("iteration", String.valueOf(i)), stateComponentId);
+        }
+    }
+
+    private List<File> getJournalFiles(final Path storageDirectory) {
+        final File[] journalFiles = storageDirectory.resolve("journals").toFile().listFiles(file -> file.getName().endsWith(".journal"));
+        assertNotNull(journalFiles);
+
+        return Arrays.asList(journalFiles);
+    }
+
     private WriteAheadLocalStateProvider initializeProvider(final String storageDirectory) throws IOException {
+        return initializeProvider(storageDirectory, null);
+    }
+
+    private WriteAheadLocalStateProvider initializeProvider(final String storageDirectory, final String maximumJournalSize) throws IOException {
         final WriteAheadLocalStateProvider newProvider = new WriteAheadLocalStateProvider();
         final Map<PropertyDescriptor, PropertyValue> properties = new HashMap<>();
         properties.put(WriteAheadLocalStateProvider.PATH, new StandardPropertyValue(storageDirectory, null, ParameterLookup.EMPTY));
         properties.put(WriteAheadLocalStateProvider.ALWAYS_SYNC, new StandardPropertyValue("false", null, ParameterLookup.EMPTY));
         properties.put(WriteAheadLocalStateProvider.CHECKPOINT_INTERVAL, new StandardPropertyValue("2 mins", null, ParameterLookup.EMPTY));
         properties.put(WriteAheadLocalStateProvider.NUM_PARTITIONS, new StandardPropertyValue("16", null, ParameterLookup.EMPTY));
+        properties.put(WriteAheadLocalStateProvider.MAXIMUM_JOURNAL_SIZE, new StandardPropertyValue(maximumJournalSize, null, ParameterLookup.EMPTY));
 
         newProvider.initialize(new StateProviderInitializationContext() {
             @Override

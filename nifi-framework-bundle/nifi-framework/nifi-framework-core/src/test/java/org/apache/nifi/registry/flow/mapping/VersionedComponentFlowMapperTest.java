@@ -89,7 +89,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -142,10 +141,10 @@ public class VersionedComponentFlowMapperTest {
     @BeforeEach
     public void setup() {
         final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
-        Mockito.when(flowRegistry.getComponentType()).thenReturn(TestNifiRegistryFlowRegistryClient.class.getName());
-        Mockito.when(flowRegistry.getRawPropertyValue(Mockito.any())).thenReturn("");
-        Mockito.when(flowRegistry.getPropertyDescriptor(TestNifiRegistryFlowRegistryClient.PROPERTY_URL.getName())).thenReturn(TestNifiRegistryFlowRegistryClient.PROPERTY_URL);
-        Mockito.when(flowRegistry.getRawPropertyValue(TestNifiRegistryFlowRegistryClient.PROPERTY_URL)).thenReturn("http://127.0.0.1:18080");
+        when(flowRegistry.getComponentType()).thenReturn(TestNifiRegistryFlowRegistryClient.class.getName());
+        when(flowRegistry.getRawPropertyValue(any())).thenReturn("");
+        when(flowRegistry.getPropertyDescriptor(TestNifiRegistryFlowRegistryClient.PROPERTY_URL.getName())).thenReturn(TestNifiRegistryFlowRegistryClient.PROPERTY_URL);
+        when(flowRegistry.getRawPropertyValue(TestNifiRegistryFlowRegistryClient.PROPERTY_URL)).thenReturn("http://127.0.0.1:18080");
 
         when(flowManager.getFlowRegistryClient(anyString())).thenReturn(flowRegistry);
 

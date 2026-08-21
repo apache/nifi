@@ -40,9 +40,9 @@ public class RemoteProcessGroupSchemaV1 extends BaseSchema implements Convertabl
     public static final String DEFAULT_TIMEOUT = "30 secs";
     public static final String DEFAULT_YIELD_PERIOD = "10 sec";
 
-    private String name;
-    private String url;
-    private List<RemotePortSchema> inputPorts;
+    private final String name;
+    private final String url;
+    private final List<RemotePortSchema> inputPorts;
 
     private String comment = DEFAULT_COMMENT;
     private String timeout = DEFAULT_TIMEOUT;

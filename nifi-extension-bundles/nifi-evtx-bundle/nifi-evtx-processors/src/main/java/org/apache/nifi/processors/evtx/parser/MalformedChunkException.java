@@ -25,7 +25,7 @@ public class MalformedChunkException extends Exception {
     @SuppressWarnings("PMD.UnusedPrivateField")
     private final long offset;
     private final int chunkNum;
-    private byte[] badChunk;
+    private final byte[] badChunk;
 
     public MalformedChunkException(String message, Throwable cause, long offset, int chunkNum, byte[] badChunk) {
         super(message, cause);

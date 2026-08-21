@@ -79,9 +79,9 @@ public class TestJdbcCommonConvertToAvro {
     }
 
     static class TestParams {
-        int sqlType;
-        int precision;
-        boolean signed;
+        final int sqlType;
+        final int precision;
+        final boolean signed;
 
         TestParams(int sqlType, int precision, boolean signed) {
             this.sqlType = sqlType;

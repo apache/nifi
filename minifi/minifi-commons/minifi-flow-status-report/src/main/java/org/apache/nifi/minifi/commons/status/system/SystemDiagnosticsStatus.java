@@ -17,9 +17,10 @@
 
 package org.apache.nifi.minifi.commons.status.system;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class SystemDiagnosticsStatus implements java.io.Serializable {
+public class SystemDiagnosticsStatus implements Serializable {
     private List<GarbageCollectionStatus> garbageCollectionStatusList;
     private HeapStatus heapStatus;
     private SystemProcessorStats systemProcessorStats;

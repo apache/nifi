@@ -25,7 +25,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -88,7 +87,7 @@ public class WriteToFile extends AbstractProcessor {
 
         try (final OutputStream out = new FileOutputStream(file);
              final InputStream in = session.read(flowFile)) {
-            StreamUtils.copy(in, out);
+            in.transferTo(out);
         } catch (final Exception e) {
             getLogger().error("Could not write FlowFile to {}", file.getAbsolutePath(), e);
             session.transfer(flowFile, REL_FAILURE);

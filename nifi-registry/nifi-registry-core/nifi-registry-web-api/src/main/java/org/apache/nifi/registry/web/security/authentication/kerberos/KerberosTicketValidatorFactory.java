@@ -30,7 +30,7 @@ import java.io.File;
 @Configuration
 public class KerberosTicketValidatorFactory {
 
-    private NiFiRegistryProperties properties;
+    private final NiFiRegistryProperties properties;
 
     private KerberosTicketValidator kerberosTicketValidator;
 

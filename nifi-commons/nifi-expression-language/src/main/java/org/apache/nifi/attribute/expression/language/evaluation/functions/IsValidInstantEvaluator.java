@@ -29,7 +29,7 @@ import java.time.format.DateTimeParseException;
 
 /**
  * Evaluator for the {@code isValidInstant()} Expression Language function.
- * Returns {@code true} if the subject parses as a valid {@link java.time.Instant} using
+ * Returns {@code true} if the subject parses as a valid {@link Instant} using
  * ISO_INSTANT, ISO_OFFSET_DATE_TIME, or RFC_1123_DATE_TIME formats; {@code false} otherwise.
  */
 public class IsValidInstantEvaluator extends BooleanEvaluator {

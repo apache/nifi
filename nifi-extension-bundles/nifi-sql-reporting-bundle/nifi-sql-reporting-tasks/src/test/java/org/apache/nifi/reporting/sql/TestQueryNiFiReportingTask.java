@@ -756,7 +756,7 @@ class TestQueryNiFiReportingTask {
     }
 
     private static class MockQueryBulletinRepository extends MockBulletinRepository {
-        Map<String, List<Bulletin>> bulletins = new HashMap<>();
+        final Map<String, List<Bulletin>> bulletins = new HashMap<>();
 
         @Override
         public void addBulletin(Bulletin bulletin) {

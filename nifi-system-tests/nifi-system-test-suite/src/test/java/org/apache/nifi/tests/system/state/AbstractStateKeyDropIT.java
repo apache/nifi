@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 public abstract class AbstractStateKeyDropIT extends NiFiSystemIT {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractStateKeyDropIT.class);
@@ -80,6 +82,22 @@ public abstract class AbstractStateKeyDropIT extends NiFiSystemIT {
                 Thread.sleep(RETRY_DELAY_MILLIS);
             }
         }
+    }
+
+    protected void waitForProcessorState(final String processorId, final Scope scope, final Map<String, String> expectedState)
+            throws NiFiClientException, IOException, InterruptedException {
+        final long maxTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(RETRY_TIMEOUT_SECONDS);
+        Map<String, String> currentState;
+
+        do {
+            currentState = getProcessorState(processorId, scope);
+            if (expectedState.equals(currentState)) {
+                return;
+            }
+            Thread.sleep(RETRY_DELAY_MILLIS);
+        } while (System.currentTimeMillis() <= maxTime);
+
+        assertEquals(expectedState, currentState);
     }
 
     /**

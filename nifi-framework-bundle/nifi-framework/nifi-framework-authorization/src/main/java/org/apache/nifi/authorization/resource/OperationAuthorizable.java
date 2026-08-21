@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
  * Authorizable for a component that can be scheduled by operators.
  */
 public class OperationAuthorizable implements Authorizable, EnforcePolicyPermissionsThroughBaseResource {
-    private static Logger logger = LoggerFactory.getLogger(OperationAuthorizable.class);
+    private static final Logger logger = LoggerFactory.getLogger(OperationAuthorizable.class);
     private final Authorizable baseAuthorizable;
 
     public OperationAuthorizable(final Authorizable baseAuthorizable) {

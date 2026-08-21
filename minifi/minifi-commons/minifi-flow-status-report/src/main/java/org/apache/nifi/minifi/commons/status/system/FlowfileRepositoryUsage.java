@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.commons.status.system;
 
-public class FlowfileRepositoryUsage implements java.io.Serializable {
+import java.io.Serializable;
+
+public class FlowfileRepositoryUsage implements Serializable {
 
     private long freeSpace;
     private long totalSpace;

@@ -31,6 +31,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Date;
@@ -434,13 +436,13 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             if (valueToLookAt instanceof BigInteger) {
                 return RecordFieldType.BIGINT.getDataType();
             }
-            if (valueToLookAt instanceof java.sql.Time) {
+            if (valueToLookAt instanceof Time) {
                 return getDataType(RecordFieldType.TIME, useLogicalTypes);
             }
             if (valueToLookAt instanceof java.sql.Date) {
                 return getDataType(RecordFieldType.DATE, useLogicalTypes);
             }
-            if (valueToLookAt instanceof java.sql.Timestamp) {
+            if (valueToLookAt instanceof Timestamp) {
                 return getDataType(TIMESTAMP, useLogicalTypes);
             }
             if (valueToLookAt instanceof final Record record) {

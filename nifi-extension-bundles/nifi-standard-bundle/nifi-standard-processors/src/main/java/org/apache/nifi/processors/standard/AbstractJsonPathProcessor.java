@@ -61,7 +61,7 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
             .name("Null Value Representation")
             .description("Indicates the desired representation of JSON Path expressions resulting in a null value.")
             .required(true)
-            .allowableValues(NULL_REPRESENTATION_MAP.keySet())
+            .allowableValues(EMPTY_STRING_OPTION, NULL_STRING_OPTION)
             .defaultValue(EMPTY_STRING_OPTION)
             .build();
 
@@ -107,7 +107,7 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
     }
 
     /**
-     * Determines the context by which JsonSmartJsonProvider would treat the value. {@link java.util.Map} and {@link java.util.List} objects can be rendered as JSON elements, everything else is
+     * Determines the context by which JsonSmartJsonProvider would treat the value. {@link Map} and {@link List} objects can be rendered as JSON elements, everything else is
      * treated as a scalar.
      *
      * @param obj item to be inspected if it is a scalar or a JSON element

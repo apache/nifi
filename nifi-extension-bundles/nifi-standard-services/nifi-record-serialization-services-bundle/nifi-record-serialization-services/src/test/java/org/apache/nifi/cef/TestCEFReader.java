@@ -51,13 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_BRANCH_NAME;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REFERENCE_READER;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.OBSOLETE_SCHEMA_CACHE;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -239,13 +232,13 @@ public class TestCEFReader {
                 Map.entry("datetime-representation", CEFReader.DATETIME_REPRESENTATION.getName()),
                 Map.entry("accept-empty-extensions", CEFReader.ACCEPT_EMPTY_EXTENSIONS.getName()),
                 Map.entry(OBSOLETE_SCHEMA_CACHE, SCHEMA_CACHE.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_ACCESS_STRATEGY_PROPERTY_NAME, SCHEMA_ACCESS_STRATEGY.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_REGISTRY_PROPERTY_NAME, SCHEMA_REGISTRY.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_NAME_PROPERTY_NAME, SCHEMA_NAME.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_BRANCH_NAME_PROPERTY_NAME, SCHEMA_BRANCH_NAME.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_VERSION_PROPERTY_NAME, SCHEMA_VERSION.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_TEXT_PROPERTY_NAME, SCHEMA_TEXT.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_REFERENCE_READER_PROPERTY_NAME, SCHEMA_REFERENCE_READER.getName())
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_ACCESS_STRATEGY_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_REGISTRY_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_REGISTRY.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_NAME_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_NAME.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_BRANCH_NAME_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_BRANCH_NAME.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_VERSION_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_VERSION.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_TEXT_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_TEXT.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_REFERENCE_READER_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_REFERENCE_READER.getName())
         );
 
         final Map<String, String> propertyValues = Map.of();

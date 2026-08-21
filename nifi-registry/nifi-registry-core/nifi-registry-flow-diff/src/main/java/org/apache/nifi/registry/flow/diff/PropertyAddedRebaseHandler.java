@@ -70,11 +70,25 @@ public class PropertyAddedRebaseHandler implements RebaseHandler {
 
         final Map<String, VersionedPropertyDescriptor> descriptors = targetComponent.getPropertyDescriptors();
         if (descriptors == null || !descriptors.containsKey(propertyName)) {
+            if (isDynamicProperty(localDifference, propertyName)) {
+                return RebaseAnalysis.ClassifiedDifference.compatible(localDifference);
+            }
             return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.DESCRIPTOR_NOT_FOUND,
                     "Property descriptor '%s' does not exist on component %s in target version".formatted(propertyName, componentIdentifier));
         }
 
         return RebaseAnalysis.ClassifiedDifference.compatible(localDifference);
+    }
+
+    private boolean isDynamicProperty(final FlowDifference localDifference, final String propertyName) {
+        if (localDifference.getComponentB() instanceof VersionedConfigurableComponent localComponent) {
+            final Map<String, VersionedPropertyDescriptor> localDescriptors = localComponent.getPropertyDescriptors();
+            if (localDescriptors != null) {
+                final VersionedPropertyDescriptor descriptor = localDescriptors.get(propertyName);
+                return descriptor != null && descriptor.isDynamic();
+            }
+        }
+        return false;
     }
 
     @Override

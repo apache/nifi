@@ -39,7 +39,6 @@ import org.apache.nifi.processors.standard.ftp.FTPClientProvider;
 import org.apache.nifi.processors.standard.ftp.StandardFTPClientProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -173,9 +172,9 @@ public class FTPTransfer implements FileTransfer {
 
     @Override
     public List<FileInfo> getListing(final boolean applyFilters) throws IOException {
-        final String path = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
+        final String path = ctx.getProperty(REMOTE_PATH).evaluateAttributeExpressions().getValue();
         final int depth = 0;
-        final int maxResults = ctx.getProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE).asInteger();
+        final int maxResults = ctx.getProperty(REMOTE_POLL_BATCH_SIZE).asInteger();
         return getListing(path, depth, maxResults, applyFilters);
     }
 
@@ -190,14 +189,14 @@ public class FTPTransfer implements FileTransfer {
             return listing;
         }
 
-        final boolean ignoreDottedFiles = ctx.getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
-        final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
-        final boolean symlink = ctx.getProperty(FileTransfer.FOLLOW_SYMLINK).asBoolean();
-        final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
+        final boolean ignoreDottedFiles = ctx.getProperty(IGNORE_DOTTED_FILES).asBoolean();
+        final boolean recurse = ctx.getProperty(RECURSIVE_SEARCH).asBoolean();
+        final boolean symlink = ctx.getProperty(FOLLOW_SYMLINK).asBoolean();
+        final String fileFilterRegex = ctx.getProperty(FILE_FILTER_REGEX).getValue();
         final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
-        final String pathFilterRegex = ctx.getProperty(FileTransfer.PATH_FILTER_REGEX).getValue();
+        final String pathFilterRegex = ctx.getProperty(PATH_FILTER_REGEX).getValue();
         final Pattern pathPattern = (!recurse || pathFilterRegex == null) ? null : Pattern.compile(pathFilterRegex);
-        final String remotePath = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
+        final String remotePath = ctx.getProperty(REMOTE_PATH).evaluateAttributeExpressions().getValue();
 
         // check if this directory path matches the PATH_FILTER_REGEX
         boolean pathFilterMatches = true;
@@ -325,7 +324,7 @@ public class FTPTransfer implements FileTransfer {
 
                 throw new IOException(reply);
             }
-            resultFlowFile = session.write(origFlowFile, out -> StreamUtils.copy(in, out));
+            resultFlowFile = session.write(origFlowFile, in::transferTo);
             client.completePendingCommand();
             return resultFlowFile;
         }
@@ -536,8 +535,8 @@ public class FTPTransfer implements FileTransfer {
     private FTPClient getClient(final FlowFile flowFile) throws IOException {
         final String hostname = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
         final String port = ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).getValue();
-        final String username = ctx.getProperty(FileTransfer.USERNAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String password = ctx.getProperty(FileTransfer.PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
+        final String username = ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String password = ctx.getProperty(PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
 
         if (client != null) {
             if (Objects.equals(remoteHostName, hostname)

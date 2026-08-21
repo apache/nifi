@@ -16,18 +16,22 @@
  */
 package org.apache.nifi.stream.io;
 
-import org.apache.nifi.stream.io.exception.BytePatternNotFoundException;
-import org.apache.nifi.stream.io.util.NonThreadSafeCircularBuffer;
-
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 public class StreamUtils {
 
+    /**
+     * Copies from <code>source</code> to <code>destination</code>.
+     * @param source source InputStream
+     * @param destination destination OutputStream
+     * @return Total number of bytes copied
+     * @throws IOException If an error occurs when copying.
+     * @deprecated Use {@link InputStream#transferTo(OutputStream)} instead.
+     */
+    @Deprecated(since = "2.12.0", forRemoval = true)
     public static long copy(final InputStream source, final OutputStream destination) throws IOException {
         final byte[] buffer = new byte[8192];
         int len;
@@ -111,7 +115,9 @@ public class StreamUtils {
      * @throws IllegalArgumentException if the given byte array is smaller than <code>byteCount</code> elements.
      * @throws EOFException if the InputStream does not have <code>byteCount</code> bytes in the InputStream
      * @throws IOException if unable to read from the InputStream
+     * @deprecated Use {@link InputStream#readNBytes(byte[], int, int)} instead.
      */
+    @Deprecated(since = "2.12.0", forRemoval = true)
     public static void read(final InputStream source, final byte[] destination, final int byteCount) throws IOException {
         if (destination.length < byteCount) {
             throw new IllegalArgumentException();
@@ -126,108 +132,6 @@ public class StreamUtils {
             }
 
             bytesRead += len;
-        }
-    }
-
-    /**
-     * Copies data from in to out until either we are out of data (returns null) or we hit one of the byte patterns identified by the <code>stoppers</code> parameter (returns the byte pattern
-     * matched). The bytes in the stopper will be copied.
-     *
-     * @param in the source to read bytes from
-     * @param out the destination to write bytes to
-     * @param maxBytes the max bytes to copy
-     * @param stoppers patterns of bytes which if seen will cause the copy to stop
-     * @return the byte array matched, or null if end of stream was reached
-     * @throws IOException if issues occur reading or writing bytes to the underlying streams
-     */
-    public static byte[] copyInclusive(final InputStream in, final OutputStream out, final int maxBytes, final byte[]... stoppers) throws IOException {
-        if (stoppers.length == 0) {
-            return null;
-        }
-
-        final List<NonThreadSafeCircularBuffer> circularBuffers = new ArrayList<>();
-        for (final byte[] stopper : stoppers) {
-            circularBuffers.add(new NonThreadSafeCircularBuffer(stopper));
-        }
-
-        long bytesRead = 0;
-        while (true) {
-            final int next = in.read();
-            if (next == -1) {
-                return null;
-            } else if (maxBytes > 0 && ++bytesRead >= maxBytes) {
-                throw new BytePatternNotFoundException("Did not encounter any byte pattern that was expected; data does not appear to be in the expected format");
-            }
-
-            out.write(next);
-
-            for (final NonThreadSafeCircularBuffer circ : circularBuffers) {
-                if (circ.addAndCompare((byte) next)) {
-                    return circ.getByteArray();
-                }
-            }
-        }
-    }
-
-    /**
-     * Copies data from in to out until either we are out of data (returns null) or we hit one of the byte patterns identified by the <code>stoppers</code> parameter (returns the byte pattern
-     * matched). The byte pattern matched will NOT be copied to the output and will be un-read from the input.
-     *
-     * @param in the source to read bytes from
-     * @param out the destination to write bytes to
-     * @param maxBytes the maximum number of bytes to copy
-     * @param stoppers byte patterns which will cause the copy to stop if found
-     * @return the byte array matched, or null if end of stream was reached
-     * @throws IOException for issues reading or writing to underlying streams
-     */
-    public static byte[] copyExclusive(final InputStream in, final OutputStream out, final int maxBytes, final byte[]... stoppers) throws IOException {
-        if (stoppers.length == 0) {
-            return null;
-        }
-
-        int longest = 0;
-        NonThreadSafeCircularBuffer longestBuffer = null;
-        final List<NonThreadSafeCircularBuffer> circularBuffers = new ArrayList<>();
-        for (final byte[] stopper : stoppers) {
-            final NonThreadSafeCircularBuffer circularBuffer = new NonThreadSafeCircularBuffer(stopper);
-            if (stopper.length > longest) {
-                longest = stopper.length;
-                longestBuffer = circularBuffer;
-                circularBuffers.add(0, circularBuffer);
-            } else {
-                circularBuffers.add(circularBuffer);
-            }
-        }
-
-        long bytesRead = 0;
-        while (true) {
-            final int next = in.read();
-            if (next == -1) {
-                return null;
-            } else if (maxBytes > 0 && bytesRead++ > maxBytes) {
-                throw new BytePatternNotFoundException("Did not encounter any byte pattern that was expected; data does not appear to be in the expected format");
-            }
-
-            for (final NonThreadSafeCircularBuffer circ : circularBuffers) {
-                if (circ.addAndCompare((byte) next)) {
-                    // The longest buffer has some data that may not have been written out yet; we need to make sure
-                    // that we copy out those bytes.
-                    final int bytesToCopy = longest - circ.getByteArray().length;
-                    for (int i = 0; i < bytesToCopy; i++) {
-                        final int oldestByte = longestBuffer.getOldestByte();
-                        if (oldestByte != -1) {
-                            out.write(oldestByte);
-                            longestBuffer.addAndCompare((byte) 0);
-                        }
-                    }
-
-                    return circ.getByteArray();
-                }
-            }
-
-            if (longestBuffer.isFilled()) {
-                out.write(longestBuffer.getOldestByte());
-            }
         }
     }
 

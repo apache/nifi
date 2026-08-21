@@ -20,6 +20,8 @@ import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.asset.Asset;
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizationRequest;
@@ -39,7 +41,10 @@ import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.components.Backlog;
 import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.BacklogReportingConnector;
+import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.Secret;
@@ -47,6 +52,7 @@ import org.apache.nifi.components.connector.secrets.AuthorizableSecret;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ClusterTopologyProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
@@ -76,8 +82,10 @@ import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
+import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryClientUserContext;
@@ -94,6 +102,7 @@ import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
 import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
+import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
@@ -131,6 +140,7 @@ import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.BacklogEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsForGroupResultsEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
@@ -149,6 +159,7 @@ import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ConnectorDAO;
 import org.apache.nifi.web.dao.ConnectorManagedComponentLookup;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
+import org.apache.nifi.web.dao.ParameterContextDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
@@ -165,12 +176,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -218,7 +229,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class StandardNiFiServiceFacadeTest {
 
@@ -248,6 +261,12 @@ public class StandardNiFiServiceFacadeTest {
     private static final String PATH_TO_GROUP_1 = "Path1";
     private static final String PATH_TO_GROUP_2 = "Path2";
     private static final String RANDOM_GROUP_ID = "randomGroupId";
+
+    private static final String ASSET_ID = "asset-1";
+    private static final String ASSET_NAME = "asset-1.bin";
+    private static final String ASSET_PARAMETER_CONTEXT_ID = "parameter-context-1";
+    private static final String OTHER_PARAMETER_CONTEXT_ID = "parameter-context-2";
+    private static final String REFERENCING_PARAMETER_NAME = "asset-parameter";
 
     private StandardNiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -308,7 +327,7 @@ public class StandardNiFiServiceFacadeTest {
 
             return componentAuthorizable;
         };
-        when(authorizableLookup.getProcessor(Mockito.anyString())).then(processorLookupAnswer);
+        when(authorizableLookup.getProcessor(anyString())).then(processorLookupAnswer);
 
         // authorizer
         authorizer = mock(Authorizer.class);
@@ -412,7 +431,7 @@ public class StandardNiFiServiceFacadeTest {
                 VersionedComponent::getIdentifier,
                 FlowComparatorVersionedStrategy.DEEP);
 
-        final org.apache.nifi.registry.flow.diff.FlowComparison comparison = flowComparator.compare();
+        final FlowComparison comparison = flowComparator.compare();
         final boolean hasExecEngineChange = comparison.getDifferences().stream()
                 .anyMatch(d -> d.getDifferenceType() == DifferenceType.EXECUTION_ENGINE_CHANGED
                         && d.getComponentA() == null
@@ -477,14 +496,14 @@ public class StandardNiFiServiceFacadeTest {
         final StatusHistoryDTO dto = new StatusHistoryDTO();
         dto.setGenerated(generated);
         final ControllerFacade controllerFacade = mock(ControllerFacade.class);
-        Mockito.when(controllerFacade.getNodeStatusHistory()).thenReturn(dto);
+        when(controllerFacade.getNodeStatusHistory()).thenReturn(dto);
         serviceFacade.setControllerFacade(controllerFacade);
 
         // when
         final StatusHistoryEntity result = serviceFacade.getNodeStatusHistory();
 
         // then
-        Mockito.verify(controllerFacade).getNodeStatusHistory();
+        verify(controllerFacade).getNodeStatusHistory();
         assertNotNull(result);
         assertEquals(generated, result.getStatusHistory().getGenerated());
     }
@@ -797,8 +816,8 @@ public class StandardNiFiServiceFacadeTest {
         final VersionedControllerService versionedControllerService1 = mock(VersionedControllerService.class);
         final VersionedControllerService versionedControllerService2 = mock(VersionedControllerService.class);
 
-        Mockito.when(versionedControllerService1.getIdentifier()).thenReturn("test");
-        Mockito.when(versionedControllerService2.getIdentifier()).thenReturn("test2");
+        when(versionedControllerService1.getIdentifier()).thenReturn("test");
+        when(versionedControllerService2.getIdentifier()).thenReturn("test2");
 
         when(flowMapper.mapControllerService(same(parentControllerService1), same(controllerServiceProvider), anySet(), anyMap())).thenReturn(versionedControllerService1);
         when(flowMapper.mapControllerService(same(parentControllerService2), same(controllerServiceProvider), anySet(), anyMap())).thenReturn(versionedControllerService2);
@@ -1338,7 +1357,7 @@ public class StandardNiFiServiceFacadeTest {
 
     private static class MockTestBulletinRepository extends MockBulletinRepository {
 
-        List<Bulletin> bulletinList;
+        final List<Bulletin> bulletinList;
 
         public MockTestBulletinRepository() {
             bulletinList = new ArrayList<>();
@@ -2149,6 +2168,26 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
+    public void testGetConnectorControllerServiceNotFound() {
+        final String connectorId = "connector-id";
+        final String controllerServiceId = "non-existent-controller-service-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.findControllerService(controllerServiceId, false, true)).thenReturn(null);
+
+        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.getConnectorControllerService(connectorId, controllerServiceId, false));
+    }
+
+    @Test
     public void testGetConnectorControllerServiceState() {
         final String connectorId = "connector-id";
         final String controllerServiceId = "controller-service-id";
@@ -2387,7 +2426,7 @@ public class StandardNiFiServiceFacadeTest {
         final ParameterContextEntity entity = serviceFacade.getConnectorParameterContext(connectorId, processGroupId);
 
         assertNull(entity);
-        Mockito.verifyNoInteractions(dtoFactory);
+        verifyNoInteractions(dtoFactory);
     }
 
     @Test
@@ -2725,7 +2764,7 @@ public class StandardNiFiServiceFacadeTest {
         serviceFacade.setConnectorDAO(connectorDAO);
 
         final ConnectorNode connectorNode = mock(ConnectorNode.class);
-        final org.apache.nifi.components.connector.Connector connector = mock(org.apache.nifi.components.connector.Connector.class);
+        final Connector connector = mock(Connector.class);
         when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
         when(connectorNode.getConnector()).thenReturn(connector);
 
@@ -2743,13 +2782,110 @@ public class StandardNiFiServiceFacadeTest {
         // The capability is declared by implementing BacklogReportingConnector, not by a flag, so
         // the mock must satisfy both Connector and BacklogReportingConnector for the instanceof
         // check to succeed.
-        final org.apache.nifi.components.connector.Connector connector = mock(org.apache.nifi.components.connector.Connector.class,
-                org.mockito.Mockito.withSettings().extraInterfaces(org.apache.nifi.components.connector.BacklogReportingConnector.class));
+        final Connector connector = mock(Connector.class, withSettings().extraInterfaces(BacklogReportingConnector.class));
         when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
         when(connectorNode.getConnector()).thenReturn(connector);
-        when(connectorNode.getValidationStatus()).thenReturn(org.apache.nifi.components.validation.ValidationStatus.VALID);
-        when(connectorNode.getCurrentState()).thenReturn(org.apache.nifi.components.connector.ConnectorState.STOPPED);
+        when(connectorNode.getValidationStatus()).thenReturn(ValidationStatus.VALID);
+        when(connectorNode.getCurrentState()).thenReturn(ConnectorState.STOPPED);
 
         serviceFacade.verifyCanReportConnectorBacklog(connectorId);
+    }
+
+    @Test
+    public void testVerifyDeleteAssetWithUnknownAssetIdThrowsResourceNotFound() {
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        final AssetManager assetManager = configureAssets(null, parameterContext);
+
+        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.verifyDeleteAsset(ASSET_PARAMETER_CONTEXT_ID, ASSET_ID));
+
+        verify(parameterContext, never()).getParameters();
+        verify(assetManager, never()).deleteAsset(anyString());
+    }
+
+    @Test
+    public void testVerifyDeleteAssetOwnedByDifferentContextThrowsResourceNotFound() {
+        final Asset asset = createAsset(ASSET_ID, OTHER_PARAMETER_CONTEXT_ID);
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        final AssetManager assetManager = configureAssets(asset, parameterContext);
+
+        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.verifyDeleteAsset(ASSET_PARAMETER_CONTEXT_ID, ASSET_ID));
+
+        verify(parameterContext, never()).getParameters();
+        verify(assetManager, never()).deleteAsset(anyString());
+    }
+
+    @Test
+    public void testVerifyDeleteAssetOwnedByContextWithNoReferencesSucceeds() {
+        final Asset asset = createAsset(ASSET_ID, ASSET_PARAMETER_CONTEXT_ID);
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        when(parameterContext.getParameters()).thenReturn(Map.of());
+        configureAssets(asset, parameterContext);
+
+        serviceFacade.verifyDeleteAsset(ASSET_PARAMETER_CONTEXT_ID, ASSET_ID);
+    }
+
+    @Test
+    public void testVerifyDeleteAssetOwnedByContextThrowsWhenReferencedByParameter() {
+        final Asset asset = createAsset(ASSET_ID, ASSET_PARAMETER_CONTEXT_ID);
+        final ParameterDescriptor descriptor = new ParameterDescriptor.Builder().name(REFERENCING_PARAMETER_NAME).build();
+        final Parameter parameter = new Parameter.Builder().descriptor(descriptor).referencedAssets(List.of(asset)).build();
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        when(parameterContext.getParameters()).thenReturn(Map.of(descriptor, parameter));
+        final AssetManager assetManager = configureAssets(asset, parameterContext);
+
+        final IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> serviceFacade.verifyDeleteAsset(ASSET_PARAMETER_CONTEXT_ID, ASSET_ID));
+        assertTrue(exception.getMessage().contains(REFERENCING_PARAMETER_NAME));
+
+        verify(assetManager, never()).deleteAsset(anyString());
+    }
+
+    @Test
+    public void testDeleteAssetOwnedByDifferentContextDoesNotRemoveAsset() {
+        final Asset asset = createAsset(ASSET_ID, OTHER_PARAMETER_CONTEXT_ID);
+        final AssetManager assetManager = configureAssets(asset, mock(ParameterContext.class));
+
+        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.deleteAsset(ASSET_PARAMETER_CONTEXT_ID, ASSET_ID));
+
+        verify(assetManager, never()).deleteAsset(anyString());
+    }
+
+    @Test
+    public void testDeleteAssetOwnedByContextRemovesAsset() {
+        final Asset asset = createAsset(ASSET_ID, ASSET_PARAMETER_CONTEXT_ID);
+        when(asset.getDigest()).thenReturn(Optional.empty());
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        when(parameterContext.getParameters()).thenReturn(Map.of());
+        final AssetManager assetManager = configureAssets(asset, parameterContext);
+
+        final AssetEntity assetEntity = serviceFacade.deleteAsset(ASSET_PARAMETER_CONTEXT_ID, ASSET_ID);
+
+        assertNotNull(assetEntity);
+        assertEquals(ASSET_ID, assetEntity.getAsset().getId());
+        verify(assetManager).deleteAsset(ASSET_ID);
+    }
+
+    private Asset createAsset(final String assetId, final String ownerId) {
+        final Asset asset = mock(Asset.class);
+        when(asset.getIdentifier()).thenReturn(assetId);
+        when(asset.getOwnerIdentifier()).thenReturn(ownerId);
+        when(asset.getName()).thenReturn(ASSET_NAME);
+        when(asset.getFile()).thenReturn(new File(ASSET_NAME));
+        return asset;
+    }
+
+    private AssetManager configureAssets(final Asset asset, final ParameterContext parameterContext) {
+        final AssetManager assetManager = mock(AssetManager.class);
+        if (asset != null) {
+            when(assetManager.getAsset(asset.getIdentifier())).thenReturn(Optional.of(asset));
+            when(assetManager.deleteAsset(asset.getIdentifier())).thenReturn(Optional.of(asset));
+        }
+
+        final ParameterContextDAO parameterContextDAO = mock(ParameterContextDAO.class);
+        when(parameterContextDAO.getParameterContext(anyString())).thenReturn(parameterContext);
+
+        serviceFacade.setAssetManager(assetManager);
+        serviceFacade.setParameterContextDAO(parameterContextDAO);
+        return assetManager;
     }
 }

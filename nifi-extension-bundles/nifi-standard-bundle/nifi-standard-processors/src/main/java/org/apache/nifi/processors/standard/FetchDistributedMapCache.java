@@ -177,7 +177,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             // or a single EL statement with commas inside it but that evaluates to a single item.
             results.add(new ValidationResult.Builder().valid(true).explanation("Contains Expression Language").build());
         } else {
-            if (!validationContext.getProperty(FetchDistributedMapCache.PUT_CACHE_VALUE_IN_ATTRIBUTE).isSet()) {
+            if (!validationContext.getProperty(PUT_CACHE_VALUE_IN_ATTRIBUTE).isSet()) {
                 String identifierString = cacheEntryIdentifier.getValue();
                 if (identifierString.contains(",")) {
                     results.add(new ValidationResult.Builder().valid(false)

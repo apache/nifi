@@ -51,13 +51,13 @@ public class ProcessGroupSchemaV2 extends BaseSchemaWithIdAndName implements Wri
     public static final String ID_DEFAULT = "Root-Group";
 
     private String comment;
-    private List<ProcessorSchema> processors;
-    private List<FunnelSchema> funnels;
-    private List<ConnectionSchema> connections;
-    private List<RemoteProcessGroupSchemaV2> remoteProcessGroups;
-    private List<ProcessGroupSchemaV2> processGroupSchemas;
-    private List<PortSchema> inputPortSchemas;
-    private List<PortSchema> outputPortSchemas;
+    private final List<ProcessorSchema> processors;
+    private final List<FunnelSchema> funnels;
+    private final List<ConnectionSchema> connections;
+    private final List<RemoteProcessGroupSchemaV2> remoteProcessGroups;
+    private final List<ProcessGroupSchemaV2> processGroupSchemas;
+    private final List<PortSchema> inputPortSchemas;
+    private final List<PortSchema> outputPortSchemas;
 
     public ProcessGroupSchemaV2(Map map, String wrapperName) {
         super(map, wrapperName);

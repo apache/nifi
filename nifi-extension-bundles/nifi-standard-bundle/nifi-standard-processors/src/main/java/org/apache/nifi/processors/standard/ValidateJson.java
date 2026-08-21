@@ -61,6 +61,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -286,21 +287,34 @@ public class ValidateJson extends AbstractProcessor {
                     .build());
         }
 
+        if (schemaAccessStrategy.equals(JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY) && validationContext.getProperty(SCHEMA_CONTENT).isSet()) {
+            try {
+                readSchema(validationContext);
+            } catch (final Exception e) {
+                final String reason;
+                final Throwable cause = e.getCause();
+                if (cause == null) {
+                    reason = e.getMessage();
+                } else {
+                    reason = "%s [%s]".formatted(cause.getMessage(), e.getMessage());
+                }
+
+                final String message = "JSON schema not valid: %s".formatted(reason);
+                validationResults.add(new ValidationResult.Builder()
+                        .valid(false)
+                        .subject(SCHEMA_CONTENT.getDisplayName())
+                        .explanation(message)
+                        .build());
+            }
+        }
         return validationResults;
     }
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
         switch (getSchemaAccessStrategy(context)) {
-            case SCHEMA_NAME_PROPERTY ->
-                jsonSchemaRegistry = context.getProperty(SCHEMA_REGISTRY).asControllerService(JsonSchemaRegistry.class);
-            case SCHEMA_CONTENT_PROPERTY -> {
-                try (final InputStream inputStream = context.getProperty(SCHEMA_CONTENT).asResource().read()) {
-                    final SchemaVersion schemaVersion = SchemaVersion.valueOf(context.getProperty(SCHEMA_VERSION).getValue());
-                    final SchemaRegistry registry = schemaRegistries.get(schemaVersion);
-                    schema = registry.getSchema(inputStream);
-                }
-            }
+            case SCHEMA_NAME_PROPERTY -> jsonSchemaRegistry = context.getProperty(SCHEMA_REGISTRY).asControllerService(JsonSchemaRegistry.class);
+            case SCHEMA_CONTENT_PROPERTY -> schema = readSchema(context);
         }
 
         final int maxStringLength = context.getProperty(MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
@@ -336,6 +350,16 @@ public class ValidateJson extends AbstractProcessor {
             validateFlowFile(session, flowFile);
         } else {
             validateJsonLines(session, flowFile);
+        }
+    }
+
+    private Schema readSchema(final PropertyContext context) {
+        try (final InputStream inputStream = context.getProperty(SCHEMA_CONTENT).asResource().read()) {
+            final SchemaVersion schemaVersion = SchemaVersion.valueOf(context.getProperty(SCHEMA_VERSION).getValue());
+            final SchemaRegistry registry = schemaRegistries.get(schemaVersion);
+            return registry.getSchema(inputStream);
+        } catch (final IOException ioe) {
+            throw new UncheckedIOException("Read JSON schema failed", ioe);
         }
     }
 

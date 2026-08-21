@@ -487,7 +487,7 @@ public class SplitText extends AbstractProcessor {
         final long length;
         final long trimmedLength;
         final long lineCount;
-        OffsetInfo remaningOffsetInfo;
+        final OffsetInfo remaningOffsetInfo;
 
         SplitInfo(long startOffset, long length, long trimmedLength, long lineCount, OffsetInfo remaningOffsetInfo) {
             this.startOffset = startOffset;

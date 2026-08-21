@@ -28,13 +28,18 @@ import org.apache.nifi.minifi.bootstrap.configuration.ListenerHandleResult;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differentiator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -46,15 +51,15 @@ public abstract class RestChangeIngestorCommonTest {
     public static RestChangeIngestor restChangeIngestor;
     public static final MediaType MEDIA_TYPE_MARKDOWN = MediaType.parse("text/x-markdown; charset=utf-8");
     public static String url;
-    public static ConfigurationChangeNotifier testNotifier = Mockito.mock(ConfigurationChangeNotifier.class);
-    public static Differentiator<ByteBuffer> mockDifferentiator = Mockito.mock(Differentiator.class);
+    public static ConfigurationChangeNotifier testNotifier = mock(ConfigurationChangeNotifier.class);
+    public static final Differentiator<ByteBuffer> MOCK_DIFFERENTIATOR = mock(Differentiator.class);
 
     @BeforeEach
     public void setListener() {
-        Mockito.reset(testNotifier);
-        ConfigurationChangeListener testListener = Mockito.mock(ConfigurationChangeListener.class);
+        reset(testNotifier);
+        ConfigurationChangeListener testListener = mock(ConfigurationChangeListener.class);
         when(testListener.getDescriptor()).thenReturn("MockChangeListener");
-        Mockito.when(testNotifier.notifyListeners(Mockito.any())).thenReturn(Collections.singleton(new ListenerHandleResult(testListener)));
+        when(testNotifier.notifyListeners(any())).thenReturn(Collections.singleton(new ListenerHandleResult(testListener)));
     }
 
     @Test
@@ -69,13 +74,13 @@ public abstract class RestChangeIngestorCommonTest {
             }
 
             assertEquals(RestChangeIngestor.GET_TEXT, response.body().string());
-            verify(testNotifier, Mockito.never()).notifyListeners(Mockito.any(ByteBuffer.class));
+            verify(testNotifier, never()).notifyListeners(any(ByteBuffer.class));
         }
     }
 
     @Test
     public void testFileUploadNewConfig() throws Exception {
-        when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(true);
+        when(MOCK_DIFFERENTIATOR.isNew(any(ByteBuffer.class))).thenReturn(true);
 
         Request request = new Request.Builder()
             .url(url)
@@ -90,13 +95,13 @@ public abstract class RestChangeIngestorCommonTest {
 
             assertEquals("The result of notifying listeners:\nMockChangeListener successfully handled the configuration change\n", response.body().string());
 
-            verify(testNotifier, Mockito.times(1)).notifyListeners(Mockito.eq(ByteBuffer.wrap(testString.getBytes())));
+            verify(testNotifier, times(1)).notifyListeners(eq(ByteBuffer.wrap(testString.getBytes())));
         }
     }
 
     @Test
     public void testFileUploadSameConfig() throws Exception {
-        when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(false);
+        when(MOCK_DIFFERENTIATOR.isNew(any(ByteBuffer.class))).thenReturn(false);
 
         Request request = new Request.Builder()
             .url(url)
@@ -111,7 +116,7 @@ public abstract class RestChangeIngestorCommonTest {
 
             assertEquals("Request received but instance is already running this config.", response.body().string());
 
-            verify(testNotifier, Mockito.never()).notifyListeners(Mockito.any());
+            verify(testNotifier, never()).notifyListeners(any());
         }
     }
 }

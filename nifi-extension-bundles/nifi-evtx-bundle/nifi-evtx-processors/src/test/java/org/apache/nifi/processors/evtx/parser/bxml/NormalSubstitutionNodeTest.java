@@ -29,8 +29,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class NormalSubstitutionNodeTest extends BxmlNodeWithTokenTestBase {
-    private int index = 30;
-    private byte type = 20;
+    private final int index = 30;
+    private final byte type = 20;
     private NormalSubstitutionNode normalSubstitutionNode;
 
     @Override

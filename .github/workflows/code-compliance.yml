@@ -63,6 +63,18 @@ jobs:
           --fail-fast
           --activate-profiles contrib-check
           validate
+      - name: Check Build Plan
+        # Exclude modules referencing ANTLR 3 Plugin
+        run: >
+          ./mvnw
+          --show-version
+          --no-snapshot-updates
+          --no-transfer-progress
+          --activate-profiles apache-release
+          --projects -:nifi-expression-language
+          --projects -:nifi-hl7-query-language
+          --projects -:nifi-record-path
+          artifact:check-buildplan
 
   scan:
     timeout-minutes: 120

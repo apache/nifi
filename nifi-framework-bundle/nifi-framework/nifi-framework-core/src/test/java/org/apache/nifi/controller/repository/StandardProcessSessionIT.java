@@ -67,7 +67,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -118,8 +117,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.notNull;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -189,11 +190,11 @@ public class StandardProcessSessionIT {
         final List<Connection> connList = new ArrayList<>();
         connList.add(connection);
 
-        final ProcessGroup procGroup = Mockito.mock(ProcessGroup.class);
+        final ProcessGroup procGroup = mock(ProcessGroup.class);
         when(procGroup.getIdentifier()).thenReturn("proc-group-identifier-1");
         when(procGroup.getLoggingAttributes()).thenReturn(Map.of());
 
-        connectable = Mockito.mock(Connectable.class);
+        connectable = mock(Connectable.class);
         when(connectable.hasIncomingConnection()).thenReturn(true);
         when(connectable.getIncomingConnections()).thenReturn(connList);
         when(connectable.getProcessGroup()).thenReturn(procGroup);
@@ -204,7 +205,7 @@ public class StandardProcessSessionIT {
         when(connectable.getMaxBackoffPeriod()).thenReturn("1 sec");
         when(connectable.getFlowFileActivity()).thenReturn(new ConnectableFlowFileActivity());
 
-        Mockito.doAnswer((Answer<Set<Connection>>) invocation -> {
+        doAnswer((Answer<Set<Connection>>) invocation -> {
             final Object[] arguments = invocation.getArguments();
             final Relationship relationship = (Relationship) arguments[0];
             if (relationship == Relationship.SELF) {
@@ -214,7 +215,7 @@ public class StandardProcessSessionIT {
             } else {
                 return new HashSet<>(connList);
             }
-        }).when(connectable).getConnections(Mockito.any(Relationship.class));
+        }).when(connectable).getConnections(any(Relationship.class));
 
         when(connectable.getConnections()).thenReturn(new HashSet<>(connList));
         when(connectable.getFlowFileActivity()).thenReturn(new ConnectableFlowFileActivity());
@@ -239,17 +240,17 @@ public class StandardProcessSessionIT {
     }
 
     private FlowFileQueue createFlowFileQueueSpy(Connection connection) {
-        final FlowFileSwapManager swapManager = Mockito.mock(FlowFileSwapManager.class);
-        final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
+        final FlowFileSwapManager swapManager = mock(FlowFileSwapManager.class);
+        final ProcessScheduler processScheduler = mock(ProcessScheduler.class);
 
         final StandardFlowFileQueue actualQueue = new StandardFlowFileQueue("1", flowFileRepo, provenanceRepo,
                 processScheduler, swapManager, null, 10000, "0 sec", 0L, "0 B");
-        return Mockito.spy(actualQueue);
+        return spy(actualQueue);
     }
 
     @SuppressWarnings("unchecked")
     private Connection createConnection(AtomicReference<FlowFileQueue> flowFileQueueReference) {
-        final Connection connection = Mockito.mock(Connection.class);
+        final Connection connection = mock(Connection.class);
 
         FlowFileQueue flowFileQueueFromReference = flowFileQueueReference.get();
 
@@ -264,26 +265,26 @@ public class StandardProcessSessionIT {
 
         when(connection.getFlowFileQueue()).thenReturn(localFlowFileQueue);
 
-        Mockito.doAnswer((Answer<Object>) invocation -> {
+        doAnswer((Answer<Object>) invocation -> {
             localFlowFileQueue.put((FlowFileRecord) invocation.getArguments()[0]);
             return null;
-        }).when(connection).enqueue(Mockito.any(FlowFileRecord.class));
+        }).when(connection).enqueue(any(FlowFileRecord.class));
 
-        Mockito.doAnswer((Answer<Object>) invocation -> {
+        doAnswer((Answer<Object>) invocation -> {
             localFlowFileQueue.putAll((Collection<FlowFileRecord>) invocation.getArguments()[0]);
             return null;
-        }).when(connection).enqueue(Mockito.any(Collection.class));
+        }).when(connection).enqueue(any(Collection.class));
 
-        final Connectable dest = Mockito.mock(Connectable.class);
+        final Connectable dest = mock(Connectable.class);
         when(connection.getDestination()).thenReturn(dest);
         when(connection.getSource()).thenReturn(dest);
 
-        Mockito.doAnswer((Answer<FlowFile>) invocation -> localFlowFileQueue.poll(invocation.getArgument(0))).when(connection).poll(any(Set.class));
+        doAnswer((Answer<FlowFile>) invocation -> localFlowFileQueue.poll(invocation.getArgument(0))).when(connection).poll(any(Set.class));
 
-        Mockito.doAnswer((Answer<List<FlowFileRecord>>) invocation ->
+        doAnswer((Answer<List<FlowFileRecord>>) invocation ->
                 localFlowFileQueue.poll((FlowFileFilter) invocation.getArgument(0), invocation.getArgument(1))).when(connection).poll(any(FlowFileFilter.class), any(Set.class));
 
-        Mockito.when(connection.getIdentifier()).thenReturn("conn-uuid");
+        when(connection.getIdentifier()).thenReturn("conn-uuid");
         return connection;
     }
 
@@ -628,7 +629,7 @@ public class StandardProcessSessionIT {
     private byte[] readContents(final FlowFile flowFile) throws IOException {
         try (final InputStream in = session.read(flowFile);
              final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            StreamUtils.copy(in, baos);
+            in.transferTo(baos);
             return baos.toByteArray();
         }
     }
@@ -1258,7 +1259,7 @@ public class StandardProcessSessionIT {
         os.close();
 
         // should throw ProcessException because of IOException (from processor code)
-        FileOutputStream mock = Mockito.mock(FileOutputStream.class);
+        FileOutputStream mock = mock(FileOutputStream.class);
         doThrow(new IOException()).when(mock).write(notNull(), any(Integer.class), any(Integer.class));
 
         final FlowFile finalFlowfile = flowFile;
@@ -1667,7 +1668,7 @@ public class StandardProcessSessionIT {
         // Read the content back and ensure that it is correct
         final byte[] buff;
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            newSession.read(toUpdate, in -> StreamUtils.copy(in, baos));
+            newSession.read(toUpdate, in -> in.transferTo(baos));
             buff = baos.toByteArray();
         }
 
@@ -1702,7 +1703,7 @@ public class StandardProcessSessionIT {
                 .contentClaim(contentClaim)
                 .build();
 
-        Mockito.doAnswer(new Answer<List<FlowFileRecord>>() {
+        doAnswer(new Answer<List<FlowFileRecord>>() {
             int iterations = 0;
 
             @Override
@@ -1714,7 +1715,7 @@ public class StandardProcessSessionIT {
 
                 return null;
             }
-        }).when(flowFileQueue).poll(Mockito.any(FlowFileFilter.class), Mockito.any(Set.class), Mockito.any(PollStrategy.class));
+        }).when(flowFileQueue).poll(any(FlowFileFilter.class), any(Set.class), any(PollStrategy.class));
 
         session.expireFlowFiles();
         session.commit(); // if the content claim count is decremented to less than 0, an exception will be thrown.
@@ -3073,7 +3074,7 @@ public class StandardProcessSessionIT {
         when(connectable.getComponentType()).thenReturn("Unit Test Component");
         when(connectable.getFlowFileActivity()).thenReturn(new ConnectableFlowFileActivity());
 
-        Mockito.doAnswer((Answer<Set<Connection>>) invocation -> {
+        doAnswer((Answer<Set<Connection>>) invocation -> {
             final Object[] arguments = invocation.getArguments();
             final Relationship relationship = (Relationship) arguments[0];
             if (relationship == Relationship.SELF) {
@@ -3085,7 +3086,7 @@ public class StandardProcessSessionIT {
             } else {
                 return new HashSet<>(connList);
             }
-        }).when(connectable).getConnections(Mockito.any(Relationship.class));
+        }).when(connectable).getConnections(any(Relationship.class));
 
         when(connectable.getConnections()).thenReturn(new HashSet<>(connList));
 
@@ -3367,7 +3368,7 @@ public class StandardProcessSessionIT {
         public long importFrom(InputStream content, ContentClaim claim) throws IOException {
             final long size;
             try (final OutputStream out = write(claim)) {
-                size = StreamUtils.copy(content, out);
+                size = content.transferTo(out);
             }
             ((StandardContentClaim) claim).setLength(size);
             return size;
@@ -3386,7 +3387,7 @@ public class StandardProcessSessionIT {
         @Override
         public long exportTo(ContentClaim claim, OutputStream destination) throws IOException {
             try (final InputStream in = read(claim)) {
-                return StreamUtils.copy(in, destination);
+                return in.transferTo(destination);
             }
         }
 

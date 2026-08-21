@@ -26,7 +26,7 @@ public enum RequestAction {
     WRITE("write"),
     DELETE("delete");
 
-    private String value;
+    private final String value;
 
     RequestAction(String value) {
         this.value = value;
@@ -38,15 +38,15 @@ public enum RequestAction {
     }
 
     public static RequestAction valueOfValue(final String action) {
-        if (RequestAction.READ.toString().equalsIgnoreCase(action)) {
-            return RequestAction.READ;
-        } else if (RequestAction.WRITE.toString().equalsIgnoreCase(action)) {
-            return RequestAction.WRITE;
-        } else if (RequestAction.DELETE.toString().equalsIgnoreCase(action)) {
-            return RequestAction.DELETE;
+        if (READ.toString().equalsIgnoreCase(action)) {
+            return READ;
+        } else if (WRITE.toString().equalsIgnoreCase(action)) {
+            return WRITE;
+        } else if (DELETE.toString().equalsIgnoreCase(action)) {
+            return DELETE;
         } else {
             StringJoiner stringJoiner = new StringJoiner(", ");
-            for (RequestAction ra : RequestAction.values()) {
+            for (RequestAction ra : values()) {
                 stringJoiner.add(ra.toString());
             }
             String allowableValues = stringJoiner.toString();

@@ -36,14 +36,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class TestJdbcClobReadable extends AbstractConnectionTest {
 
-    String createTable = "create table users ("
+    final String createTable = "create table users ("
             + "  id int NOT NULL GENERATED ALWAYS AS IDENTITY, "
             + "  email varchar(255) NOT NULL UNIQUE, "
             + "  password varchar(255) DEFAULT NULL, "
             + "  someclob CLOB default null, "
             + "   PRIMARY KEY (id) ) ";
 
-    String dropTable = "drop table users";
+    final String dropTable = "drop table users";
 
     @Test
     void testClobWithChinese() throws SQLException, IOException {

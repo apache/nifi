@@ -125,8 +125,8 @@ public class AccessPolicy {
         private String identifier;
         private String resource;
         private RequestAction action;
-        private Set<String> users = new HashSet<>();
-        private Set<String> groups = new HashSet<>();
+        private final Set<String> users = new HashSet<>();
+        private final Set<String> groups = new HashSet<>();
         private final boolean fromPolicy;
 
         /**

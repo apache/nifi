@@ -135,7 +135,7 @@ public enum HashAlgorithm {
     }
 
     public static HashAlgorithm fromName(String algorithmName) {
-        HashAlgorithm match = Arrays.stream(HashAlgorithm.values())
+        HashAlgorithm match = Arrays.stream(values())
                 .filter(algo -> algorithmName.equalsIgnoreCase(algo.name))
                 .findAny()
                 .orElse(null);

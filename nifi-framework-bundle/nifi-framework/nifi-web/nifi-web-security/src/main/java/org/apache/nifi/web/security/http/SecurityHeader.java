@@ -26,7 +26,7 @@ public enum SecurityHeader {
     /** Authorization Header described in RFC 7235 Section 4.2 */
     AUTHORIZATION("Authorization");
 
-    private String header;
+    private final String header;
 
     SecurityHeader(final String header) {
         this.header = header;

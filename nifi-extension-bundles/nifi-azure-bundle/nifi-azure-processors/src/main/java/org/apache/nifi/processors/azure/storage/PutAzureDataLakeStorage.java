@@ -67,13 +67,6 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_PRIMARY_URI;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateDirectoryProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileSystemProperty;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
 import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
@@ -123,10 +116,10 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            ADLS_CREDENTIALS_SERVICE,
-            FILESYSTEM,
-            DIRECTORY,
-            FILE,
+            AzureStorageUtils.ADLS_CREDENTIALS_SERVICE,
+            AzureStorageUtils.FILESYSTEM,
+            AzureStorageUtils.DIRECTORY,
+            AzureStorageUtils.FILE,
             WRITING_STRATEGY,
             BASE_TEMPORARY_PATH,
             CONFLICT_RESOLUTION,
@@ -149,9 +142,9 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
 
         final long startNanos = System.nanoTime();
         try {
-            final String fileSystem = evaluateFileSystemProperty(FILESYSTEM, context, flowFile);
-            final String directory = evaluateDirectoryProperty(DIRECTORY, context, flowFile);
-            final String fileName = evaluateFileProperty(context, flowFile);
+            final String fileSystem = AzureStorageUtils.evaluateFileSystemProperty(AzureStorageUtils.FILESYSTEM, context, flowFile);
+            final String directory = AzureStorageUtils.evaluateDirectoryProperty(AzureStorageUtils.DIRECTORY, context, flowFile);
+            final String fileName = AzureStorageUtils.evaluateFileProperty(context, flowFile);
 
             final DataLakeFileSystemClient fileSystemClient = getFileSystemClient(context, flowFile, fileSystem);
             final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
@@ -165,7 +158,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             final DataLakeFileClient fileClient;
 
             if (writingStrategy == WritingStrategy.WRITE_AND_RENAME) {
-                final String tempPath = evaluateDirectoryProperty(BASE_TEMPORARY_PATH, context, flowFile);
+                final String tempPath = AzureStorageUtils.evaluateDirectoryProperty(BASE_TEMPORARY_PATH, context, flowFile);
                 final String tempDirectory = createPath(tempPath, TEMP_FILE_DIRECTORY);
                 final String tempFilePrefix = UUID.randomUUID().toString();
 
@@ -206,8 +199,8 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName());
-        config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DIRECTORY.getName());
-        config.renameProperty(AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, FILE.getName());
+        config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, AzureStorageUtils.DIRECTORY.getName());
+        config.renameProperty(AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, AzureStorageUtils.FILE.getName());
         config.renameProperty("conflict-resolution-strategy", CONFLICT_RESOLUTION.getName());
         config.renameProperty("writing-strategy", WRITING_STRATEGY.getName());
         config.renameProperty("base-temporary-path", BASE_TEMPORARY_PATH.getName());

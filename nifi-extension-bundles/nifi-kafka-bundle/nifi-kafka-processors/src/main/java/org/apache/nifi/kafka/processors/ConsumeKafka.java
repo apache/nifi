@@ -39,9 +39,12 @@ import org.apache.nifi.kafka.processors.common.KafkaUtils;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
 import org.apache.nifi.kafka.processors.consumer.bundle.ByteRecordBundler;
+import org.apache.nifi.kafka.processors.consumer.convert.CreateNewFlowFileGrouping;
 import org.apache.nifi.kafka.processors.consumer.convert.FlowFileStreamKafkaMessageConverter;
 import org.apache.nifi.kafka.processors.consumer.convert.InjectOffsetRecordStreamKafkaMessageConverter;
 import org.apache.nifi.kafka.processors.consumer.convert.KafkaMessageConverter;
+import org.apache.nifi.kafka.processors.consumer.convert.MergeSchemaGrouping;
+import org.apache.nifi.kafka.processors.consumer.convert.RecordGroupingStrategy;
 import org.apache.nifi.kafka.processors.consumer.convert.RecordStreamKafkaMessageConverter;
 import org.apache.nifi.kafka.processors.consumer.convert.WrapperRecordStreamKafkaMessageConverter;
 import org.apache.nifi.kafka.service.api.KafkaConnectionService;
@@ -57,6 +60,7 @@ import org.apache.nifi.kafka.shared.property.HeaderFormat;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.kafka.shared.property.KeyFormat;
 import org.apache.nifi.kafka.shared.property.OutputStrategy;
+import org.apache.nifi.kafka.shared.property.SchemaConflictResolution;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.BacklogReportingProcessor;
@@ -97,12 +101,12 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 
 @CapabilityDescription("Consumes messages from Apache Kafka Consumer API. "
         + "The complementary NiFi processor for sending messages is PublishKafka. The Processor supports consumption of Kafka messages, optionally interpreted as NiFi records. "
-        + "Please note that, at this time (in read record mode), the Processor assumes that "
-        + "all records that are retrieved from a given partition have the same schema. For this mode, if any of the Kafka messages are pulled but cannot be parsed or written with the "
+        + "If any of the Kafka messages are pulled but cannot be parsed or written with the "
         + "configured Record Reader or Record Writer, the contents of the message will be written to a separate FlowFile, and that FlowFile will be transferred to the "
         + "'parse.failure' relationship. Otherwise, each FlowFile is sent to the 'success' relationship and may contain many individual messages within the single FlowFile. "
-        + "A 'record.count' attribute is added to indicate how many messages are contained in the FlowFile. No two Kafka messages will be placed into the same FlowFile if they "
-        + "have different schemas, or if they have different values for a message header that is included by the <Headers to Add as Attributes> property. "
+        + "A 'record.count' attribute is added to indicate how many messages are contained in the FlowFile. "
+        + "Records are grouped into FlowFiles by topic, partition, and values of headers included by the <Headers to Add as Attributes> property. "
+        + "Behavior for conflicting schemas can be configured with the <Schema Conflict Resolution> property. "
         + "Kafka Record Header values selected for output are represented according to the Header Format property: as text decoded with the configured Header Encoding "
         + "character set, or as a lowercase hexadecimal string for binary-safe output.")
 @Tags({"Kafka", "Get", "Record", "csv", "avro", "json", "Ingest", "Ingress", "Topic", "PubSub", "Consume"})
@@ -274,6 +278,15 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.RECORD)
             .build();
 
+    static final PropertyDescriptor SCHEMA_CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
+            .name("Schema Conflict Resolution")
+            .description("Specifies how records with different schemas are grouped into FlowFiles.")
+            .required(true)
+            .defaultValue(SchemaConflictResolution.CREATE_NEW_FLOWFILE)
+            .allowableValues(SchemaConflictResolution.class)
+            .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.RECORD)
+            .build();
+
     static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
             .name("Key Attribute Encoding")
             .description("Encoding for value of configured FlowFile attribute containing Kafka Record Key.")
@@ -295,7 +308,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .name("Key Record Reader")
             .description("The Record Reader to use for parsing the Kafka Record Key into a Record")
             .identifiesControllerService(RecordReaderFactory.class)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(NONE)
             .required(true)
             .dependsOn(KEY_FORMAT, KeyFormat.RECORD)
             .build();
@@ -348,6 +361,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             RECORD_READER,
             RECORD_WRITER,
             OUTPUT_STRATEGY,
+            SCHEMA_CONFLICT_RESOLUTION,
             KEY_ATTRIBUTE_ENCODING,
             KEY_FORMAT,
             KEY_RECORD_READER,
@@ -364,6 +378,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private volatile ProcessingStrategy processingStrategy;
     private volatile KeyEncoding keyEncoding;
     private volatile OutputStrategy outputStrategy;
+    private volatile SchemaConflictResolution schemaConflictResolution;
     private volatile KeyFormat keyFormat;
     private volatile boolean commitOffsets;
     private volatile boolean useReader;
@@ -433,6 +448,9 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 ? context.getProperty(HEADER_NAME_PREFIX).getValue()
                 : null;
         outputStrategy = processingStrategy == ProcessingStrategy.RECORD ? context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class) : null;
+        schemaConflictResolution = processingStrategy == ProcessingStrategy.RECORD
+                ? context.getProperty(SCHEMA_CONFLICT_RESOLUTION).asAllowableValue(SchemaConflictResolution.class)
+                : null;
         keyFormat = (outputStrategy == OutputStrategy.USE_WRAPPER || outputStrategy == OutputStrategy.INJECT_METADATA)
                 ? context.getProperty(KEY_FORMAT).asAllowableValue(KeyFormat.class)
                 : KeyFormat.BYTE_ARRAY;
@@ -853,7 +871,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     }
 
     private Iterator<ByteRecord> transformDemarcator(final ProcessContext context, final Iterator<ByteRecord> consumerRecords) {
-        final String demarcatorValue = context.getProperty(ConsumeKafka.MESSAGE_DEMARCATOR).getValue();
+        final String demarcatorValue = context.getProperty(MESSAGE_DEMARCATOR).getValue();
         if (demarcatorValue == null) {
             return consumerRecords;
         }
@@ -867,10 +885,15 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
+        final RecordGroupingStrategy recordGroupingStrategy = switch (schemaConflictResolution) {
+            case CONTINUE_WITH_MERGED_SCHEMA -> new MergeSchemaGrouping(writerFactory, getLogger(), brokerUri, commitOffsets);
+            case CREATE_NEW_FLOWFILE -> new CreateNewFlowFileGrouping(writerFactory, getLogger(), brokerUri, commitOffsets);
+        };
+
         final KafkaMessageConverter converter;
         if (outputStrategy == OutputStrategy.USE_VALUE) {
             converter = new RecordStreamKafkaMessageConverter(readerFactory, writerFactory, headerValueConverter, headerNamePattern,
-                    keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri);
+                    keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri, recordGroupingStrategy);
         } else if (outputStrategy == OutputStrategy.INJECT_OFFSET) {
             converter = new InjectOffsetRecordStreamKafkaMessageConverter(
                     readerFactory,
@@ -881,14 +904,16 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                     commitOffsets,
                     offsetTracker,
                     getLogger(),
-                    brokerUri
+                    brokerUri,
+                    recordGroupingStrategy
             );
         } else {
             final RecordReaderFactory keyReaderFactory = keyFormat == KeyFormat.RECORD
                 ? context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class) : null;
 
             converter = new WrapperRecordStreamKafkaMessageConverter(readerFactory, writerFactory, keyReaderFactory,
-                headerValueConverter, headerNamePattern, keyFormat, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri, outputStrategy);
+                headerValueConverter, headerNamePattern, keyFormat, keyEncoding, commitOffsets, offsetTracker, getLogger(), brokerUri, outputStrategy,
+                recordGroupingStrategy);
         }
 
         converter.toFlowFiles(session, consumerRecords);

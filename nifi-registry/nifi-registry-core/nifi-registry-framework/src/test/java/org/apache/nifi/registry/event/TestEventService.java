@@ -80,7 +80,7 @@ public class TestEventService {
      */
     private class CapturingEventHook implements EventHookProvider {
 
-        private List<Event> events = new ArrayList<>();
+        private final List<Event> events = new ArrayList<>();
 
         @Override
         public void onConfigured(ProviderConfigurationContext configurationContext) throws ProviderCreationException {

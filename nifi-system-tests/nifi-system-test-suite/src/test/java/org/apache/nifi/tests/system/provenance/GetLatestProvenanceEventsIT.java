@@ -68,7 +68,7 @@ public class GetLatestProvenanceEventsIT extends NiFiSystemIT {
             final LatestProvenanceEventsEntity entity = getNifiClient().getProvenanceClient().getLatestEvents(reverse.getId());
             final List<ProvenanceEventDTO> events = entity.getLatestProvenanceEvents().getProvenanceEvents();
             return events.size() == expectedEventCount;
-        });
+        }, 250);
 
         final LatestProvenanceEventsEntity entity = getNifiClient().getProvenanceClient().getLatestEvents(reverse.getId());
         final List<ProvenanceEventDTO> events = entity.getLatestProvenanceEvents().getProvenanceEvents();

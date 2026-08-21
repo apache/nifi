@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 
 public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeable {
     private final File narLibraryDirectory;
@@ -196,6 +197,11 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
     @Override
     public void stopConnector() {
         mockServer.stopConnector();
+    }
+
+    @Override
+    public void stopConnector(final Duration timeout) throws TimeoutException {
+        mockServer.stopConnector(timeout);
     }
 
     @Override

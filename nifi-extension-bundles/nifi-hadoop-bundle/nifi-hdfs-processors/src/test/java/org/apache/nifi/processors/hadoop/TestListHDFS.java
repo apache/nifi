@@ -35,8 +35,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnJre;
-import org.junit.jupiter.api.condition.JRE;
 import org.mockito.ArgumentCaptor;
 
 import java.io.File;
@@ -52,8 +50,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.apache.nifi.processors.hadoop.ListHDFS.LATEST_TIMESTAMP_KEY;
-import static org.apache.nifi.processors.hadoop.ListHDFS.REL_SUCCESS;
 import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_DIRECTORIES_AND_FILES;
 import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_MODE_FILES_ONLY;
 import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_MODE_FULL_PATH;
@@ -68,7 +64,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-@DisabledOnJre(value = { JRE.JAVA_25 }, disabledReason = "java.security.auth.Subject.getSubject() is not supported")
 class TestListHDFS {
 
     private TestRunner runner;
@@ -369,7 +364,7 @@ class TestListHDFS {
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
         Map<String, String> newState = runner.getStateManager().getState(Scope.CLUSTER).toMap();
-        assertEquals("2000", newState.get(LATEST_TIMESTAMP_KEY));
+        assertEquals("2000", newState.get(ListHDFS.LATEST_TIMESTAMP_KEY));
     }
 
     @Test
@@ -545,8 +540,8 @@ class TestListHDFS {
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        final List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS);
         final MockFlowFile flowFile = flowFilesForRelationship.getFirst();
         flowFile.assertAttributeEquals("record.count", "8");
     }

@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -57,7 +58,7 @@ public class TestUpdateCounter {
         runner.enqueue(new byte[0], attributes);
         runner.run();
         Long counter = runner.getCounterValue("test");
-        assertEquals(java.util.Optional.ofNullable(counter), java.util.Optional.of(40L));
+        assertEquals(Optional.ofNullable(counter), Optional.of(40L));
         runner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);
     }
 

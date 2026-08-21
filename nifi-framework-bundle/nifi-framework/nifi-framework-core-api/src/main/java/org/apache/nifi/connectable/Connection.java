@@ -68,6 +68,12 @@ public interface Connection extends Authorizable, VersionedComponent {
 
     void setDestination(final Connectable newDestination);
 
+    /**
+     * Verifies that this Connection's destination may be changed, based solely on the current (existing) destination
+     * and the FlowFiles the Connection is holding.
+     */
+    void verifyCanUpdateDestination();
+
     void setProcessGroup(ProcessGroup processGroup);
 
     ProcessGroup getProcessGroup();

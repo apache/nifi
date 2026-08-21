@@ -49,7 +49,7 @@ import static org.mockito.ArgumentMatchers.any;
 public abstract class AbstractFlowAnalysisRuleTest<T extends AbstractFlowAnalysisRule> {
 
     private static final ObjectMapper FLOW_MAPPER = new ObjectMapper();
-    protected Map<PropertyDescriptor, PropertyValue> properties = new HashMap<>();
+    protected final Map<PropertyDescriptor, PropertyValue> properties = new HashMap<>();
     protected T rule;
 
     @Mock

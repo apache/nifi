@@ -23,7 +23,6 @@ import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifie
 import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.mockito.Mockito;
 
 import java.net.MalformedURLException;
 import java.nio.ByteBuffer;
@@ -48,13 +47,13 @@ public class RestChangeIngestorTest extends RestChangeIngestorCommonTest {
         when(properties.getProperty(eq(HOST_KEY), any())).thenReturn("localhost");
         restChangeIngestor = new RestChangeIngestor();
 
-        testNotifier = Mockito.mock(ConfigurationChangeNotifier.class);
+        testNotifier = mock(ConfigurationChangeNotifier.class);
 
-        ConfigurationFileHolder configurationFileHolder = Mockito.mock(ConfigurationFileHolder.class);
+        ConfigurationFileHolder configurationFileHolder = mock(ConfigurationFileHolder.class);
         when(configurationFileHolder.getConfigFileReference()).thenReturn(new AtomicReference<>(ByteBuffer.wrap(new byte[0])));
 
         restChangeIngestor.initialize(properties, configurationFileHolder, testNotifier);
-        restChangeIngestor.setDifferentiator(mockDifferentiator);
+        restChangeIngestor.setDifferentiator(MOCK_DIFFERENTIATOR);
         restChangeIngestor.start();
 
         client = new OkHttpClient();

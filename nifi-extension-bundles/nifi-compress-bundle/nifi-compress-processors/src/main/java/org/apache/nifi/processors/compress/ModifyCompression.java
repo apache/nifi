@@ -50,7 +50,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.compress.property.CompressionStrategy;
 import org.apache.nifi.processors.compress.property.FilenameStrategy;
 import org.apache.nifi.stream.io.GZIPOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.tukaani.xz.LZMA2Options;
@@ -239,7 +238,7 @@ public class ModifyCompression extends AbstractProcessor {
                         final BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(flowFileOutputStream, STREAM_BUFFER_SIZE);
                         final OutputStream outputStream = getCompressionOutputStream(outputCompressionStrategy, outputCompressionLevel, mimeTypeRef, bufferedOutputStream)
                         ) {
-                    StreamUtils.copy(inputStream, outputStream);
+                    inputStream.transferTo(outputStream);
                 }
             });
             stopWatch.stop();

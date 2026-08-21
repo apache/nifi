@@ -40,9 +40,9 @@ import static org.apache.nifi.minifi.toolkit.schema.common.CommonPropertyKeys.IN
 import static org.apache.nifi.minifi.toolkit.schema.common.CommonPropertyKeys.YIELD_PERIOD_KEY;
 
 public class RemoteProcessGroupSchemaV2 extends BaseSchema implements ConvertableSchema<RemoteProcessGroupSchema> {
-    private BaseSchemaWithIdAndName idAndName;
-    private String url;
-    private List<RemotePortSchema> inputPorts;
+    private final BaseSchemaWithIdAndName idAndName;
+    private final String url;
+    private final List<RemotePortSchema> inputPorts;
 
     private String comment = DEFAULT_COMMENT;
     private String timeout = DEFAULT_TIMEOUT;

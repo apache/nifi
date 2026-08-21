@@ -35,7 +35,6 @@ import org.apache.nifi.database.dialect.service.api.StatementResponse;
 import org.apache.nifi.database.dialect.service.api.StatementType;
 import org.apache.nifi.database.dialect.service.api.TableDefinition;
 import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -147,7 +146,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .description("The name of the database table to update. If the table does not exist, then it will either be created or an error thrown, depending "
                     + "on the value of the Create Table property.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -248,7 +247,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor DB_TYPE = DatabaseAdapterDescriptor.getDatabaseTypeDescriptor();
@@ -266,7 +265,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .description("A FlowFile containing records routed to this relationship if the record could not be transmitted to the database.")
             .build();
 
-    protected static Set<Relationship> relationships = Set.of(
+    protected static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
     );
@@ -300,7 +299,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override

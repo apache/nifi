@@ -986,7 +986,7 @@ public class TailFile extends AbstractProcessor {
      * will be also written to the OutputStream
      *
      * @return The new position after the lines have been read
-     * @throws java.io.IOException if an I/O error occurs.
+     * @throws IOException if an I/O error occurs.
      */
     private long readLines(final FileChannel reader, final ByteBuffer buffer, final OutputStream out, final Checksum checksum,
                            Boolean reReadOnNul, final boolean readFully) throws IOException {
@@ -1488,7 +1488,7 @@ public class TailFile extends AbstractProcessor {
         try (final InputStream fis = new FileInputStream(file)) {
             flowFile = session.write(flowFile, out -> {
                 flushLinesBuffer(out, new CRC32());
-                StreamUtils.copy(fis, out);
+                fis.transferTo(out);
             });
         }
 

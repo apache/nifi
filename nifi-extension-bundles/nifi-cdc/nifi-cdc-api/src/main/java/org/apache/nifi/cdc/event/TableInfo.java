@@ -25,9 +25,9 @@ import java.util.List;
  */
 public class TableInfo {
 
-    private String databaseName;
+    private final String databaseName;
     private String tableName;
-    private Long tableId;
+    private final Long tableId;
     private List<ColumnDefinition> columns;
 
     public TableInfo(String databaseName, String tableName, Long tableId, List<ColumnDefinition> columns) {

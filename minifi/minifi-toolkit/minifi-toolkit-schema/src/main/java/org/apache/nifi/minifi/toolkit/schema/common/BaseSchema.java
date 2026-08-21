@@ -47,7 +47,7 @@ public abstract class BaseSchema implements Schema {
     }
 
     /******* Validation Issue helper methods *******/
-    private Collection<String> validationIssues = new HashSet<>();
+    private final Collection<String> validationIssues = new HashSet<>();
 
     @Override
     public boolean isValid() {

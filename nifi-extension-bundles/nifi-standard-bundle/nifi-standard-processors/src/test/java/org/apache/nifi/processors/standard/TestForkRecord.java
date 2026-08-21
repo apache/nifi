@@ -560,7 +560,7 @@ public class TestForkRecord {
 
         private static final JsonParserFactory jsonParserFactory = new JsonParserFactory();
 
-        RecordSchema schema;
+        final RecordSchema schema;
 
         public JsonRecordReader(RecordSchema schema) {
             this.schema = schema;
@@ -580,7 +580,7 @@ public class TestForkRecord {
 
     private static class CustomRecordWriter extends MockRecordWriter {
 
-        RecordSchema schema;
+        final RecordSchema schema;
 
         public CustomRecordWriter(final String header, final boolean quoteValues, RecordSchema schema) {
             super(header, quoteValues);

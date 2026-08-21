@@ -20,6 +20,7 @@ import groovy.lang.Closure;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.ProcessSession;
+import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 
 import java.util.List;
 
@@ -63,7 +64,7 @@ public class GroovyProcessSessionWrap extends ProcessSessionWrap {
             if (res instanceof final FlowFileFilter.FlowFileFilterResult flowFileFilterResult) {
                 return flowFileFilterResult;
             }
-            return (org.codehaus.groovy.runtime.DefaultGroovyMethods.asBoolean(res)
+            return (DefaultGroovyMethods.asBoolean(res)
                     ? FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE);
         });
     }

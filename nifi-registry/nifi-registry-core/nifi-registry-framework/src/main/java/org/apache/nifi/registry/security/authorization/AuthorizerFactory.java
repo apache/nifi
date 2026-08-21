@@ -231,7 +231,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                             final ClassLoader authorizerClassLoader = authorizer.getClass().getClassLoader();
 
                             // install integrity checks
-                            authorizer = AuthorizerFactory.installIntegrityChecks(authorizer);
+                            authorizer = installIntegrityChecks(authorizer);
 
                             // load the configuration context for the selected authorizer
                             AuthorizerConfigurationContext authorizerConfigurationContext = null;

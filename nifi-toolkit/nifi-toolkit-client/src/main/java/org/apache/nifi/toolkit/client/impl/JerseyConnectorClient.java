@@ -34,6 +34,7 @@ import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.MigrationPayloadEntity;
 import org.apache.nifi.web.api.entity.MigrationRequestEntity;
@@ -743,8 +744,7 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
                 .accept(MediaType.APPLICATION_OCTET_STREAM_TYPE)
                 .get();
 
-            final String filename = getContentDispositionFilename(response);
-            final File assetFile = new File(outputDirectory, filename);
+            final File assetFile = getContentDispositionFile(response, outputDirectory);
 
             try (final InputStream responseInputStream = response.readEntity(InputStream.class)) {
                 Files.copy(responseInputStream, assetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -841,6 +841,25 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
                 .resolveTemplate("processorId", processorId);
 
             return getRequestBuilder(target).post(null, ComponentStateEntity.class);
+        });
+    }
+
+    @Override
+    public ControllerServiceEntity getControllerService(final String connectorId, final String controllerServiceId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(controllerServiceId)) {
+            throw new IllegalArgumentException("Controller service id cannot be null or blank");
+        }
+
+        return executeAction("Error retrieving controller service for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                .path("/controller-services/{controllerServiceId}")
+                .resolveTemplate("id", connectorId)
+                .resolveTemplate("controllerServiceId", controllerServiceId);
+
+            return getRequestBuilder(target).get(ControllerServiceEntity.class);
         });
     }
 

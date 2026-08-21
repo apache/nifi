@@ -21,10 +21,10 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 
 /**:
- * InstrumentedStandardValidator wraps a {@link org.apache.nifi.components.Validator} and provides statistics on it's interactions.
- * Because many of the {@link org.apache.nifi.components.Validator} instances returned from {@link org.apache.nifi.processor.util.StandardValidators}
+ * InstrumentedStandardValidator wraps a {@link Validator} and provides statistics on it's interactions.
+ * Because many of the {@link Validator} instances returned from {@link org.apache.nifi.processor.util.StandardValidators}
  * are not mockable with mockito, this is required to know, when running a test, if a
- * {@link org.apache.nifi.components.Validator} was in fact called, for example.
+ * {@link Validator} was in fact called, for example.
  */
 public class InstrumentedStandardValidator implements Validator {
 
@@ -38,12 +38,12 @@ public class InstrumentedStandardValidator implements Validator {
      * Count the number of calls to validate()
      */
     private int validateCallCount;
-    private Validator mockedValidator;
+    private final Validator mockedValidator;
 
     /**
      * Constructs a new InstrumentedStandardValidator.
      *
-     * @param mockedValidator the {@link org.apache.nifi.components.Validator} to wrap.
+     * @param mockedValidator the {@link Validator} to wrap.
      */
     public InstrumentedStandardValidator(Validator mockedValidator) {
         this(mockedValidator, false);
@@ -52,7 +52,7 @@ public class InstrumentedStandardValidator implements Validator {
     /**
      * Constructs a new InstrumentedStandardValidator.
      *
-     * @param mockedValidator the {@link org.apache.nifi.components.Validator} to wrap.
+     * @param mockedValidator the {@link Validator} to wrap.
      */
     public InstrumentedStandardValidator(Validator mockedValidator, boolean resetOnGet) {
         this.mockedValidator = mockedValidator;

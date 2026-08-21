@@ -113,7 +113,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint join point
      * @return group
-     * @throws java.lang.Throwable ex
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.RemoteProcessGroupDAO+) && "
             + "execution(org.apache.nifi.groups.RemoteProcessGroup createRemoteProcessGroup(java.lang.String, org.apache.nifi.web.api.dto.RemoteProcessGroupDTO))")

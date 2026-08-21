@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.service;
+package org.apache.nifi.web.security.requests;
 
 /**
- * Thrown when attempting to enable a Controller Service that is not valid
+ * Request Content Length Exceeded Exception indicating HTTP 413 response status
  */
-public class ControllerServiceNotValidException extends RuntimeException {
-    public ControllerServiceNotValidException(final String message) {
+public class RequestContentLengthExceededException extends RuntimeException {
+
+    public RequestContentLengthExceededException(final String message) {
         super(message);
     }
 }

@@ -94,7 +94,7 @@
                                         nifiTooltip
                                         [tooltipComponentType]="ValidationErrorsTip"
                                         [tooltipInputData]="getValidationErrorTipData(reference.component)"
-                                        [delayClose]="false"></div>
+                                        [delayClose]="true"></div>
                                 } @else {
                                     <div [ngClass]="getNonServiceStateIcon(reference.component)"></div>
                                 }

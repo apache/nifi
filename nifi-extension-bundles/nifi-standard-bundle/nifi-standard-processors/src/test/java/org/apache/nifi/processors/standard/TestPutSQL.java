@@ -527,7 +527,7 @@ public class TestPutSQL {
         final String arg2TS = "2001-01-01 00:01:01.001";
         final String art3TS = "2002-02-02 12:02:02.002";
         final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
-        java.util.Date parsedDate = Date.from(LocalDateTime.parse(arg2TS, dateTimeFormatter).atZone(ZoneId.systemDefault()).toInstant());
+        Date parsedDate = Date.from(LocalDateTime.parse(arg2TS, dateTimeFormatter).atZone(ZoneId.systemDefault()).toInstant());
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.TIMESTAMP));
@@ -631,9 +631,9 @@ public class TestPutSQL {
         // Since Derby database which is used for unit test does not have timezone in DATE and TIME type,
         // and PutSQL converts date string into long representation using local timezone,
         // we need to use local timezone.
-        java.util.Date parsedLocalTime = java.sql.Time.valueOf(timeStr);
+        Date parsedLocalTime = Time.valueOf(timeStr);
 
-        java.util.Date parsedLocalDate = java.sql.Date.valueOf(dateStr);
+        Date parsedLocalDate = java.sql.Date.valueOf(dateStr);
 
         // test Long pattern without format attribute
         attributes = new HashMap<>();
@@ -806,7 +806,7 @@ public class TestPutSQL {
         final String art3TS = "12:03:04";
         final String timeFormatString = "HH:mm:ss";
         final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(timeFormatString);
-        java.util.Date parsedDate = Date.from(LocalTime.parse(arg2TS, dateTimeFormatter).atDate(LocalDate.now()).atZone(ZoneId.systemDefault()).toInstant());
+        Date parsedDate = Date.from(LocalTime.parse(arg2TS, dateTimeFormatter).atDate(LocalDate.now()).atZone(ZoneId.systemDefault()).toInstant());
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
@@ -843,7 +843,7 @@ public class TestPutSQL {
 
         final String arg2TS = "2001-01-01";
         final String art3TS = "2002-02-02";
-        java.util.Date parsedDate = java.sql.Date.valueOf(arg2TS);
+        Date parsedDate = java.sql.Date.valueOf(arg2TS);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.DATE));

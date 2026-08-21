@@ -39,7 +39,7 @@ public class RecordTest {
     ChunkHeader chunkHeader;
 
     private Record record;
-    private int recordNum = 120;
+    private final int recordNum = 120;
 
     public static void putNode(TestBinaryReaderBuilder testBinaryReaderBuilder, int recordNum, Date fileTime) {
         testBinaryReaderBuilder.putDWord(10794);

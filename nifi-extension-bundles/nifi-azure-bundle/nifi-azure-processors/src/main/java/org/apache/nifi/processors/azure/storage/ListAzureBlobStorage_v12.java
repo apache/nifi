@@ -60,8 +60,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_CONTAINER;
@@ -135,7 +133,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            BLOB_STORAGE_CREDENTIALS_SERVICE,
+            AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE,
             CONTAINER,
             BLOB_NAME_PREFIX,
             RECORD_WRITER,
@@ -159,7 +157,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
-        clientFactory = new BlobServiceClientFactory(getLogger(), getProxyOptions(context));
+        clientFactory = new BlobServiceClientFactory(getLogger(), AzureStorageUtils.getProxyOptions(context));
     }
 
     @OnStopped
@@ -213,7 +211,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
 
     @Override
     protected boolean isListingResetNecessary(final PropertyDescriptor property) {
-        return BLOB_STORAGE_CREDENTIALS_SERVICE.equals(property)
+        return AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE.equals(property)
                 || CONTAINER.equals(property)
                 || BLOB_NAME_PREFIX.equals(property)
                 || LISTING_STRATEGY.equals(property);
@@ -223,7 +221,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
     protected List<BlobInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode) throws IOException {
         final BlobServiceClientFactory currentClientFactory;
         if (ListingMode.CONFIGURATION_VERIFICATION == listingMode) {
-            currentClientFactory = new BlobServiceClientFactory(getLogger(), getProxyOptions(context));
+            currentClientFactory = new BlobServiceClientFactory(getLogger(), AzureStorageUtils.getProxyOptions(context));
         } else {
             currentClientFactory = clientFactory;
         }
@@ -235,7 +233,8 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
         try {
             final List<BlobInfo> listing = new ArrayList<>();
 
-            final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(BLOB_STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
+            final AzureStorageCredentialsService_v12 credentialsService =
+                    context.getProperty(AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
             final AzureStorageCredentialsDetails_v12 credentialsDetails = credentialsService.getCredentialsDetails(Collections.emptyMap());
             final BlobServiceClient storageClient = currentClientFactory.getStorageClient(credentialsDetails);
 

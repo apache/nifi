@@ -45,7 +45,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import software.amazon.kinesis.exceptions.InvalidStateException;
 import software.amazon.kinesis.exceptions.ShutdownException;
 import software.amazon.kinesis.lifecycle.events.ProcessRecordsInput;
@@ -356,7 +355,7 @@ public class TestKinesisRecordProcessorRecord {
                 .peek(it -> {
                     parsableRecord1.data().rewind();
                     parsableRecord3.data().rewind();
-                    Mockito.reset(unparsableRecordMock);
+                    reset(unparsableRecordMock);
                 });
     }
 

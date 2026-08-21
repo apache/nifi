@@ -38,7 +38,7 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
      * @param authorizer the authorizer to use for authorizing individual events
      * @param resourceFactory the resource factory to use for generating Provenance Resource objects for authorization purposes
      * @param identifierLookup a mechanism for looking up identifiers in the flow
-     * @throws java.io.IOException if unable to initialize
+     * @throws IOException if unable to initialize
      */
     void initialize(EventReporter eventReporter, Authorizer authorizer, ProvenanceAuthorizableFactory resourceFactory, IdentifierLookup identifierLookup) throws IOException;
 
@@ -70,7 +70,7 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
      *                      It can be {@code null} if called by NiFi components internally
      *                      where authorization is not required.
      * @return records
-     * @throws java.io.IOException if error reading from repository
+     * @throws IOException if error reading from repository
      */
     List<ProvenanceEventRecord> getEvents(long firstRecordId, final int maxRecords, NiFiUser user) throws IOException;
 
@@ -224,7 +224,7 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
      * @param containerName name of container to check capacity on
      * @return the maximum number of bytes that can be stored in the storage
      * mechanism that backs the container with the given name
-     * @throws java.io.IOException if unable to check capacity
+     * @throws IOException if unable to check capacity
      * @throws IllegalArgumentException if no container exists with the given
      * name
      */
@@ -243,7 +243,7 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
      * @param containerName to check space on
      * @return the number of bytes available to be used used by the storage
      * mechanism that backs the container with the given name
-     * @throws java.io.IOException if unable to check space
+     * @throws IOException if unable to check space
      * @throws IllegalArgumentException if no container exists with the given
      * name
      */

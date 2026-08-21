@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.commons.status.rpg;
 
-public class RemoteProcessGroupStats implements java.io.Serializable {
+import java.io.Serializable;
+
+public class RemoteProcessGroupStats implements Serializable {
     private int activeThreads;
     private int sentCount;
     private long sentContentSize;

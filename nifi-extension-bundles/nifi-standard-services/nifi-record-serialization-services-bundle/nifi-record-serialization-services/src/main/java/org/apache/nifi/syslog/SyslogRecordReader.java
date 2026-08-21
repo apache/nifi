@@ -41,7 +41,7 @@ public class SyslogRecordReader implements RecordReader {
     private static final Logger logger = LoggerFactory.getLogger(SyslogRecordReader.class);
 
     private final BufferedReader reader;
-    private RecordSchema schema;
+    private final RecordSchema schema;
     private final SyslogParser parser;
     private final boolean includeRaw;
 

@@ -44,13 +44,6 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_BRANCH_NAME;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REFERENCE_READER;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -252,13 +245,13 @@ public class TestXMLRecordSetWriter {
                 Map.entry("array_wrapping", XMLRecordSetWriter.ARRAY_WRAPPING.getName()),
                 Map.entry("array_tag_name", XMLRecordSetWriter.ARRAY_TAG_NAME.getName()),
                 Map.entry("schema-cache", SchemaRegistryRecordSetWriter.SCHEMA_CACHE.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_ACCESS_STRATEGY_PROPERTY_NAME, SCHEMA_ACCESS_STRATEGY.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_REGISTRY_PROPERTY_NAME, SCHEMA_REGISTRY.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_NAME_PROPERTY_NAME, SCHEMA_NAME.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_BRANCH_NAME_PROPERTY_NAME, SCHEMA_BRANCH_NAME.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_VERSION_PROPERTY_NAME, SCHEMA_VERSION.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_TEXT_PROPERTY_NAME, SCHEMA_TEXT.getName()),
-                Map.entry(SchemaAccessUtils.OLD_SCHEMA_REFERENCE_READER_PROPERTY_NAME, SCHEMA_REFERENCE_READER.getName())
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_ACCESS_STRATEGY_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_REGISTRY_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_REGISTRY.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_NAME_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_NAME.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_BRANCH_NAME_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_BRANCH_NAME.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_VERSION_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_VERSION.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_TEXT_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_TEXT.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_REFERENCE_READER_PROPERTY_NAME, SchemaAccessUtils.SCHEMA_REFERENCE_READER.getName())
         );
 
         final Map<String, String> propertyValues = Map.of();
@@ -276,7 +269,7 @@ public class TestXMLRecordSetWriter {
 
     static class TestableXMLRecordSetWriter extends XMLRecordSetWriter {
 
-        RecordSchema recordSchema;
+        final RecordSchema recordSchema;
 
         TestableXMLRecordSetWriter(RecordSchema recordSchema) {
             this.recordSchema = recordSchema;

@@ -55,25 +55,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class ITRedisStateProvider {
 
     protected final String componentId = "111111111-1111-1111-1111-111111111111";
-    public static RedisContainer redisContainer = new RedisContainer(RedisContainer.DEFAULT_IMAGE_NAME).withExposedPorts(6379);
+    public static final RedisContainer REDIS_CONTAINER = new RedisContainer(RedisContainer.DEFAULT_IMAGE_NAME).withExposedPorts(6379);
 
     private RedisStateProvider provider;
 
     @BeforeAll
     public static void start() {
-        redisContainer.start();
+        REDIS_CONTAINER.start();
     }
 
     @AfterAll
     public static void stop() {
-        redisContainer.stop();
+        REDIS_CONTAINER.stop();
     }
 
     @BeforeEach
     public void setup() {
         flushDatabase();
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(RedisUtils.CONNECTION_STRING, redisContainer.getHost() + ":" + redisContainer.getFirstMappedPort());
+        properties.put(RedisUtils.CONNECTION_STRING, REDIS_CONTAINER.getHost() + ":" + REDIS_CONTAINER.getFirstMappedPort());
         this.provider = createProvider(properties);
     }
 
@@ -376,7 +376,7 @@ public class ITRedisStateProvider {
 
     private static void flushDatabase() {
         try {
-            final Container.ExecResult execResult = redisContainer.execInContainer("redis-cli", "flushall");
+            final Container.ExecResult execResult = REDIS_CONTAINER.execInContainer("redis-cli", "flushall");
             if (execResult.getExitCode() != 0) {
                 throw new IllegalStateException(String.format("Failed to flush Redis container: %s%s",
                         execResult.getStdout(), execResult.getStderr()));

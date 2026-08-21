@@ -35,6 +35,7 @@ import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -77,7 +78,13 @@ import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.registry.flow.diff.DifferenceType;
+import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
+import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
+import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
+import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -85,7 +92,6 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.time.Duration;
@@ -107,6 +113,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -209,18 +216,18 @@ public class StandardVersionedComponentSynchronizerTest {
 
     @BeforeEach
     public void setup() {
-        final ExtensionManager extensionManager = Mockito.mock(ExtensionManager.class);
-        flowManager = Mockito.mock(FlowManager.class);
-        controllerServiceProvider = Mockito.mock(ControllerServiceProvider.class);
-        final Function<ProcessorNode, ProcessContext> processContextFactory = proc -> Mockito.mock(ProcessContext.class);
-        final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        flowManager = mock(FlowManager.class);
+        controllerServiceProvider = mock(ControllerServiceProvider.class);
+        final Function<ProcessorNode, ProcessContext> processContextFactory = proc -> mock(ProcessContext.class);
+        final ReloadComponent reloadComponent = mock(ReloadComponent.class);
         componentIdGenerator = (proposed, instance, group) -> proposed == null ? instance : proposed;
-        componentScheduler = Mockito.mock(ComponentScheduler.class);
+        componentScheduler = mock(ComponentScheduler.class);
         parameterContextManager = new StandardParameterContextManager();
-        parameterReferenceManager = Mockito.mock(ParameterReferenceManager.class);
+        parameterReferenceManager = mock(ParameterReferenceManager.class);
 
         bundleCoordinate = new BundleCoordinate("org.apache.nifi", "nifi-standard-nar", "1.18.0");
-        controllerServiceNode = Mockito.mock(ControllerServiceNode.class);
+        controllerServiceNode = mock(ControllerServiceNode.class);
         when(controllerServiceNode.getBundleCoordinate()).thenReturn(bundleCoordinate);
         when(flowManager.createControllerService(anyString(), anyString(), any(BundleCoordinate.class), anySet(), anyBoolean(), anyBoolean(), nullable(String.class)))
             .thenReturn(controllerServiceNode);
@@ -267,7 +274,7 @@ public class StandardVersionedComponentSynchronizerTest {
             .reloadComponent(reloadComponent)
             .build();
 
-        group = Mockito.mock(ProcessGroup.class);
+        group = mock(ProcessGroup.class);
 
         processorA = createMockProcessor();
         processorB = createMockProcessor();
@@ -307,7 +314,7 @@ public class StandardVersionedComponentSynchronizerTest {
     private ProcessorNode createMockProcessor() {
         final String uuid = UUID.randomUUID().toString();
 
-        final ProcessorNode processor = Mockito.mock(ProcessorNode.class);
+        final ProcessorNode processor = mock(ProcessorNode.class);
         instrumentComponentNodeMethods(uuid, processor);
         when(processor.isRunning()).thenReturn(false);
         when(processor.getProcessGroup()).thenReturn(group);
@@ -320,7 +327,7 @@ public class StandardVersionedComponentSynchronizerTest {
     private ControllerServiceNode createMockControllerService() {
         final String uuid = UUID.randomUUID().toString();
 
-        final ControllerServiceNode service = Mockito.mock(ControllerServiceNode.class);
+        final ControllerServiceNode service = mock(ControllerServiceNode.class);
         instrumentComponentNodeMethods(uuid, service);
 
         when(service.isActive()).thenReturn(false);
@@ -344,7 +351,7 @@ public class StandardVersionedComponentSynchronizerTest {
     private Port createMockPort(final ConnectableType connectableType) {
         final String uuid = UUID.randomUUID().toString();
 
-        final Port port = Mockito.mock(Port.class);
+        final Port port = mock(Port.class);
         when(port.getIdentifier()).thenReturn(uuid);
         when(port.isRunning()).thenReturn(false);
         when(port.getProcessGroup()).thenReturn(group);
@@ -367,11 +374,11 @@ public class StandardVersionedComponentSynchronizerTest {
     private Connection createMockConnection(final Connectable source, final Connectable destination, final ProcessGroup group) {
         final String uuid = UUID.randomUUID().toString();
 
-        final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+        final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
         when(flowFileQueue.getIdentifier()).thenReturn(uuid);
         when(flowFileQueue.isEmpty()).thenAnswer(invocation -> !queuesWithData.contains(uuid));
 
-        final Connection connection = Mockito.mock(Connection.class);
+        final Connection connection = mock(Connection.class);
         when(connection.getIdentifier()).thenReturn(uuid);
         when(connection.getSource()).thenReturn(source);
         when(connection.getDestination()).thenReturn(destination);
@@ -694,6 +701,103 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(processGroup, atLeast(1)).stopProcessor(runningProcessor);
         verify(runningProcessor).setProperties(eq(Collections.singletonMap("abc", "updated-value")), eq(true), anySet());
         verify(processGroup, never()).startProcessor(runningProcessor, false);
+    }
+
+    @Test
+    public void testGroupSynchronizeAppliesAutoTerminatedRelationshipMovedOffExistingConnection() {
+        final ProcessGroup processGroup = createMockProcessGroup();
+        final String processGroupId = processGroup.getIdentifier();
+        when(processGroup.getVersionedComponentId()).thenReturn(Optional.of(processGroupId));
+        when(processGroup.getInputPorts()).thenReturn(Collections.emptySet());
+        when(processGroup.getOutputPorts()).thenReturn(Collections.emptySet());
+        when(processGroup.getFunnels()).thenReturn(Collections.emptySet());
+        when(processGroup.getLabels()).thenReturn(Collections.emptySet());
+        when(processGroup.getRemoteProcessGroups()).thenReturn(Collections.emptySet());
+        when(processGroup.getProcessGroups()).thenReturn(Collections.emptySet());
+        when(processGroup.getControllerServices(false)).thenReturn(Collections.emptySet());
+
+        final ProcessorNode sourceProcessor = createMappableProcessor(processGroup);
+        final ProcessorNode destinationProcessor = createMappableProcessor(processGroup);
+        when(sourceProcessor.getProcessGroupIdentifier()).thenReturn(processGroupId);
+        when(destinationProcessor.getProcessGroupIdentifier()).thenReturn(processGroupId);
+        when(sourceProcessor.getVersionedComponentId()).thenReturn(Optional.of("source-processor"));
+        when(destinationProcessor.getVersionedComponentId()).thenReturn(Optional.of("destination-processor"));
+
+        final Relationship discardRelationship = new Relationship.Builder()
+            .name("discard")
+            .autoTerminateDefault(true)
+            .build();
+        final Relationship successRelationship = new Relationship.Builder().name("success").build();
+
+        when(sourceProcessor.getRelationships()).thenReturn(Set.of(discardRelationship, successRelationship));
+        when(sourceProcessor.getRelationship("discard")).thenReturn(discardRelationship);
+        when(sourceProcessor.getRelationship("success")).thenReturn(successRelationship);
+        final AtomicReference<Set<Relationship>> autoTerminatedRelationships = new AtomicReference<>(Collections.emptySet());
+        when(sourceProcessor.getAutoTerminatedRelationships()).thenAnswer(invocation -> autoTerminatedRelationships.get());
+        doAnswer(invocation -> {
+            autoTerminatedRelationships.set(invocation.getArgument(0));
+            return null;
+        }).when(sourceProcessor).setAutoTerminatedRelationships(anySet());
+        when(destinationProcessor.getAutoTerminatedRelationships()).thenReturn(Collections.emptySet());
+
+        final Connection connection = createMockConnection(sourceProcessor, destinationProcessor, processGroup);
+        when(connection.getVersionedComponentId()).thenReturn(Optional.of("connection-ab"));
+        when(connection.getName()).thenReturn("connection-ab");
+        when(connection.getLabelIndex()).thenReturn(0);
+        final AtomicReference<Collection<Relationship>> selectedRelationships = new AtomicReference<>(Set.of(discardRelationship));
+        when(connection.getRelationships()).thenAnswer(invocation -> selectedRelationships.get());
+        doAnswer(invocation -> {
+            selectedRelationships.set(invocation.getArgument(0));
+            return null;
+        }).when(connection).setRelationships(anyCollection());
+        when(connection.getZIndex()).thenReturn(0L);
+        when(connection.getBendPoints()).thenReturn(Collections.emptyList());
+        when(sourceProcessor.getConnections(discardRelationship)).thenReturn(Set.of(connection));
+        when(processGroup.getConnection(connection.getIdentifier())).thenReturn(connection);
+
+        final FlowFileQueue flowFileQueue = connection.getFlowFileQueue();
+        when(flowFileQueue.getBackPressureDataSizeThreshold()).thenReturn("1 GB");
+        when(flowFileQueue.getBackPressureObjectThreshold()).thenReturn(10000L);
+        when(flowFileQueue.getFlowFileExpiration()).thenReturn("0 sec");
+        when(flowFileQueue.getPriorities()).thenReturn(Collections.emptyList());
+        when(flowFileQueue.getLoadBalanceStrategy()).thenReturn(LoadBalanceStrategy.DO_NOT_LOAD_BALANCE);
+        when(flowFileQueue.getPartitioningAttribute()).thenReturn(null);
+        when(flowFileQueue.getLoadBalanceCompression()).thenReturn(LoadBalanceCompression.DO_NOT_COMPRESS);
+
+        when(processGroup.getProcessors()).thenReturn(List.of(sourceProcessor, destinationProcessor));
+        when(flowManager.getProcessorNode(sourceProcessor.getIdentifier())).thenReturn(sourceProcessor);
+        when(flowManager.getProcessorNode(destinationProcessor.getIdentifier())).thenReturn(destinationProcessor);
+        when(flowManager.getGroup(processGroupId)).thenReturn(processGroup);
+
+        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(mock(ExtensionManager.class), FlowMappingOptions.DEFAULT_OPTIONS);
+        final VersionedProcessGroup proposedGroup = mapper.mapProcessGroup(processGroup, controllerServiceProvider, flowManager, true);
+        final VersionedProcessor proposedSourceProcessor = proposedGroup.getProcessors().stream()
+            .filter(processor -> processor.getIdentifier().equals("source-processor"))
+            .findFirst()
+            .orElseThrow();
+        final VersionedConnection proposedConnection = proposedGroup.getConnections().stream()
+            .filter(versionedConnection -> versionedConnection.getIdentifier().equals("connection-ab"))
+            .findFirst()
+            .orElseThrow();
+
+        proposedSourceProcessor.setAutoTerminatedRelationships(Set.of("discard"));
+        proposedConnection.setSelectedRelationships(Collections.emptySet());
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(proposedGroup);
+
+        assertDoesNotThrow(() -> synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions));
+
+        verify(connection).setRelationships(Collections.emptySet());
+        verify(sourceProcessor).setAutoTerminatedRelationships(Set.of(discardRelationship));
+
+        final VersionedProcessGroup synchronizedGroup = mapper.mapProcessGroup(processGroup, controllerServiceProvider, flowManager, true);
+        final StandardFlowComparator comparator = new StandardFlowComparator(
+            new StandardComparableDataFlow("Target Flow", proposedGroup),
+            new StandardComparableDataFlow("Synchronized Flow", synchronizedGroup),
+            new StaticDifferenceDescriptor(), Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
+        assertFalse(comparator.compare().getDifferences().stream()
+            .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.AUTO_TERMINATED_RELATIONSHIPS_CHANGED));
     }
 
     @Test
@@ -1022,7 +1126,6 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testExternalControllerServiceReferenceRemoved() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final PropertyDescriptor descriptorB = new PropertyDescriptor.Builder().name("b").build();
         final PropertyDescriptor descriptorCS = new PropertyDescriptor.Builder().name("cs")
@@ -1064,7 +1167,7 @@ public class StandardVersionedComponentSynchronizerTest {
         versionedProcessor.setPropertyDescriptors(proposedDescriptors);
         versionedProcessor.setProperties(proposedProperties);
 
-        final ArgumentCaptor<Map<String, String>> captorProperties = ArgumentCaptor.forClass(Map.class);
+        final ArgumentCaptor<Map<String, String>> captorProperties = ArgumentCaptor.captor();
         synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
         verify(processorNode).setProperties(captorProperties.capture(), anyBoolean(), any());
         final Map<String, String> properties = captorProperties.getValue();
@@ -1073,11 +1176,274 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     @Test
+    public void testScopedControllerServiceReplacesExternalReference() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // A processor currently references a service outside the versioned group. The proposed flow introduces a
+        // resolvable scoped service, which must take precedence over the existing external reference.
+        final String externalServiceId = "external-service-id";
+        final String scopedServiceId = "scoped-service-id";
+        final String scopedServiceVersionedId = "scoped-service-versioned-id";
+
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name("cs")
+                .identifiesControllerService(ControllerService.class).build();
+        final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();
+        versionedDescriptor.setName(descriptor.getName());
+        versionedDescriptor.setIdentifiesControllerService(true);
+
+        final ProcessorNode processorNode = createMockProcessor();
+        final ProcessGroup parentGroup = mock(ProcessGroup.class);
+        when(processorNode.getPropertyDescriptor(descriptor.getName())).thenReturn(descriptor);
+        when(processorNode.getProperties()).thenReturn(Map.of(descriptor, new PropertyConfiguration(externalServiceId, null, null, null)));
+        when(processorNode.getRawPropertyValues()).thenReturn(Map.of(descriptor, externalServiceId));
+        when(processorNode.getEffectivePropertyValue(descriptor)).thenReturn(externalServiceId);
+        when(group.getParent()).thenReturn(parentGroup);
+
+        final ControllerServiceNode scopedService = createMockControllerService();
+        when(scopedService.getIdentifier()).thenReturn(scopedServiceId);
+        when(scopedService.getVersionedComponentId()).thenReturn(Optional.of(scopedServiceVersionedId));
+        when(group.getControllerServices(false)).thenReturn(Set.of(scopedService));
+
+        final ControllerServiceNode externalService = createMockControllerService();
+        when(parentGroup.findControllerService(externalServiceId, false, true)).thenReturn(externalService);
+
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setPropertyDescriptors(Map.of(descriptor.getName(), versionedDescriptor));
+        versionedProcessor.setProperties(Map.of(descriptor.getName(), scopedServiceVersionedId));
+
+        final ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.captor();
+        synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
+        verify(processorNode).setProperties(captor.capture(), anyBoolean(), any());
+
+        assertEquals(scopedServiceId, captor.getValue().get(descriptor.getName()));
+    }
+
+    @Test
+    public void testExternalControllerServiceRetainedWhenProposedServiceNotResolvable() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // When the proposed service is not visible from the component's group, preserve the existing external reference
+        // instead of replacing it with an unresolved versioned component identifier.
+        final String externalServiceId = "external-service-id";
+        final String proposedServiceVersionedId = "unresolved-service-versioned-id";
+
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name("cs")
+                .identifiesControllerService(ControllerService.class).build();
+        final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();
+        versionedDescriptor.setName(descriptor.getName());
+        versionedDescriptor.setIdentifiesControllerService(true);
+
+        final ProcessorNode processorNode = createMockProcessor();
+        final ProcessGroup parentGroup = mock(ProcessGroup.class);
+        final ControllerServiceNode externalService = createMockControllerService();
+        when(processorNode.getPropertyDescriptor(descriptor.getName())).thenReturn(descriptor);
+        when(processorNode.getProperties()).thenReturn(Map.of(descriptor, new PropertyConfiguration(externalServiceId, null, null, null)));
+        when(processorNode.getRawPropertyValues()).thenReturn(Map.of(descriptor, externalServiceId));
+        when(processorNode.getEffectivePropertyValue(descriptor)).thenReturn(externalServiceId);
+        when(group.getParent()).thenReturn(parentGroup);
+        when(parentGroup.findControllerService(externalServiceId, false, true)).thenReturn(externalService);
+
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setPropertyDescriptors(Map.of(descriptor.getName(), versionedDescriptor));
+        versionedProcessor.setProperties(Map.of(descriptor.getName(), proposedServiceVersionedId));
+
+        final ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.captor();
+        synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
+        verify(processorNode).setProperties(captor.capture(), anyBoolean(), any());
+
+        assertEquals(externalServiceId, captor.getValue().get(descriptor.getName()));
+    }
+
+    @Test
+    public void testExternalControllerServiceParameterReferencePreserved() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // A controller-service-identifying property is configured with a Parameter reference (#{svc}) that resolves to a
+        // controller service living outside this process group. The proposed (versioned) flow references the property via
+        // the SAME parameter reference. Synchronizing must PRESERVE the parameter reference.
+        //
+        // Bug: populatePropertiesMap resolves the effective value (#{svc} -> concrete service id), finds that id as an
+        // existing external controller service, and pins the property to the concrete instance id -- silently dropping the
+        // parameterization. On the next flow comparison this surfaces as DifferenceType.PROPERTY_PARAMETERIZATION_REMOVED.
+        // This test asserts the correct behavior and therefore fails against the current implementation.
+        final String parameterReference = "#{svc}";
+        final String externalServiceId = "external-service-id";
+
+        final PropertyDescriptor descriptorCS = new PropertyDescriptor.Builder().name("cs")
+                .identifiesControllerService(ControllerService.class).build();
+
+        final Map<PropertyDescriptor, String> rawPropertyValues = new HashMap<>();
+        rawPropertyValues.put(descriptorCS, parameterReference);
+
+        final VersionedPropertyDescriptor versionedDescriptorCS = new VersionedPropertyDescriptor();
+        versionedDescriptorCS.setName(descriptorCS.getName());
+        final Map<String, VersionedPropertyDescriptor> proposedDescriptors = new HashMap<>();
+        proposedDescriptors.put(versionedDescriptorCS.getName(), versionedDescriptorCS);
+
+        final Map<PropertyDescriptor, PropertyConfiguration> propertiesBefore = new HashMap<>();
+        propertiesBefore.put(descriptorCS, new PropertyConfiguration(parameterReference, null, null, null));
+
+        final ProcessorNode processorNode = createMockProcessor();
+        when(processorNode.getPropertyDescriptor(eq("cs"))).thenReturn(descriptorCS);
+        when(processorNode.getProperties()).thenReturn(propertiesBefore);
+        when(processorNode.getRawPropertyValues()).thenReturn(rawPropertyValues);
+        // #{svc} resolves to the concrete id of a controller service outside this group.
+        when(processorNode.getEffectivePropertyValue(eq(descriptorCS))).thenReturn(externalServiceId);
+        when(processorNode.isReferencingParameter(eq(descriptorCS.getName()))).thenReturn(true);
+
+        final ProcessGroup processGroup = processorNode.getProcessGroup();
+        final ProcessGroup processGroupParent = mock(ProcessGroup.class);
+        final ControllerServiceNode externalService = createMockControllerService();
+        when(processGroup.getParent()).thenReturn(processGroupParent);
+        when(processGroupParent.findControllerService(eq(externalServiceId), eq(false), eq(true))).thenReturn(externalService);
+
+        // Proposed flow references the property via the SAME parameter reference.
+        final Map<String, String> proposedProperties = new HashMap<>();
+        proposedProperties.put("cs", parameterReference);
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setPropertyDescriptors(proposedDescriptors);
+        versionedProcessor.setProperties(proposedProperties);
+
+        final ArgumentCaptor<Map<String, String>> captorProperties = ArgumentCaptor.captor();
+        synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
+        verify(processorNode).setProperties(captorProperties.capture(), anyBoolean(), any());
+        final Map<String, String> properties = captorProperties.getValue();
+
+        assertEquals(parameterReference, properties.get("cs"),
+                "Controller-service property configured with a Parameter reference was flattened to the resolved service id");
+    }
+
+    @Test
+    public void testNonControllerServiceParameterReferencePreserved() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // A regular (non-CS-identifying) property is configured with a Parameter reference (#{my_param}).
+        // The proposed (versioned) flow references the same parameter. Synchronizing must preserve the
+        // parameter reference rather than substituting any resolved effective value.
+        final String parameterReference = "#{my_param}";
+        final String effectiveValue = "resolved-value";
+
+        final PropertyDescriptor descriptorA = new PropertyDescriptor.Builder().name("a").build();
+
+        final Map<PropertyDescriptor, String> rawPropertyValues = new HashMap<>();
+        rawPropertyValues.put(descriptorA, parameterReference);
+
+        final VersionedPropertyDescriptor versionedDescriptorA = new VersionedPropertyDescriptor();
+        versionedDescriptorA.setName(descriptorA.getName());
+        final Map<String, VersionedPropertyDescriptor> proposedDescriptors = new HashMap<>();
+        proposedDescriptors.put(versionedDescriptorA.getName(), versionedDescriptorA);
+
+        final Map<PropertyDescriptor, PropertyConfiguration> propertiesBefore = new HashMap<>();
+        propertiesBefore.put(descriptorA, new PropertyConfiguration(parameterReference, null, null, null));
+
+        final ProcessorNode processorNode = createMockProcessor();
+        when(processorNode.getPropertyDescriptor(eq("a"))).thenReturn(descriptorA);
+        when(processorNode.getProperties()).thenReturn(propertiesBefore);
+        when(processorNode.getRawPropertyValues()).thenReturn(rawPropertyValues);
+        when(processorNode.getEffectivePropertyValue(eq(descriptorA))).thenReturn(effectiveValue);
+        when(processorNode.isReferencingParameter(eq(descriptorA.getName()))).thenReturn(true);
+
+        final Map<String, String> proposedProperties = new HashMap<>();
+        proposedProperties.put("a", parameterReference);
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setPropertyDescriptors(proposedDescriptors);
+        versionedProcessor.setProperties(proposedProperties);
+
+        final ArgumentCaptor<Map<String, String>> captorProperties = ArgumentCaptor.captor();
+        synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
+        verify(processorNode).setProperties(captorProperties.capture(), anyBoolean(), any());
+        final Map<String, String> properties = captorProperties.getValue();
+
+        assertEquals(parameterReference, properties.get("a"),
+                "Non-CS property configured with a Parameter reference should preserve the reference, not resolve it");
+    }
+
+    @Test
+    public void testNonControllerServiceParameterChangedToHardCoded() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // When the proposed flow replaces a Parameter reference with a hard-coded value on a non-CS property,
+        // the synchronizer must use the hard-coded proposed value, not the old parameter reference.
+        final String parameterReference = "#{my_param}";
+        final String newExplicitValue = "new-explicit-value";
+
+        final PropertyDescriptor descriptorA = new PropertyDescriptor.Builder().name("a").build();
+
+        final Map<PropertyDescriptor, String> rawPropertyValues = new HashMap<>();
+        rawPropertyValues.put(descriptorA, parameterReference);
+
+        final VersionedPropertyDescriptor versionedDescriptorA = new VersionedPropertyDescriptor();
+        versionedDescriptorA.setName(descriptorA.getName());
+        final Map<String, VersionedPropertyDescriptor> proposedDescriptors = new HashMap<>();
+        proposedDescriptors.put(versionedDescriptorA.getName(), versionedDescriptorA);
+
+        final Map<PropertyDescriptor, PropertyConfiguration> propertiesBefore = new HashMap<>();
+        propertiesBefore.put(descriptorA, new PropertyConfiguration(parameterReference, null, null, null));
+
+        final ProcessorNode processorNode = createMockProcessor();
+        when(processorNode.getPropertyDescriptor(eq("a"))).thenReturn(descriptorA);
+        when(processorNode.getProperties()).thenReturn(propertiesBefore);
+        when(processorNode.getRawPropertyValues()).thenReturn(rawPropertyValues);
+        when(processorNode.isReferencingParameter(eq(descriptorA.getName()))).thenReturn(true);
+
+        final Map<String, String> proposedProperties = new HashMap<>();
+        proposedProperties.put("a", newExplicitValue);
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setPropertyDescriptors(proposedDescriptors);
+        versionedProcessor.setProperties(proposedProperties);
+
+        final ArgumentCaptor<Map<String, String>> captorProperties = ArgumentCaptor.captor();
+        synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
+        verify(processorNode).setProperties(captorProperties.capture(), anyBoolean(), any());
+        final Map<String, String> properties = captorProperties.getValue();
+
+        assertEquals(newExplicitValue, properties.get("a"),
+                "Non-CS property previously set via Parameter reference should adopt the hard-coded value from the proposed flow");
+    }
+
+    @Test
+    public void testControllerServiceParameterChangedToHardCoded() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // When the proposed flow replaces a Parameter reference with a hard-coded versioned component ID on
+        // a CS-identifying property, the synchronizer must resolve the versioned ID to the local instance ID.
+        final String parameterReference = "#{svc}";
+        final String versionedCsId = "versioned-cs-uuid";
+
+        final PropertyDescriptor descriptorCS = new PropertyDescriptor.Builder().name("cs")
+                .identifiesControllerService(ControllerService.class).build();
+
+        final Map<PropertyDescriptor, String> rawPropertyValues = new HashMap<>();
+        rawPropertyValues.put(descriptorCS, parameterReference);
+
+        final VersionedPropertyDescriptor versionedDescriptorCS = new VersionedPropertyDescriptor();
+        versionedDescriptorCS.setName(descriptorCS.getName());
+        final Map<String, VersionedPropertyDescriptor> proposedDescriptors = new HashMap<>();
+        proposedDescriptors.put(versionedDescriptorCS.getName(), versionedDescriptorCS);
+
+        final Map<PropertyDescriptor, PropertyConfiguration> propertiesBefore = new HashMap<>();
+        propertiesBefore.put(descriptorCS, new PropertyConfiguration(parameterReference, null, null, null));
+
+        final ProcessorNode processorNode = createMockProcessor();
+        when(processorNode.getPropertyDescriptor(eq("cs"))).thenReturn(descriptorCS);
+        when(processorNode.getProperties()).thenReturn(propertiesBefore);
+        when(processorNode.getRawPropertyValues()).thenReturn(rawPropertyValues);
+        when(processorNode.isReferencingParameter(eq(descriptorCS.getName()))).thenReturn(true);
+
+        // Wire up a local controller service that the versioned ID resolves to.
+        final ControllerServiceNode localService = createMockControllerService();
+        when(localService.getVersionedComponentId()).thenReturn(Optional.of(versionedCsId));
+        when(group.getControllerServices(false)).thenReturn(Set.of(localService));
+
+        final Map<String, String> proposedProperties = new HashMap<>();
+        proposedProperties.put("cs", versionedCsId);
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setPropertyDescriptors(proposedDescriptors);
+        versionedProcessor.setProperties(proposedProperties);
+
+        final ArgumentCaptor<Map<String, String>> captorProperties = ArgumentCaptor.captor();
+        synchronizer.synchronize(processorNode, versionedProcessor, group, synchronizationOptions);
+        verify(processorNode).setProperties(captorProperties.capture(), anyBoolean(), any());
+        final Map<String, String> properties = captorProperties.getValue();
+
+        assertEquals(localService.getIdentifier(), properties.get("cs"),
+                "CS-identifying property previously set via Parameter reference should be resolved to the local service instance ID");
+    }
+
+    @Test
     public void testControllerServiceRemoved() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final ControllerServiceNode service = createMockControllerService();
         when(service.isActive()).thenReturn(true);
         when(service.getState()).thenReturn(ControllerServiceState.ENABLED);
-        when(service.getReferences()).thenReturn(Mockito.mock(ControllerServiceReference.class));
+        when(service.getReferences()).thenReturn(mock(ControllerServiceReference.class));
 
         when(controllerServiceProvider.unscheduleReferencingComponents(service)).thenReturn(Collections.emptyMap());
         when(controllerServiceProvider.disableControllerServicesAsync(anyCollection())).thenReturn(CompletableFuture.completedFuture(null));
@@ -1137,13 +1503,13 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(controllerServiceProvider).unscheduleReferencingComponents(service);
         verify(controllerServiceProvider).disableControllerServicesAsync(Collections.singleton(service));
 
-        Mockito.doAnswer((Answer<Void>) invocationOnMock -> {
+        doAnswer((Answer<Void>) invocationOnMock -> {
             final Set<?> services = invocationOnMock.getArgument(0);
             assertTrue(services.isEmpty());
             return null;
-        }).when(controllerServiceProvider).enableControllerServicesAsync(Mockito.anySet());
+        }).when(controllerServiceProvider).enableControllerServicesAsync(anySet());
 
-        verify(controllerServiceProvider, times(0)).scheduleReferencingComponents(Mockito.any(ControllerServiceNode.class), Mockito.anySet(), Mockito.any(ComponentScheduler.class));
+        verify(controllerServiceProvider, times(0)).scheduleReferencingComponents(any(ControllerServiceNode.class), anySet(), any(ComponentScheduler.class));
     }
 
     @Test
@@ -1611,7 +1977,7 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     private void setReferences(final ControllerServiceNode service, final ComponentNode... reference) {
-        final ControllerServiceReference csReference = Mockito.mock(ControllerServiceReference.class);
+        final ControllerServiceReference csReference = mock(ControllerServiceReference.class);
         when(csReference.getReferencingComponents()).thenReturn(new HashSet<>(Arrays.asList(reference)));
         when(service.getReferences()).thenReturn(csReference);
     }
@@ -1737,7 +2103,7 @@ public class StandardVersionedComponentSynchronizerTest {
 
     private PublicPort createMappablePublicInputPort(final ProcessGroup processGroup, final String versionedId, final String localName, final String comments) {
         final String groupId = processGroup.getIdentifier();
-        final PublicPort port = Mockito.mock(PublicPort.class);
+        final PublicPort port = mock(PublicPort.class);
         when(port.getIdentifier()).thenReturn(UUID.randomUUID().toString());
         when(port.getProcessGroupIdentifier()).thenReturn(groupId);
         when(port.getVersionedComponentId()).thenReturn(Optional.of(versionedId));

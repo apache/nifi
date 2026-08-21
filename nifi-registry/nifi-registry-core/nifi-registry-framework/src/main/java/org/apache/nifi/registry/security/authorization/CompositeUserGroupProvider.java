@@ -41,7 +41,7 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
     private final boolean allowEmptyProviderList;
 
     private UserGroupProviderLookup userGroupProviderLookup;
-    private List<UserGroupProvider> userGroupProviders = new ArrayList<>(); // order matters
+    private final List<UserGroupProvider> userGroupProviders = new ArrayList<>(); // order matters
 
     public CompositeUserGroupProvider() {
         this(false);

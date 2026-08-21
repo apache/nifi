@@ -425,7 +425,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         config.renameProperty("put-es-json-scripted-upsert", SCRIPTED_UPSERT.getName());
         config.renameProperty("put-es-json-dynamic_templates", DYNAMIC_TEMPLATES.getName());
         config.renameProperty("put-es-json-charset", CHARSET.getName());
-        config.renameProperty("put-es-json-not_found-is-error", AbstractPutElasticsearch.NOT_FOUND_IS_SUCCESSFUL.getName());
+        config.renameProperty("put-es-json-not_found-is-error", NOT_FOUND_IS_SUCCESSFUL.getName());
 
         // If INPUT_FORMAT was not explicitly set, this flow was migrated from PutElasticsearchJson — default to Single JSON.
         // Set this before migrating BATCH_SIZE so its dependsOn condition is satisfied when NiFi processes the property.
@@ -451,7 +451,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         super.migrateRelationships(config);
 
         // PutElasticsearchJson used "success" before it was renamed to "original"
-        config.renameRelationship("success", AbstractPutElasticsearch.REL_ORIGINAL.getName());
+        config.renameRelationship("success", REL_ORIGINAL.getName());
     }
 
     @Override

@@ -212,7 +212,7 @@ class GetWorkdayReportTest {
         runner.assertAllFlowFilesTransferred(FAILURE);
         runner.assertPenalizeCount(1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetWorkdayReport.FAILURE).getFirst();
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(FAILURE).getFirst();
         flowFile.assertAttributeEquals(GET_WORKDAY_REPORT_JAVA_EXCEPTION_CLASS, URISyntaxException.class.getSimpleName());
         flowFile.assertAttributeExists(GET_WORKDAY_REPORT_JAVA_EXCEPTION_MESSAGE);
     }

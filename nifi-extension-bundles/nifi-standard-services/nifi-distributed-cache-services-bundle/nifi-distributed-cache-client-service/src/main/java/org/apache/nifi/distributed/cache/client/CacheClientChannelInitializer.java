@@ -43,7 +43,7 @@ public class CacheClientChannelInitializer extends ChannelInitializer<Channel> {
     private final SSLContext sslContext;
 
     /**
-     * The factory used to create the {@link org.apache.nifi.remote.VersionNegotiator}
+     * The factory used to create the {@link VersionNegotiator}
      * upon initialization of the channel.
      */
     private final VersionNegotiatorFactory versionNegotiatorFactory;

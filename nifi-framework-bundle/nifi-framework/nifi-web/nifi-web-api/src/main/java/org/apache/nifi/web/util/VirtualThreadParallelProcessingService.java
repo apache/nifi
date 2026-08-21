@@ -38,9 +38,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class VirtualThreadParallelProcessingService implements PredictionBasedParallelProcessingService, Closeable {
-    private boolean analyticsEnabled;
+    private final boolean analyticsEnabled;
     private ExecutorService parallelProcessingExecutorService;
-    private long parallelProcessingTimeout;
+    private final long parallelProcessingTimeout;
 
     public VirtualThreadParallelProcessingService(final NiFiProperties properties) {
         // We need to make processing timeout shorter than the web request timeout as if they overlap Jetty may throw IllegalStateException

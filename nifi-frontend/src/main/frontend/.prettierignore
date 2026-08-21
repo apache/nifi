@@ -45,3 +45,5 @@ Thumbs.db
 .angular
 
 /.nx/workspace-data
+
+.nx/self-healing

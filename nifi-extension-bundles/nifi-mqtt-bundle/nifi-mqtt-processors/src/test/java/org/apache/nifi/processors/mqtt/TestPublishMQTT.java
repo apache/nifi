@@ -526,7 +526,7 @@ public class TestPublishMQTT {
     }
 
     private static List<String> createMultipleInput() {
-        return Arrays.asList("message1", "message2", "message3");
+        return asList("message1", "message2", "message3");
     }
 
     private TestRunner initializeTestRunner(MqttTestClient mqttTestClient) {

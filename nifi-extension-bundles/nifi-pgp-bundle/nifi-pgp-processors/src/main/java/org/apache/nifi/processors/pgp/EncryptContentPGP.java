@@ -367,7 +367,7 @@ public class EncryptContentPGP extends AbstractProcessor {
             ) {
                 if (isPacketFound(pushbackInputStream)) {
                     // Write OpenPGP packets to encrypted stream without additional encoding
-                    StreamUtils.copy(pushbackInputStream, encryptedOutputStream);
+                    pushbackInputStream.transferTo(encryptedOutputStream);
                 } else {
                     super.processEncoding(pushbackInputStream, encryptedOutputStream);
                 }

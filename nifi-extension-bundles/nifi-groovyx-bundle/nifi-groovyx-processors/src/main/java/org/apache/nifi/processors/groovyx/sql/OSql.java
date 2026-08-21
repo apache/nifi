@@ -25,6 +25,7 @@ import java.io.Reader;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 
 /***
@@ -53,8 +54,8 @@ public class OSql extends Sql {
                     statement.setDate(i, new java.sql.Date(date.getTime()));
                     return;
                 }
-                if (p.getType() == Types.TIMESTAMP && p.getValue() instanceof final java.util.Date date && !(p.getValue() instanceof java.sql.Timestamp)) {
-                    statement.setTimestamp(i, new java.sql.Timestamp(date.getTime()));
+                if (p.getType() == Types.TIMESTAMP && p.getValue() instanceof final java.util.Date date && !(p.getValue() instanceof Timestamp)) {
+                    statement.setTimestamp(i, new Timestamp(date.getTime()));
                     return;
                 }
             }

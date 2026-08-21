@@ -28,12 +28,15 @@ import java.net.Socket;
 import java.security.cert.CertificateException;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 
 public final class SocketUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(SocketUtils.class);
+
+    private static final String TLS_ENDPOINT_IDENTIFICATION_ALGORITHM = "HTTPS";
 
     /**
      * Returns a {@link Socket} (effectively used as a client socket) for the given address and configuration.
@@ -63,6 +66,10 @@ public final class SocketUtils {
             final SSLSocket sslSocket = (SSLSocket) tempSocket;
             // Set Preferred TLS Protocol Versions
             sslSocket.setEnabledProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
+            final SSLParameters sslParameters = sslSocket.getSSLParameters();
+            sslParameters.setEndpointIdentificationAlgorithm(TLS_ENDPOINT_IDENTIFICATION_ALGORITHM);
+            sslSocket.setSSLParameters(sslParameters);
+
             socket = sslSocket;
         }
 

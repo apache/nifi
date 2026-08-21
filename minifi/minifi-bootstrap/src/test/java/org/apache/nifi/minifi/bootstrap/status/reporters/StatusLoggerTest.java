@@ -37,8 +37,10 @@ import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_ST
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class StatusLoggerTest {
 
@@ -58,15 +60,15 @@ public class StatusLoggerTest {
     public void init() throws IOException {
         statusLogger = Mockito.spy(new StatusLogger());
 
-        logger = Mockito.mock(Logger.class);
+        logger = mock(Logger.class);
         StatusLogger.logger = logger;
 
-        queryableStatusAggregator = Mockito.mock(QueryableStatusAggregator.class);
-        flowStatusReport = Mockito.mock(FlowStatusReport.class);
+        queryableStatusAggregator = mock(QueryableStatusAggregator.class);
+        flowStatusReport = mock(FlowStatusReport.class);
 
-        Mockito.when(flowStatusReport.toString()).thenReturn(MOCK_STATUS);
+        when(flowStatusReport.toString()).thenReturn(MOCK_STATUS);
 
-        Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenReturn(flowStatusReport);
+        when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenReturn(flowStatusReport);
     }
 
     @Test
@@ -103,7 +105,7 @@ public class StatusLoggerTest {
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.atLeastOnce()).trace(MOCK_STATUS, (Throwable) null);
+        verify(logger, atLeastOnce()).trace(MOCK_STATUS, (Throwable) null);
     }
 
     @Test
@@ -112,7 +114,7 @@ public class StatusLoggerTest {
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.atLeastOnce()).debug(MOCK_STATUS, (Throwable) null);
+        verify(logger, atLeastOnce()).debug(MOCK_STATUS, (Throwable) null);
     }
 
     @Test
@@ -121,7 +123,7 @@ public class StatusLoggerTest {
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.atLeastOnce()).info(MOCK_STATUS, (Throwable) null);
+        verify(logger, atLeastOnce()).info(MOCK_STATUS, (Throwable) null);
     }
 
     @Test
@@ -130,7 +132,7 @@ public class StatusLoggerTest {
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.atLeastOnce()).warn(MOCK_STATUS, (Throwable) null);
+        verify(logger, atLeastOnce()).warn(MOCK_STATUS, (Throwable) null);
     }
 
     @Test
@@ -139,7 +141,7 @@ public class StatusLoggerTest {
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.atLeastOnce()).error(MOCK_STATUS, (Throwable) null);
+        verify(logger, atLeastOnce()).error(MOCK_STATUS, (Throwable) null);
     }
 
     @Test
@@ -147,61 +149,61 @@ public class StatusLoggerTest {
         BootstrapProperties properties = getProperties(LogLevel.TRACE);
 
         IOException ioException = new IOException("This is an expected test exception");
-        Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
+        when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(properties, queryableStatusAggregator);
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.atLeastOnce()).trace(ENCOUNTERED_IO_EXCEPTION, ioException);
+        verify(logger, atLeastOnce()).trace(ENCOUNTERED_IO_EXCEPTION, ioException);
     }
 
     @Test
     public void testDebugException() throws IOException {
         IOException ioException = new IOException("This is an expected test exception");
-        Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
+        when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.DEBUG), queryableStatusAggregator);
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.atLeastOnce()).debug(ENCOUNTERED_IO_EXCEPTION, ioException);
+        verify(logger, atLeastOnce()).debug(ENCOUNTERED_IO_EXCEPTION, ioException);
     }
 
     @Test
     public void testInfoException() throws IOException {
         IOException ioException = new IOException("This is an expected test exception");
-        Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
+        when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.INFO), queryableStatusAggregator);
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.atLeastOnce()).info(ENCOUNTERED_IO_EXCEPTION, ioException);
+        verify(logger, atLeastOnce()).info(ENCOUNTERED_IO_EXCEPTION, ioException);
     }
 
     @Test
     public void testWarnException() throws IOException {
         IOException ioException = new IOException("This is an expected test exception");
-        Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
+        when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.WARN), queryableStatusAggregator);
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.atLeastOnce()).warn(ENCOUNTERED_IO_EXCEPTION, ioException);
+        verify(logger, atLeastOnce()).warn(ENCOUNTERED_IO_EXCEPTION, ioException);
     }
 
     @Test
     public void testErrorException() throws IOException {
         IOException ioException = new IOException("This is an expected test exception");
-        Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
+        when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.ERROR), queryableStatusAggregator);
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.atLeastOnce()).error(ENCOUNTERED_IO_EXCEPTION, ioException);
+        verify(logger, atLeastOnce()).error(ENCOUNTERED_IO_EXCEPTION, ioException);
     }
 
     private static BootstrapProperties getProperties(LogLevel logLevel) {

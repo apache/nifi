@@ -18,7 +18,6 @@ package org.apache.nifi.processors.pgp.io;
 
 import org.apache.nifi.processors.pgp.attributes.CompressionAlgorithm;
 import org.apache.nifi.processors.pgp.attributes.FileEncoding;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.bouncycastle.openpgp.PGPCompressedData;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPLiteralData;
@@ -90,7 +89,7 @@ public class EncodingStreamCallbackTest {
         assertEquals(PGPLiteralData.BINARY, literalData.getFormat());
 
         final ByteArrayOutputStream literalOutputStream = new ByteArrayOutputStream();
-        StreamUtils.copy(literalData.getDataStream(), literalOutputStream);
+        literalData.getDataStream().transferTo(literalOutputStream);
         assertArrayEquals(DATA, literalOutputStream.toByteArray());
     }
 }

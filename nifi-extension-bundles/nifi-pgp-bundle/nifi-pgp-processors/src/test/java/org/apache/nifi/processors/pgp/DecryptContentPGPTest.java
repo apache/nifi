@@ -23,7 +23,6 @@ import org.apache.nifi.processors.pgp.attributes.DecryptionStrategy;
 import org.apache.nifi.processors.pgp.exception.PGPDecryptionException;
 import org.apache.nifi.processors.pgp.exception.PGPProcessException;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -402,7 +401,7 @@ public class DecryptContentPGPTest {
         assertEquals(MODIFIED, literalData.getModificationTime());
 
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        StreamUtils.copy(literalData.getDataStream(), outputStream);
+        literalData.getDataStream().transferTo(outputStream);
         final String literal = outputStream.toString(DATA_CHARSET);
         assertEquals(DATA, literal);
     }

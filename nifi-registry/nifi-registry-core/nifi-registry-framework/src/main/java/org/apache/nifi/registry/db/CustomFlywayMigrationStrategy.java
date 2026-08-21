@@ -52,7 +52,7 @@ public class CustomFlywayMigrationStrategy implements FlywayMigrationStrategy {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CustomFlywayMigrationStrategy.class);
 
-    private NiFiRegistryProperties properties;
+    private final NiFiRegistryProperties properties;
 
     @Autowired
     public CustomFlywayMigrationStrategy(final NiFiRegistryProperties properties) {

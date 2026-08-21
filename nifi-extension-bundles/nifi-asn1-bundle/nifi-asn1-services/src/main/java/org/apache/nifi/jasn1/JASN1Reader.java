@@ -18,6 +18,7 @@ package org.apache.nifi.jasn1;
 
 import antlr.RecognitionException;
 import antlr.TokenStreamException;
+import com.beanit.asn1bean.ber.types.BerType;
 import com.beanit.asn1bean.compiler.BerClassWriter;
 import com.beanit.asn1bean.compiler.BerClassWriterFactory;
 import com.beanit.asn1bean.compiler.model.AsnModel;
@@ -327,7 +328,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
         StandardJavaFileManager fileManager = javaCompiler.getStandardFileManager(null, null, null);
 
-        List<String> optionList = new ArrayList<>(Arrays.asList("-classpath", com.beanit.asn1bean.ber.types.BerType.class.getProtectionDomain().getCodeSource().getLocation().getFile()));
+        List<String> optionList = new ArrayList<>(Arrays.asList("-classpath", BerType.class.getProtectionDomain().getCodeSource().getLocation().getFile()));
 
         Iterable<? extends JavaFileObject> units;
         units = fileManager.getJavaFileObjectsFromFiles(javaFiles);

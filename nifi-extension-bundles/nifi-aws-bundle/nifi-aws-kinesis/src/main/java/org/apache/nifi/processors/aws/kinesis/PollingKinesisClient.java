@@ -25,6 +25,7 @@ import software.amazon.awssdk.services.kinesis.model.GetRecordsResponse;
 import software.amazon.awssdk.services.kinesis.model.GetShardIteratorRequest;
 import software.amazon.awssdk.services.kinesis.model.LimitExceededException;
 import software.amazon.awssdk.services.kinesis.model.ProvisionedThroughputExceededException;
+import software.amazon.awssdk.services.kinesis.model.Record;
 import software.amazon.awssdk.services.kinesis.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.kinesis.model.Shard;
 import software.amazon.awssdk.services.kinesis.model.ShardIteratorType;
@@ -262,7 +263,7 @@ final class PollingKinesisClient extends KinesisConsumerClient {
                         continue;
                     }
 
-                    final List<software.amazon.awssdk.services.kinesis.model.Record> records = response.records();
+                    final List<Record> records = response.records();
                     final Long millisBehindLatest = response.millisBehindLatest();
                     if (millisBehindLatest != null) {
                         // Notify the backlog tracker on every successful poll, including empty polls. Empty

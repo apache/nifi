@@ -219,7 +219,7 @@ public class TestPutDistributedMapCache {
 
     private static class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
         private final ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();
-        private boolean failOnCalls = false;
+        private final boolean failOnCalls = false;
 
         private void verifyNotFail() throws IOException {
             if (failOnCalls) {

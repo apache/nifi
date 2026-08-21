@@ -115,7 +115,7 @@ public class DeduplicateRecord extends AbstractProcessor {
 
     static final AllowableValue NONE_ALGORITHM_VALUE = new AllowableValue("none", "None",
             "Do not use a hashing algorithm. The value of resolved RecordPaths will be combined with a delimiter " +
-                    "(" + DeduplicateRecord.JOIN_CHAR + ") to form the unique cache key. " +
+                    "(" + JOIN_CHAR + ") to form the unique cache key. " +
                     "This may use significantly more storage depending on the size and shape or your data.");
     static final AllowableValue SHA256_ALGORITHM_VALUE = new AllowableValue(MessageDigestAlgorithms.SHA_256, "SHA-256",
             "SHA-256 cryptographic hashing algorithm.");

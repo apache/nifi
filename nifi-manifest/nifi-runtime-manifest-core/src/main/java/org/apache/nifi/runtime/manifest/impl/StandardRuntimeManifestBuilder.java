@@ -100,7 +100,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     private String version;
     private String runtimeType;
     private BuildInfo buildInfo;
-    private List<Bundle> bundles = new ArrayList<>();
+    private final List<Bundle> bundles = new ArrayList<>();
     private SchedulingDefaults schedulingDefaults;
 
     @Override

@@ -370,16 +370,20 @@ public class MockProcessSession implements ProcessSession {
             commitInternal();
         } catch (final Throwable t) {
             rollback();
-            onFailure.accept(t);
+            if (onFailure != null) {
+                onFailure.accept(t);
+            }
             throw t;
         }
 
-        onSuccess.run();
+        if (onSuccess != null) {
+            onSuccess.run();
+        }
     }
 
     /**
      * Clear the 'committed' flag so that we can test that the next iteration of
-     * {@link org.apache.nifi.processor.Processor#onTrigger} commits or rolls back the
+     * {@link Processor#onTrigger} commits or rolls back the
      * session
      */
     public void clearCommitted() {
@@ -388,7 +392,7 @@ public class MockProcessSession implements ProcessSession {
 
     /**
      * Clear the 'rolledBack' flag so that we can test that the next iteration
-     * of {@link org.apache.nifi.processor.Processor#onTrigger} commits or rolls back the
+     * of {@link Processor#onTrigger} commits or rolls back the
      * session
      */
     public void clearRollback() {

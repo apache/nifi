@@ -40,7 +40,7 @@ import java.util.stream.Stream;
 
 public class IdentityAuthenticationProvider implements AuthenticationProvider {
 
-    protected Authorizer authorizer;
+    protected final Authorizer authorizer;
     protected final IdentityProvider identityProvider;
     protected final IdentityMapper identityMapper;
 

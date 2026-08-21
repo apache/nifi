@@ -29,6 +29,7 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
@@ -47,7 +48,7 @@ import java.util.concurrent.TimeUnit;
  * This class overrides hashCode and equals and considers two instances to be equal if they have the equal NodeIdentifiers.
  *
  */
-public class NodeResponse {
+public class NodeResponse implements Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(NodeResponse.class);
     private final String httpMethod;
@@ -268,5 +269,12 @@ public class NodeResponse {
             .append(",ResponseCode=").append(getStatus())
             .append(",Duration=").append(TimeUnit.MILLISECONDS.convert(requestDurationNanos, TimeUnit.NANOSECONDS)).append(" ms]");
         return sb.toString();
+    }
+
+    @Override
+    public void close() {
+        if (response != null) {
+            response.close();
+        }
     }
 }

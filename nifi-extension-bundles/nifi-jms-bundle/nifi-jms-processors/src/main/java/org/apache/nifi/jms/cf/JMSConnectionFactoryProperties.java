@@ -72,10 +72,10 @@ public class JMSConnectionFactoryProperties {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL,
-            JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES,
-            JMSConnectionFactoryProperties.JMS_BROKER_URI,
-            JMSConnectionFactoryProperties.JMS_SSL_CONTEXT_SERVICE
+            JMS_CONNECTION_FACTORY_IMPL,
+            JMS_CLIENT_LIBRARIES,
+            JMS_BROKER_URI,
+            JMS_SSL_CONTEXT_SERVICE
     );
 
     public static List<PropertyDescriptor> getPropertyDescriptors() {

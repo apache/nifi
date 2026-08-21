@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.commons.status.rpg;
 
-public class RemoteProcessGroupHealth implements java.io.Serializable {
+import java.io.Serializable;
+
+public class RemoteProcessGroupHealth implements Serializable {
     private String transmissionStatus;
     private boolean hasBulletins;
     private int activePortCount;

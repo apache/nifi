@@ -104,12 +104,12 @@ public class AccessResource extends ApplicationResource {
     private static final String ID_TOKEN_LOGOUT = "oidc_id_token_logout";
     private static final String STANDARD_LOGOUT = "oidc_standard_logout";
 
-    private NiFiRegistryProperties properties;
-    private JwtService jwtService;
+    private final NiFiRegistryProperties properties;
+    private final JwtService jwtService;
     private OidcService oidcService;
-    private X509IdentityProvider x509IdentityProvider;
-    private KerberosSpnegoIdentityProvider kerberosSpnegoIdentityProvider;
-    private IdentityProvider identityProvider;
+    private final X509IdentityProvider x509IdentityProvider;
+    private final KerberosSpnegoIdentityProvider kerberosSpnegoIdentityProvider;
+    private final IdentityProvider identityProvider;
 
     @Context
     protected UriInfo uriInfo;

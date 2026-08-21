@@ -2321,6 +2321,17 @@ public interface NiFiServiceFacade {
     ComponentStateDTO clearConnectorProcessorState(String connectorId, String processorId, ComponentStateDTO componentStateDTO);
 
     /**
+     * Gets a controller service within a connector's managed process group. Available regardless of whether
+     * the Connector is in Troubleshooting mode.
+     *
+     * @param connectorId         the connector id
+     * @param controllerServiceId the controller service id
+     * @param includeReferencingComponents whether to include referencing components in the response
+     * @return the controller service entity
+     */
+    ControllerServiceEntity getConnectorControllerService(String connectorId, String controllerServiceId, boolean includeReferencingComponents);
+
+    /**
      * Gets the state for a controller service within a connector's managed process group.
      *
      * @param connectorId         the connector id

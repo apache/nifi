@@ -205,7 +205,7 @@ public class PutIoTDBRecord extends AbstractIoTDB {
         if (result.isValid()) {
             return property == null
                             ? convertSchema(timeField, recordReader.getSchema())
-                            : mapper.readValue(property, DatabaseSchema.class);
+                            : MAPPER.readValue(property, DatabaseSchema.class);
         } else {
             final String message = String.format("Schema validation failed: %s", result.getMessage());
             throw new IllegalArgumentException(message);

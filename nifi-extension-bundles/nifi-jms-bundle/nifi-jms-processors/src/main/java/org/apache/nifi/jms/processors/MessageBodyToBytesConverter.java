@@ -47,7 +47,7 @@ abstract class MessageBodyToBytesConverter {
      * @return  byte array representing the {@link TextMessage}
      */
     public static byte[] toBytes(TextMessage message) {
-        return MessageBodyToBytesConverter.toBytes(message, null);
+        return toBytes(message, null);
     }
 
     /**

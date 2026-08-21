@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.nifi.processors.standard.RetryFlowFile.FAIL_ON_OVERWRITE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -141,7 +140,7 @@ public class TestRetryFlowFile {
 
     @Test
     public void testFailOnOverwrite() {
-        runner.setProperty(FAIL_ON_OVERWRITE, "true");
+        runner.setProperty(RetryFlowFile.FAIL_ON_OVERWRITE, "true");
         runner.enqueue("", Collections.singletonMap("flowfile.retries", "ZZAaa"));
         runner.run();
 

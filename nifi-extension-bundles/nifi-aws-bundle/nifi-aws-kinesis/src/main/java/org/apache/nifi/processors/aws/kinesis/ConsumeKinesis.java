@@ -59,6 +59,7 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -1114,7 +1115,7 @@ public class ConsumeKinesis extends AbstractProcessor implements BacklogReportin
                             writer.beginRecordSet();
 
                             int recordIndex = 0;
-                            org.apache.nifi.serialization.record.Record nifiRecord;
+                            Record nifiRecord;
                             while ((nifiRecord = reader.nextRecord()) != null) {
                                 final UserRecord record = records.get(recordIndex++);
                                 nifiRecord = decorateRecord(nifiRecord, record, record.shardId(), streamName, outputStrategy, writeSchema);
@@ -1191,12 +1192,12 @@ public class ConsumeKinesis extends AbstractProcessor implements BacklogReportin
                 }
 
                 RecordSchema readSchema = null;
-                final List<org.apache.nifi.serialization.record.Record> parsedRecords = new ArrayList<>();
+                final List<Record> parsedRecords = new ArrayList<>();
                 RecordReader reader = null;
                 try {
                     reader = readerFactory.createRecordReader(Map.of(), new ByteArrayInputStream(record.data()), record.data().length, getLogger());
                     readSchema = reader.getSchema();
-                    org.apache.nifi.serialization.record.Record nifiRecord;
+                    Record nifiRecord;
                     while ((nifiRecord = reader.nextRecord()) != null) {
                         parsedRecords.add(nifiRecord);
                     }
@@ -1242,9 +1243,8 @@ public class ConsumeKinesis extends AbstractProcessor implements BacklogReportin
 
                 batch.updateRecordRange(record);
 
-                for (final org.apache.nifi.serialization.record.Record parsed : parsedRecords) {
-                    final org.apache.nifi.serialization.record.Record decorated =
-                            decorateRecord(parsed, record, record.shardId(), streamName, outputStrategy, currentWriteSchema);
+                for (final Record parsed : parsedRecords) {
+                    final Record decorated = decorateRecord(parsed, record, record.shardId(), streamName, outputStrategy, currentWriteSchema);
                     currentWriter.write(decorated);
                     batch.incrementRecordCount();
                 }
@@ -1310,8 +1310,8 @@ public class ConsumeKinesis extends AbstractProcessor implements BacklogReportin
     /**
      * Attaches Kinesis metadata to a NiFi record according to the configured OutputStrategy.
      */
-    private static org.apache.nifi.serialization.record.Record decorateRecord(
-            final org.apache.nifi.serialization.record.Record nifiRecord,
+    private static Record decorateRecord(
+            final Record nifiRecord,
             final UserRecord kinesisRecord, final String shardId,
             final String streamName, final OutputStrategy outputStrategy,
             final RecordSchema writeSchema) {

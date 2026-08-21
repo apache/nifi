@@ -25,7 +25,7 @@ import org.apache.ftpserver.impl.FtpServerContext;
 
 public class NotSupportedCommand extends AbstractCommand {
 
-    private String message;
+    private final String message;
 
     public NotSupportedCommand(String message) {
         this.message = message;

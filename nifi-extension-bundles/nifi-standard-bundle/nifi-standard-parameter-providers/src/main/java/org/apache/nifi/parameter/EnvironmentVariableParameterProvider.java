@@ -55,12 +55,12 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
             "Include Environment Variable names that match a Regular Expression");
 
     private enum InclusionStrategyValue {
-        INCLUDE_ALL(EnvironmentVariableParameterProvider.INCLUDE_ALL_STRATEGY.getValue(), IncludeAllEnvironmentVariableInclusionStrategy::new),
-        COMMA_SEPARATED(EnvironmentVariableParameterProvider.COMMA_SEPARATED_STRATEGY.getValue(), CommaSeparatedEnvironmentVariableInclusionStrategy::new),
+        INCLUDE_ALL(INCLUDE_ALL_STRATEGY.getValue(), IncludeAllEnvironmentVariableInclusionStrategy::new),
+        COMMA_SEPARATED(COMMA_SEPARATED_STRATEGY.getValue(), CommaSeparatedEnvironmentVariableInclusionStrategy::new),
         REGEX_STRATEGY(EnvironmentVariableParameterProvider.REGEX_STRATEGY.getValue(), RegexEnvironmentVariableInclusionStrategy::new);
 
-        private String name;
-        private Function<String, EnvironmentVariableInclusionStrategy> factoryMethod;
+        private final String name;
+        private final Function<String, EnvironmentVariableInclusionStrategy> factoryMethod;
 
         InclusionStrategyValue(final String name, final Function<String, EnvironmentVariableInclusionStrategy> factoryMethod) {
             this.name = name;

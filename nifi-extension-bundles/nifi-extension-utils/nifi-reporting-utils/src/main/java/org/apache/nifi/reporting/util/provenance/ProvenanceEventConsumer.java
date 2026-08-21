@@ -70,10 +70,10 @@ public class ProvenanceEventConsumer {
     private Pattern componentTypeRegexExclude;
     private Pattern componentNameRegex;
     private Pattern componentNameRegexExclude;
-    private List<ProvenanceEventType> eventTypes = new ArrayList<>();
-    private List<ProvenanceEventType> eventTypesExclude = new ArrayList<>();
-    private List<String> componentIds = new ArrayList<>();
-    private List<String> componentIdsExclude = new ArrayList<>();
+    private final List<ProvenanceEventType> eventTypes = new ArrayList<>();
+    private final List<ProvenanceEventType> eventTypesExclude = new ArrayList<>();
+    private final List<String> componentIds = new ArrayList<>();
+    private final List<String> componentIdsExclude = new ArrayList<>();
     private int batchSize = Integer.parseInt(PROVENANCE_BATCH_SIZE.getDefaultValue());
 
     private volatile long firstEventId = -1L;

@@ -35,7 +35,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -196,7 +195,7 @@ public class SplitPCAP extends AbstractProcessor {
 
         private Packet getNextPacket(final BufferedInputStream bufferedStream, final PCAP templatePcap, final int totalPackets) throws IOException {
             final byte[] packetHeader = new byte[Packet.PACKET_HEADER_LENGTH];
-            StreamUtils.read(bufferedStream, packetHeader, Packet.PACKET_HEADER_LENGTH);
+            bufferedStream.readNBytes(packetHeader, 0, Packet.PACKET_HEADER_LENGTH);
 
             final Packet currentPacket = new Packet(packetHeader, templatePcap);
 
@@ -206,7 +205,7 @@ public class SplitPCAP extends AbstractProcessor {
 
             final int expectedLength = (int) currentPacket.expectedLength();
             final byte[] packetBody = new byte[expectedLength];
-            StreamUtils.read(bufferedStream, packetBody, expectedLength);
+            bufferedStream.readNBytes(packetBody, 0, expectedLength);
             currentPacket.setBody(packetBody);
 
             if (currentPacket.isInvalid()) {
@@ -227,7 +226,7 @@ public class SplitPCAP extends AbstractProcessor {
             }
 
             final byte[] pcapHeader = new byte[PCAPHeader.PCAP_HEADER_LENGTH];
-            StreamUtils.read(bufferedStream, pcapHeader, PCAPHeader.PCAP_HEADER_LENGTH);
+            bufferedStream.readNBytes(pcapHeader, 0, PCAPHeader.PCAP_HEADER_LENGTH);
 
             int currentPcapTotalLength = PCAPHeader.PCAP_HEADER_LENGTH;
 

@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.VersionedComponentAuthorizable;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -182,7 +183,7 @@ public interface AuthorizableLookup {
      * @param filter the filter
      * @return all encapsulated controller services
      */
-    Set<ComponentAuthorizable> getControllerServices(String groupId, Predicate<org.apache.nifi.authorization.resource.VersionedComponentAuthorizable> filter);
+    Set<ComponentAuthorizable> getControllerServices(String groupId, Predicate<VersionedComponentAuthorizable> filter);
 
     /**
      * Get the authorizable ControllerService.
@@ -331,6 +332,25 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     Authorizable getConnector(String connectorId);
+
+    /**
+     * Get the authorizable governing access to an Asset referenced by a Connector configuration
+     *
+     * @param connectorId the ID of the connector that must own the referenced Asset
+     * @param assetId the ID of the referenced Asset
+     * @return Authorizable for the Asset owned by the Connector
+     */
+    Authorizable getConnectorAsset(String connectorId, String assetId);
+
+    /**
+     * Get the authorizable for the Parameter Provider that backs a Secret referenced by a connector configuration
+     *
+     * @param secretProviderId the identifier of the Parameter Provider, if known
+     * @param secretProviderName the name of the Parameter Provider, if known
+     * @param fullyQualifiedSecretName the fully qualified Secret name, whose leading segment identifies the provider name
+     * @return the authorizable for the Parameter Provider that backs the referenced Secret
+     */
+    Authorizable getConnectorSecretProvider(String secretProviderId, String secretProviderName, String fullyQualifiedSecretName);
 
     /**
      * Get the authorizable for access to the System resource.

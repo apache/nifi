@@ -26,7 +26,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -51,7 +50,7 @@ public class ListGoogleDrivePathTest implements OutputChecker {
 
     @BeforeEach
     void setUp() throws Exception {
-        mockDriverService = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
+        mockDriverService = mock(Drive.class, RETURNS_DEEP_STUBS);
 
         testSubject = new ListGoogleDrive() {
             @Override
@@ -151,9 +150,9 @@ public class ListGoogleDrivePathTest implements OutputChecker {
 
     private Map<String, String> createAttributeMap(String fileId, String fileName, String path) {
         return Map.of(
-                GoogleDriveAttributes.ID, fileId,
-                GoogleDriveAttributes.FILENAME, fileName,
-                GoogleDriveAttributes.PATH, path
+                ID, fileId,
+                FILENAME, fileName,
+                PATH, path
         );
     }
 

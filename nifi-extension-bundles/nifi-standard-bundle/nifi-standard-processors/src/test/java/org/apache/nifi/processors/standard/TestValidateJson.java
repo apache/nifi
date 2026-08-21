@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.json.schema.JsonSchema;
 import org.apache.nifi.json.schema.SchemaVersion;
@@ -40,6 +40,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -259,11 +260,11 @@ class TestValidateJson {
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, schema);
         runner.setProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION, SCHEMA_VERSION);
         runner.enqueue(getFileContent("simple-example-with-comments.json"));
-        runner.assertValid();
 
-        final AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class, () -> runner.run());
-        final String stackTrace = ExceptionUtils.getStackTrace(assertionFailedError);
-        assertTrue(stackTrace.contains("JsonParseException") && !stackTrace.contains("FileNotFoundException"));
+        runner.assertNotValid();
+        final Collection<ValidationResult> validationResults = runner.validate();
+        final String explanation = validationResults.iterator().next().getExplanation();
+        assertTrue(explanation.contains("JsonParseException") && !explanation.contains("FileNotFoundException"));
     }
 
     @ParameterizedTest
@@ -272,11 +273,11 @@ class TestValidateJson {
         runner.setProperty(ValidateJson.SCHEMA_CONTENT, schema);
         runner.setProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION, SCHEMA_VERSION);
         runner.enqueue(getFileContent("simple-example-with-comments.json"));
-        runner.assertValid();
 
-        final AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class, () -> runner.run());
-        final String stackTrace = ExceptionUtils.getStackTrace(assertionFailedError);
-        assertTrue(stackTrace.contains("JsonParseException"));
+        runner.assertNotValid();
+        final Collection<ValidationResult> validationResults = runner.validate();
+        final String explanation = validationResults.iterator().next().getExplanation();
+        assertTrue(explanation.contains("JsonParseException"));
     }
 
     @ParameterizedTest

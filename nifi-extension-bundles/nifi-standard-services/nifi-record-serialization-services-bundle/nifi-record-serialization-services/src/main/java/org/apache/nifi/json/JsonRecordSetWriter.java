@@ -33,6 +33,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeTextRecordSetWriter;
+import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -143,6 +144,14 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
             .defaultValue(HANDLING_ENABLED.getValue())
             .required(true)
             .build();
+    public static final PropertyDescriptor TIMESTAMP_REPRESENTATION = new PropertyDescriptor.Builder()
+            .name("Timestamp Representation")
+            .description("Specifies how Timestamp logical fields are represented in JSON. Date and Time logical fields are not affected.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues(TimestampRepresentation.class)
+            .defaultValue(TimestampRepresentation.AUTO.getValue())
+            .required(true)
+            .build();
 
     private volatile boolean prettyPrint;
     private volatile boolean allowScientificNotation;
@@ -151,6 +160,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
     private volatile String compressionFormat;
     private volatile int compressionLevel;
     private volatile boolean serializedInputHandlingEnabled;
+    private volatile TimestampRepresentation timestampRepresentation;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -162,6 +172,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
         properties.add(COMPRESSION_FORMAT);
         properties.add(COMPRESSION_LEVEL);
         properties.add(SERIALIZED_JSON_INPUT_HANDLING);
+        properties.add(TIMESTAMP_REPRESENTATION);
         return properties;
     }
 
@@ -188,6 +199,11 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
         if (context.getProperty(PRETTY_PRINT_JSON).asBoolean() && context.getProperty(OUTPUT_GROUPING).getValue().equals(OUTPUT_ONELINE.getValue())) {
             problems.add(new ValidationResult.Builder().input("Pretty Print").valid(false)
                     .explanation("Pretty Print JSON must be false when 'Output Grouping' is set to 'One Line Per Object'").build());
+        }
+        if (context.getProperty(TIMESTAMP_REPRESENTATION).asAllowableValue(TimestampRepresentation.class) == TimestampRepresentation.FORMATTED_STRING
+                && !context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).isSet()) {
+            problems.add(new ValidationResult.Builder().subject(TIMESTAMP_REPRESENTATION.getDisplayName()).input(TimestampRepresentation.FORMATTED_STRING.getDisplayName()).valid(false)
+                    .explanation("Timestamp Format must be configured when Timestamp Representation is set to Formatted String").build());
         }
         return problems;
     }
@@ -220,6 +236,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
         this.compressionFormat = context.getProperty(COMPRESSION_FORMAT).getValue();
         this.compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
         this.serializedInputHandlingEnabled = HANDLING_ENABLED.getValue().equals(context.getProperty(SERIALIZED_JSON_INPUT_HANDLING).getValue());
+        this.timestampRepresentation = context.getProperty(TIMESTAMP_REPRESENTATION).asAllowableValue(TimestampRepresentation.class);
     }
 
     @Override
@@ -264,7 +281,8 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
         }
 
         return new WriteJsonResult(logger, schema, getSchemaAccessWriter(schema, variables), compressionOut, prettyPrint, nullSuppression, outputGrouping,
-                getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), mimeType, allowScientificNotation, serializedInputHandlingEnabled);
+                getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), mimeType, allowScientificNotation, serializedInputHandlingEnabled,
+                timestampRepresentation);
     }
 
 }

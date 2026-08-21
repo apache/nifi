@@ -33,15 +33,15 @@ import static org.mockito.Mockito.mock;
 public class FileHeaderTest {
     private final Random random = new Random();
     private FileHeader fileHeader;
-    private int oldestChunk = 111;
-    private int currentChunkNumber = 112;
-    private int nextRecordNumber = 113;
-    private int headerSize = 114;
-    private int minorVersion = 1;
-    private int majorVersion = 3;
-    private int headerChunkSize = 4096;
-    private int chunkCount = 0;
-    private int flags = 340942;
+    private final int oldestChunk = 111;
+    private final int currentChunkNumber = 112;
+    private final int nextRecordNumber = 113;
+    private final int headerSize = 114;
+    private final int minorVersion = 1;
+    private final int majorVersion = 3;
+    private final int headerChunkSize = 4096;
+    private final int chunkCount = 0;
+    private final int flags = 340942;
 
     @BeforeEach
     public void setup() throws IOException {

@@ -257,7 +257,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
      * Shutdown pool, close all open connections.
      * If a principal is authenticated with a KDC, that principal is logged out.
      * <p>
-     * If a @{@link LoginException} occurs while attempting to log out the @{@link org.apache.nifi.security.krb.KerberosUser},
+     * If a @{@link LoginException} occurs while attempting to log out the @{@link KerberosUser},
      * an attempt will still be made to shut down the pool and close open connections.
      *
      */

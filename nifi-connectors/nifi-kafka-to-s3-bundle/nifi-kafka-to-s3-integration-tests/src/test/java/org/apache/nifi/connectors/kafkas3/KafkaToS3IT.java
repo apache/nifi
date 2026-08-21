@@ -45,7 +45,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.kafka.ConfluentKafkaContainer;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -78,9 +78,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class KafkaToS3IT {
 
+    private static final String KAFKA_IMAGE_NAME = System.getProperty("kafka.docker.image", "apache/kafka:4.3.1");
+
     private static ConnectorTestRunner runner;
     private static Network network;
-    private static ConfluentKafkaContainer kafkaContainer;
+    private static KafkaContainer kafkaContainer;
     private static GenericContainer<?> schemaRegistryContainer;
     private static LocalStackContainer localStackContainer;
     private static S3Client s3Client;
@@ -90,50 +92,30 @@ public class KafkaToS3IT {
 
     private static final String S3_REGION = "us-west-2";
 
-    // JAAS configuration for Kafka broker SASL/PLAIN authentication.
-    // The 'username' and 'password' fields are credentials the broker uses for inter-broker communication.
-    // The 'user_<username>="<password>"' entries define client users that can authenticate to this broker.
-    // In this setup:
-    //   - Broker uses 'admin' / 'admin-secret' for inter-broker communication (though we use PLAINTEXT for that)
-    //   - Clients can authenticate using 'testuser' / 'testpassword' on the SASL listener with PLAIN mechanism
-    private static final String JAAS_CONFIG_CONTENT = """
-        KafkaServer {
-          org.apache.kafka.common.security.plain.PlainLoginModule required
-          username="admin"
-          password="admin-secret"
-          user_%s="%s";
-        };
-        """.formatted(SCRAM_USERNAME, SCRAM_PASSWORD);
-
-
     @BeforeAll
     public static void setupTestContainers() {
         network = Network.newNetwork();
 
-        kafkaContainer = new ConfluentKafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.8.0"))
+        kafkaContainer = new KafkaContainer(DockerImageName.parse(KAFKA_IMAGE_NAME))
             .withNetwork(network)
-            .withNetworkAliases("kafka")
+            .withListener("kafka:19092")
             .withStartupTimeout(Duration.ofSeconds(10))
-            .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,PLAINTEXT:PLAINTEXT,SASL:SASL_PLAINTEXT")
-            .withEnv("KAFKA_LISTENERS", "CONTROLLER://0.0.0.0:9094,BROKER://0.0.0.0:9092,PLAINTEXT://0.0.0.0:19092,SASL://0.0.0.0:9093")
-            .withEnv("KAFKA_ADVERTISED_LISTENERS", "BROKER://kafka:9092,PLAINTEXT://kafka:19092,SASL://localhost:9093")
-            .withEnv("KAFKA_CONTROLLER_LISTENER_NAMES", "CONTROLLER")
-            .withEnv("KAFKA_INTER_BROKER_LISTENER_NAME", "BROKER")
+            .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "BROKER:PLAINTEXT,PLAINTEXT:SASL_PLAINTEXT,CONTROLLER:PLAINTEXT")
             .withEnv("KAFKA_SASL_ENABLED_MECHANISMS", "PLAIN")
+            .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_SASL_ENABLED_MECHANISMS", "PLAIN")
+            .withEnv("KAFKA_LISTENER_NAME_PLAINTEXT_PLAIN_SASL_JAAS_CONFIG", String.format(
+                "%s required user_%s=\"%s\";",
+                org.apache.kafka.common.security.plain.PlainLoginModule.class.getName(),
+                SCRAM_USERNAME,
+                SCRAM_PASSWORD
+            ))
             .withEnv("KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS", "0")
             .withEnv("KAFKA_GROUP_MIN_SESSION_TIMEOUT_MS", "1000")
             .withEnv("KAFKA_GROUP_MAX_SESSION_TIMEOUT_MS", "60000")
             .withEnv("KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", "1")
             .withEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1")
-            .withEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1")
-            .withEnv("KAFKA_OPTS", "-Djava.security.auth.login.config=/tmp/kafka_jaas.conf")
-            .withCommand(
-                "sh", "-c",
-                "echo '" + JAAS_CONFIG_CONTENT + "' > /tmp/kafka_jaas.conf && " +
-                "/etc/confluent/docker/run"
-            );
+            .withEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
 
-        kafkaContainer.setPortBindings(List.of("9093:9093"));
         kafkaContainer.start();
 
         schemaRegistryContainer = new GenericContainer<>(DockerImageName.parse("confluentinc/cp-schema-registry:7.8.0"))
@@ -209,7 +191,7 @@ public class KafkaToS3IT {
 
     private void createKafkaTopics(final String... topicNames) throws ExecutionException, InterruptedException {
         final Properties adminProps = new Properties();
-        adminProps.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9093");
+        adminProps.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
         adminProps.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
         adminProps.put(SaslConfigs.SASL_MECHANISM, "PLAIN");
         adminProps.put(SaslConfigs.SASL_JAAS_CONFIG, String.format(
@@ -229,7 +211,7 @@ public class KafkaToS3IT {
 
     private void produceRecordsToTopic(final String topicName, final String... records) throws ExecutionException, InterruptedException {
         final Properties producerProps = new Properties();
-        producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9093");
+        producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         producerProps.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
@@ -255,7 +237,7 @@ public class KafkaToS3IT {
 
     private void produceAvroRecordsToTopic(final String topicName, final GenericRecord... records) throws ExecutionException, InterruptedException {
         final Properties producerProps = new Properties();
-        producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9093");
+        producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class.getName());
         producerProps.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
@@ -297,7 +279,7 @@ public class KafkaToS3IT {
         );
 
         final Map<String, String> kafkaServerConfig = Map.of(
-            "Kafka Brokers", "localhost:9093",
+            "Kafka Brokers", kafkaContainer.getBootstrapServers(),
             "Security Protocol", "SASL_PLAINTEXT",
             "SASL Mechanism", "PLAIN",
             "Username", SCRAM_USERNAME
@@ -359,7 +341,7 @@ public class KafkaToS3IT {
         );
 
         final Map<String, String> kafkaServerConfig = Map.of(
-            "Kafka Brokers", "localhost:9093",
+            "Kafka Brokers", kafkaContainer.getBootstrapServers(),
             "Security Protocol", "SASL_PLAINTEXT",
             "SASL Mechanism", "PLAIN",
             "Username", SCRAM_USERNAME
@@ -453,7 +435,7 @@ public class KafkaToS3IT {
         produceAvroRecordsToTopic("avro-topic", record1, record2);
 
         final Map<String, String> kafkaConnectionConfig = Map.of(
-            "Kafka Brokers", "localhost:9093",
+            "Kafka Brokers", kafkaContainer.getBootstrapServers(),
             "Security Protocol", "SASL_PLAINTEXT",
             "SASL Mechanism", "PLAIN",
             "Username", SCRAM_USERNAME,
@@ -524,7 +506,7 @@ public class KafkaToS3IT {
         produceAvroRecordsToTopic("user-events", record1, record2, record3);
 
         final Map<String, String> kafkaConnectionConfig = Map.of(
-            "Kafka Brokers", "localhost:9093",
+            "Kafka Brokers", kafkaContainer.getBootstrapServers(),
             "Security Protocol", "SASL_PLAINTEXT",
             "SASL Mechanism", "PLAIN",
             "Username", SCRAM_USERNAME,
@@ -627,7 +609,7 @@ public class KafkaToS3IT {
         // Configure Connector to consume from JSON Kafka topic and write to S3 in JSON format, but with an invalid S3 endpoint.
         // This will cause the data to remain queued, since PutS3Object will fail to write the data.
         final Map<String, String> kafkaServerConfig = Map.of(
-            "Kafka Brokers", "localhost:9093",
+            "Kafka Brokers", kafkaContainer.getBootstrapServers(),
             "Security Protocol", "SASL_PLAINTEXT",
             "SASL Mechanism", "PLAIN",
             "Username", SCRAM_USERNAME
@@ -714,7 +696,7 @@ public class KafkaToS3IT {
         );
 
         final Map<String, String> kafkaConnectionWithSchemaRegistry = Map.of(
-            "Kafka Brokers", "localhost:9093",
+            "Kafka Brokers", kafkaContainer.getBootstrapServers(),
             "Security Protocol", "SASL_PLAINTEXT",
             "SASL Mechanism", "PLAIN",
             "Username", SCRAM_USERNAME,

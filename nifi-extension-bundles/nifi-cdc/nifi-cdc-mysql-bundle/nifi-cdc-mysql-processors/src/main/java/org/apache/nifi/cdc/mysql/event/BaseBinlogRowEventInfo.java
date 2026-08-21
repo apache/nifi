@@ -28,8 +28,8 @@ import java.util.List;
  */
 public class BaseBinlogRowEventInfo<RowEventDataType> extends BaseBinlogTableEventInfo implements RowEventInfo<RowEventDataType> {
 
-    private BitSet includedColumns;
-    private RowEventInfo<RowEventDataType> delegate;
+    private final BitSet includedColumns;
+    private final RowEventInfo<RowEventDataType> delegate;
 
     public BaseBinlogRowEventInfo(TableInfo tableInfo, String type, Long timestamp, String binlogFilename, Long binlogPosition, BitSet includedColumns, List<RowEventDataType> rows) {
         super(tableInfo, type, timestamp, binlogFilename, binlogPosition);

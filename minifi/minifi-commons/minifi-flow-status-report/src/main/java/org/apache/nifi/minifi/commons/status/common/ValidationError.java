@@ -17,7 +17,9 @@
 
 package org.apache.nifi.minifi.commons.status.common;
 
-public class ValidationError implements java.io.Serializable {
+import java.io.Serializable;
+
+public class ValidationError implements Serializable {
     private String subject;
     private String input;
     private String reason;

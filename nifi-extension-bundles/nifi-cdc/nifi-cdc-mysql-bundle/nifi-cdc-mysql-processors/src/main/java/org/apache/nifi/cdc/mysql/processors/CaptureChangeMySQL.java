@@ -61,6 +61,8 @@ import org.apache.nifi.cdc.mysql.event.handler.UpdateEventHandler;
 import org.apache.nifi.cdc.mysql.event.io.AbstractBinlogEventWriter;
 import org.apache.nifi.cdc.mysql.processors.ssl.BinaryLogSSLSocketFactory;
 import org.apache.nifi.cdc.mysql.processors.ssl.ConnectionPropertiesProvider;
+import org.apache.nifi.cdc.mysql.processors.ssl.DelegatingSSLContextProvider;
+import org.apache.nifi.cdc.mysql.processors.ssl.SecurityProperty;
 import org.apache.nifi.cdc.mysql.processors.ssl.StandardConnectionPropertiesProvider;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -84,11 +86,11 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.security.Security;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -109,6 +111,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
@@ -124,7 +127,6 @@ import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
 import static com.github.shyiko.mysql.binlog.event.EventType.XID;
 import static org.apache.nifi.cdc.event.io.EventWriter.CDC_EVENT_TYPE_ATTRIBUTE;
 import static org.apache.nifi.cdc.event.io.EventWriter.SEQUENCE_ID_KEY;
-import static org.apache.nifi.cdc.event.io.FlowFileEventWriteStrategy.MAX_EVENTS_PER_FLOWFILE;
 
 /**
  * A processor to retrieve Change Data Capture (CDC) events and send them as FlowFiles.
@@ -155,6 +157,12 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private static final int DO_NOT_SET = -1000;
 
     private static final int DEFAULT_MYSQL_PORT = 3306;
+
+    // MySQL Connector/J 8.x driver class. Connections require Connector/J 8.1.0 or later when an SSLContextProvider is configured
+    private static final String MYSQL_DRIVER_CLASS_NAME = "com.mysql.cj.jdbc.Driver";
+
+    // Legacy MySQL Connector/J 5.1.x driver class replaced by MYSQL_DRIVER_CLASS_NAME during property migration
+    private static final String LEGACY_MYSQL_DRIVER_CLASS_NAME = "com.mysql.jdbc.Driver";
 
     // A regular expression matching multiline comments, used when parsing DDL statements
     private static final Pattern MULTI_COMMENT_PATTERN = Pattern.compile("/\\*.*?\\*/", Pattern.DOTALL);
@@ -234,7 +242,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor DRIVER_NAME = new PropertyDescriptor.Builder()
             .name("MySQL Driver Class Name")
             .description("The class name of the MySQL database driver class")
-            .defaultValue("com.mysql.jdbc.Driver")
+            .defaultValue(MYSQL_DRIVER_CLASS_NAME)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -242,8 +250,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor DRIVER_LOCATION = new PropertyDescriptor.Builder()
             .name("MySQL Driver Locations")
-            .description("Comma-separated list of files/folders and/or URLs containing the MySQL driver JAR and its dependencies (if any). "
-                    + "For example '/var/tmp/mysql-connector-java-5.1.38-bin.jar'")
+            .description("""
+                    Comma-separated list of files/folders and/or URLs containing the MySQL driver JAR and its dependencies (if any). \
+                    MySQL Connector/J 8.1.0 or later is required when an SSL Context Provider is configured. \
+                    For example '/var/tmp/mysql-connector-j-8.4.0.jar'""")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -269,12 +279,12 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor EVENTS_PER_FLOWFILE_STRATEGY = new PropertyDescriptor.Builder()
             .name("Event Processing Strategy")
-            .description("Specifies the strategy to use when writing events to FlowFile(s), such as '" + MAX_EVENTS_PER_FLOWFILE.getDisplayName() + "'")
+            .description("Specifies the strategy to use when writing events to FlowFile(s), such as '" + FlowFileEventWriteStrategy.MAX_EVENTS_PER_FLOWFILE.getDisplayName() + "'")
             .required(true)
             .sensitive(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues(FlowFileEventWriteStrategy.class)
-            .defaultValue(MAX_EVENTS_PER_FLOWFILE)
+            .defaultValue(FlowFileEventWriteStrategy.MAX_EVENTS_PER_FLOWFILE)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
@@ -287,7 +297,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("1")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .dependsOn(EVENTS_PER_FLOWFILE_STRATEGY, MAX_EVENTS_PER_FLOWFILE)
+            .dependsOn(EVENTS_PER_FLOWFILE_STRATEGY, FlowFileEventWriteStrategy.MAX_EVENTS_PER_FLOWFILE)
             .build();
 
     public static final PropertyDescriptor SERVER_ID = new PropertyDescriptor.Builder()
@@ -405,9 +415,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("SSL Context Service supporting encrypted socket communication")
+            .description("SSL Context Provider supporting encrypted socket communication")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .dependsOn(SSL_MODE,
                     SSL_MODE_PREFERRED,
                     SSL_MODE_REQUIRED,
@@ -488,6 +498,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         config.renameProperty("capture-change-mysql-max-wait-time", CONNECT_TIMEOUT.getName());
         config.renameProperty("capture-change-mysql-hosts", HOSTS.getName());
         config.renameProperty("capture-change-mysql-driver-class", DRIVER_NAME.getName());
+        config.getRawPropertyValue(DRIVER_NAME.getName())
+                .filter(LEGACY_MYSQL_DRIVER_CLASS_NAME::equals)
+                .ifPresent(legacyDriverClassName -> config.setProperty(DRIVER_NAME.getName(), MYSQL_DRIVER_CLASS_NAME));
         List.of("capture-change-mysql-driver-locations", "MySQL Driver Location(s)").forEach(
                 oldNameProperty ->  config.renameProperty(oldNameProperty, DRIVER_LOCATION.getName()));
         config.renameProperty("capture-change-mysql-username", USERNAME.getName());
@@ -633,7 +646,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
 
         final SSLMode sslMode = SSLMode.valueOf(context.getProperty(SSL_MODE).getValue());
-        final SSLContextService sslContextService = sslMode == SSLMode.DISABLED ? null : context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContextProvider sslContextProvider = sslMode == SSLMode.DISABLED ? null : context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
 
         // Save off MySQL cluster and JDBC driver information, will be used to connect for event enrichment as well as for the binlog connector
         try {
@@ -654,7 +667,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
             Long serverId = context.getProperty(SERVER_ID).evaluateAttributeExpressions().asLong();
 
-            connect(hosts, username, password, serverId, driverLocation, driverName, connectTimeout, sslContextService, sslMode);
+            connect(hosts, username, password, serverId, driverLocation, driverName, connectTimeout, sslContextProvider, sslMode);
         } catch (IOException | IllegalStateException e) {
             if (eventListener != null) {
                 eventListener.stop();
@@ -755,12 +768,13 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     protected void connect(List<InetSocketAddress> hosts, String username, String password, Long serverId,
                            String driverLocation, String driverName, long connectTimeout,
-                           final SSLContextService sslContextService, final SSLMode sslMode) throws IOException {
+                           final SSLContextProvider sslContextProvider, final SSLMode sslMode) throws IOException {
 
         int connectionAttempts = 0;
         final int numHosts = hosts.size();
         InetSocketAddress connectedHost = null;
         Exception lastConnectException = new Exception("Unknown connection error");
+        final SSLContext sslContext = sslContextProvider == null ? null : sslContextProvider.createContext();
 
         try {
             // Ensure driverLocation and driverName are correct before establishing binlog connection
@@ -805,8 +819,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             }
 
             binlogClient.setSSLMode(sslMode);
-            if (sslContextService != null) {
-                final SSLContext sslContext = sslContextService.createContext();
+            if (sslContext != null) {
                 final BinaryLogSSLSocketFactory sslSocketFactory = new BinaryLogSSLSocketFactory(sslContext.getSocketFactory());
                 binlogClient.setSslSocketFactory(sslSocketFactory);
             }
@@ -839,10 +852,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             throw new IOException("Could not connect binlog client to any of the specified hosts due to: " + lastConnectException.getMessage(), lastConnectException);
         }
 
-        final TlsConfiguration tlsConfiguration = sslContextService == null ? null : sslContextService.createTlsConfiguration();
-        final ConnectionPropertiesProvider connectionPropertiesProvider = new StandardConnectionPropertiesProvider(sslMode, tlsConfiguration);
+        final ConnectionPropertiesProvider connectionPropertiesProvider = new StandardConnectionPropertiesProvider(sslMode);
         final Map<String, String> jdbcConnectionProperties = connectionPropertiesProvider.getConnectionProperties();
-        jdbcConnectionHolder = new JDBCConnectionHolder(connectedHost, username, password, jdbcConnectionProperties, connectTimeout);
+        jdbcConnectionHolder = new JDBCConnectionHolder(connectedHost, username, password, jdbcConnectionProperties, connectTimeout, sslContext, getIdentifier());
         try {
             // Ensure connection can be created.
             getJdbcConnection();
@@ -1254,10 +1266,14 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         private final String connectionUrl;
         private final Properties connectionProps = new Properties();
         private final long connectionTimeoutMillis;
+        private final SSLContext sslContext;
+        private final String sslContextProviderNamePrefix;
+        private final AtomicLong sslContextProviderNameCounter = new AtomicLong();
 
         private Connection connection;
 
-        private JDBCConnectionHolder(InetSocketAddress host, String username, String password, Map<String, String> customProperties, long connectionTimeoutMillis) {
+        private JDBCConnectionHolder(InetSocketAddress host, String username, String password, Map<String, String> customProperties, long connectionTimeoutMillis,
+                                     final SSLContext sslContext, final String componentId) {
             this.connectionUrl = "jdbc:mysql://" + host.getHostString() + ":" + host.getPort();
             connectionProps.putAll(customProperties);
             if (username != null) {
@@ -1268,6 +1284,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             }
 
             this.connectionTimeoutMillis = connectionTimeoutMillis;
+            this.sslContext = sslContext;
+            this.sslContextProviderNamePrefix = CaptureChangeMySQL.this.getClass().getSimpleName() + "-" + componentId;
         }
 
         private Connection getConnection() throws SQLException {
@@ -1280,8 +1298,26 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             close();
 
             getLogger().trace("Creating a new JDBC connection.");
-            connection = DriverManager.getConnection(connectionUrl, connectionProps);
+            connection = createConnection();
             return connection;
+        }
+
+        private Connection createConnection() throws SQLException {
+            if (sslContext == null) {
+                return DriverManager.getConnection(connectionUrl, connectionProps);
+            }
+
+            // Register a uniquely named security provider that exposes the configured SSLContext and direct MySQL Connector/J to it
+            // for the duration of the connection attempt. Registration is scoped to the connection attempt so that the JVM-wide
+            // security provider registry does not retain a reference to this instance ClassLoader after the connection is established.
+            final String sslContextProviderName = sslContextProviderNamePrefix + "-" + sslContextProviderNameCounter.incrementAndGet();
+            connectionProps.setProperty(SecurityProperty.SSL_CONTEXT_PROVIDER.getProperty(), sslContextProviderName);
+            Security.addProvider(new DelegatingSSLContextProvider(sslContextProviderName, sslContext));
+            try {
+                return DriverManager.getConnection(connectionUrl, connectionProps);
+            } finally {
+                Security.removeProvider(sslContextProviderName);
+            }
         }
 
         private void close() {

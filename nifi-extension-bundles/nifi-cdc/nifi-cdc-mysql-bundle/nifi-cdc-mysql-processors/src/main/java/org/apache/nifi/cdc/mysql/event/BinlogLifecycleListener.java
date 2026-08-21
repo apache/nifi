@@ -25,8 +25,8 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class BinlogLifecycleListener implements BinaryLogClient.LifecycleListener {
 
-    AtomicReference<BinaryLogClient> client = new AtomicReference<>(null);
-    AtomicReference<Exception> exception = new AtomicReference<>(null);
+    final AtomicReference<BinaryLogClient> client = new AtomicReference<>(null);
+    final AtomicReference<Exception> exception = new AtomicReference<>(null);
 
     @Override
     public void onConnect(BinaryLogClient binaryLogClient) {

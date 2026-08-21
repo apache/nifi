@@ -28,10 +28,12 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -62,6 +64,25 @@ public class CreateConnectorIT {
 
             testRunner.startConnector();
             testRunner.stopConnector();
+        }
+    }
+
+    @Test
+    public void testStopConnectorWithTimeoutStopsRunningConnector() throws IOException {
+        try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
+                .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
+                .narLibraryDirectory(new File("target/libDir"))
+                .build()) {
+
+            testRunner.startConnector();
+
+            // Exercises the timeout-aware overload: it initiates the asynchronous stop and actively polls the
+            // Connector's state until it reaches STOPPED, returning as soon as it does rather than after a single
+            // fixed blocking wait. Because start is asynchronous, a stop issued immediately afterwards may have to
+            // ride through the node's internal stop retries (every 10 seconds) before the state settles, so the
+            // budget is generous enough to stay deterministic on a slow CI runner; the poll still returns the
+            // instant the Connector reports STOPPED.
+            assertDoesNotThrow(() -> testRunner.stopConnector(Duration.ofSeconds(120)));
         }
     }
 

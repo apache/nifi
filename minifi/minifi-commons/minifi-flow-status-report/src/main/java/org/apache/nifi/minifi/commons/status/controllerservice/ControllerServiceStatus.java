@@ -19,9 +19,10 @@ package org.apache.nifi.minifi.commons.status.controllerservice;
 
 import org.apache.nifi.minifi.commons.status.common.BulletinStatus;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class ControllerServiceStatus implements java.io.Serializable {
+public class ControllerServiceStatus implements Serializable {
     private String name;
     private ControllerServiceHealth controllerServiceHealth;
     private List<BulletinStatus> bulletinList;

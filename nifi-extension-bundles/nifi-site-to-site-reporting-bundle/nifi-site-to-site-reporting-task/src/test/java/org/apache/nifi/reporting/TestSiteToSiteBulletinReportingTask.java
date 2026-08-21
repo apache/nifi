@@ -34,7 +34,6 @@ import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.reporting.s2s.SiteToSiteUtils.NiFiUrlValidator;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.io.ByteArrayInputStream;
@@ -50,14 +49,18 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteBulletinReportingTask {
 
     @Test
     public void testUrls() {
-        final ValidationContext context = Mockito.mock(ValidationContext.class);
-        Mockito.when(context.newPropertyValue(Mockito.anyString())).then((Answer<PropertyValue>) invocation -> {
+        final ValidationContext context = mock(ValidationContext.class);
+        when(context.newPropertyValue(anyString())).then((Answer<PropertyValue>) invocation -> {
             String value = (String) invocation.getArguments()[0];
             return new StandardPropertyValue(value, null, null);
         });
@@ -80,10 +83,10 @@ public class TestSiteToSiteBulletinReportingTask {
         bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", ComponentType.PROCESSOR, "source-name", "category", "severity", "message", "group-path", "flowFileUuid"));
 
         // mock the access to the list of bulletins
-        final ReportingContext context = Mockito.mock(ReportingContext.class);
-        final BulletinRepository repository = Mockito.mock(BulletinRepository.class);
-        Mockito.when(context.getBulletinRepository()).thenReturn(repository);
-        Mockito.when(repository.findBulletins(Mockito.any(BulletinQuery.class))).thenReturn(bulletins);
+        final ReportingContext context = mock(ReportingContext.class);
+        final BulletinRepository repository = mock(BulletinRepository.class);
+        when(context.getBulletinRepository()).thenReturn(repository);
+        when(repository.findBulletins(any(BulletinQuery.class))).thenReturn(bulletins);
 
         // creating reporting task
         final MockSiteToSiteBulletinReportingTask task = new MockSiteToSiteBulletinReportingTask();
@@ -96,16 +99,16 @@ public class TestSiteToSiteBulletinReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteUtils.PLATFORM, "nifi");
 
-        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+        doAnswer((Answer<PropertyValue>) invocation -> {
             final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
             return new MockPropertyValue(properties.get(descriptor));
-        }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
+        }).when(context).getProperty(any(PropertyDescriptor.class));
 
         // setup the mock initialization context
-        final ComponentLog logger = Mockito.mock(ComponentLog.class);
-        final ReportingInitializationContext initContext = Mockito.mock(ReportingInitializationContext.class);
-        Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
-        Mockito.when(initContext.getLogger()).thenReturn(logger);
+        final ComponentLog logger = mock(ComponentLog.class);
+        final ReportingInitializationContext initContext = mock(ReportingInitializationContext.class);
+        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        when(initContext.getLogger()).thenReturn(logger);
 
         task.initialize(initContext);
         task.onTrigger(context);
@@ -129,10 +132,10 @@ public class TestSiteToSiteBulletinReportingTask {
         bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", "source-name", "category", "severity", "message"));
 
         // mock the access to the list of bulletins
-        final ReportingContext context = Mockito.mock(ReportingContext.class);
-        final BulletinRepository repository = Mockito.mock(BulletinRepository.class);
-        Mockito.when(context.getBulletinRepository()).thenReturn(repository);
-        Mockito.when(repository.findBulletins(Mockito.any(BulletinQuery.class))).thenReturn(bulletins);
+        final ReportingContext context = mock(ReportingContext.class);
+        final BulletinRepository repository = mock(BulletinRepository.class);
+        when(context.getBulletinRepository()).thenReturn(repository);
+        when(repository.findBulletins(any(BulletinQuery.class))).thenReturn(bulletins);
 
         // creating reporting task
         final MockSiteToSiteBulletinReportingTask task = new MockSiteToSiteBulletinReportingTask();
@@ -146,16 +149,16 @@ public class TestSiteToSiteBulletinReportingTask {
         properties.put(SiteToSiteUtils.PLATFORM, "nifi");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
 
-        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+        doAnswer((Answer<PropertyValue>) invocation -> {
             final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
             return new MockPropertyValue(properties.get(descriptor));
-        }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
+        }).when(context).getProperty(any(PropertyDescriptor.class));
 
         // setup the mock initialization context
-        final ComponentLog logger = Mockito.mock(ComponentLog.class);
-        final ReportingInitializationContext initContext = Mockito.mock(ReportingInitializationContext.class);
-        Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
-        Mockito.when(initContext.getLogger()).thenReturn(logger);
+        final ComponentLog logger = mock(ComponentLog.class);
+        final ReportingInitializationContext initContext = mock(ReportingInitializationContext.class);
+        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        when(initContext.getLogger()).thenReturn(logger);
 
         task.initialize(initContext);
         task.onTrigger(context);
@@ -176,17 +179,17 @@ public class TestSiteToSiteBulletinReportingTask {
         @Override
         public void setup(PropertyContext reportContext) {
             if (siteToSiteClient == null) {
-                final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
-                final Transaction transaction = Mockito.mock(Transaction.class);
+                final SiteToSiteClient client = mock(SiteToSiteClient.class);
+                final Transaction transaction = mock(Transaction.class);
 
                 assertDoesNotThrow(() -> {
-                    Mockito.doAnswer((Answer<Object>) invocation -> {
+                    doAnswer((Answer<Object>) invocation -> {
                         final byte[] data = invocation.getArgument(0, byte[].class);
                         dataSent.add(data);
                         return null;
-                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
+                    }).when(transaction).send(any(byte[].class), any(Map.class));
 
-                    when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                    when(client.createTransaction(any(TransferDirection.class))).thenReturn(transaction);
                 });
                 siteToSiteClient = client;
             }

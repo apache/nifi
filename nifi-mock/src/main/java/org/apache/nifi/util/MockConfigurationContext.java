@@ -35,7 +35,7 @@ public class MockConfigurationContext implements ConfigurationContext {
     private volatile boolean validateExpressions;
 
     // This is only for testing purposes as we don't want to set env/sys variables in the tests
-    private Map<String, String> environmentVariables;
+    private final Map<String, String> environmentVariables;
 
     public MockConfigurationContext(final Map<PropertyDescriptor, String> properties,
             final ControllerServiceLookup serviceLookup,

@@ -293,8 +293,8 @@ public class ExecuteProcess extends AbstractProcessor {
             if (arguments != null) {
                 attributes.put(ATTRIBUTE_COMMAND_ARGS, arguments);
             }
-            if (batchNanos == null && context.getProperty(ExecuteProcess.MIME_TYPE).isSet()) {
-                attributes.put(CoreAttributes.MIME_TYPE.key(), context.getProperty(ExecuteProcess.MIME_TYPE).getValue());
+            if (batchNanos == null && context.getProperty(MIME_TYPE).isSet()) {
+                attributes.put(CoreAttributes.MIME_TYPE.key(), context.getProperty(MIME_TYPE).getValue());
             }
             flowFile = session.putAllAttributes(flowFile, attributes);
 

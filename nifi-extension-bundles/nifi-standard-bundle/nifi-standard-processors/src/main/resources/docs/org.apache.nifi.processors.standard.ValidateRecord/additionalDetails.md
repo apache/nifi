@@ -15,6 +15,17 @@
 
 # ValidateRecord
 
+## FlowFiles that contain no records
+
+ValidateRecord validates records one at a time as they are read from the incoming FlowFile. If the Record Reader
+returns no records - for example, a CSV input that contains only a header line - the processor has nothing to validate.
+In this case no output is produced: no FlowFile is routed any relationship, and the incoming FlowFile is removed.
+
+If a downstream flow needs to react to empty inputs, detect them before ValidateRecord. For example, a preceding
+record-based processor such as ConvertRecord writes a `record.count` attribute (including `record.count = 0` for empty
+inputs when its *Include Zero Record FlowFiles* property is enabled), which a RouteOnAttribute processor can then use to
+handle empty FlowFiles separately.
+
 ## Examples for the effect of Force Types From Reader's Schema property
 
 The processor first reads the data from the incoming FlowFile using the specified Record Reader, which uses a schema.

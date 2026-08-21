@@ -222,7 +222,7 @@ public class ListBoxFileInfo extends AbstractBoxProcessor {
                 }
 
                 final Map<String, String> recordAttributes = new HashMap<>(writeResult.getAttributes());
-                recordAttributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                recordAttributes.put("record.count", valueOf(writeResult.getRecordCount()));
                 recordAttributes.put(CoreAttributes.MIME_TYPE.key(), mimeType);
                 flowFile = session.putAllAttributes(flowFile, recordAttributes);
 

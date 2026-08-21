@@ -51,7 +51,7 @@ public class SecurityPropertiesSchema extends BaseSchema implements WritableSche
     private String truststoreType = "";
     private String truststorePassword = "";
     private String sslProtocol = "";
-    private SensitivePropsSchema sensitiveProps;
+    private final SensitivePropsSchema sensitiveProps;
 
     public SecurityPropertiesSchema() {
         sensitiveProps = new SensitivePropsSchema();

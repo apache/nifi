@@ -51,8 +51,8 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
     static final String PROP_LEGACY_AUTHORIZED_USERS_FILE = "Legacy Authorized Users File";
 
-    private FileUserGroupProvider userGroupProvider = new FileUserGroupProvider();
-    private FileAccessPolicyProvider accessPolicyProvider = new FileAccessPolicyProvider();
+    private final FileUserGroupProvider userGroupProvider = new FileUserGroupProvider();
+    private final FileAccessPolicyProvider accessPolicyProvider = new FileAccessPolicyProvider();
 
     @Override
     public void initialize(final AuthorizerInitializationContext initializationContext) throws SecurityProviderCreationException {
@@ -103,8 +103,8 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         if (configurationProperties.containsKey(FileUserGroupProvider.PROP_TENANTS_FILE)) {
             userGroupProperties.put(FileUserGroupProvider.PROP_TENANTS_FILE, configurationProperties.get(FileUserGroupProvider.PROP_TENANTS_FILE));
         }
-        if (configurationProperties.containsKey(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)) {
-            userGroupProperties.put(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE, configurationProperties.get(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE));
+        if (configurationProperties.containsKey(PROP_LEGACY_AUTHORIZED_USERS_FILE)) {
+            userGroupProperties.put(PROP_LEGACY_AUTHORIZED_USERS_FILE, configurationProperties.get(PROP_LEGACY_AUTHORIZED_USERS_FILE));
         }
 
         // relay the relevant config
@@ -116,8 +116,8 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         if (configurationProperties.containsKey(AccessPolicyProviderUtils.PROP_INITIAL_ADMIN_IDENTITY)) {
             accessPolicyProperties.put(AccessPolicyProviderUtils.PROP_INITIAL_ADMIN_IDENTITY, configurationProperties.get(AccessPolicyProviderUtils.PROP_INITIAL_ADMIN_IDENTITY));
         }
-        if (configurationProperties.containsKey(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)) {
-            accessPolicyProperties.put(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE, configurationProperties.get(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE));
+        if (configurationProperties.containsKey(PROP_LEGACY_AUTHORIZED_USERS_FILE)) {
+            accessPolicyProperties.put(PROP_LEGACY_AUTHORIZED_USERS_FILE, configurationProperties.get(PROP_LEGACY_AUTHORIZED_USERS_FILE));
         }
 
         // ensure all nifi identities are seeded into the user provider

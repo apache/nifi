@@ -27,7 +27,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -146,7 +145,7 @@ public class PutDynamoDBRecordTest {
         runner.run();
 
         final List<BatchWriteItemRequest> results = captor.getAllValues();
-        Assertions.assertEquals(2, results.size());
+        assertEquals(2, results.size());
 
         final BatchWriteItemRequest result1 = results.getFirst();
         assertTrue(result1.hasRequestItems());
@@ -160,7 +159,7 @@ public class PutDynamoDBRecordTest {
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_SUCCESS).getFirst();
-        Assertions.assertEquals("2", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
+        assertEquals("2", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
     }
 
     @Test
@@ -173,7 +172,7 @@ public class PutDynamoDBRecordTest {
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_UNPROCESSED, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_UNPROCESSED).getFirst();
-        Assertions.assertEquals("1", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
+        assertEquals("1", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
     }
 
     @Test
@@ -183,12 +182,12 @@ public class PutDynamoDBRecordTest {
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleChunks.json"), Collections.singletonMap(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE, "1"));
         runner.run();
 
-        Assertions.assertEquals(1, captor.getAllValues().size());
-        Assertions.assertEquals(4, captor.getValue().requestItems().get(TABLE_NAME).size());
+        assertEquals(1, captor.getAllValues().size());
+        assertEquals(4, captor.getValue().requestItems().get(TABLE_NAME).size());
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_SUCCESS).getFirst();
-        Assertions.assertEquals("2", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
+        assertEquals("2", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
     }
 
     @Test
@@ -201,7 +200,7 @@ public class PutDynamoDBRecordTest {
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_FAILURE, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_FAILURE).getFirst();
-        Assertions.assertEquals("0", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
+        assertEquals("0", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
     }
 
     @Test
@@ -214,11 +213,11 @@ public class PutDynamoDBRecordTest {
         runner.run();
 
         final BatchWriteItemRequest result = captor.getValue();
-        Assertions.assertEquals(1, result.requestItems().get(TABLE_NAME).size());
+        assertEquals(1, result.requestItems().get(TABLE_NAME).size());
 
         final Map<String, AttributeValue> item = result.requestItems().get(TABLE_NAME).getFirst().putRequest().item();
-        Assertions.assertEquals(4, item.size());
-        Assertions.assertEquals(string("P0"), item.get("partition"));
+        assertEquals(4, item.size());
+        assertEquals(string("P0"), item.get("partition"));
         assertTrue(item.containsKey("generated"));
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
@@ -239,11 +238,11 @@ public class PutDynamoDBRecordTest {
                 .map(PutRequest::item)
                 .forEach(items::add));
 
-        Assertions.assertEquals(29, items.size());
+        assertEquals(29, items.size());
 
         for (int sortKeyValue = 0; sortKeyValue < 29; sortKeyValue++) {
             final AttributeValue expectedValue = AttributeValue.builder().n(String.valueOf(sortKeyValue + 1)).build();
-            Assertions.assertEquals(expectedValue, items.get(sortKeyValue).get("sort"));
+            assertEquals(expectedValue, items.get(sortKeyValue).get("sort"));
         }
     }
 
@@ -336,18 +335,18 @@ public class PutDynamoDBRecordTest {
     }
 
     private void assertItemsConvertedProperly(final Collection<WriteRequest> writeRequests, final int expectedNumberOfItems) {
-        Assertions.assertEquals(expectedNumberOfItems, writeRequests.size());
+        assertEquals(expectedNumberOfItems, writeRequests.size());
         int index = 0;
 
         for (final WriteRequest writeRequest : writeRequests) {
             final PutRequest putRequest = writeRequest.putRequest();
             assertNotNull(putRequest);
             final Map<String, AttributeValue> item = putRequest.item();
-            Assertions.assertEquals(3, item.size());
-            Assertions.assertEquals(string("new"), item.get("value"));
+            assertEquals(3, item.size());
+            assertEquals(string("new"), item.get("value"));
 
-            Assertions.assertEquals(number(index), item.get("size"));
-            Assertions.assertEquals(string("P" + index), item.get("partition"));
+            assertEquals(number(index), item.get("size"));
+            assertEquals(string("P" + index), item.get("partition"));
             index++;
         }
     }

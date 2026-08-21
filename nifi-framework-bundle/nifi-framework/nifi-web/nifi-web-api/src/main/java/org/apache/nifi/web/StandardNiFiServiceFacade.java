@@ -2193,6 +2193,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ControllerServiceEntity getConnectorControllerService(final String connectorId, final String controllerServiceId,
+            final boolean includeReferencingComponents) {
+        final ControllerServiceNode controllerService = locateConnectorControllerService(connectorId, controllerServiceId);
+        return createControllerServiceEntity(controllerService, includeReferencingComponents);
+    }
+
+    @Override
     public ComponentStateDTO getConnectorControllerServiceState(final String connectorId, final String controllerServiceId) {
         final ControllerServiceNode controllerService = locateConnectorControllerService(connectorId, controllerServiceId);
         final StateMap clusterState = isClustered() ? componentStateDAO.getState(controllerService, Scope.CLUSTER) : null;
@@ -4947,14 +4954,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * component hierarchy via the {@code findX} APIs first. This is required for
      * bulletins generated inside a connector's managed flow: the standard
      * {@link AuthorizableLookup} is backed by {@link org.apache.nifi.web.dao.impl.StandardProcessorDAO}
-     * (and its peers) which only walks the {@link org.apache.nifi.controller.flow.FlowManager}'s
+     * (and its peers) which only walks the {@link FlowManager}'s
      * root group, so any source that lives inside a connector's managed flow context
      * would otherwise resolve to {@link ResourceNotFoundException} and report
      * {@code canRead = false} for every bulletin -- preventing the canvas from
      * rendering bulletin icons for the connector's components and child groups.
      * Resolving via the live group preserves the source's authorizable parent chain
      * (which terminates at the connector node via
-     * {@link org.apache.nifi.groups.ProcessGroup#setExplicitParentAuthorizable(Authorizable)}),
+     * {@link ProcessGroup#setExplicitParentAuthorizable(Authorizable)}),
      * so READ on the connector correctly grants READ on its inner bulletins.</p>
      *
      * <p>The fallback to {@code authorizableLookup} handles source types that are
@@ -8499,11 +8506,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyDeleteAsset(final String parameterContextId, final String assetId) {
-        final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextId);
-        final Set<String> referencingParameterNames = getReferencingParameterNames(parameterContext, assetId);
-        if (!referencingParameterNames.isEmpty()) {
-            final String joinedParametersNames = String.join(", ", referencingParameterNames);
-            throw new IllegalStateException("Unable to delete Asset [%s] because it is currently references by Parameters [%s]".formatted(assetId, joinedParametersNames));
+        final Asset asset = assetManager.getAsset(assetId)
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Asset [%s] not found".formatted(assetId))
+                );
+
+        final String ownerIdentifier = asset.getOwnerIdentifier();
+        if (ownerIdentifier.equals(parameterContextId)) {
+            final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextId);
+            final Set<String> referencingParameterNames = getReferencingParameterNames(parameterContext, assetId);
+            if (!referencingParameterNames.isEmpty()) {
+                final String joinedParametersNames = String.join(", ", referencingParameterNames);
+                throw new IllegalStateException("Unable to delete Asset [%s] because it is currently references by Parameters [%s]".formatted(assetId, joinedParametersNames));
+            }
+        } else {
+            throw new ResourceNotFoundException("Asset [%s] not found".formatted(assetId));
         }
     }
 

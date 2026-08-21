@@ -96,11 +96,13 @@ import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.migration.StandardControllerServiceFactory;
+import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterContextNameUtils;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
@@ -164,6 +166,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     public static final String ENC_PREFIX = "enc{";
     public static final String ENC_SUFFIX = "}";
 
+    private static final ParameterParser agnosticParameterParser = new ExpressionLanguageAgnosticParameterParser();
     private final VersionedFlowSynchronizationContext context;
     private final Set<String> updatedVersionedComponentIds = new HashSet<>();
     private final List<CreatedOrModifiedExtension> createdAndModifiedExtensions = new ArrayList<>();
@@ -1666,41 +1669,32 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     || (versionedDescriptor != null && versionedDescriptor.getIdentifiesControllerService());
                 final boolean sensitive = (descriptor != null && descriptor.isSensitive())
                     || (versionedDescriptor != null && versionedDescriptor.isSensitive());
-
+                final String proposedValue = proposedProperties.get(propertyName);
                 final String value;
-                if (descriptor != null && referencesService && (proposedProperties.get(propertyName) != null)) {
-                    // Need to determine if the component's property descriptor for this service is already set to an id
-                    // of an existing service that is outside the current processor group, and if it is we want to leave
-                    // the property set to that value
-                    String existingExternalServiceId = null;
-                    final String componentDescriptorValue = componentNode.getEffectivePropertyValue(descriptor);
-                    if (componentDescriptorValue != null) {
-                        final ProcessGroup parentGroup = topLevelGroup.getParent();
-                        if (parentGroup != null) {
-                            final ControllerServiceNode serviceNode = parentGroup.findControllerService(componentDescriptorValue, false, true);
-                            if (serviceNode != null) {
-                                existingExternalServiceId = componentDescriptorValue;
-                            }
-                        }
-                    }
+                if (descriptor != null && referencesService && proposedValue != null && !isReferencingParameter(proposedValue)) {
+                    final String instanceId = getServiceInstanceId(proposedValue, group);
 
-                    // If the component's property descriptor is not already set to an id of an existing external service,
-                    // then we need to take the Versioned Component ID and resolve this to the instance ID of the service
-                    if (existingExternalServiceId == null) {
-                        final String serviceVersionedComponentId = proposedProperties.get(propertyName);
-                        String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
-                        value = (instanceId == null) ? serviceVersionedComponentId : instanceId;
-
-                        // Find the same property descriptor in the component's CreatedExtension and replace it with the
-                        // instance ID of the service
+                    if (instanceId != null) {
+                        value = instanceId;
                         createdAndModifiedExtensions.stream().filter(ce -> ce.extension.equals(componentNode)).forEach(createdOrModifiedExtension -> {
                             createdOrModifiedExtension.propertyValues.replace(propertyName, value);
                         });
                     } else {
-                        value = existingExternalServiceId;
+                        final String componentDescriptorValue = componentNode.getEffectivePropertyValue(descriptor);
+                        final ProcessGroup parentGroup = topLevelGroup.getParent();
+                        final ControllerServiceNode externalService = componentDescriptorValue == null || parentGroup == null
+                                ? null
+                                : parentGroup.findControllerService(componentDescriptorValue, false, true);
+
+                        value = externalService == null ? proposedValue : componentDescriptorValue;
+                        if (externalService == null) {
+                            createdAndModifiedExtensions.stream().filter(ce -> ce.extension.equals(componentNode)).forEach(createdOrModifiedExtension -> {
+                                createdOrModifiedExtension.propertyValues.replace(propertyName, value);
+                            });
+                        }
                     }
                 } else {
-                    value = proposedProperties.get(propertyName);
+                    value = proposedValue;
                 }
 
                 // skip any sensitive properties that are not populated so we can retain whatever is currently set. We do this because sensitive properties are not stored in the registry
@@ -1728,6 +1722,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         return fullPropertyMap;
+    }
+
+    private static boolean isReferencingParameter(String proposedValue) {
+        return !agnosticParameterParser.parseTokens(proposedValue).toReferenceList().isEmpty();
     }
 
     private Map<String, String> getDecryptedProperties(final Map<String, String> properties) {

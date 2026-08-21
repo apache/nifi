@@ -42,8 +42,8 @@ public class NioAsyncLoadBalanceClientRegistry implements AsyncLoadBalanceClient
     private final NioAsyncLoadBalanceClientFactory clientFactory;
     private final int clientsPerNode;
 
-    private Map<NodeIdentifier, Set<AsyncLoadBalanceClient>> clientMap = new HashMap<>();
-    private Set<AsyncLoadBalanceClient> allClients = new CopyOnWriteArraySet<>();
+    private final Map<NodeIdentifier, Set<AsyncLoadBalanceClient>> clientMap = new HashMap<>();
+    private final Set<AsyncLoadBalanceClient> allClients = new CopyOnWriteArraySet<>();
     private boolean running = false;
 
     public NioAsyncLoadBalanceClientRegistry(final NioAsyncLoadBalanceClientFactory clientFactory, final int clientsPerNode) {

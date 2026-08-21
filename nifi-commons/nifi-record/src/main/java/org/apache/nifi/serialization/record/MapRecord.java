@@ -805,7 +805,7 @@ public class MapRecord implements Record {
             final List<DataType> possibleTypes = choiceDataType.getPossibleSubTypes();
 
             final DataType chosenDataType = DataTypeUtils.chooseDataType(value, choiceDataType);
-            if (chosenDataType.getFieldType() != RecordFieldType.RECORD || !(value instanceof final Record childRecord)) {
+            if (chosenDataType == null || chosenDataType.getFieldType() != RecordFieldType.RECORD || !(value instanceof final Record childRecord)) {
                 return specField;
             }
 

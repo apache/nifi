@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 
 public class DisabledServiceValidationResult extends ValidationResult {
     private static final Pattern MESSAGE_PATTERN = Pattern.compile("Controller Service with ID (.+) is disabled");
-    private String serviceId;
+    private final String serviceId;
 
     public DisabledServiceValidationResult(final String subject, final String serviceId) {
         this(subject, serviceId, "Controller Service with ID " + serviceId + " is disabled");

@@ -32,6 +32,7 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 public interface ConnectorTestRunner extends Closeable {
 
@@ -143,6 +144,19 @@ public interface ConnectorTestRunner extends Closeable {
      * Stops the Connector, halting all data processing in its managed flow.
      */
     void stopConnector();
+
+    /**
+     * Stops the Connector, waiting up to the given timeout for it to reach a stopped state. Implementations
+     * should actively poll the Connector's state until it is stopped or the timeout elapses, which is more
+     * tolerant of a flow that takes a while to quiesce (for example a failed table still draining) than the
+     * default stop budget.
+     *
+     * @param timeout the maximum duration to wait for the Connector to stop
+     * @throws TimeoutException if the timeout elapses before the Connector stops
+     */
+    default void stopConnector(final Duration timeout) throws TimeoutException {
+        stopConnector();
+    }
 
     /**
      * Blocks until the Connector has received at least one FlowFile, or until the specified timeout elapses.

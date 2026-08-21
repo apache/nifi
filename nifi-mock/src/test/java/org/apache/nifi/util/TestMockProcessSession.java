@@ -40,6 +40,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
@@ -599,6 +600,69 @@ public class TestMockProcessSession {
 
             sessionOfStatefulProcessor.commitAsync();
             assertEquals(expectedState, sessionOfStatefulProcessor.getState(Scope.CLUSTER).toMap());
+        }
+    }
+
+    @Nested
+    class RegardingCommitAsync {
+
+        @Test
+        void invokesOnSuccess() {
+            final AtomicBoolean successInvoked = new AtomicBoolean();
+
+            session.commitAsync(() -> successInvoked.set(true), failure -> fail("onFailure should not be invoked"));
+
+            assertTrue(successInvoked.get());
+            session.assertCommitted();
+        }
+
+        @Test
+        void allowsNullCallbacks() {
+            assertDoesNotThrow(() -> session.commitAsync(null, null));
+
+            session.assertCommitted();
+        }
+
+        @Test
+        void invokesOnFailure() {
+            final MockProcessSession failingSession = MockProcessSession.builder(sharedState, processor)
+                    .stateManager(stateManager)
+                    .failCommit()
+                    .build();
+            final AtomicBoolean failureInvoked = new AtomicBoolean();
+
+            final FlowFileHandlingException thrown = assertThrows(FlowFileHandlingException.class,
+                    () -> failingSession.commitAsync(
+                            () -> fail("onSuccess should not be invoked"),
+                            failure -> failureInvoked.set(true)));
+
+            assertTrue(failureInvoked.get());
+            assertEquals("Cannot commit session because the session was requested to fail by a test", thrown.getMessage());
+            failingSession.assertNotCommitted();
+        }
+
+        @Test
+        void throwsWithNullOnFailure() {
+            final MockProcessSession failingSession = MockProcessSession.builder(sharedState, processor)
+                    .stateManager(stateManager)
+                    .failCommit()
+                    .build();
+
+            assertThrows(FlowFileHandlingException.class, () -> failingSession.commitAsync(() -> { }, null));
+
+            failingSession.assertNotCommitted();
+        }
+
+        @Test
+        void throwsWithSingleCallback() {
+            final MockProcessSession failingSession = MockProcessSession.builder(sharedState, processor)
+                    .stateManager(stateManager)
+                    .failCommit()
+                    .build();
+
+            assertThrows(FlowFileHandlingException.class, () -> failingSession.commitAsync(() -> { }));
+
+            failingSession.assertNotCommitted();
         }
     }
 

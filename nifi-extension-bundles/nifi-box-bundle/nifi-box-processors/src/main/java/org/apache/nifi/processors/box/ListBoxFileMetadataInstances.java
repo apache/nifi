@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.lang.String.join;
 import static java.lang.String.valueOf;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE_DESC;
@@ -170,11 +171,11 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
                 }
 
                 final Map<String, String> recordAttributes = new HashMap<>();
-                recordAttributes.put("record.count", String.valueOf(instanceList.size()));
+                recordAttributes.put("record.count", valueOf(instanceList.size()));
                 recordAttributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
                 recordAttributes.put("box.id", fileId);
-                recordAttributes.put("box.metadata.instances.names", String.join(",", templateNames));
-                recordAttributes.put("box.metadata.instances.count", String.valueOf(instanceList.size()));
+                recordAttributes.put("box.metadata.instances.names", join(",", templateNames));
+                recordAttributes.put("box.metadata.instances.count", valueOf(instanceList.size()));
                 flowFile = session.putAllAttributes(flowFile, recordAttributes);
 
                 session.getProvenanceReporter().receive(flowFile, BoxFileUtils.BOX_URL + fileId + "/metadata");

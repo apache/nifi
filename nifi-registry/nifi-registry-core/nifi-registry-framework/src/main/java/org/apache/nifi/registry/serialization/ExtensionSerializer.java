@@ -30,7 +30,7 @@ import java.util.Map;
  * Current data model version is 1.
  * Data Model Version Histories:
  * <ul>
- *     <li>version 1: Serialized by {@link org.apache.nifi.registry.serialization.jackson.JacksonExtensionSerializer}</li>
+ *     <li>version 1: Serialized by {@link JacksonExtensionSerializer}</li>
  * </ul>
  * </p>
  */

@@ -29,9 +29,9 @@ import java.util.stream.Collectors;
  */
 public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer {
 
-    private Set<Group> groups = new HashSet<>();
-    private Set<User> users = new HashSet<>();
-    private Set<AccessPolicy> policies = new HashSet<>();
+    private final Set<Group> groups = new HashSet<>();
+    private final Set<User> users = new HashSet<>();
+    private final Set<AccessPolicy> policies = new HashSet<>();
 
     public MockPolicyBasedAuthorizer() {
 

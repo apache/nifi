@@ -49,7 +49,7 @@ public enum FieldType {
     }
 
     public static FieldType findValue(final String value) {
-        return Arrays.stream(FieldType.values())
+        return Arrays.stream(values())
                 .filter((type -> type.getType().equalsIgnoreCase(value)))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(String.format("ProtoType [%s] not found", value)));

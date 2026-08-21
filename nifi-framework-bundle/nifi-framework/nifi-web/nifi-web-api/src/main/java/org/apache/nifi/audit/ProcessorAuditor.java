@@ -93,7 +93,7 @@ public class ProcessorAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint join point
      * @return node
-     * @throws java.lang.Throwable ex
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessorDAO+) && "
             + "execution(org.apache.nifi.controller.ProcessorNode createProcessor(java.lang.String, org.apache.nifi.web.api.dto.ProcessorDTO))")

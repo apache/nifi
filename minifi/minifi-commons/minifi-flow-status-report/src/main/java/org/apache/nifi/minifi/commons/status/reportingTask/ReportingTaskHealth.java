@@ -19,9 +19,10 @@ package org.apache.nifi.minifi.commons.status.reportingTask;
 
 import org.apache.nifi.minifi.commons.status.common.ValidationError;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class ReportingTaskHealth implements java.io.Serializable {
+public class ReportingTaskHealth implements Serializable {
     private String scheduledState;
     private boolean hasBulletins;
     private int activeThreads;

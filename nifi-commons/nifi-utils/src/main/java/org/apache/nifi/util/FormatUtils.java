@@ -44,6 +44,9 @@ public class FormatUtils {
     // 'public static final' members defined for backward compatibility, since they were moved to TimeFormat.
     public static final String TIME_DURATION_REGEX = DurationFormat.TIME_DURATION_REGEX;
     public static final Pattern TIME_DURATION_PATTERN = DurationFormat.TIME_DURATION_PATTERN;
+
+    private static final int NANOS_PER_MILLI = 1_000_000;
+
     /**
      * Formats the specified count by adding commas.
      *
@@ -394,8 +397,9 @@ public class FormatUtils {
     }
 
     /**
-     * Format a Duration using words (days, hours, minutes, seconds, ns) where all lower units are
-     *   included once a non-zero unit is found. Unit plurality is preserved.
+     * Format a Duration using indicators (d, h, m, s, ms, ns) where lower units down to seconds are
+     *   included once a non-zero unit is found.
+     * Sub-seconds are included if non-zero.
      * Maximum resolution is in terms of days.
      *
      * @param source duration to convert to words
@@ -406,7 +410,8 @@ public class FormatUtils {
         final long hours = source.toHoursPart();
         final long minutes = source.toMinutesPart();
         final int seconds = source.toSecondsPart();
-        final int nanos = source.toNanosPart();
+        final int millis = source.toMillisPart();
+        final int nanosLeft = source.toNanosPart() % NANOS_PER_MILLI;
 
         final List<String> parts = new ArrayList<>();
 
@@ -422,8 +427,12 @@ public class FormatUtils {
         if (seconds > 0 || !parts.isEmpty()) {
             parts.add(seconds + "s");
         }
-        if (nanos > 0 || !parts.isEmpty()) {
-            parts.add(nanos + "ns");
+        // ns includes ms, but omit ns if zero
+        if (millis > 0 || nanosLeft > 0) {
+            parts.add(millis + "ms");
+        }
+        if (nanosLeft > 0) {
+            parts.add(nanosLeft + "ns");
         }
 
         return String.join(" ", parts);

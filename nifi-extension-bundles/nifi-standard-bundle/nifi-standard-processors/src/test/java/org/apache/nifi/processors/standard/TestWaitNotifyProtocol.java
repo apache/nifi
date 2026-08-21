@@ -30,10 +30,12 @@ import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -424,8 +426,9 @@ public class TestWaitNotifyProtocol {
 
     }
 
-    @Test
-    public void testCompleteRemovesSignalFromCache() throws Exception {
+    private void testCompleteRemovesSignalFromCache(final AtomicDistributedMapCacheClient<Long> cache,
+                                                    final Map<String, ? extends AtomicCacheEntry<String, String, ?>> cacheEntries,
+                                                    final Answer<?> successfulReplace) throws Exception {
         doAnswer(successfulReplace).when(cache).replace(any(), any(), any());
         doAnswer(invocation -> {
             cacheEntries.remove(invocation.getArguments()[0]);
@@ -446,7 +449,23 @@ public class TestWaitNotifyProtocol {
     }
 
     @Test
-    public void testCompleteThrowsOnConcurrentModification() throws Exception {
+    public void testCompleteRemovesSignalFromCache() throws Exception {
+        testCompleteRemovesSignalFromCache(cache, cacheEntries, successfulReplace);
+    }
+
+    @Test
+    public void testCompleteRemovesSignalFromCacheUsingByteArrayRevision() throws Exception {
+        final ByteArrayRevisionCache byteArrayRevisionCache = createByteArrayRevisionCache();
+
+        testCompleteRemovesSignalFromCache(
+                byteArrayRevisionCache.cache(),
+                byteArrayRevisionCache.cacheEntries(),
+                byteArrayRevisionCache.successfulReplace());
+    }
+
+    private void testCompleteThrowsOnConcurrentModification(final AtomicDistributedMapCacheClient<Long> cache,
+                                                            final Map<String, ? extends AtomicCacheEntry<String, String, ?>> cacheEntries,
+                                                            final Answer<?> successfulReplace) throws Exception {
         doAnswer(successfulReplace).when(cache).replace(any(), any(), any());
 
         final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
@@ -465,6 +484,21 @@ public class TestWaitNotifyProtocol {
 
         // The entry must still be present — complete() must NOT have removed it.
         assertTrue(cacheEntries.containsKey(signalId));
+    }
+
+    @Test
+    public void testCompleteThrowsOnConcurrentModification() throws Exception {
+        testCompleteThrowsOnConcurrentModification(cache, cacheEntries, successfulReplace);
+    }
+
+    @Test
+    public void testCompleteThrowsOnConcurrentModificationUsingByteArrayRevision() throws Exception {
+        final ByteArrayRevisionCache byteArrayRevisionCache = createByteArrayRevisionCache();
+
+        testCompleteThrowsOnConcurrentModification(
+                byteArrayRevisionCache.cache(),
+                byteArrayRevisionCache.cacheEntries(),
+                byteArrayRevisionCache.successfulReplace());
     }
 
     @Test
@@ -488,4 +522,34 @@ public class TestWaitNotifyProtocol {
         assertEquals(mapper.readTree(expected), mapper.readTree(value));
     }
 
+    private ByteArrayRevisionCache createByteArrayRevisionCache() throws Exception {
+        final Map<String, AtomicCacheEntry<String, String, byte[]>> cacheEntries = new HashMap<>();
+
+        final Answer<?> successfulReplace = invocation -> {
+            final AtomicCacheEntry<String, String, byte[]> entry = invocation.getArgument(0);
+            // generate a unique, random byte sequence for the revision
+            cacheEntries.put(entry.getKey(), new AtomicCacheEntry<>(entry.getKey(), entry.getValue(), UUID.randomUUID().toString().getBytes()));
+            return true;
+        };
+
+        final AtomicDistributedMapCacheClient<Long> cache = mock(AtomicDistributedMapCacheClient.class);
+
+        doAnswer(invocation -> {
+            final AtomicCacheEntry<String, String, byte[]> entry = cacheEntries.get(invocation.getArguments()[0]);
+            if (entry == null) {
+                return null;
+            } else {
+                // copy the revision to avoid simple reference-based equality
+                return new AtomicCacheEntry<>(entry.getKey(), entry.getValue(), entry.getRevision().map(bytes -> Arrays.copyOf(bytes, bytes.length)).orElse(null));
+            }
+        }).when(cache).fetch(any(), any(), any());
+
+        return new ByteArrayRevisionCache(cache, cacheEntries, successfulReplace);
+    }
+
+    private record ByteArrayRevisionCache(
+            AtomicDistributedMapCacheClient<Long> cache,
+            Map<String, AtomicCacheEntry<String, String, byte[]>> cacheEntries,
+            Answer<?> successfulReplace) {
+    }
 }

@@ -39,7 +39,7 @@ import java.util.List;
  *
  * <p>
  * <tt>NarClassLoader</tt> follows the delegation model described in
- * {@link ClassLoader#findClass(java.lang.String) ClassLoader.findClass(...)};
+ * {@link ClassLoader#findClass(String) ClassLoader.findClass(...)};
  * classes are first loaded from the parent <tt>ClassLoader</tt>, and only if
  * they cannot be found there does the <tt>NarClassLoader</tt> provide a
  * definition. Specifically, this means that resources are loaded from NiFi's

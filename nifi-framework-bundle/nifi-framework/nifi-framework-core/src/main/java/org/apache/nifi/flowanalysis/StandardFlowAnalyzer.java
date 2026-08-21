@@ -48,10 +48,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * {@link FlowAnalyzer} that uses {@link org.apache.nifi.flowanalysis.FlowAnalysisRule FlowAnalysisRules}.
+ * {@link FlowAnalyzer} that uses {@link FlowAnalysisRule FlowAnalysisRules}.
  */
 public class StandardFlowAnalyzer implements FlowAnalyzer {
-    private Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private final RuleViolationsManager ruleViolationsManager;
 

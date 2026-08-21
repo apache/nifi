@@ -257,16 +257,16 @@ public class TestGenerateRecord {
             assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), guidField.get().getDataType());
 
             // Check object type, class etc.
-            final org.apache.nifi.serialization.record.Record record = recordReader.nextRecord();
+            final Record record = recordReader.nextRecord();
             assertNotNull(record);
             final Object systemObject = record.getValue("System");
             assertNotNull(systemObject);
             assertInstanceOf(Record.class, systemObject);
-            final org.apache.nifi.serialization.record.Record systemRecord = (org.apache.nifi.serialization.record.Record) systemObject;
+            final Record systemRecord = (Record) systemObject;
             final Object providerObject = systemRecord.getValue("Provider");
             assertNotNull(providerObject);
             assertInstanceOf(Record.class, providerObject);
-            final org.apache.nifi.serialization.record.Record providerRecord = (org.apache.nifi.serialization.record.Record) providerObject;
+            final Record providerRecord = (Record) providerObject;
             final Object guidObject = providerRecord.getValue("Guid");
             assertNotNull(guidObject);
             assertInstanceOf(Object[].class, guidObject);

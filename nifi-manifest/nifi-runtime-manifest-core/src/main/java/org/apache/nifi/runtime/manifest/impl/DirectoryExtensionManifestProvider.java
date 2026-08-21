@@ -30,6 +30,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,8 +63,16 @@ public class DirectoryExtensionManifestProvider implements ExtensionManifestProv
 
         LOGGER.info("Loading extension manifests from: {}", baseDir.getAbsolutePath());
 
+        final File[] manifestDirs = baseDir.listFiles();
+        if (manifestDirs == null) {
+            throw new IllegalStateException("Unable to list files in manifest directory [%s]".formatted(baseDir.getAbsolutePath()));
+        }
+
+        // Sort by name so the generated runtime manifest is deterministic regardless of filesystem listing order
+        Arrays.sort(manifestDirs, Comparator.comparing(File::getName));
+
         final List<ExtensionManifestContainer> extensionManifests = new ArrayList<>();
-        for (final File manifestDir : baseDir.listFiles()) {
+        for (final File manifestDir : manifestDirs) {
             if (!manifestDir.isDirectory()) {
                 LOGGER.debug("Skipping [{}], not a directory...", manifestDir.getAbsolutePath());
                 continue;
@@ -102,7 +112,15 @@ public class DirectoryExtensionManifestProvider implements ExtensionManifestProv
             return additionalDetailsMap;
         }
 
-        for (final File additionalDetailsTypeDir : additionalDetailsDir.listFiles()) {
+        final File[] additionalDetailsTypeDirs = additionalDetailsDir.listFiles();
+        if (additionalDetailsTypeDirs == null) {
+            throw new IllegalStateException("Unable to list files in additional-details directory [%s]".formatted(additionalDetailsDir.getAbsolutePath()));
+        }
+
+        // Sort by name so the additional details are added in a deterministic order regardless of filesystem listing order
+        Arrays.sort(additionalDetailsTypeDirs, Comparator.comparing(File::getName));
+
+        for (final File additionalDetailsTypeDir : additionalDetailsTypeDirs) {
             if (!additionalDetailsTypeDir.isDirectory()) {
                 LOGGER.debug("Skipping [{}], not a directory...", additionalDetailsTypeDir.getAbsolutePath());
                 continue;

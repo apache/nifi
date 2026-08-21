@@ -29,13 +29,13 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestExtractEmailAttachments {
-    String from = "Alice <alice@nifi.apache.org>";
-    String to = "bob@nifi.apache.org";
-    String subject = "Just a test email";
-    String message = "Test test test chocolate";
-    String hostName = "bermudatriangle";
+    final String from = "Alice <alice@nifi.apache.org>";
+    final String to = "bob@nifi.apache.org";
+    final String subject = "Just a test email";
+    final String message = "Test test test chocolate";
+    final String hostName = "bermudatriangle";
 
-    GenerateAttachment attachmentGenerator = new GenerateAttachment(from, to, subject, message, hostName);
+    final GenerateAttachment attachmentGenerator = new GenerateAttachment(from, to, subject, message, hostName);
 
     @Test
     public void testValidEmailWithAttachments() {

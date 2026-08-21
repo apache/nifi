@@ -432,7 +432,7 @@ public class StandardFunnel implements Funnel {
     /**
      * Updates the amount of time that this processor should avoid being
      * scheduled when the processor calls
-     * {@link org.apache.nifi.processor.ProcessContext#yield() ProcessContext.yield()}
+     * {@link ProcessContext#yield() ProcessContext.yield()}
      *
      * @param yieldPeriod new period
      */

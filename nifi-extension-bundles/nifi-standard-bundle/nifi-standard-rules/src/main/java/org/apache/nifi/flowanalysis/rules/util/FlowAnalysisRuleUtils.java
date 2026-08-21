@@ -54,7 +54,7 @@ public class FlowAnalysisRuleUtils {
      */
     public static Collection<GroupAnalysisResult> convertToGroupAnalysisResults(VersionedProcessGroup pg, Collection<ConnectionViolation> violations) {
         if (!violations.isEmpty()) {
-            final Map<String, VersionedComponent> components = FlowAnalysisRuleUtils.gatherComponents(pg);
+            final Map<String, VersionedComponent> components = gatherComponents(pg);
             final Collection<GroupAnalysisResult> results = new HashSet<>();
             violations.forEach(violation -> results.add(violation.convertToGroupAnalysisResult(components)));
             return results;

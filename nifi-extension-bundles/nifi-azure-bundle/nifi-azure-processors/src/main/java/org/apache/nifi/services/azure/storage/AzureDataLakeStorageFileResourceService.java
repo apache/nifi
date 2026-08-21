@@ -44,12 +44,6 @@ import java.util.Map;
 
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateDirectoryProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileSystemProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "file", "resource", "datalake"})
 @SeeAlso({FetchAzureDataLakeStorage.class})
@@ -78,10 +72,10 @@ public class AzureDataLakeStorageFileResourceService extends AbstractControllerS
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            ADLS_CREDENTIALS_SERVICE,
+            AzureStorageUtils.ADLS_CREDENTIALS_SERVICE,
             FILESYSTEM,
             DIRECTORY,
-            FILE
+            AzureStorageUtils.FILE
     );
 
     private volatile DataLakeServiceClientFactory clientFactory;
@@ -94,7 +88,7 @@ public class AzureDataLakeStorageFileResourceService extends AbstractControllerS
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        this.clientFactory = new DataLakeServiceClientFactory(getLogger(), getProxyOptions(context));
+        this.clientFactory = new DataLakeServiceClientFactory(getLogger(), AzureStorageUtils.getProxyOptions(context));
         this.context = context;
     }
 
@@ -122,7 +116,7 @@ public class AzureDataLakeStorageFileResourceService extends AbstractControllerS
     }
 
     protected DataLakeServiceClient getStorageClient(Map<String, String> attributes) {
-        final ADLSCredentialsService credentialsService = context.getProperty(ADLS_CREDENTIALS_SERVICE)
+        final ADLSCredentialsService credentialsService = context.getProperty(AzureStorageUtils.ADLS_CREDENTIALS_SERVICE)
                 .asControllerService(ADLSCredentialsService.class);
         return clientFactory.getStorageClient(credentialsService.getCredentialsDetails(attributes));
     }
@@ -136,16 +130,16 @@ public class AzureDataLakeStorageFileResourceService extends AbstractControllerS
      * @throws IOException exception caused by missing parameters or blob not found
      */
     private FileResource fetchFile(final DataLakeServiceClient storageClient, final Map<String, String> attributes) throws IOException {
-        final String fileSystem = evaluateFileSystemProperty(FILESYSTEM, context, attributes);
-        final String directory = evaluateDirectoryProperty(DIRECTORY, context, attributes);
-        final String file = evaluateFileProperty(context, attributes);
+        final String fileSystem = AzureStorageUtils.evaluateFileSystemProperty(FILESYSTEM, context, attributes);
+        final String directory = AzureStorageUtils.evaluateDirectoryProperty(DIRECTORY, context, attributes);
+        final String file = AzureStorageUtils.evaluateFileProperty(context, attributes);
 
         final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
         final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
         final DataLakeFileClient fileClient = directoryClient.getFileClient(file);
 
         if (fileClient.getProperties().isDirectory()) {
-            throw new ProcessException(FILE.getDisplayName() + " (" + file + ") points to a directory. Full path: " + fileClient.getFilePath());
+            throw new ProcessException(AzureStorageUtils.FILE.getDisplayName() + " (" + file + ") points to a directory. Full path: " + fileClient.getFilePath());
         }
 
         if (!fileClient.exists()) {

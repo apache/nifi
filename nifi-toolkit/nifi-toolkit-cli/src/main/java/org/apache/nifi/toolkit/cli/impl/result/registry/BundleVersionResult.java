@@ -25,7 +25,7 @@ import java.io.PrintStream;
 
 public class BundleVersionResult extends AbstractWritableResult<BundleVersion> {
 
-    private BundleVersion extensionBundleVersion;
+    private final BundleVersion extensionBundleVersion;
 
     public BundleVersionResult(final ResultType resultType, final BundleVersion extensionBundleVersion) {
         super(resultType);

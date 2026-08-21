@@ -1006,7 +1006,7 @@ public class PutS3Object extends AbstractS3Processor {
 
         private String uploadId;
         private Long filePosition;
-        private List<CompletedPart> completedParts;
+        private final List<CompletedPart> completedParts;
         private Long partSize;
         private StorageClass storageClass;
         private Long contentLength;

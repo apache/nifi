@@ -70,7 +70,6 @@ import org.apache.nifi.processor.util.bin.InsertionLocation;
 import org.apache.nifi.processors.standard.merge.AttributeStrategy;
 import org.apache.nifi.processors.standard.merge.AttributeStrategyUtil;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FlowFilePackager;
 import org.apache.nifi.util.FlowFilePackagerV1;
 import org.apache.nifi.util.FlowFilePackagerV2;
@@ -469,6 +468,7 @@ public class MergeContent extends BinFiles {
     protected BinProcessingResult processBin(final Bin bin, final ProcessContext context) throws ProcessException {
         final BinProcessingResult binProcessingResult = new BinProcessingResult(true);
 
+        @SuppressWarnings("removal")
         MergeBin merger = switch (context.getProperty(MERGE_FORMAT).asAllowableValue(MergeFormat.class)) {
             case TAR -> new TarMerge();
             case ZIP -> new ZipMerge(context.getProperty(COMPRESSION_LEVEL).asInteger());
@@ -807,7 +807,7 @@ public class MergeContent extends BinFiles {
                     final Iterator<FlowFile> itr = contents.iterator();
                     while (itr.hasNext()) {
                         final FlowFile flowFile = itr.next();
-                        bin.getSession().read(flowFile, in -> StreamUtils.copy(in, out));
+                        bin.getSession().read(flowFile, in -> in.transferTo(out));
 
                         if (itr.hasNext()) {
                             if (demarcator != null) {

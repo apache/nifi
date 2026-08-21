@@ -49,7 +49,6 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordSet;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FlowFileUnpackager;
 import org.apache.nifi.util.FlowFileUnpackagerV1;
 import org.apache.nifi.util.FlowFileUnpackagerV2;
@@ -297,7 +296,7 @@ public class ListenHTTPServlet extends HttpServlet {
                     OutputStream flowFileOutputStream = session.write(flowFile);
                     InputStream partInputStream = part.getInputStream()
             ) {
-                StreamUtils.copy(partInputStream, flowFileOutputStream);
+                partInputStream.transferTo(flowFileOutputStream);
             }
             flowFile = saveRequestDetailsAsAttributes(request, session, foundSubject, foundIssuer, flowFile);
             flowFile = savePartDetailsAsAttributes(session, part, flowFile, i, requestParts.size());
@@ -450,6 +449,7 @@ public class ListenHTTPServlet extends HttpServlet {
         }
     }
 
+    @SuppressWarnings("removal")
     private FlowFileUnpackager getFlowFileUnpackager(String contentType) {
         final FlowFileUnpackager unpackager;
         if (StandardFlowFileMediaType.VERSION_3.getMediaType().equals(contentType)) {

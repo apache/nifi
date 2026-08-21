@@ -34,8 +34,6 @@ import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
-
 public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -74,7 +72,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
     public DataLakeServiceClient getStorageClient(PropertyContext context, FlowFile flowFile) {
         final Map<String, String> attributes = flowFile != null ? flowFile.getAttributes() : Map.of();
 
-        final ADLSCredentialsService credentialsService = context.getProperty(ADLS_CREDENTIALS_SERVICE)
+        final ADLSCredentialsService credentialsService = context.getProperty(AzureStorageUtils.ADLS_CREDENTIALS_SERVICE)
                 .asControllerService(ADLSCredentialsService.class);
         final ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(attributes);
 

@@ -28,7 +28,7 @@ import java.util.List;
  */
 public class BaseBinlogTableEventInfo extends BaseBinlogEventInfo implements BinlogTableEventInfo {
 
-    private TableEventInfo delegate;
+    private final TableEventInfo delegate;
 
     public BaseBinlogTableEventInfo(TableInfo tableInfo, String eventType, Long timestamp, String binlogFilename, Long binlogPosition) {
         super(eventType, timestamp, binlogFilename, binlogPosition);

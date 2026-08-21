@@ -148,7 +148,7 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable,
     /**
      * @return Indicates whether or not communications with this RemoteProcessGroup will
      * be secure (2-way authentication)
-     * @throws org.apache.nifi.controller.exception.CommunicationsException ce
+     * @throws CommunicationsException ce
      */
     boolean isSecure() throws CommunicationsException;
 

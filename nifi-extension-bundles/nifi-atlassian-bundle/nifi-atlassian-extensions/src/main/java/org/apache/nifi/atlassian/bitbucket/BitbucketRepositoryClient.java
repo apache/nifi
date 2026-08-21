@@ -26,7 +26,6 @@ import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.api.StandardHttpContentType;
@@ -119,7 +118,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private final String workspace;
     private final String repoName;
     private final String repoPath;
-    private WebClientServiceProvider webClient;
+    private final WebClientServiceProvider webClient;
     private BitbucketToken<String> authToken;
 
     private final boolean canRead;
@@ -1255,7 +1254,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
 
     private byte[] toByteArray(final InputStream inputStream) throws FlowRegistryException {
         try (inputStream; ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            StreamUtils.copy(inputStream, outputStream);
+            inputStream.transferTo(outputStream);
             return outputStream.toByteArray();
         } catch (IOException e) {
             throw new FlowRegistryException("Failed to prepare multipart request", e);
@@ -1267,7 +1266,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     }
 
     private class BasicAuthToken implements BitbucketToken<String> {
-        private String token;
+        private final String token;
 
         public BasicAuthToken(final String username, final String appPassword) {
             final String basicCreds = username + ":" + appPassword;
@@ -1284,7 +1283,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     }
 
     private class AccessToken implements BitbucketToken<String> {
-        private String token;
+        private final String token;
 
         public AccessToken(final String token) {
             this.token = token;
@@ -1297,7 +1296,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     }
 
     private class OAuthToken implements BitbucketToken<String> {
-        private OAuth2AccessTokenProvider oauthService;
+        private final OAuth2AccessTokenProvider oauthService;
 
         public OAuthToken(final OAuth2AccessTokenProvider oauthService) {
             this.oauthService = oauthService;

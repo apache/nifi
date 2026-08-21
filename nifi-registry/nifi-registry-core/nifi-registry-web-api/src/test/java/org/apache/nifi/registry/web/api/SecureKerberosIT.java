@@ -136,7 +136,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
         assertEquals("Negotiate", tokenResponse1.getHeaders().get("www-authenticate").get(0));
 
         // When: the /access/token/kerberos endpoint is accessed again with an invalid ticket
-        String invalidTicket = new String(java.util.Base64.getEncoder().encode(invalidKerberosTicket.getBytes(StandardCharsets.UTF_8)));
+        String invalidTicket = new String(Base64.getEncoder().encode(invalidKerberosTicket.getBytes(StandardCharsets.UTF_8)));
         final Response tokenResponse2 = client
                 .target(createURL("/access/token/kerberos"))
                 .request()

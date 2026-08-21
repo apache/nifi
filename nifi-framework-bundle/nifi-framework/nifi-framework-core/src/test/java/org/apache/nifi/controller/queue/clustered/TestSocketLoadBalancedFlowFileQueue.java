@@ -48,7 +48,6 @@ import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
@@ -73,11 +72,19 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestSocketLoadBalancedFlowFileQueue {
+    /**
+     * Prefix of the name that {@code StandardRebalancingPartition} assigns to the thread that redistributes
+     * FlowFiles held by the rebalancing partition. The remainder of the name is the queue identifier.
+     */
+    private static final String REBALANCE_THREAD_NAME_PREFIX = "Rebalance queued data for Connection ";
+    private static final long REBALANCE_TERMINATION_TIMEOUT = 10_000L;
+    private static final long REBALANCE_TERMINATION_POLL_INTERVAL = 10L;
 
     private FlowFileRepository flowFileRepo;
     private ContentRepository contentRepo;
@@ -91,8 +98,8 @@ public class TestSocketLoadBalancedFlowFileQueue {
     private List<NodeIdentifier> nodeIds;
     private int nodePort = 4096;
 
-    private List<RepositoryRecord> repoRecords = new ArrayList<>();
-    private List<ProvenanceEventRecord> provRecords = new ArrayList<>();
+    private final List<RepositoryRecord> repoRecords = new ArrayList<>();
+    private final List<ProvenanceEventRecord> provRecords = new ArrayList<>();
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -118,14 +125,14 @@ public class TestSocketLoadBalancedFlowFileQueue {
         nodeIds.add(createNodeIdentifier("11111111-1111-1111-1111-111111111111"));
         nodeIds.add(createNodeIdentifier("22222222-2222-2222-2222-222222222222"));
 
-        Mockito.doAnswer((Answer<Set<NodeIdentifier>>) invocation -> new HashSet<>(nodeIds)).when(clusterCoordinator).getNodeIdentifiers();
+        doAnswer((Answer<Set<NodeIdentifier>>) invocation -> new HashSet<>(nodeIds)).when(clusterCoordinator).getNodeIdentifiers();
 
         when(clusterCoordinator.getLocalNodeIdentifier()).thenReturn(localNodeIdentifier);
 
         doAnswer(invocation -> {
             clusterTopologyEventListener = invocation.getArgument(0);
             return null;
-        }).when(clusterCoordinator).registerEventListener(Mockito.any(ClusterTopologyEventListener.class));
+        }).when(clusterCoordinator).registerEventListener(any(ClusterTopologyEventListener.class));
 
         when(provRepo.eventBuilder()).thenReturn(new StandardProvenanceEventRecord.Builder());
         doAnswer((Answer<Object>) invocation -> {
@@ -134,13 +141,13 @@ public class TestSocketLoadBalancedFlowFileQueue {
                 provRecords.add(record);
             }
             return null;
-        }).when(provRepo).registerEvents(Mockito.any(Iterable.class));
+        }).when(provRepo).registerEvents(any(Iterable.class));
 
         doAnswer((Answer<Object>) invocation -> {
             final Collection<RepositoryRecord> records = (Collection<RepositoryRecord>) invocation.getArguments()[0];
             repoRecords.addAll(records);
             return null;
-        }).when(flowFileRepo).updateRepository(Mockito.any(Collection.class));
+        }).when(flowFileRepo).updateRepository(any(Collection.class));
 
         final ProcessScheduler scheduler = mock(ProcessScheduler.class);
 
@@ -700,7 +707,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
         queue.put(secondLocal);
         queue.put(remote);
 
-        final org.apache.nifi.controller.queue.FlowFileQueueSnapshot snapshot = queue.getQueueSnapshot();
+        final FlowFileQueueSnapshot snapshot = queue.getQueueSnapshot();
 
         assertEquals(3, snapshot.queueSize().getObjectCount());
         assertEquals(70L, snapshot.queueSize().getByteCount());
@@ -726,7 +733,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
             queue.put(new MockFlowFileRecord(1L));
         }
 
-        final org.apache.nifi.controller.queue.FlowFileQueueSnapshot initialSnapshot = queue.getQueueSnapshot();
+        final FlowFileQueueSnapshot initialSnapshot = queue.getQueueSnapshot();
         assertEquals(5, initialSnapshot.queueSize().getObjectCount());
         assertEquals(5, initialSnapshot.activeFlowFiles().size());
         assertEquals(initialSnapshot.queueSize().getObjectCount(), initialSnapshot.activeFlowFiles().size(),
@@ -758,22 +765,32 @@ public class TestSocketLoadBalancedFlowFileQueue {
         putThread.join(5_000L);
         assertTrue(putReturned.get(), "Put did not complete after the snapshot lock was released");
 
-        final org.apache.nifi.controller.queue.FlowFileQueueSnapshot afterPutSnapshot = queue.getQueueSnapshot();
+        final FlowFileQueueSnapshot afterPutSnapshot = queue.getQueueSnapshot();
         assertEquals(6, afterPutSnapshot.queueSize().getObjectCount());
         assertEquals(6, afterPutSnapshot.activeFlowFiles().size());
     }
 
     @Test
-    public void testGetQueueSnapshotIncludesRebalancingPartition() {
+    @Timeout(30)
+    public void testGetQueueSnapshotIncludesRebalancingPartition() throws InterruptedException {
         // Route FlowFiles to the local partition, then move every partition's contents into the rebalancing
         // partition and prevent it from redistributing them. FlowFiles sitting in the rebalancing partition
         // (being redistributed across the cluster) must still be counted in the snapshot's total QueueSize.
         final int localPartitionIndex = determineLocalPartitionIndex();
         queue.setFlowFilePartitioner(new StaticFlowFilePartitioner(localPartitionIndex));
 
-        // Toggle load balancing so the rebalancing partition is stopped and will not drain FlowFiles moved into it.
+        // The rebalancing partition runs a background thread from the time the queue is created, so load balancing
+        // must be started and stopped to mark the rebalancing partition as stopped. The background thread observes
+        // the stopped state only after its in-flight poll returns, and it redistributes whatever that poll returns.
+        // FlowFiles are therefore only guaranteed to remain in the rebalancing partition once the thread terminates.
         queue.startLoadBalancing();
         queue.stopLoadBalancing();
+        final long terminationExpiration = System.currentTimeMillis() + REBALANCE_TERMINATION_TIMEOUT;
+        while (isRebalanceThreadRunning() && System.currentTimeMillis() < terminationExpiration) {
+            Thread.sleep(REBALANCE_TERMINATION_POLL_INTERVAL);
+        }
+
+        assertFalse(isRebalanceThreadRunning(), "Rebalancing Partition thread not terminated");
 
         final long bytesPerFlowFile = 5L;
         final int flowFileCount = 4;
@@ -793,6 +810,18 @@ public class TestSocketLoadBalancedFlowFileQueue {
         assertEquals(flowFileCount * bytesPerFlowFile, snapshot.queueSize().getByteCount());
         assertEquals(queue.size(), snapshot.queueSize());
         assertTrue(snapshot.activeFlowFiles().isEmpty());
+    }
+
+    private boolean isRebalanceThreadRunning() {
+        final String rebalanceThreadName = REBALANCE_THREAD_NAME_PREFIX + queue.getIdentifier();
+
+        for (final Thread thread : Thread.getAllStackTraces().keySet()) {
+            if (thread.isAlive() && rebalanceThreadName.equals(thread.getName())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void assertPartitionSizes(final int[] expectedSizes) {

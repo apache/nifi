@@ -29,7 +29,6 @@ import org.apache.avro.util.Utf8;
 import org.apache.commons.io.input.ReaderInputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +50,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -81,6 +81,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -433,7 +434,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
 
         final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
-        when(rs.getObject(Mockito.anyInt())).thenReturn(bigDecimal);
+        when(rs.getObject(anyInt())).thenReturn(bigDecimal);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -604,7 +605,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         when(clob.getCharacterStream()).thenReturn(reader);
         when(clob.length()).thenReturn((long) byteBuffer.length);
         doThrow(SQLFeatureNotSupportedException.class).when(clob).free();
-        when(rs.getClob(Mockito.anyInt())).thenReturn(clob);
+        when(rs.getClob(anyInt())).thenReturn(clob);
 
         final InputStream instream = JdbcCommonTestUtils.convertResultSetToAvroInputStream(rs);
 
@@ -631,14 +632,14 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
         final byte[] byteBuffer = "test blob".getBytes(StandardCharsets.UTF_8);
-        when(rs.getObject(Mockito.anyInt())).thenReturn(byteBuffer);
+        when(rs.getObject(anyInt())).thenReturn(byteBuffer);
 
         ByteArrayInputStream bais = new ByteArrayInputStream(byteBuffer);
         Blob blob = mock(Blob.class);
         when(blob.getBinaryStream()).thenReturn(bais);
         when(blob.length()).thenReturn((long) byteBuffer.length);
         doThrow(SQLFeatureNotSupportedException.class).when(blob).free();
-        when(rs.getBlob(Mockito.anyInt())).thenReturn(blob);
+        when(rs.getBlob(anyInt())).thenReturn(blob);
 
         final InputStream instream = JdbcCommonTestUtils.convertResultSetToAvroInputStream(rs);
 
@@ -666,7 +667,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
         final short s = 25;
-        when(rs.getObject(Mockito.anyInt())).thenReturn(s);
+        when(rs.getObject(anyInt())).thenReturn(s);
 
         final InputStream instream = JdbcCommonTestUtils.convertResultSetToAvroInputStream(rs);
 
@@ -694,7 +695,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
         final long ret = 0L;
-        when(rs.getObject(Mockito.anyInt())).thenReturn(ret);
+        when(rs.getObject(anyInt())).thenReturn(ret);
 
         final InputStream instream = JdbcCommonTestUtils.convertResultSetToAvroInputStream(rs);
 
@@ -722,7 +723,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
         final long ret = 0L;
-        when(rs.getObject(Mockito.anyInt())).thenReturn(ret);
+        when(rs.getObject(anyInt())).thenReturn(ret);
 
         final InputStream instream = JdbcCommonTestUtils.convertResultSetToAvroInputStream(rs);
 
@@ -776,7 +777,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
     }
 
     private void testConvertToAvroStreamForDateTime(
-            JdbcCommon.AvroConversionOptions options, BiConsumer<GenericRecord, java.sql.Date> assertDate,
+            JdbcCommon.AvroConversionOptions options, BiConsumer<GenericRecord, Date> assertDate,
             BiConsumer<GenericRecord, Time> assertTime, BiConsumer<GenericRecord, Timestamp> assertTimeStamp)
             throws SQLException, IOException {
 
@@ -790,7 +791,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
 
         when(metadata.getColumnType(1)).thenReturn(Types.DATE);
         when(metadata.getColumnName(1)).thenReturn("date");
-        final java.sql.Date date = java.sql.Date.valueOf("2017-05-10");
+        final Date date = Date.valueOf("2017-05-10");
         when(rs.getObject(1)).thenReturn(date);
 
         when(metadata.getColumnType(2)).thenReturn(Types.TIME);
@@ -804,7 +805,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         when(rs.getObject(3)).thenReturn(timestamp);
 
         final AtomicInteger counter = new AtomicInteger(1);
-        Mockito.doAnswer((Answer<Boolean>) invocation -> counter.getAndDecrement() > 0).when(rs).next();
+        doAnswer((Answer<Boolean>) invocation -> counter.getAndDecrement() > 0).when(rs).next();
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 

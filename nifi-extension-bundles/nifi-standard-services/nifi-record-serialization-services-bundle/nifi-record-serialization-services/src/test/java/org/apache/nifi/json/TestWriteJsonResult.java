@@ -244,9 +244,9 @@ class TestWriteJsonResult {
     @Test
     void testTimestampWithNullFormat() throws IOException {
         final Map<String, Object> values = new HashMap<>();
-        values.put("timestamp", new java.sql.Timestamp(37293723L));
-        values.put("time", new java.sql.Time(37293723L));
-        final java.sql.Date date = java.sql.Date.valueOf("1970-01-01");
+        values.put("timestamp", new Timestamp(37293723L));
+        values.put("time", new Time(37293723L));
+        final Date date = Date.valueOf("1970-01-01");
         values.put("date", date);
 
         final List<RecordField> fields = new ArrayList<>();
@@ -269,6 +269,105 @@ class TestWriteJsonResult {
 
         final String output = baos.toString(StandardCharsets.UTF_8);
         assertEquals(expected, output);
+    }
+
+    @Test
+    void testTimestampRepresentations() throws IOException {
+        final RecordSchema schema = new SimpleRecordSchema(List.of(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType())));
+        final Timestamp timestamp = new Timestamp(1623926285001L);
+        final Record record = new MapRecord(schema, Map.of("timestamp", timestamp));
+
+        assertEquals("[{\"timestamp\":\"formatted-001\"}]",
+                writeTimestampRecord(record, "'formatted-'SSS", TimestampRepresentation.FORMATTED_STRING, false));
+        assertEquals("[{\"timestamp\":1623926285001}]", writeTimestampRecord(record, null, TimestampRepresentation.EPOCH_MILLISECONDS, false));
+        assertEquals("[{\"timestamp\":1623926285.001}]", writeTimestampRecord(record, null, TimestampRepresentation.EPOCH_SECONDS, false));
+    }
+
+    @Test
+    void testEpochSecondsValues() throws IOException {
+        final RecordSchema schema = new SimpleRecordSchema(List.of(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType())));
+        final long[] epochMilliseconds = {1623926285000L, 1623926285001L, 1623926285999L, 0L, -1L, 253402300799999L};
+        final String[] expectedValues = {"1623926285.000", "1623926285.001", "1623926285.999", "0.000", "-0.001", "253402300799.999"};
+
+        for (int i = 0; i < epochMilliseconds.length; i++) {
+            final Record record = new MapRecord(schema, Map.of("timestamp", new Timestamp(epochMilliseconds[i])));
+            assertEquals("[{\"timestamp\":" + expectedValues[i] + "}]", writeTimestampRecord(record, null, TimestampRepresentation.EPOCH_SECONDS, false));
+        }
+    }
+
+    @Test
+    void testEpochSecondsRawRecord() throws IOException {
+        final RecordSchema schema = new SimpleRecordSchema(List.of(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType())));
+        final Record record = new MapRecord(schema, Map.of("timestamp", new Timestamp(1623926285001L)));
+
+        assertEquals("[{\"timestamp\":1623926285.001}]", writeTimestampRecord(record, null, TimestampRepresentation.EPOCH_SECONDS, true));
+    }
+
+    @Test
+    void testEpochSecondsDoesNotChangeDateAndTime() throws IOException {
+        final Date date = Date.valueOf("1970-01-01");
+        final Time time = new Time(37293723L);
+        final RecordSchema schema = new SimpleRecordSchema(List.of(
+                new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()),
+                new RecordField("date", RecordFieldType.DATE.getDataType()),
+                new RecordField("time", RecordFieldType.TIME.getDataType())));
+        final Record record = new MapRecord(schema, Map.of("timestamp", new Timestamp(37293723L), "date", date, "time", time));
+
+        assertEquals(String.format("[{\"timestamp\":37293.723,\"date\":%d,\"time\":37293723}]", date.getTime()),
+                writeTimestampRecord(record, null, TimestampRepresentation.EPOCH_SECONDS, false));
+    }
+
+    @Test
+    void testEpochSecondsNestedArrayAndChoice() throws IOException {
+        final DataType timestampType = RecordFieldType.TIMESTAMP.getDataType();
+        final RecordSchema nestedSchema = new SimpleRecordSchema(List.of(new RecordField("timestamp", timestampType)));
+        final Record nestedRecord = new MapRecord(nestedSchema, Map.of("timestamp", new Timestamp(1623926285001L)));
+        final List<RecordField> fields = List.of(
+                new RecordField("nested", RecordFieldType.RECORD.getRecordDataType(nestedSchema)),
+                new RecordField("timestamps", RecordFieldType.ARRAY.getArrayDataType(timestampType)),
+                new RecordField("choice", RecordFieldType.CHOICE.getChoiceDataType(timestampType, RecordFieldType.STRING.getDataType())));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final Record record = new MapRecord(schema, Map.of(
+                "nested", nestedRecord,
+                "timestamps", new Timestamp[]{new Timestamp(0L), new Timestamp(-1L)},
+                "choice", new Timestamp(1623926285999L)));
+
+        assertEquals("[{\"nested\":{\"timestamp\":1623926285.001},\"timestamps\":[0.000,-0.001],\"choice\":1623926285.999}]",
+                writeTimestampRecord(record, null, TimestampRepresentation.EPOCH_SECONDS, false));
+    }
+
+    @Test
+    void testExplicitTimestampRepresentationDisablesSerializedFormReuse() throws IOException {
+        final RecordSchema schema = new SimpleRecordSchema(List.of(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType())));
+        final Record record = new MapRecord(schema, Map.of("timestamp", new Timestamp(1623926285001L)),
+                SerializedForm.of("{\"timestamp\":\"preserved\"}", "application/json"));
+
+        assertEquals("[{\"timestamp\":\"formatted-001\"}]", writeTimestampRecord(record, "'formatted-'SSS", TimestampRepresentation.FORMATTED_STRING, false));
+        assertEquals("[{\"timestamp\":1623926285001}]", writeTimestampRecord(record, null, TimestampRepresentation.EPOCH_MILLISECONDS, false));
+        assertEquals("[{\"timestamp\":1623926285.001}]", writeTimestampRecord(record, null, TimestampRepresentation.EPOCH_SECONDS, false));
+        assertEquals("[{\"timestamp\":1623926285.001}]", writeTimestampRecord(record, null, TimestampRepresentation.EPOCH_SECONDS, false, true));
+    }
+
+    private String writeTimestampRecord(final Record record, final String timestampFormat, final TimestampRepresentation timestampRepresentation,
+            final boolean rawRecord) throws IOException {
+        return writeTimestampRecord(record, timestampFormat, timestampRepresentation, rawRecord, false);
+    }
+
+    private String writeTimestampRecord(final Record record, final String timestampFormat, final TimestampRepresentation timestampRepresentation,
+            final boolean rawRecord, final boolean allowScientificNotation) throws IOException {
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), record.getSchema(), new SchemaNameAsAttribute(), baos, false,
+                NullSuppression.NEVER_SUPPRESS, OutputGrouping.OUTPUT_ARRAY, null, null, timestampFormat, "application/json", allowScientificNotation, true,
+                timestampRepresentation)) {
+            writer.beginRecordSet();
+            if (rawRecord) {
+                writer.writeRawRecord(record);
+            } else {
+                writer.writeRecord(record);
+            }
+            writer.finishRecordSet();
+        }
+        return baos.toString(StandardCharsets.UTF_8);
     }
 
     @Test
@@ -507,10 +606,10 @@ class TestWriteJsonResult {
     @Test
     void testOnelineOutput() throws IOException {
         final Map<String, Object> values1 = new HashMap<>();
-        values1.put("timestamp", new java.sql.Timestamp(37293723L));
-        values1.put("time", new java.sql.Time(37293723L));
+        values1.put("timestamp", new Timestamp(37293723L));
+        values1.put("time", new Time(37293723L));
 
-        final java.sql.Date date = java.sql.Date.valueOf("1970-01-01");
+        final Date date = Date.valueOf("1970-01-01");
         values1.put("date", date);
 
         final List<RecordField> fields1 = new ArrayList<>();
@@ -523,8 +622,8 @@ class TestWriteJsonResult {
         final Record record1 = new MapRecord(schema, values1);
 
         final Map<String, Object> values2 = new HashMap<>();
-        values2.put("timestamp", new java.sql.Timestamp(37293999L));
-        values2.put("time", new java.sql.Time(37293999L));
+        values2.put("timestamp", new Timestamp(37293999L));
+        values2.put("time", new Time(37293999L));
         values2.put("date", date);
 
         final Record record2 = new MapRecord(schema, values2);

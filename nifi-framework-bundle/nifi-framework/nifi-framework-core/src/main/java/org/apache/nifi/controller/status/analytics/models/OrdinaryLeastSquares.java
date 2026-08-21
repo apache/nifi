@@ -36,7 +36,7 @@ import java.util.stream.Stream;
 public class OrdinaryLeastSquares implements StatusAnalyticsModel {
 
     private static final Logger LOG = LoggerFactory.getLogger(OrdinaryLeastSquares.class);
-    private OLSMultipleLinearRegression olsModel;
+    private final OLSMultipleLinearRegression olsModel;
     private double[] coefficients;
 
     public OrdinaryLeastSquares() {

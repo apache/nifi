@@ -66,7 +66,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -1167,7 +1166,7 @@ public class TestListS3 {
                         Map.entry("encryption-service", AbstractS3Processor.ENCRYPTION_SERVICE.getName()),
                         Map.entry("use-chunked-encoding", AbstractS3Processor.USE_CHUNKED_ENCODING.getName()),
                         Map.entry("use-path-style-access", AbstractS3Processor.USE_PATH_STYLE_ACCESS.getName()),
-                        Map.entry("aws-region", REGION.getName()),
+                        Map.entry("aws-region", RegionUtil.REGION.getName()),
                         Map.entry(AbstractAwsProcessor.OBSOLETE_AWS_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE.getName()),
                         Map.entry(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, ListS3.TRACKING_STATE_CACHE.getName()),
                         Map.entry(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, ListS3.TRACKING_TIME_WINDOW.getName()),

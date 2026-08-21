@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.MigrationPayloadEntity;
 import org.apache.nifi.web.api.entity.MigrationRequestEntity;
@@ -469,6 +470,17 @@ public interface ConnectorClient {
      * @throws IOException if an I/O error occurs
      */
     ComponentStateEntity clearProcessorState(String connectorId, String processorId) throws NiFiClientException, IOException;
+
+    /**
+     * Gets a controller service within a connector.
+     *
+     * @param connectorId the connector ID
+     * @param controllerServiceId the controller service ID
+     * @return the controller service entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ControllerServiceEntity getControllerService(String connectorId, String controllerServiceId) throws NiFiClientException, IOException;
 
     /**
      * Gets the state for a controller service within a connector.

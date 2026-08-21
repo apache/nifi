@@ -38,7 +38,6 @@ import org.apache.nifi.processors.standard.ssh.SshClientProvider;
 import org.apache.nifi.processors.standard.ssh.StandardSshClientProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StringUtils;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.common.cipher.BuiltinCiphers;
@@ -312,11 +311,11 @@ public class SFTPTransfer implements FileTransfer {
 
     @Override
     public List<FileInfo> getListing(final boolean applyFilters) throws IOException {
-        final String path = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
+        final String path = ctx.getProperty(REMOTE_PATH).evaluateAttributeExpressions().getValue();
         final int depth = 0;
 
         final int maxResults;
-        final PropertyValue batchSizeValue = ctx.getProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE);
+        final PropertyValue batchSizeValue = ctx.getProperty(REMOTE_POLL_BATCH_SIZE);
         if (batchSizeValue == null) {
             maxResults = Integer.MAX_VALUE;
         } else {
@@ -346,14 +345,14 @@ public class SFTPTransfer implements FileTransfer {
             return;
         }
 
-        final boolean ignoreDottedFiles = ctx.getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
-        final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
-        final boolean symlink  = ctx.getProperty(FileTransfer.FOLLOW_SYMLINK).asBoolean();
-        final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
+        final boolean ignoreDottedFiles = ctx.getProperty(IGNORE_DOTTED_FILES).asBoolean();
+        final boolean recurse = ctx.getProperty(RECURSIVE_SEARCH).asBoolean();
+        final boolean symlink  = ctx.getProperty(FOLLOW_SYMLINK).asBoolean();
+        final String fileFilterRegex = ctx.getProperty(FILE_FILTER_REGEX).getValue();
         final Pattern fileFilterPattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
-        final String pathFilterRegex = ctx.getProperty(FileTransfer.PATH_FILTER_REGEX).getValue();
+        final String pathFilterRegex = ctx.getProperty(PATH_FILTER_REGEX).getValue();
         final Pattern pathPattern = (!recurse || pathFilterRegex == null) ? null : Pattern.compile(pathFilterRegex);
-        final String remotePath = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
+        final String remotePath = ctx.getProperty(REMOTE_PATH).evaluateAttributeExpressions().getValue();
 
         // check if this directory path matches the PATH_FILTER_REGEX
         boolean pathFilterMatches = true;
@@ -532,7 +531,7 @@ public class SFTPTransfer implements FileTransfer {
         final SftpClient sftpClient = getSFTPClient(origFlowFile);
 
         try (InputStream inputStream = sftpClient.read(remoteFileName)) {
-            return session.write(origFlowFile, out -> StreamUtils.copy(inputStream, out));
+            return session.write(origFlowFile, inputStream::transferTo);
         } catch (final SftpException e) {
             final int status = e.getStatus();
             switch (status) {

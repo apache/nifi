@@ -1868,7 +1868,7 @@ export class ConnectionManager implements OnDestroy {
                                 return true;
                             }
                         })
-                        .classed('load-balance-icon-active fa-rotate-90 success-color-variant', (d: any) => {
+                        .classed('load-balance-icon-active success-color-variant', (d: any) => {
                             return d.permissions.canRead && d.component.loadBalanceStatus === 'LOAD_BALANCE_ACTIVE';
                         })
                         .classed('primary-color', (d: any) => {

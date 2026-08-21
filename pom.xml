@@ -14,12 +14,12 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>37</version>
+        <version>39</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>2.11.0-SNAPSHOT</version>
+    <version>2.12.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -95,7 +95,7 @@
     <properties>
         <!-- Project metadata -->
         <inceptionYear>2014</inceptionYear>
-        <project.build.outputTimestamp>1781839686</project.build.outputTimestamp>
+        <project.build.outputTimestamp>1785742568</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <!-- Build configuration -->
@@ -114,7 +114,7 @@
         <docker.jre.image.name>bellsoft/liberica-openjre-debian</docker.jre.image.name>
 
         <!-- Frontend tooling -->
-        <frontend.mvn.plugin.version>2.0.1</frontend.mvn.plugin.version>
+        <frontend.mvn.plugin.version>2.0.2</frontend.mvn.plugin.version>
         <node.version>v24.14.1</node.version>
 
         <!-- NiFi build -->
@@ -122,14 +122,14 @@
         <nifi.nar.maven.plugin.version>2.3.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.49.2</software.amazon.awssdk.version>
-        <software.amazon.encryption.s3.version>4.0.1</software.amazon.encryption.s3.version>
-        <azure.sdk.bom.version>1.3.7</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
+        <software.amazon.awssdk.version>2.54.0</software.amazon.awssdk.version>
+        <software.amazon.encryption.s3.version>4.0.2</software.amazon.encryption.s3.version>
+        <azure.sdk.bom.version>1.3.8</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
         <!-- Apache Commons -->
         <org.apache.commons.cli.version>1.11.0</org.apache.commons.cli.version>
-        <org.apache.commons.codec.version>1.22.0</org.apache.commons.codec.version>
-        <org.apache.commons.collections4.version>4.5.0</org.apache.commons.collections4.version>
+        <org.apache.commons.codec.version>1.22.1</org.apache.commons.codec.version>
+        <org.apache.commons.collections4.version>4.6.0</org.apache.commons.collections4.version>
         <org.apache.commons.compress.version>1.28.0</org.apache.commons.compress.version>
         <org.apache.commons.configuration.version>2.15.1</org.apache.commons.configuration.version>
         <org.apache.commons.csv.version>1.14.1</org.apache.commons.csv.version>
@@ -151,41 +151,44 @@
 
         <!-- Data formats and serialization -->
         <kafka-clients.version>4.3.1</kafka-clients.version>
-        <avro.version>1.12.1</avro.version>
+        <kafka.docker.image>apache/kafka:4.3.1</kafka.docker.image>
+        <avro.version>1.12.2</avro.version>
         <calcite.version>1.42.0</calcite.version>
-        <com.github.luben.zstd-jni.version>1.5.7-11</com.github.luben.zstd-jni.version>
+        <com.github.luben.zstd-jni.version>1.5.7-15</com.github.luben.zstd-jni.version>
         <com.jayway.jsonpath.version>3.0.0</com.jayway.jsonpath.version>
         <gson.version>2.14.0</gson.version>
         <jackson.annotations.version>2.22</jackson.annotations.version>
-        <jackson.bom.version>2.22.1</jackson.bom.version>
-        <jackson3.bom.version>3.2.1</jackson3.bom.version>
+        <jackson.bom.version>2.22.2</jackson.bom.version>
+        <jackson3.bom.version>3.2.2</jackson3.bom.version>
         <json.smart.version>2.6.0</json.smart.version>
         <snakeyaml.version>2.6</snakeyaml.version>
 
         <!-- JVM languages and bytecode -->
         <aspectj.version>1.9.25.1</aspectj.version>
-        <groovy.version>5.0.7</groovy.version>
+        <groovy.version>5.1.0</groovy.version>
         <kotlin.version>2.4.10</kotlin.version>
 
         <!-- Logging and observability -->
         <log4j2.version>2.26.1</log4j2.version>
-        <logback.version>1.6.0</logback.version>
+        <logback.version>1.6.3</logback.version>
         <org.slf4j.version>2.0.18</org.slf4j.version>
         <prometheus.version>0.16.0</prometheus.version>
         <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
 
         <!-- Networking and transport -->
-        <netty.4.version>4.2.16.Final</netty.4.version>
-        <okhttp.version>5.4.0</okhttp.version>
-        <okio.version>3.18.0</okio.version>
+        <netty.4.version>4.2.17.Final</netty.4.version>
+        <okhttp.version>5.5.0</okhttp.version>
+        <okio.version>3.18.1</okio.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
+        <org.apache.httpcomponents.httpcore5.version>5.4.3</org.apache.httpcomponents.httpcore5.version>
         <org.apache.sshd.version>2.19.0</org.apache.sshd.version>
 
         <!-- Security -->
         <nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
         <nimbus-oauth2-oidc.version>11.38.2</nimbus-oauth2-oidc.version>
         <org.bouncycastle.version>1.85</org.bouncycastle.version>
+        <org.bouncycastle.provider.version>1.85.2</org.bouncycastle.provider.version>
 
         <!-- Utilities -->
         <caffeine.version>3.2.4</caffeine.version>
@@ -199,17 +202,17 @@
         <jakarta.activation-api.version>2.1.4</jakarta.activation-api.version>
         <jaxb.runtime.version>4.0.9</jaxb.runtime.version>
         <jersey.bom.version>4.0.2</jersey.bom.version>
-        <jetty.version>12.1.11</jetty.version>
+        <jetty.version>12.1.12</jetty.version>
         <servlet-api.version>6.1.0</servlet-api.version>
         <spring.security.version>7.1.0</spring.security.version>
         <spring.version>7.0.8</spring.version>
-        <swagger.annotations.version>2.2.52</swagger.annotations.version>
+        <swagger.annotations.version>2.2.54</swagger.annotations.version>
 
         <!-- Testing and quality -->
-        <junit.version>6.1.2</junit.version>
+        <junit.version>6.1.3</junit.version>
         <mockito.version>5.23.0</mockito.version>
-        <pmd.version>7.25.0</pmd.version>
-        <checkstyle.version>13.8.0</checkstyle.version>
+        <pmd.version>7.26.0</pmd.version>
+        <checkstyle.version>13.11.0</checkstyle.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <jacoco.version>0.8.15</jacoco.version>
     </properties>
@@ -237,7 +240,7 @@
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk18on</artifactId>
-                <version>${org.bouncycastle.version}</version>
+                <version>${org.bouncycastle.provider.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
@@ -356,6 +359,16 @@
                         <artifactId>commons-logging</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.core5</groupId>
+                <artifactId>httpcore5</artifactId>
+                <version>${org.apache.httpcomponents.httpcore5.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.core5</groupId>
+                <artifactId>httpcore5-h2</artifactId>
+                <version>${org.apache.httpcomponents.httpcore5.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
@@ -606,7 +619,7 @@
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
-                <version>1.22.2</version>
+                <version>1.23.1</version>
             </dependency>
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
@@ -784,7 +797,7 @@
                 <plugin>
                     <groupId>io.fabric8</groupId>
                     <artifactId>docker-maven-plugin</artifactId>
-                    <version>0.48.1</version>
+                    <version>0.49.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -839,12 +852,12 @@
                 <plugin>
                     <groupId>io.swagger.core.v3</groupId>
                     <artifactId>swagger-maven-plugin-jakarta</artifactId>
-                    <version>2.2.52</version>
+                    <version>2.2.54</version>
                 </plugin>
                 <plugin>
                     <groupId>io.swagger.codegen.v3</groupId>
                     <artifactId>swagger-codegen-maven-plugin</artifactId>
-                    <version>3.0.81</version>
+                    <version>3.0.82</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -1139,6 +1152,11 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <kafka.docker.image>${kafka.docker.image}</kafka.docker.image>
+                            </systemPropertyVariables>
+                        </configuration>
                         <executions>
                             <execution>
                                 <goals>

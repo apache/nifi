@@ -52,7 +52,7 @@ public class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQu
         runner.getStateManager().assertStateNotSet();
         switch (resultOutputStrategy) {
             case PER_RESPONSE:
-                AbstractJsonQueryElasticsearchTest.testCounts(runner, 1, 2, 0, 0);
+                testCounts(runner, 1, 2, 0, 0);
                 for (int page = 1; page <= 2; page++) {
                     final MockFlowFile hit = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(page - 1);
                     hit.assertAttributeEquals("hit.count", "10");
@@ -61,13 +61,13 @@ public class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQu
                 break;
             case PER_QUERY:
                 final int expectedHits = 20;
-                AbstractJsonQueryElasticsearchTest.testCounts(runner, 1, 1, 0, 0);
+                testCounts(runner, 1, 1, 0, 0);
                 runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", Integer.toString(expectedHits));
                 runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "2");
                 assertEquals(expectedHits, runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().getContent().split("\n").length);
                 break;
             case PER_HIT:
-                AbstractJsonQueryElasticsearchTest.testCounts(runner, 1, 20, 0, 0);
+                testCounts(runner, 1, 20, 0, 0);
                 long count = 1;
                 final ValueRange firstPage = ValueRange.of(1, 10);
                 for (final MockFlowFile hit : runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS)) {

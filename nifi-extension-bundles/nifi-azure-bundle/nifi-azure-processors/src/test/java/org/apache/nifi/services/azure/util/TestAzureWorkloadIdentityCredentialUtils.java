@@ -22,6 +22,8 @@ import org.apache.nifi.oauth2.AccessToken;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.junit.jupiter.api.Test;
 
+import java.util.function.Supplier;
+
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -67,7 +69,7 @@ public class TestAzureWorkloadIdentityCredentialUtils {
     @Test
     public void testCreateCredentialWithNullSupplier() {
         assertThrows(NullPointerException.class, () ->
-                AzureWorkloadIdentityCredentialUtils.createCredential(TENANT_ID, CLIENT_ID, (java.util.function.Supplier<String>) null));
+                AzureWorkloadIdentityCredentialUtils.createCredential(TENANT_ID, CLIENT_ID, (Supplier<String>) null));
     }
 
     @Test

@@ -66,7 +66,7 @@ public enum CompressionType {
 
     public static AllowableValue[] allowableValues() {
         List<AllowableValue> values = new ArrayList<>();
-        for (CompressionType type : CompressionType.values()) {
+        for (CompressionType type : values()) {
             values.add(new AllowableValue(type.name(), type.name(), type.getDescription()));
         }
         return values.toArray(new AllowableValue[values.size()]);

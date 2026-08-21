@@ -669,6 +669,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 entry.getKey().putAll(entry.getValue());
             }
 
+            // Record ConnectionStatusEvents after FlowFiles are enqueued so that queue metadata is updated
+            recordConnectionStatusEvents(checkpoint);
+
             final long enqueueFlowFileFinishNanos = System.nanoTime();
             final long enqueueFlowFileNanos = enqueueFlowFileFinishNanos - updateEventRepositoryFinishNanos;
 
@@ -815,8 +818,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 context.getFlowFileEventRepository().updateRepository(connectionSessionEvent);
                 context.recordProcessSessionEvent(connectionSessionEvent);
             }
-
-            recordConnectionStatusEvents(checkpoint);
         } catch (final IOException ioe) {
             LOG.error("FlowFile Event Repository failed to update", ioe);
         }
@@ -3380,7 +3381,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     appendableStreams.put(newClaim, outStream);
 
                     // We need to copy all of the data from the old claim to the new claim
-                    StreamUtils.copy(oldClaimIn, outStream);
+                    oldClaimIn.transferTo(outStream);
 
                     // Don't allow flushing of the BufferedOutputStream. The callback may well call wrap our stream in another object that needs to be flushed.
                     // This is OK, but append() is often used many times to append just a small bit of data, over & over. If we allow flushing of our buffered output stream
