@@ -1042,6 +1042,30 @@ public class TestTailFile {
     }
 
     @Test
+    public void testMultipleExistingFilesAvailableOnFirstTrigger() throws IOException {
+        final int fileCount = 250;
+        final Set<String> expectedFilenames = new HashSet<>();
+        for (int i = 0; i < fileCount; i++) {
+            final String path = Paths.get("target", "log_many_" + i + ".txt").toString();
+            expectedFilenames.add(path);
+            initializeFile(path, "line-" + i + "\n");
+        }
+
+        runner.setProperty(TailFile.BASE_DIRECTORY, "target");
+        runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
+        runner.setProperty(TailFile.FILENAME, "log_many_[0-9]+\\.txt");
+        runner.setProperty(TailFile.RECURSIVE, "false");
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, fileCount);
+        assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("line-0\n")));
+        assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("line-249\n")));
+        assertNumberOfStateMapEntries(fileCount);
+        assertFilenamesInStateMap(expectedFilenames);
+    }
+
+    @Test
     public void testDetectNewFile() throws IOException {
         runner.setProperty(TailFile.BASE_DIRECTORY, "target");
         runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
@@ -1279,6 +1303,44 @@ public class TestTailFile {
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("hey3\n")));
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("hey\n")));
         runner.clearTransferState();
+    }
+
+    @Test
+    public void testTailingPostRolloverStateWithMissingRolledFilesDoesNotFail() throws IOException {
+        raf.write("after\n".getBytes());
+
+        final String prefix = TailFile.MAP_PREFIX + "0.";
+        runner.getStateManager().setState(Map.of(
+                prefix + TailFileState.StateKeys.FILENAME, "target/log.txt",
+                prefix + TailFileState.StateKeys.POSITION, "0",
+                prefix + TailFileState.StateKeys.TIMESTAMP, "0",
+                prefix + TailFileState.StateKeys.LENGTH, "0",
+                prefix + TailFileState.StateKeys.CHECKSUM, "0",
+                prefix + TailFileState.StateKeys.TAILING_POST_ROLLOVER, "true"
+        ), Scope.LOCAL);
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "${filename}.?");
+        runner.setProperty(TailFile.POST_ROLLOVER_TAIL_PERIOD, "10 sec");
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("after\n");
+    }
+
+    @Test
+    public void testTailFileObjectRestoresTailingPostRolloverState() {
+        final String prefix = TailFile.MAP_PREFIX + "3.";
+        final Map<String, String> stateMap = Map.of(
+                prefix + TailFileState.StateKeys.FILENAME, "target/log.txt",
+                prefix + TailFileState.StateKeys.POSITION, "0",
+                prefix + TailFileState.StateKeys.TIMESTAMP, "0",
+                prefix + TailFileState.StateKeys.LENGTH, "0",
+                prefix + TailFileState.StateKeys.TAILING_POST_ROLLOVER, "true"
+        );
+
+        final TailFile.TailFileObject tailFileObject = new TailFile.TailFileObject(3, stateMap, 1024);
+
+        assertTrue(tailFileObject.getState().isTailingPostRollover());
     }
 
     @Test
