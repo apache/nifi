@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.confluent.schemaregistry;
+package org.apache.nifi.confluent.schema;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -38,7 +38,7 @@ import java.io.InputStream;
  * <a href="https://developers.google.com/protocol-buffers/docs/encoding#varints">Protocol Buffers Encoding</a></p>
  *
  */
-final class VarintUtils {
+public final class VarintUtils {
 
     private VarintUtils() {
     }
@@ -50,7 +50,7 @@ final class VarintUtils {
      * @return the decoded varint value
      * @throws IOException if unable to read from stream or invalid varint format
      */
-    static int readVarintFromStream(final InputStream inputStream) throws IOException {
+    public static int readVarintFromStream(final InputStream inputStream) throws IOException {
         final int firstByte = inputStream.read();
         if (firstByte == -1) {
             throw new IOException("Unexpected end of stream while reading varint");
@@ -66,7 +66,7 @@ final class VarintUtils {
      * @return the decoded varint value
      * @throws IOException if unable to read from stream or invalid varint format
      */
-    static int readVarintFromStreamAfterFirstByteConsumed(final InputStream inputStream, final int firstByte) throws IOException {
+    public static int readVarintFromStreamAfterFirstByteConsumed(final InputStream inputStream, final int firstByte) throws IOException {
         // accumulated result
         int value = 0;
 
@@ -115,7 +115,7 @@ final class VarintUtils {
      * @param encodedValue the zigzag encoded value
      * @return the decoded integer value
      */
-    static int decodeZigZag(final int encodedValue) {
+    public static int decodeZigZag(final int encodedValue) {
         return (encodedValue >>> 1) ^ -(encodedValue & 1);
     }
 
@@ -127,7 +127,7 @@ final class VarintUtils {
      * @param value the integer value to encode
      * @return byte array containing the zigzag encoded varint
      */
-    static byte[] writeZigZagVarint(final int value) {
+    public static byte[] writeZigZagVarint(final int value) {
         final ByteArrayOutputStream output = new ByteArrayOutputStream(4);
 
         // Zigzag encode
