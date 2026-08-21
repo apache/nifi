@@ -23,7 +23,7 @@ import {
     PropertyType,
     buildSecretKey
 } from '../types';
-import { isDependencyValueSatisfied } from '../components/connector-wizard/step-dependency.utils';
+import { isDependencyValueSatisfied } from './dependency-value.utils';
 
 /**
  * Check if a property has a meaningful value set.

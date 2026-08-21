@@ -53,7 +53,7 @@ import {
     toBooleanValue,
     SecretReferenceOptions
 } from '../../../services/value-reference.helper';
-import { isDependencyValueSatisfied } from '../step-dependency.utils';
+import { isDependencyValueSatisfied } from '../../../utils/dependency-value.utils';
 import {
     AssetInfo,
     AssetReference,
