@@ -20,9 +20,12 @@ package org.apache.nifi.tests.system.registry;
 import org.apache.nifi.tests.system.NiFiClientUtil;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
+import org.apache.nifi.web.api.dto.DifferenceDTO;
 import org.apache.nifi.web.api.dto.RebaseChangeDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -34,6 +37,8 @@ import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -396,6 +401,98 @@ public class RebaseVersionIT extends NiFiSystemIT {
                 "Expected the preserved local change to be reported as a local modification after rebase, but none were found");
     }
 
+    @Test
+    public void testRebasePreservesLocallyAddedControllerServiceReferencedByProcessor() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ProcessGroupEntity originalGroup = util.createProcessGroup("Original", "root");
+        final ControllerServiceEntity serviceX = util.createControllerService("FakeControllerService1", originalGroup.getId());
+        final ProcessorEntity fakeProcessor = util.createProcessor("FakeProcessor", originalGroup.getId());
+        util.updateProcessorProperties(fakeProcessor, Map.of("Fake Service", serviceX.getId()));
+        util.createProcessor("GenerateFlowFile", originalGroup.getId());
+
+        final VersionControlInformationEntity vci = util.startVersionControl(originalGroup, clientEntity, TEST_FLOWS_BUCKET,
+                "RebaseLocalAddedControllerServiceProcessorReference");
+        final String flowId = vci.getVersionControlInformation().getFlowId();
+
+        final ProcessGroupEntity secondGroup = util.importFlowFromRegistry("root", clientEntity.getId(), TEST_FLOWS_BUCKET, flowId, "1");
+        final ProcessorEntity upstreamGenerate = findProcessorByType(secondGroup.getId(), "GenerateFlowFile");
+        util.updateProcessorProperties(upstreamGenerate, Map.of("Text", "upstream-change"));
+        util.saveFlowVersion(secondGroup, clientEntity, getVersionControlInformation(secondGroup.getId()));
+
+        final ControllerServiceEntity serviceY = util.createControllerService("FakeControllerService1", originalGroup.getId());
+        util.updateProcessorProperties(fakeProcessor, Map.of("Fake Service", serviceY.getId()));
+
+        final RebaseAnalysisEntity analysis = util.getRebaseAnalysis(originalGroup.getId(), "2");
+        assertTrue(analysis.getRebaseAllowed(), "Expected rebase to be allowed but it was not. Failure: " + analysis.getFailureReason()
+                + ". Local changes: " + describeLocalChanges(analysis));
+        assertCompatibleControllerServiceAdditions(analysis, 1);
+
+        util.rebaseFlowVersion(originalGroup.getId(), "2");
+
+        final VersionControlInformationDTO updatedVci = getVersionControlInfo(originalGroup.getId());
+        assertEquals("2", updatedVci.getVersion());
+
+        final Set<ControllerServiceEntity> rebasedServices = getNifiClient().getFlowClient().getControllerServices(originalGroup.getId()).getControllerServices();
+        assertControllerServicesPresent(rebasedServices, serviceX.getId(), serviceY.getId());
+
+        final ProcessorEntity rebasedProcessor = findProcessorByType(originalGroup.getId(), "FakeProcessor");
+        assertEquals(serviceY.getId(), rebasedProcessor.getComponent().getConfig().getProperties().get("Fake Service"));
+
+        assertLocalModificationsContainComponents(originalGroup.getId(), serviceY.getId(), fakeProcessor.getId());
+    }
+
+    @Test
+    public void testRebasePreservesLocallyAddedControllerServicesReferencedByDynamicControllerServiceProperties()
+            throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ProcessGroupEntity originalGroup = util.createProcessGroup("Original", "root");
+        final ControllerServiceEntity serviceX = util.createControllerService("FakeControllerService1", originalGroup.getId());
+        final ControllerServiceEntity dynamicService = util.createControllerService("FakeDynamicPropertiesControllerService", originalGroup.getId());
+        util.updateControllerServiceProperties(dynamicService, Collections.singletonMap("FCS.X", serviceX.getId()));
+        util.createProcessor("GenerateFlowFile", originalGroup.getId());
+
+        final VersionControlInformationEntity vci = util.startVersionControl(originalGroup, clientEntity, TEST_FLOWS_BUCKET,
+                "RebaseLocalAddedControllerServiceDynamicReference");
+        final String flowId = vci.getVersionControlInformation().getFlowId();
+
+        final ProcessGroupEntity secondGroup = util.importFlowFromRegistry("root", clientEntity.getId(), TEST_FLOWS_BUCKET, flowId, "1");
+        final ProcessorEntity upstreamGenerate = findProcessorByType(secondGroup.getId(), "GenerateFlowFile");
+        util.updateProcessorProperties(upstreamGenerate, Map.of("Text", "upstream-change"));
+        util.saveFlowVersion(secondGroup, clientEntity, getVersionControlInformation(secondGroup.getId()));
+
+        final ControllerServiceEntity serviceY = util.createControllerService("FakeControllerService1", originalGroup.getId());
+        final ControllerServiceEntity serviceZ = util.createControllerService("FakeControllerService1", originalGroup.getId());
+        util.updateControllerServiceProperties(dynamicService, Map.of(
+                "FCS.X", serviceX.getId(),
+                "FCS.Y", serviceY.getId(),
+                "FCS.Z", serviceZ.getId()));
+
+        final RebaseAnalysisEntity analysis = util.getRebaseAnalysis(originalGroup.getId(), "2");
+        assertTrue(analysis.getRebaseAllowed(), "Expected rebase to be allowed but it was not. Failure: " + analysis.getFailureReason()
+                + ". Local changes: " + describeLocalChanges(analysis));
+        assertCompatibleControllerServiceAdditions(analysis, 2);
+
+        util.rebaseFlowVersion(originalGroup.getId(), "2");
+
+        final VersionControlInformationDTO updatedVci = getVersionControlInfo(originalGroup.getId());
+        assertEquals("2", updatedVci.getVersion());
+
+        final Set<ControllerServiceEntity> rebasedServices = getNifiClient().getFlowClient().getControllerServices(originalGroup.getId()).getControllerServices();
+        assertControllerServicesPresent(rebasedServices, dynamicService.getId(), serviceX.getId(), serviceY.getId(), serviceZ.getId());
+
+        final ControllerServiceEntity rebasedDynamicService = getNifiClient().getControllerServicesClient().getControllerService(dynamicService.getId());
+        final Map<String, String> dynamicProperties = rebasedDynamicService.getComponent().getProperties();
+        assertEquals(serviceX.getId(), dynamicProperties.get("FCS.X"));
+        assertEquals(serviceY.getId(), dynamicProperties.get("FCS.Y"));
+        assertEquals(serviceZ.getId(), dynamicProperties.get("FCS.Z"));
+
+        assertLocalModificationsContainComponents(originalGroup.getId(), dynamicService.getId(), serviceY.getId(), serviceZ.getId());
+    }
+
     private String describeLocalChanges(final RebaseAnalysisEntity analysis) {
         if (analysis.getLocalChanges() == null || analysis.getLocalChanges().isEmpty()) {
             return "none";
@@ -432,6 +529,74 @@ public class RebaseVersionIT extends NiFiSystemIT {
                 .filter(proc -> proc.getComponent().getType().endsWith("." + simpleTypeName))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("No processor of type " + simpleTypeName + " found in group " + processGroupId));
+    }
+
+    private void assertCompatibleControllerServiceAdditions(final RebaseAnalysisEntity analysis, final long expectedCount) {
+        final long compatibleAdditions = analysis.getLocalChanges().stream()
+                .filter(change -> "Component Added".equals(change.getDifferenceType()))
+                .filter(change -> "Controller Service".equals(change.getComponentType()))
+                .filter(change -> "COMPATIBLE".equals(change.getClassification()))
+                .count();
+        assertEquals(expectedCount, compatibleAdditions, "Unexpected compatible controller-service additions. Local changes: "
+                + describeLocalChanges(analysis));
+    }
+
+    private void assertControllerServicesPresent(final Set<ControllerServiceEntity> services, final String... expectedServiceIds) {
+        for (final String serviceId : expectedServiceIds) {
+            final boolean present = services.stream().anyMatch(service -> serviceId.equals(service.getId()));
+            assertTrue(present, "Expected controller service " + serviceId + " to be present. Services: " + describeControllerServices(services));
+        }
+    }
+
+    private void assertLocalModificationsContainComponents(final String processGroupId, final String... componentIds)
+            throws NiFiClientException, IOException {
+        final FlowComparisonEntity localModifications = getNifiClient().getProcessGroupClient().getLocalModifications(processGroupId);
+        assertFalse(localModifications.getComponentDifferences().isEmpty(),
+                "Expected preserved local changes to remain visible after rebase, but none were found");
+
+        for (final String componentId : componentIds) {
+            final boolean reported = localModifications.getComponentDifferences().stream()
+                    .anyMatch(component -> componentId.equals(component.getComponentId()));
+            assertTrue(reported, "Expected local modifications to include component " + componentId + ". Reported differences: "
+                    + describeComponentDifferences(localModifications.getComponentDifferences()));
+        }
+    }
+
+    private String describeControllerServices(final Collection<ControllerServiceEntity> services) {
+        final StringBuilder sb = new StringBuilder();
+        for (final ControllerServiceEntity service : services) {
+            if (!sb.isEmpty()) {
+                sb.append(", ");
+            }
+            sb.append(service.getId()).append("=").append(service.getComponent().getType());
+        }
+        return sb.length() == 0 ? "none" : sb.toString();
+    }
+
+    private String describeComponentDifferences(final Collection<ComponentDifferenceDTO> componentDifferences) {
+        final StringBuilder sb = new StringBuilder();
+        for (final ComponentDifferenceDTO component : componentDifferences) {
+            if (!sb.isEmpty()) {
+                sb.append("; ");
+            }
+
+            sb.append(component.getComponentType()).append(" ")
+                    .append(component.getComponentName()).append(" (")
+                    .append(component.getComponentId()).append(")");
+
+            if (component.getDifferences() != null && !component.getDifferences().isEmpty()) {
+                sb.append(" -> ");
+                boolean firstDifference = true;
+                for (final DifferenceDTO difference : component.getDifferences()) {
+                    if (!firstDifference) {
+                        sb.append(", ");
+                    }
+                    sb.append(difference.getDifference());
+                    firstDifference = false;
+                }
+            }
+        }
+        return sb.length() == 0 ? "none" : sb.toString();
     }
 
     private void executeRebaseWithFingerprint(final ProcessGroupEntity group, final String targetVersion, final String fingerprint)
