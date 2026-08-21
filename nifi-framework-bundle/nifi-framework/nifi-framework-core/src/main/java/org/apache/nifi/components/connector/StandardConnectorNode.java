@@ -78,6 +78,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -419,47 +420,53 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             initial.put(versionedConfigStep.getName(), new StepConfiguration(toValueReferenceMap(versionedConfigStep)));
         }
 
+        final Set<String> persistedStepNames = new LinkedHashSet<>(initial.keySet());
         final StandardConnectorPropertyConfiguration propertyConfiguration = new StandardConnectorPropertyConfiguration(initial, this.toString());
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             getConnector().migrateProperties(propertyConfiguration);
-            return applyMissingPropertyDefaults(propertyConfiguration.getMutatedProperties(), getConnector().getConfigurationSteps());
+            return applyMissingRequiredPropertyDefaults(propertyConfiguration.getMutatedProperties(), persistedStepNames, getConnector().getConfigurationSteps());
         }
     }
 
     /**
-     * For each property declared on the Connector that has a default but no value in the given configuration,
-     * inserts that default. This is needed when a Connector NAR adds a property: the saved flow has no entry
-     * for it, so without filling in the default the Connector would be invalid. Properties that already have a
-     * value, and properties that have no default, are left unchanged.
+     * Fills in the default value for any required property that has no value in the migrated configuration, so a NAR
+     * upgrade that adds a required property with a default does not make the Connector invalid. Only required
+     * properties are filled, so inheriting a default cannot activate a dependent property. A step the Connector
+     * removed during migration (present in {@code persistedStepNames} but absent from {@code migratedProperties}) is
+     * not re-created; a declared step in neither is newly added by this version and is created, but only if at least
+     * one required default applies to it.
      */
-    private Map<String, StepConfiguration> applyMissingPropertyDefaults(final Map<String, StepConfiguration> migratedProperties, final List<ConfigurationStep> configurationSteps) {
+    private Map<String, StepConfiguration> applyMissingRequiredPropertyDefaults(final Map<String, StepConfiguration> migratedProperties,
+            final Set<String> persistedStepNames, final List<ConfigurationStep> configurationSteps) {
         if (configurationSteps == null || configurationSteps.isEmpty()) {
             return migratedProperties;
         }
 
-        final Map<String, StepConfiguration> propertiesWithDefaults = new HashMap<>(migratedProperties);
+        final Map<String, StepConfiguration> propertiesWithDefaults = new LinkedHashMap<>(migratedProperties);
         for (final ConfigurationStep configurationStep : configurationSteps) {
-            final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
-            final StepConfiguration existingConfiguration = propertiesWithDefaults.get(configurationStep.getName());
-            if (existingConfiguration != null && existingConfiguration.getPropertyValues() != null) {
-                propertyValues.putAll(existingConfiguration.getPropertyValues());
+            final String stepName = configurationStep.getName();
+            final StepConfiguration existingConfiguration = propertiesWithDefaults.get(stepName);
+            if (existingConfiguration == null && persistedStepNames.contains(stepName)) {
+                continue;
             }
 
+            final Map<String, ConnectorValueReference> existingValues = existingConfiguration == null ? null : existingConfiguration.getPropertyValues();
+            final Map<String, ConnectorValueReference> propertyValues = existingValues == null ? new LinkedHashMap<>() : new LinkedHashMap<>(existingValues);
             boolean appliedMissingDefault = false;
             for (final ConnectorPropertyGroup propertyGroup : configurationStep.getPropertyGroups()) {
                 for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
-                    if (propertyValues.containsKey(descriptor.getName()) || descriptor.getDefaultValue() == null) {
+                    if (!descriptor.isRequired() || descriptor.getDefaultValue() == null || propertyValues.containsKey(descriptor.getName())) {
                         continue;
                     }
 
                     propertyValues.put(descriptor.getName(), new StringLiteralValue(descriptor.getDefaultValue()));
                     appliedMissingDefault = true;
-                    logger.debug("Applied default value for property [{}] of configuration step [{}] on {}", descriptor.getName(), configurationStep.getName(), this);
+                    logger.debug("Applied default value for required property [{}] of configuration step [{}] on {}", descriptor.getName(), stepName, this);
                 }
             }
 
             if (appliedMissingDefault) {
-                propertiesWithDefaults.put(configurationStep.getName(), new StepConfiguration(propertyValues));
+                propertiesWithDefaults.put(stepName, new StepConfiguration(propertyValues));
             }
         }
 

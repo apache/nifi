@@ -42,6 +42,7 @@ import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.ConnectorPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.AfterEach;
@@ -1115,10 +1116,46 @@ public class TestStandardConnectorNode {
         final DefaultValueConnector connector = new DefaultValueConnector();
         final StandardConnectorNode connectorNode = createConnectorNode(connector);
 
-        final Bundle bundle = new Bundle();
-        bundle.setGroup("org.apache.nifi");
-        bundle.setArtifact("test-bundle");
-        bundle.setVersion("1.0.0");
+        final VersionedConnectorValueReference greetingReference = new VersionedConnectorValueReference();
+        greetingReference.setValueType("STRING_LITERAL");
+        greetingReference.setValue("Welcome");
+
+        final VersionedConfigurationStep persistedStep = new VersionedConfigurationStep();
+        persistedStep.setName("settings");
+        persistedStep.setProperties(Map.of("Greeting", greetingReference));
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.inheritConfiguration(List.of(persistedStep), List.of(persistedStep), createConnectorBundle());
+
+        connectorNode.verifyCanStart();
+        assertEquals("Welcome", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("settings", "Greeting").getValue());
+        assertEquals("1", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("settings", "Repeat Count").getValue());
+    }
+
+    @Test
+    public void testInheritingConfigurationDoesNotApplyOptionalPropertyDefault() throws FlowUpdateException {
+        final DependentDefaultValueConnector connector = new DependentDefaultValueConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        final VersionedConfigurationStep persistedStep = new VersionedConfigurationStep();
+        persistedStep.setName("settings");
+        persistedStep.setProperties(Map.of());
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.inheritConfiguration(List.of(persistedStep), List.of(persistedStep), createConnectorBundle());
+
+        // "SSL Mode" is optional, so its default must not be inserted. If it were, the "REQUIRED" default would
+        // satisfy the dependency of "Truststore Filename" and make that required property report as missing.
+        assertFalse(connectorNode.getActiveFlowContext().getConfigurationContext().getPropertyNames("settings").contains("SSL Mode"));
+        connectorNode.verifyCanStart();
+    }
+
+    @Test
+    public void testInheritingConfigurationCreatesNewlyDeclaredStepWithRequiredDefaults() throws FlowUpdateException {
+        final DeclaredStepRecordingConnector connector = new DeclaredStepRecordingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
 
         final VersionedConnectorValueReference greetingReference = new VersionedConnectorValueReference();
         greetingReference.setValueType("STRING_LITERAL");
@@ -1130,11 +1167,52 @@ public class TestStandardConnectorNode {
 
         connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
-        connectorNode.inheritConfiguration(List.of(persistedStep), List.of(persistedStep), bundle);
+        connectorNode.inheritConfiguration(List.of(persistedStep), List.of(persistedStep), createConnectorBundle());
 
+        // The "extra" step is newly declared by this version of the Connector and was never persisted, so it is
+        // created with its required default and its configuration callback fires under its new name.
+        assertTrue(connector.getConfiguredStepNames().contains("extra"));
+        assertEquals("default", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("extra", "Extra Property").getValue());
         connectorNode.verifyCanStart();
-        assertEquals("Welcome", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("settings", "Greeting").getValue());
-        assertEquals("1", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("settings", "Repeat Count").getValue());
+    }
+
+    @Test
+    public void testInheritingConfigurationDoesNotRecreateStepRemovedDuringMigration() throws FlowUpdateException {
+        final LegacyStepRemovingConnector connector = new LegacyStepRemovingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        final VersionedConnectorValueReference greetingReference = new VersionedConnectorValueReference();
+        greetingReference.setValueType("STRING_LITERAL");
+        greetingReference.setValue("Welcome");
+
+        final VersionedConnectorValueReference legacyReference = new VersionedConnectorValueReference();
+        legacyReference.setValueType("STRING_LITERAL");
+        legacyReference.setValue("retained");
+
+        final VersionedConfigurationStep settingsStep = new VersionedConfigurationStep();
+        settingsStep.setName("settings");
+        settingsStep.setProperties(Map.of("Greeting", greetingReference));
+
+        final VersionedConfigurationStep legacyStep = new VersionedConfigurationStep();
+        legacyStep.setName("legacy");
+        legacyStep.setProperties(Map.of("Legacy Property", legacyReference));
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.inheritConfiguration(List.of(settingsStep, legacyStep), List.of(settingsStep, legacyStep), createConnectorBundle());
+
+        // The Connector removed the persisted "legacy" step during migration. Even though it still declares the step
+        // and the step's required property has a default, the step must not be re-created and its callback must not fire.
+        assertFalse(connector.getConfiguredStepNames().contains("legacy"));
+        assertTrue(connectorNode.getActiveFlowContext().getConfigurationContext().getPropertyNames("legacy").isEmpty());
+    }
+
+    private static Bundle createConnectorBundle() {
+        final Bundle bundle = new Bundle();
+        bundle.setGroup("org.apache.nifi");
+        bundle.setArtifact("test-bundle");
+        bundle.setVersion("1.0.0");
+        return bundle;
     }
 
     private static void seedActiveConfiguration(final StandardConnectorNode node, final String stepName, final Map<String, ConnectorValueReference> properties) {
@@ -1588,6 +1666,216 @@ public class TestStandardConnectorNode {
         @Override
         public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
             return List.of();
+        }
+    }
+
+    private static class DependentDefaultValueConnector extends AbstractConnector {
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor sslMode = new ConnectorPropertyDescriptor.Builder()
+                .name("SSL Mode")
+                .description("Whether SSL is required")
+                .required(false)
+                .defaultValue("REQUIRED")
+                .build();
+
+            final ConnectorPropertyDescriptor truststoreFilename = new ConnectorPropertyDescriptor.Builder()
+                .name("Truststore Filename")
+                .description("Location of the truststore")
+                .required(true)
+                .dependsOn(sslMode, "REQUIRED")
+                .build();
+
+            final ConnectorPropertyGroup propertyGroup = ConnectorPropertyGroup.builder()
+                .name("Security")
+                .description("Security settings")
+                .properties(List.of(sslMode, truststoreFilename))
+                .build();
+
+            final ConfigurationStep step = new ConfigurationStep.Builder()
+                .name("settings")
+                .propertyGroups(List.of(propertyGroup))
+                .build();
+
+            return List.of(step);
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+    }
+
+    private static class DeclaredStepRecordingConnector extends AbstractConnector {
+        private final Set<String> configuredStepNames = new HashSet<>();
+
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor greeting = new ConnectorPropertyDescriptor.Builder()
+                .name("Greeting")
+                .description("Greeting text")
+                .required(true)
+                .defaultValue("Hello")
+                .build();
+
+            final ConfigurationStep settings = new ConfigurationStep.Builder()
+                .name("settings")
+                .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                    .name("General")
+                    .description("General settings")
+                    .properties(List.of(greeting))
+                    .build()))
+                .build();
+
+            final ConnectorPropertyDescriptor extraProperty = new ConnectorPropertyDescriptor.Builder()
+                .name("Extra Property")
+                .description("Property added by a newer version of the Connector")
+                .required(true)
+                .defaultValue("default")
+                .build();
+
+            final ConfigurationStep extra = new ConfigurationStep.Builder()
+                .name("extra")
+                .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                    .name("Extra Group")
+                    .description("Group added by a newer version of the Connector")
+                    .properties(List.of(extraProperty))
+                    .build()))
+                .build();
+
+            return List.of(settings, extra);
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+            configuredStepNames.add(stepName);
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+
+        Set<String> getConfiguredStepNames() {
+            return configuredStepNames;
+        }
+    }
+
+    private static class LegacyStepRemovingConnector extends AbstractConnector {
+        private final Set<String> configuredStepNames = new HashSet<>();
+
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public void migrateProperties(final ConnectorPropertyConfiguration configuration) {
+            configuration.removeStep("legacy");
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor greeting = new ConnectorPropertyDescriptor.Builder()
+                .name("Greeting")
+                .description("Greeting text")
+                .required(true)
+                .defaultValue("Hello")
+                .build();
+
+            final ConfigurationStep settings = new ConfigurationStep.Builder()
+                .name("settings")
+                .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                    .name("General")
+                    .description("General settings")
+                    .properties(List.of(greeting))
+                    .build()))
+                .build();
+
+            final ConnectorPropertyDescriptor legacyProperty = new ConnectorPropertyDescriptor.Builder()
+                .name("Legacy Property")
+                .description("Property of a step removed during migration")
+                .required(true)
+                .defaultValue("old")
+                .build();
+
+            final ConfigurationStep legacy = new ConfigurationStep.Builder()
+                .name("legacy")
+                .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                    .name("Legacy Group")
+                    .description("Group of a step removed during migration")
+                    .properties(List.of(legacyProperty))
+                    .build()))
+                .build();
+
+            return List.of(settings, legacy);
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+            configuredStepNames.add(stepName);
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+
+        Set<String> getConfiguredStepNames() {
+            return configuredStepNames;
         }
     }
 
