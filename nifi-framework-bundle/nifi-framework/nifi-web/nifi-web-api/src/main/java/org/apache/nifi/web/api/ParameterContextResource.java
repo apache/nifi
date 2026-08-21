@@ -247,7 +247,9 @@ public class ParameterContextResource extends AbstractParameterResource {
                     description = "Whether or not to include inherited parameters from other parameter contexts, and therefore also overridden values.  " +
                             "If true, the result will be the 'effective' parameter context."
             ) @QueryParam("includeInheritedParameters")
-            @DefaultValue("false") final boolean includeInheritedParameters) {
+            @DefaultValue("false") final boolean includeInheritedParameters,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true") final boolean includeReferences) {
         // authorize access
         authorizeReadParameterContext(parameterContextId);
 
@@ -256,7 +258,7 @@ public class ParameterContextResource extends AbstractParameterResource {
         }
 
         // get the specified parameter context
-        final ParameterContextEntity entity = serviceFacade.getParameterContext(parameterContextId, includeInheritedParameters, NiFiUserUtils.getNiFiUser());
+        final ParameterContextEntity entity = serviceFacade.getParameterContext(parameterContextId, includeInheritedParameters, NiFiUserUtils.getNiFiUser(), includeReferences);
         entity.setUri(generateResourceUri("parameter-contexts", entity.getId()));
 
         // generate the response
@@ -282,7 +284,9 @@ public class ParameterContextResource extends AbstractParameterResource {
             }
     )
     public Response createParameterContext(
-            @Parameter(description = "The Parameter Context.", required = true) final ParameterContextEntity requestEntity) {
+            @Parameter(description = "The Parameter Context.", required = true) final ParameterContextEntity requestEntity,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true") final boolean includeReferences) {
 
         if (requestEntity == null || requestEntity.getComponent() == null) {
             throw new IllegalArgumentException("Parameter Context must be specified");
@@ -318,7 +322,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                     entity.getComponent().setId(contextId);
 
                     final Revision revision = getRevision(entity.getRevision(), contextId);
-                    final ParameterContextEntity contextEntity = serviceFacade.createParameterContext(revision, entity.getComponent());
+                    final ParameterContextEntity contextEntity = serviceFacade.createParameterContext(revision, entity.getComponent(), includeReferences);
 
                     // generate a 201 created response
                     final String uri = generateResourceUri("parameter-contexts", contextEntity.getId());
@@ -355,7 +359,9 @@ public class ParameterContextResource extends AbstractParameterResource {
     )
     public Response updateParameterContext(
             @PathParam("id") String contextId,
-            @Parameter(description = "The updated Parameter Context", required = true) final ParameterContextEntity requestEntity) {
+            @Parameter(description = "The updated Parameter Context", required = true) final ParameterContextEntity requestEntity,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true") final boolean includeReferences) {
 
         // Validate request
         if (requestEntity.getId() == null) {
@@ -396,7 +402,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                 lookup -> authorizeReadWriteParameterContextWithComponents(lookup, contextId, requestEntity, affectedComponents, user),
                 () -> serviceFacade.verifyUpdateParameterContext(updateDto, true),
                 (rev, entity) -> {
-                    final ParameterContextEntity updatedEntity = serviceFacade.updateParameterContext(rev, entity.getComponent());
+                    final ParameterContextEntity updatedEntity = serviceFacade.updateParameterContext(rev, entity.getComponent(), includeReferences);
 
                     updatedEntity.setUri(generateResourceUri("parameter-contexts", entity.getId()));
                     return generateOkResponse(updatedEntity).build();
@@ -459,7 +465,7 @@ public class ParameterContextResource extends AbstractParameterResource {
 
         // Get the context or throw ResourceNotFoundException
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(contextId, false, user);
+        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(contextId, false, user, false);
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByParameterContextUpdate(Collections.singletonList(contextEntity.getComponent()));
         final Optional<Asset> previousAsset = assetManager.getAssets(contextId).stream().filter(asset -> asset.getName().equals(sanitizedAssetName)).findAny();
 
@@ -654,7 +660,7 @@ public class ParameterContextResource extends AbstractParameterResource {
 
         // Get the context or throw ResourceNotFoundException
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(parameterContextId, false, user);
+        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(parameterContextId, false, user, false);
 
         final AssetDTO assetDTO = new AssetDTO();
         assetDTO.setId(assetId);
@@ -712,7 +718,9 @@ public class ParameterContextResource extends AbstractParameterResource {
     )
     public Response submitParameterContextUpdate(
             @PathParam("contextId") final String contextId,
-            @Parameter(description = "The updated version of the parameter context.", required = true) final ParameterContextEntity requestEntity) {
+            @Parameter(description = "The updated version of the parameter context.", required = true) final ParameterContextEntity requestEntity,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true") final boolean includeReferences) {
 
         if (requestEntity == null) {
             throw new IllegalArgumentException("Parameter Context must be specified.");
@@ -774,7 +782,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                     // Verify Request
                     serviceFacade.verifyUpdateParameterContext(contextDto, false);
                 },
-                this::submitUpdateRequest
+                (rev, wrapper) -> submitUpdateRequest(rev, wrapper, includeReferences)
         );
     }
 
@@ -913,11 +921,13 @@ public class ParameterContextResource extends AbstractParameterResource {
             @Parameter(description = "The ID of the Parameter Context")
             @PathParam("contextId") final String contextId,
             @Parameter(description = "The ID of the Update Request")
-            @PathParam("requestId") final String updateRequestId) {
+            @PathParam("requestId") final String updateRequestId,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true") final boolean includeReferences) {
 
         authorizeReadParameterContext(contextId);
 
-        return retrieveUpdateRequest("update-requests", contextId, updateRequestId);
+        return retrieveUpdateRequest("update-requests", contextId, updateRequestId, includeReferences);
     }
 
     @DELETE
@@ -949,10 +959,12 @@ public class ParameterContextResource extends AbstractParameterResource {
             @Parameter(description = "The ID of the ParameterContext")
             @PathParam("contextId") final String contextId,
             @Parameter(description = "The ID of the Update Request")
-            @PathParam("requestId") final String updateRequestId) {
+            @PathParam("requestId") final String updateRequestId,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true") final boolean includeReferences) {
 
         authorizeReadParameterContext(contextId);
-        return deleteUpdateRequest("update-requests", contextId, updateRequestId, disconnectedNodeAcknowledged.booleanValue());
+        return deleteUpdateRequest("update-requests", contextId, updateRequestId, disconnectedNodeAcknowledged.booleanValue(), includeReferences);
     }
 
     @DELETE
@@ -992,7 +1004,9 @@ public class ParameterContextResource extends AbstractParameterResource {
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED)
             @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
             @Parameter(description = "The Parameter Context ID.")
-            @PathParam("id") final String parameterContextId) {
+            @PathParam("id") final String parameterContextId,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true") final boolean includeReferences) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
@@ -1009,7 +1023,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                     authorizeReadWriteParameterContext(parameterContextId);
 
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
-                    final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(parameterContextId, false, user);
+                    final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(parameterContextId, false, user, false);
                     for (final ProcessGroupEntity boundGroupEntity : contextEntity.getComponent().getBoundProcessGroups()) {
                         final String groupId = boundGroupEntity.getId();
                         final Authorizable groupAuthorizable = lookup.getProcessGroup(groupId).getAuthorizable();
@@ -1020,7 +1034,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                 () -> serviceFacade.verifyDeleteParameterContext(parameterContextId),
                 (revision, groupEntity) -> {
                     // disconnect from version control
-                    final ParameterContextEntity entity = serviceFacade.deleteParameterContext(revision, parameterContextId);
+                    final ParameterContextEntity entity = serviceFacade.deleteParameterContext(revision, parameterContextId, includeReferences);
 
                     // generate the response
                     return generateOkResponse(entity).build();
@@ -1094,7 +1108,7 @@ public class ParameterContextResource extends AbstractParameterResource {
     }
 
     private void authorizeReferencingComponents(final String parameterContextId, final AuthorizableLookup lookup, final NiFiUser user) {
-        final ParameterContextEntity context = serviceFacade.getParameterContext(parameterContextId, false, NiFiUserUtils.getNiFiUser());
+        final ParameterContextEntity context = serviceFacade.getParameterContext(parameterContextId, false, NiFiUserUtils.getNiFiUser(), true);
 
         for (final ParameterEntity parameterEntity : context.getComponent().getParameters()) {
             final ParameterDTO dto = parameterEntity.getParameter();
@@ -1234,7 +1248,7 @@ public class ParameterContextResource extends AbstractParameterResource {
         return resultsEntity;
     }
 
-    private Response submitUpdateRequest(final Revision requestRevision, final InitiateChangeParameterContextRequestWrapper requestWrapper) {
+    private Response submitUpdateRequest(final Revision requestRevision, final InitiateChangeParameterContextRequestWrapper requestWrapper, final boolean includeReferences) {
         // Create an asynchronous request that will occur in the background, because this request may
         // result in stopping components, which can take an indeterminate amount of time.
         final String requestId = UUID.randomUUID().toString();
@@ -1265,7 +1279,7 @@ public class ParameterContextResource extends AbstractParameterResource {
         updateRequestManager.submitRequest("update-requests", requestId, request, updateTask);
 
         // Generate the response.
-        final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(request, "update-requests", contextId, requestId);
+        final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(request, "update-requests", contextId, requestId, includeReferences);
         return generateOkResponse(updateRequestEntity).build();
     }
 
@@ -1332,7 +1346,7 @@ public class ParameterContextResource extends AbstractParameterResource {
         return entity;
     }
 
-    private Response retrieveUpdateRequest(final String requestType, final String contextId, final String requestId) {
+    private Response retrieveUpdateRequest(final String requestType, final String contextId, final String requestId, final boolean includeReferences) {
         if (requestId == null) {
             throw new IllegalArgumentException("Request ID must be specified.");
         }
@@ -1341,11 +1355,12 @@ public class ParameterContextResource extends AbstractParameterResource {
 
         // request manager will ensure that the current is the user that submitted this request
         final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> asyncRequest = updateRequestManager.getRequest(requestType, requestId, user);
-        final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(asyncRequest, requestType, contextId, requestId);
+        final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(asyncRequest, requestType, contextId, requestId, includeReferences);
         return generateOkResponse(updateRequestEntity).build();
     }
 
-    private Response deleteUpdateRequest(final String requestType, final String contextId, final String requestId, final boolean disconnectedNodeAcknowledged) {
+    private Response deleteUpdateRequest(final String requestType, final String contextId, final String requestId, final boolean disconnectedNodeAcknowledged,
+                                         final boolean includeReferences) {
         if (requestId == null) {
             throw new IllegalArgumentException("Request ID must be specified.");
         }
@@ -1366,12 +1381,12 @@ public class ParameterContextResource extends AbstractParameterResource {
             asyncRequest.cancel();
         }
 
-        final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(asyncRequest, requestType, contextId, requestId);
+        final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(asyncRequest, requestType, contextId, requestId, includeReferences);
         return generateOkResponse(updateRequestEntity).build();
     }
 
     private ParameterContextUpdateRequestEntity createUpdateRequestEntity(final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> asyncRequest,
-                                                                          final String requestType, final String contextId, final String requestId) {
+                                                                          final String requestType, final String contextId, final String requestId, final boolean includeReferences) {
         final List<ParameterContextEntity> initialRequestList = asyncRequest.getRequest();
         // Safe because this is from the request, not the response
         final ParameterContextEntity initialEntity = initialRequestList.get(0);
@@ -1404,7 +1419,7 @@ public class ParameterContextResource extends AbstractParameterResource {
         updateRequestDto.setReferencingComponents(new HashSet<>(affectedComponents.values()));
 
         // Populate the Affected Components
-        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(asyncRequest.getComponentId(), false, NiFiUserUtils.getNiFiUser());
+        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(asyncRequest.getComponentId(), false, NiFiUserUtils.getNiFiUser(), includeReferences);
         final ParameterContextUpdateRequestEntity updateRequestEntity = new ParameterContextUpdateRequestEntity();
 
         // If the request is complete, include the new representation of the Parameter Context along with its new Revision. Otherwise, do not include the information, since it is 'stale'

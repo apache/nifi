@@ -350,7 +350,7 @@ export class FlowEffects {
                     case ComponentType.Processor:
                         return of(FlowActions.openNewProcessorDialog({ request }));
                     case ComponentType.ProcessGroup:
-                        return from(this.parameterContextService.getParameterContexts()).pipe(
+                        return from(this.parameterContextService.getParameterContexts(false)).pipe(
                             concatLatestFrom(() => this.store.select(selectCurrentParameterContext)),
                             map(([response, parameterContext]) => {
                                 const dialogRequest: CreateProcessGroupDialogRequest = {
@@ -646,7 +646,7 @@ export class FlowEffects {
             map((action) => action.request),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request]) =>
-                from(this.parameterContextService.getParameterContexts()).pipe(
+                from(this.parameterContextService.getParameterContexts(false)).pipe(
                     concatLatestFrom(() => this.store.select(selectCurrentParameterContext)),
                     map(([response, parameterContext]) => {
                         const dialogRequest: GroupComponentsDialogRequest = {
@@ -1320,7 +1320,7 @@ export class FlowEffects {
                     case ComponentType.Connection:
                         return of(FlowActions.openEditConnectionDialog({ request }));
                     case ComponentType.ProcessGroup:
-                        return from(this.parameterContextService.getParameterContexts()).pipe(
+                        return from(this.parameterContextService.getParameterContexts(false)).pipe(
                             map((response) => {
                                 const editComponentDialogRequest = {
                                     ...request,
@@ -1354,7 +1354,7 @@ export class FlowEffects {
             ofType(FlowActions.editCurrentProcessGroup),
             map((action) => action.request),
             switchMap((request) => {
-                return from(this.parameterContextService.getParameterContexts()).pipe(
+                return from(this.parameterContextService.getParameterContexts(false)).pipe(
                     switchMap((parameterContextResponse) =>
                         from(this.flowService.getProcessGroup(request.id)).pipe(
                             map((response) =>
@@ -1505,7 +1505,7 @@ export class FlowEffects {
                 switchMap(([request, parameterContextReference, processGroupId]) => {
                     if (parameterContextReference && parameterContextReference.permissions.canRead) {
                         return from(
-                            this.parameterContextService.getParameterContext(parameterContextReference.id)
+                            this.parameterContextService.getParameterContext(parameterContextReference.id, true, false)
                         ).pipe(
                             map((parameterContext) => {
                                 return [request, parameterContext, processGroupId];
