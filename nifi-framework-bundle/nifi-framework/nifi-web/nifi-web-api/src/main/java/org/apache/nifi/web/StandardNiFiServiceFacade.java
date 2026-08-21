@@ -95,6 +95,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
@@ -134,6 +135,8 @@ import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flow.ConnectableComponent;
+import org.apache.nifi.flow.ConnectableComponentType;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
@@ -7153,24 +7156,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public Set<AffectedComponentEntity> getComponentsAffectedByFlowUpdate(final String processGroupId, final RegisteredFlowSnapshot updatedSnapshot) {
+        return getFlowUpdateImpact(processGroupId, updatedSnapshot).getAffectedComponents();
+    }
+
+    @Override
+    public FlowUpdateImpact getFlowUpdateImpact(final String processGroupId, final RegisteredFlowSnapshot updatedSnapshot) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(processGroupId);
-
-        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
-        final VersionedProcessGroup localContents = mapper.mapProcessGroup(group, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
-
-        final ComparableDataFlow localFlow = new StandardComparableDataFlow("Current Flow", localContents);
-        final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("New Flow", updatedSnapshot.getFlowContents());
-
-        final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow, new StaticDifferenceDescriptor(),
-                Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
-        final FlowComparison comparison = flowComparator.compare();
+        final FlowComparison comparison = compareFlowUpdate(group, updatedSnapshot);
+        final VersionedProcessGroup proposedContents = updatedSnapshot.getFlowContents();
 
         final FlowManager flowManager = controllerFacade.getFlowManager();
         final Set<AffectedComponentEntity> affectedComponents = comparison.getDifferences().stream()
                 .filter(difference -> difference.getDifferenceType() != DifferenceType.COMPONENT_ADDED) // components that are added are not components that will be affected in the local flow.
                 .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
                 .filter(difference -> difference.getComponentA() != null) // a difference that would not affect a local component
-                .filter(diff -> FlowDifferenceFilters.isComponentUpdateRequired(diff, proposedFlow.getContents(), flowManager))
+                .filter(diff -> FlowDifferenceFilters.isComponentUpdateRequired(diff, proposedContents, flowManager))
                 // A local rename of a public port is preserved during a version-control update (it is not overwritten with the
                 // registry name), so the port must not be reported as affected/stopped for that name change. Applied unconditionally here because
                 // this affected-components calculation serves only the version-control update path.
@@ -7242,6 +7242,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 })
                 .collect(Collectors.toCollection(HashSet::new));
 
+        final Set<RemovedConnectionDescriptor> removedConnections = new LinkedHashSet<>();
+        final Set<String> removedProcessGroupIds = new LinkedHashSet<>();
+        final Set<String> removedEndpointIds = new LinkedHashSet<>();
+
         for (final FlowDifference difference : comparison.getDifferences()) {
             // Ignore differences for adding remote ports
             if (FlowDifferenceFilters.isAddedOrRemovedRemotePort(difference)) {
@@ -7265,6 +7269,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             if (localComponent == null) {
                 continue;
             }
+
+            addRemovedFlowUpdateImpact(difference, removedConnections, removedProcessGroupIds, removedEndpointIds);
 
             // If any Process Group is removed, consider all components below that Process Group as an affected component
             if (difference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED && localComponent.getComponentType() == org.apache.nifi.flow.ComponentType.PROCESS_GROUP) {
@@ -7353,7 +7359,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
         }
 
-        return affectedComponents;
+        return new FlowUpdateImpact(affectedComponents, removedConnections, removedProcessGroupIds, removedEndpointIds);
+    }
+
+    @Override
+    public RemovedConnectionDrainClassifier.Context getRemovedConnectionDrainContext() {
+        return new RemovedConnectionDrainClassifier.FlowManagerContext(controllerFacade.getFlowManager());
+    }
+
+    FlowComparison compareFlowUpdate(final ProcessGroup group, final RegisteredFlowSnapshot updatedSnapshot) {
+        final VersionedComponentFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
+        final VersionedProcessGroup localContents = mapper.mapProcessGroup(group, controllerFacade.getControllerServiceProvider(), controllerFacade.getFlowManager(), true);
+
+        final ComparableDataFlow localFlow = new StandardComparableDataFlow("Current Flow", localContents);
+        final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("New Flow", updatedSnapshot.getFlowContents());
+
+        final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow, new StaticDifferenceDescriptor(),
+                Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
+        return flowComparator.compare();
     }
 
     private Port getInputPort(final InstantiatedVersionedPort port) {
@@ -7372,6 +7395,76 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         return processGroup.getOutputPort(port.getInstanceIdentifier());
+    }
+
+    private void addRemovedFlowUpdateImpact(final FlowDifference difference, final Set<RemovedConnectionDescriptor> removedConnections,
+                                            final Set<String> removedProcessGroupIds, final Set<String> removedEndpointIds) {
+        final DifferenceType differenceType = difference.getDifferenceType();
+        if (differenceType == DifferenceType.COMPONENT_REMOVED) {
+            final VersionedComponent localComponent = difference.getComponentA();
+            if (localComponent instanceof final VersionedConnection removedConnection) {
+                removedConnections.add(createRemovedConnectionDescriptor(removedConnection, RemovalReason.COMPONENT_REMOVED));
+            } else if (localComponent.getComponentType() == org.apache.nifi.flow.ComponentType.PROCESS_GROUP) {
+                removedProcessGroupIds.add(localComponent.getInstanceIdentifier());
+            } else if (isRemovedEndpoint(localComponent)) {
+                removedEndpointIds.add(localComponent.getInstanceIdentifier());
+            }
+        } else if (differenceType == DifferenceType.SOURCE_CHANGED && difference.getComponentA() instanceof final VersionedConnection removedConnection) {
+            removedConnections.add(createRemovedConnectionDescriptor(removedConnection, RemovalReason.SOURCE_CHANGED));
+        }
+    }
+
+    private boolean isRemovedEndpoint(final VersionedComponent component) {
+        return component.getComponentType() == org.apache.nifi.flow.ComponentType.INPUT_PORT
+                || component.getComponentType() == org.apache.nifi.flow.ComponentType.OUTPUT_PORT
+                || component.getComponentType() == org.apache.nifi.flow.ComponentType.PROCESSOR
+                || component.getComponentType() == org.apache.nifi.flow.ComponentType.FUNNEL
+                || component.getComponentType() == org.apache.nifi.flow.ComponentType.REMOTE_INPUT_PORT
+                || component.getComponentType() == org.apache.nifi.flow.ComponentType.REMOTE_OUTPUT_PORT;
+    }
+
+    private RemovedConnectionDescriptor createRemovedConnectionDescriptor(final VersionedConnection connection, final RemovalReason removalReason) {
+        final ConnectableComponent source = connection.getSource();
+        final ConnectableComponent destination = connection.getDestination();
+
+        return new RemovedConnectionDescriptor(
+                connection.getInstanceIdentifier(),
+                connection.getIdentifier(),
+                getComponentGroupRuntimeId(connection),
+                source == null ? null : source.getInstanceIdentifier(),
+                source == null ? null : source.getId(),
+                getConnectableGroupRuntimeId(source),
+                getConnectableType(source),
+                destination == null ? null : destination.getInstanceIdentifier(),
+                destination == null ? null : destination.getId(),
+                getConnectableGroupRuntimeId(destination),
+                getConnectableType(destination),
+                removalReason);
+    }
+
+    private String getComponentGroupRuntimeId(final VersionedComponent component) {
+        if (component instanceof final InstantiatedVersionedComponent instantiatedComponent) {
+            return instantiatedComponent.getInstanceGroupId();
+        }
+
+        return component.getGroupIdentifier();
+    }
+
+    private String getConnectableGroupRuntimeId(final ConnectableComponent connectableComponent) {
+        if (connectableComponent instanceof final InstantiatedVersionedComponent instantiatedComponent) {
+            return instantiatedComponent.getInstanceGroupId();
+        }
+
+        return connectableComponent == null ? null : connectableComponent.getGroupId();
+    }
+
+    private ConnectableType getConnectableType(final ConnectableComponent connectableComponent) {
+        if (connectableComponent == null || connectableComponent.getType() == null) {
+            return null;
+        }
+
+        final ConnectableComponentType type = connectableComponent.getType();
+        return ConnectableType.valueOf(type.name());
     }
 
     private void mapToConnectableId(final Collection<? extends Connectable> connectables, final Map<String, List<Connectable>> destination) {

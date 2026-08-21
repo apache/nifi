@@ -14,24 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.web;
 
-package org.apache.nifi.tests.system.registry;
-
-import org.apache.nifi.tests.system.NiFiInstanceFactory;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-public class ClusteredRegistryClientIT extends RegistryClientIT {
-
-    @Override
-    public NiFiInstanceFactory getInstanceFactory() {
-        return createTwoNodeInstanceFactory();
-    }
-
-    @Override
-    @Test
-    @Disabled("Standalone-only AC19 proof: the inherited fixture waits for a single port-output FlowFile, but clustered GenerateFlowFile execution produces per-node queueing")
-    public void testRemovedConnectionToInputPortStopsPortBeforeRemoval() throws Exception {
-    }
-
+public enum RemovalReason {
+    COMPONENT_REMOVED,
+    SOURCE_CHANGED
 }
