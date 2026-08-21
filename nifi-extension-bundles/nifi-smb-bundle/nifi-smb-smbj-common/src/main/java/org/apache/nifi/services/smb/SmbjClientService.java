@@ -24,6 +24,7 @@ import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.smbj.io.InputStreamByteChunkProvider;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
@@ -32,12 +33,14 @@ import org.apache.nifi.logging.ComponentLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
@@ -74,7 +77,17 @@ class SmbjClientService implements SmbClientService {
     }
 
     @Override
-    public Stream<SmbListableEntity> listFiles(final String directoryPath) {
+    public boolean folderExists(final String path) {
+        return share.folderExists(path);
+    }
+
+    @Override
+    public boolean fileExists(final String path) {
+        return share.fileExists(path);
+    }
+
+    @Override
+    public Stream<SmbListableEntity> listFiles(final String directoryPath, final boolean recursive) {
         return Stream.of(directoryPath).flatMap(path -> {
             final Directory directory;
             try {
@@ -108,7 +121,7 @@ class SmbjClientService implements SmbClientService {
             return stream(directory::spliterator, 0, false)
                     .map(entity -> buildSmbListableEntity(entity, path, serviceLocation))
                     .filter(entity -> !specialDirectory(entity))
-                    .flatMap(listable -> listable.isDirectory() ? listFiles(listable.getPathWithName())
+                    .flatMap(listable -> listable.isDirectory() && recursive ? listFiles(listable.getPathWithName(), recursive)
                             : Stream.of(listable))
                     .onClose(directory::close);
         });
@@ -139,40 +152,61 @@ class SmbjClientService implements SmbClientService {
     }
 
     @Override
-    public void readFile(final String filePath, final OutputStream outputStream) throws IOException {
-        try (File file = share.openFile(
+    public void readFile(final String filePath, final OutputStream outputStream, final Set<SmbShareAccess> shareAccesses) {
+        try (outputStream; File file = share.openFile(
                 filePath,
                 EnumSet.of(AccessMask.GENERIC_READ),
                 EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
+                convertShareAccesses(shareAccesses),
                 SMB2CreateDisposition.FILE_OPEN,
                 EnumSet.of(SMB2CreateOptions.FILE_SEQUENTIAL_ONLY))
         ) {
             file.read(outputStream);
         } catch (Exception e) {
             throw wrapException(e);
-        } finally {
-            outputStream.close();
+        }
+    }
+
+    @Override
+    public void writeFile(final String filePath, final InputStream inputStream, final Set<SmbShareAccess> shareAccesses) {
+        try (inputStream; File file = share.openFile(
+                filePath,
+                EnumSet.of(AccessMask.GENERIC_WRITE),
+                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
+                convertShareAccesses(shareAccesses),
+                SMB2CreateDisposition.FILE_OVERWRITE_IF,
+                EnumSet.of(SMB2CreateOptions.FILE_WRITE_THROUGH))
+        ) {
+            file.write(new InputStreamByteChunkProvider(inputStream));
+        } catch (Exception e) {
+            throw wrapException(e);
+        }
+    }
+
+    @Override
+    public void renameFile(final String oldFilePath, final String newFilePath, final boolean override) {
+        try (File file = share.openFile(
+                oldFilePath,
+                EnumSet.of(AccessMask.GENERIC_WRITE, AccessMask.DELETE),
+                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
+                EnumSet.noneOf(SMB2ShareAccess.class),
+                SMB2CreateDisposition.FILE_OPEN,
+                EnumSet.noneOf(SMB2CreateOptions.class))
+        ) {
+            // rename operation on Windows requires \ (backslash) path separator
+            file.rename(newFilePath.replace('/', '\\'), override);
+        } catch (Exception e) {
+            throw wrapException(e);
         }
     }
 
     @Override
     public void moveFile(final String filePath, final String directoryPath) {
-        try (File file = share.openFile(
-                filePath,
-                EnumSet.of(AccessMask.GENERIC_WRITE, AccessMask.DELETE),
-                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                EnumSet.noneOf(SMB2ShareAccess.class),
-                SMB2CreateDisposition.FILE_OPEN,
-                EnumSet.of(SMB2CreateOptions.FILE_SEQUENTIAL_ONLY))
-        ) {
-            final String[] parts = filePath.split("/");
-            // rename operation on Windows requires \ (backslash) path separator
-            final String newFilePath = directoryPath.replace('/', '\\') + "\\" + parts[parts.length - 1];
-            file.rename(newFilePath);
-        } catch (Exception e) {
-            throw wrapException(e);
-        }
+        final String[] parts = filePath.split("/");
+        final String fileName = parts[parts.length - 1];
+        final String newFilePath = directoryPath + "/" + fileName;
+
+        renameFile(filePath, newFilePath, false);
     }
 
     @Override
@@ -194,6 +228,7 @@ class SmbjClientService implements SmbClientService {
                 .setChangeTime(info.getChangeTime().toEpochMillis())
                 .setLastAccessTime(info.getLastAccessTime().toEpochMillis())
                 .setDirectory((info.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0)
+                .setHidden((info.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_HIDDEN.getValue()) != 0)
                 .setSize(info.getEndOfFile())
                 .setAllocationSize(info.getAllocationSize())
                 .setServiceLocation(serviceLocation)
@@ -222,6 +257,18 @@ class SmbjClientService implements SmbClientService {
             final long errorCode = e instanceof final SMBApiException smbApiException ? smbApiException.getStatusCode() : UNCATEGORIZED_ERROR;
             return new SmbException(e.getMessage(), errorCode, e);
         }
+    }
+
+    private Set<SMB2ShareAccess> convertShareAccesses(final Set<SmbShareAccess> shareAccesses) {
+        return shareAccesses.stream()
+                .map(shareAccess ->
+                    switch (shareAccess) {
+                        case READ_ALLOWED -> SMB2ShareAccess.FILE_SHARE_READ;
+                        case WRITE_ALLOWED -> SMB2ShareAccess.FILE_SHARE_WRITE;
+                        case DELETE_ALLOWED -> SMB2ShareAccess.FILE_SHARE_DELETE;
+                    }
+                )
+                .collect(Collectors.toSet());
     }
 
 }

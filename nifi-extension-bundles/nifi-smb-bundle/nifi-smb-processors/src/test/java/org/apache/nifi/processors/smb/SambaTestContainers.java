@@ -30,12 +30,12 @@ import org.testcontainers.utility.DockerImageName;
 
 import static java.util.Arrays.fill;
 import static org.apache.nifi.processors.smb.ListSmb.SMB_CLIENT_PROVIDER_SERVICE;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.DOMAIN;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.HOSTNAME;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.PASSWORD;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.PORT;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.SHARE;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.USERNAME;
+import static org.apache.nifi.smb.common.SmbProperties.DOMAIN;
+import static org.apache.nifi.smb.common.SmbProperties.HOSTNAME;
+import static org.apache.nifi.smb.common.SmbProperties.PASSWORD;
+import static org.apache.nifi.smb.common.SmbProperties.PORT;
+import static org.apache.nifi.smb.common.SmbProperties.SHARE;
+import static org.apache.nifi.smb.common.SmbProperties.USERNAME;
 
 public class SambaTestContainers {
 

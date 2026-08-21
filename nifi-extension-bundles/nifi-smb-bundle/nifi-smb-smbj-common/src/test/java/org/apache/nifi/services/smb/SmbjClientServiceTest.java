@@ -76,9 +76,9 @@ class SmbjClientServiceTest {
         mockOpenDirectory("dir2", NtStatus.STATUS_BAD_NETWORK_NAME);
         mockOpenDirectory("dir3", NtStatus.STATUS_OTHER);
 
-        assertEquals(0, underTest.listFiles("dir1").count());
-        assertEquals(0, underTest.listFiles("dir2").count());
-        assertThrows(SMBApiException.class, () -> underTest.listFiles("dir3").count());
+        assertEquals(0, underTest.listFiles("dir1", true).count());
+        assertEquals(0, underTest.listFiles("dir2", true).count());
+        assertThrows(SMBApiException.class, () -> underTest.listFiles("dir3", true).count());
     }
 
     private void mockOpenDirectory(String directoryName, NtStatus responseStatus) {
