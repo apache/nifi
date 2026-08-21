@@ -734,8 +734,10 @@
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                         <!-- Preserve the incoming command-line with the syntax @{argLine} and
-                            configure mockito-core as a Java Agent to enable explicit attachment to processes. -->
-                        <argLine>@{argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+                            configure mockito-core as a Java Agent to enable explicit attachment to processes.
+                            Path for javaagent is wrapped in double quotes in order for the OS to treat the entire path as a single argument string
+                            -->
+                        <argLine>@{argLine} -javaagent:"${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar"</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
