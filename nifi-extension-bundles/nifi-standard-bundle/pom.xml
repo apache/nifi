@@ -34,7 +34,7 @@
         <module>nifi-standard-content-viewer-nar</module>
     </modules>
     <properties>
-        <tika.version>3.3.2</tika.version>
+        <tika.version>4.0.0</tika.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -219,12 +219,12 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.7.0-jre</version>
+                <version>33.7.1-jre</version>
             </dependency>
             <dependency>
                 <groupId>com.networknt</groupId>
                 <artifactId>json-schema-validator</artifactId>
-                <version>2.0.4</version>
+                <version>2.0.7</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

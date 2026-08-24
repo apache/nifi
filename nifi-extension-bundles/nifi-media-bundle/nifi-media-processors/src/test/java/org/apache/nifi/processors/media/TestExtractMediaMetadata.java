@@ -79,7 +79,7 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeExists("txt.Content-Type");
         assertTrue(flowFile0.getAttribute("txt.Content-Type").startsWith("text/plain"));
         flowFile0.assertAttributeExists("txt.Content-Encoding");
-        flowFile0.assertAttributeEquals("txt.Content-Encoding", "ISO-8859-1");
+        flowFile0.assertAttributeEquals("txt.Content-Encoding", "windows-1252");
         flowFile0.assertContentEquals("test1".getBytes(StandardCharsets.UTF_8));
     }
 
@@ -279,10 +279,10 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeEquals("filename", "16color-10x10.bmp");
         flowFile0.assertAttributeExists("bmp.Content-Type");
         flowFile0.assertAttributeEquals("bmp.Content-Type", "image/bmp");
-        flowFile0.assertAttributeExists("bmp.height");
-        flowFile0.assertAttributeEquals("bmp.height", "10");
-        flowFile0.assertAttributeExists("bmp.width");
-        flowFile0.assertAttributeEquals("bmp.width", "10");
+        flowFile0.assertAttributeExists("bmp.tiff:ImageLength");
+        flowFile0.assertAttributeEquals("bmp.tiff:ImageLength", "10");
+        flowFile0.assertAttributeExists("bmp.tiff:ImageWidth");
+        flowFile0.assertAttributeEquals("bmp.tiff:ImageWidth", "10");
     }
 
     @Test
@@ -324,8 +324,8 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeEquals("filename", "testWAV.wav");
         flowFile0.assertAttributeExists("wav.Content-Type");
         assertTrue(flowFile0.getAttribute("wav.Content-Type").startsWith("audio/vnd.wave"));
-        flowFile0.assertAttributeExists("wav.encoding");
-        flowFile0.assertAttributeEquals("wav.encoding", "PCM_SIGNED");
+        flowFile0.assertAttributeExists("wav.xmpDM:audioSampleType");
+        flowFile0.assertAttributeEquals("wav.xmpDM:audioSampleType", "16Int");
     }
 
     @Test
