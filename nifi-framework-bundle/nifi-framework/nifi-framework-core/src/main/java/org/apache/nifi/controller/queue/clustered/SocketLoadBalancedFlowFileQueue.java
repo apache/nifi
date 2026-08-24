@@ -186,8 +186,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         if (clusterCoordinator != null) {
             clusterCoordinator.registerEventListener(new ClusterEventListener());
         }
-
-        rebalancingPartition.start(partitioner);
     }
 
     @Override

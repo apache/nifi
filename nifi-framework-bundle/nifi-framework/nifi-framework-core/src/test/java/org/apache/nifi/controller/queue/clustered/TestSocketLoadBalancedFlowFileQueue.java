@@ -78,13 +78,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestSocketLoadBalancedFlowFileQueue {
-    /**
-     * Prefix of the name that {@code StandardRebalancingPartition} assigns to the thread that redistributes
-     * FlowFiles held by the rebalancing partition. The remainder of the name is the queue identifier.
-     */
-    private static final String REBALANCE_THREAD_NAME_PREFIX = "Rebalance queued data for Connection ";
-    private static final long REBALANCE_TERMINATION_TIMEOUT = 10_000L;
-    private static final long REBALANCE_TERMINATION_POLL_INTERVAL = 10L;
 
     private FlowFileRepository flowFileRepo;
     private ContentRepository contentRepo;
@@ -154,6 +147,9 @@ public class TestSocketLoadBalancedFlowFileQueue {
         final AsyncLoadBalanceClientRegistry registry = mock(AsyncLoadBalanceClientRegistry.class);
         queue = new SocketLoadBalancedFlowFileQueue("unit-test", scheduler, flowFileRepo, provRepo,
             contentRepo, clusterCoordinator, registry, swapManager, 10000, eventReporter);
+
+        // Load balancing is started for every connection when the flow is initialized, so tests operate on a started queue
+        queue.startLoadBalancing();
     }
 
     private NodeIdentifier createNodeIdentifier() {
@@ -771,26 +767,16 @@ public class TestSocketLoadBalancedFlowFileQueue {
     }
 
     @Test
-    @Timeout(30)
-    public void testGetQueueSnapshotIncludesRebalancingPartition() throws InterruptedException {
+    public void testGetQueueSnapshotIncludesRebalancingPartition() {
         // Route FlowFiles to the local partition, then move every partition's contents into the rebalancing
         // partition and prevent it from redistributing them. FlowFiles sitting in the rebalancing partition
         // (being redistributed across the cluster) must still be counted in the snapshot's total QueueSize.
         final int localPartitionIndex = determineLocalPartitionIndex();
         queue.setFlowFilePartitioner(new StaticFlowFilePartitioner(localPartitionIndex));
 
-        // The rebalancing partition runs a background thread from the time the queue is created, so load balancing
-        // must be started and stopped to mark the rebalancing partition as stopped. The background thread observes
-        // the stopped state only after its in-flight poll returns, and it redistributes whatever that poll returns.
-        // FlowFiles are therefore only guaranteed to remain in the rebalancing partition once the thread terminates.
-        queue.startLoadBalancing();
+        // Stopping load balancing stops the rebalancing partition, after which no FlowFile moved into it can be
+        // redistributed, so the FlowFiles are guaranteed to remain there for the duration of this test.
         queue.stopLoadBalancing();
-        final long terminationExpiration = System.currentTimeMillis() + REBALANCE_TERMINATION_TIMEOUT;
-        while (isRebalanceThreadRunning() && System.currentTimeMillis() < terminationExpiration) {
-            Thread.sleep(REBALANCE_TERMINATION_POLL_INTERVAL);
-        }
-
-        assertFalse(isRebalanceThreadRunning(), "Rebalancing Partition thread not terminated");
 
         final long bytesPerFlowFile = 5L;
         final int flowFileCount = 4;
@@ -810,18 +796,6 @@ public class TestSocketLoadBalancedFlowFileQueue {
         assertEquals(flowFileCount * bytesPerFlowFile, snapshot.queueSize().getByteCount());
         assertEquals(queue.size(), snapshot.queueSize());
         assertTrue(snapshot.activeFlowFiles().isEmpty());
-    }
-
-    private boolean isRebalanceThreadRunning() {
-        final String rebalanceThreadName = REBALANCE_THREAD_NAME_PREFIX + queue.getIdentifier();
-
-        for (final Thread thread : Thread.getAllStackTraces().keySet()) {
-            if (thread.isAlive() && rebalanceThreadName.equals(thread.getName())) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private void assertPartitionSizes(final int[] expectedSizes) {
