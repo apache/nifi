@@ -1,0 +1,88 @@
+{
+    "flowContents": {
+        "identifier": "method-signature-verify-flow-id",
+        "name": "Method Signature Verify Flow",
+        "comments": "",
+        "position": {
+            "x": 0.0,
+            "y": 0.0
+        },
+        "processGroups": [],
+        "remoteProcessGroups": [],
+        "processors": [
+            {
+                "identifier": "5d3f8a2b-1c4e-4a6f-9b8d-2e7c1f0a3b5c",
+                "name": "Verify Method Signature Resource",
+                "comments": "",
+                "position": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "type": "org.apache.nifi.processors.tests.system.VerifyMethodSignatureResource",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-system-test-extensions-nar",
+                    "version": "2.8.0-SNAPSHOT"
+                },
+                "properties": {
+                    "Classpath Resource": "#{Classpath Resource}"
+                },
+                "propertyDescriptors": {},
+                "style": {},
+                "schedulingPeriod": "0 sec",
+                "schedulingStrategy": "TIMER_DRIVEN",
+                "executionNode": "ALL",
+                "penaltyDuration": "30 sec",
+                "yieldDuration": "1 sec",
+                "bulletinLevel": "WARN",
+                "runDurationMillis": 0,
+                "concurrentlySchedulableTaskCount": 1,
+                "autoTerminatedRelationships": [],
+                "scheduledState": "ENABLED",
+                "retryCount": 10,
+                "retriedRelationships": [],
+                "backoffMechanism": "PENALIZE_FLOWFILE",
+                "maxBackoffPeriod": "10 mins",
+                "componentType": "PROCESSOR",
+                "groupIdentifier": "method-signature-verify-flow-id"
+            }
+        ],
+        "inputPorts": [],
+        "outputPorts": [],
+        "connections": [],
+        "labels": [],
+        "funnels": [],
+        "controllerServices": [],
+        "parameterContextName": "Method Signature Verify Parameters",
+        "defaultFlowFileExpiration": "0 sec",
+        "defaultBackPressureObjectThreshold": 10000,
+        "defaultBackPressureDataSizeThreshold": "1 GB",
+        "scheduledState": "ENABLED",
+        "executionEngine": "INHERITED",
+        "maxConcurrentTasks": 1,
+        "statelessFlowTimeout": "1 min",
+        "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+        "flowFileConcurrency": "UNBOUNDED",
+        "componentType": "PROCESS_GROUP"
+    },
+    "externalControllerServices": {},
+    "parameterContexts": {
+        "Method Signature Verify Parameters": {
+            "name": "Method Signature Verify Parameters",
+            "parameters": [
+                {
+                    "name": "Classpath Resource",
+                    "description": "The asset JAR to place on the processor classpath",
+                    "sensitive": false,
+                    "provided": false
+                }
+            ],
+            "inheritedParameterContexts": [],
+            "description": "",
+            "componentType": "PARAMETER_CONTEXT"
+        }
+    },
+    "flowEncodingVersion": "1.0",
+    "parameterProviders": {},
+    "latest": false
+}
