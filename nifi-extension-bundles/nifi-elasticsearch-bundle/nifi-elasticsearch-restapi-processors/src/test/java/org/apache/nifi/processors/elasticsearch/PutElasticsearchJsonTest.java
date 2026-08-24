@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.IndexOperationResponse;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -1535,5 +1536,176 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
         assertEquals("id-1", ops.getFirst().getId());
         assertFalse(ops.getFirst().getFields().containsKey("a/b"), "escaped-slash flat id field removed");
         assertTrue(ops.getFirst().getFields().containsKey("msg"));
+    }
+
+    // -------------------------------------------------------------------------
+    // Ingest pipeline (static Pipeline property + per-document Pipeline Field)
+    // -------------------------------------------------------------------------
+
+    @Test
+    void testStaticPipelineAddedToBulkHeader() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.PIPELINE, "my-pipeline");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"msg\":\"hello\"}\n");
+        runner.run();
+
+        assertEquals("my-pipeline", ops.getFirst().getHeaderFields().get("pipeline"));
+    }
+
+    @Test
+    void testNoPipelineByDefault() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"msg\":\"hello\"}\n");
+        runner.run();
+
+        assertFalse(ops.getFirst().getHeaderFields().containsKey("pipeline"));
+    }
+
+    @Test
+    void testPipelineFieldFromPayloadRemovedWhenRetainFalse() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.PIPELINE_FIELD, "pipeline");
+        runner.setProperty(PutElasticsearchJson.RETAIN_PIPELINE_FIELD, "false");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"pipeline\":\"per-doc\",\"msg\":\"hello\"}\n");
+        runner.run();
+
+        assertEquals("per-doc", ops.getFirst().getHeaderFields().get("pipeline"));
+        assertFalse(docContent(ops.getFirst()).contains("\"pipeline\""), "pipeline field stripped from body");
+    }
+
+    @Test
+    void testPipelineFieldRetainedByDefault() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.PIPELINE_FIELD, "pipeline");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"pipeline\":\"per-doc\",\"msg\":\"hello\"}\n");
+        runner.run();
+
+        assertEquals("per-doc", ops.getFirst().getHeaderFields().get("pipeline"));
+        assertTrue(docContent(ops.getFirst()).contains("\"pipeline\""), "field retained by default");
+    }
+
+    @Test
+    void testPipelineFieldFallsBackToStaticPipeline() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.PIPELINE, "default-pipeline");
+        runner.setProperty(PutElasticsearchJson.PIPELINE_FIELD, "pipeline");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"msg\":\"no pipeline field here\"}\n");
+        runner.run();
+
+        assertEquals("default-pipeline", ops.getFirst().getHeaderFields().get("pipeline"));
+    }
+
+    @Test
+    void testNestedPipelineFieldPrunesEmptyParent() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        useNestedFieldPaths();
+        runner.setProperty(PutElasticsearchJson.PIPELINE_FIELD, "@metadata/pipeline");
+        runner.setProperty(PutElasticsearchJson.RETAIN_PIPELINE_FIELD, "false");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"@metadata\":{\"pipeline\":\"nested-p\"},\"msg\":\"hello\"}\n");
+        runner.run();
+
+        assertEquals("nested-p", ops.getFirst().getHeaderFields().get("pipeline"));
+        assertFalse(docContent(ops.getFirst()).contains("@metadata"), "empty parent pruned after extracting nested pipeline");
+    }
+
+    @Test
+    void testPipelineFieldJsonArray() {
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
+        runner.setProperty(PutElasticsearchJson.PIPELINE_FIELD, "pipeline");
+        runner.setProperty(PutElasticsearchJson.RETAIN_PIPELINE_FIELD, "false");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("[{\"pipeline\":\"arr-p\",\"msg\":\"x\"}]");
+        runner.run();
+
+        assertEquals("arr-p", ops.getFirst().getHeaderFields().get("pipeline"));
+        assertFalse(docContent(ops.getFirst()).contains("\"pipeline\""));
+    }
+
+    @Test
+    void testStaticPipelineSingleJson() {
+        runner.setProperty(PutElasticsearchJson.PIPELINE, "single-p");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"msg\":\"x\"}");
+        runner.run();
+
+        assertEquals("single-p", ops.getFirst().getHeaderFields().get("pipeline"));
+    }
+
+    @Test
+    void testPipelineNotAppliedToUpdateOperation() {
+        // Ingest pipelines apply to Index/Create only, not Update/Delete/Upsert.
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.INDEX_OP, IndexOperationRequest.Operation.Update.getValue().toLowerCase());
+        runner.setProperty(PutElasticsearchJson.IDENTIFIER_FIELD, "doc_id");
+        runner.setProperty(PutElasticsearchJson.PIPELINE, "my-pipeline");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"doc_id\":\"1\",\"msg\":\"hello\"}\n");
+        runner.run();
+
+        assertFalse(ops.getFirst().getHeaderFields().containsKey("pipeline"), "pipeline not set for update operations");
+    }
+
+    @Test
+    void testPipelineFieldStrippedEvenWhenPipelineNotApplied() {
+        // The pipeline is not applied to Update operations, but Retain Pipeline Field = false must still remove
+        // the field so the routing metadata is not indexed, matching the Index Field behaviour.
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.NDJSON.getValue());
+        runner.setProperty(PutElasticsearchJson.INDEX_OP, IndexOperationRequest.Operation.Update.getValue().toLowerCase());
+        runner.setProperty(PutElasticsearchJson.IDENTIFIER_FIELD, "doc_id");
+        runner.setProperty(PutElasticsearchJson.PIPELINE_FIELD, "pipeline");
+        runner.setProperty(PutElasticsearchJson.RETAIN_PIPELINE_FIELD, "false");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("{\"doc_id\":\"1\",\"pipeline\":\"p\",\"msg\":\"hello\"}\n");
+        runner.run();
+
+        assertFalse(ops.getFirst().getHeaderFields().containsKey("pipeline"), "pipeline not set for update operations");
+        assertFalse(ops.getFirst().getFields().containsKey("pipeline"), "pipeline field still stripped from the body");
+        assertTrue(ops.getFirst().getFields().containsKey("msg"));
+    }
+
+    @Test
+    void testPipelineFieldWithSuppressNulls() {
+        // The JSON Array suppressing-writer path parses to a Map rather than a JsonNode; verify the
+        // pipeline is resolved and stripped there too.
+        runner.setProperty(PutElasticsearchJson.INPUT_FORMAT, InputFormat.JSON_ARRAY.getValue());
+        runner.setProperty(PutElasticsearchJson.SUPPRESS_NULLS, ElasticSearchClientService.ALWAYS_SUPPRESS.getValue());
+        runner.setProperty(PutElasticsearchJson.PIPELINE_FIELD, "pipeline");
+        runner.setProperty(PutElasticsearchJson.RETAIN_PIPELINE_FIELD, "false");
+        runner.assertValid();
+
+        final List<IndexOperationRequest> ops = captureOperations();
+        runner.enqueue("[{\"pipeline\":\"suppress-p\",\"msg\":\"x\",\"nullable\":null}]");
+        runner.run();
+
+        assertEquals("suppress-p", ops.getFirst().getHeaderFields().get("pipeline"));
+        final String content = docContent(ops.getFirst());
+        assertFalse(content.contains("\"pipeline\""), "pipeline field stripped on the suppressing path");
+        assertTrue(content.contains("msg"));
     }
 }
