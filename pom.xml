@@ -180,6 +180,7 @@
         <okhttp.version>5.5.0</okhttp.version>
         <okio.version>3.18.1</okio.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
+        <org.apache.httpcomponents.httpclient5.version>5.6.4</org.apache.httpcomponents.httpclient5.version>
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
         <org.apache.httpcomponents.httpcore5.version>5.4.3</org.apache.httpcomponents.httpcore5.version>
         <org.apache.sshd.version>2.19.0</org.apache.sshd.version>
@@ -369,6 +370,16 @@
                 <groupId>org.apache.httpcomponents.core5</groupId>
                 <artifactId>httpcore5-h2</artifactId>
                 <version>${org.apache.httpcomponents.httpcore5.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5</artifactId>
+                <version>${org.apache.httpcomponents.httpclient5.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5-cache</artifactId>
+                <version>${org.apache.httpcomponents.httpclient5.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>

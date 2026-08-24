@@ -124,4 +124,5 @@ jobs:
           sbom: nifi-${{ env.PROJECT_VERSION }}.spdx.json
           severity-cutoff: 'medium'
           only-fixed: true
+          output-format: table
           fail-build: ${{ github.ref_name == 'main' && 'true' || 'false' }}
