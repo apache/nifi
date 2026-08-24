@@ -166,11 +166,6 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
     a11ySearchLabel = input('Search');
     a11yClearSearchLabel = input('Clear search');
 
-    // Grouped + virtual is unsupported for duplicate-value keyboard highlighting: virtual rows
-    // still use value-based isOptionActiveByValue, which can mark multiple rows active when the
-    // same value appears in more than one group. Reference-identity highlighting (activeOptionRef)
-    // is implemented for non-virtual grouped lists only. No current usage combines grouped options
-    // with enableVirtualScrolling.
     enableVirtualScrolling = input(false);
     virtualScrollItemSize = input(32); // 32 for no description, 54 for description. Both assume no line wrapping.
     virtualScrollMinBufferPx = input(200);
@@ -835,14 +830,18 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
 
     private toggleOption(value: T) {
         if (this.enableVirtualScrolling()) {
+            // Grouped virtual lists navigate by option reference so duplicate values still resolve
+            // to the highlighted row. The form value remains the option value, as with every other
+            // searchable-select mode.
+            const activeValue = this.activeOptionRef()?.value ?? value;
             if (this.multiple()) {
                 const currentValues = [...this._virtualSelectedValues];
-                const index = currentValues.indexOf(value);
+                const index = currentValues.indexOf(activeValue);
 
                 if (index > -1) {
                     currentValues.splice(index, 1);
                 } else {
-                    currentValues.push(value);
+                    currentValues.push(activeValue);
                 }
 
                 this.updateVirtualSelectedValues(currentValues);
@@ -850,7 +849,7 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
                 this.emitIfChanged(formValue);
                 this.syncMatSelectValue();
             } else {
-                const newValue = this._virtualSelectedValues.includes(value) ? null : value;
+                const newValue = this._virtualSelectedValues.includes(activeValue) ? null : activeValue;
                 this.updateVirtualSelectedValues(newValue ? [newValue] : []);
                 this.emitIfChanged(newValue);
                 this.syncMatSelectValue();
@@ -908,6 +907,11 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
      */
     getVisibleOptions(): FilteredSearchableSelectOption<T>[] {
         if (this.enableVirtualScrolling()) {
+            if (this.hasGroupedOptions()) {
+                const groups = this.groupedOptions();
+                return groups ? groups.flatMap((group) => group.options) : [];
+            }
+
             const searchTerm = this._searchString?.toLowerCase();
 
             if (!searchTerm || this.asyncSearchEnabled()) {
@@ -1020,14 +1024,16 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
         return option.value;
     };
 
-    trackByVirtualItem = (index: number, item: VirtualItem<T>): T | string => {
+    trackByVirtualItem = (index: number, item: VirtualItem<T>): FilteredSearchableSelectOption<T> | T | string => {
         if (this.isFooterItem(item)) {
             return `__footer-${(item as FooterItem).__kind}`;
         }
         if (this.isGroupHeaderItem(item)) {
             return `__group-header-${(item as GroupHeaderItem).groupId}`;
         }
-        return (item as FilteredSearchableSelectOption<T>).value;
+        // Option values are not guaranteed unique across groups. The option objects are stable
+        // within a rendered batch and preserve row identity for CDK virtual-scroll diffing.
+        return item as FilteredSearchableSelectOption<T>;
     };
 
     isFooterItem(item: VirtualItem<T>): item is FooterItem {
@@ -1048,6 +1054,19 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
             return null;
         }
         return item as FilteredSearchableSelectOption<T>;
+    }
+
+    isVirtualOptionActive(item: VirtualItem<T>): boolean {
+        const option = this.asOptionItem(item);
+        if (!option) {
+            return false;
+        }
+
+        if (this.hasGroupedOptions()) {
+            return this._isNavigating && this.activeOptionRef() === option;
+        }
+
+        return this.isOptionActiveByValue(option.value);
     }
 
     getItemValue(item: VirtualItem<T>): T {

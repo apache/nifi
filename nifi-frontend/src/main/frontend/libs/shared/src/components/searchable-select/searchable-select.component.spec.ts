@@ -2388,6 +2388,26 @@ describe('SearchableSelect', () => {
         });
 
         describe('Virtual scrolling with groups', () => {
+            function createNavKeyEvent(key: string): KeyboardEvent {
+                return {
+                    key,
+                    preventDefault: vi.fn(),
+                    stopPropagation: vi.fn(),
+                    stopImmediatePropagation: vi.fn()
+                } as unknown as KeyboardEvent;
+            }
+
+            async function openVirtualGroupedPanel(
+                fixture: Awaited<ReturnType<typeof setupGrouped>>['fixture'],
+                component: Awaited<ReturnType<typeof setupGrouped>>['component']
+            ) {
+                component.selectionPanelToggled(true);
+                component.select().open();
+                fixture.detectChanges();
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                fixture.detectChanges();
+            }
+
             it('should include group headers in virtual items', async () => {
                 const { component } = await setupGrouped({ enableVirtualScrolling: true });
 
@@ -2425,30 +2445,143 @@ describe('SearchableSelect', () => {
 
                 expect(component.trackByVirtualItem(0, header)).toBe('__group-header-AWS Secrets Manager');
 
-                expect(component.trackByVirtualItem(1, option)).toBe('aws-1');
+                expect(component.trackByVirtualItem(1, option)).toBe(option);
             });
 
-            it('documents that virtual + groups highlight is value-based (duplicate values unsupported)', async () => {
-                // Grouped + virtual does not use activeOptionRef; isOptionActiveByValue matches by
-                // value, so two rows sharing a value both appear active. This test locks that
-                // documented limitation rather than implementing reference-identity for virtual.
+            it('should navigate grouped virtual options in rendered group order', async () => {
+                const interleavedOptions = [
+                    { value: 'az-1', label: 'Azure 1', group: 'Azure Key Vault' },
+                    { value: 'aws-1', label: 'AWS 1', group: 'AWS Secrets Manager' },
+                    { value: 'plain', label: 'Ungrouped' },
+                    { value: 'az-2', label: 'Azure 2', group: 'Azure Key Vault' }
+                ];
+                const { component, fixture } = await setupGrouped({
+                    options: interleavedOptions,
+                    enableVirtualScrolling: true
+                });
+
+                await openVirtualGroupedPanel(fixture, component);
+
+                // Rendering puts ungrouped options first, then groups alphabetically.
+                expect(component.getVisibleOptions().map((option) => option.value)).toEqual([
+                    'plain',
+                    'aws-1',
+                    'az-1',
+                    'az-2'
+                ]);
+
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                expect(component['activeOptionRef']()?.value).toBe('plain');
+
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                expect(component['activeOptionRef']()?.value).toBe('aws-1');
+
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                expect(component['activeOptionRef']()?.value).toBe('az-1');
+            });
+
+            it('should assign activeOptionId to exactly one virtual row when groups share a value', async () => {
                 const duplicateValueOptions = [
                     { value: 'dup', label: 'In AWS', group: 'AWS Secrets Manager' },
                     { value: 'dup', label: 'In Azure', group: 'Azure Key Vault' }
                 ];
-                const { component } = await setupGrouped({
+                const { component, fixture } = await setupGrouped({
                     options: duplicateValueOptions,
                     enableVirtualScrolling: true
                 });
 
-                component['_isNavigating'] = true;
-                component['_activeOptionIndex'] = 0;
+                await openVirtualGroupedPanel(fixture, component);
 
-                expect(component.isOptionActiveByValue('dup')).toBe(true);
-                // Value-based: both duplicate rows match the active value (unsupported ambiguity).
-                const visible = component.getVisibleOptions().filter((o) => o.value === 'dup');
-                expect(visible.length).toBe(2);
-                expect(visible.every((o) => component.isOptionActiveByValue(o.value))).toBe(true);
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+
+                expect(component['activeOptionRef']()?.label).toBe('In Azure');
+                const overlayContainer = document.querySelector('.cdk-overlay-container');
+                const activeOptions = overlayContainer?.querySelectorAll(`#${component.activeOptionId}`) ?? [];
+                expect(activeOptions.length).toBe(1);
+                expect(activeOptions[0].textContent).toContain('In Azure');
+            });
+
+            it('should select the highlighted duplicate-value virtual row with Enter', async () => {
+                const duplicateValueOptions = [
+                    { value: 'dup', label: 'In AWS', group: 'AWS Secrets Manager' },
+                    { value: 'dup', label: 'In Azure', group: 'Azure Key Vault' }
+                ];
+                const { component, fixture } = await setupGrouped({
+                    options: duplicateValueOptions,
+                    enableVirtualScrolling: true
+                });
+                const onChange = vi.fn();
+                component.registerOnChange(onChange);
+
+                await openVirtualGroupedPanel(fixture, component);
+
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                expect(component['activeOptionRef']()?.label).toBe('In Azure');
+
+                component.onSearchInputKeydown(createNavKeyEvent('Enter'));
+                fixture.detectChanges();
+
+                expect(onChange).toHaveBeenCalledWith('dup');
+            });
+
+            it('should toggle the same duplicate-value virtual row twice in multi-select via Enter', async () => {
+                const duplicateValueOptions = [
+                    { value: 'dup', label: 'In AWS', group: 'AWS Secrets Manager' },
+                    { value: 'dup', label: 'In Azure', group: 'Azure Key Vault' }
+                ];
+                const { component, fixture } = await setupGrouped({
+                    options: duplicateValueOptions,
+                    enableVirtualScrolling: true,
+                    multiple: true
+                });
+                const onChange = vi.fn();
+                component.registerOnChange(onChange);
+
+                await openVirtualGroupedPanel(fixture, component);
+
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                const highlighted = component['activeOptionRef']();
+                expect(highlighted?.label).toBe('In Azure');
+
+                component.onSearchInputKeydown(createNavKeyEvent('Enter'));
+                fixture.detectChanges();
+                expect(onChange).toHaveBeenLastCalledWith(['dup']);
+                expect(component['activeOptionRef']()).toBe(highlighted);
+
+                component.onSearchInputKeydown(createNavKeyEvent('Enter'));
+                fixture.detectChanges();
+                expect(onChange).toHaveBeenLastCalledWith([]);
+                expect(component['activeOptionRef']()).toBe(highlighted);
+                expect(component.select().panelOpen).toBe(true);
+            });
+
+            it('should retain active identity while scrolling a grouped virtual option outside the rendered buffer', async () => {
+                const manyOptions = Array.from({ length: 30 }, (_, index) => ({
+                    value: `value-${index}`,
+                    label: `Option ${index}`,
+                    group: index % 2 === 0 ? 'AWS Secrets Manager' : 'Azure Key Vault'
+                }));
+                const { component, fixture } = await setupGrouped({
+                    options: manyOptions,
+                    enableVirtualScrolling: true
+                });
+
+                await openVirtualGroupedPanel(fixture, component);
+
+                const viewport = component.virtualScrollViewport();
+                expect(viewport).toBeTruthy();
+                const scrollToOffsetSpy = vi.spyOn(viewport!, 'scrollToOffset');
+
+                for (let i = 0; i < 20; i++) {
+                    component.onSearchInputKeydown(createNavKeyEvent('ArrowDown'));
+                }
+
+                const activeOption = component.getVisibleOptions()[component['_activeOptionIndex']];
+                expect(component['activeOptionRef']()).toBe(activeOption);
+                expect(scrollToOffsetSpy).toHaveBeenCalled();
             });
         });
 

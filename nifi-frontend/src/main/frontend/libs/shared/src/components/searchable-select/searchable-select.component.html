@@ -79,7 +79,7 @@
             </div>
 
             <!-- Unified ghost options for both virtual and non-virtual modes -->
-            @for (ghostOption of getGhostOptions(); track ghostOption.value) {
+            @for (ghostOption of getGhostOptions(); track $index) {
                 <multi-select-option
                     [value]="ghostOption.value"
                     [disabled]="disabled || ghostOption.disabled"
@@ -152,20 +152,13 @@
                                     {{ getGroupHeaderLabel(item) }}
                                 </div>
                             } @else {
-                                <!-- Virtual highlight is value-based (isOptionActiveByValue). Grouped +
-                                     virtual with duplicate values across groups is unsupported; see
-                                     enableVirtualScrolling input comment. -->
                                 <multi-select-option
                                     [value]="getItemValue(item)"
                                     [disabled]="disabled || getItemDisabled(item)"
                                     [virtuallySelected]="isVirtualOptionSelected(getItemValue(item))"
-                                    [id]="
-                                        isOptionActiveByValue(getItemValue(item))
-                                            ? activeOptionId
-                                            : getOptionId(virtualIndex)
-                                    "
+                                    [id]="isVirtualOptionActive(item) ? activeOptionId : getOptionId(virtualIndex)"
                                     [attr.aria-selected]="isVirtualOptionSelected(getItemValue(item))"
-                                    [class.mat-mdc-option-active]="isOptionActiveByValue(getItemValue(item))"
+                                    [class.mat-mdc-option-active]="isVirtualOptionActive(item)"
                                     role="option">
                                     @if (getItemSvgIcon(item)) {
                                         <mat-icon class="shrink-0" [svgIcon]="getItemSvgIcon(item)"></mat-icon>
