@@ -208,6 +208,11 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
 
     protected activeTemplateIndex = signal<number>(-1);
 
+    // Reference identity of the currently active option, used by grouped rendering to mark exactly
+    // one option active. Reference-based (not value-based) so two options that share a value can
+    // never both receive activeOptionId, which would produce a duplicate DOM id.
+    protected activeOptionRef = signal<FilteredSearchableSelectOption<T> | null>(null);
+
     private filteredOptionsEffect = effect(() => {
         void this.filteredOptions();
         this.updateActiveTemplateIndex();
@@ -360,8 +365,11 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
                 this.searchInput().nativeElement.focus();
                 this.startOverlayAutoReposition();
             }, 0);
+            // Reset keyboard navigation state (including activeOptionRef via updateActiveTemplateIndex)
             this._activeOptionIndex = -1;
             this._isNavigating = false;
+            this.updateActiveDescendant();
+            this.updateActiveTemplateIndex();
         }
         if (!open) {
             this.stopOverlayAutoReposition();
@@ -372,8 +380,13 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
                 this.resetFilter();
             }
             this.select().focus();
+            // Reset navigation state when closing
             this._activeOptionIndex = -1;
             this._isNavigating = false;
+            // Defense in depth: any arm-without-consume path (e.g. Enter on an already-selected
+            // option, which emits no valueChange) must not leak across panel close into the
+            // closed-panel Material arrow auto-select ACCEPT path.
+            this._allowNextValueChange = false;
             this.updateActiveDescendant();
             this.updateActiveTemplateIndex();
         }
@@ -525,8 +538,16 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
         if (event.key === 'Escape') {
             event.preventDefault();
             event.stopPropagation();
-            this.select().close();
+            // Clear nav state here (not only on openedChange): close() may not emit openedChange
+            // in all test/harness paths, and a partial index-only reset left _isNavigating /
+            // activeOptionRef stale. Disarm the value-change permission for the same reason so it
+            // cannot leak into Material's closed-panel arrow auto-select path.
             this._activeOptionIndex = -1;
+            this._isNavigating = false;
+            this._allowNextValueChange = false;
+            this.updateActiveDescendant();
+            this.updateActiveTemplateIndex();
+            this.select().close();
         }
     }
 
@@ -682,9 +703,10 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
         }
 
         this._isNavigating = true;
-        this.scrollToActiveOption();
         this.updateActiveDescendant();
         this.updateActiveTemplateIndex();
+        this.cdr.detectChanges();
+        this.scrollToActiveOption();
     }
 
     private handlePageNavigation(key: string) {
@@ -722,9 +744,10 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
         }
 
         this._isNavigating = true;
-        this.scrollToActiveOption();
         this.updateActiveDescendant();
         this.updateActiveTemplateIndex();
+        this.cdr.detectChanges();
+        this.scrollToActiveOption();
     }
 
     private handleEnterKey() {
@@ -732,9 +755,24 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
             const visibleOptions = this.getVisibleOptions();
             const activeOption = visibleOptions[this._activeOptionIndex];
             if (activeOption && !activeOption.disabled) {
+                // When toggleOption() triggers mat-select to change the value, onValueChanged() will fire.
+                // Since we set this flag, onValueChanged() will know this is an intentional change.
                 this._allowNextValueChange = true;
-                this._isNavigating = false;
                 this.toggleOption(activeOption.value);
+                // Re-selecting the already-selected option emits no mat-select value change, so
+                // onValueChanged never runs to consume the permission. Leaving it armed would let
+                // the next arrow-key auto-selection be accepted as intentional. onValueChanged
+                // already disarms it when a real change fires, so clearing here is idempotent.
+                this._allowNextValueChange = false;
+                // Multi-select keeps the panel open and must retain highlight identity so a second
+                // Enter (toggle-off) still resolves via activeOptionId / activeOptionRef rather than
+                // an ambiguous value-based QueryList find when duplicates exist across groups.
+                // Single-select closes the panel; selectionPanelToggled(false) clears nav state.
+                if (!this.multiple()) {
+                    this._isNavigating = false;
+                    this.updateActiveDescendant();
+                    this.updateActiveTemplateIndex();
+                }
             }
         }
     }
@@ -761,7 +799,8 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
                     }
                 }
             } else {
-                const activeOptionElement = document.getElementById(this.getOptionId(this._activeOptionIndex));
+                // Non-virtual mode - scroll the active option into view using standard DOM scrolling
+                const activeOptionElement = document.getElementById(this.activeOptionId);
                 if (activeOptionElement) {
                     activeOptionElement.scrollIntoView({
                         behavior: 'smooth',
@@ -791,14 +830,18 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
 
     private toggleOption(value: T) {
         if (this.enableVirtualScrolling()) {
+            // Grouped virtual lists navigate by option reference so duplicate values still resolve
+            // to the highlighted row. The form value remains the option value, as with every other
+            // searchable-select mode.
+            const activeValue = this.activeOptionRef()?.value ?? value;
             if (this.multiple()) {
                 const currentValues = [...this._virtualSelectedValues];
-                const index = currentValues.indexOf(value);
+                const index = currentValues.indexOf(activeValue);
 
                 if (index > -1) {
                     currentValues.splice(index, 1);
                 } else {
-                    currentValues.push(value);
+                    currentValues.push(activeValue);
                 }
 
                 this.updateVirtualSelectedValues(currentValues);
@@ -806,7 +849,7 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
                 this.emitIfChanged(formValue);
                 this.syncMatSelectValue();
             } else {
-                const newValue = this._virtualSelectedValues.includes(value) ? null : value;
+                const newValue = this._virtualSelectedValues.includes(activeValue) ? null : activeValue;
                 this.updateVirtualSelectedValues(newValue ? [newValue] : []);
                 this.emitIfChanged(newValue);
                 this.syncMatSelectValue();
@@ -815,48 +858,37 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
 
             this.cdr.detectChanges();
         } else {
-            const visibleOptions = this.getVisibleOptions();
-            const activeOptionWithIndex = visibleOptions[
-                this._activeOptionIndex
-            ] as FilteredSearchableSelectOption<T> & { templateIndex?: number };
+            // Non-virtual mode: select through MatSelect's MatOption instances. This mirrors a
+            // real user click (MatOption binds `(click)="_selectViaInteraction()"`), so it toggles
+            // correctly for multi-select and drives the same (valueChange) -> onValueChanged() flow,
+            // without depending on our own flat/group id scheme.
+            //
+            // Resolve order (duplicate-value safe):
+            // 1. Unique active id (`opt.id === activeOptionId`) while navigating
+            // 2. activeOptionRef -> visible-index -> non-ghost MatOption (reference identity)
+            // 3. Enabled, non-ghost value match (last resort; ambiguous when values duplicate)
+            //
+            // `_selectViaInteraction` is a private Angular Material API, but it is the canonical
+            // "user selected this option" entry point; the public `select()`/`deselect()` skip the
+            // isUserInput signal and the multi-select toggle semantics we need here.
+            // Material/CDK bumps must re-verify this Enter path; searchable-select Enter specs are
+            // the tripwire if the private method disappears or changes.
+            const options = this.select().options;
+            const nonGhostOptions = options.filter((opt) => !opt._getHostElement().classList.contains('ghost-option'));
+            const activeRef = this.activeOptionRef();
+            const activeRefIndex = activeRef ? this.getVisibleOptions().indexOf(activeRef) : -1;
+            const match =
+                options.find((opt) => opt.id === this.activeOptionId) ??
+                (activeRefIndex >= 0 ? nonGhostOptions[activeRefIndex] : undefined) ??
+                nonGhostOptions.find((opt) => opt.value === value && !opt.disabled);
 
-            const templateIndex = activeOptionWithIndex?.templateIndex ?? this._activeOptionIndex;
-            const activeOptionId = this.getOptionId(templateIndex);
-            let optionElement = document.getElementById(activeOptionId);
-
-            if (!optionElement) {
-                const allOptions = document.querySelectorAll('multi-select-option');
-                allOptions.forEach((element) => {
-                    const htmlElement = element as HTMLElement & { value: T };
-                    if (htmlElement.value === value) {
-                        optionElement = element as HTMLElement;
-                    }
-                });
+            if (match) {
+                match._selectViaInteraction();
+            } else {
+                // Nothing resolved (e.g. options not yet rendered): don't leave the permission
+                // flag armed, or a later value change could be accepted unintentionally.
+                this._allowNextValueChange = false;
             }
-
-            if (optionElement) {
-                const clickEvent = new MouseEvent('click', {
-                    view: window,
-                    bubbles: true,
-                    cancelable: true
-                });
-                optionElement.dispatchEvent(clickEvent);
-            }
-        }
-    }
-
-    isOptionActive(index: number): boolean {
-        if (!this._isNavigating) return false;
-
-        if (this.enableVirtualScrolling()) {
-            return this._activeOptionIndex === index;
-        } else {
-            const visibleOptions = this.getVisibleOptions();
-            const activeOption = visibleOptions[this._activeOptionIndex] as FilteredSearchableSelectOption<T> & {
-                templateIndex?: number;
-            };
-            const templateIndex = activeOption?.templateIndex;
-            return templateIndex === index;
         }
     }
 
@@ -875,6 +907,11 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
      */
     getVisibleOptions(): FilteredSearchableSelectOption<T>[] {
         if (this.enableVirtualScrolling()) {
+            if (this.hasGroupedOptions()) {
+                const groups = this.groupedOptions();
+                return groups ? groups.flatMap((group) => group.options) : [];
+            }
+
             const searchTerm = this._searchString?.toLowerCase();
 
             if (!searchTerm || this.asyncSearchEnabled()) {
@@ -987,14 +1024,16 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
         return option.value;
     };
 
-    trackByVirtualItem = (index: number, item: VirtualItem<T>): T | string => {
+    trackByVirtualItem = (index: number, item: VirtualItem<T>): FilteredSearchableSelectOption<T> | T | string => {
         if (this.isFooterItem(item)) {
             return `__footer-${(item as FooterItem).__kind}`;
         }
         if (this.isGroupHeaderItem(item)) {
             return `__group-header-${(item as GroupHeaderItem).groupId}`;
         }
-        return (item as FilteredSearchableSelectOption<T>).value;
+        // Option values are not guaranteed unique across groups. The option objects are stable
+        // within a rendered batch and preserve row identity for CDK virtual-scroll diffing.
+        return item as FilteredSearchableSelectOption<T>;
     };
 
     isFooterItem(item: VirtualItem<T>): item is FooterItem {
@@ -1015,6 +1054,19 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
             return null;
         }
         return item as FilteredSearchableSelectOption<T>;
+    }
+
+    isVirtualOptionActive(item: VirtualItem<T>): boolean {
+        const option = this.asOptionItem(item);
+        if (!option) {
+            return false;
+        }
+
+        if (this.hasGroupedOptions()) {
+            return this._isNavigating && this.activeOptionRef() === option;
+        }
+
+        return this.isOptionActiveByValue(option.value);
     }
 
     getItemValue(item: VirtualItem<T>): T {
@@ -1092,6 +1144,15 @@ export class SearchableSelect<T = never> implements ControlValueAccessor, OnInit
     }
 
     private updateActiveTemplateIndex(): void {
+        // Maintain the active option reference used by grouped rendering. Reference identity marks
+        // exactly one option active even if two options share a value.
+        if (this._isNavigating && this._activeOptionIndex >= 0 && this.hasGroupedOptions()) {
+            const visible = this.getVisibleOptions();
+            this.activeOptionRef.set(visible[this._activeOptionIndex] ?? null);
+        } else {
+            this.activeOptionRef.set(null);
+        }
+
         if (!this._isNavigating) {
             this.activeTemplateIndex.set(-1);
             return;
