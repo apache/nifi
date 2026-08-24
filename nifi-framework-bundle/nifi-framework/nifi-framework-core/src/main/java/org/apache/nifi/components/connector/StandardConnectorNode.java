@@ -430,8 +430,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
     /**
      * Fills in the default value for any required property that has no value in the migrated configuration, so a NAR
-     * upgrade that adds a required property with a default does not make the Connector invalid. Only required
-     * properties are filled, so inheriting a default cannot activate a dependent property. A step the Connector
+     * upgrade that adds a required property with a default does not make the Connector invalid. A step the Connector
      * removed during migration (present in {@code persistedStepNames} but absent from {@code migratedProperties}) is
      * not re-created; a declared step in neither is newly added by this version and is created, but only if at least
      * one required default applies to it.
