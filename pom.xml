@@ -119,7 +119,7 @@
 
         <!-- NiFi build -->
         <nifi-api.version>2.10.0</nifi-api.version>
-        <nifi.nar.maven.plugin.version>2.3.0</nifi.nar.maven.plugin.version>
+        <nifi.nar.maven.plugin.version>2.4.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
         <software.amazon.awssdk.version>2.54.0</software.amazon.awssdk.version>
