@@ -180,40 +180,66 @@ describe('PropertyGroupCard', () => {
             expect(component.hasValue('Host')).toBe(false);
         });
 
-        it('should return true for SECRET_REFERENCE regardless of value', async () => {
+        it('should return true for a SECRET_REFERENCE with a non-empty composite key', async () => {
             const { component } = await setup({
                 propertyGroup: makeGroup({
+                    propertyDescriptors: {
+                        Password: { name: 'Password', type: 'SECRET', required: true }
+                    },
                     propertyValues: {
-                        Host: { valueType: 'SECRET_REFERENCE' }
+                        Password: {
+                            valueType: 'SECRET_REFERENCE',
+                            secretProviderId: 'provider-1',
+                            secretProviderName: 'Vault',
+                            fullyQualifiedSecretName: 'group.my-secret'
+                        }
                     }
                 })
             });
-            expect(component.hasValue('Host')).toBe(true);
+            expect(component.hasValue('Password')).toBe(true);
         });
 
-        it('should return true for ASSET_REFERENCE with entries', async () => {
+        it('should return false for a SECRET with only a descriptor default and no saved reference', async () => {
             const { component } = await setup({
                 propertyGroup: makeGroup({
+                    propertyDescriptors: {
+                        Password: { name: 'Password', type: 'SECRET', required: true, defaultValue: 'changeme' }
+                    },
+                    propertyValues: {}
+                })
+            });
+            expect(component.hasValue('Password')).toBe(false);
+        });
+
+        it('should return true for an ASSET with assetReferences', async () => {
+            const { component } = await setup({
+                propertyGroup: makeGroup({
+                    propertyDescriptors: {
+                        Cert: { name: 'Cert', type: 'ASSET', required: false }
+                    },
                     propertyValues: {
-                        Host: {
+                        Cert: {
                             valueType: 'ASSET_REFERENCE',
                             assetReferences: [{ id: 'asset-1', name: 'cert.pem' }]
                         }
                     }
                 })
             });
-            expect(component.hasValue('Host')).toBe(true);
+            expect(component.hasValue('Cert')).toBe(true);
         });
 
-        it('should return false for ASSET_REFERENCE with empty array', async () => {
+        it('should return false for an ASSET with empty assetReferences', async () => {
             const { component } = await setup({
                 propertyGroup: makeGroup({
+                    propertyDescriptors: {
+                        Cert: { name: 'Cert', type: 'ASSET', required: false }
+                    },
                     propertyValues: {
-                        Host: { valueType: 'ASSET_REFERENCE', assetReferences: [] }
+                        Cert: { valueType: 'ASSET_REFERENCE', assetReferences: [] }
                     }
                 })
             });
-            expect(component.hasValue('Host')).toBe(false);
+            expect(component.hasValue('Cert')).toBe(false);
         });
     });
 
@@ -226,19 +252,42 @@ describe('PropertyGroupCard', () => {
         it('should return masked text for SECRET_REFERENCE', async () => {
             const { component } = await setup({
                 propertyGroup: makeGroup({
+                    propertyDescriptors: {
+                        Password: { name: 'Password', type: 'SECRET', required: true }
+                    },
                     propertyValues: {
-                        Host: { valueType: 'SECRET_REFERENCE' }
+                        Password: {
+                            valueType: 'SECRET_REFERENCE',
+                            secretProviderId: 'provider-1',
+                            secretProviderName: 'Vault',
+                            fullyQualifiedSecretName: 'group.my-secret'
+                        }
                     }
                 })
             });
-            expect(component.getDisplayValueForProperty('Host')).toBe('••••••••');
+            expect(component.getDisplayValueForProperty('Password')).toBe('••••••••');
+        });
+
+        it('should not leak a SECRET descriptor default as visible text', async () => {
+            const { component } = await setup({
+                propertyGroup: makeGroup({
+                    propertyDescriptors: {
+                        Password: { name: 'Password', type: 'SECRET', required: true, defaultValue: 'changeme' }
+                    },
+                    propertyValues: {}
+                })
+            });
+            expect(component.getDisplayValueForProperty('Password')).toBe('••••••••');
         });
 
         it('should return comma-separated asset names for ASSET_REFERENCE', async () => {
             const { component } = await setup({
                 propertyGroup: makeGroup({
+                    propertyDescriptors: {
+                        Cert: { name: 'Cert', type: 'ASSET', required: false }
+                    },
                     propertyValues: {
-                        Host: {
+                        Cert: {
                             valueType: 'ASSET_REFERENCE',
                             assetReferences: [
                                 { id: 'a1', name: 'cert.pem' },
@@ -248,21 +297,24 @@ describe('PropertyGroupCard', () => {
                     }
                 })
             });
-            expect(component.getDisplayValueForProperty('Host')).toBe('cert.pem, key.pem');
+            expect(component.getDisplayValueForProperty('Cert')).toBe('cert.pem, key.pem');
         });
 
         it('should fall back to asset id when name is missing', async () => {
             const { component } = await setup({
                 propertyGroup: makeGroup({
+                    propertyDescriptors: {
+                        Cert: { name: 'Cert', type: 'ASSET', required: false }
+                    },
                     propertyValues: {
-                        Host: {
+                        Cert: {
                             valueType: 'ASSET_REFERENCE',
                             assetReferences: [{ id: 'a1' }]
                         }
                     }
                 })
             });
-            expect(component.getDisplayValueForProperty('Host')).toBe('a1');
+            expect(component.getDisplayValueForProperty('Cert')).toBe('a1');
         });
 
         it('should return empty string when no value reference exists', async () => {

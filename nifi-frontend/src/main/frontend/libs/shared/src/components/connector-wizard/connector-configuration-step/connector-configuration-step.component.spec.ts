@@ -428,10 +428,11 @@ describe('SharedConnectorConfigurationStep', () => {
                     dependencies: [{ propertyName: 'mode', dependentValues: ['advanced'] }]
                 })
             ]);
-            const { component } = await setup({ stepConfig });
+            const { component, fixture } = await setup({ stepConfig });
+            // setupFormSubscription is deferred with Promise.resolve() — same wait as the form-changes tests
+            await fixture.whenStable();
 
             component.setPropertyValue('mode', 'advanced');
-            component['computeAllPropertyVisibility']();
 
             expect(component.stepForm.get('advanced-setting')?.enabled).toBe(true);
             expect(component.isPropertyVisible(makeProp('advanced-setting'))).toBe(true);
@@ -446,12 +447,12 @@ describe('SharedConnectorConfigurationStep', () => {
                     dependencies: [{ propertyName: 'enableImageExtraction', dependentValues: ['true'] }]
                 })
             ]);
-            const { component } = await setup({ stepConfig });
+            const { component, fixture } = await setup({ stepConfig });
+            await fixture.whenStable();
 
             expect(component.isPropertyVisible(makeProp('extractionMode'))).toBe(false);
 
             component.setPropertyValue('enableImageExtraction', true);
-            component['computeAllPropertyVisibility']();
 
             expect(component.stepForm.get('extractionMode')?.enabled).toBe(true);
             expect(component.isPropertyVisible(makeProp('extractionMode'))).toBe(true);
@@ -464,12 +465,12 @@ describe('SharedConnectorConfigurationStep', () => {
                     dependencies: [{ propertyName: 'enableImageExtraction', dependentValues: ['true'] }]
                 })
             ]);
-            const { component } = await setup({ stepConfig });
+            const { component, fixture } = await setup({ stepConfig });
+            await fixture.whenStable();
 
             expect(component.isPropertyVisible(makeProp('extractionMode'))).toBe(true);
 
             component.setPropertyValue('enableImageExtraction', false);
-            component['computeAllPropertyVisibility']();
 
             expect(component.isPropertyVisible(makeProp('extractionMode'))).toBe(false);
         });
@@ -490,10 +491,10 @@ describe('SharedConnectorConfigurationStep', () => {
                 makeProp('optional-host'),
                 makeProp('host-port', { dependencies: [{ propertyName: 'optional-host' }] })
             ]);
-            const { component } = await setup({ stepConfig });
+            const { component, fixture } = await setup({ stepConfig });
+            await fixture.whenStable();
 
             component.setPropertyValue('optional-host', 'myhost.com');
-            component['computeAllPropertyVisibility']();
 
             expect(component.stepForm.get('host-port')?.enabled).toBe(true);
         });
