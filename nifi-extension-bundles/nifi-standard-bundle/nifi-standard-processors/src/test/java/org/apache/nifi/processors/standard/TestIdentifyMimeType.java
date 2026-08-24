@@ -108,7 +108,7 @@ class TestIdentifyMimeType {
         expectedCharsets.put("bgBannerFoot.png", null);
         expectedCharsets.put("blueBtnBg.jpg", null);
         expectedCharsets.put("grid.gif", null);
-        expectedCharsets.put("2.custom", "ISO-8859-1");
+        expectedCharsets.put("2.custom", "windows-1252");
 
         return Arrays.stream(getTestFiles())
                 .map(testFile -> Arguments.argumentSet(testFile.getName(), testFile, expectedMimeTypes, expectedExtensions, expectedCharsets));
@@ -452,8 +452,8 @@ class TestIdentifyMimeType {
         final Map<String, String> expectedCharsets = new HashMap<>();
         expectedCharsets.put("1.7z", null);
         expectedCharsets.put("1.accdb", null);
-        expectedCharsets.put("1.txt", "ISO-8859-1");
-        expectedCharsets.put("1.csv", "ISO-8859-1");
+        expectedCharsets.put("1.txt", "windows-1252");
+        expectedCharsets.put("1.csv", "windows-1252");
         expectedCharsets.put("1.txt.bz2", null);
         expectedCharsets.put("1.txt.gz", null);
         expectedCharsets.put("1.zip", null);
@@ -466,7 +466,7 @@ class TestIdentifyMimeType {
         expectedCharsets.put("flowfilev3", null);
         expectedCharsets.put("flowfilev3WithXhtml", null);
         expectedCharsets.put("flowfilev1.tar", null);
-        expectedCharsets.put("fake.csv", "ISO-8859-1");
+        expectedCharsets.put("fake.csv", "windows-1252");
         expectedCharsets.put("charset-utf-8.txt", "UTF-8");
         return expectedCharsets;
     }
