@@ -172,13 +172,19 @@ export function fromValueReference(
                 break;
             }
             case 'SECRET_REFERENCE':
-                // Return composite key to uniquely identify the secret
-                // Format: providerId::providerName::fullyQualifiedName
-                rawValue = buildSecretKey(
-                    valueRef.secretProviderId,
-                    valueRef.secretProviderName,
-                    valueRef.fullyQualifiedSecretName
-                );
+                // If no secret has been selected yet (no FQN and no secret name),
+                // return undefined so the select shows placeholder instead of "(no longer available)"
+                if (!valueRef.fullyQualifiedSecretName && !valueRef.secretName) {
+                    rawValue = undefined;
+                } else {
+                    // Return composite key to uniquely identify the secret
+                    // Format: providerId::providerName::fullyQualifiedName
+                    rawValue = buildSecretKey(
+                        valueRef.secretProviderId,
+                        valueRef.secretProviderName,
+                        valueRef.fullyQualifiedSecretName
+                    );
+                }
                 break;
             default:
                 // Fallback for unknown types - try to get value

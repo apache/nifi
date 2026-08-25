@@ -48,6 +48,11 @@ export function hasPropertyValue(
         if (valueRef.valueType !== 'SECRET_REFERENCE') {
             return false;
         }
+        // An unconfigured secret may carry a provider name but no secret selection,
+        // so it has neither a fullyQualifiedSecretName nor a secretName. Treat as unset.
+        if (!valueRef.fullyQualifiedSecretName && !valueRef.secretName) {
+            return false;
+        }
         const secretKey = buildSecretKey(
             valueRef.secretProviderId,
             valueRef.secretProviderName,

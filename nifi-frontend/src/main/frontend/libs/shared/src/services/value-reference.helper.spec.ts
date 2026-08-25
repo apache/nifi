@@ -44,5 +44,42 @@ describe('Value Reference Helper', () => {
         it('preserves a null BOOLEAN value so callers can use the descriptor default', () => {
             expect(fromValueReference({ value: null, valueType: 'STRING_LITERAL' }, 'BOOLEAN')).toBeNull();
         });
+
+        describe('SECRET type', () => {
+            it('should return composite key for populated SECRET_REFERENCE', () => {
+                const valueRef = {
+                    valueType: 'SECRET_REFERENCE' as const,
+                    secretProviderId: 'provider-123',
+                    secretProviderName: 'My Provider',
+                    secretName: 'my-secret',
+                    fullyQualifiedSecretName: 'My Provider.group.my-secret'
+                };
+
+                const result = fromValueReference(valueRef, 'SECRET');
+
+                expect(result).toBe('provider-123::My Provider::My Provider.group.my-secret');
+            });
+
+            it('should return undefined for unconfigured SECRET_REFERENCE with providerName only', () => {
+                const valueRef = {
+                    valueType: 'SECRET_REFERENCE' as const,
+                    secretProviderName: 'Local Parameter Provider'
+                };
+
+                const result = fromValueReference(valueRef, 'SECRET');
+
+                expect(result).toBeUndefined();
+            });
+
+            it('should return undefined for SECRET_REFERENCE with all null fields', () => {
+                const valueRef = {
+                    valueType: 'SECRET_REFERENCE' as const
+                };
+
+                const result = fromValueReference(valueRef);
+
+                expect(result).toBeUndefined();
+            });
+        });
     });
 });

@@ -199,6 +199,23 @@ describe('PropertyGroupCard', () => {
             expect(component.hasValue('Password')).toBe(true);
         });
 
+        it('should return false for a SECRET_REFERENCE that names a provider but selects no secret', async () => {
+            const { component } = await setup({
+                propertyGroup: makeGroup({
+                    propertyDescriptors: {
+                        Password: { name: 'Password', type: 'SECRET', required: true }
+                    },
+                    propertyValues: {
+                        Password: {
+                            valueType: 'SECRET_REFERENCE',
+                            secretProviderName: 'Vault'
+                        }
+                    }
+                })
+            });
+            expect(component.hasValue('Password')).toBe(false);
+        });
+
         it('should return false for a SECRET with only a descriptor default and no saved reference', async () => {
             const { component } = await setup({
                 propertyGroup: makeGroup({
@@ -422,6 +439,27 @@ describe('PropertyGroupCard', () => {
             const unsetLabels = query('mat-card-content').queryAll(By.css('.unset'));
             expect(unsetLabels.length).toBe(2);
             expect(unsetLabels[0].nativeElement.textContent.trim()).toBe('No value set');
+        });
+
+        it('should show "No value set" rather than the mask for a SECRET with no secret selected', async () => {
+            const { query } = await setup({
+                propertyGroup: makeGroup({
+                    propertyDescriptors: {
+                        Password: { name: 'Password', type: 'SECRET', required: true }
+                    },
+                    propertyValues: {
+                        Password: {
+                            valueType: 'SECRET_REFERENCE',
+                            secretProviderName: 'Vault'
+                        }
+                    }
+                })
+            });
+            const content = query('mat-card-content');
+            const unsetLabels = content.queryAll(By.css('.unset'));
+            expect(unsetLabels.length).toBe(1);
+            expect(unsetLabels[0].nativeElement.textContent.trim()).toBe('No value set');
+            expect(content.nativeElement.textContent).not.toContain('••••••••');
         });
 
         it('should display descriptor defaults when property values are absent', async () => {
