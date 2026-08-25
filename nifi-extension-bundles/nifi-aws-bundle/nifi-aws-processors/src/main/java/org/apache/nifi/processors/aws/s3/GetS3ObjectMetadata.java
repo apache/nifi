@@ -96,6 +96,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             TIMEOUT,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE,
+            USE_PATH_STYLE_ACCESS,
             PROXY_CONFIGURATION_SERVICE
     );
 

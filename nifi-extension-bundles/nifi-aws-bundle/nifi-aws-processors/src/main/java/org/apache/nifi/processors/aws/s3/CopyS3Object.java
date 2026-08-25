@@ -100,6 +100,7 @@ public class CopyS3Object extends AbstractS3Processor {
             CANNED_ACL,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE,
+            USE_PATH_STYLE_ACCESS,
             PROXY_CONFIGURATION_SERVICE
     );
 
