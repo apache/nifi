@@ -328,6 +328,34 @@ describe('SharedConnectorConfigurationStep', () => {
             expect(component.stepForm.get('enabled')?.value).toBe(false);
         });
 
+        // defaultValue and saved values are wire strings even for BOOLEAN. They must be coerced
+        // to real booleans, otherwise mat-slide-toggle's `!!value` renders "false" as checked.
+        it('coerces a BOOLEAN descriptor defaultValue of "false" to the boolean false', async () => {
+            const stepConfig = makeStepConfig('test-step', [
+                makeProp('enabled', { type: 'BOOLEAN', defaultValue: 'false' })
+            ]);
+            const { component } = await setup({ stepConfig });
+            expect(component.stepForm.get('enabled')?.value).toBe(false);
+        });
+
+        it('coerces a BOOLEAN descriptor defaultValue of "true" to the boolean true', async () => {
+            const stepConfig = makeStepConfig('test-step', [
+                makeProp('enabled', { type: 'BOOLEAN', defaultValue: 'true' })
+            ]);
+            const { component } = await setup({ stepConfig });
+            expect(component.stepForm.get('enabled')?.value).toBe(true);
+        });
+
+        it('coerces a saved BOOLEAN value of "false" to the boolean false', async () => {
+            const stepConfig = makeStepConfig(
+                'test-step',
+                [makeProp('enabled', { type: 'BOOLEAN', defaultValue: 'true' })],
+                { enabled: { value: 'false', valueType: 'STRING_LITERAL' } }
+            );
+            const { component } = await setup({ stepConfig });
+            expect(component.stepForm.get('enabled')?.value).toBe(false);
+        });
+
         it('defaults STRING_LIST properties to empty array', async () => {
             const stepConfig = makeStepConfig('test-step', [makeProp('tags', { type: 'STRING_LIST' })]);
             const { component } = await setup({ stepConfig });
@@ -400,13 +428,51 @@ describe('SharedConnectorConfigurationStep', () => {
                     dependencies: [{ propertyName: 'mode', dependentValues: ['advanced'] }]
                 })
             ]);
-            const { component } = await setup({ stepConfig });
+            const { component, fixture } = await setup({ stepConfig });
+            // setupFormSubscription is deferred with Promise.resolve() — same wait as the form-changes tests
+            await fixture.whenStable();
 
             component.setPropertyValue('mode', 'advanced');
-            component['computeAllPropertyVisibility']();
 
             expect(component.stepForm.get('advanced-setting')?.enabled).toBe(true);
             expect(component.isPropertyVisible(makeProp('advanced-setting'))).toBe(true);
+        });
+
+        // A BOOLEAN toggle writes a native boolean into the form while dependentValues stays
+        // string[] from the API, so the comparison has to survive the type difference.
+        it('shows a property gated on a BOOLEAN once the toggle is turned on', async () => {
+            const stepConfig = makeStepConfig('test-step', [
+                makeProp('enableImageExtraction', { type: 'BOOLEAN', defaultValue: 'false' }),
+                makeProp('extractionMode', {
+                    dependencies: [{ propertyName: 'enableImageExtraction', dependentValues: ['true'] }]
+                })
+            ]);
+            const { component, fixture } = await setup({ stepConfig });
+            await fixture.whenStable();
+
+            expect(component.isPropertyVisible(makeProp('extractionMode'))).toBe(false);
+
+            component.setPropertyValue('enableImageExtraction', true);
+
+            expect(component.stepForm.get('extractionMode')?.enabled).toBe(true);
+            expect(component.isPropertyVisible(makeProp('extractionMode'))).toBe(true);
+        });
+
+        it('hides a property gated on a BOOLEAN again once the toggle is turned back off', async () => {
+            const stepConfig = makeStepConfig('test-step', [
+                makeProp('enableImageExtraction', { type: 'BOOLEAN', defaultValue: 'true' }),
+                makeProp('extractionMode', {
+                    dependencies: [{ propertyName: 'enableImageExtraction', dependentValues: ['true'] }]
+                })
+            ]);
+            const { component, fixture } = await setup({ stepConfig });
+            await fixture.whenStable();
+
+            expect(component.isPropertyVisible(makeProp('extractionMode'))).toBe(true);
+
+            component.setPropertyValue('enableImageExtraction', false);
+
+            expect(component.isPropertyVisible(makeProp('extractionMode'))).toBe(false);
         });
 
         it('hides a property when its dependency has no dependentValues and the parent is empty', async () => {
@@ -425,10 +491,10 @@ describe('SharedConnectorConfigurationStep', () => {
                 makeProp('optional-host'),
                 makeProp('host-port', { dependencies: [{ propertyName: 'optional-host' }] })
             ]);
-            const { component } = await setup({ stepConfig });
+            const { component, fixture } = await setup({ stepConfig });
+            await fixture.whenStable();
 
             component.setPropertyValue('optional-host', 'myhost.com');
-            component['computeAllPropertyVisibility']();
 
             expect(component.stepForm.get('host-port')?.enabled).toBe(true);
         });
@@ -824,6 +890,42 @@ describe('SharedConnectorConfigurationStep', () => {
             component.stepForm.markAsDirty();
             const result = component.getConfigurationForSave();
             expect(result.isDirty).toBe(false);
+        });
+
+        // initializeForm coerces BOOLEAN wire strings to real booleans. buildChangedConfiguration
+        // must use the same coercion when comparing against descriptor defaults, or an untouched
+        // "false" default would always appear changed (string "false" !== boolean false).
+        it('does not include an untouched BOOLEAN whose defaultValue was the wire string "false"', async () => {
+            const stepConfig = makeStepConfig('test-step', [
+                makeProp('enabled', { type: 'BOOLEAN', defaultValue: 'false' }),
+                makeProp('host')
+            ]);
+            const { component } = await setup({ stepConfig });
+
+            component.stepForm.get('host')?.setValue('changed-host');
+            component.stepForm.markAsDirty();
+
+            const result = component.getConfigurationForSave();
+            const propertyValues = result.configuration?.propertyGroupConfigurations[0]?.propertyValues ?? {};
+            expect(propertyValues['enabled']).toBeUndefined();
+            expect(propertyValues['host']).toBeDefined();
+        });
+
+        it('does not include an untouched BOOLEAN whose saved value was the wire string "false"', async () => {
+            const stepConfig = makeStepConfig(
+                'test-step',
+                [makeProp('enabled', { type: 'BOOLEAN', defaultValue: 'true' }), makeProp('host')],
+                { enabled: { value: 'false', valueType: 'STRING_LITERAL' } }
+            );
+            const { component } = await setup({ stepConfig });
+
+            component.stepForm.get('host')?.setValue('changed-host');
+            component.stepForm.markAsDirty();
+
+            const result = component.getConfigurationForSave();
+            const propertyValues = result.configuration?.propertyGroupConfigurations[0]?.propertyValues ?? {};
+            expect(propertyValues['enabled']).toBeUndefined();
+            expect(propertyValues['host']).toBeDefined();
         });
     });
 

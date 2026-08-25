@@ -25,6 +25,7 @@ import {
     ConnectorPropertyDescriptor,
     PropertyGroupConfiguration
 } from '../../types';
+import { hasPropertyValue } from '../../utils/connector-validation.utils';
 
 /**
  * Read-only display card for a property group's configured values.
@@ -74,22 +75,21 @@ export class PropertyGroupCard {
 
     hasValue(propertyName: string): boolean {
         const valueRef = this.propertyGroup().propertyValues?.[propertyName];
-        if (!valueRef) return false;
-        if (valueRef.valueType === 'SECRET_REFERENCE') return true;
-        if (valueRef.valueType === 'ASSET_REFERENCE') {
-            return (valueRef.assetReferences?.length ?? 0) > 0;
-        }
-        return valueRef.value !== null && valueRef.value !== undefined && valueRef.value !== '';
+        const descriptor = this.getDescriptor(propertyName);
+        return hasPropertyValue(valueRef, descriptor?.type ?? 'STRING', descriptor?.defaultValue);
     }
 
     getDisplayValueForProperty(propertyName: string): string {
         const valueRef = this.propertyGroup().propertyValues?.[propertyName];
-        if (!valueRef) return '';
-        if (valueRef.valueType === 'SECRET_REFERENCE') return '••••••••';
-        if (valueRef.valueType === 'ASSET_REFERENCE') {
+        const descriptor = this.getDescriptor(propertyName);
+
+        // Mask by type, not just a saved SECRET_REFERENCE, so a SECRET defaultValue cannot leak.
+        if (descriptor?.type === 'SECRET' || valueRef?.valueType === 'SECRET_REFERENCE') return '••••••••';
+        if (valueRef?.valueType === 'ASSET_REFERENCE') {
             const refs = valueRef.assetReferences;
             return refs?.map((r: AssetReference) => r.name || r.id).join(', ') || '';
         }
-        return valueRef.value ?? '';
+
+        return valueRef?.value ?? descriptor?.defaultValue ?? '';
     }
 }
