@@ -192,7 +192,7 @@ public class JndiJmsConnectionFactoryProperties {
             boolean allowed = false;
 
             for (final String allowedScheme : allowedSchemes) {
-                if (allowedScheme.contains(scheme)) {
+                if (allowedScheme.equalsIgnoreCase(scheme)) {
                     allowed = true;
                     break;
                 }
