@@ -291,7 +291,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: d3.Selection<any, any, any, any>) => {
                     return this.canvasUtils.hasUpstream(selection);
                 },
-                clazz: 'fa fa-long-arrow-left',
+                clazz: 'fa fa-long-arrow-up fa-rotate-45',
                 text: 'Upstream',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     this.requestComponentConnections(selection, 'upstream');
@@ -301,7 +301,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: d3.Selection<any, any, any, any>) => {
                     return this.canvasUtils.hasDownstream(selection);
                 },
-                clazz: 'fa fa-long-arrow-right',
+                clazz: 'fa fa-long-arrow-down fa-rotate-45',
                 text: 'Downstream',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     this.requestComponentConnections(selection, 'downstream');
