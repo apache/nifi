@@ -25,6 +25,7 @@
 [![docker-tests](https://github.com/apache/nifi/actions/workflows/docker-tests.yml/badge.svg)](https://github.com/apache/nifi/actions/workflows/docker-tests.yml)
 [![code-compliance](https://github.com/apache/nifi/actions/workflows/code-compliance.yml/badge.svg)](https://github.com/apache/nifi/actions/workflows/code-compliance.yml)
 [![code-coverage](https://github.com/apache/nifi/actions/workflows/code-coverage.yml/badge.svg)](https://github.com/apache/nifi/actions/workflows/code-coverage.yml)
+[![reproducible-build](https://github.com/apache/nifi/workflows/reproducible-build/badge.svg)](https://github.com/apache/nifi/actions/workflows/reproducible-build.yml)
 [![codecov](https://codecov.io/gh/apache/nifi/branch/main/graph/badge.svg)](https://codecov.io/gh/apache/nifi)
 
 ### Resources
