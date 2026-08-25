@@ -27,6 +27,8 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -132,35 +134,19 @@ public class GetSmbFileTest {
         testRunner.assertTransferCount(GetSmbFile.REL_SUCCESS, 2);
     }
 
-    @Test
-    public void testNonRecurse() {
-        testRunner.setProperty(GetSmbFile.RECURSE, "false");
-        String subdir = DIRECTORY + "\\subdir1";
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testRecursivePropertyForwardedToListFiles(boolean recursive) {
+        testRunner.setProperty(GetSmbFile.RECURSE, Boolean.toString(recursive));
         mockListing(
                 fileEntity(DIRECTORY, "file1.txt"),
                 fileEntity(DIRECTORY, "file2.txt")
         );
         testRunner.run();
+        verify(clientService).listFiles(anyString(), eq(recursive));
         verifyReadFile(DIRECTORY, "file1.txt", 1);
         verifyReadFile(DIRECTORY, "file2.txt", 1);
-        verifyReadFile(subdir, "file3.txt", 0);
         testRunner.assertTransferCount(GetSmbFile.REL_SUCCESS, 2);
-    }
-
-    @Test
-    public void testRecurse() {
-        testRunner.setProperty(GetSmbFile.RECURSE, "true");
-        String subdir = DIRECTORY + "\\subdir1";
-        mockListing(
-                fileEntity(DIRECTORY, "file1.txt"),
-                fileEntity(DIRECTORY, "file2.txt"),
-                fileEntity(subdir, "file3.txt")
-        );
-        testRunner.run();
-        verifyReadFile(DIRECTORY, "file1.txt", 1);
-        verifyReadFile(DIRECTORY, "file2.txt", 1);
-        verifyReadFile(subdir, "file3.txt", 1);
-        testRunner.assertTransferCount(GetSmbFile.REL_SUCCESS, 3);
     }
 
     @Test

@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -57,14 +58,15 @@ class SmbjClientServiceTest {
     }
 
     @Test
-    void ensureDirectoryShouldCreateDirectoriesRecursively() throws Exception {
-        when(share.fileExists("directory")).thenReturn(true);
-        when(share.fileExists("path")).thenReturn(false);
-        when(share.fileExists("to")).thenReturn(false);
-        when(share.fileExists("create")).thenReturn(false);
+    void ensureDirectoryShouldCreateDirectoriesRecursively() {
+        when(share.folderExists("directory")).thenReturn(true);
+        when(share.folderExists("path")).thenReturn(false);
+        when(share.folderExists("to")).thenReturn(false);
+        when(share.folderExists("create")).thenReturn(false);
 
         underTest.ensureDirectory("directory/path/to/create");
 
+        verify(share, never()).mkdir("directory");
         verify(share).mkdir("directory/path");
         verify(share).mkdir("directory/path/to");
         verify(share).mkdir("directory/path/to/create");
