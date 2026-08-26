@@ -43,7 +43,8 @@ import {
     EnableComponentRequest,
     StartComponentRequest,
     StopComponentRequest,
-    UpdateProcessorRequest
+    UpdateProcessorRequest,
+    UpdateProcessorResponse
 } from '../../../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import * as fromUser from '../../../../state/current-user/current-user.reducer';
@@ -63,7 +64,7 @@ import { CopyPasteService } from '../../service/copy-paste.service';
 import { CanvasView } from '../../service/canvas-view.service';
 import { BirdseyeView } from '../../service/birdseye-view.service';
 import { selectDisconnectionAcknowledged } from '../../../../state/cluster-summary/cluster-summary.selectors';
-import { ComponentType, ComponentTypeNamePipe } from '@nifi/shared';
+import { ComponentType, ComponentTypeNamePipe, YesNoDialog } from '@nifi/shared';
 import { ParameterContextService } from '../../../parameter-contexts/service/parameter-contexts.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { provideRouter, Router } from '@angular/router';
@@ -853,7 +854,8 @@ describe('FlowEffects', () => {
                 {
                     provide: ParameterHelperService,
                     useValue: {
-                        getParameterContext: vi.fn()
+                        getParameterContext: vi.fn(),
+                        convertToParameter: vi.fn()
                     }
                 },
                 {
@@ -1544,6 +1546,192 @@ describe('FlowEffects', () => {
                     data: { processorId: PROCESSOR_ID, errorMessage: 'submit failed' }
                 })
             );
+        });
+    });
+
+    describe('openEditProcessorDialog$ goToParameter', () => {
+        const PARAMETER_CONTEXT_ID = 'ctx-1';
+        const PROCESSOR_ID = 'd90ac264-018b-1000-1827-a86c8156fd9e';
+        const EXPECTED_COMMANDS = ['/parameter-contexts', PARAMETER_CONTEXT_ID, 'edit'];
+        const EXPECTED_BACK_NAVIGATION = {
+            route: ['/process-groups', 'pg-123', ComponentType.Processor, PROCESSOR_ID, 'edit'],
+            routeBoundary: ['/parameter-contexts'],
+            context: 'Processor'
+        };
+
+        let router: Router;
+        let editProcessorInstance: any;
+        let saveChangesInstance: { yes: EventEmitter<any>; no: EventEmitter<any> };
+
+        // Opens the edit dialog and returns the goToParameter callback the effect assigned to it.
+        const openDialogAndGetGoToParameter = (dirty: boolean): ((parameterValue: string) => void) => {
+            editProcessorInstance = {
+                ...MockComponent(EditProcessor),
+                verify,
+                editProcessor,
+                startComponentRequest: startRequest,
+                stopComponentRequest: stopRequest,
+                disableComponentRequest: disableRequest,
+                enableComponentRequest: enableRequest,
+                editProcessorForm: { dirty },
+                submitForm: vi.fn()
+            };
+            saveChangesInstance = { yes: new EventEmitter<any>(), no: new EventEmitter<any>() };
+
+            vi.spyOn(dialog, 'open').mockImplementation((component: any) => {
+                if (component === YesNoDialog) {
+                    return {
+                        componentInstance: saveChangesInstance,
+                        afterClosed: () => of()
+                    } as unknown as MatDialogRef<any>;
+                }
+
+                return {
+                    close: vi.fn(),
+                    afterClosed: () => of(),
+                    componentInstance: editProcessorInstance
+                } as unknown as MatDialogRef<EditProcessor>;
+            });
+
+            effects.openEditProcessorDialog$.subscribe();
+            action$.next(
+                FlowActions.openEditProcessorDialog({
+                    request: {
+                        type: mockData.type,
+                        uri: mockData.uri,
+                        entity: mockData.entity
+                    } as any
+                })
+            );
+
+            return editProcessorInstance.goToParameter;
+        };
+
+        beforeEach(() => {
+            router = TestBed.inject(Router);
+            vi.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
+
+            store.overrideSelector(selectCurrentProcessGroupId, 'pg-123');
+            store.overrideSelector(flowSelectors.selectCurrentParameterContext, {
+                id: PARAMETER_CONTEXT_ID,
+                permissions: { canRead: true, canWrite: true }
+            } as any);
+            store.refreshState();
+
+            vi.spyOn(TestBed.inject(ParameterContextService), 'getParameterContext').mockReturnValue(
+                of({ id: PARAMETER_CONTEXT_ID, component: { name: 'ctx' } }) as any
+            );
+        });
+
+        it('navigates to the parameter context highlighting the referenced parameter when the form is pristine', () => {
+            const goToParameter = openDialogAndGetGoToParameter(false);
+
+            goToParameter('#{my-param}');
+
+            expect(router.navigate).toHaveBeenCalledWith(EXPECTED_COMMANDS, {
+                state: {
+                    backNavigation: EXPECTED_BACK_NAVIGATION,
+                    highlightedParameterName: 'my-param'
+                }
+            });
+        });
+
+        it('navigates without a highlight when the property value contains no parameter reference', () => {
+            const goToParameter = openDialogAndGetGoToParameter(false);
+
+            goToParameter('a literal value');
+
+            const state = vi.mocked(router.navigate).mock.calls[0][1]?.state ?? {};
+            expect(Object.keys(state)).toEqual(['backNavigation']);
+        });
+
+        it('submits the form with the highlight when the form is dirty and changes are saved', () => {
+            const goToParameter = openDialogAndGetGoToParameter(true);
+
+            goToParameter('#{my-param}');
+            saveChangesInstance.yes.emit();
+
+            expect(editProcessorInstance.submitForm).toHaveBeenCalledWith(EXPECTED_COMMANDS, ['/parameter-contexts'], {
+                highlightedParameterName: 'my-param'
+            });
+            expect(router.navigate).not.toHaveBeenCalled();
+        });
+
+        it('navigates with the highlight when the form is dirty and changes are discarded', () => {
+            const goToParameter = openDialogAndGetGoToParameter(true);
+
+            goToParameter('#{my-param}');
+            saveChangesInstance.no.emit();
+
+            expect(editProcessorInstance.submitForm).not.toHaveBeenCalled();
+            expect(router.navigate).toHaveBeenCalledWith(EXPECTED_COMMANDS, {
+                state: {
+                    backNavigation: EXPECTED_BACK_NAVIGATION,
+                    highlightedParameterName: 'my-param'
+                }
+            });
+        });
+    });
+
+    describe('updateProcessorSuccess$', () => {
+        let router: Router;
+
+        beforeEach(() => {
+            router = TestBed.inject(Router);
+            vi.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
+            store.overrideSelector(selectCurrentProcessGroupId, 'pg-123');
+            store.refreshState();
+        });
+
+        it('should include postUpdateNavigationState in router navigate state when postUpdateNavigationState is provided', () => {
+            const response: UpdateProcessorResponse = {
+                id: 'proc-1',
+                type: ComponentType.Processor,
+                postUpdateNavigation: ['/parameter-contexts', 'ctx-1', 'edit'],
+                postUpdateNavigationBoundary: ['/parameter-contexts'],
+                postUpdateNavigationState: { highlightedParameterName: 'my-param' },
+                response: {}
+            };
+
+            effects.updateProcessorSuccess$.subscribe();
+            action$.next(FlowActions.updateProcessorSuccess({ response }));
+
+            expect(router.navigate).toHaveBeenCalledWith(['/parameter-contexts', 'ctx-1', 'edit'], {
+                state: {
+                    backNavigation: {
+                        route: ['/process-groups', 'pg-123', ComponentType.Processor, 'proc-1', 'edit'],
+                        routeBoundary: ['/parameter-contexts'],
+                        context: 'Processor'
+                    },
+                    highlightedParameterName: 'my-param'
+                }
+            });
+        });
+
+        it('should omit postUpdateNavigationState keys from router navigate state when postUpdateNavigationState is absent', () => {
+            const response: UpdateProcessorResponse = {
+                id: 'proc-2',
+                type: ComponentType.Processor,
+                postUpdateNavigation: ['/parameter-contexts', 'ctx-2', 'edit'],
+                postUpdateNavigationBoundary: ['/parameter-contexts'],
+                response: {}
+            };
+
+            effects.updateProcessorSuccess$.subscribe();
+            action$.next(FlowActions.updateProcessorSuccess({ response }));
+
+            expect(router.navigate).toHaveBeenCalledTimes(1);
+            expect(vi.mocked(router.navigate).mock.calls[0][0]).toEqual(['/parameter-contexts', 'ctx-2', 'edit']);
+
+            // Object.keys rather than toHaveBeenCalledWith: argument matching treats an absent key and an
+            // explicit undefined as equal, so it cannot distinguish omission from highlightedParameterName: undefined.
+            const state = vi.mocked(router.navigate).mock.calls[0][1]?.state ?? {};
+            expect(Object.keys(state)).toEqual(['backNavigation']);
+            expect(state['backNavigation']).toEqual({
+                route: ['/process-groups', 'pg-123', ComponentType.Processor, 'proc-2', 'edit'],
+                routeBoundary: ['/parameter-contexts'],
+                context: 'Processor'
+            });
         });
     });
 });

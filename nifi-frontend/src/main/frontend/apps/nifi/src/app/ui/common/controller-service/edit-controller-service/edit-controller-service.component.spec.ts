@@ -621,6 +621,29 @@ describe('EditControllerService', () => {
         });
     });
 
+    it('should forward postUpdateNavigationState from submitForm to the edit action', () => {
+        const mockFormData = {
+            name: 'service-name',
+            bulletinLevel: 'DEBUG',
+            comments: 'service-comments',
+            properties: []
+        };
+
+        vi.spyOn(component.editControllerService, 'next');
+        component.editControllerServiceForm.setValue(mockFormData);
+        component.submitForm(['/parameter-contexts', 'ctx-1', 'edit'], ['/parameter-contexts'], {
+            highlightedParameterName: 'my-param'
+        });
+
+        expect(component.editControllerService.next).toHaveBeenCalledWith(
+            expect.objectContaining({
+                postUpdateNavigation: ['/parameter-contexts', 'ctx-1', 'edit'],
+                postUpdateNavigationBoundary: ['/parameter-contexts'],
+                postUpdateNavigationState: { highlightedParameterName: 'my-param' }
+            })
+        );
+    });
+
     describe('readonly derivation', () => {
         function buildRequest(overrides: {
             readonly?: boolean;

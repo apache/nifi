@@ -26,6 +26,7 @@ import * as ControllerServicesActions from './controller-services.actions';
 import {
     clearControllerServiceBulletins,
     clearControllerServiceBulletinsSuccess,
+    configureControllerServiceSuccess,
     createControllerService,
     createControllerServiceSuccess,
     deleteControllerService,
@@ -41,9 +42,10 @@ import { PropertyTableHelperService } from '../../../../service/property-table-h
 import { ParameterHelperService } from '../../service/parameter-helper.service';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { Client } from '../../../../service/client.service';
-import { ComponentType, Storage } from '@nifi/shared';
+import { ComponentType, Storage, YesNoDialog } from '@nifi/shared';
+import { EventEmitter } from '@angular/core';
 import { ParameterContextService } from '../../../parameter-contexts/service/parameter-contexts.service';
-import { controllerServicesFeatureKey } from './index';
+import { ConfigureControllerServiceSuccess, controllerServicesFeatureKey } from './index';
 import { initialState } from './controller-services.reducer';
 import { ClearBulletinsRequest, ClearBulletinsResponse } from '../../../../state/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
@@ -640,6 +642,184 @@ describe('ControllerServicesEffects', () => {
                     request: { processGroupId: 'root' }
                 })
             );
+        });
+    });
+
+    describe('openConfigureControllerServiceDialog$ goToParameter', () => {
+        const PARAMETER_CONTEXT_ID = 'ctx-1';
+        const SERVICE_ID = 'cs-1';
+        const EXPECTED_COMMANDS = ['/parameter-contexts', PARAMETER_CONTEXT_ID, 'edit'];
+        const EXPECTED_BACK_NAVIGATION = {
+            route: ['/process-groups', 'root', 'controller-services', SERVICE_ID, 'edit'],
+            routeBoundary: ['/parameter-contexts'],
+            context: 'Controller Service'
+        };
+
+        let editServiceInstance: any;
+        let saveChangesInstance: { yes: EventEmitter<any>; no: EventEmitter<any> };
+
+        // Opens the edit dialog and returns the goToParameter callback the effect assigned to it.
+        async function openDialogAndGetGoToParameter(dirty: boolean) {
+            const { effects } = await setup({
+                controllerServicesState: {
+                    ...initialState,
+                    parameterContext: {
+                        id: PARAMETER_CONTEXT_ID,
+                        permissions: { canRead: true, canWrite: true }
+                    }
+                }
+            });
+
+            const router = TestBed.inject(Router);
+
+            editServiceInstance = {
+                verify: new EventEmitter<any>(),
+                editControllerService: new EventEmitter<any>(),
+                editControllerServiceForm: { dirty },
+                submitForm: vi.fn()
+            };
+            saveChangesInstance = { yes: new EventEmitter<any>(), no: new EventEmitter<any>() };
+
+            const dialog = TestBed.inject(MatDialog);
+            vi.mocked(dialog.open).mockImplementation((component: any) => {
+                if (component === YesNoDialog) {
+                    return {
+                        componentInstance: saveChangesInstance,
+                        afterClosed: () => of()
+                    } as any;
+                }
+
+                return {
+                    close: vi.fn(),
+                    afterClosed: () => of(),
+                    componentInstance: editServiceInstance
+                } as any;
+            });
+
+            vi.mocked(TestBed.inject(PropertyTableHelperService).getComponentHistory).mockReturnValue(
+                of({ componentHistory: {} }) as any
+            );
+            vi.mocked(TestBed.inject(ParameterContextService).getParameterContext).mockReturnValue(
+                of({ id: PARAMETER_CONTEXT_ID, component: { name: 'ctx' } }) as any
+            );
+
+            effects.openConfigureControllerServiceDialog$.subscribe();
+            action$.next(
+                ControllerServicesActions.openConfigureControllerServiceDialog({
+                    request: {
+                        id: SERVICE_ID,
+                        controllerService: { id: SERVICE_ID, uri: `https://localhost:4200/${SERVICE_ID}` }
+                    } as any
+                })
+            );
+
+            return { goToParameter: editServiceInstance.goToParameter, router };
+        }
+
+        it('navigates to the parameter context highlighting the referenced parameter when the form is pristine', async () => {
+            const { goToParameter, router } = await openDialogAndGetGoToParameter(false);
+
+            goToParameter('#{my-param}');
+
+            expect(router.navigate).toHaveBeenCalledWith(EXPECTED_COMMANDS, {
+                state: {
+                    backNavigation: EXPECTED_BACK_NAVIGATION,
+                    highlightedParameterName: 'my-param'
+                }
+            });
+        });
+
+        it('navigates without a highlight when the property value contains no parameter reference', async () => {
+            const { goToParameter, router } = await openDialogAndGetGoToParameter(false);
+
+            goToParameter('a literal value');
+
+            const state = vi.mocked(router.navigate).mock.calls[0][1]?.state ?? {};
+            expect(Object.keys(state)).toEqual(['backNavigation']);
+        });
+
+        it('submits the form with the highlight when the form is dirty and changes are saved', async () => {
+            const { goToParameter, router } = await openDialogAndGetGoToParameter(true);
+
+            goToParameter('#{my-param}');
+            saveChangesInstance.yes.emit();
+
+            expect(editServiceInstance.submitForm).toHaveBeenCalledWith(EXPECTED_COMMANDS, ['/parameter-contexts'], {
+                highlightedParameterName: 'my-param'
+            });
+            expect(router.navigate).not.toHaveBeenCalled();
+        });
+
+        it('navigates with the highlight when the form is dirty and changes are discarded', async () => {
+            const { goToParameter, router } = await openDialogAndGetGoToParameter(true);
+
+            goToParameter('#{my-param}');
+            saveChangesInstance.no.emit();
+
+            expect(editServiceInstance.submitForm).not.toHaveBeenCalled();
+            expect(router.navigate).toHaveBeenCalledWith(EXPECTED_COMMANDS, {
+                state: {
+                    backNavigation: EXPECTED_BACK_NAVIGATION,
+                    highlightedParameterName: 'my-param'
+                }
+            });
+        });
+    });
+
+    describe('configureControllerServiceSuccess$', () => {
+        it('should include postUpdateNavigationState in router navigate state when postUpdateNavigationState is provided', async () => {
+            const { effects } = await setup();
+            const router = TestBed.inject(Router);
+
+            const response: ConfigureControllerServiceSuccess = {
+                id: 'cs-1',
+                controllerService: {} as any,
+                postUpdateNavigation: ['/parameter-contexts', 'ctx-1', 'edit'],
+                postUpdateNavigationBoundary: ['/parameter-contexts'],
+                postUpdateNavigationState: { highlightedParameterName: 'my-param' }
+            };
+
+            effects.configureControllerServiceSuccess$.subscribe();
+            action$.next(configureControllerServiceSuccess({ response }));
+
+            expect(router.navigate).toHaveBeenCalledWith(['/parameter-contexts', 'ctx-1', 'edit'], {
+                state: {
+                    backNavigation: {
+                        route: ['/process-groups', 'root', 'controller-services', 'cs-1', 'edit'],
+                        routeBoundary: ['/parameter-contexts'],
+                        context: 'Controller Service'
+                    },
+                    highlightedParameterName: 'my-param'
+                }
+            });
+        });
+
+        it('should omit postUpdateNavigationState keys from router navigate state when postUpdateNavigationState is absent', async () => {
+            const { effects } = await setup();
+            const router = TestBed.inject(Router);
+
+            const response: ConfigureControllerServiceSuccess = {
+                id: 'cs-2',
+                controllerService: {} as any,
+                postUpdateNavigation: ['/parameter-contexts', 'ctx-2', 'edit'],
+                postUpdateNavigationBoundary: ['/parameter-contexts']
+            };
+
+            effects.configureControllerServiceSuccess$.subscribe();
+            action$.next(configureControllerServiceSuccess({ response }));
+
+            expect(router.navigate).toHaveBeenCalledTimes(1);
+            expect(vi.mocked(router.navigate).mock.calls[0][0]).toEqual(['/parameter-contexts', 'ctx-2', 'edit']);
+
+            // Object.keys rather than toHaveBeenCalledWith: argument matching treats an absent key and an
+            // explicit undefined as equal, so it cannot distinguish omission from highlightedParameterName: undefined.
+            const state = vi.mocked(router.navigate).mock.calls[0][1]?.state ?? {};
+            expect(Object.keys(state)).toEqual(['backNavigation']);
+            expect(state['backNavigation']).toEqual({
+                route: ['/process-groups', 'root', 'controller-services', 'cs-2', 'edit'],
+                routeBoundary: ['/parameter-contexts'],
+                context: 'Controller Service'
+            });
         });
     });
 });
