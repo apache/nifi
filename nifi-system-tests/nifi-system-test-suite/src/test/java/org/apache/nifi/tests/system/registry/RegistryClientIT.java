@@ -186,11 +186,11 @@ public class RegistryClientIT extends NiFiSystemIT {
                 .filter(connection -> restoredPort.getId().equals(connection.getComponent().getSource().getId()))
                 .findFirst()
                 .orElseThrow();
-        waitForQueueCount(restoredPortOutput.getId(), 1);
+        waitForQueueCount(restoredPortOutput.getId(), getNumberOfNodes());
         final ProcessorEntity restoredSource = getNifiClient().getProcessorClient().getProcessor(restoredConnection.getComponent().getSource().getId());
         util.stopProcessor(restoredSource);
         util.startProcessor(restoredSource);
-        waitForQueueCount(restoredConnection.getId(), 1);
+        waitForQueueCount(restoredConnection.getId(), getNumberOfNodes());
 
         final VersionedFlowUpdateRequestEntity initiated = util.initiateFlowVersionChange(group.getId(), "2");
         final String requestId = initiated.getRequest().getRequestId();

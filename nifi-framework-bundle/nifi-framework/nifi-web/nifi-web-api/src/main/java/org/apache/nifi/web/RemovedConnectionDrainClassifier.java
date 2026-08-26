@@ -164,7 +164,7 @@ public final class RemovedConnectionDrainClassifier {
 
         final Set<String> producerBarrierIds = resolveProducerBarrierIds(descriptor, flowUpdateImpact, context, nonEmptyRemovedDestinationIds);
         if (producerBarrierIds.isEmpty()) {
-            return ConnectionResult.unsupported(descriptor, UnsupportedReason.FUNNEL_SOURCE_WITHOUT_SUPPORTED_PRODUCER);
+            return ConnectionResult.unsupported(descriptor, UnsupportedReason.NO_SUPPORTED_PRODUCER_FOUND);
         }
 
         for (final String producerBarrierId : producerBarrierIds) {
@@ -315,6 +315,10 @@ public final class RemovedConnectionDrainClassifier {
     }
 
     private boolean isRetainedGroupHierarchy(final String processGroupId, final Set<String> removedProcessGroupIds, final Context context) {
+        if (processGroupId == null) {
+            return false;
+        }
+
         String currentGroupId = processGroupId;
         final Set<String> visitedGroupIds = new HashSet<>();
         while (currentGroupId != null) {
@@ -383,7 +387,7 @@ public final class RemovedConnectionDrainClassifier {
         DESTINATION_NOT_VALID,
         PRODUCER_BARRIER_IS_REMOVED_DESTINATION,
         RETAINED_FEEDBACK_PATH,
-        FUNNEL_SOURCE_WITHOUT_SUPPORTED_PRODUCER
+        NO_SUPPORTED_PRODUCER_FOUND
     }
 
     record LiveConnection(String id, String sourceId, String destinationId, boolean knownQueueEmpty) {

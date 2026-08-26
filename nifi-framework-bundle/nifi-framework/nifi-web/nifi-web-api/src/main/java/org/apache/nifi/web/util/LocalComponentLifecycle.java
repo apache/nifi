@@ -43,6 +43,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -114,12 +115,15 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         final List<String> orderedConnectionIds = connectionIds.stream()
                 .sorted(Comparator.naturalOrder())
                 .toList();
+        final Map<String, Integer> queuedFlowFilesByConnection = new LinkedHashMap<>();
 
         boolean continuePolling = true;
         while (continuePolling) {
             boolean allQueuesEmpty = true;
             for (final String connectionId : orderedConnectionIds) {
-                if (!isConnectionQueueEmpty(connectionId)) {
+                final Integer queuedFlowFiles = getQueuedFlowFiles(connectionId);
+                queuedFlowFilesByConnection.put(connectionId, queuedFlowFiles);
+                if (queuedFlowFiles == null || queuedFlowFiles != 0) {
                     allQueuesEmpty = false;
                     break;
                 }
@@ -132,16 +136,18 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
             continuePolling = pause.pause();
         }
 
+        logger.warn("Removed connection drain queue wait ended with remaining queues {}", queuedFlowFilesByConnection);
         return false;
     }
 
-    private boolean isConnectionQueueEmpty(final String connectionId) {
+    private Integer getQueuedFlowFiles(final String connectionId) {
         final String requestId = UUID.randomUUID().toString();
         try {
             final ListingRequestDTO listingRequest = serviceFacade.createFlowFileListingRequest(connectionId, requestId);
-            return listingRequest != null
-                    && listingRequest.getQueueSize() != null
-                    && listingRequest.getQueueSize().getObjectCount() == 0;
+            final Integer queuedFlowFiles = listingRequest == null || listingRequest.getQueueSize() == null
+                    ? null : listingRequest.getQueueSize().getObjectCount();
+            logger.debug("Removed connection drain queue poll [connectionId={}, queuedFlowFiles={}]", connectionId, queuedFlowFiles);
+            return queuedFlowFiles;
         } finally {
             try {
                 serviceFacade.deleteFlowFileListingRequest(connectionId, requestId);

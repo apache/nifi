@@ -1085,7 +1085,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
     public Response getUpdateRequest(
             @Parameter(description = "The ID of the Update Request") @PathParam("id") final String updateRequestId) {
 
-        return retrieveFlowUpdateRequest("update-requests", updateRequestId);
+        return retrieveFlowUpdateRequest(UPDATE_REQUEST_TYPE, updateRequestId);
     }
 
     @GET
@@ -1145,7 +1145,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
             @Parameter(description = "The ID of the Update Request") @PathParam("id") final String updateRequestId) {
 
-        return deleteFlowUpdateRequest("update-requests", updateRequestId, disconnectedNodeAcknowledged);
+        return deleteFlowUpdateRequest(UPDATE_REQUEST_TYPE, updateRequestId, disconnectedNodeAcknowledged);
     }
 
     @DELETE
@@ -1423,7 +1423,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         }
 
         // supplier retrieves Versioned Flow Snapshot from the Flow Registry
-        return initiateFlowUpdate(groupId, requestEntity, false, "update-requests",
+        return initiateFlowUpdate(groupId, requestEntity, false, UPDATE_REQUEST_TYPE,
                 "/nifi-api/versions/process-groups/" + groupId,
                 () -> serviceFacade.getVersionedFlowSnapshot(requestVersionControlInfoDto, true)
         );

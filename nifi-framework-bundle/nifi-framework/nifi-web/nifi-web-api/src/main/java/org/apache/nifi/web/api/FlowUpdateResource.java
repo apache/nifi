@@ -92,6 +92,7 @@ import java.util.stream.Collectors;
  */
 public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity, U extends FlowUpdateRequestEntity> extends ApplicationResource {
     private static final String DISABLED_COMPONENT_STATE = "DISABLED";
+    protected static final String UPDATE_REQUEST_TYPE = "update-requests";
     private static final Logger logger = LoggerFactory.getLogger(FlowUpdateResource.class);
 
     protected NiFiServiceFacade serviceFacade;
@@ -182,17 +183,18 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         // 2. Verify READ and WRITE permissions for user, for every component.
         // 3. Verify that all components in the snapshot exist on all nodes (i.e., the NAR exists)?
         // 4: Verify that Process Group can be updated. Only versioned flows care about the verifyNotDirty flag.
-        // 5. Stop all Processors, Funnels, Ports that are affected.
-        // 6. Wait for all of the components to finish stopping.
-        // 7. Disable all Controller Services that are affected.
-        // 8. Wait for all Controller Services to finish disabling.
-        // 9. Ensure that if any connection was deleted, that it has no data in it. Ensure that no Input Port
+        // 5. Drain non-empty removed Connections after stopping their producer barriers.
+        // 6. Stop all Processors, Funnels, Ports that are affected.
+        // 7. Wait for all of the components to finish stopping.
+        // 8. Disable all Controller Services that are affected.
+        // 9. Wait for all Controller Services to finish disabling.
+        // 10. Ensure that if any connection was deleted, that it has no data in it. Ensure that no Input Port
         //    was removed, unless it currently has no incoming connections. Ensure that no Output Port was removed,
         //    unless it currently has no outgoing connections. Checking ports & connections could be done before
         //    stopping everything, but removal of Connections cannot.
-        // 10.-11. Update components in the Process Group; update Version Control Information (registry version change only).
-        // 12. Re-Enable all affected Controller Services that were not removed.
-        // 13. Re-Start all Processors, Funnels, Ports that are affected and not removed.
+        // 11.-12. Update components in the Process Group; update Version Control Information (registry version change only).
+        // 13. Re-Enable all affected Controller Services that were not removed.
+        // 14. Re-Start all Processors, Funnels, Ports that are affected and not removed.
 
         // Step 0: Obtain the versioned flow snapshot to use for the update
         final FlowSnapshotContainer flowSnapshotContainer = flowSnapshotContainerSupplier.get();
@@ -341,7 +343,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
         final Set<AffectedComponentEntity> affectedComponents = flowUpdateImpact.getAffectedComponents();
 
-        // Steps 5-6: Determine which components must be stopped and stop them.
+        // Steps 5-7: Drain removed connections, determine which components must be stopped, and stop them.
         final Set<String> stoppableReferenceTypes = new HashSet<>();
         stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
         stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT);
@@ -355,7 +357,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 .filter(entity -> isActive(entity.getComponent()))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        if ("update-requests".equals(requestType)) {
+        if (UPDATE_REQUEST_TYPE.equals(requestType)) {
             final RemovedConnectionDrainCoordinator.DrainResult drainResult = preDrainRemovedConnections(
                     flowUpdateImpact, componentLifecycle, requestUri, groupId, asyncRequest);
             if (drainResult.cancelled()) {
@@ -379,7 +381,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         }
         asyncRequest.markStepComplete();
 
-        // Steps 7-8. Disable enabled controller services that are affected.
+        // Steps 8-9. Disable enabled controller services that are affected.
         // We don't want to disable services that are already disabling. But we need to wait for their state to transition from Disabling to Disabled.
         final Set<AffectedComponentEntity> servicesToWaitFor = affectedComponents.stream()
                 .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
@@ -641,7 +643,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
      */
     static List<UpdateStep> getUpdateFlowSteps(final String requestType) {
         final List<UpdateStep> updateSteps = new ArrayList<>();
-        if ("update-requests".equals(requestType)) {
+        if (UPDATE_REQUEST_TYPE.equals(requestType)) {
             updateSteps.add(new StandardUpdateStep("Draining Removed Connections"));
         }
         updateSteps.add(new StandardUpdateStep("Stopping Affected Processors"));

@@ -32,15 +32,15 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CreateConnectorIT {
 
     @Test
-    public void testCreateStartAndStopGenerateAndUpdateConnector() throws IOException {
+    public void testCreateStartAndStopGenerateAndUpdateConnector() throws IOException, TimeoutException {
         try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
             .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
             .narLibraryDirectory(new File("target/libDir"))
@@ -63,12 +63,12 @@ public class CreateConnectorIT {
             assertEquals("org.apache.nifi.lookup.SimpleKeyValueLookupService", controllerServices.iterator().next().getType());
 
             testRunner.startConnector();
-            assertDoesNotThrow(() -> testRunner.stopConnector(Duration.ofSeconds(120)));
+            testRunner.stopConnector(Duration.ofSeconds(120));
         }
     }
 
     @Test
-    public void testStopConnectorWithTimeoutStopsRunningConnector() throws IOException {
+    public void testStopConnectorWithTimeoutStopsRunningConnector() throws IOException, TimeoutException {
         try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
                 .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
                 .narLibraryDirectory(new File("target/libDir"))
@@ -82,7 +82,7 @@ public class CreateConnectorIT {
             // ride through the node's internal stop retries (every 10 seconds) before the state settles, so the
             // budget is generous enough to stay deterministic on a slow CI runner; the poll still returns the
             // instant the Connector reports STOPPED.
-            assertDoesNotThrow(() -> testRunner.stopConnector(Duration.ofSeconds(120)));
+            testRunner.stopConnector(Duration.ofSeconds(120));
         }
     }
 
