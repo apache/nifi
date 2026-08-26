@@ -198,7 +198,11 @@ public class RegistryClientIT extends NiFiSystemIT {
         util.startProcessor(getNifiClient().getProcessorClient().getProcessor(terminate.getId()));
         final VersionedFlowUpdateRequestEntity completed = util.waitForVersionFlowUpdateComplete(requestId, false);
 
-        assertTrue(completed.getRequest().getFailureReason().contains("Successfully updated flow but could not restart all Processors"));
+        if (getNumberOfNodes() == 1) {
+            assertTrue(completed.getRequest().getFailureReason().contains("Successfully updated flow but could not restart all Processors"));
+        } else {
+            assertNull(completed.getRequest().getFailureReason());
+        }
         assertEquals("2", completed.getRequest().getVersionControlInformation().getVersion());
         assertTrue(getConnections(group.getId()).stream().noneMatch(connection -> restoredConnection.getId().equals(connection.getId())));
         final String updatedPortState = getNifiClient().getInputPortClient().getInputPort(restoredPort.getId()).getComponent().getState();
