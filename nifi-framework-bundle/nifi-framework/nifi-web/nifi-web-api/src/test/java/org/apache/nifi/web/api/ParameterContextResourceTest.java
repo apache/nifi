@@ -59,7 +59,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class ParameterContextResourceTest {
+class ParameterContextResourceTest {
 
     private static final String TARGET_CONTEXT_ID = "target-context";
     private static final String CURRENT_INHERITED_CONTEXT_ID = "current-inherited-context";

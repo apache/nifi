@@ -2437,24 +2437,37 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
-    public void testGetComponentsAffectedByParameterContextUpdateTwicePreservesInheritedProviderProvenance() {
+    public void testGetComponentsAffectedByParameterContextUpdateTwicePreservesParameterProvenanceAndAliasValues() {
         final String targetContextId = "target-context";
         final String inheritedContextId = "inherited-context";
         final String inheritedParameterName = "inherited-provider-param";
+        final String inheritedParameterValue = "provider-value";
+        final String aliasParameterName = "alias-param";
+        final String aliasParameterValue = "#{" + inheritedParameterName + "}";
         final String processorId = "processor-id";
 
         final ParameterDescriptor inheritedDescriptor = new ParameterDescriptor.Builder().name(inheritedParameterName).build();
         final Parameter inheritedParameter = new Parameter.Builder()
                 .descriptor(inheritedDescriptor)
-                .value("provider-value")
+                .value(inheritedParameterValue)
                 .provided(true)
                 .parameterContextId(inheritedContextId)
+                .build();
+        final ParameterDescriptor aliasDescriptor = new ParameterDescriptor.Builder().name(aliasParameterName).build();
+        final Parameter aliasParameter = new Parameter.Builder()
+                .descriptor(aliasDescriptor)
+                .value(aliasParameterValue)
+                .parameterContextId(targetContextId)
+                .build();
+        final Parameter resolvedAliasParameter = new Parameter.Builder()
+                .fromParameter(aliasParameter)
+                .value(inheritedParameterValue)
                 .build();
 
         final ParameterContext targetContext = mock(ParameterContext.class);
         when(targetContext.getIdentifier()).thenReturn(targetContextId);
         when(targetContext.getName()).thenReturn("Target Context");
-        when(targetContext.getParameters()).thenReturn(Map.of());
+        when(targetContext.getParameters()).thenReturn(Map.of(aliasDescriptor, aliasParameter));
         when(targetContext.getParameterReferenceManager()).thenReturn(ParameterReferenceManager.EMPTY);
 
         final ParameterContext inheritedContext = mock(ParameterContext.class);
@@ -2467,7 +2480,8 @@ public class StandardNiFiServiceFacadeTest {
         when(parameterContextDAO.getParameterContext(inheritedContextId)).thenReturn(inheritedContext);
         when(parameterContextDAO.getParameters(any(ParameterContextDTO.class), same(targetContext))).thenReturn(Map.of());
         when(parameterContextDAO.getInheritedParameterContexts(any(ParameterContextDTO.class))).thenReturn(List.of(inheritedContext));
-        when(targetContext.getEffectiveParameterUpdates(anyMap(), eq(List.of(inheritedContext)))).thenReturn(Map.of(inheritedParameterName, inheritedParameter));
+        when(targetContext.getEffectiveParameterUpdates(anyMap(), eq(List.of(inheritedContext))))
+                .thenReturn(Map.of(inheritedParameterName, inheritedParameter, aliasParameterName, resolvedAliasParameter));
 
         final ProcessorNode processorNode = mock(ProcessorNode.class);
         when(processorNode.isRunning()).thenReturn(true);
@@ -2526,27 +2540,42 @@ public class StandardNiFiServiceFacadeTest {
         assertEquals(1, firstAffected.size());
         assertEquals(processorId, firstAffected.iterator().next().getId());
 
-        final ParameterDTO firstPassParameter = parameterContextDto.getParameters().iterator().next().getParameter();
+        final Map<String, ParameterDTO> firstPassParameters = parameterContextDto.getParameters().stream()
+                .map(ParameterEntity::getParameter)
+                .collect(Collectors.toMap(ParameterDTO::getName, Function.identity()));
+        final ParameterDTO firstPassParameter = firstPassParameters.get(inheritedParameterName);
         assertEquals(inheritedParameterName, firstPassParameter.getName());
         assertTrue(firstPassParameter.getInherited());
         assertTrue(firstPassParameter.getProvided());
         assertEquals(inheritedContextId, firstPassParameter.getParameterContext().getId());
-        assertEquals("provider-value", firstPassParameter.getValue());
+        assertEquals(inheritedParameterValue, firstPassParameter.getValue());
         assertEquals(1, firstPassParameter.getReferencingComponents().size());
+        final ParameterDTO firstPassAlias = firstPassParameters.get(aliasParameterName);
+        assertFalse(firstPassAlias.getInherited());
+        assertFalse(firstPassAlias.getProvided());
+        assertEquals(targetContextId, firstPassAlias.getParameterContext().getId());
+        assertEquals(aliasParameterValue, firstPassAlias.getValue());
 
         final Set<AffectedComponentEntity> secondAffected = serviceFacade.getComponentsAffectedByParameterContextUpdate(List.of(parameterContextDto));
         assertEquals(1, secondAffected.size());
         assertEquals(processorId, secondAffected.iterator().next().getId());
 
-        final ParameterEntity secondPassEntity = parameterContextDto.getParameters().iterator().next();
-        final ParameterDTO secondPassParameter = secondPassEntity.getParameter();
+        final Map<String, ParameterDTO> secondPassParameters = parameterContextDto.getParameters().stream()
+                .map(ParameterEntity::getParameter)
+                .collect(Collectors.toMap(ParameterDTO::getName, Function.identity()));
+        final ParameterDTO secondPassParameter = secondPassParameters.get(inheritedParameterName);
         assertEquals(inheritedParameterName, secondPassParameter.getName());
         assertTrue(secondPassParameter.getInherited());
         assertTrue(secondPassParameter.getProvided());
         assertEquals(inheritedContextId, secondPassParameter.getParameterContext().getId());
-        assertEquals("provider-value", secondPassParameter.getValue());
+        assertEquals(inheritedParameterValue, secondPassParameter.getValue());
         assertEquals(1, secondPassParameter.getReferencingComponents().size());
         assertEquals(processorId, secondPassParameter.getReferencingComponents().iterator().next().getId());
+        final ParameterDTO secondPassAlias = secondPassParameters.get(aliasParameterName);
+        assertFalse(secondPassAlias.getInherited());
+        assertFalse(secondPassAlias.getProvided());
+        assertEquals(targetContextId, secondPassAlias.getParameterContext().getId());
+        assertEquals(aliasParameterValue, secondPassAlias.getValue());
     }
 
     @Test

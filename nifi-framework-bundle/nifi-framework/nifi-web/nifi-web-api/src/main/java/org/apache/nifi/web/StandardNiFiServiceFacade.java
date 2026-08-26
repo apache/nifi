@@ -1799,7 +1799,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         for (final Entry<String, Parameter> entry : proposedParameterUpdates.entrySet()) {
             final String parameterName = entry.getKey();
             final Parameter parameter = entry.getValue();
-            final boolean locallyOwned = localParameters.containsKey(new ParameterDescriptor.Builder().name(parameterName).build());
+            final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).build();
+            final boolean locallyOwned = localParameters.containsKey(parameterDescriptor);
             final ParameterEntity parameterEntity;
             if (parameterEntities.containsKey(parameterName)) {
                 parameterEntity = parameterEntities.get(parameterName);
@@ -1809,7 +1810,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 parameterDTO.setName(parameterName);
                 parameterEntity.setParameter(parameterDTO);
             } else {
-                parameterEntity = dtoFactory.createParameterEntity(parameterContext, parameter, revisionManager, parameterContextDAO);
+                final Parameter entityParameter = locallyOwned ? localParameters.get(parameterDescriptor) : parameter;
+                parameterEntity = dtoFactory.createParameterEntity(parameterContext, entityParameter, revisionManager, parameterContextDAO);
             }
 
             if (parameter == null) {
