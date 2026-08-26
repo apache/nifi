@@ -149,18 +149,18 @@ public class SmbjClientProvider implements SmbClientProvider, Closeable {
         if (context.getProperty(AUTHENTICATION_TYPE).isSet()) {
             return context.getProperty(AUTHENTICATION_TYPE).asAllowableValue(AuthenticationType.class);
         } else {
-            return AuthenticationType.USERNAME_PASSWORD;
+            return AuthenticationType.PASSWORD;
         }
     }
 
     private AuthenticationContext createAuthenticationContext(final ComponentLog logger) {
         return switch (getAuthenticationType()) {
-            case USERNAME_PASSWORD -> createUsernamePasswordAuthenticationContext();
+            case PASSWORD -> createPasswordAuthenticationContext();
             case KERBEROS ->  createKerberosAuthenticationContext(logger);
         };
     }
 
-    private AuthenticationContext createUsernamePasswordAuthenticationContext() {
+    private AuthenticationContext createPasswordAuthenticationContext() {
         if (context.getProperty(USERNAME).isSet()) {
             final String username = context.getProperty(USERNAME).getValue();
             final String password = context.getProperty(PASSWORD).isSet() ? context.getProperty(PASSWORD).getValue() : "";

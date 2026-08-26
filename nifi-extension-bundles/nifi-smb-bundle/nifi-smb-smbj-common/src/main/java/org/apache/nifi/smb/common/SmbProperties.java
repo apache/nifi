@@ -40,7 +40,7 @@ public class SmbProperties {
     public static final String OLD_TIMEOUT_PROPERTY_NAME = "timeout";
 
     public enum AuthenticationType implements DescribedValue {
-        USERNAME_PASSWORD("Username / Password", "Use username and password to authenticate"),
+        PASSWORD("Password", "Use username and password to authenticate"),
         KERBEROS("Kerberos", "Use Kerberos to authenticate"),;
 
         private final String displayName;
@@ -98,7 +98,7 @@ public class SmbProperties {
             .description("The authentication type.")
             .required(true)
             .allowableValues(AuthenticationType.class)
-            .defaultValue(AuthenticationType.USERNAME_PASSWORD)
+            .defaultValue(AuthenticationType.PASSWORD)
             .build();
 
     public static final PropertyDescriptor DOMAIN = new PropertyDescriptor.Builder()
@@ -106,7 +106,7 @@ public class SmbProperties {
             .description("The domain used for authentication. Optional, in most cases username and password is sufficient.")
             .required(false)
             .addValidator(NON_EMPTY_VALIDATOR)
-            .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.USERNAME_PASSWORD)
+            .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.PASSWORD)
             .build();
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
@@ -114,7 +114,7 @@ public class SmbProperties {
             .description("The username used for authentication. If no username is set then anonymous authentication is attempted.")
             .required(false)
             .addValidator(NON_EMPTY_VALIDATOR)
-            .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.USERNAME_PASSWORD)
+            .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.PASSWORD)
             .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
@@ -123,7 +123,7 @@ public class SmbProperties {
             .required(false)
             .addValidator(NON_EMPTY_VALIDATOR)
             .sensitive(true)
-            .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.USERNAME_PASSWORD)
+            .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.PASSWORD)
             .build();
 
     public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
