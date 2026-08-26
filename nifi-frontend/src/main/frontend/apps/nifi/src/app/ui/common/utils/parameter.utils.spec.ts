@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { extractParameterName } from './parameter.utils';
+import { extractParameterName, PARAM_REF_REGEX } from './parameter.utils';
 
 describe('extractParameterName', () => {
     describe('valid unquoted references', () => {
@@ -29,6 +29,10 @@ describe('extractParameterName', () => {
 
         it('extracts a name with spaces', () => {
             expect(extractParameterName('#{param with spaces}')).toBe('param with spaces');
+        });
+
+        it('trims surrounding whitespace inside an unquoted reference', () => {
+            expect(extractParameterName('#{ my-param }')).toBe('my-param');
         });
 
         it('extracts a single-character name', () => {
@@ -69,11 +73,12 @@ describe('extractParameterName', () => {
             expect(extractParameterName('#{}')).toBeUndefined();
         });
 
-        it('treats mismatched quotes as part of the unquoted name', () => {
-            // The regex quote capture group is optional, so when quotes are mismatched
-            // the whole content (including the quote characters) becomes the name. A name
-            // like this matches no real parameter, so the caller simply gets no highlight.
-            expect(extractParameterName('#{\'mismatched"}')).toBe('\'mismatched"');
+        it('returns undefined for #{ } with only whitespace', () => {
+            expect(extractParameterName('#{ }')).toBeUndefined();
+        });
+
+        it('returns undefined when quotes are mismatched', () => {
+            expect(extractParameterName('#{\'mismatched"}')).toBeUndefined();
         });
     });
 
@@ -87,10 +92,19 @@ describe('extractParameterName', () => {
         });
 
         it('returns the first parameter name when the value contains multiple references', () => {
-            // Deterministic: always returns the first reference in reading order.
-            // [^}]+ prevents spanning across closing braces, so the match stops at
-            // the first } rather than producing the bogus whole-span name "p1}-#{p2".
             expect(extractParameterName('#{p1}-#{p2}')).toBe('p1');
         });
+
+        it('skips an invalid reference and extracts the first valid one', () => {
+            expect(extractParameterName('#{bad:name} #{kafka.brokers}')).toBe('kafka.brokers');
+        });
+    });
+});
+
+describe('PARAM_REF_REGEX', () => {
+    it('matches the same first valid reference that extractParameterName returns', () => {
+        const value = '#{bad:name} #{kafka.brokers}';
+        expect(PARAM_REF_REGEX.test(value)).toBe(true);
+        expect(extractParameterName(value)).toBe('kafka.brokers');
     });
 });

@@ -62,6 +62,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { PropertyItem } from './property-item';
 import { PropertyValueTip } from '../tooltips/property-value-tip/property-value-tip.component';
+import { PARAM_REF_REGEX } from '../utils/parameter.utils';
 
 @Component({
     selector: 'property-table',
@@ -106,8 +107,6 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     @Input() supportsSensitiveDynamicProperties = false;
     @Input() propertyHistory: ComponentHistory | undefined;
     @Input() supportsParameters = true;
-
-    private static readonly PARAM_REF_REGEX: RegExp = /#{(['"]?)[a-zA-Z0-9-_. ]+\1}/;
 
     private destroyRef = inject(DestroyRef);
 
@@ -229,7 +228,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         let dependentValue = dependentItem.value;
         if (dependentValue != null) {
             // check if the dependent value is a parameter reference
-            if (PropertyTable.PARAM_REF_REGEX.test(dependentValue)) {
+            if (PARAM_REF_REGEX.test(dependentValue)) {
                 // the dependent value contains parameter reference, if the user can view
                 // the parameter context resolve the parameter value to see if it
                 // satisfies the dependent values
@@ -518,7 +517,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
 
     canGoToParameter(item: PropertyItem): boolean {
         if (this.parameterContext && this.goToParameter && item.value) {
-            return this.parameterContext.permissions.canRead && PropertyTable.PARAM_REF_REGEX.test(item.value);
+            return this.parameterContext.permissions.canRead && PARAM_REF_REGEX.test(item.value);
         }
 
         return false;
@@ -540,7 +539,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
 
         let propertyReferencesParameter = false;
         if (canUpdateParameterContext && item.value) {
-            propertyReferencesParameter = PropertyTable.PARAM_REF_REGEX.test(item.value);
+            propertyReferencesParameter = PARAM_REF_REGEX.test(item.value);
         }
 
         return canUpdateParameterContext && !propertyReferencesParameter;
