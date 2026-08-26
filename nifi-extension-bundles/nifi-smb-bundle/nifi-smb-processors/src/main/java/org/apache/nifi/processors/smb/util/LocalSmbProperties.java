@@ -93,18 +93,21 @@ public class LocalSmbProperties {
     public static final PropertyDescriptor DOMAIN = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(SmbProperties.DOMAIN)
             .description(SmbProperties.DOMAIN.getDescription() + DEPRECATION_TAG)
+            .clearDependsOn()
             .dependsOn(CONNECTION_CONFIGURATION_STRATEGY, ConnectionConfigurationStrategy.LOCAL_PROPERTIES)
             .build();
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(SmbProperties.USERNAME)
             .description(SmbProperties.USERNAME.getDescription() + DEPRECATION_TAG)
+            .clearDependsOn()
             .dependsOn(CONNECTION_CONFIGURATION_STRATEGY, ConnectionConfigurationStrategy.LOCAL_PROPERTIES)
             .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(SmbProperties.PASSWORD)
             .description(SmbProperties.PASSWORD.getDescription() + DEPRECATION_TAG)
+            .clearDependsOn()
             .dependsOn(CONNECTION_CONFIGURATION_STRATEGY, ConnectionConfigurationStrategy.LOCAL_PROPERTIES)
             .build();
 
