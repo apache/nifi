@@ -172,6 +172,40 @@ class RemovedConnectionDrainCoordinatorTest {
     }
 
     @Test
+    void testCoordinateDrainCancelsWhenQueueWaitReportsSuccessAndRestoresStoppedComponents() throws Exception {
+        final RemovedConnectionDescriptor removedConnection = descriptor(
+                "connection-a", "source-a", ConnectableType.PROCESSOR,
+                "destination-a", ConnectableType.PROCESSOR, RemovalReason.COMPONENT_REMOVED);
+        final FlowUpdateImpact impact = createImpact(Set.of(removedConnection), Set.of(
+                affectedProcessor("source-a", "Running", 1),
+                affectedProcessor("destination-a", "Running", 1)));
+        final TestContext context = new TestContext()
+                .addGroup(ROOT_GROUP_ID, null)
+                .addConnection("connection-a", "source-a", "destination-a", false)
+                .addProcessor("source-a", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID)
+                .addProcessor("destination-a", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID);
+        final TestComponentLifecycle lifecycle = new TestComponentLifecycle();
+        lifecycle.stoppedResultById.put("source-a", affectedProcessor("source-a", "Stopped", 0));
+        lifecycle.runningResultById.put("source-a", affectedProcessor("source-a", "Running", 1));
+        lifecycle.cancelDuringQueueWait = true;
+        lifecycle.queueWaitResult = true;
+        final TestCancellationHandle cancellationHandle = new TestCancellationHandle();
+        lifecycle.cancellationHandle = cancellationHandle;
+
+        final RemovedConnectionDrainCoordinator coordinator = new RemovedConnectionDrainCoordinator(
+                new RemovedConnectionDrainClassifier(), new TestPauseFactory(), Duration.ofSeconds(30));
+
+        final RemovedConnectionDrainCoordinator.DrainResult result = coordinator.coordinateDrain(
+                impact, context, lifecycle, REQUEST_URI, ROOT_GROUP_ID, cancellationHandle);
+
+        assertTrue(result.cancelled());
+        assertEquals(List.of(
+                new ScheduleCall(ScheduledState.STOPPED, Set.of("source-a")),
+                new ScheduleCall(ScheduledState.RUNNING, Set.of("source-a"))
+        ), lifecycle.scheduleCalls);
+    }
+
+    @Test
     void testCoordinateDrainCancellationRetainsRestorationFailureWithoutRetry() throws Exception {
         final RemovedConnectionDescriptor removedConnection = descriptor(
                 "connection-a", "source-a", ConnectableType.PROCESSOR,
@@ -345,6 +379,70 @@ class RemovedConnectionDrainCoordinatorTest {
         assertEquals(1, exception.getSuppressed().length);
         assertEquals("Failed to restore stopped producers", exception.getSuppressed()[0].getMessage());
         assertTrue(exception.getMessage().contains("Removed connection drain timed out"));
+    }
+
+    @Test
+    void testCoordinateDrainRestoresStoppedComponentsWhenQueueWaitThrowsRuntimeException() {
+        final RemovedConnectionDescriptor removedConnection = descriptor(
+                "connection-a", "source-a", ConnectableType.PROCESSOR,
+                "destination-a", ConnectableType.PROCESSOR, RemovalReason.COMPONENT_REMOVED);
+        final FlowUpdateImpact impact = createImpact(Set.of(removedConnection), Set.of(
+                affectedProcessor("source-a", "Running", 1),
+                affectedProcessor("destination-a", "Running", 1)));
+        final TestContext context = new TestContext()
+                .addGroup(ROOT_GROUP_ID, null)
+                .addConnection("connection-a", "source-a", "destination-a", false)
+                .addProcessor("source-a", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID)
+                .addProcessor("destination-a", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID);
+        final TestComponentLifecycle lifecycle = new TestComponentLifecycle();
+        lifecycle.stoppedResultById.put("source-a", affectedProcessor("source-a", "Stopped", 0));
+        lifecycle.runningResultById.put("source-a", affectedProcessor("source-a", "Running", 1));
+        lifecycle.queueWaitRuntimeException = new IllegalStateException("Cluster membership changed");
+
+        final RemovedConnectionDrainCoordinator coordinator = new RemovedConnectionDrainCoordinator(
+                new RemovedConnectionDrainClassifier(), new TestPauseFactory(), Duration.ofSeconds(30));
+
+        final LifecycleManagementException exception = assertThrows(LifecycleManagementException.class, () -> coordinator.coordinateDrain(
+                impact, context, lifecycle, REQUEST_URI, ROOT_GROUP_ID, new TestCancellationHandle()));
+
+        assertSame(lifecycle.queueWaitRuntimeException, exception.getCause());
+        assertTrue(exception.getMessage().contains("Removed connection drain failed for connections [connection-a]"));
+        assertEquals(List.of(
+                new ScheduleCall(ScheduledState.STOPPED, Set.of("source-a")),
+                new ScheduleCall(ScheduledState.RUNNING, Set.of("source-a"))
+        ), lifecycle.scheduleCalls);
+    }
+
+    @Test
+    void testCoordinateDrainRetainsRestorationFailureWhenQueueWaitThrowsRuntimeException() {
+        final RemovedConnectionDescriptor removedConnection = descriptor(
+                "connection-a", "source-a", ConnectableType.PROCESSOR,
+                "destination-a", ConnectableType.PROCESSOR, RemovalReason.COMPONENT_REMOVED);
+        final FlowUpdateImpact impact = createImpact(Set.of(removedConnection), Set.of(
+                affectedProcessor("source-a", "Running", 1),
+                affectedProcessor("destination-a", "Running", 1)));
+        final TestContext context = new TestContext()
+                .addGroup(ROOT_GROUP_ID, null)
+                .addConnection("connection-a", "source-a", "destination-a", false)
+                .addProcessor("source-a", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID)
+                .addProcessor("destination-a", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID);
+        final TestComponentLifecycle lifecycle = new TestComponentLifecycle();
+        lifecycle.stoppedResultById.put("source-a", affectedProcessor("source-a", "Stopped", 0));
+        lifecycle.queueWaitRuntimeException = new IllegalStateException("Cluster membership changed");
+        lifecycle.restoreException = new LifecycleManagementException("Failed to restore stopped producers");
+
+        final RemovedConnectionDrainCoordinator coordinator = new RemovedConnectionDrainCoordinator(
+                new RemovedConnectionDrainClassifier(), new TestPauseFactory(), Duration.ofSeconds(30));
+
+        final LifecycleManagementException exception = assertThrows(LifecycleManagementException.class, () -> coordinator.coordinateDrain(
+                impact, context, lifecycle, REQUEST_URI, ROOT_GROUP_ID, new TestCancellationHandle()));
+
+        assertEquals(1, exception.getSuppressed().length);
+        assertEquals("Failed to restore stopped producers", exception.getSuppressed()[0].getMessage());
+        assertEquals(List.of(
+                new ScheduleCall(ScheduledState.STOPPED, Set.of("source-a")),
+                new ScheduleCall(ScheduledState.RUNNING, Set.of("source-a"))
+        ), lifecycle.scheduleCalls);
     }
 
     @Test
@@ -576,6 +674,7 @@ class RemovedConnectionDrainCoordinatorTest {
         private boolean queueWaitUsesPause;
         private LifecycleManagementException stopException;
         private LifecycleManagementException queueWaitException;
+        private RuntimeException queueWaitRuntimeException;
         private LifecycleManagementException restoreException;
         private TestCancellationHandle cancellationHandle;
         private Pause queueWaitPause;
@@ -629,6 +728,10 @@ class RemovedConnectionDrainCoordinatorTest {
 
             if (queueWaitException != null) {
                 throw queueWaitException;
+            }
+
+            if (queueWaitRuntimeException != null) {
+                throw queueWaitRuntimeException;
             }
 
             if (cancelDuringQueueWait && cancellationHandle != null) {

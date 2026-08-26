@@ -68,6 +68,11 @@ public interface AsynchronousWebRequest<R, T> {
      */
     void fail(String explanation);
 
+    /**
+     * Appends detail to the existing failure reason, or establishes the detail as the failure reason when none exists.
+     *
+     * @param detail additional failure detail
+     */
     void appendFailureDetail(String detail);
 
     /**

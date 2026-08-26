@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class CreateConnectorIT {
 
     @Test
-    public void testCreateStartAndStopGenerateAndUpdateConnector() throws IOException {
+    public void testCreateStartAndStopGenerateAndUpdateConnector() throws IOException, TimeoutException {
         try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
             .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
             .narLibraryDirectory(new File("target/libDir"))
@@ -65,7 +65,7 @@ public class CreateConnectorIT {
             assertEquals("org.apache.nifi.lookup.SimpleKeyValueLookupService", controllerServices.iterator().next().getType());
 
             testRunner.startConnector();
-            assertDoesNotThrow(() -> testRunner.stopConnector(Duration.ofSeconds(120)));
+            testRunner.stopConnector(Duration.ofSeconds(120));
         }
     }
 
@@ -77,7 +77,6 @@ public class CreateConnectorIT {
                 .build()) {
 
             testRunner.startConnector();
-
             testRunner.stopConnector(Duration.ofSeconds(120));
         }
     }

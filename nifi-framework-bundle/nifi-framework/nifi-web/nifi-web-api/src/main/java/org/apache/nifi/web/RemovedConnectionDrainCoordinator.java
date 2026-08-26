@@ -25,6 +25,8 @@ import org.apache.nifi.web.util.ComponentLifecycle;
 import org.apache.nifi.web.util.InvalidComponentAction;
 import org.apache.nifi.web.util.LifecycleManagementException;
 import org.apache.nifi.web.util.Pause;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.time.Duration;
@@ -41,6 +43,7 @@ import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 public final class RemovedConnectionDrainCoordinator {
+    private static final Logger logger = LoggerFactory.getLogger(RemovedConnectionDrainCoordinator.class);
     static final Duration DEFAULT_DRAIN_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration DEFAULT_POLL_INTERVAL = Duration.ofMillis(250);
 
@@ -97,6 +100,10 @@ public final class RemovedConnectionDrainCoordinator {
             }
         }
 
+        final List<String> orderedCandidateConnectionIds = candidateConnectionIds.stream().sorted().toList();
+        final List<String> orderedProducerBarrierIds = componentsToStop.stream().map(AffectedComponentEntity::getId).sorted().toList();
+        logger.info("Starting drain of removed connections {} with producer barriers {}", orderedCandidateConnectionIds, orderedProducerBarrierIds);
+
         final DeadlinePause drainPause = pauseFactory.createDrainPause(drainTimeout);
         cancellationHandle.setCancelCallback(drainPause::cancel);
 
@@ -125,6 +132,11 @@ public final class RemovedConnectionDrainCoordinator {
 
             final boolean queuesDrained = componentLifecycle.waitForConnectionQueuesEmpty(requestUri, candidateConnectionIds, drainPause);
             if (queuesDrained) {
+                if (cancellationHandle.isCancelled()) {
+                    return restoreAfterCancellation(componentLifecycle, requestUri, groupId, candidateConnectionIds, drainStoppedComponents);
+                }
+
+                logger.info("Completed draining removed connections {}", orderedCandidateConnectionIds);
                 return DrainResult.success(candidateConnectionIds, drainStoppedComponents);
             }
 
@@ -140,6 +152,18 @@ public final class RemovedConnectionDrainCoordinator {
             }
 
             final LifecycleManagementException failure = decorateFailure(e, componentsToStop, candidateConnectionIds);
+            logger.warn("Removed connection drain failed for connections {}", orderedCandidateConnectionIds, failure);
+            restoreOrSuppress(componentLifecycle, requestUri, groupId, stoppedComponents, failure);
+            throw failure;
+        } catch (final RuntimeException e) {
+            final Set<AffectedComponentEntity> stoppedComponents = getStoppedComponentsToRestore(queueAwareContext, componentsToStop, drainStoppedComponents);
+            if (cancellationHandle.isCancelled()) {
+                return restoreAfterCancellation(componentLifecycle, requestUri, groupId, candidateConnectionIds, stoppedComponents);
+            }
+
+            final LifecycleManagementException failure = new LifecycleManagementException(
+                    "Removed connection drain failed for connections " + candidateConnectionIds.stream().sorted().toList(), e);
+            logger.warn("Removed connection drain failed for connections {}", orderedCandidateConnectionIds, failure);
             restoreOrSuppress(componentLifecycle, requestUri, groupId, stoppedComponents, failure);
             throw failure;
         } finally {
@@ -155,6 +179,8 @@ public final class RemovedConnectionDrainCoordinator {
             restoreStoppedComponents(componentLifecycle, requestUri, groupId, drainStoppedComponents);
         } catch (final LifecycleManagementException e) {
             restorationFailure = e;
+            logger.warn("Failed to restore producer barriers {} after removed connection drain cancellation",
+                    drainStoppedComponents.stream().map(AffectedComponentEntity::getId).sorted().toList(), e);
         }
 
         return DrainResult.cancelled(candidateConnectionIds, drainStoppedComponents, restorationFailure);
@@ -257,6 +283,8 @@ public final class RemovedConnectionDrainCoordinator {
         try {
             restoreStoppedComponents(componentLifecycle, requestUri, groupId, stoppedComponents);
         } catch (final LifecycleManagementException restorationFailure) {
+            logger.warn("Failed to restore producer barriers {} after removed connection drain failure",
+                    stoppedComponents.stream().map(AffectedComponentEntity::getId).sorted().toList(), restorationFailure);
             failure.addSuppressed(restorationFailure);
         }
     }

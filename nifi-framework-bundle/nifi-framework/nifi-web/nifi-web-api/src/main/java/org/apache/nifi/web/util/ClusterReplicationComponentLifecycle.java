@@ -67,8 +67,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -648,13 +650,21 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             .sorted(Comparator.naturalOrder())
             .toList();
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Map<String, QueuePollResult> queuePollResults = new LinkedHashMap<>();
 
         boolean continuePolling = true;
         while (continuePolling) {
             boolean allQueuesEmpty = true;
             for (final String connectionId : orderedConnectionIds) {
                 final ListingRequestResult listingRequest = createFlowFileListingRequest(user, originalUri, connectionId, expectedNodes);
-                if (!listingRequest.hasExpectedCoverage() || !isQueueEmpty(listingRequest.entity())) {
+                final Integer queuedFlowFiles = getQueuedFlowFiles(listingRequest.entity());
+                queuePollResults.put(connectionId, new QueuePollResult(queuedFlowFiles, listingRequest.hasExpectedCoverage(),
+                        listingRequest.involvedNodeIds(), listingRequest.completedNodeIds(), listingRequest.successfulNodeIds()));
+                logger.debug("Removed connection drain cluster queue poll [connectionId={}, queuedFlowFiles={}, expectedNodeIds={}, involvedNodeIds={}, "
+                                + "completedNodeIds={}, successfulNodeIds={}, expectedCoverage={}]", connectionId, queuedFlowFiles,
+                        getExpectedNodeIds(expectedNodes), listingRequest.involvedNodeIds(), listingRequest.completedNodeIds(),
+                        listingRequest.successfulNodeIds(), listingRequest.hasExpectedCoverage());
+                if (!listingRequest.hasExpectedCoverage() || queuedFlowFiles == null || queuedFlowFiles != 0) {
                     allQueuesEmpty = false;
                 }
 
@@ -676,6 +686,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             continuePolling = pause.pause();
         }
 
+        logger.warn("Removed connection drain cluster queue wait ended with remaining queues {}", queuePollResults);
         return false;
     }
 
@@ -745,16 +756,19 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             final ListingRequestEntity listingRequestEntity = mergedResponse != null && mergedResponse.is2xx()
                 ? getResponseEntity(mergedResponse, ListingRequestEntity.class)
                 : null;
+            final Set<String> involvedNodeIds = getNodeIds(clusterResponse.getNodesInvolved());
+            final Set<String> completedNodeIds = getNodeIds(clusterResponse.getCompletedNodeIdentifiers());
+            final Set<String> successfulNodeIds = getSuccessfulNodeIds(clusterResponse.getCompletedNodeResponses());
 
             if (!hasExpectedSuccessfulNodeCoverage(clusterResponse, expectedNodes)) {
-                return new ListingRequestResult(listingRequestEntity, false);
+                return new ListingRequestResult(listingRequestEntity, false, involvedNodeIds, completedNodeIds, successfulNodeIds);
             }
 
             if (mergedResponse == null || !mergedResponse.is2xx()) {
-                return new ListingRequestResult(listingRequestEntity, false);
+                return new ListingRequestResult(listingRequestEntity, false, involvedNodeIds, completedNodeIds, successfulNodeIds);
             }
 
-            return new ListingRequestResult(listingRequestEntity, true);
+            return new ListingRequestResult(listingRequestEntity, true, involvedNodeIds, completedNodeIds, successfulNodeIds);
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new LifecycleManagementException("Interrupted while waiting for connection queues to empty");
@@ -798,7 +812,12 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         return entity.getListingRequest().getId();
     }
 
-    private record ListingRequestResult(ListingRequestEntity entity, boolean hasExpectedCoverage) {
+    private record ListingRequestResult(ListingRequestEntity entity, boolean hasExpectedCoverage, Set<String> involvedNodeIds,
+                                        Set<String> completedNodeIds, Set<String> successfulNodeIds) {
+    }
+
+    private record QueuePollResult(Integer queuedFlowFiles, boolean expectedCoverage, Set<String> involvedNodeIds,
+                                   Set<String> completedNodeIds, Set<String> successfulNodeIds) {
     }
 
     private boolean hasExpectedSuccessfulNodeCoverage(final AsyncClusterResponse clusterResponse, final Set<NodeIdentifier> expectedNodes) {
@@ -861,13 +880,40 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         return actualNodeIds.equals(expectedNodeIds);
     }
 
-    private boolean isQueueEmpty(final ListingRequestEntity entity) {
+    private Integer getQueuedFlowFiles(final ListingRequestEntity entity) {
         if (entity == null || entity.getListingRequest() == null) {
-            return false;
+            return null;
         }
 
         final ListingRequestDTO listingRequest = entity.getListingRequest();
-        return listingRequest.getQueueSize() != null && listingRequest.getQueueSize().getObjectCount() == 0;
+        return listingRequest.getQueueSize() == null ? null : listingRequest.getQueueSize().getObjectCount();
+    }
+
+    private Set<String> getNodeIds(final Set<NodeIdentifier> nodeIdentifiers) {
+        if (nodeIdentifiers == null) {
+            return Collections.emptySet();
+        }
+
+        return nodeIdentifiers.stream()
+                .filter(Objects::nonNull)
+                .map(NodeIdentifier::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<String> getSuccessfulNodeIds(final Set<NodeResponse> nodeResponses) {
+        if (nodeResponses == null) {
+            return Collections.emptySet();
+        }
+
+        return nodeResponses.stream()
+                .filter(Objects::nonNull)
+                .filter(NodeResponse::is2xx)
+                .map(NodeResponse::getNodeId)
+                .filter(Objects::nonNull)
+                .map(NodeIdentifier::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     private boolean isControllerServiceValidationComplete(final Set<ControllerServiceEntity> controllerServiceEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
