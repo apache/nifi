@@ -49,6 +49,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RebaseVersionIT extends NiFiSystemIT {
     private static final String TEST_FLOWS_BUCKET = "test-flows";
+    private static final String ROOT_GROUP_ID = "root";
+    private static final String ORIGINAL_GROUP_NAME = "Original";
+    private static final String CONTROLLER_SERVICE_TYPE = "FakeControllerService1";
+    private static final String DYNAMIC_CONTROLLER_SERVICE_TYPE = "FakeDynamicPropertiesControllerService";
+    private static final String PROCESSOR_TYPE = "FakeProcessor";
+    private static final String GENERATE_FLOW_FILE_TYPE = "GenerateFlowFile";
+    private static final String CONTROLLER_SERVICE_PROPERTY = "Fake Service";
+    private static final String TEXT_PROPERTY = "Text";
+    private static final String UPSTREAM_CHANGE = "upstream-change";
+    private static final String SERVICE_X_PROPERTY = "FCS.X";
+    private static final String SERVICE_Y_PROPERTY = "FCS.Y";
+    private static final String SERVICE_Z_PROPERTY = "FCS.Z";
 
     @Test
     public void testCleanRebaseWithPositionAndPropertyChanges() throws NiFiClientException, IOException, InterruptedException {
@@ -406,23 +418,23 @@ public class RebaseVersionIT extends NiFiSystemIT {
         final FlowRegistryClientEntity clientEntity = registerClient();
         final NiFiClientUtil util = getClientUtil();
 
-        final ProcessGroupEntity originalGroup = util.createProcessGroup("Original", "root");
-        final ControllerServiceEntity serviceX = util.createControllerService("FakeControllerService1", originalGroup.getId());
-        final ProcessorEntity fakeProcessor = util.createProcessor("FakeProcessor", originalGroup.getId());
-        util.updateProcessorProperties(fakeProcessor, Map.of("Fake Service", serviceX.getId()));
-        util.createProcessor("GenerateFlowFile", originalGroup.getId());
+        final ProcessGroupEntity originalGroup = util.createProcessGroup(ORIGINAL_GROUP_NAME, ROOT_GROUP_ID);
+        final ControllerServiceEntity serviceX = util.createControllerService(CONTROLLER_SERVICE_TYPE, originalGroup.getId());
+        final ProcessorEntity fakeProcessor = util.createProcessor(PROCESSOR_TYPE, originalGroup.getId());
+        util.updateProcessorProperties(fakeProcessor, Map.of(CONTROLLER_SERVICE_PROPERTY, serviceX.getId()));
+        util.createProcessor(GENERATE_FLOW_FILE_TYPE, originalGroup.getId());
 
         final VersionControlInformationEntity vci = util.startVersionControl(originalGroup, clientEntity, TEST_FLOWS_BUCKET,
                 "RebaseLocalAddedControllerServiceProcessorReference");
         final String flowId = vci.getVersionControlInformation().getFlowId();
 
-        final ProcessGroupEntity secondGroup = util.importFlowFromRegistry("root", clientEntity.getId(), TEST_FLOWS_BUCKET, flowId, "1");
-        final ProcessorEntity upstreamGenerate = findProcessorByType(secondGroup.getId(), "GenerateFlowFile");
-        util.updateProcessorProperties(upstreamGenerate, Map.of("Text", "upstream-change"));
+        final ProcessGroupEntity secondGroup = util.importFlowFromRegistry(ROOT_GROUP_ID, clientEntity.getId(), TEST_FLOWS_BUCKET, flowId, "1");
+        final ProcessorEntity upstreamGenerate = findProcessorByType(secondGroup.getId(), GENERATE_FLOW_FILE_TYPE);
+        util.updateProcessorProperties(upstreamGenerate, Map.of(TEXT_PROPERTY, UPSTREAM_CHANGE));
         util.saveFlowVersion(secondGroup, clientEntity, getVersionControlInformation(secondGroup.getId()));
 
-        final ControllerServiceEntity serviceY = util.createControllerService("FakeControllerService1", originalGroup.getId());
-        util.updateProcessorProperties(fakeProcessor, Map.of("Fake Service", serviceY.getId()));
+        final ControllerServiceEntity serviceY = util.createControllerService(CONTROLLER_SERVICE_TYPE, originalGroup.getId());
+        util.updateProcessorProperties(fakeProcessor, Map.of(CONTROLLER_SERVICE_PROPERTY, serviceY.getId()));
 
         final RebaseAnalysisEntity analysis = util.getRebaseAnalysis(originalGroup.getId(), "2");
         assertTrue(analysis.getRebaseAllowed(), "Expected rebase to be allowed but it was not. Failure: " + analysis.getFailureReason()
@@ -437,8 +449,8 @@ public class RebaseVersionIT extends NiFiSystemIT {
         final Set<ControllerServiceEntity> rebasedServices = getNifiClient().getFlowClient().getControllerServices(originalGroup.getId()).getControllerServices();
         assertControllerServicesPresent(rebasedServices, serviceX.getId(), serviceY.getId());
 
-        final ProcessorEntity rebasedProcessor = findProcessorByType(originalGroup.getId(), "FakeProcessor");
-        assertEquals(serviceY.getId(), rebasedProcessor.getComponent().getConfig().getProperties().get("Fake Service"));
+        final ProcessorEntity rebasedProcessor = findProcessorByType(originalGroup.getId(), PROCESSOR_TYPE);
+        assertEquals(serviceY.getId(), rebasedProcessor.getComponent().getConfig().getProperties().get(CONTROLLER_SERVICE_PROPERTY));
 
         assertLocalModificationsContainComponents(originalGroup.getId(), serviceY.getId(), fakeProcessor.getId());
     }
@@ -449,27 +461,27 @@ public class RebaseVersionIT extends NiFiSystemIT {
         final FlowRegistryClientEntity clientEntity = registerClient();
         final NiFiClientUtil util = getClientUtil();
 
-        final ProcessGroupEntity originalGroup = util.createProcessGroup("Original", "root");
-        final ControllerServiceEntity serviceX = util.createControllerService("FakeControllerService1", originalGroup.getId());
-        final ControllerServiceEntity dynamicService = util.createControllerService("FakeDynamicPropertiesControllerService", originalGroup.getId());
-        util.updateControllerServiceProperties(dynamicService, Collections.singletonMap("FCS.X", serviceX.getId()));
-        util.createProcessor("GenerateFlowFile", originalGroup.getId());
+        final ProcessGroupEntity originalGroup = util.createProcessGroup(ORIGINAL_GROUP_NAME, ROOT_GROUP_ID);
+        final ControllerServiceEntity serviceX = util.createControllerService(CONTROLLER_SERVICE_TYPE, originalGroup.getId());
+        final ControllerServiceEntity dynamicService = util.createControllerService(DYNAMIC_CONTROLLER_SERVICE_TYPE, originalGroup.getId());
+        util.updateControllerServiceProperties(dynamicService, Collections.singletonMap(SERVICE_X_PROPERTY, serviceX.getId()));
+        util.createProcessor(GENERATE_FLOW_FILE_TYPE, originalGroup.getId());
 
         final VersionControlInformationEntity vci = util.startVersionControl(originalGroup, clientEntity, TEST_FLOWS_BUCKET,
                 "RebaseLocalAddedControllerServiceDynamicReference");
         final String flowId = vci.getVersionControlInformation().getFlowId();
 
-        final ProcessGroupEntity secondGroup = util.importFlowFromRegistry("root", clientEntity.getId(), TEST_FLOWS_BUCKET, flowId, "1");
-        final ProcessorEntity upstreamGenerate = findProcessorByType(secondGroup.getId(), "GenerateFlowFile");
-        util.updateProcessorProperties(upstreamGenerate, Map.of("Text", "upstream-change"));
+        final ProcessGroupEntity secondGroup = util.importFlowFromRegistry(ROOT_GROUP_ID, clientEntity.getId(), TEST_FLOWS_BUCKET, flowId, "1");
+        final ProcessorEntity upstreamGenerate = findProcessorByType(secondGroup.getId(), GENERATE_FLOW_FILE_TYPE);
+        util.updateProcessorProperties(upstreamGenerate, Map.of(TEXT_PROPERTY, UPSTREAM_CHANGE));
         util.saveFlowVersion(secondGroup, clientEntity, getVersionControlInformation(secondGroup.getId()));
 
-        final ControllerServiceEntity serviceY = util.createControllerService("FakeControllerService1", originalGroup.getId());
-        final ControllerServiceEntity serviceZ = util.createControllerService("FakeControllerService1", originalGroup.getId());
+        final ControllerServiceEntity serviceY = util.createControllerService(CONTROLLER_SERVICE_TYPE, originalGroup.getId());
+        final ControllerServiceEntity serviceZ = util.createControllerService(CONTROLLER_SERVICE_TYPE, originalGroup.getId());
         util.updateControllerServiceProperties(dynamicService, Map.of(
-                "FCS.X", serviceX.getId(),
-                "FCS.Y", serviceY.getId(),
-                "FCS.Z", serviceZ.getId()));
+                SERVICE_X_PROPERTY, serviceX.getId(),
+                SERVICE_Y_PROPERTY, serviceY.getId(),
+                SERVICE_Z_PROPERTY, serviceZ.getId()));
 
         final RebaseAnalysisEntity analysis = util.getRebaseAnalysis(originalGroup.getId(), "2");
         assertTrue(analysis.getRebaseAllowed(), "Expected rebase to be allowed but it was not. Failure: " + analysis.getFailureReason()
@@ -486,9 +498,9 @@ public class RebaseVersionIT extends NiFiSystemIT {
 
         final ControllerServiceEntity rebasedDynamicService = getNifiClient().getControllerServicesClient().getControllerService(dynamicService.getId());
         final Map<String, String> dynamicProperties = rebasedDynamicService.getComponent().getProperties();
-        assertEquals(serviceX.getId(), dynamicProperties.get("FCS.X"));
-        assertEquals(serviceY.getId(), dynamicProperties.get("FCS.Y"));
-        assertEquals(serviceZ.getId(), dynamicProperties.get("FCS.Z"));
+        assertEquals(serviceX.getId(), dynamicProperties.get(SERVICE_X_PROPERTY));
+        assertEquals(serviceY.getId(), dynamicProperties.get(SERVICE_Y_PROPERTY));
+        assertEquals(serviceZ.getId(), dynamicProperties.get(SERVICE_Z_PROPERTY));
 
         assertLocalModificationsContainComponents(originalGroup.getId(), dynamicService.getId(), serviceY.getId(), serviceZ.getId());
     }

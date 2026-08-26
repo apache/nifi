@@ -45,6 +45,14 @@ class ComponentAddedRebaseHandlerTest {
     private static final String EXISTING_SERVICE_ID = "service-x";
     private static final String ADDED_SERVICE_ID = "service-y";
     private static final String SERVICE_REFERENCE_PROPERTY = "delegate.service";
+    private static final String LOCAL_SERVICE_NAME = "Local Controller Service";
+    private static final String LOCAL_SERVICE_TYPE = "org.apache.nifi.services.LocalControllerService";
+    private static final String BUNDLE_GROUP = "group";
+    private static final String BUNDLE_ARTIFACT = "artifact";
+    private static final String BUNDLE_VERSION = "1.0.0";
+    private static final String LOCAL_COMMENTS = "local comments";
+    private static final String SERVICE_ENABLED_PROPERTY = "service.enabled";
+    private static final String SERVICE_ENABLED_VALUE = "true";
 
     private ComponentAddedRebaseHandler handler;
 
@@ -165,14 +173,14 @@ class ComponentAddedRebaseHandlerTest {
         assertSame(addedService, insertedService);
         assertEquals(ADDED_SERVICE_ID, insertedService.getIdentifier());
         assertEquals(ROOT, insertedService.getGroupIdentifier());
-        assertEquals("Local Controller Service", insertedService.getName());
-        assertEquals("org.apache.nifi.services.LocalControllerService", insertedService.getType());
-        assertEquals("group", insertedService.getBundle().getGroup());
-        assertEquals("artifact", insertedService.getBundle().getArtifact());
-        assertEquals("1.0.0", insertedService.getBundle().getVersion());
+        assertEquals(LOCAL_SERVICE_NAME, insertedService.getName());
+        assertEquals(LOCAL_SERVICE_TYPE, insertedService.getType());
+        assertEquals(BUNDLE_GROUP, insertedService.getBundle().getGroup());
+        assertEquals(BUNDLE_ARTIFACT, insertedService.getBundle().getArtifact());
+        assertEquals(BUNDLE_VERSION, insertedService.getBundle().getVersion());
         assertSame(addedService.getProperties(), insertedService.getProperties());
         assertSame(addedService.getPropertyDescriptors(), insertedService.getPropertyDescriptors());
-        assertEquals("local comments", insertedService.getComments());
+        assertEquals(LOCAL_COMMENTS, insertedService.getComments());
         assertEquals(ScheduledState.DISABLED, insertedService.getScheduledState());
     }
 
@@ -204,7 +212,7 @@ class ComponentAddedRebaseHandlerTest {
         final IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> handler.apply(localDifference, createRootGroup()));
 
-        assertEquals("Parent process group child for controller service service-y was verified during classification but is absent during apply",
+        assertEquals("Parent Process Group child for Controller Service service-y was verified during classification but is absent during apply",
                 exception.getMessage());
     }
 
@@ -258,18 +266,18 @@ class ComponentAddedRebaseHandlerTest {
         final VersionedControllerService service = new VersionedControllerService();
         service.setIdentifier(identifier);
         service.setGroupIdentifier(groupIdentifier);
-        service.setName("Local Controller Service");
-        service.setType("org.apache.nifi.services.LocalControllerService");
-        service.setBundle(new Bundle("group", "artifact", "1.0.0"));
+        service.setName(LOCAL_SERVICE_NAME);
+        service.setType(LOCAL_SERVICE_TYPE);
+        service.setBundle(new Bundle(BUNDLE_GROUP, BUNDLE_ARTIFACT, BUNDLE_VERSION));
         service.setScheduledState(ScheduledState.DISABLED);
-        service.setComments("local comments");
+        service.setComments(LOCAL_COMMENTS);
 
         final Map<String, String> properties = new HashMap<>();
-        properties.put("service.enabled", "true");
+        properties.put(SERVICE_ENABLED_PROPERTY, SERVICE_ENABLED_VALUE);
         service.setProperties(properties);
 
         final Map<String, VersionedPropertyDescriptor> descriptors = new HashMap<>();
-        descriptors.put("service.enabled", createDescriptor("service.enabled", false, false));
+        descriptors.put(SERVICE_ENABLED_PROPERTY, createDescriptor(SERVICE_ENABLED_PROPERTY, false, false));
         service.setPropertyDescriptors(descriptors);
         return service;
     }

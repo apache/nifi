@@ -46,6 +46,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RebaseEngineTest {
 
+    private static final String ROOT_ID = "root";
+    private static final String VERSION_N_ROOT_ID = "root-n";
+    private static final String TARGET_ROOT_ID = "root-n-plus-one";
+    private static final String PROCESSOR_ID = "proc-a";
+    private static final String PROCESSOR_NAME = "ProcessorA";
+    private static final String SERVICE_A_ID = "service-a";
+    private static final String SERVICE_X_ID = "service-x";
+    private static final String SERVICE_Y_ID = "service-y";
+    private static final String SERVICE_Z_ID = "service-z";
+    private static final String SERVICE_A_NAME = "Service A";
+    private static final String SERVICE_X_NAME = "Service X";
+    private static final String SERVICE_Y_NAME = "Service Y";
+    private static final String SERVICE_Z_NAME = "Service Z";
+    private static final String CONTROLLER_SERVICE_PROPERTY = "controller.service";
+    private static final String DYNAMIC_Y_PROPERTY = "dynamic.y";
+    private static final String DYNAMIC_Z_PROPERTY = "dynamic.z";
+    private static final String CONTROLLER_SERVICE_TYPE = "org.apache.nifi.services.LocalControllerService";
+    private static final String BUNDLE_GROUP = "group";
+    private static final String BUNDLE_ARTIFACT = "artifact";
+    private static final String BUNDLE_VERSION = "1.0.0";
+
     private RebaseEngine engine;
 
     @BeforeEach
@@ -168,67 +189,67 @@ class RebaseEngineTest {
 
     @Test
     void testAnalyzeScenario1PreservesAddedControllerServiceAndProcessorReference() {
-        final VersionedControllerService versionNService = createControllerService("service-x", "Service X", "root");
-        final VersionedControllerService localAddedService = createControllerService("service-y", "Service Y", "root");
+        final VersionedControllerService versionNService = createControllerService(SERVICE_X_ID, SERVICE_X_NAME, ROOT_ID);
+        final VersionedControllerService localAddedService = createControllerService(SERVICE_Y_ID, SERVICE_Y_NAME, ROOT_ID);
 
-        final VersionedProcessor versionNProcessor = createProcessorWithProperty("proc-a", "ProcessorA", "controller.service", "service-x");
-        final VersionedProcessor localProcessor = createProcessorWithProperty("proc-a", "ProcessorA", "controller.service", "service-y");
+        final VersionedProcessor versionNProcessor = createProcessorWithProperty(PROCESSOR_ID, PROCESSOR_NAME, CONTROLLER_SERVICE_PROPERTY, SERVICE_X_ID);
+        final VersionedProcessor localProcessor = createProcessorWithProperty(PROCESSOR_ID, PROCESSOR_NAME, CONTROLLER_SERVICE_PROPERTY, SERVICE_Y_ID);
 
         final Set<FlowDifference> localDifferences = new HashSet<>();
         localDifferences.add(new StandardFlowDifference(DifferenceType.COMPONENT_ADDED, null, localAddedService,
                 null, localAddedService, "Controller service added locally"));
-        localDifferences.add(new StandardFlowDifference(DifferenceType.PROPERTY_CHANGED, versionNProcessor, localProcessor, "controller.service",
-                "service-x", "service-y", "Processor property changed locally"));
+        localDifferences.add(new StandardFlowDifference(DifferenceType.PROPERTY_CHANGED, versionNProcessor, localProcessor, CONTROLLER_SERVICE_PROPERTY,
+                SERVICE_X_ID, SERVICE_Y_ID, "Processor property changed locally"));
 
         final VersionedProcessGroup targetSnapshot = new VersionedProcessGroup();
-        targetSnapshot.setIdentifier("root");
+        targetSnapshot.setIdentifier(ROOT_ID);
         targetSnapshot.getControllerServices().add(versionNService);
-        targetSnapshot.getProcessors().add(createProcessorWithProperty("proc-a", "ProcessorA", "controller.service", "service-x"));
+        targetSnapshot.getProcessors().add(createProcessorWithProperty(PROCESSOR_ID, PROCESSOR_NAME, CONTROLLER_SERVICE_PROPERTY, SERVICE_X_ID));
 
         final RebaseAnalysis analysis = engine.analyze(localDifferences, Collections.emptySet(), targetSnapshot);
 
         assertTrue(analysis.isRebaseAllowed());
         assertEquals(2, analysis.getClassifiedLocalChanges().size());
         assertAllCompatible(analysis);
-        assertClassification(analysis, DifferenceType.COMPONENT_ADDED, "service-y", RebaseClassification.COMPATIBLE, null);
-        assertClassification(analysis, DifferenceType.PROPERTY_CHANGED, "proc-a", RebaseClassification.COMPATIBLE, null);
+        assertClassification(analysis, DifferenceType.COMPONENT_ADDED, SERVICE_Y_ID, RebaseClassification.COMPATIBLE, null);
+        assertClassification(analysis, DifferenceType.PROPERTY_CHANGED, PROCESSOR_ID, RebaseClassification.COMPATIBLE, null);
 
         final VersionedProcessGroup merged = analysis.getMergedSnapshot();
         assertNotNull(merged);
-        final VersionedControllerService mergedService = findControllerServiceById(merged, "service-y");
+        final VersionedControllerService mergedService = findControllerServiceById(merged, SERVICE_Y_ID);
         assertSame(localAddedService, mergedService);
 
-        final VersionedProcessor mergedProcessor = findProcessorById(merged, "proc-a");
+        final VersionedProcessor mergedProcessor = findProcessorById(merged, PROCESSOR_ID);
         assertNotNull(mergedProcessor);
-        assertEquals("service-y", mergedProcessor.getProperties().get("controller.service"));
+        assertEquals(SERVICE_Y_ID, mergedProcessor.getProperties().get(CONTROLLER_SERVICE_PROPERTY));
     }
 
     @Test
     void testAnalyzePreservesRootAdditionWhenTargetRootIdentifierChangedUpstream() {
-        final VersionedControllerService localAddedService = createControllerService("service-y", "Service Y", "root-n");
+        final VersionedControllerService localAddedService = createControllerService(SERVICE_Y_ID, SERVICE_Y_NAME, VERSION_N_ROOT_ID);
         final Set<FlowDifference> localDifferences = Set.of(new StandardFlowDifference(DifferenceType.COMPONENT_ADDED, null, localAddedService,
                 null, localAddedService, "Controller service added locally"));
 
         final VersionedProcessGroup targetRoot = new VersionedProcessGroup();
-        targetRoot.setIdentifier("root-n-plus-one");
-        targetRoot.setInstanceIdentifier("root-n");
+        targetRoot.setIdentifier(TARGET_ROOT_ID);
+        targetRoot.setInstanceIdentifier(VERSION_N_ROOT_ID);
         targetRoot.setName("Root");
 
         final RebaseAnalysis analysis = engine.analyze(localDifferences, Collections.emptySet(), targetRoot);
 
         assertTrue(analysis.isRebaseAllowed());
-        assertSame(localAddedService, findControllerServiceById(targetRoot, "service-y"));
-        assertEquals("root-n-plus-one", localAddedService.getGroupIdentifier());
+        assertSame(localAddedService, findControllerServiceById(targetRoot, SERVICE_Y_ID));
+        assertEquals(TARGET_ROOT_ID, localAddedService.getGroupIdentifier());
     }
 
     @Test
     void testAnalyzeRejectsRootAdditionWhenParentRemovedUpstream() {
-        final VersionedControllerService localAddedService = createControllerService("service-y", "Service Y", "root-n");
+        final VersionedControllerService localAddedService = createControllerService(SERVICE_Y_ID, SERVICE_Y_NAME, VERSION_N_ROOT_ID);
         final Set<FlowDifference> localDifferences = Set.of(new StandardFlowDifference(DifferenceType.COMPONENT_ADDED, null, localAddedService,
                 null, localAddedService, "Controller service added locally"));
 
         final VersionedProcessGroup removedParent = new VersionedProcessGroup();
-        removedParent.setIdentifier("root-n");
+        removedParent.setIdentifier(VERSION_N_ROOT_ID);
 
         final VersionedProcessGroup targetRoot = new VersionedProcessGroup();
         targetRoot.setIdentifier("replacement-root");
@@ -239,37 +260,37 @@ class RebaseEngineTest {
         final RebaseAnalysis analysis = engine.analyze(localDifferences, upstreamDifferences, targetRoot);
 
         assertFalse(analysis.isRebaseAllowed());
-        assertClassification(analysis, DifferenceType.COMPONENT_ADDED, "service-y", RebaseClassification.UNSUPPORTED,
+        assertClassification(analysis, DifferenceType.COMPONENT_ADDED, SERVICE_Y_ID, RebaseClassification.UNSUPPORTED,
                 RebaseConflictCode.COMPONENT_NOT_FOUND);
     }
 
     @Test
     void testAnalyzeScenario2PreservesMultipleAddedControllerServicesAndDynamicReferences() {
-        final VersionedControllerService versionNServiceA = createControllerService("service-a", "Service A", "root");
+        final VersionedControllerService versionNServiceA = createControllerService(SERVICE_A_ID, SERVICE_A_NAME, ROOT_ID);
         versionNServiceA.setProperties(Collections.emptyMap());
         versionNServiceA.setPropertyDescriptors(Collections.emptyMap());
 
-        final VersionedControllerService localServiceA = createControllerService("service-a", "Service A", "root");
-        localServiceA.setProperties(Map.of("dynamic.y", "service-y", "dynamic.z", "service-z"));
+        final VersionedControllerService localServiceA = createControllerService(SERVICE_A_ID, SERVICE_A_NAME, ROOT_ID);
+        localServiceA.setProperties(Map.of(DYNAMIC_Y_PROPERTY, SERVICE_Y_ID, DYNAMIC_Z_PROPERTY, SERVICE_Z_ID));
         localServiceA.setPropertyDescriptors(Map.of(
-                "dynamic.y", createPropertyDescriptor("dynamic.y", true, false),
-                "dynamic.z", createPropertyDescriptor("dynamic.z", true, false)));
+                DYNAMIC_Y_PROPERTY, createPropertyDescriptor(DYNAMIC_Y_PROPERTY, true, false),
+                DYNAMIC_Z_PROPERTY, createPropertyDescriptor(DYNAMIC_Z_PROPERTY, true, false)));
 
-        final VersionedControllerService localServiceY = createControllerService("service-y", "Service Y", "root");
-        final VersionedControllerService localServiceZ = createControllerService("service-z", "Service Z", "root");
+        final VersionedControllerService localServiceY = createControllerService(SERVICE_Y_ID, SERVICE_Y_NAME, ROOT_ID);
+        final VersionedControllerService localServiceZ = createControllerService(SERVICE_Z_ID, SERVICE_Z_NAME, ROOT_ID);
 
         final Set<FlowDifference> localDifferences = new HashSet<>();
         localDifferences.add(new StandardFlowDifference(DifferenceType.COMPONENT_ADDED, null, localServiceY,
                 null, localServiceY, "Controller service Y added locally"));
         localDifferences.add(new StandardFlowDifference(DifferenceType.COMPONENT_ADDED, null, localServiceZ,
                 null, localServiceZ, "Controller service Z added locally"));
-        localDifferences.add(new StandardFlowDifference(DifferenceType.PROPERTY_ADDED, versionNServiceA, localServiceA, "dynamic.y",
-                null, "service-y", "Dynamic property added for service Y"));
-        localDifferences.add(new StandardFlowDifference(DifferenceType.PROPERTY_ADDED, versionNServiceA, localServiceA, "dynamic.z",
-                null, "service-z", "Dynamic property added for service Z"));
+        localDifferences.add(new StandardFlowDifference(DifferenceType.PROPERTY_ADDED, versionNServiceA, localServiceA, DYNAMIC_Y_PROPERTY,
+                null, SERVICE_Y_ID, "Dynamic property added for service Y"));
+        localDifferences.add(new StandardFlowDifference(DifferenceType.PROPERTY_ADDED, versionNServiceA, localServiceA, DYNAMIC_Z_PROPERTY,
+                null, SERVICE_Z_ID, "Dynamic property added for service Z"));
 
         final VersionedProcessGroup targetSnapshot = new VersionedProcessGroup();
-        targetSnapshot.setIdentifier("root");
+        targetSnapshot.setIdentifier(ROOT_ID);
         targetSnapshot.getControllerServices().add(versionNServiceA);
 
         final RebaseAnalysis analysis = engine.analyze(localDifferences, Collections.emptySet(), targetSnapshot);
@@ -277,50 +298,50 @@ class RebaseEngineTest {
         assertTrue(analysis.isRebaseAllowed());
         assertEquals(4, analysis.getClassifiedLocalChanges().size());
         assertAllCompatible(analysis);
-        assertClassification(analysis, DifferenceType.COMPONENT_ADDED, "service-y", RebaseClassification.COMPATIBLE, null);
-        assertClassification(analysis, DifferenceType.COMPONENT_ADDED, "service-z", RebaseClassification.COMPATIBLE, null);
+        assertClassification(analysis, DifferenceType.COMPONENT_ADDED, SERVICE_Y_ID, RebaseClassification.COMPATIBLE, null);
+        assertClassification(analysis, DifferenceType.COMPONENT_ADDED, SERVICE_Z_ID, RebaseClassification.COMPATIBLE, null);
 
         final VersionedProcessGroup merged = analysis.getMergedSnapshot();
         assertNotNull(merged);
-        assertSame(localServiceY, findControllerServiceById(merged, "service-y"));
-        assertSame(localServiceZ, findControllerServiceById(merged, "service-z"));
+        assertSame(localServiceY, findControllerServiceById(merged, SERVICE_Y_ID));
+        assertSame(localServiceZ, findControllerServiceById(merged, SERVICE_Z_ID));
 
-        final VersionedControllerService mergedServiceA = findControllerServiceById(merged, "service-a");
+        final VersionedControllerService mergedServiceA = findControllerServiceById(merged, SERVICE_A_ID);
         assertNotNull(mergedServiceA);
-        assertEquals("service-y", mergedServiceA.getProperties().get("dynamic.y"));
-        assertEquals("service-z", mergedServiceA.getProperties().get("dynamic.z"));
+        assertEquals(SERVICE_Y_ID, mergedServiceA.getProperties().get(DYNAMIC_Y_PROPERTY));
+        assertEquals(SERVICE_Z_ID, mergedServiceA.getProperties().get(DYNAMIC_Z_PROPERTY));
     }
 
     @Test
     void testAnalyzeCollisionBlocksRebaseAndDoesNotMutateTargetSnapshot() {
-        final VersionedControllerService collidingTargetService = createControllerService("service-y", "Target Service Y", "root");
-        final VersionedControllerService localAddedService = createControllerService("service-y", "Local Service Y", "root");
+        final VersionedControllerService collidingTargetService = createControllerService(SERVICE_Y_ID, "Target Service Y", ROOT_ID);
+        final VersionedControllerService localAddedService = createControllerService(SERVICE_Y_ID, "Local Service Y", ROOT_ID);
 
-        final VersionedProcessor versionNProcessor = createProcessorWithProperty("proc-a", "ProcessorA", "controller.service", "service-x");
-        final VersionedProcessor localProcessor = createProcessorWithProperty("proc-a", "ProcessorA", "controller.service", "service-y");
+        final VersionedProcessor versionNProcessor = createProcessorWithProperty(PROCESSOR_ID, PROCESSOR_NAME, CONTROLLER_SERVICE_PROPERTY, SERVICE_X_ID);
+        final VersionedProcessor localProcessor = createProcessorWithProperty(PROCESSOR_ID, PROCESSOR_NAME, CONTROLLER_SERVICE_PROPERTY, SERVICE_Y_ID);
 
         final Set<FlowDifference> localDifferences = new HashSet<>();
         localDifferences.add(new StandardFlowDifference(DifferenceType.COMPONENT_ADDED, null, localAddedService,
                 null, localAddedService, "Controller service added with collision"));
-        localDifferences.add(new StandardFlowDifference(DifferenceType.PROPERTY_CHANGED, versionNProcessor, localProcessor, "controller.service",
-                "service-x", "service-y", "Processor property changed locally"));
+        localDifferences.add(new StandardFlowDifference(DifferenceType.PROPERTY_CHANGED, versionNProcessor, localProcessor, CONTROLLER_SERVICE_PROPERTY,
+                SERVICE_X_ID, SERVICE_Y_ID, "Processor property changed locally"));
 
         final VersionedProcessGroup targetSnapshot = new VersionedProcessGroup();
-        targetSnapshot.setIdentifier("root");
+        targetSnapshot.setIdentifier(ROOT_ID);
         targetSnapshot.getControllerServices().add(collidingTargetService);
-        targetSnapshot.getProcessors().add(createProcessorWithProperty("proc-a", "ProcessorA", "controller.service", "service-x"));
+        targetSnapshot.getProcessors().add(createProcessorWithProperty(PROCESSOR_ID, PROCESSOR_NAME, CONTROLLER_SERVICE_PROPERTY, SERVICE_X_ID));
 
         final RebaseAnalysis analysis = engine.analyze(localDifferences, Collections.emptySet(), targetSnapshot);
 
         assertFalse(analysis.isRebaseAllowed());
         assertNull(analysis.getMergedSnapshot());
-        assertClassification(analysis, DifferenceType.COMPONENT_ADDED, "service-y", RebaseClassification.CONFLICTING,
+        assertClassification(analysis, DifferenceType.COMPONENT_ADDED, SERVICE_Y_ID, RebaseClassification.CONFLICTING,
                 RebaseConflictCode.COMPONENT_IDENTIFIER_COLLISION);
-        assertEquals(1, countComponentsById(targetSnapshot, "service-y"));
+        assertEquals(1, countComponentsById(targetSnapshot, SERVICE_Y_ID));
 
-        final VersionedProcessor unchangedProcessor = findProcessorById(targetSnapshot, "proc-a");
+        final VersionedProcessor unchangedProcessor = findProcessorById(targetSnapshot, PROCESSOR_ID);
         assertNotNull(unchangedProcessor);
-        assertEquals("service-x", unchangedProcessor.getProperties().get("controller.service"));
+        assertEquals(SERVICE_X_ID, unchangedProcessor.getProperties().get(CONTROLLER_SERVICE_PROPERTY));
     }
 
     @Test
@@ -817,8 +838,8 @@ class RebaseEngineTest {
         service.setIdentifier(identifier);
         service.setName(name);
         service.setGroupIdentifier(groupIdentifier);
-        service.setType("org.apache.nifi.services.LocalControllerService");
-        service.setBundle(new Bundle("group", "artifact", "1.0.0"));
+        service.setType(CONTROLLER_SERVICE_TYPE);
+        service.setBundle(new Bundle(BUNDLE_GROUP, BUNDLE_ARTIFACT, BUNDLE_VERSION));
         service.setScheduledState(ScheduledState.DISABLED);
         service.setComments(name + " comments");
         service.setProperties(Collections.emptyMap());

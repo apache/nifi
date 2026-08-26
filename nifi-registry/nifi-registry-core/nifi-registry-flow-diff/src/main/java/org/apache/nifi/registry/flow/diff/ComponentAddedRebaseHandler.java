@@ -26,6 +26,8 @@ import java.util.Set;
 
 public class ComponentAddedRebaseHandler implements RebaseHandler {
 
+    private static final String NULL_COMPONENT_TYPE = "null";
+
     @Override
     public DifferenceType getSupportedType() {
         return DifferenceType.COMPONENT_ADDED;
@@ -36,7 +38,7 @@ public class ComponentAddedRebaseHandler implements RebaseHandler {
                                                         final VersionedProcessGroup targetSnapshot) {
         final VersionedComponent addedComponent = localDifference.getComponentB();
         if (!(addedComponent instanceof VersionedControllerService controllerService)) {
-            final String componentType = addedComponent == null ? "null" : addedComponent.getClass().getSimpleName();
+            final String componentType = addedComponent == null ? NULL_COMPONENT_TYPE : addedComponent.getClass().getSimpleName();
             return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.UNSUPPORTED_COMPONENT_TYPE,
                     "Local component addition type %s is not supported for rebase".formatted(componentType));
         }
@@ -44,13 +46,13 @@ public class ComponentAddedRebaseHandler implements RebaseHandler {
         final String parentGroupIdentifier = controllerService.getGroupIdentifier();
         if (parentGroupIdentifier == null) {
             return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.COMPONENT_NOT_FOUND,
-                    "Controller service %s does not specify a parent process group".formatted(controllerService.getIdentifier()));
+                    "Controller Service %s does not specify a parent Process Group".formatted(controllerService.getIdentifier()));
         }
 
         final VersionedProcessGroup parentGroup = resolveParentGroup(targetSnapshot, parentGroupIdentifier, upstreamDifferences);
         if (parentGroup == null) {
             return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.COMPONENT_NOT_FOUND,
-                    "Parent process group %s for controller service %s not found in target snapshot"
+                    "Parent Process Group %s for Controller Service %s not found in target snapshot"
                             .formatted(parentGroupIdentifier, controllerService.getIdentifier()));
         }
 
@@ -70,7 +72,7 @@ public class ComponentAddedRebaseHandler implements RebaseHandler {
         final VersionedControllerService controllerService = (VersionedControllerService) localDifference.getComponentB();
         final VersionedProcessGroup parentGroup = RebaseHandlerUtils.findProcessGroupById(mergedFlow, controllerService.getGroupIdentifier());
         if (parentGroup == null) {
-            throw new IllegalStateException("Parent process group %s for controller service %s was verified during classification but is absent during apply"
+            throw new IllegalStateException("Parent Process Group %s for Controller Service %s was verified during classification but is absent during apply"
                     .formatted(controllerService.getGroupIdentifier(), controllerService.getIdentifier()));
         }
 
