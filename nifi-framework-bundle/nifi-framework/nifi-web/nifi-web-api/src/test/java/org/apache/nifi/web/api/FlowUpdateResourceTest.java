@@ -39,7 +39,7 @@ class FlowUpdateResourceTest {
                 "Disabling Affected Controller Services",
                 "Updating Flow",
                 "Re-Enabling Controller Services",
-                "Restarting Affected Processors"), getStepDescriptions("update-requests"));
+                "Restarting Affected Processors"), getStepDescriptions(FlowUpdateResource.UPDATE_REQUEST_TYPE));
     }
 
     @Test

@@ -96,6 +96,47 @@ public class RemovedConnectionDrainClassifierTest {
     }
 
     @Test
+    public void testNullContainingGroupIsUnsupported() {
+        final RemovedConnectionDescriptor removedConnection = createDescriptor("c-null-group", "c-null-group-v", null,
+                "source", "source-v", null, ConnectableType.PROCESSOR,
+                "destination", "destination-v", ROOT_GROUP_ID, ConnectableType.PROCESSOR,
+                RemovalReason.COMPONENT_REMOVED);
+
+        final TestContext context = new TestContext()
+                .addGroup(ROOT_GROUP_ID, null)
+                .addConnection("c-null-group", "source", "destination", false)
+                .addProcessor("source", null, ScheduledState.RUNNING, ValidationStatus.VALID)
+                .addProcessor("destination", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID);
+
+        final RemovedConnectionDrainClassifier.BatchResult result = classifier.classify(
+                createImpact(Set.of(removedConnection), Set.of(), Set.of()), context);
+
+        assertFalse(result.isSupported());
+        assertEquals(RemovedConnectionDrainClassifier.UnsupportedReason.CONNECTION_IN_REMOVED_GROUP,
+                result.getFirstUnsupportedConnectionResult().orElseThrow().unsupportedReason());
+    }
+
+    @Test
+    public void testMissingProducerUsesSourceAgnosticReason() {
+        final RemovedConnectionDescriptor removedConnection = createDescriptor("c-missing-producer", "c-missing-producer-v", ROOT_GROUP_ID,
+                "missing-source", "missing-source-v", ROOT_GROUP_ID, ConnectableType.PROCESSOR,
+                "destination", "destination-v", ROOT_GROUP_ID, ConnectableType.PROCESSOR,
+                RemovalReason.COMPONENT_REMOVED);
+
+        final TestContext context = new TestContext()
+                .addGroup(ROOT_GROUP_ID, null)
+                .addConnection("c-missing-producer", "missing-source", "destination", false)
+                .addProcessor("destination", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID);
+
+        final RemovedConnectionDrainClassifier.BatchResult result = classifier.classify(
+                createImpact(Set.of(removedConnection), Set.of(), Set.of()), context);
+
+        assertFalse(result.isSupported());
+        assertEquals(RemovedConnectionDrainClassifier.UnsupportedReason.NO_SUPPORTED_PRODUCER_FOUND,
+                result.getFirstUnsupportedConnectionResult().orElseThrow().unsupportedReason());
+    }
+
+    @Test
     public void testRemovedGroupAndRemovedEndpointAreUnsupportedWhenQueueNotEmpty() {
         final RemovedConnectionDescriptor removedInGroup = createDescriptor("c-removed-group", "c-removed-group-v", "child-group",
                 "source-a", "source-a-v", "child-group", ConnectableType.PROCESSOR,
