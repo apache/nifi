@@ -43,6 +43,8 @@ import static org.apache.nifi.processors.smb.ListSmb.SMB_CLIENT_PROVIDER_SERVICE
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -64,7 +66,7 @@ class FetchSmbTest {
     @BeforeEach
     public void beforeEach() throws Exception {
         mockCloseable = MockitoAnnotations.openMocks(this);
-        when(clientProviderService.getClient(any(ComponentLog.class))).thenReturn(mockNifiSmbClientService);
+        when(clientProviderService.getClient(any(ComponentLog.class), anyMap())).thenReturn(mockNifiSmbClientService);
         when(clientProviderService.getIdentifier()).thenReturn(CLIENT_SERVICE_PROVIDER_ID);
         when(clientProviderService.getServiceLocation()).thenReturn(URI.create("smb://localhost:445/share"));
     }
@@ -116,14 +118,14 @@ class FetchSmbTest {
 
     private void mockNifiSmbClientService() throws IOException {
         doThrow(new SmbException("test exception", 1L, new RuntimeException())).when(mockNifiSmbClientService)
-                .readFile(anyString(), any(OutputStream.class));
+                .readFile(anyString(), any(OutputStream.class), anySet());
         doAnswer(invocation -> {
             final OutputStream o = invocation.getArgument(1);
             final ByteArrayInputStream bytes = new ByteArrayInputStream("content".getBytes());
             IOUtils.copy(bytes, o);
             return true;
         }).when(mockNifiSmbClientService)
-                .readFile(eq("testDirectory/canReadThis"), any(OutputStream.class));
+                .readFile(eq("testDirectory/canReadThis"), any(OutputStream.class), anySet());
     }
 
     private TestRunner createRunner() throws Exception {

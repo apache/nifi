@@ -49,12 +49,13 @@ public class SmbListableEntity implements ListableEntity {
     private final long lastAccessTime;
     private final long changeTime;
     private final boolean directory;
+    private final boolean hidden;
     private final long size;
     private final long allocationSize;
     private final URI serviceLocation;
 
     private SmbListableEntity(String name, String shortName, String path, long lastModifiedTime, long creationTime,
-            long lastAccessTime, long changeTime, boolean directory,
+            long lastAccessTime, long changeTime, boolean directory, boolean hidden,
             long size, long allocationSize, URI serviceLocation) {
         this.name = name;
         this.shortName = shortName;
@@ -64,6 +65,7 @@ public class SmbListableEntity implements ListableEntity {
         this.lastAccessTime = lastAccessTime;
         this.changeTime = changeTime;
         this.directory = directory;
+        this.hidden = hidden;
         this.size = size;
         this.allocationSize = allocationSize;
         this.serviceLocation = serviceLocation;
@@ -144,6 +146,10 @@ public class SmbListableEntity implements ListableEntity {
         return directory;
     }
 
+    public boolean isHidden() {
+        return hidden;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -196,6 +202,7 @@ public class SmbListableEntity implements ListableEntity {
         private long lastAccessTime;
         private long changeTime;
         private boolean directory = false;
+        private boolean hidden = false;
         private long size = 0;
         private long allocationSize = 0;
         private URI serviceLocation;
@@ -240,6 +247,11 @@ public class SmbListableEntity implements ListableEntity {
             return this;
         }
 
+        public SmbListableEntityBuilder setHidden(boolean hidden) {
+            this.hidden = hidden;
+            return this;
+        }
+
         public SmbListableEntityBuilder setSize(long size) {
             this.size = size;
             return this;
@@ -257,7 +269,7 @@ public class SmbListableEntity implements ListableEntity {
 
         public SmbListableEntity build() {
             return new SmbListableEntity(name, shortName, path, lastModifiedTime, creationTime, lastAccessTime, changeTime,
-                    directory, size, allocationSize, serviceLocation);
+                    directory, hidden, size, allocationSize, serviceLocation);
         }
     }
 

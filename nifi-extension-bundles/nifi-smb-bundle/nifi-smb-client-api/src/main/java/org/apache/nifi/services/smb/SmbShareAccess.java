@@ -16,7 +16,15 @@
  */
 package org.apache.nifi.services.smb;
 
-import org.apache.nifi.controller.ControllerService;
+import java.util.Set;
 
-public interface SmbClientProviderService extends SmbClientProvider, ControllerService {
+public enum SmbShareAccess {
+    READ_ALLOWED,
+    WRITE_ALLOWED,
+    DELETE_ALLOWED;
+
+    public static final Set<SmbShareAccess> NONE = Set.of();
+    public static final Set<SmbShareAccess> READ = Set.of(READ_ALLOWED);
+    public static final Set<SmbShareAccess> READ_DELETE = Set.of(READ_ALLOWED, DELETE_ALLOWED);
+    public static final Set<SmbShareAccess> READ_WRITE_DELETE = Set.of(READ_ALLOWED, WRITE_ALLOWED, DELETE_ALLOWED);
 }
