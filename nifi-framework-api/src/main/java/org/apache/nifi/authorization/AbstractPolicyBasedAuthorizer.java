@@ -48,7 +48,10 @@ import javax.xml.stream.XMLStreamWriter;
 
 /**
  * An Authorizer that provides management of users, groups, and policies.
+ *
+ * @deprecated Deprecated under NIP-39 for removal and transition to Controller-level authorization
  */
+@Deprecated(forRemoval = true, since = "2.12.0")
 public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer {
     private static final Logger logger = LoggerFactory.getLogger(AbstractPolicyBasedAuthorizer.class);
     private static final String DISALLOW_DOCTYPES = "http://apache.org/xml/features/disallow-doctype-decl";
