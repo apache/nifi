@@ -18,6 +18,7 @@ package org.apache.nifi.processors.iceberg.record;
 
 import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
@@ -152,20 +153,14 @@ class RecordConverter {
     }
 
     private static Type fieldType(final Types.StructType struct, final String fieldName) {
-        if (struct == null) {
-            return null;
-        }
-        final Types.NestedField nestedField = struct.field(fieldName);
+        final Types.NestedField nestedField = struct == null ? null : struct.field(fieldName);
         return nestedField == null ? null : nestedField.type();
     }
 
     private static boolean isConversionRequired(final RecordSchema recordSchema) {
-        for (final RecordField field : recordSchema.getFields()) {
-            final RecordFieldType recordFieldType = field.getDataType().getFieldType();
-            if (CONVERSION_REQUIRED_FIELD_TYPES.contains(recordFieldType)) {
-                return true;
-            }
-        }
-        return false;
+        return recordSchema.getFields().stream()
+                .map(RecordField::getDataType)
+                .map(DataType::getFieldType)
+                .anyMatch(CONVERSION_REQUIRED_FIELD_TYPES::contains);
     }
 }
