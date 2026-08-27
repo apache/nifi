@@ -17,6 +17,8 @@
 package org.apache.nifi.confluent.schemaregistry;
 
 import org.apache.nifi.confluent.schemaregistry.client.AuthenticationType;
+import org.apache.nifi.oauth2.AccessToken;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
@@ -29,10 +31,15 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class ConfluentSchemaRegistryTest {
 
     private static final String SERVICE_ID = ConfluentSchemaRegistry.class.getSimpleName();
+
+    private static final String OAUTH2_ACCESS_TOKEN_PROVIDER_ID = "oauth2AccessTokenProvider";
 
     private TestRunner runner;
 
@@ -43,6 +50,41 @@ class ConfluentSchemaRegistryTest {
         registry = new ConfluentSchemaRegistry();
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService(SERVICE_ID, registry);
+    }
+
+    @Test
+    public void testValidateAuthenticationTypeOAuth2MissingProvider() {
+        runner.setProperty(registry, ConfluentSchemaRegistry.AUTHENTICATION_TYPE, AuthenticationType.OAUTH2.toString());
+        runner.assertNotValid(registry);
+    }
+
+    @Test
+    public void testValidateAndEnableAuthenticationTypeOAuth2() throws InitializationException {
+        final OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class);
+        when(oauth2AccessTokenProvider.getIdentifier()).thenReturn(OAUTH2_ACCESS_TOKEN_PROVIDER_ID);
+        when(oauth2AccessTokenProvider.getAccessDetails()).thenReturn(new AccessToken("access-token", null, "Bearer", 3600L, null));
+
+        runner.addControllerService(OAUTH2_ACCESS_TOKEN_PROVIDER_ID, oauth2AccessTokenProvider);
+        runner.enableControllerService(oauth2AccessTokenProvider);
+        runner.setProperty(registry, ConfluentSchemaRegistry.AUTHENTICATION_TYPE, AuthenticationType.OAUTH2.toString());
+        runner.setProperty(registry, ConfluentSchemaRegistry.OAUTH2_ACCESS_TOKEN_PROVIDER, OAUTH2_ACCESS_TOKEN_PROVIDER_ID);
+        runner.assertValid(registry);
+        runner.enableControllerService(registry);
+    }
+
+    @Test
+    public void testEnableAuthenticationTypeOAuth2FailsWhenAccessTokenUnavailable() throws InitializationException {
+        final OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class);
+        when(oauth2AccessTokenProvider.getIdentifier()).thenReturn(OAUTH2_ACCESS_TOKEN_PROVIDER_ID);
+        when(oauth2AccessTokenProvider.getAccessDetails()).thenThrow(new RuntimeException("token unavailable"));
+
+        runner.addControllerService(OAUTH2_ACCESS_TOKEN_PROVIDER_ID, oauth2AccessTokenProvider);
+        runner.enableControllerService(oauth2AccessTokenProvider);
+        runner.setProperty(registry, ConfluentSchemaRegistry.AUTHENTICATION_TYPE, AuthenticationType.OAUTH2.toString());
+        runner.setProperty(registry, ConfluentSchemaRegistry.OAUTH2_ACCESS_TOKEN_PROVIDER, OAUTH2_ACCESS_TOKEN_PROVIDER_ID);
+        runner.assertValid(registry);
+
+        assertThrows(Throwable.class, () -> runner.enableControllerService(registry));
     }
 
     @Test

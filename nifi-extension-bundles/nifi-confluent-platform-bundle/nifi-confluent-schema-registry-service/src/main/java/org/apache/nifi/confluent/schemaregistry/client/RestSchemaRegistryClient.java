@@ -25,6 +25,7 @@ import org.apache.avro.SchemaParseException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.schemaregistry.services.StandardSchemaDefinition;
@@ -75,6 +76,8 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private final Map<String, String> httpHeaders;
     private final WebClientService webClientService;
 
+    private OAuth2AccessTokenProvider oauth2AccessTokenProvider;
+
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String SUBJECT_FIELD_NAME = "subject";
@@ -90,6 +93,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private static final String APPLICATION_JSON_CONTENT_TYPE = "application/json";
     private static final String BASIC_CREDENTIALS_FORMAT = "%s:%s";
     private static final String BASIC_AUTHORIZATION_FORMAT = "Basic %s";
+    private static final String BEARER_AUTHORIZATION_FORMAT = "Bearer %s";
 
     public RestSchemaRegistryClient(final List<String> baseUrls,
                                     final int timeoutMillis,
@@ -98,16 +102,34 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                                     final String password,
                                     final ComponentLog logger,
                                     final Map<String, String> httpHeaders) {
-        this.baseUrls = new ArrayList<>(baseUrls);
-        this.httpHeaders = new HashMap<>(httpHeaders);
+        this(baseUrls, timeoutMillis, sslContextProvider, logger, httpHeaders);
 
         if (StringUtils.isNoneBlank(username, password)) {
             final String credentials = BASIC_CREDENTIALS_FORMAT.formatted(username, password);
             final byte[] credentialsEncoded = credentials.getBytes(StandardCharsets.UTF_8);
             final String authorization = Base64.getEncoder().encodeToString(credentialsEncoded);
             final String basicAuthorization = BASIC_AUTHORIZATION_FORMAT.formatted(authorization);
-            this.httpHeaders.put(HttpHeaderName.AUTHORIZATION.getHeaderName(), basicAuthorization);
+            this.httpHeaders.putIfAbsent(HttpHeaderName.AUTHORIZATION.getHeaderName(), basicAuthorization);
         }
+    }
+
+    public RestSchemaRegistryClient(final List<String> baseUrls,
+                                    final int timeoutMillis,
+                                    final SSLContextProvider sslContextProvider,
+                                    final OAuth2AccessTokenProvider oauth2AccessTokenProvider,
+                                    final ComponentLog logger,
+                                    final Map<String, String> httpHeaders) {
+        this(baseUrls, timeoutMillis, sslContextProvider, logger, httpHeaders);
+        this.oauth2AccessTokenProvider = oauth2AccessTokenProvider;
+    }
+
+    public RestSchemaRegistryClient(final List<String> baseUrls,
+                                    final int timeoutMillis,
+                                    final SSLContextProvider sslContextProvider,
+                                    final ComponentLog logger,
+                                    final Map<String, String> httpHeaders) {
+        this.baseUrls = new ArrayList<>(baseUrls);
+        this.httpHeaders = new HashMap<>(httpHeaders);
 
         final StandardWebClientService standardWebClientService = new StandardWebClientService();
         final Duration timeout = Duration.ofMillis(timeoutMillis);
@@ -393,9 +415,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                     .header(HttpHeaderName.ACCEPT.getHeaderName(), APPLICATION_JSON_CONTENT_TYPE)
                     .header(HttpHeaderName.CONTENT_TYPE.getHeaderName(), SCHEMA_REGISTRY_CONTENT_TYPE);
 
-            for (final Map.Entry<String, String> header : httpHeaders.entrySet()) {
-                requestBodySpec = requestBodySpec.header(header.getKey(), header.getValue());
-            }
+            requestBodySpec = applyRequestHeaders(requestBodySpec);
 
             final String requestBody = schema.toString();
             try (HttpResponseEntity responseEntity = requestBodySpec.body(requestBody).retrieve()) {
@@ -445,9 +465,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                     .uri(uri)
                     .header(HttpHeaderName.ACCEPT.getHeaderName(), APPLICATION_JSON_CONTENT_TYPE);
 
-            for (final Map.Entry<String, String> header : httpHeaders.entrySet()) {
-                requestBodySpec = requestBodySpec.header(header.getKey(), header.getValue());
-            }
+            requestBodySpec = applyRequestHeaders(requestBodySpec);
             try (HttpResponseEntity responseEntity = requestBodySpec.retrieve()) {
                 final int responseCode = responseEntity.statusCode();
 
@@ -477,6 +495,18 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         }
         throw new SchemaNotFoundException("Failed to retrieve Schema with " + schemaDescription
                 + " from any of the Confluent Schema Registry URL's provided; failure response message: " + errorMessage);
+    }
+
+    private HttpRequestBodySpec applyRequestHeaders(final HttpRequestBodySpec requestBodySpec) {
+        HttpRequestBodySpec updatedRequest = requestBodySpec;
+        if (oauth2AccessTokenProvider != null) {
+            final String accessToken = oauth2AccessTokenProvider.getAccessDetails().getAccessToken();
+            updatedRequest = updatedRequest.header(HttpHeaderName.AUTHORIZATION.getHeaderName(), BEARER_AUTHORIZATION_FORMAT.formatted(accessToken));
+        }
+        for (final Map.Entry<String, String> header : httpHeaders.entrySet()) {
+            updatedRequest = updatedRequest.header(header.getKey(), header.getValue());
+        }
+        return updatedRequest;
     }
 
     private String getTrimmedBase(String baseUrl) {
