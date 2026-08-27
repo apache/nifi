@@ -18,10 +18,10 @@
 package org.apache.nifi.service.cql.api.constants;
 
 import org.apache.nifi.components.DescribedValue;
-import org.apache.nifi.service.cql.api.service.CQLExecutionService;
+import org.apache.nifi.service.cql.api.service.AbstractCQLExecutionService;
 
 /**
- * Allowable values for {@link CQLExecutionService#CONSISTENCY_LEVEL}: how many replicas must acknowledge a
+ * Allowable values for {@link AbstractCQLExecutionService#CONSISTENCY_LEVEL}: how many replicas must acknowledge a
  * read or write for it to succeed. Declared here, not taken from a driver enum, to keep this module
  * driver-independent; an implementation passes the value straight through, so these names must stay in sync
  * with what its driver parses ({@code CqlConsistencyLevelTest} / {@code ScyllaConsistencyLevelTest} in the

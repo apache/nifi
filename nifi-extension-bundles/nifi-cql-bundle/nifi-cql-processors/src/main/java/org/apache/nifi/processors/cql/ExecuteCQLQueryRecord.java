@@ -137,69 +137,74 @@ public class ExecuteCQLQueryRecord extends AbstractCQLProcessor {
      */
     private static final Pattern QUERY_PARAMETER_PATTERN = Pattern.compile("^cql\\.arg\\.(?<position>[1-9]\\d*)$");
 
-    public static final PropertyDescriptor CQL_SELECT_QUERY = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CQL_SELECT_QUERY = new PropertyDescriptor.Builder()
             .name("CQL select query")
-            .description("CQL select query. Values that come from outside the flow's own configuration - a FlowFile "
-                    + "attribute, for example - should be supplied as '?' bind markers with matching cql.arg.<position> "
-                    + "dynamic properties rather than interpolated into this query text, since anything interpolated here "
-                    + "is parsed as CQL.")
+            .description("""
+                    CQL select query. Values that come from outside the flow's own configuration - a FlowFile \
+                    attribute, for example - should be supplied as '?' bind markers with matching cql.arg.<position> \
+                    dynamic properties rather than interpolated into this query text, since anything interpolated here \
+                    is parsed as CQL.""")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final PropertyDescriptor QUERY_TIMEOUT = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor QUERY_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Max Wait Time")
-            .description("The maximum amount of time allowed for this query to run, overriding the Read Timeout configured on the "
-                    + "connection service for this query only. Must be of format <duration> <TimeUnit> where <duration> is a "
-                    + "non-negative integer and TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days. "
-                    + "If not set, the connection service's configured Read Timeout is used.")
+            .description("""
+                    The maximum amount of time allowed for this query to run, overriding the Read Timeout configured on the \
+                    connection service for this query only. Must be of format <duration> <TimeUnit> where <duration> is a \
+                    non-negative integer and TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days. \
+                    If not set, the connection service's configured Read Timeout is used.""")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("Fetch Size")
-            .description("The number of result rows to be fetched from the result set at a time, overriding the Fetch Size "
-                    + "configured on the connection service for this query only. If not set, the connection service's "
-                    + "configured Fetch Size is used.")
+            .description("""
+                    The number of result rows to be fetched from the result set at a time, overriding the Fetch Size \
+                    configured on the connection service for this query only. If not set, the connection service's \
+                    configured Fetch Size is used.""")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor MAX_ROWS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor MAX_ROWS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
             .name("Max Rows Per Flow File")
-            .description("The maximum number of result rows that will be included in a single FlowFile. This will allow you to break up very large "
-                    + "result sets into multiple FlowFiles. If the value specified is zero, then all rows are returned in a single FlowFile.")
+            .description("""
+                    The maximum number of result rows that will be included in a single FlowFile. This will allow you to break up very large \
+                    result sets into multiple FlowFiles. If the value specified is zero, then all rows are returned in a single FlowFile.""")
             .defaultValue("0")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor OUTPUT_BATCH_SIZE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor OUTPUT_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Output Batch Size")
-            .description("The number of output FlowFiles to queue before committing the process session. When set to zero, the session will be committed when all result set rows "
-                    + "have been processed and the output FlowFiles are ready for transfer to the downstream relationship. For large result sets, this can cause a large burst of FlowFiles "
-                    + "to be transferred at the end of processor execution. If this property is set, then when the specified number of FlowFiles are ready for transfer, then the session will "
-                    + "be committed, thus releasing the FlowFiles to the downstream relationship. NOTE: The maxvalue.* and fragment.count attributes will not be set on FlowFiles when this "
-                    + "property is set.")
+            .description("""
+                    The number of output FlowFiles to queue before committing the process session. When set to zero, the session will be committed when all result set rows \
+                    have been processed and the output FlowFiles are ready for transfer to the downstream relationship. For large result sets, this can cause a large burst of FlowFiles \
+                    to be transferred at the end of processor execution. If this property is set, then when the specified number of FlowFiles are ready for transfer, then the session will \
+                    be committed, thus releasing the FlowFiles to the downstream relationship. NOTE: The maxvalue.* and fragment.count attributes will not be set on FlowFiles when this \
+                    property is set.""")
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    public static final PropertyDescriptor OUTPUT_WRITER = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor OUTPUT_WRITER = new PropertyDescriptor.Builder()
             .name("Result Set Output Writer")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(true)
             .description("The controller service to use for writing the results to a flowfile")
             .build();
 
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
+    static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .autoTerminateDefault(true)
             .name("original")
             .description("The incoming FlowFile that triggered the query is routed here once every resulting "
@@ -207,7 +212,7 @@ public class ExecuteCQLQueryRecord extends AbstractCQLProcessor {
                     + "On a failed query the incoming FlowFile goes to failure or retry instead, never here.")
             .build();
 
-    public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+    static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CONNECTION_PROVIDER_SERVICE,
             OUTPUT_WRITER,
             CQL_SELECT_QUERY,
@@ -217,7 +222,7 @@ public class ExecuteCQLQueryRecord extends AbstractCQLProcessor {
             OUTPUT_BATCH_SIZE
     );
 
-    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_ORIGINAL, REL_FAILURE, REL_RETRY);
+    static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_ORIGINAL, REL_FAILURE, REL_RETRY);
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -393,6 +398,5 @@ public class ExecuteCQLQueryRecord extends AbstractCQLProcessor {
                 context.yield();
             }
         }
-        session.commitAsync();
     }
 }

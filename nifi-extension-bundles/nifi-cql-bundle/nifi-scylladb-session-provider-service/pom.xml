@@ -145,6 +145,14 @@
 
     <build>
         <plugins>
+            <!--
+                The ScyllaDB session provider is just a thin extension of the Cassandra provider that provides
+                ScyllaDB-specific metadata. The goal here is to ensure that the same essential underlying controller
+                service functionality can be used against two different sets of dependencies that implement the
+                same Java interfaces but have different Maven coordinates. The Shade plugin here is used to
+                extract just enough of the Cassandra session provider's final JAR to enable the same underlying
+                code to be used with completely different database driver packages without duplication of code.
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>

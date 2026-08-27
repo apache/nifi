@@ -19,6 +19,7 @@ package org.apache.nifi.service.cql.it;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.service.cql.api.service.AbstractCQLExecutionService;
 import org.apache.nifi.service.cql.api.service.CQLExecutionService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -69,9 +70,9 @@ public final class CqlServiceRunner {
      * never build one.
      */
     public CqlServiceRunner withConnection(final String contactPoint, final String datacenter, final String keyspace) {
-        return withProperty(CQLExecutionService.CONTACT_POINTS, contactPoint)
-                .withProperty(CQLExecutionService.DATACENTER, datacenter)
-                .withProperty(CQLExecutionService.KEYSPACE, keyspace);
+        return withProperty(AbstractCQLExecutionService.CONTACT_POINTS, contactPoint)
+                .withProperty(AbstractCQLExecutionService.DATACENTER, datacenter)
+                .withProperty(AbstractCQLExecutionService.KEYSPACE, keyspace);
     }
 
     public CqlServiceRunner withProperty(final PropertyDescriptor descriptor, final String value) {

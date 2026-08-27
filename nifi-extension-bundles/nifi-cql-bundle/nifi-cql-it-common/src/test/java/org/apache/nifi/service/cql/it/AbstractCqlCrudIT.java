@@ -30,6 +30,7 @@ import org.apache.nifi.service.cql.api.exception.QueryFailureException;
 import org.apache.nifi.service.cql.api.lookup.CqlRow;
 import org.apache.nifi.service.cql.api.lookup.CqlStatementResult;
 import org.apache.nifi.service.cql.api.metadata.QualifiedTableName;
+import org.apache.nifi.service.cql.api.service.AbstractCQLExecutionService;
 import org.apache.nifi.service.cql.api.service.CQLExecutionService;
 import org.apache.nifi.service.cql.api.service.QueryOverrides;
 import org.apache.nifi.service.cql.api.service.WriteOverrides;
@@ -95,6 +96,10 @@ public abstract class AbstractCqlCrudIT {
     protected void initializeSessionProvider(final CqlConnectionInfo connectionInfo) throws Exception {
         this.connectionInfo = connectionInfo;
         this.session = connectionInfo.session();
+
+        this.kvTableName = connectionInfo.keyspace() + ".execute_kv";
+        CqlDdl.executeWithRetry(session, "create table if not exists " + kvTableName + " (k blob primary key, v blob)");
+
         this.sessionProvider = CqlServiceRunner.forService(newSessionProvider())
                 .withConnection(connectionInfo)
                 .enable();
@@ -448,7 +453,7 @@ public abstract class AbstractCqlCrudIT {
         // QueryFailureException translation.
         final CQLExecutionService unsatisfiableConsistencyProvider = CqlServiceRunner.forService(newSessionProvider())
                 .withConnection(connectionInfo)
-                .withProperty(CQLExecutionService.CONSISTENCY_LEVEL, "THREE")
+                .withProperty(AbstractCQLExecutionService.CONSISTENCY_LEVEL, "THREE")
                 .enable();
 
         final CollectingCqlQueryCallback callback = new CollectingCqlQueryCallback();
@@ -465,19 +470,11 @@ public abstract class AbstractCqlCrudIT {
     // schema imposed on them. Both matter for a caller doing compare-and-set over opaque bytes.
 
     /**
-     * The table the {@code execute()} tests below share, created on first use.
-     *
-     * <p>Created once rather than per test, and through the retrying helper rather than the raw session:
-     * every other DDL statement in this suite already goes through {@link CqlDdl}, and this one issuing six
-     * unretried {@code create table} statements against a node whose schema is busy settling is exactly the
-     * false-negative timeout that helper exists to absorb.
+     * The {@code keyspace.table} name the {@code execute()} tests below share. The table itself is created
+     * once in {@link #initializeSessionProvider(CqlConnectionInfo)}, before the service session exists, so
+     * that session sees it on connect rather than racing a lazy create against its schema metadata.
      */
     private String kvTable() {
-        if (kvTableName == null) {
-            final String table = connectionInfo.keyspace() + ".execute_kv";
-            CqlDdl.executeWithRetry(session, "create table if not exists " + table + " (k blob primary key, v blob)");
-            kvTableName = table;
-        }
         return kvTableName;
     }
 

@@ -18,10 +18,10 @@
 package org.apache.nifi.service.cql.api.constants;
 
 import org.apache.nifi.components.DescribedValue;
-import org.apache.nifi.service.cql.api.service.CQLExecutionService;
+import org.apache.nifi.service.cql.api.service.AbstractCQLExecutionService;
 
 /**
- * Allowable values for {@link CQLExecutionService#COMPRESSION_TYPE}: driver-to-cluster transport compression.
+ * Allowable values for {@link AbstractCQLExecutionService#COMPRESSION_TYPE}: driver-to-cluster transport compression.
  */
 public enum ConnectionCompression implements DescribedValue {
     NONE("none", "None", "None"),

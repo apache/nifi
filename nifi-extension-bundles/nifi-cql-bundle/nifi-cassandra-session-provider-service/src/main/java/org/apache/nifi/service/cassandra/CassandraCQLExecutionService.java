@@ -67,7 +67,6 @@ import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.logging.ComponentLog;
@@ -108,12 +107,13 @@ import org.apache.nifi.service.cql.api.metadata.PrimaryKey;
 import org.apache.nifi.service.cql.api.metadata.PrimaryKeyIdentifier;
 import org.apache.nifi.service.cql.api.metadata.PrimaryKeyMetadata;
 import org.apache.nifi.service.cql.api.metadata.QualifiedTableName;
+import org.apache.nifi.service.cql.api.service.AbstractCQLExecutionService;
 import org.apache.nifi.service.cql.api.service.CQLExecutionService;
 import org.apache.nifi.service.cql.api.service.CQLQueryCallback;
 import org.apache.nifi.service.cql.api.service.ContactPoints;
 import org.apache.nifi.service.cql.api.service.QueryOverrides;
 import org.apache.nifi.service.cql.api.service.WriteOverrides;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.io.File;
 import java.net.InetSocketAddress;
@@ -147,7 +147,7 @@ import javax.net.ssl.SSLContext;
         "org.apache.nifi.service.cql.cache.CQLDistributedMapCache",
         "org.apache.nifi.service.scylladb.ScyllaDBCQLExecutionService"
 })
-public class CassandraCQLExecutionService extends AbstractControllerService implements CQLExecutionService, VerifiableControllerService {
+public class CassandraCQLExecutionService extends AbstractCQLExecutionService implements CQLExecutionService, VerifiableControllerService {
 
     /**
      * The column a conditional statement's outcome arrives in. Named with brackets by the protocol precisely
@@ -252,6 +252,16 @@ public class CassandraCQLExecutionService extends AbstractControllerService impl
     }
 
     private CqlSession buildSession(final ConfigurationContext context) {
+        return buildSession(context, true);
+    }
+
+    /**
+     * @param bindKeyspace when {@code false}, the session is opened without binding the configured keyspace.
+     * {@link #verify(ConfigurationContext, ComponentLog, Map)} passes {@code false} so a keyspace that does
+     * not exist is reported by the dedicated "Verify Keyspace" step rather than failing session creation
+     * outright - the driver rejects an unknown keyspace during {@code CqlSession.build()}.
+     */
+    private CqlSession buildSession(final ConfigurationContext context, final boolean bindKeyspace) {
         final String consistencyLevel = context.getProperty(CONSISTENCY_LEVEL).getValue();
         final String compression = context.getProperty(COMPRESSION_TYPE).getValue();
         final String contactPointList = context.getProperty(CONTACT_POINTS).evaluateAttributeExpressions().getValue();
@@ -259,14 +269,14 @@ public class CassandraCQLExecutionService extends AbstractControllerService impl
         List<InetSocketAddress> contactPoints = getContactPoints(contactPointList);
 
         // Set up the client for secure (SSL/TLS communications) if configured to do so
-        final SSLContextService sslService =
-                context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContextProvider sslContextProvider =
+                context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
         final SSLContext sslContext;
 
-        if (sslService == null) {
+        if (sslContextProvider == null) {
             sslContext = null;
         } else {
-            sslContext = sslService.createContext();
+            sslContext = sslContextProvider.createContext();
         }
 
         final String username;
@@ -307,12 +317,16 @@ public class CassandraCQLExecutionService extends AbstractControllerService impl
             builder = builder.withAuthCredentials(username, password);
         }
 
-        return builder
+        builder = builder
                 .withSslContext(sslContext)
                 .withLocalDatacenter(datacenter)
-                .withKeyspace(sessionKeyspace)
-                .withConfigLoader(loader)
-                .build();
+                .withConfigLoader(loader);
+
+        if (bindKeyspace) {
+            builder = builder.withKeyspace(sessionKeyspace);
+        }
+
+        return builder.build();
     }
 
     /**
@@ -344,7 +358,10 @@ public class CassandraCQLExecutionService extends AbstractControllerService impl
 
         CqlSession session = null;
         try {
-            session = buildSession(context);
+            // Opened without binding the keyspace: the driver rejects an unknown keyspace during build(),
+            // which would collapse a missing-keyspace failure into this step instead of the "Verify Keyspace"
+            // one below. Keyspace existence is checked explicitly against the session metadata further down.
+            session = buildSession(context, false);
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Establish Connection")
                     .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)

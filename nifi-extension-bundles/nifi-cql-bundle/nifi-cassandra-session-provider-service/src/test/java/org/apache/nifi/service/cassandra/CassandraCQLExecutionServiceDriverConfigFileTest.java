@@ -21,7 +21,7 @@ import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.service.cql.api.service.CQLExecutionService;
+import org.apache.nifi.service.cql.api.service.AbstractCQLExecutionService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -54,7 +54,7 @@ class CassandraCQLExecutionServiceDriverConfigFileTest {
         when(fileProperty.isSet()).thenReturn(false);
 
         final ConfigurationContext context = mock(ConfigurationContext.class);
-        when(context.getProperty(CQLExecutionService.DRIVER_CONFIGURATION_FILE)).thenReturn(fileProperty);
+        when(context.getProperty(AbstractCQLExecutionService.DRIVER_CONFIGURATION_FILE)).thenReturn(fileProperty);
 
         final DriverConfigLoader propertyLoader = DriverConfigLoader.programmaticBuilder()
                 .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(2))
@@ -81,7 +81,7 @@ class CassandraCQLExecutionServiceDriverConfigFileTest {
         when(fileProperty.getValue()).thenReturn(configFile.toString());
 
         final ConfigurationContext context = mock(ConfigurationContext.class);
-        when(context.getProperty(CQLExecutionService.DRIVER_CONFIGURATION_FILE)).thenReturn(fileProperty);
+        when(context.getProperty(AbstractCQLExecutionService.DRIVER_CONFIGURATION_FILE)).thenReturn(fileProperty);
 
         final DriverConfigLoader propertyLoader = DriverConfigLoader.programmaticBuilder()
                 .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(2))

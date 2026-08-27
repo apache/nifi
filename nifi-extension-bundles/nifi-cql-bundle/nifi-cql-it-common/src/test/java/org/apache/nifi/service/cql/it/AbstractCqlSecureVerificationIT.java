@@ -18,6 +18,7 @@ package org.apache.nifi.service.cql.it;
 
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
+import org.apache.nifi.service.cql.api.service.AbstractCQLExecutionService;
 import org.apache.nifi.service.cql.api.service.CQLExecutionService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.TestRunner;
@@ -169,7 +170,7 @@ public abstract class AbstractCqlSecureVerificationIT {
     @DisplayName("A nonexistent datacenter fails the datacenter step, caught by the statement verify() forces")
     void testInvalidDatacenterFailsDatacenterStep() throws Exception {
         final List<ConfigVerificationResult> results = verify(adminPassword, trustStoreFor(serverCertificate),
-                runner -> runner.withProperty(CQLExecutionService.DATACENTER, "not-a-real-datacenter"));
+                runner -> runner.withProperty(AbstractCQLExecutionService.DATACENTER, "not-a-real-datacenter"));
 
         assertStepFailed(results, "Verify Datacenter");
     }
@@ -178,7 +179,7 @@ public abstract class AbstractCqlSecureVerificationIT {
     @DisplayName("A keyspace that does not exist fails the keyspace step")
     void testNonexistentKeyspaceFailsKeyspaceStep() throws Exception {
         final List<ConfigVerificationResult> results = verify(adminPassword, trustStoreFor(serverCertificate),
-                runner -> runner.withProperty(CQLExecutionService.KEYSPACE, "keyspace_that_does_not_exist"));
+                runner -> runner.withProperty(AbstractCQLExecutionService.KEYSPACE, "keyspace_that_does_not_exist"));
 
         assertStepFailed(results, "Verify Keyspace");
     }
@@ -195,7 +196,7 @@ public abstract class AbstractCqlSecureVerificationIT {
         configFile.toFile().deleteOnExit();
 
         final List<ConfigVerificationResult> results = verify(adminPassword, trustStoreFor(serverCertificate),
-                runner -> runner.withProperty(CQLExecutionService.DRIVER_CONFIGURATION_FILE, configFile.toString()));
+                runner -> runner.withProperty(AbstractCQLExecutionService.DRIVER_CONFIGURATION_FILE, configFile.toString()));
 
         assertAllSuccessful(results);
     }
@@ -209,8 +210,8 @@ public abstract class AbstractCqlSecureVerificationIT {
                                                    final Consumer<CqlServiceRunner> customizer) throws Exception {
         final CqlServiceRunner serviceRunner = CqlServiceRunner.forService(newSessionProvider())
                 .withConnection(server.contactPoint(), LOCAL_DATACENTER, KEYSPACE)
-                .withProperty(CQLExecutionService.USERNAME, ADMIN_ROLE)
-                .withProperty(CQLExecutionService.PASSWORD, password);
+                .withProperty(AbstractCQLExecutionService.USERNAME, ADMIN_ROLE)
+                .withProperty(AbstractCQLExecutionService.PASSWORD, password);
 
         final TestRunner runner = serviceRunner.runner();
         final StandardSSLContextService sslContextService = new StandardSSLContextService();
@@ -219,7 +220,7 @@ public abstract class AbstractCqlSecureVerificationIT {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, trustStore.password());
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, STORE_TYPE);
         runner.enableControllerService(sslContextService);
-        serviceRunner.withProperty(CQLExecutionService.PROP_SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
+        serviceRunner.withProperty(AbstractCQLExecutionService.PROP_SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
 
         customizer.accept(serviceRunner);
         return serviceRunner.verify();

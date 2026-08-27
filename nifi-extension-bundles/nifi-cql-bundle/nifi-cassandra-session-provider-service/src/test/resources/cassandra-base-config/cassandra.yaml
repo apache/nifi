@@ -14,10 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Unmodified stock cassandra:5.0 cassandra.yaml (trimmed of its explanatory comments). Read at test
-# runtime by CassandraConfigOverrides, which patches in the one or two lines a given IT scenario needs
-# and copies the result directly into the container, rather than checking in a full near-duplicate copy
-# of this file per scenario.
+# Stock cassandra:5.0 cassandra.yaml (trimmed of its explanatory comments). Read at test runtime by
+# CassandraConfigOverrides, which patches in the one or two lines a given IT scenario needs and copies the
+# result directly into the container, rather than checking in a full near-duplicate copy of this file per
+# scenario. The only deviation from stock: the stock keystore_password/key_password values under the
+# disabled transparent_data_encryption_options block are dropped so no credential literal is committed -
+# that block is never activated by any scenario.
 cluster_name: 'Test Cluster'
 
 num_tokens: 16
@@ -230,9 +232,7 @@ transparent_data_encryption_options:
     - class_name: org.apache.cassandra.security.JKSKeyProvider
       parameters:
         - keystore: conf/.keystore
-          keystore_password: cassandra
           store_type: JCEKS
-          key_password: cassandra
 
 tombstone_warn_threshold: 1000
 tombstone_failure_threshold: 100000

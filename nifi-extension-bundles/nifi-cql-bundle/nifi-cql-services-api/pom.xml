@@ -31,12 +31,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <!--
-        This module deliberately declares no database client dependency. It is the backend-agnostic contract
-        that the processors and every other non-database module compile against, so anything on its compile
-        classpath leaks transitively to all of them. The maven-enforcer rule below keeps it that way.
-        -->
-
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>

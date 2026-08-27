@@ -199,8 +199,9 @@ public class PutCQLRecord extends AbstractCQLProcessor {
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
             .name("Record Reader")
-            .description("Specifies the type of Record Reader controller service to use for parsing the incoming data " +
-                    "and determining the schema")
+            .description("""
+                    Specifies the type of Record Reader controller service to use for parsing the incoming data \
+                    and determining the schema""")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
@@ -215,8 +216,9 @@ public class PutCQLRecord extends AbstractCQLProcessor {
 
     static final PropertyDescriptor UPDATE_METHOD = new PropertyDescriptor.Builder()
             .name("Update Method")
-            .description("Specifies the method to use to SET the values. This property is used if the Statement Type is " +
-                    "UPDATE and ignored otherwise.")
+            .description("""
+                    Specifies the method to use to SET the values. This property is used if the Statement Type is \
+                    UPDATE and ignored otherwise.""")
             .required(false)
             .defaultValue(UpdateType.SET_TYPE.getValue())
             .allowableValues(UpdateType.class)
@@ -224,9 +226,10 @@ public class PutCQLRecord extends AbstractCQLProcessor {
 
     static final PropertyDescriptor UPDATE_KEYS = new PropertyDescriptor.Builder()
             .name("Update Keys")
-            .description("A comma-separated list of column names that uniquely identifies a row in the database for UPDATE statements. "
-                    + "If the Statement Type is UPDATE and this property is not set, the conversion to CQL will fail. "
-                    + "This property is ignored if the Statement Type is not UPDATE.")
+            .description("""
+                    A comma-separated list of column names that uniquely identifies a row in the database for UPDATE statements. \
+                    If the Statement Type is UPDATE and this property is not set, the conversion to CQL will fail. \
+                    This property is ignored if the Statement Type is not UPDATE.""")
             .addValidator(StandardValidators.createListValidator(true, false, StandardValidators.NON_EMPTY_VALIDATOR))
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -234,10 +237,11 @@ public class PutCQLRecord extends AbstractCQLProcessor {
 
     static final PropertyDescriptor TABLE = new PropertyDescriptor.Builder()
             .name("Table name")
-            .description("The name of the Cassandra table to which the records have to be written. This can be expressed " +
-                    "as either a raw table name or a qualified table name (ex. <keyspace>.<tablename>). Due to the dynamic " +
-                    "nature of this property, it will be validated at runtime by this processor and raise an error if " +
-                    "it is neither <tablename> nor <keyspace>.<tablename> when the value is retrieved.")
+            .description("""
+                    The name of the Cassandra table to which the records have to be written. This can be expressed \
+                    as either a raw table name or a qualified table name (ex. <keyspace>.<tablename>). Due to the dynamic \
+                    nature of this property, it will be validated at runtime by this processor and raise an error if \
+                    it is neither <tablename> nor <keyspace>.<tablename> when the value is retrieved.""")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -262,10 +266,11 @@ public class PutCQLRecord extends AbstractCQLProcessor {
 
     static final PropertyDescriptor TTL = new PropertyDescriptor.Builder()
             .name("Time To Live")
-            .description("Overrides the connection service's configured Default Time To Live (TTL) for records written by this processor. "
-                    + "Applies to INSERT statements and to UPDATE statements using the SET method; ignored for Increment/Decrement updates, "
-                    + "since Cassandra/ScyllaDB do not support a TTL on counter columns. If not set, the connection service's configured "
-                    + "default (if any) is used.")
+            .description("""
+                    Overrides the connection service's configured Default Time To Live (TTL) for records written by this processor. \
+                    Applies to INSERT statements and to UPDATE statements using the SET method; ignored for Increment/Decrement updates, \
+                    since Cassandra/ScyllaDB do not support a TTL on counter columns. If not set, the connection service's configured \
+                    default (if any) is used.""")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -273,12 +278,13 @@ public class PutCQLRecord extends AbstractCQLProcessor {
 
     static final PropertyDescriptor TIMESTAMP_FIELD = new PropertyDescriptor.Builder()
             .name("Timestamp Field")
-            .description("The name of a field in each record whose value supplies the CQL write timestamp for that record's INSERT or "
-                    + "SET-method UPDATE statement, instead of the time the statement executes. Useful for safe retries/reprocessing: "
-                    + "resubmitting the same record with the same timestamp is a true no-op rather than a write that could win a "
-                    + "last-write-wins race against different data written to the same row in the meantime. Ignored for Increment/Decrement "
-                    + "updates, since Cassandra/ScyllaDB do not support a custom write timestamp on counter columns. If not set, the current "
-                    + "time is used, as usual.")
+            .description("""
+                    The name of a field in each record whose value supplies the CQL write timestamp for that record's INSERT or \
+                    SET-method UPDATE statement, instead of the time the statement executes. Useful for safe retries/reprocessing: \
+                    resubmitting the same record with the same timestamp is a true no-op rather than a write that could win a \
+                    last-write-wins race against different data written to the same row in the meantime. Ignored for Increment/Decrement \
+                    updates, since Cassandra/ScyllaDB do not support a custom write timestamp on counter columns. If not set, the current \
+                    time is used, as usual.""")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

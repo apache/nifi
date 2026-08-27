@@ -39,7 +39,7 @@ import org.testcontainers.cassandra.CassandraContainer;
  */
 final class CassandraContainerLimits {
 
-    private static final long CPUS = 8;
+    private static final long CPUS = 3;
 
     private static final long MEMORY_GB = 2;
 
