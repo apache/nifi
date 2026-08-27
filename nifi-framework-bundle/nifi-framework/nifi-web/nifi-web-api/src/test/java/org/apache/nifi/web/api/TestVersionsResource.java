@@ -58,7 +58,7 @@ import static org.mockito.Mockito.when;
 public class TestVersionsResource {
 
     @InjectMocks
-    private VersionsResource versionsResource = new VersionsResource();
+    private final VersionsResource versionsResource = new VersionsResource();
 
     @Mock
     private NiFiServiceFacade serviceFacade;

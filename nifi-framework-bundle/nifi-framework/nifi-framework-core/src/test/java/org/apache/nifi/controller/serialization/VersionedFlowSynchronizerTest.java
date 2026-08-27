@@ -82,6 +82,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -366,6 +367,37 @@ class VersionedFlowSynchronizerTest {
         assertTrue(reconciled.get().isProvided(), "Parameter must be reconciled as provider-supplied (provided=true)");
         assertEquals("provider-host", reconciled.get().getValue(),
                 "Parameter value must be re-sourced from the Parameter Provider, not the corrupted serialized value or null");
+    }
+
+    @Test
+    void testSyncRejectsInvalidParameterName() {
+        setRootGroup();
+        setFlowController();
+
+        final String invalidParameterName = "PARAMETER_{{ ENVIRONMENT }}";
+
+        final StandardParameterContextManager contextManager = new StandardParameterContextManager();
+        when(flowManager.getParameterContextManager()).thenReturn(contextManager);
+        doAnswer(invocation -> {
+            invocation.getArgument(0, Runnable.class).run();
+            return null;
+        }).when(flowManager).withParameterContextResolution(any());
+
+        final VersionedParameter versionedParameter = new VersionedParameter();
+        versionedParameter.setName(invalidParameterName);
+        versionedParameter.setSensitive(true);
+        versionedParameter.setValue("parameter-value");
+
+        final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
+        versionedParameterContext.setInstanceIdentifier("parameter-context-id");
+        versionedParameterContext.setName("parameter-context");
+        versionedParameterContext.setParameters(Collections.singleton(versionedParameter));
+        when(versionedDataflow.getParameterContexts()).thenReturn(List.of(versionedParameterContext));
+
+        final FlowSynchronizationException exception = assertThrows(FlowSynchronizationException.class, () ->
+                versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST));
+        final IllegalArgumentException cause = assertInstanceOf(IllegalArgumentException.class, exception.getCause());
+        assertTrue(cause.getMessage().contains(invalidParameterName));
     }
 
     private void setRootGroup() {

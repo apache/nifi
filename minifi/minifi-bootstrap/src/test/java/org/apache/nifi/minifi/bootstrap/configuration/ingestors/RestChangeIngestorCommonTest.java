@@ -52,7 +52,7 @@ public abstract class RestChangeIngestorCommonTest {
     public static final MediaType MEDIA_TYPE_MARKDOWN = MediaType.parse("text/x-markdown; charset=utf-8");
     public static String url;
     public static ConfigurationChangeNotifier testNotifier = mock(ConfigurationChangeNotifier.class);
-    public static Differentiator<ByteBuffer> mockDifferentiator = mock(Differentiator.class);
+    public static final Differentiator<ByteBuffer> MOCK_DIFFERENTIATOR = mock(Differentiator.class);
 
     @BeforeEach
     public void setListener() {
@@ -80,7 +80,7 @@ public abstract class RestChangeIngestorCommonTest {
 
     @Test
     public void testFileUploadNewConfig() throws Exception {
-        when(mockDifferentiator.isNew(any(ByteBuffer.class))).thenReturn(true);
+        when(MOCK_DIFFERENTIATOR.isNew(any(ByteBuffer.class))).thenReturn(true);
 
         Request request = new Request.Builder()
             .url(url)
@@ -101,7 +101,7 @@ public abstract class RestChangeIngestorCommonTest {
 
     @Test
     public void testFileUploadSameConfig() throws Exception {
-        when(mockDifferentiator.isNew(any(ByteBuffer.class))).thenReturn(false);
+        when(MOCK_DIFFERENTIATOR.isNew(any(ByteBuffer.class))).thenReturn(false);
 
         Request request = new Request.Builder()
             .url(url)

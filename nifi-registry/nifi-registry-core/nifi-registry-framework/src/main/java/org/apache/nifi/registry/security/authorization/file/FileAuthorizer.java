@@ -51,8 +51,8 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
     static final String PROP_LEGACY_AUTHORIZED_USERS_FILE = "Legacy Authorized Users File";
 
-    private FileUserGroupProvider userGroupProvider = new FileUserGroupProvider();
-    private FileAccessPolicyProvider accessPolicyProvider = new FileAccessPolicyProvider();
+    private final FileUserGroupProvider userGroupProvider = new FileUserGroupProvider();
+    private final FileAccessPolicyProvider accessPolicyProvider = new FileAccessPolicyProvider();
 
     @Override
     public void initialize(final AuthorizerInitializationContext initializationContext) throws SecurityProviderCreationException {

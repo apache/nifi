@@ -45,8 +45,8 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
 
     private int size;
     private Memory buffer;
-    private Memory used;
-    private Memory propertyCount;
+    private final Memory used;
+    private final Memory propertyCount;
     private boolean subscriptionFailed;
 
     public EventSubscribeXmlRenderingCallback(ComponentLog logger, Consumer<String> consumer, int maxBufferSize, WEvtApi wEvtApi, Kernel32 kernel32, ErrorLookup errorLookup) {

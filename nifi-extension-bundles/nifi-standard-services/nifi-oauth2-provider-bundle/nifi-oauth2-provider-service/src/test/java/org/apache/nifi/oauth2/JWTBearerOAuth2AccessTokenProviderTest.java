@@ -97,7 +97,7 @@ class JWTBearerOAuth2AccessTokenProviderTest {
     private ComponentLog mockLogger;
 
     private JWTBearerOAuth2AccessTokenProviderForTests provider;
-    private Processor processor = new NoOpProcessor();
+    private final Processor processor = new NoOpProcessor();
     private TestRunner runner;
 
     @BeforeEach

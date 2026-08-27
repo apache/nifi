@@ -2287,7 +2287,15 @@ Otherwise, NiFi will fail to startup.
 ==== Local State Provider
 
 By default, the Local State Provider is configured to be a `WriteAheadLocalStateProvider` that persists the data to the
-`$NIFI_HOME/state/local` directory.
+`$NIFI_HOME/state/local` directory. It writes each state update to a journal and periodically checkpoints, which writes a snapshot
+of all state and removes the journal that the snapshot now covers. The `Checkpoint Interval` property controls how much time passes
+between checkpoints.
+
+Because the journal grows with every state update, a long checkpoint interval combined with frequent state updates can consume a
+significant amount of disk space. The optional `Maximum Journal Size` property bounds this growth by triggering a checkpoint as soon
+as the journal reaches the configured size, such as `100 MB`. The value is a threshold that triggers a checkpoint rather than a strict
+limit on the size of the journal, because the update that reaches the threshold is written in full before the checkpoint is performed.
+If the property is not specified, checkpoints occur only on the `Checkpoint Interval`.
 
 ==== ZooKeeper Cluster State Provider
 
@@ -2983,6 +2991,7 @@ NOTE: Switching repository implementations should only be done on an instance wi
 |*Property*|*Description*
 |`nifi.flowfile.repository.directory`*|The location of the FlowFile Repository. The default value is `./flowfile_repository`.
 |`nifi.flowfile.repository.checkpoint.interval`| The FlowFile Repository checkpoint interval. The default value is `20 secs`.
+|`nifi.flowfile.repository.checkpoint.max.journal.size`| The amount of storage that the repository's journal is allowed to consume before a checkpoint is performed, such as `100 MB`. This bounds the amount of disk space that the repository consumes between checkpoints, regardless of how many FlowFiles are updated. The value is a threshold that triggers a checkpoint rather than a strict limit on the size of the journal, because the update that reaches the threshold is written in full before the checkpoint is performed. If no value is specified, checkpoints occur only on the checkpoint interval. There is no default value.
 |`nifi.flowfile.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
 |====
 

@@ -17,150 +17,53 @@
 package org.apache.nifi.cdc.mysql.processors.ssl;
 
 import com.github.shyiko.mysql.binlog.network.SSLMode;
-import org.apache.nifi.security.util.KeystoreType;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsPlatform;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
-public class StandardConnectionPropertiesProviderTest {
-    private static final String KEY_STORE_PATH = "keystore.p12";
+class StandardConnectionPropertiesProviderTest {
 
-    private static final KeystoreType KEY_STORE_TYPE = KeystoreType.PKCS12;
+    private static final String SSL_MODE_PROPERTY = SecurityProperty.SSL_MODE.getProperty();
 
-    private static final String KEY_STORE_PASSWORD = String.class.getName();
-
-    private static final String TRUST_STORE_PATH = "cacerts";
-
-    private static final KeystoreType TRUST_STORE_TYPE = KeystoreType.PKCS12;
-
-    private static final String TRUST_STORE_PASSWORD = Integer.class.getName();
-
-    @Mock
-    TlsConfiguration tlsConfiguration;
+    private static final String SSL_CONTEXT_PROVIDER_PROPERTY = SecurityProperty.SSL_CONTEXT_PROVIDER.getProperty();
 
     @Test
     void testGetConnectionPropertiesSslModeDisabled() {
-        final StandardConnectionPropertiesProvider provider = new StandardConnectionPropertiesProvider(SSLMode.DISABLED, null);
-
-        final Map<String, String> properties = provider.getConnectionProperties();
-
-        assertNotNull(properties);
-
-        final String useSsl = properties.get(SecurityProperty.USE_SSL.getProperty());
-        assertEquals(Boolean.FALSE.toString(), useSsl);
+        assertSslModeMapped(SSLMode.DISABLED);
     }
 
     @Test
     void testGetConnectionPropertiesSslModePreferred() {
-        final StandardConnectionPropertiesProvider provider = new StandardConnectionPropertiesProvider(SSLMode.PREFERRED, null);
-
-        final Map<String, String> properties = provider.getConnectionProperties();
-
-        assertNotNull(properties);
-
-        final String useSsl = properties.get(SecurityProperty.USE_SSL.getProperty());
-        assertEquals(Boolean.TRUE.toString(), useSsl);
-
-        final String requireSsl = properties.get(SecurityProperty.REQUIRE_SSL.getProperty());
-        assertEquals(Boolean.FALSE.toString(), requireSsl);
-
-        final String protocols = properties.get(SecurityProperty.ENABLED_TLS_PROTOCOLS.getProperty());
-        assertNotNull(protocols);
+        assertSslModeMapped(SSLMode.PREFERRED);
     }
 
     @Test
     void testGetConnectionPropertiesSslModeRequired() {
-        final StandardConnectionPropertiesProvider provider = new StandardConnectionPropertiesProvider(SSLMode.REQUIRED, null);
+        assertSslModeMapped(SSLMode.REQUIRED);
+    }
 
-        final Map<String, String> properties = provider.getConnectionProperties();
-
-        assertNotNull(properties);
-
-        final String useSsl = properties.get(SecurityProperty.USE_SSL.getProperty());
-        assertEquals(Boolean.TRUE.toString(), useSsl);
-
-        final String requireSsl = properties.get(SecurityProperty.REQUIRE_SSL.getProperty());
-        assertEquals(Boolean.TRUE.toString(), requireSsl);
-
-        final String protocols = properties.get(SecurityProperty.ENABLED_TLS_PROTOCOLS.getProperty());
-        assertNotNull(protocols);
+    @Test
+    void testGetConnectionPropertiesSslModeVerifyCa() {
+        assertSslModeMapped(SSLMode.VERIFY_CA);
     }
 
     @Test
     void testGetConnectionPropertiesSslModeVerifyIdentity() {
-        final StandardConnectionPropertiesProvider provider = new StandardConnectionPropertiesProvider(SSLMode.VERIFY_IDENTITY, null);
-
-        final Map<String, String> properties = provider.getConnectionProperties();
-
-        assertNotNull(properties);
-
-        final String useSsl = properties.get(SecurityProperty.USE_SSL.getProperty());
-        assertEquals(Boolean.TRUE.toString(), useSsl);
-
-        final String requireSsl = properties.get(SecurityProperty.REQUIRE_SSL.getProperty());
-        assertEquals(Boolean.TRUE.toString(), requireSsl);
-
-        final String protocols = properties.get(SecurityProperty.ENABLED_TLS_PROTOCOLS.getProperty());
-        assertNotNull(protocols);
-
-        final String verifyServerCertificate = properties.get(SecurityProperty.VERIFY_SERVER_CERTIFICATE.getProperty());
-        assertEquals(Boolean.TRUE.toString(), verifyServerCertificate);
+        assertSslModeMapped(SSLMode.VERIFY_IDENTITY);
     }
 
-    @Test
-    void testGetConnectionPropertiesSslModeRequiredTlsConfiguration() {
-        final String latestProtocol = TlsPlatform.getLatestProtocol();
-        when(tlsConfiguration.getEnabledProtocols()).thenReturn(new String[]{latestProtocol});
-        when(tlsConfiguration.isKeystorePopulated()).thenReturn(true);
-        when(tlsConfiguration.getKeystorePath()).thenReturn(KEY_STORE_PATH);
-        when(tlsConfiguration.getKeystoreType()).thenReturn(KEY_STORE_TYPE);
-        when(tlsConfiguration.getKeystorePassword()).thenReturn(KEY_STORE_PASSWORD);
-        when(tlsConfiguration.isTruststorePopulated()).thenReturn(true);
-        when(tlsConfiguration.getTruststorePath()).thenReturn(TRUST_STORE_PATH);
-        when(tlsConfiguration.getTruststoreType()).thenReturn(TRUST_STORE_TYPE);
-        when(tlsConfiguration.getTruststorePassword()).thenReturn(TRUST_STORE_PASSWORD);
-
-        final StandardConnectionPropertiesProvider provider = new StandardConnectionPropertiesProvider(SSLMode.REQUIRED, tlsConfiguration);
+    private void assertSslModeMapped(final SSLMode sslMode) {
+        final StandardConnectionPropertiesProvider provider = new StandardConnectionPropertiesProvider(sslMode);
 
         final Map<String, String> properties = provider.getConnectionProperties();
 
         assertNotNull(properties);
-
-        final String useSsl = properties.get(SecurityProperty.USE_SSL.getProperty());
-        assertEquals(Boolean.TRUE.toString(), useSsl);
-
-        final String requireSsl = properties.get(SecurityProperty.REQUIRE_SSL.getProperty());
-        assertEquals(Boolean.TRUE.toString(), requireSsl);
-
-        final String protocols = properties.get(SecurityProperty.ENABLED_TLS_PROTOCOLS.getProperty());
-        assertEquals(latestProtocol, protocols);
-
-        final String clientCertificateUrl = properties.get(SecurityProperty.CLIENT_CERTIFICATE_KEY_STORE_URL.getProperty());
-        assertEquals(KEY_STORE_PATH, clientCertificateUrl);
-
-        final String clientCertificateType = properties.get(SecurityProperty.CLIENT_CERTIFICATE_KEY_STORE_TYPE.getProperty());
-        assertEquals(KEY_STORE_TYPE.getType(), clientCertificateType);
-
-        final String clientCertificatePassword = properties.get(SecurityProperty.CLIENT_CERTIFICATE_KEY_STORE_PASSWORD.getProperty());
-        assertEquals(KEY_STORE_PASSWORD, clientCertificatePassword);
-
-        final String trustCertificateUrl = properties.get(SecurityProperty.TRUST_CERTIFICATE_KEY_STORE_URL.getProperty());
-        assertEquals(TRUST_STORE_PATH, trustCertificateUrl);
-
-        final String trustCertificateType = properties.get(SecurityProperty.TRUST_CERTIFICATE_KEY_STORE_TYPE.getProperty());
-        assertEquals(TRUST_STORE_TYPE.getType(), trustCertificateType);
-
-        final String trustCertificatePassword = properties.get(SecurityProperty.TRUST_CERTIFICATE_KEY_STORE_PASSWORD.getProperty());
-        assertEquals(TRUST_STORE_PASSWORD, trustCertificatePassword);
+        assertEquals(sslMode.toString(), properties.get(SSL_MODE_PROPERTY));
+        assertFalse(properties.containsKey(SSL_CONTEXT_PROVIDER_PROPERTY),
+                "The SSLContext provider name is registered per connection attempt and must not be produced by the properties provider");
     }
 }

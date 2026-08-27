@@ -191,7 +191,7 @@ class JMSPublisher extends JMSWorker {
     /**
      * This map helps us avoid using JmsPropertySetterEnum.valueOf and dealing with IllegalArgumentException on failed lookup.
      */
-    public static Map<String, JmsPropertySetterEnum> propertySetterMap = new HashMap<>();
+    public static final Map<String, JmsPropertySetterEnum> propertySetterMap = new HashMap<>();
     static {
         Arrays.stream(JmsPropertySetterEnum.values()).forEach(e -> propertySetterMap.put(e.name().toLowerCase(), e));
     }

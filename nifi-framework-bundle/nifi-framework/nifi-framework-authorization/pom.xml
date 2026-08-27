@@ -23,17 +23,9 @@
     <artifactId>nifi-framework-authorization</artifactId>
 
     <dependencies>
-
-
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-mock-authorizer</artifactId>
-            <version>2.12.0-SNAPSHOT</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

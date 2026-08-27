@@ -23,7 +23,7 @@ import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessageHandler;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -33,7 +33,6 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import java.net.URI;
 import java.util.Arrays;
-import java.util.Properties;
 
 public class PahoMqttClientAdapter implements MqttClient {
 
@@ -67,9 +66,9 @@ public class PahoMqttClientAdapter implements MqttClient {
             connectOptions.setMqttVersion(clientProperties.getMqttVersion().getVersionCode());
             connectOptions.setConnectionTimeout(clientProperties.getConnectionTimeout());
 
-            final TlsConfiguration tlsConfiguration = clientProperties.getTlsConfiguration();
-            if (tlsConfiguration != null) {
-                connectOptions.setSSLProperties(transformSSLContextService(tlsConfiguration));
+            final SSLContextProvider sslContextProvider = clientProperties.getSslContextProvider();
+            if (sslContextProvider != null) {
+                connectOptions.setSocketFactory(sslContextProvider.createContext().getSocketFactory());
             }
 
             final String lastWillTopic = clientProperties.getLastWillTopic();
@@ -134,32 +133,6 @@ public class PahoMqttClientAdapter implements MqttClient {
         } catch (org.eclipse.paho.client.mqttv3.MqttException e) {
             throw new MqttException("An error has occurred during subscribing to " + topicFilter + " with QoS: " + qos, e);
         }
-    }
-
-    public static Properties transformSSLContextService(TlsConfiguration tlsConfiguration) {
-        final Properties properties = new Properties();
-        if (tlsConfiguration.getProtocol() != null) {
-            properties.setProperty("com.ibm.ssl.protocol", tlsConfiguration.getProtocol());
-        }
-        if (tlsConfiguration.getKeystorePath() != null) {
-            properties.setProperty("com.ibm.ssl.keyStore", tlsConfiguration.getKeystorePath());
-        }
-        if (tlsConfiguration.getKeystorePassword() != null) {
-            properties.setProperty("com.ibm.ssl.keyStorePassword", tlsConfiguration.getKeystorePassword());
-        }
-        if (tlsConfiguration.getKeystoreType() != null) {
-            properties.setProperty("com.ibm.ssl.keyStoreType", tlsConfiguration.getKeystoreType().getType());
-        }
-        if (tlsConfiguration.getTruststorePath() != null) {
-            properties.setProperty("com.ibm.ssl.trustStore", tlsConfiguration.getTruststorePath());
-        }
-        if (tlsConfiguration.getTruststorePassword() != null) {
-            properties.setProperty("com.ibm.ssl.trustStorePassword", tlsConfiguration.getTruststorePassword());
-        }
-        if (tlsConfiguration.getTruststoreType() != null) {
-            properties.setProperty("com.ibm.ssl.trustStoreType", tlsConfiguration.getTruststoreType().getType());
-        }
-        return properties;
     }
 
     private static org.eclipse.paho.client.mqttv3.MqttClient createClient(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) {

@@ -64,8 +64,8 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
     public static final String DEFAULT_NETWORK_INTERFACE = "";
 
     private final String urls;
-    private List<RemotePortSchema> inputPorts;
-    private List<RemotePortSchema> outputPorts;
+    private final List<RemotePortSchema> inputPorts;
+    private final List<RemotePortSchema> outputPorts;
 
     private String comment = DEFAULT_COMMENT;
     private String timeout = DEFAULT_TIMEOUT;

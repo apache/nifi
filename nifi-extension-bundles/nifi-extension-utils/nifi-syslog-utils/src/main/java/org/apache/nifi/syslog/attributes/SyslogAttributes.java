@@ -47,7 +47,7 @@ public enum SyslogAttributes implements FlowFileAttributeKey {
     PROTOCOL("protocol"),
     PORT("port");
 
-    private String key;
+    private final String key;
 
     SyslogAttributes(String key) {
         this.key = key;

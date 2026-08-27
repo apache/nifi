@@ -17,25 +17,6 @@
 package org.apache.nifi.services.smb;
 
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.logging.ComponentLog;
 
-import java.io.IOException;
-import java.net.URI;
-
-public interface SmbClientProviderService extends ControllerService {
-
-    /**
-     * Returns the identifier of the service location.
-     *
-     * @return the remote location
-     */
-    URI getServiceLocation();
-
-    /**
-     * Returns the smb client to use.
-     *
-     * @return the client.
-     */
-    SmbClientService getClient(ComponentLog logger) throws IOException;
-
+public interface SmbClientProviderService extends SmbClientProvider, ControllerService {
 }

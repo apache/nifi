@@ -59,6 +59,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterNameValidator;
 import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.stream.io.MaxLengthInputStream;
@@ -121,7 +122,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Controller
@@ -129,7 +129,6 @@ import java.util.stream.Collectors;
 @Tag(name = "ParameterContexts")
 public class ParameterContextResource extends AbstractParameterResource {
     private static final Logger logger = LoggerFactory.getLogger(ParameterContextResource.class);
-    private static final Pattern VALID_PARAMETER_NAME_PATTERN = Pattern.compile("[A-Za-z0-9 ._\\-]+");
     private static final String FILENAME_HEADER = "Filename";
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String UPLOAD_CONTENT_TYPE = "application/octet-stream";
@@ -875,17 +874,19 @@ public class ParameterContextResource extends AbstractParameterResource {
     private void validateParameterNames(final ParameterContextDTO parameterContextDto) {
         if (parameterContextDto.getParameters() != null) {
             for (final ParameterEntity entity : parameterContextDto.getParameters()) {
-                final String parameterName = entity.getParameter().getName();
-                if (!isLegalParameterName(parameterName)) {
-                    throw new IllegalArgumentException("Request contains an illegal Parameter Name (" + parameterName
-                            + "). Parameter names may only include letters, numbers, spaces, and the special characters .-_");
+                final ParameterDTO parameter = entity.getParameter();
+                if (!isParameterDeletion(parameter)) {
+                    ParameterNameValidator.validate(parameter.getName());
                 }
             }
         }
     }
 
-    private boolean isLegalParameterName(final String parameterName) {
-        return VALID_PARAMETER_NAME_PATTERN.matcher(parameterName).matches();
+    private boolean isParameterDeletion(final ParameterDTO parameter) {
+        return parameter.getDescription() == null
+                && parameter.getSensitive() == null
+                && parameter.getValue() == null
+                && parameter.getReferencedAssets() == null;
     }
 
     @GET

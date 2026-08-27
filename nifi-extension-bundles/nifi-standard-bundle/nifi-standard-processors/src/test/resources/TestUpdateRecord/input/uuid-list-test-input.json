@@ -1,0 +1,20 @@
+{
+  "chat_name": "Atlas Cutover Squad",
+  "participants": [
+    {
+      "user_id": "223a47ed-0f2c-44c5-b2ac-2a37133bf101",
+      "authenticator": "google-oauth2",
+      "principal": "priya.patel"
+    },
+    {
+      "user_id": "b7e92e2b-de17-4e1e-9415-8bc8057d8cbc",
+      "authenticator": "saml",
+      "principal": "dramirez@example.com"
+    },
+    {
+      "user_id": "b9debc33-fbb6-4fca-9a90-f361b7572fea",
+      "authenticator": "okta-saml",
+      "principal": "jordan.kim"
+    }
+  ]
+}

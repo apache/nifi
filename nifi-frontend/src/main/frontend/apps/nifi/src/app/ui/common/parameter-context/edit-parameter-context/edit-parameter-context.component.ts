@@ -25,7 +25,7 @@ import { AsyncPipe } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { EditParameterContextRequest } from '../../../../pages/parameter-contexts/state/parameter-context-listing';
 import { Client } from '../../../../service/client.service';
 import { ParameterTable } from '../../../../pages/parameter-contexts/ui/parameter-context-listing/parameter-table/parameter-table.component';
@@ -35,8 +35,10 @@ import {
     ParameterContextEntity,
     ParameterContextUpdateRequestEntity,
     ParameterEntity,
-    ParameterProviderConfiguration
+    ParameterProviderConfiguration,
+    PostUpdateNavigationState
 } from '../../../../state/shared';
+import { EditParameterContextUpdate } from '../index';
 import { ProcessGroupReferences } from '../../process-group-references/process-group-references.component';
 import { ParameterContextInheritance } from '../parameter-context-inheritance/parameter-context-inheritance.component';
 import { ParameterReferences } from '../../parameter-references/parameter-references.component';
@@ -93,13 +95,17 @@ export class EditParameterContext extends TabbedDialog {
 
     @Input() createNewParameter!: (existingParameters: string[]) => Observable<EditParameterResponse>;
     @Input() editParameter!: (parameter: Parameter) => Observable<EditParameterResponse>;
+    @Input() goToParameter?: (parameterContextId: string, parameterName: string) => void;
     @Input() updateRequest!: Observable<ParameterContextUpdateRequestEntity | null>;
     @Input() availableParameterContexts$!: Observable<ParameterContextEntity[]>;
     @Input() saving$!: Observable<boolean>;
+    @Input() hasPendingPostUpdateNavigation$: Observable<boolean> = of(false);
 
     @Output() addParameterContext: EventEmitter<any> = new EventEmitter<any>();
-    @Output() editParameterContext: EventEmitter<any> = new EventEmitter<any>();
-    @Output() cancelUpdateRequest: EventEmitter<any> = new EventEmitter<any>();
+    @Output() editParameterContext: EventEmitter<EditParameterContextUpdate> =
+        new EventEmitter<EditParameterContextUpdate>();
+    @Output() cancelUpdateRequest: EventEmitter<void> = new EventEmitter<void>();
+    @Output() continuePostUpdateNavigation: EventEmitter<void> = new EventEmitter<void>();
 
     editParameterContextForm: FormGroup;
     readonly: boolean;
@@ -165,7 +171,11 @@ export class EditParameterContext extends TabbedDialog {
         return false;
     }
 
-    submitForm() {
+    submitForm(
+        postUpdateNavigation?: string[],
+        postUpdateNavigationBoundary?: string[],
+        postUpdateNavigationState?: PostUpdateNavigationState
+    ) {
         if (this.isNew) {
             const payload: any = {
                 revision: {
@@ -215,7 +225,12 @@ export class EditParameterContext extends TabbedDialog {
                 }
             };
 
-            this.editParameterContext.next(payload);
+            this.editParameterContext.next({
+                payload,
+                postUpdateNavigation,
+                postUpdateNavigationBoundary,
+                postUpdateNavigationState
+            });
         }
     }
 

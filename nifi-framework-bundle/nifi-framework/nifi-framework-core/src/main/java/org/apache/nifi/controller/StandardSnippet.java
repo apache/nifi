@@ -32,14 +32,14 @@ public class StandardSnippet implements Snippet {
     private String id;
     private String parentGroupId;
 
-    private Map<String, Revision> processGroups = new HashMap<>();
-    private Map<String, Revision> remoteProcessGroups = new HashMap<>();
-    private Map<String, Revision> processors = new HashMap<>();
-    private Map<String, Revision> inputPorts = new HashMap<>();
-    private Map<String, Revision> outputPorts = new HashMap<>();
-    private Map<String, Revision> connections = new HashMap<>();
-    private Map<String, Revision> labels = new HashMap<>();
-    private Map<String, Revision> funnels = new HashMap<>();
+    private final Map<String, Revision> processGroups = new HashMap<>();
+    private final Map<String, Revision> remoteProcessGroups = new HashMap<>();
+    private final Map<String, Revision> processors = new HashMap<>();
+    private final Map<String, Revision> inputPorts = new HashMap<>();
+    private final Map<String, Revision> outputPorts = new HashMap<>();
+    private final Map<String, Revision> connections = new HashMap<>();
+    private final Map<String, Revision> labels = new HashMap<>();
+    private final Map<String, Revision> funnels = new HashMap<>();
 
     @Override
     public String getId() {

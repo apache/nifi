@@ -61,7 +61,7 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
             .name("Null Value Representation")
             .description("Indicates the desired representation of JSON Path expressions resulting in a null value.")
             .required(true)
-            .allowableValues(NULL_REPRESENTATION_MAP.keySet())
+            .allowableValues(EMPTY_STRING_OPTION, NULL_STRING_OPTION)
             .defaultValue(EMPTY_STRING_OPTION)
             .build();
 

@@ -27,12 +27,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class XXEValidatorTest {
-    private String simpleXMLFile = "src/test/resources/no_xxe.xml";
-    private String remoteXXEFile = "src/test/resources/remote_xxe_file.xml";
-    private String localXXEFile = "src/test/resources/local_xxe_file.xml";
-    private String multilineXXEFile = "src/test/resources/multiline_xxe_file.xml";
-    private String whitespaceXXEFile = "src/test/resources/whitespace_xxe_file.xml";
-    private String configurationKey = "Configuration Name";
+    private final String simpleXMLFile = "src/test/resources/no_xxe.xml";
+    private final String remoteXXEFile = "src/test/resources/remote_xxe_file.xml";
+    private final String localXXEFile = "src/test/resources/local_xxe_file.xml";
+    private final String multilineXXEFile = "src/test/resources/multiline_xxe_file.xml";
+    private final String whitespaceXXEFile = "src/test/resources/whitespace_xxe_file.xml";
+    private final String configurationKey = "Configuration Name";
     private ValidationContext validationContext;
 
     @BeforeEach

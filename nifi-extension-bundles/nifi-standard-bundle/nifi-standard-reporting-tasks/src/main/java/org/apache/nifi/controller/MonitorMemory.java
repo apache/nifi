@@ -92,7 +92,7 @@ public class MonitorMemory extends AbstractReportingTask {
 
     private static final List<String> GC_OLD_GEN_POOLS = Collections.unmodifiableList(Arrays.asList("Tenured Gen", "PS Old Gen", "G1 Old Gen", "CMS Old Gen", "ZHeap"));
     private static final AllowableValue[] memPoolAllowableValues;
-    private static String defaultMemoryPool;
+    private static final String defaultMemoryPool;
 
     static {
         // Only allow memory pool beans that support usage thresholds, otherwise we wouldn't report anything anyway

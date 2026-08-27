@@ -16,32 +16,44 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.authorization.resource.AccessPolicyAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
 import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.resource.ProvenanceDataAuthorizable;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorSyncMode;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
+import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.ConnectionDAO;
+import org.apache.nifi.web.dao.ConnectorDAO;
 import org.apache.nifi.web.dao.ConnectorManagedComponentLookup;
 import org.apache.nifi.web.dao.FlowAnalysisRuleDAO;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
+import org.apache.nifi.web.dao.ParameterProviderDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -50,6 +62,10 @@ import static org.mockito.Mockito.when;
 public class StandardAuthorizableLookupTest {
 
     private static final String COMPONENT_ID = "id";
+    private static final String CONNECTOR_ID = "connector-1";
+    private static final String ASSET_ID = "asset-1";
+    private static final String SECRET_PROVIDER_ID = "parameter-provider-1";
+    private static final String SECRET_PROVIDER_NAME = "Vault Provider";
 
     @Test
     void testGetAuthorizableFromResource() {
@@ -177,6 +193,133 @@ public class StandardAuthorizableLookupTest {
 
         assertNotNull(result);
         verify(connectorManagedComponentLookup).getProcessGroup(eq(COMPONENT_ID));
+    }
+
+    @Test
+    void testGetConnectorAssetResolvesOwnedAsset() {
+        final StandardAuthorizableLookup lookup = getLookup();
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        lookup.setConnectorDAO(connectorDAO);
+
+        final Asset asset = mock(Asset.class);
+        when(asset.getOwnerIdentifier()).thenReturn(CONNECTOR_ID);
+        when(connectorDAO.getAsset(eq(ASSET_ID))).thenReturn(Optional.of(asset));
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        when(connectorDAO.getConnector(eq(CONNECTOR_ID), eq(ConnectorSyncMode.LOCAL_ONLY))).thenReturn(connectorNode);
+
+        final Authorizable result = lookup.getConnectorAsset(CONNECTOR_ID, ASSET_ID);
+
+        assertSame(connectorNode, result);
+    }
+
+    @Test
+    void testGetConnectorAssetRejectsAssetOwnedByAnotherConnector() {
+        final StandardAuthorizableLookup lookup = getLookup();
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        lookup.setConnectorDAO(connectorDAO);
+
+        final Asset asset = mock(Asset.class);
+        when(asset.getOwnerIdentifier()).thenReturn("another-connector");
+        when(connectorDAO.getAsset(eq(ASSET_ID))).thenReturn(Optional.of(asset));
+
+        assertThrows(ResourceNotFoundException.class, () -> lookup.getConnectorAsset(CONNECTOR_ID, ASSET_ID));
+    }
+
+    @Test
+    void testGetConnectorAssetRejectsMissingAsset() {
+        final StandardAuthorizableLookup lookup = getLookup();
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        lookup.setConnectorDAO(connectorDAO);
+
+        when(connectorDAO.getAsset(eq(ASSET_ID))).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> lookup.getConnectorAsset(CONNECTOR_ID, ASSET_ID));
+    }
+
+    @Test
+    void testGetConnectorSecretProviderResolvesById() {
+        final StandardAuthorizableLookup lookup = getLookup();
+        final ParameterProviderDAO parameterProviderDAO = mock(ParameterProviderDAO.class);
+        lookup.setParameterProviderDAO(parameterProviderDAO);
+
+        final ParameterProviderNode provider = mock(ParameterProviderNode.class);
+        when(parameterProviderDAO.getParameterProvider(eq(SECRET_PROVIDER_ID))).thenReturn(provider);
+
+        final Authorizable result = lookup.getConnectorSecretProvider(SECRET_PROVIDER_ID, null, null);
+
+        assertSame(provider, result);
+    }
+
+    @Test
+    void testGetConnectorSecretProviderResolvesByName() {
+        final StandardAuthorizableLookup lookup = getLookup();
+        final ParameterProviderDAO parameterProviderDAO = mock(ParameterProviderDAO.class);
+        lookup.setParameterProviderDAO(parameterProviderDAO);
+
+        final ParameterProviderNode matchingProvider = mock(ParameterProviderNode.class);
+        when(matchingProvider.getName()).thenReturn(SECRET_PROVIDER_NAME);
+        final ParameterProviderNode otherProvider = mock(ParameterProviderNode.class);
+        when(otherProvider.getName()).thenReturn("Other Provider");
+        when(parameterProviderDAO.getParameterProviders()).thenReturn(Set.of(matchingProvider, otherProvider));
+
+        final Authorizable result = lookup.getConnectorSecretProvider(null, SECRET_PROVIDER_NAME, null);
+
+        assertSame(matchingProvider, result);
+    }
+
+    @Test
+    void testGetConnectorSecretProviderResolvesByFullyQualifiedName() {
+        final StandardAuthorizableLookup lookup = getLookup();
+        final ParameterProviderDAO parameterProviderDAO = mock(ParameterProviderDAO.class);
+        lookup.setParameterProviderDAO(parameterProviderDAO);
+
+        final ParameterProviderNode matchingProvider = mock(ParameterProviderNode.class);
+        when(matchingProvider.getName()).thenReturn(SECRET_PROVIDER_NAME);
+        when(parameterProviderDAO.getParameterProviders()).thenReturn(Set.of(matchingProvider));
+
+        final Authorizable result = lookup.getConnectorSecretProvider(null, null, SECRET_PROVIDER_NAME + ".api-key");
+
+        assertSame(matchingProvider, result);
+    }
+
+    @Test
+    void testGetConnectorSecretProviderFailsWhenUnresolved() {
+        final StandardAuthorizableLookup lookup = getLookup();
+        final ParameterProviderDAO parameterProviderDAO = mock(ParameterProviderDAO.class);
+        lookup.setParameterProviderDAO(parameterProviderDAO);
+        when(parameterProviderDAO.getParameterProviders()).thenReturn(Set.of());
+
+        assertThrows(ResourceNotFoundException.class, () -> lookup.getConnectorSecretProvider(null, "Missing Provider", null));
+    }
+
+    @Test
+    void testGetConnectorSecretProviderMasksMissingProviderId() {
+        final StandardAuthorizableLookup lookup = getLookup();
+        final ParameterProviderDAO parameterProviderDAO = mock(ParameterProviderDAO.class);
+        lookup.setParameterProviderDAO(parameterProviderDAO);
+        when(parameterProviderDAO.getParameterProvider(eq(SECRET_PROVIDER_ID)))
+                .thenThrow(new ResourceNotFoundException("Unable to locate parameter provider with id '%s'.".formatted(SECRET_PROVIDER_ID)));
+
+        final ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> lookup.getConnectorSecretProvider(SECRET_PROVIDER_ID, null, null));
+
+        assertEquals("The Parameter Provider for the referenced Secret could not be found", exception.getMessage());
+    }
+
+    @Test
+    void testGetConnectorSecretProviderFailsWhenMultipleProvidersShareName() {
+        final StandardAuthorizableLookup lookup = getLookup();
+        final ParameterProviderDAO parameterProviderDAO = mock(ParameterProviderDAO.class);
+        lookup.setParameterProviderDAO(parameterProviderDAO);
+
+        final ParameterProviderNode firstProvider = mock(ParameterProviderNode.class);
+        when(firstProvider.getName()).thenReturn(SECRET_PROVIDER_NAME);
+        final ParameterProviderNode secondProvider = mock(ParameterProviderNode.class);
+        when(secondProvider.getName()).thenReturn(SECRET_PROVIDER_NAME);
+        when(parameterProviderDAO.getParameterProviders()).thenReturn(Set.of(firstProvider, secondProvider));
+
+        assertThrows(IllegalArgumentException.class, () -> lookup.getConnectorSecretProvider(null, SECRET_PROVIDER_NAME, null));
     }
 
     private StandardAuthorizableLookup getLookup() {

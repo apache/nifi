@@ -25,7 +25,7 @@ import java.io.OutputStream;
 
 public class NifiOutputStream extends PositionOutputStream {
     private long position = 0;
-    private OutputStream outputStream;
+    private final OutputStream outputStream;
 
     public NifiOutputStream(OutputStream outputStream) {
         this.outputStream = outputStream;

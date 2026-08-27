@@ -31,7 +31,7 @@ public class ControllerServiceSchema extends BaseSchemaWithIdAndName {
 
     private Map<String, Object> properties = DEFAULT_PROPERTIES;
     private String annotationData = "";
-    private String serviceClass;
+    private final String serviceClass;
 
     public ControllerServiceSchema(Map map) {
         super(map, "Controller Service(id: {id}, name: {name})");

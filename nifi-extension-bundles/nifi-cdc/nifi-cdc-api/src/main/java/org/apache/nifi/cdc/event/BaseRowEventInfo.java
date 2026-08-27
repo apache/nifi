@@ -23,7 +23,7 @@ import java.util.List;
  */
 public class BaseRowEventInfo<RowEventDataType> extends BaseTableEventInfo implements RowEventInfo<RowEventDataType> {
 
-    protected List<RowEventDataType> rows;
+    protected final List<RowEventDataType> rows;
 
     public BaseRowEventInfo(TableInfo tableInfo, String eventType, Long timestamp, List<RowEventDataType> rows) {
         super(tableInfo, eventType, timestamp);

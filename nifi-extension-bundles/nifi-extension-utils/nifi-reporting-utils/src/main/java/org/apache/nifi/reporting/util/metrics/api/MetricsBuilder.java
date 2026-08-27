@@ -37,7 +37,7 @@ public class MetricsBuilder {
     private String applicationId;
     private String instanceId;
     private String hostname;
-    private Map<String, String> metrics = new HashMap<>();
+    private final Map<String, String> metrics = new HashMap<>();
 
     public MetricsBuilder(final JsonBuilderFactory factory) {
         this.factory = factory;

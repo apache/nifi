@@ -79,7 +79,7 @@
             </div>
 
             <!-- Unified ghost options for both virtual and non-virtual modes -->
-            @for (ghostOption of getGhostOptions(); track ghostOption.value) {
+            @for (ghostOption of getGhostOptions(); track $index) {
                 <multi-select-option
                     [value]="ghostOption.value"
                     [disabled]="disabled || ghostOption.disabled"
@@ -156,13 +156,9 @@
                                     [value]="getItemValue(item)"
                                     [disabled]="disabled || getItemDisabled(item)"
                                     [virtuallySelected]="isVirtualOptionSelected(getItemValue(item))"
-                                    [id]="
-                                        isOptionActiveByValue(getItemValue(item))
-                                            ? activeOptionId
-                                            : getOptionId(virtualIndex)
-                                    "
+                                    [id]="isVirtualOptionActive(item) ? activeOptionId : getOptionId(virtualIndex)"
                                     [attr.aria-selected]="isVirtualOptionSelected(getItemValue(item))"
-                                    [class.mat-mdc-option-active]="isOptionActiveByValue(getItemValue(item))"
+                                    [class.mat-mdc-option-active]="isVirtualOptionActive(item)"
                                     role="option">
                                     @if (getItemSvgIcon(item)) {
                                         <mat-icon class="shrink-0" [svgIcon]="getItemSvgIcon(item)"></mat-icon>
@@ -208,12 +204,18 @@
                                             {{ group.groupLabel }}
                                         </div>
                                     }
-                                    @for (option of group.options; track option.value; let optIdx = $index) {
+                                    <!-- Track by object identity: values may not be unique within a group.
+                                         option.value as track would collide and break @for reconciliation. -->
+                                    @for (option of group.options; track option; let optIdx = $index) {
                                         <multi-select-option
                                             [value]="option.value"
                                             [disabled]="disabled || option.disabled"
-                                            [id]="getOptionId(group.groupId + '-' + optIdx)"
-                                            [class.mat-mdc-option-active]="isOptionActiveByValue(option.value)"
+                                            [id]="
+                                                activeOptionRef() === option
+                                                    ? activeOptionId
+                                                    : getOptionId(group.groupId + '-' + optIdx)
+                                            "
+                                            [class.mat-mdc-option-active]="activeOptionRef() === option"
                                             role="option">
                                             @if (option.svgIcon) {
                                                 <mat-icon class="shrink-0" [svgIcon]="option.svgIcon"></mat-icon>
@@ -242,7 +244,7 @@
                                     <multi-select-option
                                         [value]="option.value"
                                         [disabled]="disabled || option.disabled"
-                                        [id]="getOptionId(i)"
+                                        [id]="activeTemplateIndex() === i ? activeOptionId : getOptionId(i)"
                                         [class.mat-mdc-option-active]="activeTemplateIndex() === i"
                                         role="option">
                                         @if (option.svgIcon) {

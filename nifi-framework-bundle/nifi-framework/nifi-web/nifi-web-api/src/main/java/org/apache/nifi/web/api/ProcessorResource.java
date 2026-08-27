@@ -113,7 +113,7 @@ public class ProcessorResource extends ApplicationResource {
     private static final Logger logger = LoggerFactory.getLogger(ProcessorResource.class);
 
     private static final String VERIFICATION_REQUEST_TYPE = "verification-request";
-    private RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
+    private final RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
             new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Processor Config Thread");
 
     private static final String BACKLOG_REQUEST_TYPE = "backlog-request";

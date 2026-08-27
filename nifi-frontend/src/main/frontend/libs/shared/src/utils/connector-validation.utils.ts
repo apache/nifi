@@ -23,6 +23,7 @@ import {
     PropertyType,
     buildSecretKey
 } from '../types';
+import { isDependencyValueSatisfied } from './dependency-value.utils';
 
 /**
  * Check if a property has a meaningful value set.
@@ -45,6 +46,11 @@ export function hasPropertyValue(
             return false;
         }
         if (valueRef.valueType !== 'SECRET_REFERENCE') {
+            return false;
+        }
+        // An unconfigured secret may carry a provider name but no secret selection,
+        // so it has neither a fullyQualifiedSecretName nor a secretName. Treat as unset.
+        if (!valueRef.fullyQualifiedSecretName && !valueRef.secretName) {
             return false;
         }
         const secretKey = buildSecretKey(
@@ -139,10 +145,7 @@ function evaluatePropertyVisibility(
 
         const dependentValue = findPropertyValue(dependency.propertyName, propertyGroups);
 
-        if (dependency.dependentValues && dependency.dependentValues.length > 0) {
-            return dependentValue !== null && dependency.dependentValues.includes(dependentValue);
-        }
-        return dependentValue !== null && dependentValue !== '';
+        return isDependencyValueSatisfied(dependentValue, dependency.dependentValues);
     });
 }
 

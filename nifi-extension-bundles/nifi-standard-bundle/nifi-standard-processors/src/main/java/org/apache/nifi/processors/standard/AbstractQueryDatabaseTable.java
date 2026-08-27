@@ -607,7 +607,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
     public class MaxValueResultSetRowCollector implements JdbcCommon.ResultSetRowCallback {
         final Map<String, String> newColMap;
         final Map<String, String> originalState;
-        String tableName;
+        final String tableName;
 
         public MaxValueResultSetRowCollector(String tableName, Map<String, String> stateMap) {
             this.originalState = stateMap;

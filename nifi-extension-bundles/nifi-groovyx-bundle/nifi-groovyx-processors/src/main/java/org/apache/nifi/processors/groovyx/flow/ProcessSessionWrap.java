@@ -64,13 +64,13 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     list of files to be sent to failure on error
     on get() we will store here clone
     */
-    private List<FlowFile> toFail = new ArrayList<>();
+    private final List<FlowFile> toFail = new ArrayList<>();
 
     /*
     list of files to be dropped on error
     on get(),create(),write(),... we will store here last version of file by id
     */
-    private Map<String, FlowFile> toDrop = new HashMap<>();
+    private final Map<String, FlowFile> toDrop = new HashMap<>();
 
     public ProcessSessionWrap(final ProcessSession session, final boolean toFailureOnError) {
         if (session instanceof ProcessSessionWrap) {

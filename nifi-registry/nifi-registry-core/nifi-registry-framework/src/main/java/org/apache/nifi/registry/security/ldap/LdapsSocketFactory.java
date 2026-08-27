@@ -32,7 +32,7 @@ public class LdapsSocketFactory extends SSLSocketFactory {
     private static LdapsSocketFactory instance;
 
     // delegate
-    private SSLSocketFactory delegate;
+    private final SSLSocketFactory delegate;
 
     /**
      * Initializes the LdapsSocketFactory with the specified SSLSocketFactory. The specified

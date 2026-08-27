@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.processors.smb;
 
-import com.hierynomus.msdtyp.AccessMask;
-import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.mssmb2.SMB2CreateDisposition;
-import com.hierynomus.mssmb2.SMB2CreateOptions;
-import com.hierynomus.mssmb2.SMB2ShareAccess;
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.share.DiskEntry;
-import com.hierynomus.smbj.share.DiskShare;
-import com.hierynomus.smbj.share.File;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -51,32 +39,43 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.smb.util.HostnameAndShareFlowFileFilter;
+import org.apache.nifi.processors.smb.util.ServiceLocationFlowFileFilter;
+import org.apache.nifi.services.smb.SmbClientProvider;
+import org.apache.nifi.services.smb.SmbClientProviderService;
+import org.apache.nifi.services.smb.SmbClientService;
+import org.apache.nifi.services.smb.SmbShareAccess;
+import org.apache.nifi.services.smb.SmbjClientProvider;
 import org.apache.nifi.util.StringUtils;
 
-import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.nifi.smb.common.SmbProperties.ENABLE_DFS;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.CONNECTION_CONFIGURATION_STRATEGY;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.ConnectionConfigurationStrategy;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.DOMAIN;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.ENABLE_DFS;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.HOSTNAME;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.PASSWORD;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.PORT;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.SHARE;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.SMB_CLIENT_PROVIDER_SERVICE;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.SMB_DIALECT;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.TIMEOUT;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.USERNAME;
+import static org.apache.nifi.processors.smb.util.LocalSmbProperties.USE_ENCRYPTION;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_ENABLE_DFS_PROPERTY_NAME;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_SMB_DIALECT_PROPERTY_NAME;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_TIMEOUT_PROPERTY_NAME;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_USE_ENCRYPTION_PROPERTY_NAME;
-import static org.apache.nifi.smb.common.SmbProperties.SMB_DIALECT;
-import static org.apache.nifi.smb.common.SmbProperties.TIMEOUT;
-import static org.apache.nifi.smb.common.SmbProperties.USE_ENCRYPTION;
-import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"samba, smb, cifs, files, put"})
-@CapabilityDescription("Writes the contents of a FlowFile to a samba network location. " +
+@CapabilityDescription("Writes the contents of a FlowFile to an SMB network location (e.g. Samba or Windows Server). " +
     "Use this processor instead of a cifs mounts if share access control is important." +
     "Configure the Hostname, Share and Directory accordingly: \\\\[Hostname]\\[Share]\\[path\\to\\Directory]")
 @SeeAlso({GetSmbFile.class, ListSmb.class, FetchSmb.class})
@@ -94,28 +93,6 @@ public class PutSmbFile extends AbstractProcessor {
     public static final String IGNORE_RESOLUTION = "ignore";
     public static final String FAIL_RESOLUTION = "fail";
 
-    public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
-            .name("Hostname")
-            .description("The network host to which files should be written.")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-    public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
-            .name("Port")
-            .description("The port to use for the SMB connection.")
-            .required(true)
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .defaultValue("445")
-            .build();
-    public static final PropertyDescriptor SHARE = new PropertyDescriptor.Builder()
-            .name("Share")
-            .description("The network share to which files should be written. This is the \"first folder\"" +
-            "after the hostname: \\\\hostname\\[share]\\dir1\\dir2")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
             .name("Directory")
             .description("The network folder to which files should be written. This is the remaining relative " +
@@ -123,25 +100,6 @@ public class PutSmbFile extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-    public static final PropertyDescriptor DOMAIN = new PropertyDescriptor.Builder()
-            .name("Domain")
-            .description("The domain used for authentication. Optional, in most cases username and password is sufficient.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
-            .name("Username")
-            .description("The username used for authentication. If no username is set then anonymous authentication is attempted.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
-            .name("Password")
-            .description("The password used for authentication. Required if Username is set.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(true)
             .build();
     public static final PropertyDescriptor CREATE_DIRS = new PropertyDescriptor.Builder()
             .name("Create Missing Directories")
@@ -189,6 +147,8 @@ public class PutSmbFile extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            CONNECTION_CONFIGURATION_STRATEGY,
+            SMB_CLIENT_PROVIDER_SERVICE,
             HOSTNAME,
             PORT,
             SHARE,
@@ -211,8 +171,8 @@ public class PutSmbFile extends AbstractProcessor {
             REL_FAILURE
     );
 
-    private SMBClient smbClient = null; // this gets synchronized when the `connect` method is called
-    private Set<SMB2ShareAccess> sharedAccess;
+    private SmbClientProvider clientProvider;
+    private Set<SmbShareAccess> sharedAccess;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -226,30 +186,33 @@ public class PutSmbFile extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        smbClient = initSmbClient(context);
+        clientProvider = switch (context.getProperty(CONNECTION_CONFIGURATION_STRATEGY).asAllowableValue(ConnectionConfigurationStrategy.class)) {
+            case CONTROLLER_SERVICE -> context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
+            case LOCAL_PROPERTIES -> new SmbjClientProvider(context, getLogger());
+        };
 
         switch (context.getProperty(SHARE_ACCESS).getValue()) {
             case SHARE_ACCESS_NONE:
-                sharedAccess = Collections.emptySet();
+                sharedAccess = SmbShareAccess.NONE;
                 break;
             case SHARE_ACCESS_READ:
-                sharedAccess = EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ);
+                sharedAccess = SmbShareAccess.READ;
                 break;
             case SHARE_ACCESS_READDELETE:
-                sharedAccess = EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ, SMB2ShareAccess.FILE_SHARE_DELETE);
+                sharedAccess = SmbShareAccess.READ_DELETE;
                 break;
             case SHARE_ACCESS_READWRITEDELETE:
-                sharedAccess = EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ, SMB2ShareAccess.FILE_SHARE_WRITE, SMB2ShareAccess.FILE_SHARE_DELETE);
+                sharedAccess = SmbShareAccess.READ_WRITE_DELETE;
                 break;
         }
     }
 
     @OnStopped
     public void onStopped() {
-        if (smbClient != null) {
-            smbClient.close();
-            smbClient = null;
+        if (clientProvider instanceof SmbjClientProvider smbjClientProvider) {
+            smbjClientProvider.close();
         }
+        clientProvider = null;
     }
 
     @Override
@@ -263,34 +226,14 @@ public class PutSmbFile extends AbstractProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         Collection<ValidationResult> set = new ArrayList<>();
-        if (validationContext.getProperty(USERNAME).isSet() && !validationContext.getProperty(PASSWORD).isSet()) {
-            set.add(new ValidationResult.Builder().explanation("Password must be set if username is supplied.").build());
+
+        if (validationContext.getProperty(CONNECTION_CONFIGURATION_STRATEGY).asAllowableValue(ConnectionConfigurationStrategy.class) == ConnectionConfigurationStrategy.LOCAL_PROPERTIES) {
+            if (validationContext.getProperty(USERNAME).isSet() && !validationContext.getProperty(PASSWORD).isSet()) {
+                set.add(new ValidationResult.Builder().explanation("Password must be set if username is supplied.").build());
+            }
         }
+
         return set;
-    }
-
-    SMBClient initSmbClient(final ProcessContext context) {
-        return buildSmbClient(context);
-    }
-
-    private void createMissingDirectoriesRecursively(ComponentLog logger, DiskShare share, String pathToCreate) {
-        int index = 0;
-
-        while (index < pathToCreate.length()) {
-            index = pathToCreate.indexOf(PATH_SEPARATOR, index);
-
-            if (index == -1) {
-                index = pathToCreate.length();
-            }
-
-            String path = pathToCreate.substring(0, index++);
-            if (!share.folderExists(path)) {
-                logger.debug("Creating folder {}", path);
-                share.mkdir(path);
-            } else {
-                logger.debug("Folder already exists {}. Moving on", path);
-            }
-        }
     }
 
     String normalizePath(String path) {
@@ -306,35 +249,19 @@ public class PutSmbFile extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
-        final HostnameAndShareFlowFileFilter flowFileFilter = new HostnameAndShareFlowFileFilter(context, batchSize);
+        final ServiceLocationFlowFileFilter flowFileFilter = new ServiceLocationFlowFileFilter(clientProvider, batchSize);
         final List<FlowFile> flowFiles = session.get(flowFileFilter);
         if (flowFiles.isEmpty()) {
             return;
         }
+
         final ComponentLog logger = getLogger();
         logger.debug("Processing next {} FlowFiles", flowFiles.size());
 
-        final String hostname = flowFileFilter.getHostName();
-        final String shareName = flowFileFilter.getShare();
-        final int port = context.getProperty(PORT).asInteger();
-        final String domain = context.getProperty(DOMAIN).getValue();
-        final String username = context.getProperty(USERNAME).getValue();
-        String password = context.getProperty(PASSWORD).getValue();
+        final URI serviceLocation = flowFileFilter.getSelectedServiceLocation();
+        final Map<String, String> attributes = flowFileFilter.getSelectedAttributes();
 
-        AuthenticationContext ac = null;
-        if (username != null && password != null) {
-            ac = new AuthenticationContext(
-                username,
-                password.toCharArray(),
-                domain);
-        } else {
-            ac = AuthenticationContext.anonymous();
-        }
-
-        try (Connection connection = smbClient.connect(hostname, port);
-            Session smbSession = connection.authenticate(ac);
-            DiskShare share = (DiskShare) smbSession.connectShare(shareName)) {
-
+        try (SmbClientService client = clientProvider.getClient(getLogger(), attributes)) {
             for (FlowFile flowFile : flowFiles) {
                 try {
                     final long processingStartTime = System.nanoTime();
@@ -355,7 +282,7 @@ public class PutSmbFile extends AbstractProcessor {
 
                     // handle missing directory
                     final Boolean createMissingDirectories = context.getProperty(CREATE_DIRS).asBoolean();
-                    if (StringUtils.isNotBlank(destinationDirectory) && !share.folderExists(destinationDirectory)) {
+                    if (StringUtils.isNotBlank(destinationDirectory) && !client.folderExists(destinationDirectory)) {
                         if (!createMissingDirectories) {
                             logger.warn("Penalizing {} and routing to failure as configured because the destination directory ({}) doesn't exist", flowFile, destinationDirectory);
                             flowFile = session.penalize(flowFile);
@@ -363,7 +290,7 @@ public class PutSmbFile extends AbstractProcessor {
                             continue;
                         } else {
                             try {
-                                createMissingDirectoriesRecursively(logger, share, destinationDirectory);
+                                client.ensureDirectory(destinationDirectory);
                             } catch (Exception e) {
                                 logger.error("Penalizing {} and routing to failure because failed to create missing destination directories ({})", flowFile, destinationDirectory, e);
                                 flowFile = session.penalize(flowFile);
@@ -375,7 +302,7 @@ public class PutSmbFile extends AbstractProcessor {
 
                     // handle conflict resolution
                     final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
-                    if (share.fileExists(destinationFullPath)) {
+                    if (client.fileExists(destinationFullPath)) {
                         if (conflictResolution.equals(IGNORE_RESOLUTION)) {
                             logger.info("Transferring {} to success as configured because file with same name already exists", flowFile);
                             session.transfer(flowFile, REL_SUCCESS);
@@ -399,16 +326,8 @@ public class PutSmbFile extends AbstractProcessor {
                     }
 
                     // handle the transfer
-                    try (
-                            File shareDestinationFile = share.openFile(
-                                    transferDestinationFullPath,
-                                    EnumSet.of(AccessMask.GENERIC_WRITE),
-                                    EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                                    sharedAccess,
-                                    SMB2CreateDisposition.FILE_OVERWRITE_IF,
-                                    EnumSet.of(SMB2CreateOptions.FILE_WRITE_THROUGH));
-                            OutputStream shareDestinationFileOutputStream = shareDestinationFile.getOutputStream()) {
-                        session.exportTo(flowFile, shareDestinationFileOutputStream);
+                    try {
+                        session.read(flowFile, inputStream -> client.writeFile(transferDestinationFullPath, inputStream, sharedAccess));
                     } catch (Exception e) {
                         logger.error("Cannot transfer the file. Penalizing {} and routing to 'failure'", flowFile, e);
                         flowFile = session.penalize(flowFile);
@@ -418,16 +337,8 @@ public class PutSmbFile extends AbstractProcessor {
 
                     // handle the rename
                     if (renameSuffix) {
-                        try (DiskEntry fileDiskEntry = share.open(
-                                transferDestinationFullPath,
-                                EnumSet.of(AccessMask.DELETE, AccessMask.GENERIC_WRITE),
-                                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                                sharedAccess,
-                                SMB2CreateDisposition.FILE_OPEN,
-                                EnumSet.of(SMB2CreateOptions.FILE_WRITE_THROUGH))) {
-
-                            // rename the file on the share and replace it in case it exists
-                            fileDiskEntry.rename(destinationFullPath, true);
+                        try {
+                            client.renameFile(transferDestinationFullPath, destinationFullPath, true);
                         } catch (Exception e) {
                             logger.error("Cannot rename the file. Penalizing {} and routing to 'failure'", flowFile, e);
                             flowFile = session.penalize(flowFile);
@@ -437,10 +348,10 @@ public class PutSmbFile extends AbstractProcessor {
                     }
 
                     // handle the success
-                    final URI provenanceUri = new URI("smb", hostname, "/" + destinationFullPath.replace('\\', '/'), null);
+                    final String transitUri = String.format("%s/%s", serviceLocation, destinationFullPath.replace('\\', '/'));
                     final long processingTimeInNano = System.nanoTime() - processingStartTime;
                     final long processingTimeInMilli = TimeUnit.MILLISECONDS.convert(processingTimeInNano, TimeUnit.NANOSECONDS);
-                    session.getProvenanceReporter().send(flowFile, provenanceUri.toString(), processingTimeInMilli);
+                    session.getProvenanceReporter().send(flowFile, transitUri, processingTimeInMilli);
                     session.transfer(flowFile, REL_SUCCESS);
                 } catch (Exception e) {
                     logger.error("Error processing flowfile {}", flowFile, e);
@@ -451,7 +362,6 @@ public class PutSmbFile extends AbstractProcessor {
         } catch (Exception e) {
             logger.error("Could not establish smb connection", e);
             session.transfer(flowFiles, REL_FAILURE);
-            smbClient.getServerList().unregister(hostname);
         }
     }
 }

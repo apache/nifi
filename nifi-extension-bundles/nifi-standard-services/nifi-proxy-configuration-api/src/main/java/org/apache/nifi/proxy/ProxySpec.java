@@ -25,8 +25,8 @@ public enum ProxySpec {
     SOCKS(Proxy.Type.SOCKS, "SOCKS"),
     SOCKS_AUTH(Proxy.Type.SOCKS, "SOCKS + AuthN");
 
-    private Proxy.Type proxyType;
-    private String displayName;
+    private final Proxy.Type proxyType;
+    private final String displayName;
 
     ProxySpec(Proxy.Type type, String displayName) {
         this.proxyType = type;

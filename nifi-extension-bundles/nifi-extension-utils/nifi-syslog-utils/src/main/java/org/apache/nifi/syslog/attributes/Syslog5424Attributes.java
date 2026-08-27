@@ -37,7 +37,7 @@ public enum Syslog5424Attributes implements FlowFileAttributeKey {
     STRUCTURED_ELEMENT_ID_FMT("structuredData.%s"),
     STRUCTURED_ELEMENT_ID_PNAME_FMT("structuredData.%s.%s"),
     STRUCTURED_ELEMENT_ID_PNAME_PATTERN("structuredData\\.(.*)\\.(.*)$");
-    private String key;
+    private final String key;
 
     Syslog5424Attributes(String key) {
         this.key = key;

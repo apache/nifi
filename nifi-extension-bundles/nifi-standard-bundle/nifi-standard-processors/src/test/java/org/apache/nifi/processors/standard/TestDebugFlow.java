@@ -42,7 +42,7 @@ public class TestDebugFlow {
 
     private final Map<Integer, String> contents = new HashMap<>();
     private final Map<Integer, Map<String, String>> attribs = new HashMap<>();
-    private Map<String, String> namesToContent = new HashMap<>();
+    private final Map<String, String> namesToContent = new HashMap<>();
 
     @BeforeEach
     public void setup() throws IOException {

@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.services.smb;
 
-import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -25,11 +26,19 @@ import java.util.stream.Stream;
  */
 public interface SmbClientService extends AutoCloseable {
 
-    Stream<SmbListableEntity> listFiles(String directoryPath);
+    boolean folderExists(String path);
+
+    boolean fileExists(String path);
+
+    Stream<SmbListableEntity> listFiles(String directoryPath, boolean recursive);
 
     void ensureDirectory(String directoryPath);
 
-    void readFile(String filePath, OutputStream outputStream) throws IOException;
+    void readFile(String filePath, OutputStream outputStream, Set<SmbShareAccess> shareAccesses);
+
+    void writeFile(String filePath, InputStream inputStream, Set<SmbShareAccess> shareAccesses);
+
+    void renameFile(String oldFilePath, String newFilePath, boolean override);
 
     void moveFile(String filePath, String directoryPath);
 

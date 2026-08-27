@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.authorization.resource.AccessPolicyAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
@@ -86,6 +87,8 @@ import java.util.stream.Collectors;
 
 @Component
 public class StandardAuthorizableLookup implements AuthorizableLookup {
+
+    private static final String SECRET_PROVIDER_NOT_FOUND_MESSAGE = "The Parameter Provider for the referenced Secret could not be found";
 
     private static final TenantAuthorizable TENANT_AUTHORIZABLE = new TenantAuthorizable();
 
@@ -708,6 +711,65 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     public Authorizable getConnector(final String connectorId) {
         return connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
     }
+
+    @Override
+    public Authorizable getConnectorAsset(final String connectorId, final String assetId) {
+        final Asset asset = connectorDAO.getAsset(assetId).orElseThrow(() -> new ResourceNotFoundException("Asset [%s] not found".formatted(assetId)));
+        if (connectorId.equals(asset.getOwnerIdentifier())) {
+            return getConnector(connectorId);
+        } else {
+            throw new ResourceNotFoundException("Asset [%s] not found".formatted(assetId));
+        }
+    }
+
+    @Override
+    public Authorizable getConnectorSecretProvider(final String secretProviderId, final String secretProviderName, final String fullyQualifiedSecretName) {
+        if (secretProviderId != null && !secretProviderId.isEmpty()) {
+            try {
+                return parameterProviderDAO.getParameterProvider(secretProviderId);
+            } catch (final ResourceNotFoundException e) {
+                throw new ResourceNotFoundException(SECRET_PROVIDER_NOT_FOUND_MESSAGE);
+            }
+        }
+
+        final String resolvedSecretProviderName = getResolvedSecretProviderName(secretProviderName, fullyQualifiedSecretName);
+        final List<ParameterProviderNode> matchingProviders = parameterProviderDAO.getParameterProviders().stream()
+                .filter(node -> resolvedSecretProviderName.equals(node.getName()))
+                .toList();
+
+        if (matchingProviders.isEmpty()) {
+            throw new ResourceNotFoundException(SECRET_PROVIDER_NOT_FOUND_MESSAGE);
+        }
+        if (matchingProviders.size() > 1) {
+            throw new IllegalArgumentException("Multiple Parameter Providers found [%s] Parameter Provider ID required".formatted(resolvedSecretProviderName));
+        }
+
+        return matchingProviders.getFirst();
+    }
+
+    private String getResolvedSecretProviderName(final String secretProviderName, final String fullyQualifiedSecretName) {
+        final String resolvedSecretProviderName;
+        if (secretProviderName == null || secretProviderName.isEmpty()) {
+            if (fullyQualifiedSecretName == null) {
+                resolvedSecretProviderName = null;
+            } else {
+                final int providerNameEndIndex = fullyQualifiedSecretName.indexOf('.');
+                if (providerNameEndIndex > 0) {
+                    resolvedSecretProviderName = fullyQualifiedSecretName.substring(0, providerNameEndIndex);
+                } else {
+                    resolvedSecretProviderName = null;
+                }
+            }
+        } else {
+            resolvedSecretProviderName = secretProviderName;
+        }
+
+        if (resolvedSecretProviderName == null) {
+            throw new ResourceNotFoundException(SECRET_PROVIDER_NOT_FOUND_MESSAGE);
+        }
+        return resolvedSecretProviderName;
+    }
+
 
     private Authorizable handleResourceTypeContainingOtherResourceType(final String resource, final ResourceType resourceType) {
         // get the resource type

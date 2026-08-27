@@ -265,7 +265,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .description("A FlowFile containing records routed to this relationship if the record could not be transmitted to the database.")
             .build();
 
-    protected static Set<Relationship> relationships = Set.of(
+    protected static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
     );
@@ -299,7 +299,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override

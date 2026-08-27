@@ -38,7 +38,7 @@ public class ControllerServiceTestContext {
 
     private final ConfigurationContext configurationContext = mock(ConfigurationContext.class);
     private final ValidationContext validationContext = mock(ValidationContext.class);
-    private MockControllerServiceInitializationContext initializationContext;
+    private final MockControllerServiceInitializationContext initializationContext;
 
     public ControllerServiceTestContext(ControllerService controllerService, String id) {
         initializationContext = new MockControllerServiceInitializationContext(controllerService, id);

@@ -13,3 +13,130 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+ignore:
+  - vulnerability: GHSA-r7wm-3cxj-wff9
+    reason: Jackson 2 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-core
+      version: 2.21.2
+      type: java-archive
+  - vulnerability: GHSA-j3rv-43j4-c7qm
+    reason: Jackson 2 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 2.21.2
+      type: java-archive
+  - vulnerability: GHSA-rmj7-2vxq-3g9f
+    reason: Jackson 2 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 2.21.2
+      type: java-archive
+  - vulnerability: GHSA-hgj6-7826-r7m5
+    reason: Jackson 2 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 2.21.2
+      type: java-archive
+  - vulnerability: GHSA-5gvw-p9qm-jgwh
+    reason: Jackson 2 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 2.21.2
+      type: java-archive
+  - vulnerability: GHSA-5hh8-q8hv-fr38
+    reason: Jackson 2 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 2.21.2
+      type: java-archive
+  - vulnerability: GHSA-rcqc-6cw3-h962
+    reason: Jackson 2 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 2.21.2
+      type: java-archive
+  - vulnerability: GHSA-mhm7-754m-9p8w
+    reason: Jackson 2 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 2.21.2
+      type: java-archive
+  - vulnerability: GHSA-5jmj-h7xm-6q6v
+    reason: Jackson 2 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 2.21.2
+      type: java-archive
+  - vulnerability: GHSA-9fxm-vc8v-hj55
+    reason: Jackson 2 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 2.21.2
+      type: java-archive
+  - vulnerability: GHSA-3pjw-73gf-8qr5
+    reason: Jackson 2 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 2.21.2
+      type: java-archive
+  - vulnerability: GHSA-r7wm-3cxj-wff9
+    reason: Jackson 3 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-core
+      version: 3.1.2
+      type: java-archive
+  - vulnerability: GHSA-j3rv-43j4-c7qm
+    reason: Jackson 3 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 3.1.2
+      type: java-archive
+  - vulnerability: GHSA-rmj7-2vxq-3g9f
+    reason: Jackson 3 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 3.1.2
+      type: java-archive
+  - vulnerability: GHSA-hgj6-7826-r7m5
+    reason: Jackson 3 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 3.1.2
+      type: java-archive
+  - vulnerability: GHSA-5gvw-p9qm-jgwh
+    reason: Jackson 3 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 3.1.2
+      type: java-archive
+  - vulnerability: GHSA-5hh8-q8hv-fr38
+    reason: Jackson 3 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 3.1.2
+      type: java-archive
+  - vulnerability: GHSA-rcqc-6cw3-h962
+    reason: Jackson 3 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 3.1.2
+      type: java-archive
+  - vulnerability: GHSA-5jmj-h7xm-6q6v
+    reason: Jackson 3 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 3.1.2
+      type: java-archive
+  - vulnerability: GHSA-9fxm-vc8v-hj55
+    reason: Jackson 3 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 3.1.2
+      type: java-archive
+  - vulnerability: GHSA-3pjw-73gf-8qr5
+    reason: Jackson 3 shaded by hazelcast 5.7.0
+    package:
+      name: jackson-databind
+      version: 3.1.2
+      type: java-archive

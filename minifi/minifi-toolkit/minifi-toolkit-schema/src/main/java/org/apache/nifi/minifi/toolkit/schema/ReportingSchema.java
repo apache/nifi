@@ -33,11 +33,11 @@ import static org.apache.nifi.minifi.toolkit.schema.common.CommonPropertyKeys.SC
 import static org.apache.nifi.minifi.toolkit.schema.common.CommonPropertyKeys.SCHEDULING_STRATEGY_KEY;
 
 public class ReportingSchema extends BaseSchemaWithIdAndName {
-    private String schedulingStrategy;
-    private String schedulingPeriod;
-    private String comment;
+    private final String schedulingStrategy;
+    private final String schedulingPeriod;
+    private final String comment;
 
-    private String reportingClass;
+    private final String reportingClass;
     private Map<String, Object> properties = DEFAULT_PROPERTIES;
 
     public ReportingSchema(Map map) {

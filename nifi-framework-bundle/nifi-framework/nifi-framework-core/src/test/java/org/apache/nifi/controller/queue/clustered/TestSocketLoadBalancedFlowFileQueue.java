@@ -91,8 +91,8 @@ public class TestSocketLoadBalancedFlowFileQueue {
     private List<NodeIdentifier> nodeIds;
     private int nodePort = 4096;
 
-    private List<RepositoryRecord> repoRecords = new ArrayList<>();
-    private List<ProvenanceEventRecord> provRecords = new ArrayList<>();
+    private final List<RepositoryRecord> repoRecords = new ArrayList<>();
+    private final List<ProvenanceEventRecord> provRecords = new ArrayList<>();
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -147,6 +147,9 @@ public class TestSocketLoadBalancedFlowFileQueue {
         final AsyncLoadBalanceClientRegistry registry = mock(AsyncLoadBalanceClientRegistry.class);
         queue = new SocketLoadBalancedFlowFileQueue("unit-test", scheduler, flowFileRepo, provRepo,
             contentRepo, clusterCoordinator, registry, swapManager, 10000, eventReporter);
+
+        // Load balancing is started for every connection when the flow is initialized, so tests operate on a started queue
+        queue.startLoadBalancing();
     }
 
     private NodeIdentifier createNodeIdentifier() {
@@ -771,8 +774,8 @@ public class TestSocketLoadBalancedFlowFileQueue {
         final int localPartitionIndex = determineLocalPartitionIndex();
         queue.setFlowFilePartitioner(new StaticFlowFilePartitioner(localPartitionIndex));
 
-        // Toggle load balancing so the rebalancing partition is stopped and will not drain FlowFiles moved into it.
-        queue.startLoadBalancing();
+        // Stopping load balancing stops the rebalancing partition, after which no FlowFile moved into it can be
+        // redistributed, so the FlowFiles are guaranteed to remain there for the duration of this test.
         queue.stopLoadBalancing();
 
         final long bytesPerFlowFile = 5L;

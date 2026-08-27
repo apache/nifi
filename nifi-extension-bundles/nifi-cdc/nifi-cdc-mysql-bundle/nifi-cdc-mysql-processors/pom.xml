@@ -30,10 +30,6 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-distributed-cache-client-service-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-security-utils-api</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>mysql-binlog-connector-java</artifactId>
             <version>0.41.0</version>
@@ -60,6 +56,17 @@ language governing permissions and limitations under the License. -->
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-client-service</artifactId>
             <version>2.12.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-mysql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>26.7.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

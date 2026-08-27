@@ -26,3 +26,4 @@ org.apache.nifi.cs.tests.system.ModifyClasspathService
 org.apache.nifi.cs.tests.system.MockCSVReader
 org.apache.nifi.cs.tests.system.MockCSVWriter
 org.apache.nifi.cs.tests.system.VerifyLocalClusterStateService
+org.apache.nifi.cs.tests.system.VerifyMethodSignatureService

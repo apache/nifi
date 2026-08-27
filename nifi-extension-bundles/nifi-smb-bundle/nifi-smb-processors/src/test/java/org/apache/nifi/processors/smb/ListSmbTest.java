@@ -63,6 +63,7 @@ import static org.apache.nifi.processors.smb.ListSmb.SMB_LISTING_STRATEGY;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -248,7 +249,7 @@ class ListSmbTest {
         testRunner.setProperty(LISTING_STRATEGY, "timestamps");
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
         try (final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSmbClientService(testRunner)) {
-            when(mockNifiSmbClientService.listFiles(anyString())).thenThrow(new RuntimeException("test exception"));
+            when(mockNifiSmbClientService.listFiles(anyString(), anyBoolean())).thenThrow(new RuntimeException("test exception"));
             testRunner.run();
             assertEquals(1, testRunner.getLogger().getErrorMessages().size());
             testRunner.assertValid();
@@ -364,7 +365,7 @@ class ListSmbTest {
     }
 
     private void mockSmbFolders(SmbClientService mockNifiSmbClientService, SmbListableEntity... entities) {
-        doAnswer(ignore -> stream(entities)).when(mockNifiSmbClientService).listFiles(anyString());
+        doAnswer(ignore -> stream(entities)).when(mockNifiSmbClientService).listFiles(anyString(), anyBoolean());
     }
 
     private SmbListableEntity listableEntity(String name, long timeStamp) {

@@ -30,7 +30,7 @@ import java.util.Objects;
 
 public class ExtensionMetadataResult extends AbstractWritableResult<List<ExtensionMetadata>> {
 
-    private List<ExtensionMetadata> extensionMetadata;
+    private final List<ExtensionMetadata> extensionMetadata;
 
     public ExtensionMetadataResult(final ResultType resultType, final List<ExtensionMetadata> extensionMetadata) {
         super(resultType);

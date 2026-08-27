@@ -131,7 +131,7 @@ public class TestReaderLookup {
      */
     private static class MockRecordReaderFactory extends AbstractControllerService implements RecordReaderFactory {
 
-        private String name;
+        private final String name;
 
         public MockRecordReaderFactory(String name) {
             this.name = name;
@@ -145,7 +145,7 @@ public class TestReaderLookup {
     }
 
     private static class MockRecordReader implements RecordReader {
-        public String name;
+        public final String name;
 
         public MockRecordReader(String name) {
             this.name = name;

@@ -102,6 +102,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String FLOWFILE_REPOSITORY_ALWAYS_SYNC = "nifi.flowfile.repository.always.sync";
     public static final String FLOWFILE_REPOSITORY_DIRECTORY = "nifi.flowfile.repository.directory";
     public static final String FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL = "nifi.flowfile.repository.checkpoint.interval";
+    public static final String FLOWFILE_REPOSITORY_CHECKPOINT_MAX_JOURNAL_SIZE = "nifi.flowfile.repository.checkpoint.max.journal.size";
     public static final String FLOWFILE_SWAP_MANAGER_IMPLEMENTATION = "nifi.swap.manager.implementation";
     public static final String QUEUE_SWAP_THRESHOLD = "nifi.queue.swap.threshold";
 
@@ -627,6 +628,21 @@ public class NiFiProperties extends ApplicationProperties {
      */
     public String getFlowFileRepositoryCheckpointInterval() {
         return getProperty(FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL, DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL);
+    }
+
+    /**
+     * Returns the amount of storage that the FlowFile Repository's journal is allowed to consume before the repository is checkpointed,
+     * expressed as a data size such as <code>100 MB</code>.
+     *
+     * @return the configured maximum journal size, or <code>null</code> if the repository is to be checkpointed only on the configured interval
+     */
+    public String getFlowFileRepositoryMaxJournalSize() {
+        final String maxJournalSize = getProperty(FLOWFILE_REPOSITORY_CHECKPOINT_MAX_JOURNAL_SIZE);
+        if (maxJournalSize == null || maxJournalSize.isBlank()) {
+            return null;
+        }
+
+        return maxJournalSize.trim();
     }
 
     /**

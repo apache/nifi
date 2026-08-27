@@ -20,9 +20,9 @@ package org.apache.nifi.toolkit.cli.impl.result.nifi;
  * Object to help with the result of a change version operation
  */
 public class ChangeVersionResult {
-    String previousVersion;
-    String newVersion;
-    String message;
+    final String previousVersion;
+    final String newVersion;
+    final String message;
 
     public ChangeVersionResult(final String previousVersion, final String newVersion, final String message) {
         this.previousVersion = previousVersion;

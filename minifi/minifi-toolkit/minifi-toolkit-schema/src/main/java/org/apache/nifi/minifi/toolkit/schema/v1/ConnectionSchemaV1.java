@@ -45,17 +45,17 @@ public class ConnectionSchemaV1 extends BaseSchema implements ConvertableSchema<
     public static final String DESTINATION_NAME_KEY = "destination name";
     public static final String SOURCE_NAME_KEY = "source name";
 
-    private String name;
+    private final String name;
 
-    private String sourceRelationshipName;
-    private String destinationName;
+    private final String sourceRelationshipName;
+    private final String destinationName;
 
-    private String sourceName;
+    private final String sourceName;
 
     private Number maxWorkQueueSize = DEFAULT_MAX_WORK_QUEUE_SIZE;
     private String maxWorkQueueDataSize = DEFAULT_MAX_QUEUE_DATA_SIZE;
     private String flowfileExpiration = DEFAULT_FLOWFILE_EXPIRATION;
-    private String queuePrioritizerClass;
+    private final String queuePrioritizerClass;
 
     public ConnectionSchemaV1(Map map) {
         name = getRequiredKeyAsType(map, NAME_KEY, String.class, CONNECTIONS_KEY);

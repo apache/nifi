@@ -29,8 +29,8 @@ public enum FlowFileEventWriteStrategy implements DescribedValue {
             "This strategy causes each event from a transaction (from BEGIN to COMMIT) to be written to a FlowFile"
     );
 
-    private String displayName;
-    private String description;
+    private final String displayName;
+    private final String description;
 
     FlowFileEventWriteStrategy(String displayName, String description) {
         this.displayName = displayName;

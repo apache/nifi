@@ -56,8 +56,8 @@ public class ComponentIdGenerator {
     public static final Object lock = new Object();
 
     private static long lastTime;
-    private static long clockSequence = 0;
-    private static final SecureRandom randomGenerator = new SecureRandom();
+    private static final long CLOCK_SEQUENCE = 0;
+    private static final SecureRandom RANDOM_GENERATOR = new SecureRandom();
 
     /**
      * Will generate unique time based UUID where the next UUID is always
@@ -71,7 +71,7 @@ public class ComponentIdGenerator {
      *
      */
     public static final UUID generateId(long currentTime) {
-        return generateId(currentTime, randomGenerator.nextLong(), true);
+        return generateId(currentTime, RANDOM_GENERATOR.nextLong(), true);
     }
 
     /**
@@ -98,7 +98,7 @@ public class ComponentIdGenerator {
         // hi Time
         time |= 0x1000 | ((msb >> 48) & 0x0FFF);
 
-        long clockSequenceHi = clockSequence;
+        long clockSequenceHi = CLOCK_SEQUENCE;
         clockSequenceHi <<= 48;
         lsb = clockSequenceHi | lsb;
         final UUID uuid = new UUID(time, lsb);

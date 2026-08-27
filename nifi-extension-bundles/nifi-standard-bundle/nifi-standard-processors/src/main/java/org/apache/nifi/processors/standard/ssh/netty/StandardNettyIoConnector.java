@@ -88,11 +88,12 @@ public class StandardNettyIoConnector extends NettyIoConnector {
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMillis);
 
         // Start connection
+        final SocketAddress remoteAddress = getRemoteAddress(address, bootstrap);
         final ChannelFuture channelFuture;
         if (localAddress == null) {
-            channelFuture = bootstrap.connect(address);
+            channelFuture = bootstrap.connect(remoteAddress);
         } else {
-            channelFuture = bootstrap.connect(address, localAddress);
+            channelFuture = bootstrap.connect(remoteAddress, localAddress);
         }
 
         // Cancel Channel Future on Connect Future cancellation
@@ -118,6 +119,26 @@ public class StandardNettyIoConnector extends NettyIoConnector {
         });
 
         return connectFuture;
+    }
+
+    private SocketAddress getRemoteAddress(final SocketAddress address, final Bootstrap bootstrap) {
+        final SocketAddress remoteAddress;
+
+        final Proxy.Type proxyType = proxyConfiguration.getProxyType();
+        if (Proxy.Type.SOCKS == proxyType || Proxy.Type.HTTP == proxyType) {
+            bootstrap.disableResolver();
+
+            if (address instanceof InetSocketAddress inetSocketAddress) {
+                // Create unresolved Socket Address to support resolution at the proxy server
+                remoteAddress = InetSocketAddress.createUnresolved(inetSocketAddress.getHostString(), inetSocketAddress.getPort());
+            } else {
+                remoteAddress = address;
+            }
+        } else {
+            remoteAddress = address;
+        }
+
+        return remoteAddress;
     }
 
     private class StandardChannelInitializer extends ChannelInitializer<SocketChannel> {

@@ -763,6 +763,21 @@ describe('EditProcessor', () => {
             'The number of tasks that should be concurrently scheduled for this processor. Must be an integer greater than 0.'
         );
     });
+
+    it('should forward postUpdateNavigationState from submitForm to the edit action', () => {
+        vi.spyOn(component.editProcessor, 'next');
+        component.submitForm(['/parameter-contexts', 'ctx-1', 'edit'], ['/parameter-contexts'], {
+            highlightedParameterName: 'my-param'
+        });
+
+        expect(component.editProcessor.next).toHaveBeenCalledWith(
+            expect.objectContaining({
+                postUpdateNavigation: ['/parameter-contexts', 'ctx-1', 'edit'],
+                postUpdateNavigationBoundary: ['/parameter-contexts'],
+                postUpdateNavigationState: { highlightedParameterName: 'my-param' }
+            })
+        );
+    });
 });
 
 describe('EditProcessor with TriggerSerially', () => {

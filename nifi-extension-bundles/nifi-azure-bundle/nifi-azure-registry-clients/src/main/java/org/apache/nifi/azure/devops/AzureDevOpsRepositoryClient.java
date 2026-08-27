@@ -139,7 +139,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
     private final String repoPath;
     private final String clientId;
     private final OAuth2AccessTokenProvider tokenProvider;
-    private WebClientServiceProvider webClient;
+    private final WebClientServiceProvider webClient;
     private final ComponentLog logger;
 
     private final boolean canRead;

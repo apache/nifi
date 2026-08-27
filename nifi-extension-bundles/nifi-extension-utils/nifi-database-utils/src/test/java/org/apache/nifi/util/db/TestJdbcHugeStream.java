@@ -90,12 +90,12 @@ class TestJdbcHugeStream extends AbstractConnectionTest {
     // ================================================ helpers
     // ===============================================
 
-    static String dropPersons = "drop table persons";
-    static String dropProducts = "drop table products";
-    static String dropRelationships = "drop table relationships";
-    static String createPersons = "create table persons (id integer, name varchar(100), code integer)";
-    static String createProducts = "create table products (id integer, name varchar(100), code integer)";
-    static String createRelationships = "create table relationships (id integer,name varchar(100), code integer)";
+    static final String DROP_PERSONS = "drop table persons";
+    static final String DROP_PRODUCTS = "drop table products";
+    static final String DROP_RELATIONSHIPS = "drop table relationships";
+    static final String CREATE_PERSONS = "create table persons (id integer, name varchar(100), code integer)";
+    static final String CREATE_PRODUCTS = "create table products (id integer, name varchar(100), code integer)";
+    static final String CREATE_RELATIONSHIPS = "create table relationships (id integer,name varchar(100), code integer)";
 
     public static void loadTestData2Database(Connection con, int nrOfPersons, int nrOfProducts, int nrOfRels) throws SQLException {
 
@@ -103,23 +103,23 @@ class TestJdbcHugeStream extends AbstractConnectionTest {
 
         // tables may not exist, this is not serious problem.
         try {
-            st.executeUpdate(dropPersons);
+            st.executeUpdate(DROP_PERSONS);
         } catch (final Exception ignored) {
         }
 
         try {
-            st.executeUpdate(dropProducts);
+            st.executeUpdate(DROP_PRODUCTS);
         } catch (final Exception ignored) {
         }
 
         try {
-            st.executeUpdate(dropRelationships);
+            st.executeUpdate(DROP_RELATIONSHIPS);
         } catch (final Exception ignored) {
         }
 
-        st.executeUpdate(createPersons);
-        st.executeUpdate(createProducts);
-        st.executeUpdate(createRelationships);
+        st.executeUpdate(CREATE_PERSONS);
+        st.executeUpdate(CREATE_PRODUCTS);
+        st.executeUpdate(CREATE_RELATIONSHIPS);
 
         for (int i = 0; i < nrOfPersons; i++) {
             loadPersons(st, i);
@@ -136,18 +136,18 @@ class TestJdbcHugeStream extends AbstractConnectionTest {
         st.close();
     }
 
-    static Random rng = new Random(53495);
+    static final Random RNG = new Random(53495);
 
     private static void loadPersons(Statement st, int nr) throws SQLException {
-        st.executeUpdate("insert into persons values (" + nr + ", '" + createRandomName() + "', " + rng.nextInt(469946) + ")");
+        st.executeUpdate("insert into persons values (" + nr + ", '" + createRandomName() + "', " + RNG.nextInt(469946) + ")");
     }
 
     private static void loadProducts(Statement st, int nr) throws SQLException {
-        st.executeUpdate("insert into products values (" + nr + ", '" + createRandomName() + "', " + rng.nextInt(469946) + ")");
+        st.executeUpdate("insert into products values (" + nr + ", '" + createRandomName() + "', " + RNG.nextInt(469946) + ")");
     }
 
     private static void loadRelationships(Statement st, int nr) throws SQLException {
-        st.executeUpdate("insert into relationships values (" + nr + ", '" + createRandomName() + "', " + rng.nextInt(469946) + ")");
+        st.executeUpdate("insert into relationships values (" + nr + ", '" + createRandomName() + "', " + RNG.nextInt(469946) + ")");
     }
 
     private static String createRandomName() {
@@ -156,12 +156,12 @@ class TestJdbcHugeStream extends AbstractConnectionTest {
 
     private static String createRandomString() {
 
-        final int length = rng.nextInt(10);
+        final int length = RNG.nextInt(10);
         final String characters = "ABCDEFGHIJ";
 
         final char[] text = new char[length];
         for (int i = 0; i < length; i++) {
-            text[i] = characters.charAt(rng.nextInt(characters.length()));
+            text[i] = characters.charAt(RNG.nextInt(characters.length()));
         }
         return new String(text);
     }

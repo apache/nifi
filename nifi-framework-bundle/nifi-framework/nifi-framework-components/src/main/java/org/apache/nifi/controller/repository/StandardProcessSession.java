@@ -669,6 +669,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 entry.getKey().putAll(entry.getValue());
             }
 
+            // Record ConnectionStatusEvents after FlowFiles are enqueued so that queue metadata is updated
+            recordConnectionStatusEvents(checkpoint);
+
             final long enqueueFlowFileFinishNanos = System.nanoTime();
             final long enqueueFlowFileNanos = enqueueFlowFileFinishNanos - updateEventRepositoryFinishNanos;
 
@@ -815,8 +818,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 context.getFlowFileEventRepository().updateRepository(connectionSessionEvent);
                 context.recordProcessSessionEvent(connectionSessionEvent);
             }
-
-            recordConnectionStatusEvents(checkpoint);
         } catch (final IOException ioe) {
             LOG.error("FlowFile Event Repository failed to update", ioe);
         }

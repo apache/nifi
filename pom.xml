@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>37</version>
+        <version>39</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
@@ -119,11 +119,11 @@
 
         <!-- NiFi build -->
         <nifi-api.version>2.10.0</nifi-api.version>
-        <nifi.nar.maven.plugin.version>2.3.0</nifi.nar.maven.plugin.version>
+        <nifi.nar.maven.plugin.version>2.4.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.52.1</software.amazon.awssdk.version>
-        <software.amazon.encryption.s3.version>4.0.1</software.amazon.encryption.s3.version>
+        <software.amazon.awssdk.version>2.54.2</software.amazon.awssdk.version>
+        <software.amazon.encryption.s3.version>4.0.2</software.amazon.encryption.s3.version>
         <azure.sdk.bom.version>1.3.8</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
         <!-- Apache Commons -->
@@ -152,34 +152,35 @@
         <!-- Data formats and serialization -->
         <kafka-clients.version>4.3.1</kafka-clients.version>
         <kafka.docker.image>apache/kafka:4.3.1</kafka.docker.image>
-        <avro.version>1.12.1</avro.version>
+        <avro.version>1.12.2</avro.version>
         <calcite.version>1.42.0</calcite.version>
-        <com.github.luben.zstd-jni.version>1.5.7-13</com.github.luben.zstd-jni.version>
+        <com.github.luben.zstd-jni.version>1.5.7-15</com.github.luben.zstd-jni.version>
         <com.jayway.jsonpath.version>3.0.0</com.jayway.jsonpath.version>
         <gson.version>2.14.0</gson.version>
         <jackson.annotations.version>2.22</jackson.annotations.version>
-        <jackson.bom.version>2.22.1</jackson.bom.version>
-        <jackson3.bom.version>3.2.1</jackson3.bom.version>
+        <jackson.bom.version>2.22.2</jackson.bom.version>
+        <jackson3.bom.version>3.2.2</jackson3.bom.version>
         <json.smart.version>2.6.0</json.smart.version>
         <snakeyaml.version>2.6</snakeyaml.version>
 
         <!-- JVM languages and bytecode -->
         <aspectj.version>1.9.25.1</aspectj.version>
-        <groovy.version>5.0.8</groovy.version>
+        <groovy.version>5.1.0</groovy.version>
         <kotlin.version>2.4.10</kotlin.version>
 
         <!-- Logging and observability -->
         <log4j2.version>2.26.1</log4j2.version>
-        <logback.version>1.6.2</logback.version>
+        <logback.version>1.6.3</logback.version>
         <org.slf4j.version>2.0.18</org.slf4j.version>
         <prometheus.version>0.16.0</prometheus.version>
         <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
 
         <!-- Networking and transport -->
         <netty.4.version>4.2.17.Final</netty.4.version>
-        <okhttp.version>5.4.0</okhttp.version>
+        <okhttp.version>5.5.0</okhttp.version>
         <okio.version>3.18.1</okio.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
+        <org.apache.httpcomponents.httpclient5.version>5.6.4</org.apache.httpcomponents.httpclient5.version>
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
         <org.apache.httpcomponents.httpcore5.version>5.4.3</org.apache.httpcomponents.httpcore5.version>
         <org.apache.sshd.version>2.19.0</org.apache.sshd.version>
@@ -204,15 +205,15 @@
         <jersey.bom.version>4.0.2</jersey.bom.version>
         <jetty.version>12.1.12</jetty.version>
         <servlet-api.version>6.1.0</servlet-api.version>
-        <spring.security.version>7.1.0</spring.security.version>
-        <spring.version>7.0.8</spring.version>
-        <swagger.annotations.version>2.2.53</swagger.annotations.version>
+        <spring.security.version>7.1.1</spring.security.version>
+        <spring.version>7.0.9</spring.version>
+        <swagger.annotations.version>2.2.54</swagger.annotations.version>
 
         <!-- Testing and quality -->
         <junit.version>6.1.3</junit.version>
         <mockito.version>5.23.0</mockito.version>
         <pmd.version>7.26.0</pmd.version>
-        <checkstyle.version>13.9.0</checkstyle.version>
+        <checkstyle.version>14.0.0</checkstyle.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <jacoco.version>0.8.15</jacoco.version>
     </properties>
@@ -369,6 +370,16 @@
                 <groupId>org.apache.httpcomponents.core5</groupId>
                 <artifactId>httpcore5-h2</artifactId>
                 <version>${org.apache.httpcomponents.httpcore5.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5</artifactId>
+                <version>${org.apache.httpcomponents.httpclient5.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5-cache</artifactId>
+                <version>${org.apache.httpcomponents.httpclient5.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
@@ -852,7 +863,7 @@
                 <plugin>
                     <groupId>io.swagger.core.v3</groupId>
                     <artifactId>swagger-maven-plugin-jakarta</artifactId>
-                    <version>2.2.53</version>
+                    <version>2.2.54</version>
                 </plugin>
                 <plugin>
                     <groupId>io.swagger.codegen.v3</groupId>

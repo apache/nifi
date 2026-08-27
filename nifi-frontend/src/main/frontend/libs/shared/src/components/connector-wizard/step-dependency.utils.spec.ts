@@ -121,6 +121,30 @@ describe('Step Dependency Utils', () => {
 
             expect(isStepDependencySatisfied(dependency, {}, {}, visibleSteps)).toBe(false);
         });
+
+        // A BOOLEAN toggle puts a native boolean into the form, while dependentValues is always
+        // string[] from the API. Both directions of the toggle must be evaluated correctly.
+        it('should satisfy a boolean dependency when the unsaved value is the boolean true', () => {
+            const dependency = { stepName: 'Step1', propertyName: 'enableCortex', dependentValues: ['true'] };
+            const stepConfigurations = {
+                Step1: createStepConfig('Step1', [], { group1: { enableCortex: 'false' } })
+            };
+            const unsavedValues = { Step1: { enableCortex: true } };
+            const visibleSteps = new Set(['Step1']);
+
+            expect(isStepDependencySatisfied(dependency, stepConfigurations, unsavedValues, visibleSteps)).toBe(true);
+        });
+
+        it('should not satisfy a boolean dependency when the unsaved value is the boolean false', () => {
+            const dependency = { stepName: 'Step1', propertyName: 'enableCortex', dependentValues: ['true'] };
+            const stepConfigurations = {
+                Step1: createStepConfig('Step1', [], { group1: { enableCortex: 'true' } })
+            };
+            const unsavedValues = { Step1: { enableCortex: false } };
+            const visibleSteps = new Set(['Step1']);
+
+            expect(isStepDependencySatisfied(dependency, stepConfigurations, unsavedValues, visibleSteps)).toBe(false);
+        });
     });
 
     describe('getVisibleStepNames', () => {

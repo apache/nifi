@@ -30,6 +30,11 @@
                 operating system crashes. The default value is false.
         Partitions - The number of partitions.
         Checkpoint Interval - The amount of time between checkpoints.
+
+        This Provider also supports the following optional property:
+
+        Maximum Journal Size - The amount of data that may be written to the write-ahead log's journal, such as "100 MB", before a checkpoint is performed. If not specified, checkpoints occur
+                only on the Checkpoint Interval.
      -->
     <local-provider>
         <id>local-provider</id>

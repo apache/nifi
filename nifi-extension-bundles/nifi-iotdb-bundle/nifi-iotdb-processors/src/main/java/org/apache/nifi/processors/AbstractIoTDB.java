@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public abstract class AbstractIoTDB extends AbstractProcessor {
     private static final int DEFAULT_IOTDB_PORT = 6667;
 
-    protected static ObjectMapper mapper = new ObjectMapper();
+    protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final String FIELDS = "fields";
 
@@ -204,7 +204,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
     protected ValidationResult validateSchemaAttribute(String schemaAttribute) {
         JsonNode schema;
         try {
-            schema = mapper.readTree(schemaAttribute);
+            schema = MAPPER.readTree(schemaAttribute);
         } catch (JsonProcessingException e) {
             return new ValidationResult(false, e.getMessage());
         }

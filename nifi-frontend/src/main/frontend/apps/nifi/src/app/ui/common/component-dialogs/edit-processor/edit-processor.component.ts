@@ -45,6 +45,7 @@ import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     ParameterContextEntity,
+    PostUpdateNavigationState,
     Property,
     StartComponentRequest,
     StopComponentRequest,
@@ -416,7 +417,11 @@ export class EditProcessor extends TabbedDialog {
         );
     }
 
-    submitForm(postUpdateNavigation?: string[], postUpdateNavigationBoundary?: string[]) {
+    submitForm(
+        postUpdateNavigation?: string[],
+        postUpdateNavigationBoundary?: string[],
+        postUpdateNavigationState?: PostUpdateNavigationState
+    ) {
         const relationshipConfiguration: RelationshipConfiguration =
             this.editProcessorForm.get('relationshipConfiguration')?.value;
         const autoTerminated: string[] = relationshipConfiguration.relationships
@@ -481,6 +486,7 @@ export class EditProcessor extends TabbedDialog {
             errorStrategy: 'banner',
             postUpdateNavigation,
             postUpdateNavigationBoundary,
+            postUpdateNavigationState,
             payload
         });
     }

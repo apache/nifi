@@ -54,9 +54,13 @@ module.exports = merge(commonConfig, {
     },
 
     optimization: {
+        // Deterministic module and chunk identifiers so repeated builds emit byte-identical
+        // bundles, keeping the [contenthash] in the output file names stable across builds
+        moduleIds: 'hashed',
+        chunkIds: 'named',
         minimizer: [
-            // Minify JavaScript
-            new TerserJSPlugin({}),
+            // Minify JavaScript; disable parallelism so minified output ordering is deterministic
+            new TerserJSPlugin({ parallel: false }),
 
             // Minify CSS
             new OptimizeCSSAssetsPlugin({})

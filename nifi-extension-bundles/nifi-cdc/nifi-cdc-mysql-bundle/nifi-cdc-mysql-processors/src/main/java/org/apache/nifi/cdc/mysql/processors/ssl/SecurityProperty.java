@@ -20,35 +20,11 @@ package org.apache.nifi.cdc.mysql.processors.ssl;
  * MySQL Connector/J Security Properties
  */
 public enum SecurityProperty {
-    /** Deprecated alias for tlsVersions */
-    ENABLED_TLS_PROTOCOLS("enabledTLSProtocols"),
+    /** Preferred SSL Mode selection introduced in MySQL Connector/J 8.0.13 */
+    SSL_MODE("sslMode"),
 
-    /** Added in MySQL 5.1.0 */
-    TRUST_CERTIFICATE_KEY_STORE_URL("trustsCertificateKeyStoreUrl"),
-
-    /** Added in MySQL 5.1.0 and defaults to JKS */
-    TRUST_CERTIFICATE_KEY_STORE_TYPE("trustCertificateKeyStoreType"),
-
-    /** Added in MySQL 5.1.0 */
-    TRUST_CERTIFICATE_KEY_STORE_PASSWORD("trustCertificateKeyStorePassword"),
-
-    /** Added in MySQL 5.1.0 */
-    CLIENT_CERTIFICATE_KEY_STORE_URL("clientCertificateKeyStoreUrl"),
-
-    /** Added in MySQL 5.1.0 and defaults to JKS */
-    CLIENT_CERTIFICATE_KEY_STORE_TYPE("clientCertificateKeyStoreType"),
-
-    /** Added in MySQL 5.1.0 */
-    CLIENT_CERTIFICATE_KEY_STORE_PASSWORD("clientCertificateKeyStorePassword"),
-
-    /** Deprecated in favor of sslMode and evaluated when useSSL is enabled */
-    REQUIRE_SSL("requireSSL"),
-
-    /** Deprecated in favor of sslMode and defaults to true in 8.0.13 and later */
-    USE_SSL("useSSL"),
-
-    /** Deprecated in favor of sslMode and defaults to false in 8.0.13 and later */
-    VERIFY_SERVER_CERTIFICATE("verifyServerCertificate");
+    /** Name of a registered java.security.Provider supplying the SSLContext introduced in MySQL Connector/J 8.1.0 */
+    SSL_CONTEXT_PROVIDER("sslContextProvider");
 
     private final String property;
 

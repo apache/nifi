@@ -45,12 +45,12 @@ public class ProvenanceReportingSchema extends BaseSchema implements WritableSch
     public static final int DEFAULT_BATCH_SIZE = 1000;
     public static final boolean DEFAULT_USE_COMPRESSION = true;
 
-    private String schedulingStrategy;
-    private String schedulingPeriod;
-    private String destinationUrl;
-    private String portName;
+    private final String schedulingStrategy;
+    private final String schedulingPeriod;
+    private final String destinationUrl;
+    private final String portName;
 
-    private String comment;
+    private final String comment;
     private String originatingUrl = DEFAULT_ORGINATING_URL;
     private Boolean useCompression = DEFAULT_USE_COMPRESSION;
     private String timeout = DEFAULT_TIMEOUT;

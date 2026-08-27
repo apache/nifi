@@ -71,7 +71,7 @@
         <module>nifi-connector-common</module>
     </modules>
     <properties>
-        <guava.version>33.6.0-jre</guava.version>
+        <guava.version>33.7.1-jre</guava.version>
     </properties>
     <dependencyManagement>
         <dependencies>

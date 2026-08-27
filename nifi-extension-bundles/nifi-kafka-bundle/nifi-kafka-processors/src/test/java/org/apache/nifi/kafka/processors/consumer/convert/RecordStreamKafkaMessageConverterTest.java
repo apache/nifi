@@ -78,7 +78,8 @@ class RecordStreamKafkaMessageConverterTest {
                 true,
                 offsetTracker,
                 logger,
-                "brokerUri"
+                "brokerUri",
+                new CreateNewFlowFileGrouping(writerFactory, logger, "brokerUri", true)
         );
 
         // Create ByteRecords

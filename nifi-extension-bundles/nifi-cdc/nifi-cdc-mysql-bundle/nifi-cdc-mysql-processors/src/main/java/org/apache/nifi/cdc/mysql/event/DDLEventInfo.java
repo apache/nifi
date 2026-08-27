@@ -24,7 +24,7 @@ import org.apache.nifi.cdc.event.TableInfo;
  */
 public class DDLEventInfo extends BaseBinlogTableEventInfo implements TableEventInfo {
 
-    private String query;
+    private final String query;
 
     public DDLEventInfo(TableInfo tableInfo, Long timestamp, String binlogFilename, long binlogPosition, String query) {
         super(tableInfo, DDL_EVENT, timestamp, binlogFilename, binlogPosition);

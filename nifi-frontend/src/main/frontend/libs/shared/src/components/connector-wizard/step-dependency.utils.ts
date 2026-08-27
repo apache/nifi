@@ -17,6 +17,7 @@
 
 import { ConfigurationStepConfiguration, ConfigurationStepDependency, ConnectorPropertyFormValue } from '../../types';
 import { fromValueReference } from '../../services/value-reference.helper';
+import { isDependencyValueSatisfied } from '../../utils/dependency-value.utils';
 
 /**
  * Get the current value of a property from a step.
@@ -87,14 +88,7 @@ export function isStepDependencySatisfied(
     // Get the current property value
     const value = getPropertyValue(stepName, propertyName, stepConfigurations, unsavedStepValues);
 
-    // Evaluate based on dependentValues
-    if (!dependentValues || dependentValues.length === 0) {
-        // No specific values required - any non-empty value satisfies
-        return value !== null && value !== undefined && value !== '';
-    } else {
-        // Value must be in the allowed list
-        return value != null && dependentValues.includes(String(value));
-    }
+    return isDependencyValueSatisfied(value, dependentValues);
 }
 
 /**

@@ -26,7 +26,7 @@ import org.apache.nifi.util.TestRunner;
 public abstract class AbstractTestAzureQueueStorage_v12 {
     public static final String CREDENTIALS_SERVICE_IDENTIFIER = "credentials-service";
     protected TestRunner runner;
-    protected AzureStorageCredentialsService_v12 credentialsService = new AzureStorageCredentialsControllerService_v12();
+    protected final AzureStorageCredentialsService_v12 credentialsService = new AzureStorageCredentialsControllerService_v12();
 
     protected void setupStorageCredentialsService() throws InitializationException {
         runner.addControllerService(CREDENTIALS_SERVICE_IDENTIFIER, credentialsService);

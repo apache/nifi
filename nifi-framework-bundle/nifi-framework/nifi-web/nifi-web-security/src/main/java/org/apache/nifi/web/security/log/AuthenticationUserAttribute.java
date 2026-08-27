@@ -22,7 +22,7 @@ package org.apache.nifi.web.security.log;
 public enum AuthenticationUserAttribute {
     USERNAME("org.apache.nifi.web.security.log.username");
 
-    private String name;
+    private final String name;
 
     AuthenticationUserAttribute(final String name) {
         this.name = name;

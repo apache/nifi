@@ -28,7 +28,7 @@ import java.util.Set;
  */
 public class ReflexiveProtocolHandler implements ProtocolHandler {
 
-    private List<ProtocolMessage> messages = new ArrayList<>();
+    private final List<ProtocolMessage> messages = new ArrayList<>();
 
     @Override
     public ProtocolMessage handle(ProtocolMessage msg, Set<String> nodeIdentities) throws ProtocolException {

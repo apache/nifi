@@ -43,9 +43,11 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.tika.config.TikaConfig;
+import org.apache.tika.detect.DefaultDetector;
+import org.apache.tika.detect.DefaultEncodingDetector;
 import org.apache.tika.detect.Detector;
 import org.apache.tika.detect.EncodingDetector;
+import org.apache.tika.detect.EncodingResult;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.HttpHeaders;
 import org.apache.tika.metadata.Metadata;
@@ -55,6 +57,7 @@ import org.apache.tika.mime.MimeType;
 import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
 import org.apache.tika.mime.MimeTypesFactory;
+import org.apache.tika.parser.ParseContext;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -134,14 +137,9 @@ public class IdentifyMimeType extends AbstractProcessor {
 
     private static final String CUSTOM_MIME_TYPES_FILENAME = "custom-mimetypes.xml";
     private static final String DEFAULT_MIME_TYPES_PATH = "org/apache/tika/mime/tika-mimetypes.xml";
-    private final TikaConfig config;
     private Detector detector;
     private EncodingDetector encodingDetector;
     private MimeTypes mimeTypes;
-
-    public IdentifyMimeType() {
-        this.config = TikaConfig.getDefaultConfig();
-    }
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
@@ -172,8 +170,8 @@ public class IdentifyMimeType extends AbstractProcessor {
         String configStrategy = context.getProperty(CONFIG_STRATEGY).getValue();
 
         if (configStrategy.equals(PRESET.getValue())) {
-            this.detector = config.getDetector();
-            this.mimeTypes = config.getMimeRepository();
+            this.mimeTypes = MimeTypes.getDefaultMimeTypes();
+            this.detector = new DefaultDetector(mimeTypes);
         } else {
             try {
                 this.detector = createCustomMimeTypes(configStrategy, context);
@@ -184,7 +182,7 @@ public class IdentifyMimeType extends AbstractProcessor {
             }
         }
 
-        this.encodingDetector = config.getEncodingDetector();
+        this.encodingDetector = new DefaultEncodingDetector();
     }
 
     @Override
@@ -219,10 +217,11 @@ public class IdentifyMimeType extends AbstractProcessor {
                 metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, filename);
             }
 
-            final MediaType mediaType = detector.detect(tikaStream, metadata);
+            final ParseContext parseContext = new ParseContext();
+            final MediaType mediaType = detector.detect(tikaStream, metadata, parseContext);
             mediaTypeString = mediaType.getBaseType().toString();
             extension = lookupExtension(mediaTypeString, logger);
-            charset = identifyCharset(tikaStream, metadata, mediaType);
+            charset = identifyCharset(tikaStream, metadata, mediaType, parseContext);
         } catch (IOException e) {
             throw new ProcessException("Failed to identify MIME type from content stream", e);
         }
@@ -254,12 +253,13 @@ public class IdentifyMimeType extends AbstractProcessor {
         return extension;
     }
 
-    private Charset identifyCharset(TikaInputStream tikaStream, Metadata metadata, MediaType mediaType) throws IOException {
+    private Charset identifyCharset(TikaInputStream tikaStream, Metadata metadata, MediaType mediaType, ParseContext parseContext) throws IOException {
         // only mime-types text/* have a charset parameter
         if (mediaType.getType().equals("text")) {
             metadata.add(HttpHeaders.CONTENT_TYPE, mediaType.toString());
 
-            return encodingDetector.detect(tikaStream, metadata);
+            final List<EncodingResult> encodingResults = encodingDetector.detect(tikaStream, metadata, parseContext);
+            return encodingResults.isEmpty() ? null : encodingResults.getFirst().getCharset();
         } else {
             return null;
         }

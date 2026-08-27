@@ -15,10 +15,13 @@
  * limitations under the License.
  */
 
-import { ParameterContextEntity } from '../../../state/shared';
+import { ParameterContextEntity, PostUpdateNavigationState } from '../../../state/shared';
 
-export interface EditParameterContextRequest {
-    parameterContext?: ParameterContextEntity;
+export interface EditParameterContextUpdate {
+    payload: any;
+    postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
+    postUpdateNavigationState?: PostUpdateNavigationState;
 }
 
 export interface CreateParameterContextRequest {

@@ -157,7 +157,9 @@
                             [canAddParameters]="!request.parameterContext?.component?.parameterProviderConfiguration"
                             [inheritsParameters]="inheritsParameters(request.parameterContext?.component?.parameters)"
                             [createNewParameter]="createNewParameter"
-                            [editParameter]="editParameter"></parameter-table>
+                            [editParameter]="editParameter"
+                            [goToParameter]="goToParameter"
+                            [highlightedParameterName]="request.highlightedParameterName"></parameter-table>
                     </div>
                 </mat-dialog-content>
             </mat-tab>
@@ -177,18 +179,46 @@
     @if ((updateRequest | async)!; as requestEntity) {
         <mat-dialog-actions align="end">
             @if (requestEntity.request.complete) {
-                <button mat-flat-button mat-dialog-close>Close</button>
+                @if ((hasPendingPostUpdateNavigation$ | async)!) {
+                    <button
+                        mat-button
+                        type="button"
+                        aria-label="Close"
+                        data-qa="edit-parameter-context-close"
+                        mat-dialog-close>
+                        Close
+                    </button>
+                    <button
+                        mat-flat-button
+                        type="button"
+                        aria-label="Go to Parameter"
+                        data-qa="edit-parameter-context-go-to-parameter"
+                        (click)="continuePostUpdateNavigation.emit()">
+                        Go to Parameter
+                    </button>
+                } @else {
+                    <button
+                        mat-flat-button
+                        type="button"
+                        aria-label="Close"
+                        data-qa="edit-parameter-context-close"
+                        mat-dialog-close>
+                        Close
+                    </button>
+                }
             } @else {
-                <button mat-button mat-dialog-close (click)="cancelUpdateRequest.emit()">Cancel</button>
+                <button mat-button type="button" mat-dialog-close (click)="cancelUpdateRequest.emit()">Cancel</button>
             }
         </mat-dialog-actions>
     } @else {
         @if ({ value: (saving$ | async)! }; as saving) {
             <mat-dialog-actions align="end">
                 @if (readonly) {
-                    <button mat-flat-button mat-dialog-close>Close</button>
+                    <button mat-flat-button type="button" mat-dialog-close>Close</button>
                 } @else {
-                    <button mat-button mat-dialog-close (click)="cancelUpdateRequest.emit()">Cancel</button>
+                    <button mat-button type="button" mat-dialog-close (click)="cancelUpdateRequest.emit()">
+                        Cancel
+                    </button>
                     <button
                         [disabled]="
                             !editParameterContextForm.dirty ||

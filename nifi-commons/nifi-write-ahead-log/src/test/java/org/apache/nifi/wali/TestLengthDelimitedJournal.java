@@ -61,6 +61,10 @@ public class TestLengthDelimitedJournal {
     private ObjectPool<ByteArrayDataOutputStream> streamPool;
     private static final int BUFFER_SIZE = 4096;
 
+    // Large enough that the reference written for an overflow file, which contains the absolute path of that file, does not itself
+    // exceed the threshold and cause a second overflow file to be created.
+    private static final int OVERFLOW_THRESHOLD_BYTES = 1024;
+
     @BeforeEach
     public void setupJournal() throws IOException {
         Files.deleteIfExists(journalFile.toPath());
@@ -75,6 +79,71 @@ public class TestLengthDelimitedJournal {
             () -> new ByteArrayDataOutputStream(BUFFER_SIZE),
             stream -> stream.getByteArrayOutputStream().size() < BUFFER_SIZE,
             stream -> stream.getByteArrayOutputStream().reset());
+    }
+
+    @Test
+    public void testBytesWrittenMatchesJournalFileForInlineUpdates() throws IOException {
+        try (final LengthDelimitedJournal<DummyRecord> journal = new LengthDelimitedJournal<>(journalFile, serdeFactory, streamPool, 0L)) {
+            assertEquals(0L, journal.getBytesWritten());
+
+            journal.writeHeader();
+            assertEquals(journalFile.length(), journal.getBytesWritten());
+
+            for (int i = 0; i < 5; i++) {
+                final long bytesBeforeUpdate = journal.getBytesWritten();
+                journal.update(Collections.singleton(new DummyRecord(String.valueOf(i), UpdateType.CREATE)), key -> null);
+
+                assertTrue(journal.getBytesWritten() > bytesBeforeUpdate);
+                assertEquals(journalFile.length(), journal.getBytesWritten());
+            }
+        }
+    }
+
+    @Test
+    public void testBytesWrittenIncludesOverflowFiles() throws IOException {
+        // A small in-heap serialization threshold causes the journal to write the bulk of the update to an overflow file and to
+        // write only a reference to that file into the journal itself.
+        try (final LengthDelimitedJournal<DummyRecord> journal = new LengthDelimitedJournal<>(journalFile, serdeFactory, streamPool, 0L, OVERFLOW_THRESHOLD_BYTES)) {
+            journal.writeHeader();
+
+            final List<DummyRecord> records = new ArrayList<>();
+            for (int i = 0; i < 1_000; i++) {
+                records.add(new DummyRecord(String.valueOf(i), UpdateType.CREATE));
+            }
+
+            journal.update(records, key -> null);
+
+            final Set<File> overflowFiles = serde.getExternalFileReferences();
+            assertEquals(1, overflowFiles.size());
+
+            long overflowBytes = 0L;
+            for (final File overflowFile : overflowFiles) {
+                overflowBytes += overflowFile.length();
+            }
+
+            assertTrue(overflowBytes > 0L);
+            assertEquals(journalFile.length() + overflowBytes, journal.getBytesWritten());
+        }
+    }
+
+    @Test
+    public void testBytesWrittenUnchangedWhenUpdateFails() throws IOException {
+        try (final LengthDelimitedJournal<DummyRecord> journal = new LengthDelimitedJournal<>(journalFile, serdeFactory, streamPool, 0L, OVERFLOW_THRESHOLD_BYTES)) {
+            journal.writeHeader();
+            final long headerBytes = journal.getBytesWritten();
+
+            final List<DummyRecord> records = new ArrayList<>();
+            for (int i = 0; i < 1_000; i++) {
+                records.add(new DummyRecord(String.valueOf(i), UpdateType.CREATE));
+            }
+
+            // Fail the update after enough records have been serialized that an overflow file has been created. The overflow file is
+            // removed when the update fails, so its contents must not be counted against the journal.
+            serde.setThrowIOEAfterNSerializeEdits(500);
+            assertThrows(IOException.class, () -> journal.update(records, key -> null));
+
+            assertEquals(headerBytes, journal.getBytesWritten());
+        }
     }
 
     @Test

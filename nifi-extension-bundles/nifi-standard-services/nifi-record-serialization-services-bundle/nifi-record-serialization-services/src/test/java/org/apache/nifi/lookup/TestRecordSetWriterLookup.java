@@ -175,7 +175,7 @@ public class TestRecordSetWriterLookup {
     }
 
     private static class MockRecordSetWriter implements RecordSetWriter {
-        public String name;
+        public final String name;
 
         public MockRecordSetWriter(String name) {
             this.name = name;

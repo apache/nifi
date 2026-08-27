@@ -34,7 +34,7 @@ public class StandardControllerServiceInitializationContext implements Controlle
     private final ComponentLog logger;
     private final StateManager stateManager;
     private final KerberosConfig kerberosConfig;
-    private NodeTypeProvider nodeTypeProvider;
+    private final NodeTypeProvider nodeTypeProvider;
 
     public StandardControllerServiceInitializationContext(
             final String identifier, final ComponentLog logger,

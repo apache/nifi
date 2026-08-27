@@ -41,6 +41,9 @@ export const initialState: ParameterContextListingState = {
     parameterContexts: [],
     updateRequestEntity: null,
     updateRequestParameterContextId: null,
+    postUpdateNavigation: null,
+    postUpdateNavigationBoundary: null,
+    postUpdateNavigationState: null,
     saving: false,
     loadedTimestamp: '',
     deleteUpdateRequestInitiated: false,
@@ -66,7 +69,10 @@ export const parameterContextListingReducer = createReducer(
     })),
     on(parameterContextListingSnackbarApiError, parameterContextListingBannerApiError, (state) => ({
         ...state,
-        saving: false
+        saving: false,
+        postUpdateNavigation: null,
+        postUpdateNavigationBoundary: null,
+        postUpdateNavigationState: null
     })),
     on(createParameterContext, (state) => ({
         ...state,
@@ -81,7 +87,10 @@ export const parameterContextListingReducer = createReducer(
     on(submitParameterContextUpdateRequest, (state, { request }) => ({
         ...state,
         saving: true,
-        updateRequestParameterContextId: request.id
+        updateRequestParameterContextId: request.id,
+        postUpdateNavigation: request.postUpdateNavigation ?? null,
+        postUpdateNavigationBoundary: request.postUpdateNavigationBoundary ?? null,
+        postUpdateNavigationState: request.postUpdateNavigationState ?? null
     })),
     on(
         submitParameterContextUpdateRequestSuccess,
@@ -132,6 +141,10 @@ export const parameterContextListingReducer = createReducer(
                 draftState.saving = false;
                 draftState.deleteUpdateRequestInitiated = false;
             }
+
+            draftState.postUpdateNavigation = null;
+            draftState.postUpdateNavigationBoundary = null;
+            draftState.postUpdateNavigationState = null;
         });
     }),
     on(deleteParameterContextSuccess, (state, { response }) => {

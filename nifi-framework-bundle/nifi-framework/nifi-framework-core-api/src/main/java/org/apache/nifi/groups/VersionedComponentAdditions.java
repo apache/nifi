@@ -34,17 +34,17 @@ import java.util.Set;
 
 public class VersionedComponentAdditions {
 
-    private Set<VersionedProcessGroup> processGroups;
-    private Set<VersionedRemoteProcessGroup> remoteProcessGroups;
-    private Set<VersionedProcessor> processors;
-    private Set<VersionedPort> inputPorts;
-    private Set<VersionedPort> outputPorts;
-    private Set<VersionedConnection> connections;
-    private Set<VersionedLabel> labels;
-    private Set<VersionedFunnel> funnels;
-    private Set<VersionedControllerService> controllerServices;
-    private Map<String, VersionedParameterContext> parameterContexts;
-    private Map<String, ParameterProviderReference> parameterProviders;
+    private final Set<VersionedProcessGroup> processGroups;
+    private final Set<VersionedRemoteProcessGroup> remoteProcessGroups;
+    private final Set<VersionedProcessor> processors;
+    private final Set<VersionedPort> inputPorts;
+    private final Set<VersionedPort> outputPorts;
+    private final Set<VersionedConnection> connections;
+    private final Set<VersionedLabel> labels;
+    private final Set<VersionedFunnel> funnels;
+    private final Set<VersionedControllerService> controllerServices;
+    private final Map<String, VersionedParameterContext> parameterContexts;
+    private final Map<String, ParameterProviderReference> parameterProviders;
 
     private VersionedComponentAdditions(final Builder builder) {
         this.processGroups = builder.processGroups == null ? Collections.emptySet() : Collections.unmodifiableSet(builder.processGroups);

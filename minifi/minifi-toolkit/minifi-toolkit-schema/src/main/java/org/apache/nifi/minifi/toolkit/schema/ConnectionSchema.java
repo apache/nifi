@@ -40,13 +40,13 @@ public class ConnectionSchema extends BaseSchemaWithIdAndName {
 
     private String sourceId;
     private boolean needsSourceRelationships = true;
-    private List<String> sourceRelationshipNames;
+    private final List<String> sourceRelationshipNames;
     private String destinationId;
 
     private Number maxWorkQueueSize = DEFAULT_MAX_WORK_QUEUE_SIZE;
     private String maxWorkQueueDataSize = DEFAULT_MAX_QUEUE_DATA_SIZE;
     private String flowfileExpiration = DEFAULT_FLOWFILE_EXPIRATION;
-    private String queuePrioritizerClass;
+    private final String queuePrioritizerClass;
 
     public ConnectionSchema(Map map) {
         super(map, "Connection(id: {id}, name: {name})");

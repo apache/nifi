@@ -32,7 +32,7 @@ public class JsonPathPutEvaluator extends JsonPathUpdateEvaluator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonPathPutEvaluator.class);
 
-    protected Evaluator<?> keyEvaluator;
+    protected final Evaluator<?> keyEvaluator;
 
     public JsonPathPutEvaluator(final Evaluator<String> subject, final Evaluator<String> jsonPathExp, final Evaluator<?> valueEvaluator, final Evaluator<?> keyEvaluator) {
         super(subject, jsonPathExp, valueEvaluator);

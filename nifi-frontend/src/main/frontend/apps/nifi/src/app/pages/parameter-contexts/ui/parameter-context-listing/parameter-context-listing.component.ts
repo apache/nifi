@@ -17,6 +17,7 @@
 
 import { Component, OnInit, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
+import { Router } from '@angular/router';
 import { ParameterContextListingState } from '../../state/parameter-context-listing';
 import {
     selectContext,
@@ -34,7 +35,7 @@ import {
     selectParameterContext
 } from '../../state/parameter-context-listing/parameter-context-listing.actions';
 import { initialState } from '../../state/parameter-context-listing/parameter-context-listing.reducer';
-import { filter, switchMap, take } from 'rxjs';
+import { filter, map, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
@@ -52,6 +53,7 @@ import { ParameterContextTable } from './parameter-context-table/parameter-conte
 })
 export class ParameterContextListing implements OnInit {
     private store = inject<Store<ParameterContextListingState>>(Store);
+    private router = inject(Router);
 
     parameterContextListingState$ = this.store.select(selectParameterContextListingState);
     selectedParameterContextId$ = this.store.select(selectParameterContextIdFromRoute);
@@ -63,20 +65,30 @@ export class ParameterContextListing implements OnInit {
             .select(selectSingleEditedParameterContext)
             .pipe(
                 filter((id: string) => id != null),
-                switchMap((id: string) =>
+                // capture the highlighted parameter when the route resolves, before waiting on the parameter
+                // context to load, so a subsequent navigation cannot be attributed to this request
+                map((id: string) => ({
+                    id,
+                    highlightedParameterName: this.router.lastSuccessfulNavigation()?.extras?.state?.[
+                        'highlightedParameterName'
+                    ] as string | undefined
+                })),
+                switchMap(({ id, highlightedParameterName }) =>
                     this.store.select(selectContext(id)).pipe(
                         filter((entity) => entity != null),
-                        take(1)
+                        take(1),
+                        map((entity) => ({ entity, highlightedParameterName }))
                     )
                 ),
                 takeUntilDestroyed()
             )
-            .subscribe((entity) => {
+            .subscribe(({ entity, highlightedParameterName }) => {
                 if (entity) {
                     this.store.dispatch(
                         getEffectiveParameterContextAndOpenDialog({
                             request: {
-                                id: entity.id
+                                id: entity.id,
+                                highlightedParameterName
                             }
                         })
                     );

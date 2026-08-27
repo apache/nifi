@@ -15,13 +15,22 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, ChangeDetectorRef, Component, forwardRef, Input, inject } from '@angular/core';
+import {
+    AfterViewInit,
+    ChangeDetectorRef,
+    Component,
+    ElementRef,
+    Injector,
+    Input,
+    afterNextRender,
+    forwardRef,
+    inject
+} from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NgTemplateOutlet } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { EditParameterResponse, ParameterEntity } from '../../../../../state/shared';
 import { NifiTooltipDirective, NiFiCommon, TextTip, Parameter } from '@nifi/shared';
 import { Observable, take } from 'rxjs';
@@ -51,7 +60,6 @@ export interface ParameterItem {
         MatTableModule,
         MatSortModule,
         NgTemplateOutlet,
-        RouterLink,
         NifiTooltipDirective,
         ParameterReferences,
         MatMenu,
@@ -74,11 +82,15 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     private store = inject<Store<ParameterContextListingState>>(Store);
     private changeDetector = inject(ChangeDetectorRef);
     private nifiCommon = inject(NiFiCommon);
+    private elementRef = inject(ElementRef);
+    private injector = inject(Injector);
 
     @Input() createNewParameter!: (existingParameters: string[]) => Observable<EditParameterResponse>;
     @Input() editParameter!: (parameter: Parameter) => Observable<EditParameterResponse>;
+    @Input() goToParameter?: (parameterContextId: string, parameterName: string) => void;
     @Input() canAddParameters = true;
     @Input() inheritsParameters = false;
+    @Input() highlightedParameterName?: string;
 
     protected readonly TextTip = TextTip;
 
@@ -101,6 +113,24 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
 
     ngAfterViewInit(): void {
         this.initFilter();
+        if (this.highlightedParameterName) {
+            const match = this.dataSource.data.find(
+                (item) => this.isVisible(item) && item.originalEntity.parameter.name === this.highlightedParameterName
+            );
+            if (match) {
+                this.selectParameter(match);
+                afterNextRender(
+                    () => {
+                        const rows: NodeListOf<HTMLElement> =
+                            this.elementRef.nativeElement.querySelectorAll('[data-parameter-name]');
+                        Array.from(rows)
+                            .find((el) => el.dataset['parameterName'] === this.highlightedParameterName)
+                            ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    },
+                    { injector: this.injector }
+                );
+            }
+        }
     }
 
     initFilter(): void {
@@ -315,15 +345,19 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     }
 
     canGoToParameter(item: ParameterItem): boolean {
-        return this.canOverride(item) && item.originalEntity.parameter.parameterContext?.permissions.canRead == true;
+        return (
+            !!this.goToParameter &&
+            this.canOverride(item) &&
+            item.originalEntity.parameter.parameterContext?.permissions.canRead == true
+        );
     }
 
-    getParameterLink(item: ParameterItem): string[] {
-        if (item.originalEntity.parameter.parameterContext) {
-            // TODO - support routing directly to a parameter
-            return ['/parameter-contexts', item.originalEntity.parameter.parameterContext.id, 'edit'];
+    goToParameterClicked(item: ParameterItem): void {
+        const parameterContext = item.originalEntity.parameter.parameterContext;
+        if (!this.goToParameter || !parameterContext) {
+            return;
         }
-        return [];
+        this.goToParameter(parameterContext.id, item.originalEntity.parameter.name);
     }
 
     isOverridden(item: ParameterItem): boolean {

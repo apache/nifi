@@ -66,7 +66,7 @@ public class ExtensionFilterParams {
 
         private BundleType bundleType;
         private ExtensionType extensionType;
-        private Set<String> tags = new HashSet<>();
+        private final Set<String> tags = new HashSet<>();
 
         public Builder bundleType(final BundleType bundleType) {
             this.bundleType = bundleType;
