@@ -76,6 +76,8 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private final Map<String, String> httpHeaders;
     private final WebClientService webClientService;
 
+    private OAuth2AccessTokenProvider oauth2AccessTokenProvider;
+
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String SUBJECT_FIELD_NAME = "subject";
@@ -118,11 +120,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                                     final ComponentLog logger,
                                     final Map<String, String> httpHeaders) {
         this(baseUrls, timeoutMillis, sslContextProvider, logger, httpHeaders);
-
-        if (oauth2AccessTokenProvider != null) {
-            final String accessToken = oauth2AccessTokenProvider.getAccessDetails().getAccessToken();
-            this.httpHeaders.putIfAbsent(HttpHeaderName.AUTHORIZATION.getHeaderName(), BEARER_AUTHORIZATION_FORMAT.formatted(accessToken));
-        }
+        this.oauth2AccessTokenProvider = oauth2AccessTokenProvider;
     }
 
     public RestSchemaRegistryClient(final List<String> baseUrls,
@@ -501,6 +499,10 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
     private HttpRequestBodySpec applyRequestHeaders(final HttpRequestBodySpec requestBodySpec) {
         HttpRequestBodySpec updatedRequest = requestBodySpec;
+        if (oauth2AccessTokenProvider != null) {
+            final String accessToken = oauth2AccessTokenProvider.getAccessDetails().getAccessToken();
+            updatedRequest = updatedRequest.header(HttpHeaderName.AUTHORIZATION.getHeaderName(), BEARER_AUTHORIZATION_FORMAT.formatted(accessToken));
+        }
         for (final Map.Entry<String, String> header : httpHeaders.entrySet()) {
             updatedRequest = updatedRequest.header(header.getKey(), header.getValue());
         }
