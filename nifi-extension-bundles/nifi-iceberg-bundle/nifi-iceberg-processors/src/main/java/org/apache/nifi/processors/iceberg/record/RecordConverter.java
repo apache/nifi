@@ -90,30 +90,46 @@ class RecordConverter {
     }
 
     /**
-     * Recursively convert array, collection, nested record, and map values against the matching Iceberg type.
-     * The value is returned unchanged when the target Iceberg type is unknown or does not describe a complex type
-     * matching the value.
+     * Recursively convert array, collection, nested record, and map values against the matching Iceberg type
+     *
+     * @param value Field value to be converted
+     * @param icebergType Iceberg Type describing the target field type (may be null when not resolved)
+     * @return Converted value or the input value when the Iceberg Type is unknown or does not describe a complex
+     * type matching the value
      */
     private static Object convertComplexValue(final Object value, final Type icebergType) {
+        final Object convertedValue;
+
         if (icebergType == null) {
-            return value;
-        }
-
-        if (icebergType.isListType()) {
-            final Type elementType = icebergType.asListType().elementType();
-            if (value instanceof Object[] array) {
-                return convertList(Arrays.asList(array), elementType);
-            }
-            if (value instanceof Collection<?> collection) {
-                return convertList(collection, elementType);
-            }
+            convertedValue = value;
+        } else if (icebergType.isListType()) {
+            convertedValue = convertListValue(value, icebergType.asListType());
         } else if (icebergType.isStructType() && value instanceof Record nestedRecord) {
-            return new DelegatedRecord(nestedRecord, icebergType.asStructType());
+            convertedValue = new DelegatedRecord(nestedRecord, icebergType.asStructType());
         } else if (icebergType.isMapType() && value instanceof Map<?, ?> map) {
-            return convertMap(map, icebergType.asMapType());
+            convertedValue = convertMap(map, icebergType.asMapType());
+        } else {
+            convertedValue = value;
         }
 
-        return value;
+        return convertedValue;
+    }
+
+    /**
+     * Convert an array or collection value to the List required for Apache Iceberg with elements converted against
+     * the Iceberg element type
+     *
+     * @param value Field value to be converted
+     * @param listType Iceberg List Type describing the target element type
+     * @return Converted List or the input value when the value is neither an array nor a collection
+     */
+    private static Object convertListValue(final Object value, final Types.ListType listType) {
+        final Type elementType = listType.elementType();
+        return switch (value) {
+            case Object[] array -> convertList(Arrays.asList(array), elementType);
+            case Collection<?> collection -> convertList(collection, elementType);
+            case null, default -> value;
+        };
     }
 
     private static List<Object> convertList(final Collection<?> collection, final Type elementType) {
