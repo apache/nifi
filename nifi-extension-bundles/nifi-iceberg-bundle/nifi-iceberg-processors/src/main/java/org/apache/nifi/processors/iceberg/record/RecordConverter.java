@@ -28,6 +28,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -82,11 +83,39 @@ class RecordConverter {
     static Object convertValue(final Object value, final Type icebergType) {
         return switch (value) {
             // Convert java.sql types to corresponding java.time types for Apache Iceberg
-            case Timestamp timestamp -> timestamp.toLocalDateTime();
+            case Timestamp timestamp -> convertTimestamp(timestamp, icebergType);
             case Date date -> date.toLocalDate();
             case Time time -> time.toLocalTime();
             // Recursively convert complex types against the matching Iceberg type
             case null, default -> convertComplexValue(value, icebergType);
+        };
+    }
+
+    /**
+     * Convert a Timestamp to the java.time type required by the target Iceberg Type. Iceberg Types declaring an
+     * adjustment to UTC require an OffsetDateTime, and other Types require a LocalDateTime. A Timestamp identifies
+     * an instant, so the adjusted conversion preserves that instant expressed at UTC
+     *
+     * @param timestamp Timestamp to be converted
+     * @param icebergType Iceberg Type describing the target field type (may be null when not resolved)
+     * @return OffsetDateTime at UTC for Iceberg Types adjusted to UTC or LocalDateTime for other Types
+     */
+    private static Object convertTimestamp(final Timestamp timestamp, final Type icebergType) {
+        return shouldAdjustToUtc(icebergType) ? timestamp.toInstant().atOffset(ZoneOffset.UTC) : timestamp.toLocalDateTime();
+    }
+
+    /**
+     * Determine whether the Iceberg Type declares an adjustment to UTC, which Apache Iceberg requires for the
+     * timestamptz and timestamptz_ns column types
+     *
+     * @param icebergType Iceberg Type describing the target field type (may be null when not resolved)
+     * @return Adjustment to UTC required status
+     */
+    private static boolean shouldAdjustToUtc(final Type icebergType) {
+        return switch (icebergType) {
+            case Types.TimestampType timestampType -> timestampType.shouldAdjustToUTC();
+            case Types.TimestampNanoType timestampNanoType -> timestampNanoType.shouldAdjustToUTC();
+            case null, default -> false;
         };
     }
 

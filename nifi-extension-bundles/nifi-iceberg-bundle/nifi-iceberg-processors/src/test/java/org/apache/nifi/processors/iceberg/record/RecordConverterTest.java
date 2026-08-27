@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.iceberg.record;
 
 import org.apache.iceberg.StructLike;
+import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -25,12 +26,19 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -54,6 +62,8 @@ class RecordConverterTest {
     private static final String NAME_FIELD_VALUE = "widget";
 
     private static final String ID_FIELD_VALUE = "row-1";
+
+    private static final LocalDateTime CREATED_LOCAL_DATE_TIME = LocalDateTime.of(2026, 1, 1, 12, 30, 45);
 
     @Test
     void testConvertPrimitiveArrayToList() {
@@ -106,13 +116,82 @@ class RecordConverterTest {
                 new RecordField(CREATED_FIELD_NAME, RecordFieldType.TIMESTAMP.getDataType())
         ));
         final Map<String, Object> nestedValues = new LinkedHashMap<>();
-        nestedValues.put(CREATED_FIELD_NAME, java.sql.Timestamp.valueOf("2026-01-01 12:30:45"));
+        nestedValues.put(CREATED_FIELD_NAME, Timestamp.valueOf("2026-01-01 12:30:45"));
         final Record nestedRecord = new MapRecord(nestedSchema, nestedValues);
 
         final Object converted = RecordConverter.convertValue(nestedRecord, structType);
 
         final StructLike struct = assertInstanceOf(StructLike.class, converted);
         assertEquals(LocalDateTime.of(2026, 1, 1, 12, 30, 45), struct.get(0, LocalDateTime.class));
+    }
+
+    /**
+     * Iceberg Types not adjusted to UTC require a LocalDateTime. The Iceberg Type is not resolved for every field,
+     * so an unknown Type must retain the same conversion.
+     */
+    @ParameterizedTest
+    @MethodSource
+    void testConvertTimestampNotAdjustedToUtc(final Type icebergType) {
+        final Timestamp timestamp = Timestamp.valueOf(CREATED_LOCAL_DATE_TIME);
+
+        final Object converted = RecordConverter.convertValue(timestamp, icebergType);
+
+        assertEquals(CREATED_LOCAL_DATE_TIME, converted);
+    }
+
+    private static Stream<Arguments> testConvertTimestampNotAdjustedToUtc() {
+        return Stream.of(
+                Arguments.of(Types.TimestampType.withoutZone()),
+                Arguments.of(Types.TimestampNanoType.withoutZone()),
+                Arguments.of((Type) null)
+        );
+    }
+
+    /**
+     * Iceberg timestamptz columns require an OffsetDateTime rather than a LocalDateTime. A Timestamp identifies an
+     * instant, so the converted value must describe that same instant expressed at UTC.
+     */
+    @ParameterizedTest
+    @MethodSource
+    void testConvertTimestampAdjustedToUtc(final Type icebergType) {
+        final Timestamp timestamp = Timestamp.valueOf(CREATED_LOCAL_DATE_TIME);
+
+        final Object converted = RecordConverter.convertValue(timestamp, icebergType);
+
+        final OffsetDateTime offsetDateTime = assertInstanceOf(OffsetDateTime.class, converted);
+        assertEquals(ZoneOffset.UTC, offsetDateTime.getOffset());
+        assertEquals(timestamp.toInstant(), offsetDateTime.toInstant());
+    }
+
+    private static Stream<Arguments> testConvertTimestampAdjustedToUtc() {
+        return Stream.of(
+                Arguments.of(Types.TimestampType.withZone()),
+                Arguments.of(Types.TimestampNanoType.withZone())
+        );
+    }
+
+    /**
+     * A timestamptz column nested inside a struct must be converted through the recursive path, which requires the
+     * Iceberg Type of the nested field to be resolved and passed down.
+     */
+    @Test
+    void testGetConvertedRecordNestedTimestampWithZone() {
+        final Types.StructType structType = Types.StructType.of(
+                Types.NestedField.optional(1, CREATED_FIELD_NAME, Types.TimestampType.withZone())
+        );
+
+        final RecordSchema nestedSchema = new SimpleRecordSchema(List.of(
+                new RecordField(CREATED_FIELD_NAME, RecordFieldType.TIMESTAMP.getDataType())
+        ));
+        final Timestamp timestamp = Timestamp.valueOf(CREATED_LOCAL_DATE_TIME);
+        final Map<String, Object> nestedValues = new LinkedHashMap<>();
+        nestedValues.put(CREATED_FIELD_NAME, timestamp);
+        final Record nestedRecord = new MapRecord(nestedSchema, nestedValues);
+
+        final Object converted = RecordConverter.convertValue(nestedRecord, structType);
+
+        final StructLike struct = assertInstanceOf(StructLike.class, converted);
+        assertEquals(timestamp.toInstant(), struct.get(0, OffsetDateTime.class).toInstant());
     }
 
     @Test
