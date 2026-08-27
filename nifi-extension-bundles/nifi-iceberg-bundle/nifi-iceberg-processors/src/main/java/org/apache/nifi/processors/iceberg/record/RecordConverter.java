@@ -59,20 +59,23 @@ class RecordConverter {
      * @return Input Record or new Record with converted field values
      */
     static Record getConvertedRecord(final Record inputRecord, final Types.StructType struct) {
+        final Record convertedRecord;
+
         final RecordSchema recordSchema = inputRecord.getSchema();
-        if (!isConversionRequired(recordSchema)) {
-            return inputRecord;
+        if (isConversionRequired(recordSchema)) {
+            final Map<String, Object> values = inputRecord.toMap();
+            final Map<String, Object> convertedValues = new LinkedHashMap<>(values.size());
+            for (final Map.Entry<String, Object> entry : values.entrySet()) {
+                final String field = entry.getKey();
+                final Type fieldType = fieldType(struct, field);
+                convertedValues.put(field, convertValue(entry.getValue(), fieldType));
+            }
+            convertedRecord = new MapRecord(recordSchema, convertedValues);
+        } else {
+            convertedRecord = inputRecord;
         }
 
-        final Map<String, Object> values = inputRecord.toMap();
-        final Map<String, Object> convertedValues = new LinkedHashMap<>();
-        for (final Map.Entry<String, Object> entry : values.entrySet()) {
-            final String field = entry.getKey();
-            final Type fieldType = fieldType(struct, field);
-            convertedValues.put(field, convertValue(entry.getValue(), fieldType));
-        }
-
-        return new MapRecord(recordSchema, convertedValues);
+        return convertedRecord;
     }
 
     static Object convertValue(final Object value, final Type icebergType) {
