@@ -348,7 +348,7 @@ export class ControllerServicesEffects {
                 switchMap(([request, parameterContextReference, processGroupId]) => {
                     if (parameterContextReference && parameterContextReference.permissions.canRead) {
                         return from(
-                            this.parameterContextService.getParameterContext(parameterContextReference.id, true)
+                            this.parameterContextService.getParameterContext(parameterContextReference.id, true, false)
                         ).pipe(
                             map((parameterContext) => {
                                 return [request, parameterContext, processGroupId];

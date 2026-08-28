@@ -1504,7 +1504,7 @@ public final class DtoFactory {
     }
 
     public ParameterContextDTO createParameterContextDto(final ParameterContext parameterContext, final RevisionManager revisionManager,
-                                                        final boolean includeInheritedParameters, final ParameterContextLookup parameterContextLookup) {
+                                                         final boolean includeInheritedParameters, final ParameterContextLookup parameterContextLookup, final boolean includeReferences) {
         final ParameterContextDTO dto = new ParameterContextDTO();
         dto.setId(parameterContext.getIdentifier());
         dto.setName(parameterContext.getName());
@@ -1524,7 +1524,7 @@ public final class DtoFactory {
         final Map<ParameterDescriptor, Parameter> parameters = includeInheritedParameters ? parameterContext.getRawEffectiveParameters()
                 : parameterContext.getParameters();
         for (final Parameter parameter : parameters.values()) {
-            parameterEntities.add(createParameterEntity(parameterContext, parameter, revisionManager, parameterContextLookup));
+            parameterEntities.add(createParameterEntity(parameterContext, parameter, revisionManager, parameterContextLookup, includeReferences));
         }
 
         final List<ParameterContextReferenceEntity> parameterContextRefs = new ArrayList<>();
@@ -1584,19 +1584,34 @@ public final class DtoFactory {
     }
 
     public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager,
-                                                final ParameterContextLookup parameterContextLookup) {
-        final ParameterDTO dto = createParameterDto(parameterContext, parameter, revisionManager, parameterContextLookup);
+                                                 final ParameterContextLookup parameterContextLookup) {
+        return createParameterEntity(parameterContext, parameter, revisionManager, parameterContextLookup, true);
+    }
+
+    public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager,
+                                                 final ParameterContextLookup parameterContextLookup, final boolean includeReferences) {
+        // canWrite depends on the permissions of every component referencing this parameter, so it must always be determined,
+        // even when includeReferences is false and the full AffectedComponentEntity set is not built for the response. Compute
+        // it once here and pass it through so createParameterDto doesn't need to recompute it when includeReferences is true.
+        final Set<ComponentNode> referencingComponents = getReferencingComponents(parameterContext, parameter.getDescriptor());
+        final ParameterDTO dto = createParameterDto(parameterContext, parameter, revisionManager, parameterContextLookup, includeReferences, referencingComponents);
         final ParameterEntity entity = new ParameterEntity();
         entity.setParameter(dto);
-
-        final boolean canWrite = isWritable(dto.getReferencingComponents());
-        entity.setCanWrite(canWrite);
+        entity.setCanWrite(isWritable(referencingComponents));
 
         return entity;
     }
 
     public ParameterDTO createParameterDto(final ParameterContext parameterContext, final Parameter parameter,
-                                          final RevisionManager revisionManager, final ParameterContextLookup parameterContextLookup) {
+                                           final RevisionManager revisionManager, final ParameterContextLookup parameterContextLookup, final boolean includeReferences) {
+        final Set<ComponentNode> referencingComponents = includeReferences
+                ? getReferencingComponents(parameterContext, parameter.getDescriptor())
+                : Set.of();
+        return createParameterDto(parameterContext, parameter, revisionManager, parameterContextLookup, includeReferences, referencingComponents);
+    }
+
+    private ParameterDTO createParameterDto(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager,
+                                            final ParameterContextLookup parameterContextLookup, final boolean includeReferences, final Set<ComponentNode> referencingComponents) {
         final ParameterDescriptor descriptor = parameter.getDescriptor();
 
         final ParameterDTO dto = new ParameterDTO();
@@ -1610,14 +1625,10 @@ public final class DtoFactory {
         final List<Asset> assets = parameter.getReferencedAssets();
         dto.setReferencedAssets(assets == null ? List.of() : parameter.getReferencedAssets().stream().map(this::createAssetReferenceDto).toList());
 
-        final ParameterReferenceManager parameterReferenceManager = parameterContext.getParameterReferenceManager();
-
-        final Set<ComponentNode> referencingComponents = new HashSet<>();
-        referencingComponents.addAll(parameterReferenceManager.getProcessorsReferencing(parameterContext, descriptor.getName()));
-        referencingComponents.addAll(parameterReferenceManager.getControllerServicesReferencing(parameterContext, descriptor.getName()));
-
-        final Set<AffectedComponentEntity> referencingComponentEntities = createAffectedComponentEntities(referencingComponents, revisionManager);
-        dto.setReferencingComponents(referencingComponentEntities);
+        if (includeReferences) {
+            final Set<AffectedComponentEntity> referencingComponentEntities = createAffectedComponentEntities(referencingComponents, revisionManager);
+            dto.setReferencingComponents(referencingComponentEntities);
+        }
 
         final ParameterContext containingParameterContext = resolveContainingParameterContext(parameterContext, parameter, parameterContextLookup);
 
@@ -3243,10 +3254,19 @@ public final class DtoFactory {
         return bulletins;
     }
 
-    private boolean isWritable(final Collection<AffectedComponentEntity> affectedComponentEntities) {
-        for (final AffectedComponentEntity affectedComponent : affectedComponentEntities) {
-            final PermissionsDTO permissions = affectedComponent.getPermissions();
-            if (!permissions.getCanRead() || !permissions.getCanWrite()) {
+    private Set<ComponentNode> getReferencingComponents(final ParameterContext parameterContext, final ParameterDescriptor descriptor) {
+        final ParameterReferenceManager parameterReferenceManager = parameterContext.getParameterReferenceManager();
+
+        final Set<ComponentNode> referencingComponents = new HashSet<>();
+        referencingComponents.addAll(parameterReferenceManager.getProcessorsReferencing(parameterContext, descriptor.getName()));
+        referencingComponents.addAll(parameterReferenceManager.getControllerServicesReferencing(parameterContext, descriptor.getName()));
+        return referencingComponents;
+    }
+
+    private boolean isWritable(final Set<ComponentNode> referencingComponents) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        for (final ComponentNode referencingComponent : referencingComponents) {
+            if (!referencingComponent.isAuthorized(authorizer, RequestAction.READ, user) || !referencingComponent.isAuthorized(authorizer, RequestAction.WRITE, user)) {
                 return false;
             }
         }
