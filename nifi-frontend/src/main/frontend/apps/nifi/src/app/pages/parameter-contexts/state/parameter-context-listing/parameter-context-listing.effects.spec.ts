@@ -396,7 +396,8 @@ describe('ParameterContextListingEffects', () => {
             effects.deleteParameterContextUpdateRequest$.subscribe(() => {
                 expect(parameterContextService.deleteParameterContextUpdate).toHaveBeenCalledWith(
                     parameterContextId,
-                    mockUpdateRequest.requestId
+                    mockUpdateRequest.requestId,
+                    false
                 );
             });
         });
@@ -419,7 +420,8 @@ describe('ParameterContextListingEffects', () => {
             effects.deleteParameterContextUpdateRequest$.subscribe(() => {
                 expect(parameterContextService.deleteParameterContextUpdate).toHaveBeenCalledWith(
                     parameterContextId,
-                    mockUpdateRequest.requestId
+                    mockUpdateRequest.requestId,
+                    false
                 );
             });
         });

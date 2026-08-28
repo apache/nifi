@@ -59,7 +59,7 @@ export class ParameterHelperService {
         parameterContextId: string
     ): (name: string, sensitive: boolean, value: string | null) => Observable<ConvertToParameterResponse> {
         return (name: string, sensitive: boolean, value: string | null) => {
-            return this.parameterContextService.getParameterContext(parameterContextId, false).pipe(
+            return this.parameterContextService.getParameterContext(parameterContextId, false, false).pipe(
                 catchError((errorResponse: HttpErrorResponse) => {
                     this.store.dispatch(
                         ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })

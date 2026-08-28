@@ -134,12 +134,13 @@ export class ConnectorService {
 
     getConnectorParameterContext(
         connectorId: string,
-        processGroupId: string
+        processGroupId: string,
+        includeReferencingComponents: boolean
     ): Observable<ParameterContextEntity | null> {
         return this.httpClient
             .get<ParameterContextEntity>(
                 `${ConnectorService.API}/connectors/${connectorId}/flow/process-groups/${processGroupId}/parameter-context`,
-                { observe: 'response' }
+                { observe: 'response', params: { includeReferencingComponents } }
             )
             .pipe(map((response) => (response.status === 204 ? null : response.body)));
     }
