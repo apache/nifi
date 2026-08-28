@@ -21,12 +21,19 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.components.validation.VerifiableComponentFactory;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ExtensionBuilder;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.groups.ComponentScheduler;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManager;
@@ -50,6 +57,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -57,7 +65,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -234,6 +244,212 @@ class StandardControllerServiceProviderTest {
 
         final Set<String> identifiers = serviceProvider.getControllerServiceIdentifiers(ControllerService.class, connectorGroupId);
         assertTrue(identifiers.contains(serviceId));
+    }
+
+    @Test
+    void testUnscheduleReferencingComponentsStopsStatelessGroupAsUnit() {
+        final ProcessGroup statelessGroup = createGroup(ExecutionEngine.STATELESS, null);
+        final ProcessGroup standardGroup = createGroup(ExecutionEngine.STANDARD, null);
+
+        final ProcessorNode statelessProcessorA = createProcessor(statelessGroup, ScheduledState.RUNNING, ScheduledState.RUNNING);
+        final ProcessorNode statelessProcessorB = createProcessor(statelessGroup, ScheduledState.RUNNING, ScheduledState.RUNNING);
+        final ProcessorNode standardProcessor = createProcessor(standardGroup, ScheduledState.RUNNING, ScheduledState.RUNNING);
+
+        when(statelessGroup.stopProcessing()).thenReturn(CompletableFuture.completedFuture(null));
+        when(standardGroup.stopProcessor(standardProcessor)).thenReturn(CompletableFuture.completedFuture(null));
+
+        final ControllerServiceNode serviceNode = createServiceWithProcessorReferences(List.of(statelessProcessorA, statelessProcessorB, standardProcessor));
+
+        final Map<ComponentNode, Future<Void>> result = serviceProvider.unscheduleReferencingComponents(serviceNode);
+
+        // The stateless group is stopped once as a single unit; its member processors are not stopped individually.
+        verify(statelessGroup, times(1)).stopProcessing();
+        verify(statelessGroup, never()).stopProcessor(any());
+        verify(standardGroup, never()).stopProcessing();
+
+        // The standard processor is stopped directly through its process group.
+        verify(standardGroup, times(1)).stopProcessor(standardProcessor);
+
+        // Every affected processor is represented in the returned map, and the stateless members share the group's single future.
+        assertTrue(result.containsKey(statelessProcessorA));
+        assertTrue(result.containsKey(statelessProcessorB));
+        assertTrue(result.containsKey(standardProcessor));
+        assertEquals(result.get(statelessProcessorA), result.get(statelessProcessorB));
+    }
+
+    @Test
+    void testUnscheduleReferencingComponentsResolvesInheritedChildToStatelessAncestor() {
+        final ProcessGroup statelessGroup = createGroup(ExecutionEngine.STATELESS, null);
+        final ProcessGroup inheritedChild = createGroup(ExecutionEngine.INHERITED, statelessGroup);
+        final ProcessGroup inheritedGrandchild = createGroup(ExecutionEngine.INHERITED, inheritedChild);
+        final ProcessorNode childProcessor = createProcessor(inheritedGrandchild, ScheduledState.RUNNING, ScheduledState.RUNNING);
+
+        when(statelessGroup.stopProcessing()).thenReturn(CompletableFuture.completedFuture(null));
+
+        final ControllerServiceNode serviceNode = createServiceWithProcessorReferences(List.of(childProcessor));
+
+        final Map<ComponentNode, Future<Void>> result = serviceProvider.unscheduleReferencingComponents(serviceNode);
+
+        // A processor in an INHERITED child resolves up to its explicit stateless ancestor, which is stopped as a unit.
+        verify(statelessGroup, times(1)).stopProcessing();
+        verify(inheritedChild, never()).stopProcessing();
+        verify(inheritedGrandchild, never()).stopProcessing();
+        verify(inheritedGrandchild, never()).stopProcessor(any());
+        assertTrue(result.containsKey(childProcessor));
+    }
+
+    @Test
+    void testScheduleReferencingComponentsStartsStatelessGroupAsUnit() {
+        final ProcessGroup statelessGroup = createGroup(ExecutionEngine.STATELESS, null);
+        final ProcessGroup standardGroup = createGroup(ExecutionEngine.STANDARD, null);
+
+        final ProcessorNode statelessProcessorA = createProcessor(statelessGroup, ScheduledState.STOPPED, ScheduledState.STOPPED);
+        final ProcessorNode statelessProcessorB = createProcessor(statelessGroup, ScheduledState.STOPPED, ScheduledState.STOPPED);
+        final ProcessorNode standardProcessor = createProcessor(standardGroup, ScheduledState.STOPPED, ScheduledState.STOPPED);
+
+        final ControllerServiceNode serviceNode = createServiceWithProcessorReferences(List.of(statelessProcessorA, statelessProcessorB, standardProcessor));
+        final ComponentScheduler componentScheduler = mock(ComponentScheduler.class);
+
+        final Set<ComponentNode> result = serviceProvider.scheduleReferencingComponents(serviceNode, null, componentScheduler);
+
+        // The stateless group is started once as a single unit; its members are not started individually.
+        verify(componentScheduler, times(1)).startStatelessGroup(statelessGroup);
+        verify(componentScheduler, never()).startComponent(statelessProcessorA);
+        verify(componentScheduler, never()).startComponent(statelessProcessorB);
+        verify(componentScheduler, never()).startStatelessGroup(standardGroup);
+
+        // The standard processor is started directly.
+        verify(componentScheduler, times(1)).startComponent(standardProcessor);
+
+        assertTrue(result.contains(statelessProcessorA));
+        assertTrue(result.contains(statelessProcessorB));
+        assertTrue(result.contains(standardProcessor));
+    }
+
+    @Test
+    void testScheduleReferencingComponentsWithCandidateStartsOwningStatelessGroup() {
+        final ProcessGroup statelessGroup = createGroup(ExecutionEngine.STATELESS, null);
+
+        final ProcessorNode statelessProcessorA = createProcessor(statelessGroup, ScheduledState.STOPPED, ScheduledState.STOPPED);
+        final ProcessorNode statelessProcessorB = createProcessor(statelessGroup, ScheduledState.STOPPED, ScheduledState.STOPPED);
+
+        final ControllerServiceNode serviceNode = createServiceWithProcessorReferences(List.of(statelessProcessorA, statelessProcessorB));
+        final ComponentScheduler componentScheduler = mock(ComponentScheduler.class);
+
+        // Only one member of the stateless group is a candidate, but the group must still be started as a whole.
+        final Set<ComponentNode> result = serviceProvider.scheduleReferencingComponents(serviceNode, Set.of(statelessProcessorA), componentScheduler);
+
+        verify(componentScheduler, times(1)).startStatelessGroup(statelessGroup);
+        verify(componentScheduler, never()).startComponent(statelessProcessorA);
+        assertTrue(result.contains(statelessProcessorA));
+    }
+
+    @Test
+    void testUnscheduleReferencingComponentsStopsEachStatelessGroupOnce() {
+        final ProcessGroup firstGroup = createGroup(ExecutionEngine.STATELESS, null);
+        final ProcessGroup secondGroup = createGroup(ExecutionEngine.STATELESS, null);
+
+        final ProcessorNode firstMember = createProcessor(firstGroup, ScheduledState.RUNNING, ScheduledState.RUNNING);
+        final ProcessorNode secondMember = createProcessor(secondGroup, ScheduledState.RUNNING, ScheduledState.RUNNING);
+
+        when(firstGroup.stopProcessing()).thenReturn(CompletableFuture.completedFuture(null));
+        when(secondGroup.stopProcessing()).thenReturn(CompletableFuture.completedFuture(null));
+
+        final ControllerServiceNode serviceNode = createServiceWithProcessorReferences(List.of(firstMember, secondMember));
+
+        serviceProvider.unscheduleReferencingComponents(serviceNode);
+
+        // Two distinct stateless groups are each stopped exactly once.
+        verify(firstGroup, times(1)).stopProcessing();
+        verify(secondGroup, times(1)).stopProcessing();
+    }
+
+    @Test
+    void testUnscheduleReferencingComponentsStopsTopMostStatelessGroupWhenNested() {
+        final ProcessGroup root = createGroup(ExecutionEngine.STANDARD, null);
+        final ProcessGroup inheritedChild = createGroup(ExecutionEngine.INHERITED, root);
+        final ProcessGroup outer = createGroup(ExecutionEngine.STATELESS, inheritedChild);
+        final ProcessGroup middle = createGroup(ExecutionEngine.STATELESS, outer);
+        final ProcessGroup inner = createGroup(ExecutionEngine.STATELESS, middle);
+
+        final ProcessorNode innerProcessor = createProcessor(inner, ScheduledState.RUNNING, ScheduledState.RUNNING);
+
+        when(outer.stopProcessing()).thenReturn(CompletableFuture.completedFuture(null));
+
+        final ControllerServiceNode serviceNode = createServiceWithProcessorReferences(List.of(innerProcessor));
+
+        final Map<ComponentNode, Future<Void>> result = serviceProvider.unscheduleReferencingComponents(serviceNode);
+
+        // stopProcessing() on a nested stateless group is a no-op that still returns a completed future, so stopping the
+        // wrong group would leave it running while the caller believes the stop succeeded.
+        verify(outer, times(1)).stopProcessing();
+        verify(middle, never()).stopProcessing();
+        verify(inner, never()).stopProcessing();
+        verify(inner, never()).stopProcessor(any());
+        assertTrue(result.containsKey(innerProcessor));
+    }
+
+    @Test
+    void testScheduleReferencingComponentsStartsTopMostStatelessGroupWhenNested() {
+        final ProcessGroup root = createGroup(ExecutionEngine.STANDARD, null);
+        final ProcessGroup inheritedChild = createGroup(ExecutionEngine.INHERITED, root);
+        final ProcessGroup outer = createGroup(ExecutionEngine.STATELESS, inheritedChild);
+        final ProcessGroup middle = createGroup(ExecutionEngine.STATELESS, outer);
+        final ProcessGroup inner = createGroup(ExecutionEngine.STATELESS, middle);
+
+        final ProcessorNode innerProcessor = createProcessor(inner, ScheduledState.STOPPED, ScheduledState.STOPPED);
+
+        final ControllerServiceNode serviceNode = createServiceWithProcessorReferences(List.of(innerProcessor));
+        final ComponentScheduler componentScheduler = mock(ComponentScheduler.class);
+
+        final Set<ComponentNode> result = serviceProvider.scheduleReferencingComponents(serviceNode, null, componentScheduler);
+
+        verify(componentScheduler, times(1)).startStatelessGroup(outer);
+        verify(componentScheduler, never()).startStatelessGroup(middle);
+        verify(componentScheduler, never()).startStatelessGroup(inner);
+        verify(componentScheduler, never()).startComponent(innerProcessor);
+        assertTrue(result.contains(innerProcessor));
+    }
+
+    private ProcessGroup createGroup(final ExecutionEngine executionEngine, final ProcessGroup parent) {
+        // Resolve before stubbing: reading the parent mock inside an in-progress when(...) trips Mockito's
+        // unfinished-stubbing detection.
+        final ExecutionEngine resolvedExecutionEngine = resolveExecutionEngine(executionEngine, parent);
+
+        final ProcessGroup group = mock(ProcessGroup.class);
+        lenient().when(group.getParent()).thenReturn(parent);
+        lenient().when(group.resolveExecutionEngine()).thenReturn(resolvedExecutionEngine);
+        return group;
+    }
+
+    /**
+     * Mirrors {@code StandardProcessGroup.resolveExecutionEngine()}. Callers must create a parent before its children
+     * so that the parent's stubbed resolution is already in place.
+     */
+    private ExecutionEngine resolveExecutionEngine(final ExecutionEngine executionEngine, final ProcessGroup parent) {
+        if (executionEngine != ExecutionEngine.INHERITED) {
+            return executionEngine;
+        }
+
+        return parent == null ? ExecutionEngine.STANDARD : parent.resolveExecutionEngine();
+    }
+
+    private ProcessorNode createProcessor(final ProcessGroup group, final ScheduledState scheduledState, final ScheduledState physicalState) {
+        final ProcessorNode processor = mock(ProcessorNode.class);
+        lenient().when(processor.getProcessGroup()).thenReturn(group);
+        lenient().when(processor.getScheduledState()).thenReturn(scheduledState);
+        lenient().when(processor.getPhysicalScheduledState()).thenReturn(physicalState);
+        return processor;
+    }
+
+    private ControllerServiceNode createServiceWithProcessorReferences(final List<ProcessorNode> processors) {
+        final ControllerServiceNode serviceNode = mock(ControllerServiceNode.class);
+        final ControllerServiceReference reference = mock(ControllerServiceReference.class);
+        when(serviceNode.getReferences()).thenReturn(reference);
+        when(reference.findRecursiveReferences(ProcessorNode.class)).thenReturn(processors);
+        when(reference.findRecursiveReferences(ReportingTaskNode.class)).thenReturn(Collections.emptyList());
+        when(reference.findRecursiveReferences(FlowAnalysisRuleNode.class)).thenReturn(Collections.emptyList());
+        return serviceNode;
     }
 
     private ControllerServiceNode createControllerService(

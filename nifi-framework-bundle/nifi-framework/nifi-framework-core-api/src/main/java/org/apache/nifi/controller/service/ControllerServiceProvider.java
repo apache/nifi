@@ -134,7 +134,15 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      * Controller services that reference this one, its schedulable referencing
      * components will also be unscheduled.
      *
+     * A referencing processor that belongs to a stateless process group is not
+     * stopped individually; instead its owning stateless group is stopped as a
+     * single unit, and the group's single stop {@link Future} is mapped to every
+     * affected processor in that group in the returned map.
+     *
      * @param serviceNode the node
+     *
+     * @return a map of each affected component to the {@link Future} that
+     * completes when the component (or its stateless group) has stopped
      */
     Map<ComponentNode, Future<Void>> unscheduleReferencingComponents(ControllerServiceNode serviceNode);
 
@@ -199,12 +207,19 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      * recursively, so if a Processor is referencing Service A, which is
      * referencing serviceNode, then the Processor will also be started.
      *
+     * A referencing processor that belongs to a stateless process group is not
+     * started individually; instead its owning stateless group is started as a
+     * single unit. Each affected stateless group is started at most once even
+     * when several of its processors reference the service.
+     *
      * @param serviceNode the node
      */
     Set<ComponentNode> scheduleReferencingComponents(ControllerServiceNode serviceNode);
 
     /**
      * Schedules any of the candidate components that are currently referencing the given Controller Service to run.
+     * A candidate processor that belongs to a stateless process group causes its owning stateless group to be started
+     * as a single unit; the group is started once even if only one of its processors is among the candidates.
      * @return the components that were scheduled
      */
     Set<ComponentNode> scheduleReferencingComponents(ControllerServiceNode serviceNode, Set<ComponentNode> candidates, ComponentScheduler componentScheduler);

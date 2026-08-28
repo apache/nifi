@@ -27,6 +27,7 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.events.BulletinFactory;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.groups.ComponentScheduler;
 import org.apache.nifi.groups.DefaultComponentScheduler;
 import org.apache.nifi.groups.ProcessGroup;
@@ -148,17 +149,27 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             }
         }
 
-        // start all of the components that are not disabled
+        // A processor in a stateless group is started through its group (the group is a single scheduling unit), and
+        // each stateless group is started at most once.
         final Set<ComponentNode> updated = new HashSet<>();
+        final Set<ProcessGroup> startedStatelessGroups = new HashSet<>();
         for (final ProcessorNode node : processors) {
             if (candidates != null && !candidates.contains(node)) {
                 continue;
             }
 
-            if (node.getScheduledState() != ScheduledState.DISABLED) {
-                componentScheduler.startComponent(node);
-                updated.add(node);
+            if (node.getScheduledState() == ScheduledState.DISABLED) {
+                continue;
             }
+
+            final ProcessGroup statelessGroup = getTopMostStatelessGroup(node.getProcessGroup());
+            if (statelessGroup == null) {
+                componentScheduler.startComponent(node);
+            } else if (startedStatelessGroups.add(statelessGroup)) {
+                componentScheduler.startStatelessGroup(statelessGroup);
+            }
+
+            updated.add(node);
         }
         for (final ReportingTaskNode node : reportingTasks) {
             if (candidates != null && !candidates.contains(node)) {
@@ -194,15 +205,30 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         final Map<ComponentNode, Future<Void>> updated = new HashMap<>();
 
+        // A processor in a stateless group is stopped through the group (a single scheduling unit); standard processors
+        // are stopped individually.
+        final Map<ProcessGroup, List<ProcessorNode>> statelessMembersByGroup = new HashMap<>();
+        final List<ProcessorNode> standardProcessors = new ArrayList<>();
+        for (final ProcessorNode node : processors) {
+            if (!isRunningOrStarting(node)) {
+                continue;
+            }
+
+            final ProcessGroup statelessGroup = getTopMostStatelessGroup(node.getProcessGroup());
+            if (statelessGroup == null) {
+                standardProcessors.add(node);
+            } else {
+                statelessMembersByGroup.computeIfAbsent(statelessGroup, group -> new ArrayList<>()).add(node);
+            }
+        }
+
         // verify that we can stop all components (that are running or starting) before doing anything
         // Note: We check both RUNNING and STARTING states because a processor might be stuck in STARTING
         // state if it references an invalid controller service (e.g., after a restart when the controller
         // service configuration became invalid). Such processors need to be stopped before the controller
-        // service can be disabled.
-        for (final ProcessorNode node : processors) {
-            if (isRunningOrStarting(node)) {
-                node.verifyCanStop();
-            }
+        // service can be disabled. Stateless-group members are verified and stopped through their group.
+        for (final ProcessorNode node : standardProcessors) {
+            node.verifyCanStop();
         }
         for (final ReportingTaskNode node : reportingTasks) {
             if (isRunningOrStarting(node)) {
@@ -215,12 +241,18 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             }
         }
 
-        // stop all of the components that are running or starting
-        for (final ProcessorNode node : processors) {
-            if (isRunningOrStarting(node)) {
-                final Future<Void> future = node.getProcessGroup().stopProcessor(node);
-                updated.put(node, future);
+        // stop each stateless group once as a single unit, mapping the group's single future to every affected member
+        for (final Map.Entry<ProcessGroup, List<ProcessorNode>> entry : statelessMembersByGroup.entrySet()) {
+            final Future<Void> future = entry.getKey().stopProcessing();
+            for (final ProcessorNode member : entry.getValue()) {
+                updated.put(member, future);
             }
+        }
+
+        // stop the standard processors
+        for (final ProcessorNode node : standardProcessors) {
+            final Future<Void> future = node.getProcessGroup().stopProcessor(node);
+            updated.put(node, future);
         }
         for (final ReportingTaskNode node : reportingTasks) {
             if (isRunningOrStarting(node)) {
@@ -262,6 +294,27 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     private boolean isRunningOrStarting(final ReportingTaskNode node) {
         final ScheduledState scheduledState = node.getScheduledState();
         return scheduledState == ScheduledState.RUNNING || scheduledState == ScheduledState.STARTING;
+    }
+
+    /**
+     * Returns the top-most Process Group that runs using the Stateless Engine and contains the given Process Group, or
+     * {@code null} if the given Process Group is {@code null} or does not run using the Stateless Engine. Only the
+     * top-most stateless group may be started or stopped directly; {@link ProcessGroup#startProcessing()} and
+     * {@link ProcessGroup#stopProcessing()} are no-ops on a nested stateless group.
+     */
+    private ProcessGroup getTopMostStatelessGroup(final ProcessGroup start) {
+        ProcessGroup topMost = null;
+
+        // a Standard-Engine group cannot be a child of a stateless group, so the stateless chain is contiguous
+        for (ProcessGroup group = start; group != null; group = group.getParent()) {
+            if (group.resolveExecutionEngine() != ExecutionEngine.STATELESS) {
+                break;
+            }
+
+            topMost = group;
+        }
+
+        return topMost;
     }
 
     @Override
