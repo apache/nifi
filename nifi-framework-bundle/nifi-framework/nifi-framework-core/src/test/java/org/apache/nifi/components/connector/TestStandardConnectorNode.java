@@ -85,6 +85,8 @@ import static org.mockito.Mockito.when;
 
 public class TestStandardConnectorNode {
 
+    private static final long STOP_NOT_EXPECTED_MILLIS = 250L;
+
     private FlowEngine scheduler;
 
     @Mock
@@ -98,11 +100,13 @@ public class TestStandardConnectorNode {
 
     private FlowContextFactory flowContextFactory;
     private StateManagerProvider stateManagerProvider;
+    private StartBlockingConnector startBlockingConnector;
 
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-        scheduler = new FlowEngine(1, "flow-engine");
+        // Multiple Threads configured to support concurrent lifecycle operations
+        scheduler = new FlowEngine(2, "flow-engine");
         stateManagerProvider = new MockStateManagerProvider();
 
         when(managedProcessGroup.purge()).thenReturn(CompletableFuture.completedFuture(null));
@@ -135,6 +139,10 @@ public class TestStandardConnectorNode {
 
     @AfterEach
     public void teardown() {
+        if (startBlockingConnector != null) {
+            startBlockingConnector.releaseStart();
+        }
+
         if (scheduler != null) {
             scheduler.close();
         }
@@ -295,6 +303,63 @@ public class TestStandardConnectorNode {
         assertEquals(ConnectorState.RUNNING, connectorNode.getCurrentState());
         assertTrue(stopFuture.isDone());
         assertTrue(startFuture.isDone());
+    }
+
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    public void testStopWhileStartingStopsConnectorOnceStartCompletes() throws Exception {
+        final StartBlockingConnector connector = createStartBlockingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        final Future<Void> startFuture = connectorNode.start(scheduler);
+        assertTrue(connector.awaitStartEntered(5, TimeUnit.SECONDS));
+        assertEquals(ConnectorState.STARTING, connectorNode.getCurrentState());
+
+        final Future<Void> stopFuture = connectorNode.stop(scheduler);
+        assertEquals(ConnectorState.STOPPING, connectorNode.getCurrentState());
+        assertEquals(ConnectorState.STOPPED, connectorNode.getDesiredState());
+
+        // The Connector must not be stopped while its start is still in progress. The stop is carried out by the
+        // thread performing the start, once that start has finished, so the Connector remains blocked in start and
+        // in the STOPPING state for as long as the start is held.
+        assertFalse(connector.awaitStopEntered(STOP_NOT_EXPECTED_MILLIS, TimeUnit.MILLISECONDS));
+        assertEquals(ConnectorState.STOPPING, connectorNode.getCurrentState());
+
+        connector.releaseStart();
+
+        stopFuture.get(5, TimeUnit.SECONDS);
+        startFuture.get(5, TimeUnit.SECONDS);
+
+        // A start that finishes after a stop has been requested must not leave the Connector reporting RUNNING.
+        assertFalse(connector.wasStoppedWhileStarting());
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+        assertEquals(ConnectorState.STOPPED, connectorNode.getDesiredState());
+    }
+
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    public void testStartWhileStopIsPendingForInFlightStartLeavesConnectorRunning() throws Exception {
+        final StartBlockingConnector connector = createStartBlockingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        connectorNode.start(scheduler);
+        assertTrue(connector.awaitStartEntered(5, TimeUnit.SECONDS));
+
+        final Future<Void> stopFuture = connectorNode.stop(scheduler);
+        assertEquals(ConnectorState.STOPPING, connectorNode.getCurrentState());
+
+        // The desired state returns to RUNNING before the deferred stop has been carried out, so the Connector must be
+        // stopped and then started again rather than being left in STOPPING.
+        final Future<Void> restartFuture = connectorNode.start(scheduler);
+        assertEquals(ConnectorState.RUNNING, connectorNode.getDesiredState());
+
+        connector.releaseStart();
+
+        stopFuture.get(5, TimeUnit.SECONDS);
+        restartFuture.get(5, TimeUnit.SECONDS);
+
+        assertEquals(ConnectorState.RUNNING, connectorNode.getCurrentState());
+        assertEquals(ConnectorState.RUNNING, connectorNode.getDesiredState());
     }
 
     @Test
@@ -1287,6 +1352,11 @@ public class TestStandardConnectorNode {
         return createConnectorNode(sleepingConnector);
     }
 
+    private StartBlockingConnector createStartBlockingConnector() {
+        startBlockingConnector = new StartBlockingConnector();
+        return startBlockingConnector;
+    }
+
     private StandardConnectorNode createConnectorNode(final Connector connector) throws FlowUpdateException {
         final SecretsManager defaultSecretsManager = mock(SecretsManager.class);
         when(defaultSecretsManager.getAllSecrets()).thenReturn(List.of());
@@ -1963,6 +2033,95 @@ public class TestStandardConnectorNode {
         @Override
         public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
             return List.of();
+        }
+    }
+
+    /**
+     * Test connector whose start blocks until it is explicitly released, and which records whether its stop was
+     * invoked while a start was still in progress. Used to exercise the interleaving of a stop request with an
+     * in-flight start.
+     */
+    private static class StartBlockingConnector extends AbstractConnector {
+        private static final long MAX_START_BLOCK_SECONDS = 30L;
+
+        private final CountDownLatch startEnteredLatch = new CountDownLatch(1);
+        private final CountDownLatch startReleaseLatch = new CountDownLatch(1);
+        private final CountDownLatch stopEnteredLatch = new CountDownLatch(1);
+        private volatile boolean starting = false;
+        private volatile boolean stoppedWhileStarting = false;
+
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return getInitialFlow();
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            return List.of();
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+
+        @Override
+        public void start(final FlowContext activeContext) throws FlowUpdateException {
+            starting = true;
+            startEnteredLatch.countDown();
+
+            // The wait is bounded so that a test which fails before releasing the start cannot leave a scheduler
+            // thread blocked indefinitely, which would hang shutdown of the scheduler during teardown.
+            try {
+                startReleaseLatch.await(MAX_START_BLOCK_SECONDS, TimeUnit.SECONDS);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new FlowUpdateException(e);
+            } finally {
+                starting = false;
+            }
+        }
+
+        @Override
+        public void stop(final FlowContext activeContext) {
+            if (starting) {
+                stoppedWhileStarting = true;
+            }
+
+            stopEnteredLatch.countDown();
+        }
+
+        public boolean awaitStartEntered(final long timeout, final TimeUnit unit) throws InterruptedException {
+            return startEnteredLatch.await(timeout, unit);
+        }
+
+        public boolean awaitStopEntered(final long timeout, final TimeUnit unit) throws InterruptedException {
+            return stopEnteredLatch.await(timeout, unit);
+        }
+
+        public void releaseStart() {
+            startReleaseLatch.countDown();
+        }
+
+        public boolean wasStoppedWhileStarting() {
+            return stoppedWhileStarting;
         }
     }
 
