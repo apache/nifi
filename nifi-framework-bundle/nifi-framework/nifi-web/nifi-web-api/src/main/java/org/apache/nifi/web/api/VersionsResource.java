@@ -42,6 +42,8 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizeFlowUpdate;
+import org.apache.nifi.authorization.AuthorizeFlowUpdate.UnresolvedReferences;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -877,7 +879,10 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                     + NON_GUARANTEED_ENDPOINT,
             security = {
                     @SecurityRequirement(name = "Read - /process-groups/{uuid}"),
-                    @SecurityRequirement(name = "Write - /process-groups/{uuid}")
+                    @SecurityRequirement(name = "Write - /process-groups/{uuid}"),
+                    @SecurityRequirement(name = "Read - /{component-type}/{uuid} - For all encapsulated components"),
+                    @SecurityRequirement(name = "Write - /{component-type}/{uuid} - For all encapsulated components"),
+                    @SecurityRequirement(name = "Read - /parameter-contexts/{uuid} - For any Parameter Context that is referenced by a Property that is changed, added, or removed")
             }
     )
     public Response updateFlowVersion(
@@ -922,12 +927,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                 serviceFacade,
                 requestEntity,
                 requestRevision,
-                lookup -> {
-                    final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
-                    final Authorizable processGroup = groupAuthorizable.getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-                    processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                },
+                lookup -> AuthorizeFlowUpdate.resolveAndAuthorizeFlowUpdate(groupId, requestFlowSnapshot, serviceFacade, authorizer, lookup, NiFiUserUtils.getNiFiUser()),
                 () -> {
                     // We do not enforce that the Process Group is 'not dirty' because at this point,
                     // the client has explicitly indicated the dataflow that the Process Group should
@@ -978,7 +978,10 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                     + NON_GUARANTEED_ENDPOINT,
             security = {
                     @SecurityRequirement(name = "Read - /process-groups/{uuid}"),
-                    @SecurityRequirement(name = "Write - /process-groups/{uuid}")
+                    @SecurityRequirement(name = "Write - /process-groups/{uuid}"),
+                    @SecurityRequirement(name = "Read - /{component-type}/{uuid} - For all encapsulated components"),
+                    @SecurityRequirement(name = "Write - /{component-type}/{uuid} - For all encapsulated components"),
+                    @SecurityRequirement(name = "Read - /parameter-contexts/{uuid} - For any Parameter Context that is referenced by a Property that is changed, added, or removed")
             }
     )
     public Response applyRebasedFlowVersion(
@@ -1023,12 +1026,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                 serviceFacade,
                 requestEntity,
                 requestRevision,
-                lookup -> {
-                    final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
-                    final Authorizable processGroup = groupAuthorizable.getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-                    processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                },
+                lookup -> AuthorizeFlowUpdate.resolveAndAuthorizeFlowUpdate(groupId, requestFlowSnapshot, serviceFacade, authorizer, lookup, NiFiUserUtils.getNiFiUser()),
                 () -> {
                     // We do not enforce that the Process Group is 'not dirty' because a rebase intentionally applies
                     // over locally modified flows.
@@ -1510,17 +1508,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         // Step 0: Get the Versioned Flow Snapshot from the Flow Registry
         final FlowSnapshotContainer flowSnapshotContainer = serviceFacade.getVersionedFlowSnapshot(requestEntity.getVersionControlInformation(), true);
         final RegisteredFlowSnapshot flowSnapshot = flowSnapshotContainer.getFlowSnapshot();
-
-        // The flow in the registry may not contain the same versions of components that we have in our flow. As a result, we need to update
-        // the flow snapshot to contain compatible bundles.
-        serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
-        serviceFacade.discoverCompatibleBundles(flowSnapshot.getParameterProviders());
-
-        // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
-        final Set<String> unresolvedControllerServices = serviceFacade.resolveInheritedControllerServices(flowSnapshotContainer, groupId, NiFiUserUtils.getNiFiUser());
-
-        // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
-        final Set<String> unresolvedParameterProviders = serviceFacade.resolveParameterProviders(flowSnapshot, NiFiUserUtils.getNiFiUser());
+        final UnresolvedReferences unresolvedReferences = AuthorizeFlowUpdate.resolveReferences(groupId, flowSnapshotContainer, serviceFacade, user);
 
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByFlowUpdate(groupId, flowSnapshot);
@@ -1535,7 +1523,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                 serviceFacade,
                 requestWrapper,
                 requestRevision,
-                lookup -> authorizeFlowUpdate(lookup, user, groupId, flowSnapshot, unresolvedControllerServices, unresolvedParameterProviders),
+                lookup -> AuthorizeFlowUpdate.authorizeFlowUpdate(groupId, flowSnapshot, unresolvedReferences, serviceFacade, authorizer, lookup, user),
                 () -> {
                     // Step 3: Verify that all components in the snapshot exist on all nodes
                     // Step 4: Verify that Process Group is already under version control. If not, must start Version Control instead of updating flow

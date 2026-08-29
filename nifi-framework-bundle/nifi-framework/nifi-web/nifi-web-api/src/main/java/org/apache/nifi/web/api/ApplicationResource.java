@@ -34,6 +34,7 @@ import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.AuthorizeParameterReference;
+import org.apache.nifi.authorization.AuthorizeProcessGroup;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
@@ -430,69 +431,28 @@ public abstract class ApplicationResource {
      * @param authorizeParameterReferences whether to authorize parameter context that contained referenced parameter if applicable
      * @param authorizeParameterContext whether to authorize the bound parameter context if applicable
      */
-    protected void authorizeProcessGroup(final ProcessGroupAuthorizable processGroupAuthorizable, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
-                                         final boolean authorizeReferencedServices,
-                                         final boolean authorizeControllerServices, final boolean authorizeTransitiveServices,
-                                         final boolean authorizeParameterReferences, final boolean authorizeParameterContext) {
-
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, user);
-
-        // authorize the process group
-        authorize.accept(processGroupAuthorizable.getAuthorizable());
-
-        // authorize the parameter context for the specified process group
-        if (authorizeParameterContext) {
-            processGroupAuthorizable.getParameterContextAuthorizable().ifPresent(authorize);
-        }
-
-        // authorize the contents of the group - these methods return all encapsulated components (recursive)
-        processGroupAuthorizable.getEncapsulatedProcessors().forEach(processorAuthorizable -> {
-            // authorize the processor
-            authorize.accept(processorAuthorizable.getAuthorizable());
-
-            // authorize any referenced services if necessary
-            if (authorizeReferencedServices) {
-                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup, authorizeTransitiveServices);
-            }
-
-            // authorize any referenced parameters if necessary
-            if (authorizeParameterReferences) {
-                AuthorizeParameterReference.authorizeParameterReferences(processorAuthorizable, authorizer, processorAuthorizable.getParameterContext(), user);
-            }
-        });
-        processGroupAuthorizable.getEncapsulatedConnections().stream().map(connection -> connection.getAuthorizable()).forEach(authorize);
-        processGroupAuthorizable.getEncapsulatedInputPorts().forEach(authorize);
-        processGroupAuthorizable.getEncapsulatedOutputPorts().forEach(authorize);
-        processGroupAuthorizable.getEncapsulatedFunnels().forEach(authorize);
-        processGroupAuthorizable.getEncapsulatedLabels().forEach(authorize);
-        processGroupAuthorizable.getEncapsulatedProcessGroups().forEach(pga -> {
-            final Authorizable authorizable = pga.getAuthorizable();
-
-            authorize.accept(authorizable);
-
-            if (authorizeParameterContext) {
-                pga.getParameterContextAuthorizable().ifPresent(authorize);
-            }
-        });
-        processGroupAuthorizable.getEncapsulatedRemoteProcessGroups().forEach(authorize);
-
-        // authorize controller services if necessary
-        if (authorizeControllerServices) {
-            processGroupAuthorizable.getEncapsulatedControllerServices().forEach(controllerServiceAuthorizable -> {
-                // authorize the controller service
-                authorize.accept(controllerServiceAuthorizable.getAuthorizable());
-
-                // authorize any referenced services if necessary
-                if (authorizeReferencedServices) {
-                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(controllerServiceAuthorizable, authorizer, lookup, authorizeTransitiveServices);
-                }
-
-                if (authorizeParameterReferences) {
-                    AuthorizeParameterReference.authorizeParameterReferences(controllerServiceAuthorizable, authorizer, controllerServiceAuthorizable.getParameterContext(), user);
-                }
-            });
-        }
+    protected void authorizeProcessGroup(
+            final ProcessGroupAuthorizable processGroupAuthorizable,
+            final Authorizer authorizer,
+            final AuthorizableLookup lookup,
+            final RequestAction action,
+            final boolean authorizeReferencedServices,
+            final boolean authorizeControllerServices,
+            final boolean authorizeTransitiveServices,
+            final boolean authorizeParameterReferences,
+            final boolean authorizeParameterContext
+    ) {
+        AuthorizeProcessGroup.authorizeProcessGroup(
+                processGroupAuthorizable,
+                authorizer,
+                lookup,
+                action,
+                authorizeReferencedServices,
+                authorizeControllerServices,
+                authorizeTransitiveServices,
+                authorizeParameterReferences,
+                authorizeParameterContext
+        );
     }
 
     /**
