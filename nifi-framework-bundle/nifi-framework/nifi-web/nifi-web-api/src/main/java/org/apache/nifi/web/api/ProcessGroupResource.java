@@ -48,6 +48,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeComponentReference;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.AuthorizeFlowUpdate;
 import org.apache.nifi.authorization.AuthorizeParameterProviders;
 import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.ConnectionAuthorizable;
@@ -3275,7 +3276,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     + NON_GUARANTEED_ENDPOINT,
             security = {
                     @SecurityRequirement(name = "Read - /process-groups/{uuid}"),
-                    @SecurityRequirement(name = "Write - /process-groups/{uuid}")
+                    @SecurityRequirement(name = "Write - /process-groups/{uuid}"),
+                    @SecurityRequirement(name = "Read - /{component-type}/{uuid} - For all encapsulated components"),
+                    @SecurityRequirement(name = "Write - /{component-type}/{uuid} - For all encapsulated components"),
+                    @SecurityRequirement(name = "Read - /parameter-contexts/{uuid} - For any Parameter Context that is referenced by a Property that is changed, added, or removed")
             }
     )
     public Response replaceProcessGroup(
@@ -3316,12 +3320,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                 serviceFacade,
                 importEntity,
                 requestRevision,
-                lookup -> {
-                    final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
-                    final Authorizable processGroup = groupAuthorizable.getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-                    processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                },
+                lookup -> AuthorizeFlowUpdate.resolveAndAuthorizeFlowUpdate(groupId, requestFlowSnapshot, serviceFacade, authorizer, lookup, NiFiUserUtils.getNiFiUser()),
                 () -> {
                     // We do not enforce that the Process Group is 'not dirty' because at this point,
                     // the client has explicitly indicated the dataflow that the Process Group should
