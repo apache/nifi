@@ -53,6 +53,7 @@ public class ExecuteCQLQueryCallback implements CQLQueryCallback {
     private FlowFile currentFlowFile;
 
     private int fragmentIndex;
+    private long currentRecordCount;
     private UUID fragmentId;
 
     public ExecuteCQLQueryCallback(FlowFile parentFlowFile,
@@ -72,6 +73,7 @@ public class ExecuteCQLQueryCallback implements CQLQueryCallback {
 
         this.flowFileBatch = new ArrayList<>();
         this.fragmentIndex = 0;
+        this.currentRecordCount = 0L;
         this.fragmentId = UUID.randomUUID();
     }
 
@@ -87,7 +89,8 @@ public class ExecuteCQLQueryCallback implements CQLQueryCallback {
         Map<String, String> attributes = Map.of(
                 FragmentAttributes.FRAGMENT_ID.key(), fragmentId.toString(),
                 FragmentAttributes.FRAGMENT_INDEX.key(), String.valueOf(fragmentIndex++),
-                "mime.type", recordWriter.getMimeType());
+                "mime.type", recordWriter.getMimeType(),
+                "record.count", String.valueOf(currentRecordCount));
 
         this.currentFlowFile = session.putAllAttributes(currentFlowFile, attributes);
         flowFileBatch.add(currentFlowFile);
@@ -138,6 +141,7 @@ public class ExecuteCQLQueryCallback implements CQLQueryCallback {
                 recordWriter.close();
 
                 updateFlowFileAttributes();
+                currentRecordCount = 0L;
 
                 if (commitImmediately && flowFileBatch.size() == flowFilesPerBatch) {
                     session.transfer(flowFileBatch, REL_SUCCESS);
@@ -187,6 +191,7 @@ public class ExecuteCQLQueryCallback implements CQLQueryCallback {
 
         try {
             recordWriter.write(result);
+            this.currentRecordCount++;
 
             if (!hasMore) {
                 recordWriter.finishRecordSet();
