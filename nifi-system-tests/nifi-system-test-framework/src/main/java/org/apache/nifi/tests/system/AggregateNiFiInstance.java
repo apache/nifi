@@ -25,7 +25,7 @@ import java.util.Optional;
 import java.util.Properties;
 import javax.net.ssl.SSLContext;
 
-public class AggregateNiFiInstance implements NiFiInstance {
+class AggregateNiFiInstance implements NiFiInstance {
     private final List<NiFiInstance> instances;
 
     public AggregateNiFiInstance(final List<NiFiInstance> instances) {

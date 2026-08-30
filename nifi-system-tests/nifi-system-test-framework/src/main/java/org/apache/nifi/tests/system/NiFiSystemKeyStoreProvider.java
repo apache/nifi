@@ -44,7 +44,7 @@ import javax.security.auth.x500.X500Principal;
 /**
  * System Key Store Provider generates a Key Pair and Certificate for KeyStore and TrustStore files
  */
-public class NiFiSystemKeyStoreProvider {
+class NiFiSystemKeyStoreProvider {
     private static final String HOSTNAME = "localhost";
 
     private static final List<String> DNS_NAMES = Collections.singletonList(HOSTNAME);

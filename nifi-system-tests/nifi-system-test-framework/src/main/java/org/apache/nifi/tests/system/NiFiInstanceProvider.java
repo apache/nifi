@@ -19,7 +19,7 @@ package org.apache.nifi.tests.system;
 /**
  * Provider for configured NiFi instances
  */
-public interface NiFiInstanceProvider {
+interface NiFiInstanceProvider {
     /**
      * Get configured NiFi instance or null when not configured
      *

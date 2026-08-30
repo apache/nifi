@@ -39,7 +39,7 @@ import java.util.Optional;
  *   <li>{@code TestWatcher.testFailed()} - Too late for live diagnostics</li>
  * </ol>
  */
-public class TroubleshootingTestWatcher implements TestWatcher, AfterTestExecutionCallback {
+class TroubleshootingTestWatcher implements TestWatcher, AfterTestExecutionCallback {
     private static final Logger logger = LoggerFactory.getLogger(TroubleshootingTestWatcher.class);
     private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(TroubleshootingTestWatcher.class);
     private static final String QUARANTINE_DIR_KEY = "quarantineDir";

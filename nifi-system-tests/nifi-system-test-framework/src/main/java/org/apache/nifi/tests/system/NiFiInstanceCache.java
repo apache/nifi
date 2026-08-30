@@ -28,7 +28,7 @@ import java.util.Optional;
 import java.util.Properties;
 import javax.net.ssl.SSLContext;
 
-public class NiFiInstanceCache {
+class NiFiInstanceCache {
     private static final Logger logger = LoggerFactory.getLogger(NiFiInstanceCache.class);
 
     private final CachedInstance standaloneInstance = new CachedInstance();
