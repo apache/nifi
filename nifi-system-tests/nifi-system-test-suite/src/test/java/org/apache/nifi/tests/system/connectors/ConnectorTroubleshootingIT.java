@@ -18,7 +18,6 @@
 package org.apache.nifi.tests.system.connectors;
 
 import jakarta.ws.rs.WebApplicationException;
-import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
@@ -85,7 +84,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         getClientUtil().waitForValidConnector(connectorId);
 
         getClientUtil().enterTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         final List<ProcessorEntity> statelessProcessors = findStatelessProcessors(connectorId);
         assertEquals(4, statelessProcessors.size(), "Stateless groups should contain exactly four processors");
@@ -131,10 +130,10 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         getClientUtil().disableControllerServices(managedGroupId, true);
 
         getClientUtil().endTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.STOPPED);
+        assertConnectorState(connectorId, CONNECTOR_STATE_STOPPED);
 
         getClientUtil().startConnector(connectorId);
-        assertConnectorState(connectorId, ConnectorState.RUNNING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_RUNNING);
     }
 
     /**
@@ -155,7 +154,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         final String originalSchedulingPeriod = originalProcessor.getComponent().getConfig().getSchedulingPeriod();
 
         getClientUtil().enterTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         final ProcessorEntity fetchedProcessor = getNifiClient().getProcessorClient().getProcessor(originalProcessor.getId());
         assertNotNull(fetchedProcessor);
@@ -165,7 +164,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         assertEquals("42 sec", updatedProcessor.getComponent().getConfig().getSchedulingPeriod());
 
         getClientUtil().endTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.STOPPED);
+        assertConnectorState(connectorId, CONNECTOR_STATE_STOPPED);
 
         // The flow configuration history must be reachable when the Connector is no longer in Troubleshooting, even
         // though earlier action entries reference the processor inside the managed flow that was modified above.
@@ -181,7 +180,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
                 "Scheduling period should be restored to authoritative value");
 
         getClientUtil().startConnector(connectorId);
-        assertConnectorState(connectorId, ConnectorState.RUNNING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_RUNNING);
     }
 
     /**
@@ -222,14 +221,14 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
             assertConflict(e);
         }
 
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         final OptionalInt queuedBeforeRestart = getQueuedCount(connectorId, connectionId);
         assertTrue(queuedBeforeRestart.isPresent(), "Connection must be present before restart");
 
         restartNiFi();
 
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
         final OptionalInt queuedAfterRestart = getQueuedCount(connectorId, connectionId);
         assertTrue(queuedAfterRestart.isPresent(), "Connection must still be present after restart");
         assertEquals(queuedBeforeRestart.getAsInt(), queuedAfterRestart.getAsInt(),
@@ -239,7 +238,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         waitForQueuedFlowFiles(connectorId, connectionId, 0);
 
         getClientUtil().endTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.STOPPED);
+        assertConnectorState(connectorId, CONNECTOR_STATE_STOPPED);
 
         final List<String> processorIdsAfterRestore = findAllProcessors(connectorId).stream()
                 .map(ProcessorEntity::getId)
@@ -340,7 +339,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
 
         restartNiFi();
 
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
         for (final String id : startedProcessorIds) {
             waitForProcessorState(id, ScheduledState.RUNNING);
         }
@@ -360,13 +359,13 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         getClientUtil().applyConnectorUpdate(connector);
         getClientUtil().waitForValidConnector(connectorId);
         getClientUtil().startConnector(connectorId);
-        assertConnectorState(connectorId, ConnectorState.RUNNING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_RUNNING);
 
         final List<ProcessorEntity> runningBeforeTroubleshooting = findProcessorsInState(connectorId, ScheduledState.RUNNING);
         assertFalse(runningBeforeTroubleshooting.isEmpty(), "Expected at least one processor to be RUNNING before entering Troubleshooting");
 
         getClientUtil().enterTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         for (final ProcessorEntity processor : runningBeforeTroubleshooting) {
             final ProcessorEntity refreshed = getNifiClient().getProcessorClient().getProcessor(processor.getId());
@@ -376,7 +375,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
 
         restartNiFi();
 
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
         for (final ProcessorEntity processor : runningBeforeTroubleshooting) {
             waitForProcessorState(processor.getId(), ScheduledState.RUNNING);
         }
@@ -396,7 +395,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         getClientUtil().waitForValidConnector(connectorId);
 
         getClientUtil().enterTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         assertConflictExpected("startConnector", () -> {
             final ConnectorEntity entity = getNifiClient().getConnectorClient().getConnector(connectorId);
@@ -426,10 +425,10 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         });
 
         getClientUtil().endTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.STOPPED);
+        assertConnectorState(connectorId, CONNECTOR_STATE_STOPPED);
 
         getClientUtil().startConnector(connectorId);
-        assertConnectorState(connectorId, ConnectorState.RUNNING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_RUNNING);
     }
 
     /**
@@ -484,7 +483,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         assertEquals(childGroupId, childGroup.getId());
 
         getClientUtil().endTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.STOPPED);
+        assertConnectorState(connectorId, CONNECTOR_STATE_STOPPED);
 
         assertConflictExpected("GET processor", () -> getNifiClient().getProcessorClient().getProcessor(processorId));
         assertConflictExpected("GET connection", () -> getNifiClient().getConnectionClient().getConnection(connectionId));
@@ -507,7 +506,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         getClientUtil().waitForValidConnector(connectorId);
 
         getClientUtil().enterTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         final ProcessGroupFlowEntity rootFlow = getNifiClient().getConnectorClient().getFlow(connectorId);
         final List<ProcessGroupEntity> childGroups = new ArrayList<>(rootFlow.getProcessGroupFlow().getFlow().getProcessGroups());
@@ -533,7 +532,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         getClientUtil().waitForValidConnector(connectorId);
 
         getClientUtil().enterTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         final String childGroupId = findFirstChildProcessGroupId(connectorId);
         assertNotNull(childGroupId, "ComponentLifecycleConnector managed flow must contain at least one child Process Group");
@@ -553,7 +552,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         getClientUtil().disableControllerServices(managedGroupId, true);
 
         getClientUtil().endTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.STOPPED);
+        assertConnectorState(connectorId, CONNECTOR_STATE_STOPPED);
     }
 
     /**
@@ -569,7 +568,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         getClientUtil().waitForValidConnector(connectorId);
 
         getClientUtil().enterTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         final String childGroupId = findFirstChildProcessGroupId(connectorId);
         assertNotNull(childGroupId, "ComponentLifecycleConnector managed flow must contain at least one child Process Group");
@@ -595,7 +594,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         waitForProcessorState(childProcessorId, ScheduledState.STOPPED);
 
         getClientUtil().endTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.STOPPED);
+        assertConnectorState(connectorId, CONNECTOR_STATE_STOPPED);
     }
 
     private ActivateControllerServicesEntity activateControllerServicesRequest(final String groupId, final String state) {
@@ -625,9 +624,9 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         return null;
     }
 
-    private void assertConnectorState(final String connectorId, final ConnectorState expected) throws NiFiClientException, IOException {
+    private void assertConnectorState(final String connectorId, final String expected) throws NiFiClientException, IOException {
         final ConnectorEntity entity = getNifiClient().getConnectorClient().getConnector(connectorId);
-        assertEquals(expected.name(), entity.getComponent().getState());
+        assertEquals(expected, entity.getComponent().getState());
     }
 
     private List<ProcessorEntity> findStatelessProcessors(final String connectorId) throws NiFiClientException, IOException {
@@ -914,7 +913,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
 
         // Transition into Troubleshooting from STOPPED; components inside the managed flow are not yet running.
         getClientUtil().enterTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         // First verification: parameter values resolve correctly on the initial flow, before any restart.
         runManagedFlowAndAssertParameterValues(connectorId, sensitiveOutputFile, assetOutputFile, sensitiveSecretValue, assetFileContent, "before restart");
@@ -927,7 +926,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
 
         restartNiFi();
 
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         // Second verification: after the restore path has been exercised, the Parameter Context must still produce
         // the correct resolved values when the processors are started again.
@@ -986,7 +985,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
                 "Active flow should contain ReplaceWithFile before Troubleshooting");
 
         getClientUtil().enterTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         // The Sleep processor is created in STOPPED state and is left disconnected so endTroubleshooting can later
         // succeed without first having to stop or empty any user-introduced components.
@@ -998,12 +997,12 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
 
         restartNiFi();
 
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
         assertTrue(containsProcessorId(connectorId, troubleshootingProcessorId),
                 "User-added Sleep processor should survive restart while in Troubleshooting");
 
         getClientUtil().endTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.STOPPED);
+        assertConnectorState(connectorId, CONNECTOR_STATE_STOPPED);
 
         final ConnectorEntity afterExit = getNifiClient().getConnectorClient().getConnector(connectorId);
         final ConnectorConfigurationDTO activeConfig = afterExit.getComponent().getActiveConfiguration();
@@ -1030,7 +1029,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
                 "Restored authoritative flow should contain GenerateFlowFile");
 
         getClientUtil().startConnector(connectorId);
-        assertConnectorState(connectorId, ConnectorState.RUNNING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_RUNNING);
 
         waitFor(() -> configuredSensitiveOutput.exists() && configuredAssetOutput.exists());
         assertEquals(sensitiveSecretValue, Files.readString(configuredSensitiveOutput.toPath()).trim(),
@@ -1086,7 +1085,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
                 "Authoritative ReplaceWithFile.Filename should be parameterized as #{asset_param} before Troubleshooting");
 
         getClientUtil().enterTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         // Upload a second Asset while in Troubleshooting and confirm it joins the existing Asset.
         final AssetEntity assetBEntity = getNifiClient().getConnectorClient().createAsset(connectorId, assetB.getName(), assetB);
@@ -1105,7 +1104,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
 
         restartNiFi();
 
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
         assertAssetIds(connectorId, assetAId, assetBId);
 
         final ProcessorEntity afterRestart = findProcessorByName(connectorId, "ReplaceWithFile");
@@ -1114,7 +1113,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
                 "User override of ReplaceWithFile.Filename must survive a restart while in Troubleshooting");
 
         getClientUtil().endTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.STOPPED);
+        assertConnectorState(connectorId, CONNECTOR_STATE_STOPPED);
 
         // After exit, the Connector's authoritative flow is restored. The Processor's Filename must reference the
         // authoritative value (#{asset_param}), not the user override.

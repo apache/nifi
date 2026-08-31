@@ -17,7 +17,6 @@
 
 package org.apache.nifi.tests.system.connectors;
 
-import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
@@ -133,7 +132,7 @@ public class ClusteredConnectorAssetsIT extends ConnectorAssetsIT {
         waitForStableClusterAfterNodeRejoin(2);
 
         // Verify that the connector state is RUNNING after node 2 rejoins
-        getClientUtil().waitForConnectorState(connectorId, ConnectorState.RUNNING);
+        getClientUtil().waitForConnectorState(connectorId, CONNECTOR_STATE_RUNNING);
         getClientUtil().waitForValidConnector(connectorId);
 
         // Verify node 2 connector assets directory is recreated and contains the expected asset

@@ -17,7 +17,6 @@
 
 package org.apache.nifi.tests.system.connectors;
 
-import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
@@ -187,7 +186,7 @@ public class ConnectorAssetsIT extends NiFiSystemIT {
         final ConnectorEntity connectorAfterApply = connectorClient.applyUpdate(connectorBeforeApply);
         assertNotNull(connectorAfterApply);
 
-        getClientUtil().waitForConnectorState(connectorId, ConnectorState.STOPPED);
+        getClientUtil().waitForConnectorState(connectorId, CONNECTOR_STATE_STOPPED);
 
         // Wait for the Asset to be removed from the Connector's Assets list
         getClientUtil().waitForAssetRemoved(connectorId, uploadedAssetId);

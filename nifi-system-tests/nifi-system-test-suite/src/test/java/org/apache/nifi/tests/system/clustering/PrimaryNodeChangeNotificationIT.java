@@ -17,7 +17,6 @@
 
 package org.apache.nifi.tests.system.clustering;
 
-import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
@@ -53,8 +52,8 @@ public class PrimaryNodeChangeNotificationIT extends NiFiSystemIT {
             counters = getClientUtil().getCountersAsMap(processor.getId());
         }
 
-        final NodeDTO primaryNode = getNode(ClusterRoles.PRIMARY_NODE, false);
-        final NodeDTO nonPrimaryNode = getNode(ClusterRoles.PRIMARY_NODE, true);
+        final NodeDTO primaryNode = getNode(CLUSTER_ROLE_PRIMARY_NODE, false);
+        final NodeDTO nonPrimaryNode = getNode(CLUSTER_ROLE_PRIMARY_NODE, true);
 
         getClientUtil().disconnectNode(primaryNode.getNodeId());
         setupClient(nonPrimaryNode.getApiPort());
@@ -89,8 +88,8 @@ public class PrimaryNodeChangeNotificationIT extends NiFiSystemIT {
             counters = getClientUtil().getCountersAsMap(processor.getId());
         }
 
-        final NodeDTO primaryNode = getNode(ClusterRoles.PRIMARY_NODE, false);
-        final NodeDTO nonPrimaryNode = getNode(ClusterRoles.PRIMARY_NODE, true);
+        final NodeDTO primaryNode = getNode(CLUSTER_ROLE_PRIMARY_NODE, false);
+        final NodeDTO nonPrimaryNode = getNode(CLUSTER_ROLE_PRIMARY_NODE, true);
 
         getClientUtil().disconnectNode(primaryNode.getNodeId());
         setupClient(nonPrimaryNode.getApiPort());

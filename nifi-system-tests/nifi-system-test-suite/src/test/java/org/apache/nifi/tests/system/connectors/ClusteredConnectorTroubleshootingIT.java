@@ -17,8 +17,6 @@
 
 package org.apache.nifi.tests.system.connectors;
 
-import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
-import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -56,7 +54,7 @@ public class ClusteredConnectorTroubleshootingIT extends ConnectorTroubleshootin
         final String originalName = connector.getComponent().getName();
 
         getClientUtil().enterTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         disconnectNode(2);
         reconnectNode(2);
@@ -65,7 +63,7 @@ public class ClusteredConnectorTroubleshootingIT extends ConnectorTroubleshootin
         switchClientToNode(2);
         try {
             final ConnectorEntity node2Connector = getNifiClient().getConnectorClient(DO_NOT_REPLICATE).getConnector(connectorId);
-            assertEquals(ConnectorState.TROUBLESHOOTING.name(), node2Connector.getComponent().getState(),
+            assertEquals(CONNECTOR_STATE_TROUBLESHOOTING, node2Connector.getComponent().getState(),
                     "Connector on the reconnected node must remain in TROUBLESHOOTING after sync");
             assertEquals(originalName, node2Connector.getComponent().getName(),
                     "Connector name must survive the sync that runs against the reconnected node's existing TROUBLESHOOTING connector");
@@ -74,7 +72,7 @@ public class ClusteredConnectorTroubleshootingIT extends ConnectorTroubleshootin
         }
 
         getClientUtil().endTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.STOPPED);
+        assertConnectorState(connectorId, CONNECTOR_STATE_STOPPED);
     }
 
     /**
@@ -105,14 +103,14 @@ public class ClusteredConnectorTroubleshootingIT extends ConnectorTroubleshootin
         getClientUtil().waitForValidConnector(connectorId);
 
         getClientUtil().startConnector(connectorId);
-        assertConnectorState(connectorId, ConnectorState.RUNNING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_RUNNING);
 
         disconnectNode(2);
         enterTroubleshootingOnDisconnectedNode2(connectorId);
 
         reconnectNode(2);
 
-        assertNode2FailsToRejoinAndKeepsLocalState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertNode2FailsToRejoinAndKeepsLocalState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
     }
 
     /**
@@ -130,14 +128,14 @@ public class ClusteredConnectorTroubleshootingIT extends ConnectorTroubleshootin
 
         getClientUtil().applyConnectorUpdate(connector);
         getClientUtil().waitForValidConnector(connectorId);
-        assertConnectorState(connectorId, ConnectorState.STOPPED);
+        assertConnectorState(connectorId, CONNECTOR_STATE_STOPPED);
 
         disconnectNode(2);
         enterTroubleshootingOnDisconnectedNode2(connectorId);
 
         reconnectNode(2);
 
-        assertNode2FailsToRejoinAndKeepsLocalState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertNode2FailsToRejoinAndKeepsLocalState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
     }
 
     /**
@@ -160,23 +158,23 @@ public class ClusteredConnectorTroubleshootingIT extends ConnectorTroubleshootin
 
         getClientUtil().applyConnectorUpdate(connector);
         getClientUtil().waitForValidConnector(connectorId);
-        assertConnectorState(connectorId, ConnectorState.STOPPED);
+        assertConnectorState(connectorId, CONNECTOR_STATE_STOPPED);
 
         disconnectNode(2);
 
         getClientUtil().enterTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         reconnectNode(2);
 
-        assertNode2FailsToRejoinAndKeepsLocalState(connectorId, ConnectorState.STOPPED);
+        assertNode2FailsToRejoinAndKeepsLocalState(connectorId, CONNECTOR_STATE_STOPPED);
     }
 
-    private void assertNode2FailsToRejoinAndKeepsLocalState(final String connectorId, final ConnectorState expectedNode2State)
+    private void assertNode2FailsToRejoinAndKeepsLocalState(final String connectorId, final String expectedNode2State)
             throws InterruptedException, NiFiClientException, IOException {
         // The reconnect must be rejected because Node 2's local Troubleshooting state does not match the cluster, so Node 2
         // returns to DISCONNECTED rather than reaching CONNECTED.
-        waitForNodeState(2, NodeConnectionState.DISCONNECTED);
+        waitForNodeState(2, NODE_STATE_DISCONNECTED);
 
         // Only the coordinator remains connected.
         assertEquals(1, getNifiClient().getFlowClient().getClusterSummary().getClusterSummary().getConnectedNodeCount().intValue());
@@ -192,25 +190,25 @@ public class ClusteredConnectorTroubleshootingIT extends ConnectorTroubleshootin
             node2Connector.setDisconnectedNodeAcknowledged(true);
             getNifiClient().getConnectorClient(DO_NOT_REPLICATE).enterTroubleshooting(node2Connector);
 
-            waitFor(() -> ConnectorState.TROUBLESHOOTING.name().equals(
+            waitFor(() -> CONNECTOR_STATE_TROUBLESHOOTING.equals(
                     getNifiClient().getConnectorClient(DO_NOT_REPLICATE).getConnector(connectorId).getComponent().getState()));
         } finally {
             switchClientToNode(1);
         }
     }
 
-    private void waitForNode2ConnectorState(final String connectorId, final ConnectorState expected) throws InterruptedException {
+    private void waitForNode2ConnectorState(final String connectorId, final String expected) throws InterruptedException {
         switchClientToNode(2);
         try {
-            waitFor(() -> expected.name().equals(
+            waitFor(() -> expected.equals(
                     getNifiClient().getConnectorClient(DO_NOT_REPLICATE).getConnector(connectorId).getComponent().getState()));
         } finally {
             switchClientToNode(1);
         }
     }
 
-    private void assertConnectorState(final String connectorId, final ConnectorState expected) throws NiFiClientException, IOException {
+    private void assertConnectorState(final String connectorId, final String expected) throws NiFiClientException, IOException {
         final ConnectorEntity entity = getNifiClient().getConnectorClient().getConnector(connectorId);
-        assertEquals(expected.name(), entity.getComponent().getState());
+        assertEquals(expected, entity.getComponent().getState());
     }
 }

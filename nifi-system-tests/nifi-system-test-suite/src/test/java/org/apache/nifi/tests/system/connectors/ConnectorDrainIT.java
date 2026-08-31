@@ -17,7 +17,6 @@
 
 package org.apache.nifi.tests.system.connectors;
 
-import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -80,7 +79,7 @@ public class ConnectorDrainIT extends NiFiSystemIT {
 
         ConnectorEntity drainingConnector = getNifiClient().getConnectorClient().getConnector(connectorId);
         logger.info("Connector state after 2 seconds: {}", drainingConnector.getComponent().getState());
-        assertEquals(ConnectorState.DRAINING.name(), drainingConnector.getComponent().getState());
+        assertEquals(CONNECTOR_STATE_DRAINING, drainingConnector.getComponent().getState());
 
         final int queuedWhileDraining = getConnectorQueuedFlowFileCount(connectorId);
         logger.info("Queued FlowFile count while draining (gate file absent): {}", queuedWhileDraining);
@@ -93,7 +92,7 @@ public class ConnectorDrainIT extends NiFiSystemIT {
         waitFor(() -> {
             try {
                 final ConnectorEntity entity = getNifiClient().getConnectorClient().getConnector(connectorId);
-                return ConnectorState.STOPPED.name().equals(entity.getComponent().getState());
+                return CONNECTOR_STATE_STOPPED.equals(entity.getComponent().getState());
             } catch (final Exception e) {
                 return false;
             }
@@ -101,7 +100,7 @@ public class ConnectorDrainIT extends NiFiSystemIT {
 
         final ConnectorEntity finalConnector = getNifiClient().getConnectorClient().getConnector(connectorId);
         logger.info("Final connector state: {}", finalConnector.getComponent().getState());
-        assertEquals(ConnectorState.STOPPED.name(), finalConnector.getComponent().getState());
+        assertEquals(CONNECTOR_STATE_STOPPED, finalConnector.getComponent().getState());
 
         final int finalQueuedCount = getConnectorQueuedFlowFileCount(connectorId);
         logger.info("Final queued FlowFile count: {}", finalQueuedCount);
@@ -153,7 +152,7 @@ public class ConnectorDrainIT extends NiFiSystemIT {
 
         final ConnectorEntity drainingConnector = getNifiClient().getConnectorClient().getConnector(connectorId);
         logger.info("Connector state after 2 seconds: {}", drainingConnector.getComponent().getState());
-        assertEquals(ConnectorState.DRAINING.name(), drainingConnector.getComponent().getState());
+        assertEquals(CONNECTOR_STATE_DRAINING, drainingConnector.getComponent().getState());
 
         final int queuedCountWhileDraining = getConnectorQueuedFlowFileCount(connectorId);
         logger.info("Queued FlowFile count while draining: {}", queuedCountWhileDraining);
@@ -167,7 +166,7 @@ public class ConnectorDrainIT extends NiFiSystemIT {
 
         final ConnectorEntity finalConnector = getNifiClient().getConnectorClient().getConnector(connectorId);
         logger.info("Final connector state: {}", finalConnector.getComponent().getState());
-        assertEquals(ConnectorState.STOPPED.name(), finalConnector.getComponent().getState());
+        assertEquals(CONNECTOR_STATE_STOPPED, finalConnector.getComponent().getState());
 
         final int queuedCountAfterCancel = getConnectorQueuedFlowFileCount(connectorId);
         logger.info("Queued FlowFile count after cancel (should still have data): {}", queuedCountAfterCancel);

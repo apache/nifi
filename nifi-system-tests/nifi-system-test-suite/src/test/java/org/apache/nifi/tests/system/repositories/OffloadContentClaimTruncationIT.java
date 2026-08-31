@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.tests.system.repositories;
 
-import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.tests.system.InstanceConfiguration;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
@@ -142,7 +141,7 @@ public class OffloadContentClaimTruncationIT extends NiFiSystemIT {
         // Identify the primary and non-primary nodes. The primary node is the one holding the
         // FlowFiles produced above and is the node that will be offloaded. The non-primary node is
         // the receiver and must remain reachable for queue listings and content fetches after offload.
-        final NodeDTO primaryNode = findNodeByRole(ClusterRoles.PRIMARY_NODE);
+        final NodeDTO primaryNode = findNodeByRole(CLUSTER_ROLE_PRIMARY_NODE);
         assertNotNull(primaryNode, "Cluster does not have a Primary Node");
         final NodeDTO nonPrimaryNode = findOtherNode(primaryNode);
         assertNotNull(nonPrimaryNode, "Cluster does not have a non-primary node");

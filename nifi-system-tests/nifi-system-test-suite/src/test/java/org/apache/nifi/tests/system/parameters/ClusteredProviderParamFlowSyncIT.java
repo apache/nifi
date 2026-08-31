@@ -21,9 +21,9 @@ import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.parameter.ParameterSensitivity;
-import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
+import org.apache.nifi.tests.system.ParameterProviderConfig;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
@@ -99,7 +99,7 @@ public class ClusteredProviderParamFlowSyncIT extends NiFiSystemIT {
 
         final ParameterContextEntity contextEntity = getClientUtil().createParameterContextEntity(
                 CONTEXT_NAME, null, Collections.emptySet(), Collections.emptyList(),
-                new StandardParameterProviderConfiguration(provider.getId(), GROUP_NAME, true));
+                new ParameterProviderConfig(provider.getId(), GROUP_NAME, true));
         final ParameterContextEntity createdContext = getNifiClient().getParamContextClient().createParamContext(contextEntity);
         getClientUtil().setParameterContext("root", createdContext);
 

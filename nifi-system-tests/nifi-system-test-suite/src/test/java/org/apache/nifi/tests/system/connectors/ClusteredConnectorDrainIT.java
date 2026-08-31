@@ -17,7 +17,6 @@
 
 package org.apache.nifi.tests.system.connectors;
 
-import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
@@ -99,12 +98,12 @@ public class ClusteredConnectorDrainIT extends NiFiSystemIT {
         assertTrue(node1GateFile.createNewFile());
 
         logger.info("Waiting for Node 1 to finish draining and become STOPPED");
-        waitForNodeConnectorState(1, connectorId, ConnectorState.STOPPED);
-        waitForNodeConnectorState(2, connectorId, ConnectorState.DRAINING);
+        waitForNodeConnectorState(1, connectorId, CONNECTOR_STATE_STOPPED);
+        waitForNodeConnectorState(2, connectorId, CONNECTOR_STATE_DRAINING);
 
         logger.info("Verifying aggregate state is still DRAINING (Node 2 still draining)");
         final ConnectorEntity aggregateConnector = getNifiClient().getConnectorClient().getConnector(connectorId);
-        assertEquals(ConnectorState.DRAINING.name(), aggregateConnector.getComponent().getState());
+        assertEquals(CONNECTOR_STATE_DRAINING, aggregateConnector.getComponent().getState());
 
         logger.info("Creating gate file for Node 2: {}", node2GateFile.getAbsolutePath());
         assertTrue(node2GateFile.createNewFile());
@@ -113,7 +112,7 @@ public class ClusteredConnectorDrainIT extends NiFiSystemIT {
         waitFor(() -> {
             try {
                 final ConnectorEntity entity = getNifiClient().getConnectorClient().getConnector(connectorId);
-                return ConnectorState.STOPPED.name().equals(entity.getComponent().getState());
+                return CONNECTOR_STATE_STOPPED.equals(entity.getComponent().getState());
             } catch (final Exception e) {
                 return false;
             }
@@ -121,7 +120,7 @@ public class ClusteredConnectorDrainIT extends NiFiSystemIT {
 
         final ConnectorEntity finalConnector = getNifiClient().getConnectorClient().getConnector(connectorId);
         logger.info("Final aggregate connector state: {}", finalConnector.getComponent().getState());
-        assertEquals(ConnectorState.STOPPED.name(), finalConnector.getComponent().getState());
+        assertEquals(CONNECTOR_STATE_STOPPED, finalConnector.getComponent().getState());
 
         final int finalQueuedCount = getConnectorQueuedFlowFileCount(connectorId);
         logger.info("Final queued FlowFile count: {}", finalQueuedCount);
@@ -183,11 +182,11 @@ public class ClusteredConnectorDrainIT extends NiFiSystemIT {
         assertTrue(node1GateFile.createNewFile());
 
         logger.info("Waiting for Node 1 to finish draining and become STOPPED");
-        waitForNodeConnectorState(1, connectorId, ConnectorState.STOPPED);
+        waitForNodeConnectorState(1, connectorId, CONNECTOR_STATE_STOPPED);
 
         logger.info("Verifying aggregate state is still DRAINING (Node 2 still draining)");
         final ConnectorEntity aggregateBeforeCancel = getNifiClient().getConnectorClient().getConnector(connectorId);
-        assertEquals(ConnectorState.DRAINING.name(), aggregateBeforeCancel.getComponent().getState());
+        assertEquals(CONNECTOR_STATE_DRAINING, aggregateBeforeCancel.getComponent().getState());
 
         logger.info("Canceling drain for connector {}", connectorId);
         getClientUtil().cancelDrain(connectorId);
@@ -197,7 +196,7 @@ public class ClusteredConnectorDrainIT extends NiFiSystemIT {
 
         final ConnectorEntity finalConnector = getNifiClient().getConnectorClient().getConnector(connectorId);
         logger.info("Final aggregate connector state: {}", finalConnector.getComponent().getState());
-        assertEquals(ConnectorState.STOPPED.name(), finalConnector.getComponent().getState());
+        assertEquals(CONNECTOR_STATE_STOPPED, finalConnector.getComponent().getState());
 
         final int finalQueuedCount = getConnectorQueuedFlowFileCount(connectorId);
         logger.info("Final queued FlowFile count after cancel (should still have data from Node 2): {}", finalQueuedCount);
@@ -206,13 +205,13 @@ public class ClusteredConnectorDrainIT extends NiFiSystemIT {
         logger.info("testCancelDrainWithOneNodeAlreadyComplete completed successfully");
     }
 
-    private void waitForNodeConnectorState(final int nodeIndex, final String connectorId, final ConnectorState expectedState) throws InterruptedException {
+    private void waitForNodeConnectorState(final int nodeIndex, final String connectorId, final String expectedState) throws InterruptedException {
         logger.info("Waiting for Node {} connector {} to reach state {}", nodeIndex, connectorId, expectedState);
         waitFor(() -> {
             try {
                 switchClientToNode(nodeIndex);
                 final ConnectorEntity entity = getNifiClient().getConnectorClient(DO_NOT_REPLICATE).getConnector(connectorId);
-                return expectedState.name().equals(entity.getComponent().getState());
+                return expectedState.equals(entity.getComponent().getState());
             } catch (final Exception e) {
                 return false;
             }

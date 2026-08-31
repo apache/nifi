@@ -18,18 +18,13 @@ package org.apache.nifi.tests.system;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
-import org.apache.nifi.components.connector.ConnectorState;
-import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flow.VersionedNodeState;
 import org.apache.nifi.flow.VersionedProcessor;
-import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
-import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.toolkit.client.ConnectionClient;
 import org.apache.nifi.toolkit.client.ConnectorClient;
@@ -167,6 +162,10 @@ import java.util.stream.Collectors;
 
 public class NiFiClientUtil {
     private static final Logger logger = LoggerFactory.getLogger(NiFiClientUtil.class);
+
+    // Matches the name of AbstractPort.PORT_RELATIONSHIP (from nifi-framework-core-api), the single Relationship
+    // through which all FlowFiles are transferred for Input/Output Ports.
+    private static final String PORT_RELATIONSHIP_NAME = "";
 
     private final NiFiClient nifiClient;
     private final String nifiVersion;
@@ -498,24 +497,23 @@ public class NiFiClientUtil {
     public void applyConnectorUpdate(final ConnectorEntity connectorEntity) throws NiFiClientException, IOException, InterruptedException {
         final ConnectorClient client = nifiClient.getConnectorClient();
         final ConnectorEntity initialEntity = client.getConnector(connectorEntity.getId());
-        final ConnectorState initialState = ConnectorState.valueOf(initialEntity.getComponent().getState());
+        final String initialState = initialEntity.getComponent().getState();
         client.applyUpdate(connectorEntity);
 
         while (true) {
             final ConnectorEntity currentEntity = client.getConnector(connectorEntity.getId());
             final String state = currentEntity.getComponent().getState();
-            final ConnectorState currentState = ConnectorState.valueOf(state);
 
-            switch (currentState) {
-                case UPDATE_FAILED:
+            switch (state) {
+                case NiFiSystemIT.CONNECTOR_STATE_UPDATE_FAILED:
                     throw new IllegalStateException("Connector failed to update");
-                case UPDATED:
-                case UPDATING:
-                case PREPARING_FOR_UPDATE:
+                case NiFiSystemIT.CONNECTOR_STATE_UPDATED:
+                case NiFiSystemIT.CONNECTOR_STATE_UPDATING:
+                case NiFiSystemIT.CONNECTOR_STATE_PREPARING_FOR_UPDATE:
                     logger.debug("Waiting for Connector [id={}] to finish updating (current state={})...", connectorEntity.getId(), state);
                     break;
                 default:
-                    if (initialState == currentState) {
+                    if (initialState.equals(state)) {
                         logger.info("Connector [id={}] has successfully updated and now has state of {}", connectorEntity.getId(), state);
                         return;
                     }
@@ -562,7 +560,7 @@ public class NiFiClientUtil {
             connector.setDisconnectedNodeAcknowledged(true);
             final String state = connector.getComponent() == null ? null : connector.getComponent().getState();
 
-            if (ConnectorState.TROUBLESHOOTING.name().equals(state)) {
+            if (NiFiSystemIT.CONNECTOR_STATE_TROUBLESHOOTING.equals(state)) {
                 final String managedGroupId = connector.getComponent().getManagedProcessGroupId();
                 if (managedGroupId != null) {
                     try {
@@ -624,7 +622,7 @@ public class NiFiClientUtil {
         final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
         entity.setDisconnectedNodeAcknowledged(true);
         getConnectorClient().startConnector(entity);
-        waitForConnectorState(connectorId, ConnectorState.RUNNING);
+        waitForConnectorState(connectorId, NiFiSystemIT.CONNECTOR_STATE_RUNNING);
     }
 
     public void stopConnector(final ConnectorEntity connectorEntity) throws NiFiClientException, IOException, InterruptedException {
@@ -639,15 +637,15 @@ public class NiFiClientUtil {
     }
 
     public void waitForConnectorStopped(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
-        waitForConnectorState(connectorId, ConnectorState.STOPPED);
+        waitForConnectorState(connectorId, NiFiSystemIT.CONNECTOR_STATE_STOPPED);
     }
 
-    public void waitForConnectorState(final String connectorId, final ConnectorState desiredState) throws InterruptedException, NiFiClientException, IOException {
+    public void waitForConnectorState(final String connectorId, final String desiredState) throws InterruptedException, NiFiClientException, IOException {
         int iteration = 0;
         while (true) {
             final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
             final String state = entity.getComponent().getState();
-            if (desiredState.name().equals(state)) {
+            if (desiredState.equals(state)) {
                 return;
             }
 
@@ -693,14 +691,14 @@ public class NiFiClientUtil {
     }
 
     public void waitForConnectorDraining(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
-        waitForConnectorState(connectorId, ConnectorState.DRAINING);
+        waitForConnectorState(connectorId, NiFiSystemIT.CONNECTOR_STATE_DRAINING);
     }
 
     public ConnectorEntity enterTroubleshooting(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
         final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
         entity.setDisconnectedNodeAcknowledged(true);
         final ConnectorEntity result = getConnectorClient().enterTroubleshooting(entity);
-        waitForConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        waitForConnectorState(connectorId, NiFiSystemIT.CONNECTOR_STATE_TROUBLESHOOTING);
         return result;
     }
 
@@ -1088,7 +1086,7 @@ public class NiFiClientUtil {
 
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters,
                                                                final List<String> inheritedParameterContextIds,
-                                                               final ParameterProviderConfiguration parameterProviderConfiguration) {
+                                                               final ParameterProviderConfig parameterProviderConfiguration) {
         final ParameterContextDTO contextDto = new ParameterContextDTO();
         contextDto.setName(name);
         contextDto.setDescription(description);
@@ -1115,17 +1113,17 @@ public class NiFiClientUtil {
         return entity;
     }
 
-    public ParameterProviderConfigurationEntity createParamProviderConfigEntity(final ParameterProviderConfiguration parameterProviderConfiguration) {
+    public ParameterProviderConfigurationEntity createParamProviderConfigEntity(final ParameterProviderConfig parameterProviderConfiguration) {
         if (parameterProviderConfiguration == null) {
             return null;
         }
 
         final ParameterProviderConfigurationEntity entity = new ParameterProviderConfigurationEntity();
-        entity.setId(parameterProviderConfiguration.getParameterProviderId());
+        entity.setId(parameterProviderConfiguration.parameterProviderId());
         entity.setComponent(new ParameterProviderConfigurationDTO());
-        entity.getComponent().setParameterProviderId(parameterProviderConfiguration.getParameterProviderId());
-        entity.getComponent().setParameterGroupName(parameterProviderConfiguration.getParameterGroupName());
-        entity.getComponent().setSynchronized(parameterProviderConfiguration.isSynchronized());
+        entity.getComponent().setParameterProviderId(parameterProviderConfiguration.parameterProviderId());
+        entity.getComponent().setParameterGroupName(parameterProviderConfiguration.parameterGroupName());
+        entity.getComponent().setSynchronized(parameterProviderConfiguration.synchronizedWithProvider());
         return entity;
     }
 
@@ -1181,7 +1179,7 @@ public class NiFiClientUtil {
     }
 
     public ParameterContextEntity createParameterContext(final String contextName, final Map<String, String> parameters, final List<String> inheritedParameterContextIds,
-                                                         final ParameterProviderConfiguration parameterProviderConfiguration) throws NiFiClientException, IOException {
+                                                         final ParameterProviderConfig parameterProviderConfiguration) throws NiFiClientException, IOException {
         final Set<ParameterEntity> parameterEntities = new HashSet<>();
         parameters.forEach((paramName, paramValue) -> parameterEntities.add(createParameterEntity(paramName, null, false, paramValue)));
 
@@ -1962,21 +1960,21 @@ public class NiFiClientUtil {
             throw new IllegalArgumentException("In order to connect an Output Port to an Input Port, the Process Group ID must be specified");
         }
 
-        return createConnection(source, destination, Collections.singleton(AbstractPort.PORT_RELATIONSHIP.getName()));
+        return createConnection(source, destination, Collections.singleton(PORT_RELATIONSHIP_NAME));
     }
 
     public ConnectionEntity createConnection(final PortEntity source, final PortEntity destination, final String connectionGroupId) throws NiFiClientException, IOException {
         final ConnectableDTO sourceDto = createConnectableDTO(source);
         final ConnectableDTO destinationDto = createConnectableDTO(destination);
-        return createConnection(sourceDto, destinationDto, Collections.singleton(AbstractPort.PORT_RELATIONSHIP.getName()), connectionGroupId);
+        return createConnection(sourceDto, destinationDto, Collections.singleton(PORT_RELATIONSHIP_NAME), connectionGroupId);
     }
 
     public ConnectionEntity createConnection(final PortEntity source, final ProcessorEntity destination) throws NiFiClientException, IOException {
-        return createConnection(source, destination, Collections.singleton(AbstractPort.PORT_RELATIONSHIP.getName()));
+        return createConnection(source, destination, Collections.singleton(PORT_RELATIONSHIP_NAME));
     }
 
     public ConnectionEntity createConnection(final PortEntity source, final ProcessorEntity destination, final String groupId) throws NiFiClientException, IOException {
-        return createConnection(createConnectableDTO(source), createConnectableDTO(destination), Collections.singleton(AbstractPort.PORT_RELATIONSHIP.getName()), groupId);
+        return createConnection(createConnectableDTO(source), createConnectableDTO(destination), Collections.singleton(PORT_RELATIONSHIP_NAME), groupId);
     }
 
     public ConnectionEntity createConnection(final ProcessorEntity source, final PortEntity destination, final String relationship) throws NiFiClientException, IOException {
@@ -2172,11 +2170,11 @@ public class NiFiClientUtil {
         return requestEntity;
     }
 
-    public RemoteProcessGroupEntity createRPG(final String parentGroupId, final int httpPort, final SiteToSiteTransportProtocol transportProtocol) throws NiFiClientException, IOException {
+    public RemoteProcessGroupEntity createRPG(final String parentGroupId, final int httpPort, final String transportProtocol) throws NiFiClientException, IOException {
         final RemoteProcessGroupDTO component = new RemoteProcessGroupDTO();
         component.setTargetUri("https://localhost:%d".formatted(httpPort));
         component.setName(component.getTargetUri());
-        component.setTransportProtocol(transportProtocol.name());
+        component.setTransportProtocol(transportProtocol);
 
         final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
         entity.setComponent(component);
@@ -2200,15 +2198,15 @@ public class NiFiClientUtil {
     }
 
     public NodeEntity disconnectNode(final String nodeId) throws NiFiClientException, IOException {
-        return updateNodeState(nodeId, NodeConnectionState.DISCONNECTING.name());
+        return updateNodeState(nodeId, NiFiSystemIT.NODE_STATE_DISCONNECTING);
     }
 
     public NodeEntity connectNode(final String nodeId) throws NiFiClientException, IOException {
-        return updateNodeState(nodeId, NodeConnectionState.CONNECTING.name());
+        return updateNodeState(nodeId, NiFiSystemIT.NODE_STATE_CONNECTING);
     }
 
     public NodeEntity offloadNode(final String nodeId) throws NiFiClientException, IOException {
-        return updateNodeState(nodeId, NodeConnectionState.OFFLOADING.name());
+        return updateNodeState(nodeId, NiFiSystemIT.NODE_STATE_OFFLOADING);
     }
 
     private NodeEntity updateNodeState(final String nodeId, final String state) throws NiFiClientException, IOException {

@@ -17,7 +17,6 @@
 
 package org.apache.nifi.tests.system.connectors;
 
-import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
@@ -68,14 +67,14 @@ public class ConnectorAutoResumeIT extends NiFiSystemIT {
         getClientUtil().waitForValidConnector(connectorId);
 
         getClientUtil().startConnector(connectorId);
-        getClientUtil().waitForConnectorState(connectorId, ConnectorState.RUNNING);
+        getClientUtil().waitForConnectorState(connectorId, CONNECTOR_STATE_RUNNING);
 
         restartWithAutoResumeStateDisabled();
 
         final ConnectorEntity connectorAfterRestart = getNifiClient().getConnectorClient().getConnector(connectorId);
         final String stateAfterRestart = connectorAfterRestart.getComponent().getState();
 
-        assertEquals(ConnectorState.STOPPED.name(), stateAfterRestart);
+        assertEquals(CONNECTOR_STATE_STOPPED, stateAfterRestart);
     }
 
     /**
@@ -92,12 +91,12 @@ public class ConnectorAutoResumeIT extends NiFiSystemIT {
         getClientUtil().waitForValidConnector(connectorId);
 
         getClientUtil().startConnector(connectorId);
-        getClientUtil().waitForConnectorState(connectorId, ConnectorState.RUNNING);
+        getClientUtil().waitForConnectorState(connectorId, CONNECTOR_STATE_RUNNING);
 
         // Entering Troubleshooting from RUNNING leaves the managed flow's processors running and its controller services
         // enabled, so the post-restart assertions have running components to verify against.
         getClientUtil().enterTroubleshooting(connectorId);
-        getClientUtil().waitForConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        getClientUtil().waitForConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         restartWithAutoResumeStateDisabled();
 
@@ -105,7 +104,7 @@ public class ConnectorAutoResumeIT extends NiFiSystemIT {
         // Connector out of Troubleshooting mode.
         final ConnectorEntity connectorAfterRestart = getNifiClient().getConnectorClient().getConnector(connectorId);
         final String connectorStateAfterRestart = connectorAfterRestart.getComponent().getState();
-        assertEquals(ConnectorState.TROUBLESHOOTING.name(), connectorStateAfterRestart);
+        assertEquals(CONNECTOR_STATE_TROUBLESHOOTING, connectorStateAfterRestart);
 
         final List<ProcessorEntity> processorsAfterRestart = new ArrayList<>();
         collectProcessors(connectorId, null, processorsAfterRestart);

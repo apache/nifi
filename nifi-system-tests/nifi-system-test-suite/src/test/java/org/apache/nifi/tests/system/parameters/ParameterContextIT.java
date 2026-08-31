@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.tests.system.parameters;
 
-import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.ParameterSensitivity;
-import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiSystemIT;
+import org.apache.nifi.tests.system.ParameterProviderConfig;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.ParamContextClient;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
@@ -1199,8 +1198,8 @@ public class ParameterContextIT extends NiFiSystemIT {
         if (parameterContextRefs != null) {
             inheritedParameterContextIds.addAll(parameterContextRefs.stream().map(ParameterContextEntity::getId).collect(Collectors.toList()));
         }
-        final ParameterProviderConfiguration parameterProviderConfiguration = parameterProvider == null ? null
-                : new StandardParameterProviderConfiguration(parameterProvider.getId(), parameterGroupName, true);
+        final ParameterProviderConfig parameterProviderConfiguration = parameterProvider == null ? null
+                : new ParameterProviderConfig(parameterProvider.getId(), parameterGroupName, true);
         return getClientUtil().createParameterContextEntity(name, description, parameters, inheritedParameterContextIds,
                 parameterProviderConfiguration);
     }

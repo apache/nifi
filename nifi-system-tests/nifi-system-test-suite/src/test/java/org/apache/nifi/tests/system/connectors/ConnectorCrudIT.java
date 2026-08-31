@@ -21,7 +21,6 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.connector.BundleCompatibility;
-import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -86,7 +85,7 @@ public class ConnectorCrudIT extends NiFiSystemIT {
         assertNotNull(connectorAfterRestart);
 
         final String connectorState = connectorAfterRestart.getComponent().getState();
-        assertEquals(ConnectorState.STOPPED.name(), connectorState);
+        assertEquals(CONNECTOR_STATE_STOPPED, connectorState);
 
         final ConnectorConfigurationDTO activeConfig = connectorAfterRestart.getComponent().getActiveConfiguration();
         final Map<String, ConnectorValueReferenceDTO> activeProperties = activeConfig.getConfigurationStepConfigurations().getFirst().getPropertyGroupConfigurations().getFirst().getPropertyValues();

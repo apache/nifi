@@ -18,7 +18,6 @@
 package org.apache.nifi.tests.system.connectors;
 
 import jakarta.ws.rs.WebApplicationException;
-import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.ConnectorClient;
@@ -80,7 +79,7 @@ public class ConnectorStatusHistoryIT extends NiFiSystemIT {
         assertNotNull(connectionId);
 
         getClientUtil().startConnector(connectorId);
-        assertConnectorState(connectorId, ConnectorState.RUNNING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_RUNNING);
 
         // While the Connector is RUNNING (not in Troubleshooting), the standard component endpoint is gated with a 409,
         // but the Connector status history endpoints must still return data.
@@ -89,7 +88,7 @@ public class ConnectorStatusHistoryIT extends NiFiSystemIT {
         assertStatusHistoryAvailable(connectorId, processorId, connectionId, managedGroupId);
 
         getClientUtil().enterTroubleshooting(connectorId);
-        assertConnectorState(connectorId, ConnectorState.TROUBLESHOOTING);
+        assertConnectorState(connectorId, CONNECTOR_STATE_TROUBLESHOOTING);
 
         // The same component status history must remain available once the Connector enters Troubleshooting.
         assertStatusHistoryAvailable(connectorId, processorId, connectionId, managedGroupId);
@@ -201,9 +200,9 @@ public class ConnectorStatusHistoryIT extends NiFiSystemIT {
         return null;
     }
 
-    private void assertConnectorState(final String connectorId, final ConnectorState expected) throws NiFiClientException, IOException {
+    private void assertConnectorState(final String connectorId, final String expected) throws NiFiClientException, IOException {
         final ConnectorEntity entity = getNifiClient().getConnectorClient().getConnector(connectorId);
-        assertEquals(expected.name(), entity.getComponent().getState());
+        assertEquals(expected, entity.getComponent().getState());
     }
 
     private void assertNotFound(final String description, final Callable<?> call) {

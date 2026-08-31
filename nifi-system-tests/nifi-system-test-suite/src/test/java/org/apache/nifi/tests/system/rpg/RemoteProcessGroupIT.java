@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.tests.system.rpg;
 
-import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.tests.system.NiFiClientUtil;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
@@ -36,15 +35,15 @@ public class RemoteProcessGroupIT extends NiFiSystemIT {
 
     @Test
     public void testRPGBackToSelfHttp() throws NiFiClientException, IOException, InterruptedException {
-        testRPGBackToSelf(SiteToSiteTransportProtocol.HTTP, "HttpIn");
+        testRPGBackToSelf("HTTP", "HttpIn");
     }
 
     @Test
     public void testRPGBackToSelfRaw() throws NiFiClientException, IOException, InterruptedException {
-        testRPGBackToSelf(SiteToSiteTransportProtocol.RAW, "RawIn");
+        testRPGBackToSelf("RAW", "RawIn");
     }
 
-    protected void testRPGBackToSelf(final SiteToSiteTransportProtocol protocol, final String portName) throws NiFiClientException, IOException, InterruptedException {
+    protected void testRPGBackToSelf(final String protocol, final String portName) throws NiFiClientException, IOException, InterruptedException {
         final NiFiClientUtil util = getClientUtil();
 
         // Create a flow that is InputPort -> CountEvents

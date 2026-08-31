@@ -28,7 +28,6 @@ import org.apache.nifi.toolkit.client.NiFiClient;
 import org.apache.nifi.toolkit.client.NiFiClientConfig;
 import org.apache.nifi.toolkit.client.impl.JerseyNiFiClient;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -377,8 +376,18 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
 
         private void cleanup() throws IOException {
             if (instanceDirectory.exists()) {
-                FileUtils.deleteFile(instanceDirectory, true);
+                deleteRecursively(instanceDirectory);
             }
+        }
+
+        private void deleteRecursively(final File file) throws IOException {
+            final File[] children = file.listFiles();
+            if (children != null) {
+                for (final File child : children) {
+                    deleteRecursively(child);
+                }
+            }
+            Files.delete(file.toPath());
         }
 
         @Override
