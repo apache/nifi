@@ -1,0 +1,49 @@
+nifi-cassandra-services-nar
+Copyright 2014-2026 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Apache Cassandra Java Driver
+      The following NOTICE information applies:
+        Apache Cassandra Java Driver
+        Copyright 2012- The Apache Software Foundation
+
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+  (ASLv2) Dropwizard Metrics
+    The following NOTICE information applies:
+      Metrics
+      Copyright (c) 2010-2013 Coda Hale, Yammer.com
+
+      This product includes code derived from the JSR-166 project (ThreadLocalRandom, Striped64,
+      LongAdder), which was released with the following comments:
+
+      Written by Doug Lea with assistance from members of JCP JSR-166
+      Expert Group and released to the public domain, as explained at
+      http://creativecommons.org/publicdomain/zero/1.0/
+
+  (ASLv2) Snappy Java
+    The following NOTICE information applies:
+      This product includes software developed by Google
+
+      This product includes software developed by Apache
+       PureJavaCrc32C from apache-hadoop-common http://hadoop.apache.org/
+       (Apache 2.0 license)
+
+      This library contains statically linked libstdc++. This inclusion is allowed by
+      "GCC Runtime Library Exception"
+      http://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
+
+  (ASLv2) LZ4 Java
+    The following NOTICE information applies:
+      LZ4 Java Compression
+      Copyright (c) 2014-2023 at.yawk (GitHub/yawk)
+      https://github.com/yawkat/lz4-java
