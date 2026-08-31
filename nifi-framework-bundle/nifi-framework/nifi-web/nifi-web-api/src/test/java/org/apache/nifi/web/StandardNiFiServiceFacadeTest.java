@@ -2437,7 +2437,7 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
-    public void testGetComponentsAffectedByParameterContextUpdateTwicePreservesParameterProvenanceAndAliasValues() {
+    public void testGetComponentsAffectedByParameterContextUpdateTwicePreservesParameterProvenanceAndDetectsAliasChanges() {
         final String targetContextId = "target-context";
         final String inheritedContextId = "inherited-context";
         final String inheritedParameterName = "inherited-provider-param";
@@ -2485,7 +2485,7 @@ public class StandardNiFiServiceFacadeTest {
 
         final ProcessorNode processorNode = mock(ProcessorNode.class);
         when(processorNode.isRunning()).thenReturn(true);
-        when(processorNode.getReferencedParameterNames()).thenReturn(Set.of(inheritedParameterName));
+        when(processorNode.getReferencedParameterNames()).thenReturn(Set.of(aliasParameterName));
         when(processorNode.getIdentifier()).thenReturn(processorId);
         when(processorNode.getName()).thenReturn("Processor");
         when(processorNode.getProcessGroupIdentifier()).thenReturn("group-id");
@@ -2550,11 +2550,7 @@ public class StandardNiFiServiceFacadeTest {
         assertEquals(inheritedContextId, firstPassParameter.getParameterContext().getId());
         assertEquals(inheritedParameterValue, firstPassParameter.getValue());
         assertEquals(1, firstPassParameter.getReferencingComponents().size());
-        final ParameterDTO firstPassAlias = firstPassParameters.get(aliasParameterName);
-        assertFalse(firstPassAlias.getInherited());
-        assertFalse(firstPassAlias.getProvided());
-        assertEquals(targetContextId, firstPassAlias.getParameterContext().getId());
-        assertEquals(aliasParameterValue, firstPassAlias.getValue());
+        assertFalse(firstPassParameters.containsKey(aliasParameterName));
 
         final Set<AffectedComponentEntity> secondAffected = serviceFacade.getComponentsAffectedByParameterContextUpdate(List.of(parameterContextDto));
         assertEquals(1, secondAffected.size());
@@ -2571,11 +2567,79 @@ public class StandardNiFiServiceFacadeTest {
         assertEquals(inheritedParameterValue, secondPassParameter.getValue());
         assertEquals(1, secondPassParameter.getReferencingComponents().size());
         assertEquals(processorId, secondPassParameter.getReferencingComponents().iterator().next().getId());
-        final ParameterDTO secondPassAlias = secondPassParameters.get(aliasParameterName);
-        assertFalse(secondPassAlias.getInherited());
-        assertFalse(secondPassAlias.getProvided());
-        assertEquals(targetContextId, secondPassAlias.getParameterContext().getId());
-        assertEquals(aliasParameterValue, secondPassAlias.getValue());
+        assertFalse(secondPassParameters.containsKey(aliasParameterName));
+    }
+
+    @Test
+    public void testGetComponentsAffectedByParameterContextUpdateDoesNotAddSensitiveLocalAliasToUpdate() {
+        final String targetContextId = "target-context";
+        final String inheritedContextId = "inherited-context";
+        final String inheritedParameterName = "inherited-provider-param";
+        final String aliasParameterName = "alias-param";
+
+        final Parameter inheritedParameter = new Parameter.Builder()
+                .name(inheritedParameterName)
+                .value("provider-value")
+                .provided(true)
+                .parameterContextId(inheritedContextId)
+                .build();
+        final ParameterDescriptor aliasDescriptor = new ParameterDescriptor.Builder().name(aliasParameterName).sensitive(true).build();
+        final Parameter aliasParameter = new Parameter.Builder()
+                .descriptor(aliasDescriptor)
+                .value("#{" + inheritedParameterName + "}")
+                .parameterContextId(targetContextId)
+                .build();
+        final Parameter resolvedAliasParameter = new Parameter.Builder()
+                .fromParameter(aliasParameter)
+                .value("provider-value")
+                .build();
+
+        final ParameterContext targetContext = mock(ParameterContext.class);
+        when(targetContext.getIdentifier()).thenReturn(targetContextId);
+        when(targetContext.getParameters()).thenReturn(Map.of(aliasDescriptor, aliasParameter));
+        when(targetContext.getParameterReferenceManager()).thenReturn(ParameterReferenceManager.EMPTY);
+
+        final ParameterContext inheritedContext = mock(ParameterContext.class);
+        when(inheritedContext.getIdentifier()).thenReturn(inheritedContextId);
+        when(inheritedContext.getName()).thenReturn("Inherited Context");
+
+        final ParameterContextDAO parameterContextDAO = mock(ParameterContextDAO.class);
+        when(parameterContextDAO.getParameterContext(targetContextId)).thenReturn(targetContext);
+        when(parameterContextDAO.getParameterContext(inheritedContextId)).thenReturn(inheritedContext);
+        when(parameterContextDAO.getParameters(any(ParameterContextDTO.class), same(targetContext))).thenReturn(Map.of());
+        when(parameterContextDAO.getInheritedParameterContexts(any(ParameterContextDTO.class))).thenReturn(List.of(inheritedContext));
+        when(targetContext.getEffectiveParameterUpdates(anyMap(), eq(List.of(inheritedContext))))
+                .thenReturn(Map.of(inheritedParameterName, inheritedParameter, aliasParameterName, resolvedAliasParameter));
+
+        final ProcessGroup rootGroup = mock(ProcessGroup.class);
+        when(processGroupDAO.getProcessGroup("root")).thenReturn(rootGroup);
+        when(rootGroup.findAllProcessGroups(any())).thenReturn(List.of());
+
+        final ParameterContextReferenceDTO inheritedReference = new ParameterContextReferenceDTO();
+        inheritedReference.setId(inheritedContextId);
+        inheritedReference.setName("Inherited Context");
+        final ParameterContextReferenceEntity inheritedReferenceEntity = new ParameterContextReferenceEntity();
+        inheritedReferenceEntity.setId(inheritedContextId);
+        inheritedReferenceEntity.setComponent(inheritedReference);
+
+        final ParameterContextDTO parameterContextDto = new ParameterContextDTO();
+        parameterContextDto.setId(targetContextId);
+        parameterContextDto.setParameters(new HashSet<>());
+        parameterContextDto.setInheritedParameterContexts(List.of(inheritedReferenceEntity));
+
+        serviceFacade.setParameterContextDAO(parameterContextDAO);
+        serviceFacade.setRevisionManager(new NaiveRevisionManager());
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setEntityFactory(new EntityFactory());
+        serviceFacade.setDtoFactory(dtoFactory);
+
+        serviceFacade.getComponentsAffectedByParameterContextUpdate(List.of(parameterContextDto));
+
+        final Map<String, ParameterDTO> parameters = parameterContextDto.getParameters().stream()
+                .map(ParameterEntity::getParameter)
+                .collect(Collectors.toMap(ParameterDTO::getName, Function.identity()));
+        assertTrue(parameters.containsKey(inheritedParameterName));
+        assertFalse(parameters.containsKey(aliasParameterName));
     }
 
     @Test
