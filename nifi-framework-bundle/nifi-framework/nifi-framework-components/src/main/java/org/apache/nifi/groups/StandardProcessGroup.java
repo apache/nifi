@@ -2908,8 +2908,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public Set<Positionable> findAllPositionables() {
-        final Set<Positionable> positionables = new HashSet<>();
-        positionables.addAll(findAllConnectables(this, true));
+        final Set<Positionable> positionables = new HashSet<>(findAllConnectables(this, true));
         List<ProcessGroup> allProcessGroups = findAllProcessGroups();
         positionables.addAll(allProcessGroups);
         positionables.addAll(findAllRemoteProcessGroups());

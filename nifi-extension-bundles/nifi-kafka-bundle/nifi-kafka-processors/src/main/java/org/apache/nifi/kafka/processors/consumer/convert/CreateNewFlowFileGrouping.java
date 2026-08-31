@@ -123,11 +123,11 @@ public class CreateNewFlowFileGrouping implements RecordGroupingStrategy {
             final RecordGroupCriteria criteria = e.getKey();
             final RecordGroup group = e.getValue();
 
-            final Map<String, String> resultAttrs = new HashMap<>();
+            final Map<String, String> resultAttrs;
             final int recordCount;
             try (final RecordSetWriter writer = group.writer()) {
                 final WriteResult writeResult = writer.finishRecordSet();
-                resultAttrs.putAll(writeResult.getAttributes());
+                resultAttrs = new HashMap<>(writeResult.getAttributes());
                 resultAttrs.put("record.count", String.valueOf(writeResult.getRecordCount()));
                 resultAttrs.put(KafkaFlowFileAttribute.KAFKA_COUNT, String.valueOf(writeResult.getRecordCount()));
                 resultAttrs.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());

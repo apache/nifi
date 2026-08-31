@@ -1769,10 +1769,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         // Create AffectedComponentEntity for each affected component
-        final Set<AffectedComponentEntity> affectedComponentEntities = new HashSet<>();
-
         final Set<AffectedComponentEntity> individualComponents = dtoFactory.createAffectedComponentEntities(affectedComponents, revisionManager);
-        affectedComponentEntities.addAll(individualComponents);
+        final Set<AffectedComponentEntity> affectedComponentEntities = new HashSet<>(individualComponents);
 
         for (final ProcessGroup group : affectedStatelessGroups) {
             final ProcessGroupEntity groupEntity = createProcessGroupEntity(group);
@@ -4117,8 +4115,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new ResourceNotFoundException("Process Group with ID " + processGroupId + " was not found within Connector " + connectorId);
         }
 
-        final Set<ControllerServiceNode> serviceNodes = new HashSet<>();
-        serviceNodes.addAll(targetProcessGroup.getControllerServices(includeAncestorGroups));
+        final Set<ControllerServiceNode> serviceNodes = new HashSet<>(targetProcessGroup.getControllerServices(includeAncestorGroups));
 
         if (includeDescendantGroups) {
             serviceNodes.addAll(targetProcessGroup.findAllControllerServices());
@@ -5405,12 +5402,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final ControllerBulletinsEntity controllerBulletinsEntity = new ControllerBulletinsEntity();
 
-        final List<BulletinEntity> controllerBulletinEntities = new ArrayList<>();
-
         final Authorizable controllerAuthorizable = authorizableLookup.getController();
         final boolean authorized = controllerAuthorizable.isAuthorized(authorizer, RequestAction.READ, user);
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForController());
-        controllerBulletinEntities.addAll(bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, authorized)).collect(Collectors.toList()));
+        final List<BulletinEntity> controllerBulletinEntities = new ArrayList<>(bulletins.stream().map(bulletin ->
+                entityFactory.createBulletinEntity(bulletin, authorized)).collect(Collectors.toList()));
 
         // get the controller service bulletins
         final BulletinQuery controllerServiceQuery = new BulletinQuery.Builder().sourceType(ComponentType.CONTROLLER_SERVICE).build();

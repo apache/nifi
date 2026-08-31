@@ -352,8 +352,7 @@ public class TestCEFRecordReader {
         assertNumberOfResults(1);
         assertSchemaIsSet();
 
-        final Map<String, Object> expectedExtensionValues = new HashMap<>();
-        expectedExtensionValues.putAll(TestCEFUtil.EXPECTED_EXTENSION_VALUES);
+        final Map<String, Object> expectedExtensionValues = new HashMap<>(TestCEFUtil.EXPECTED_EXTENSION_VALUES);
         expectedExtensionValues.put("cn1", null);
         expectedExtensionValues.put("cn1Label", "");
 
