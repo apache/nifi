@@ -1,0 +1,88 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: reproducible-build
+
+on:
+  push:
+    branches-ignore:
+      - dependabot/*
+  pull_request:
+
+env:
+  DEFAULT_MAVEN_OPTS: >-
+    -Xms6g
+    -Xmx6g
+    -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
+
+permissions:
+  contents: read
+
+jobs:
+  reproducible-build:
+    timeout-minutes: 120
+    runs-on: ubuntu-24.04
+    name: Verify Build Reproducibility
+    env:
+      MAVEN_REPRODUCIBLE_ARGUMENTS: >-
+        --show-version
+        --no-snapshot-updates
+        --no-transfer-progress
+        --fail-fast
+        --activate-profiles apache-release
+        -D skipTests
+        -D gpg.skip=true
+        -D maven.javadoc.skip=true
+        -D develocity.cache.local.enabled=false
+        -D develocity.cache.remote.enabled=false
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+      - name: Set up Java 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'zulu'
+          java-version: 21
+          cache: 'maven'
+      - name: Install Reference Build
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+        run: >
+          ./mvnw
+          ${{ env.MAVEN_REPRODUCIBLE_ARGUMENTS }}
+          --threads 1C
+          clean install
+      - name: Restore Original Work Tree
+        run: git clean -d -x -f -f
+      - name: Rebuild and Compare Artifacts
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+        run: >
+          ./mvnw
+          ${{ env.MAVEN_REPRODUCIBLE_ARGUMENTS }}
+          -D compare.aggregate.only=true
+          -D buildinfo.reproducible=true
+          clean verify artifact:compare
+      - name: Upload Build Information
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: build-information
+          path: |
+            ./**/target/*.buildinfo
+            ./**/target/*.buildcompare
+          retention-days: 3

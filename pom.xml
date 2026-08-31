@@ -1148,6 +1148,17 @@
                 <buildBranch>main</buildBranch>
                 <maven.build.timestamp>${project.build.outputTimestamp}</maven.build.timestamp>
             </properties>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-artifact-plugin</artifactId>
+                            <version>3.6.1</version>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
         </profile>
 
         <profile>
