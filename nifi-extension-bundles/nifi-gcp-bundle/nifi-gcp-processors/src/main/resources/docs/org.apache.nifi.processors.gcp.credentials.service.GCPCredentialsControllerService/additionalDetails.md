@@ -108,8 +108,8 @@ Record the audience string printed by the command; it must be copied into NiFiâ€
 
 ### 2. Authorize the workload identity principal for Google Cloud resources
 
-The STS-issued access token represents the workload identity principal itself. Grant IAM roles to that identity on
-projects or specific resources:
+When **Target Service Account** is left blank, the STS-issued access token represents the workload identity principal
+itself. Grant IAM roles to that identity on projects or specific resources:
 
 ```bash
 # Project scoped
@@ -123,8 +123,17 @@ gcloud storage buckets add-iam-policy-binding gs://MY_BUCKET \
   --role="roles/storage.objectViewer"
 ```
 
-`IDENTITY_SUBJECT` must match the claim you mapped in the provider (for example `assertion.sub`). Service-account
-impersonation is not yet supported, so grant roles directly to the workload identity principal.
+`IDENTITY_SUBJECT` must match the claim you mapped in the provider (for example `assertion.sub`).
+
+When you set **Target Service Account**, also grant `roles/iam.workloadIdentityUser` on that service account to the
+same workload identity subject so Google can perform service-account impersonation:
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding \
+  "<TARGET_SERVICE_ACCOUNT_EMAIL>" \
+  --role="roles/iam.workloadIdentityUser" \
+  --member="principal://iam.googleapis.com/projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/nifi-pool/subject/IDENTITY_SUBJECT"
+```
 
 ### 3. Configure NiFi properties (Workload Identity strategy selected)
 
@@ -135,26 +144,29 @@ impersonation is not yet supported, so grant roles directly to the workload iden
 | **STS Token Endpoint** | Optional override for the Google STS endpoint; leave blank to use `https://sts.googleapis.com/v1/token`. |
 | **Subject Token Provider** | Controller Service that retrieves the upstream workload identity token (JWT or access token). The token must contain the claims referenced by your attribute mapping. |
 | **Subject Token Type** | Defaults to `urn:ietf:params:oauth:token-type:jwt`. Choose the alternate access-token type only when the upstream provider issues OAuth access tokens instead of JWTs. |
+| **Target Service Account** | Optional. Set this only when downstream components must impersonate a Google service account. When configured, the controller service returns generic impersonated credentials and dependent components apply any service-specific scopes when they first use the credential. |
 | **Proxy Configuration Service** | Optional controller service allowing NiFi to reach STS through HTTP/SOCKS proxies. |
 
-Once these properties are set, enable GCPCredentialsControllerService. Processors referencing it immediately obtain
-`IdentityPoolCredentials`, and Googleâ€™s libraries refresh access tokens automatically using the configured subject
--token provider.
+Once these properties are set, enable GCPCredentialsControllerService. When **Target Service Account** is blank,
+processors and controller services reference direct `IdentityPoolCredentials`. When **Target Service Account** is set,
+they reference impersonated credentials layered over the workload identity source credential.
 
 ### Verification workflow
 
 1. Enable or refresh the Subject Token Provider controller service.
-2. Use the **Verify** action on GCPCredentialsControllerService. Successful verification confirms that NiFi can
-   exchange the subject token with Google STS using the configured proxy, audience, and scopes.
-3. Enable dependent processors. No additional controller services are required.
+2. Use the **Verify** action on GCPCredentialsControllerService. Successful verification confirms only that NiFi can
+   construct the configured credential object from the current properties.
+3. Verify does not perform STS exchange, service-account impersonation, or network reachability checks. The first token
+   refresh happens when a dependent processor or controller service actually uses the credential.
+4. Enable the dependent components that reference this controller service. Product-specific validation happens there.
 
 ### Troubleshooting
 
 | Symptom | Guidance |
 | --- | --- |
-| `403 Caller does not have storage.objects.list` | Confirm the workload identity principal has the required IAM role: `gcloud projects get-iam-policy` / `gcloud storage buckets get-iam-policy`. Ensure the attribute mapping emits the same subject referenced in IAM. |
-| STS errors during verification | Double-check the **Audience** string and **STS Token Endpoint**. Use DEBUG logs or the Verify dialog output to inspect the STS response. Ensure the subject token includes the mapped claims. |
-| Access token rejected by Google APIs | Call the API directly with the federated token (for example, `curl -H "Authorization: Bearer TOKEN" https://storage.googleapis.com/...`). If it still fails, revisit IAM bindings or scope selection. |
+| `403 Caller does not have storage.objects.list` | Confirm the active identity has the required IAM role. Without **Target Service Account**, grant roles directly to the workload identity principal. With **Target Service Account**, confirm both the impersonated service account permissions and the `roles/iam.workloadIdentityUser` binding for the workload identity subject. |
+| Verify succeeds but the dependent component fails on first use | Verify only constructs credentials. Recheck the **Audience**, **STS Token Endpoint**, upstream subject token, proxy reachability, and any optional **Target Service Account** setting at the dependent component that triggers the first refresh. |
+| Access token rejected by Google APIs | Revisit IAM bindings and scope selection for the dependent component. If the component requires a service-specific scope or impersonated identity, confirm that **Target Service Account** is set and that the downstream component supports the needed scope. |
 | Need to rotate upstream tokens | The controller service requests a fresh subject token 60 seconds before expiry. Trigger **Refresh** on the Subject Token Provider to invalidate cached tokens immediately. |
 
 ---
