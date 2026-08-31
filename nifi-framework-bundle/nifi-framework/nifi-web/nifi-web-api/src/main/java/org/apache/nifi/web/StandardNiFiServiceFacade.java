@@ -1697,9 +1697,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final List<ProcessGroup> groupsReferencingParameterContext = rootGroup.findAllProcessGroups(
                 group -> isGroupAffectedByParameterContext(group, parameterContextDto.getId()));
 
-        setEffectiveParameterUpdates(parameterContextDto);
-
-        final Set<String> updatedParameterNames = getUpdatedParameterNames(parameterContextDto);
+        final Set<String> updatedParameterNames = setEffectiveParameterUpdates(parameterContextDto);
 
         // Extend the updated parameter names with cascading names from parameter value references.
         // If a process group is bound to a context P whose local parameter X has the value #{Y}, and Y is
@@ -1785,12 +1783,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return affectedComponentEntities;
     }
 
-    private void setEffectiveParameterUpdates(final ParameterContextDTO parameterContextDto) {
+    private Set<String> setEffectiveParameterUpdates(final ParameterContextDTO parameterContextDto) {
         final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextDto.getId());
 
         final Map<String, Parameter> parameterUpdates = parameterContextDAO.getParameters(parameterContextDto, parameterContext);
         final List<ParameterContext> inheritedParameterContexts = parameterContextDAO.getInheritedParameterContexts(parameterContextDto);
         final Map<String, Parameter> proposedParameterUpdates = parameterContext.getEffectiveParameterUpdates(parameterUpdates, inheritedParameterContexts);
+        final Map<ParameterDescriptor, Parameter> localParameters = parameterContext.getParameters();
         final Map<String, ParameterEntity> parameterEntities = parameterContextDto.getParameters().stream()
                 .collect(Collectors.toMap(entity -> entity.getParameter().getName(), Function.identity()));
         parameterContextDto.getParameters().clear();
@@ -1798,6 +1797,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         for (final Entry<String, Parameter> entry : proposedParameterUpdates.entrySet()) {
             final String parameterName = entry.getKey();
             final Parameter parameter = entry.getValue();
+            final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).build();
+            final boolean locallyOwned = localParameters.containsKey(parameterDescriptor);
+            if (locallyOwned && !parameterEntities.containsKey(parameterName)) {
+                continue;
+            }
+
             final ParameterEntity parameterEntity;
             if (parameterEntities.containsKey(parameterName)) {
                 parameterEntity = parameterEntities.get(parameterName);
@@ -1810,12 +1815,31 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 parameterEntity = dtoFactory.createParameterEntity(parameterContext, parameter, revisionManager, parameterContextDAO);
             }
 
-            // Parameter is inherited if either this is the removal of a parameter not directly in this context, or it's parameter not specified directly in the DTO
-            final boolean isInherited = (parameter == null && !parameterContext.getParameters().containsKey(new ParameterDescriptor.Builder().name(parameterName).build()))
-                    || (parameter != null && !parameterEntities.containsKey(parameterName));
-            parameterEntity.getParameter().setInherited(isInherited);
+            if (parameter == null) {
+                parameterEntity.getParameter().setInherited(!locallyOwned);
+            } else {
+                final ParameterContext containingParameterContext = getContainingParameterContext(parameterContext, parameter, locallyOwned);
+                final boolean isInherited = !locallyOwned && !Objects.equals(parameterContext.getIdentifier(), containingParameterContext.getIdentifier());
+                final ParameterDTO parameterDto = parameterEntity.getParameter();
+                parameterDto.setProvided(parameter.isProvided());
+                parameterDto.setInherited(isInherited);
+                parameterDto.setParameterContext(entityFactory.createParameterReferenceEntity(
+                        dtoFactory.createParameterContextReference(containingParameterContext),
+                        dtoFactory.createPermissionsDto(containingParameterContext)));
+            }
             parameterContextDto.getParameters().add(parameterEntity);
         }
+
+        return proposedParameterUpdates.keySet();
+    }
+
+    private ParameterContext getContainingParameterContext(final ParameterContext parameterContext, final Parameter parameter, final boolean locallyOwned) {
+        final String sourceContextId = parameter.getParameterContextId();
+        if (locallyOwned || sourceContextId == null || Objects.equals(parameterContext.getIdentifier(), sourceContextId)) {
+            return parameterContext;
+        }
+
+        return parameterContextDAO.getParameterContext(sourceContextId);
     }
 
     private void addReferencingComponents(final ControllerServiceNode service, final Set<ComponentNode> affectedComponents, final List<ParameterDTO> affectedParameterDtos,
@@ -1856,35 +1880,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return false;
     }
 
-    private Set<String> getUpdatedParameterNames(final ParameterContextDTO parameterContextDto) {
-        final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextDto.getId());
-
-        final Set<String> updatedParameters = new HashSet<>();
-        for (final ParameterEntity parameterEntity : parameterContextDto.getParameters()) {
-            final ParameterDTO parameterDto = parameterEntity.getParameter();
-            final String updatedValue = parameterDto.getValue();
-            final String parameterName = parameterDto.getName();
-
-            final Optional<Parameter> parameterOption = parameterContext.getParameter(parameterName);
-            if (!parameterOption.isPresent()) {
-                updatedParameters.add(parameterName);
-                continue;
-            }
-
-            final Parameter parameter = parameterOption.get();
-            final boolean valueUpdated = !Objects.equals(updatedValue, parameter.getValue());
-            // Sensitivity can be updated for provided parameters only
-            final boolean sensitivityUpdated = parameterDto.getSensitive() != null && parameterDto.getSensitive() != parameter.getDescriptor().isSensitive();
-            final boolean descriptionUpdated = parameterDto.getDescription() != null && !parameterDto.getDescription().equals(parameter.getDescriptor().getDescription());
-            final boolean updated = valueUpdated || descriptionUpdated || sensitivityUpdated;
-            if (updated) {
-                updatedParameters.add(parameterName);
-            }
-        }
-
-        return updatedParameters;
-    }
-
     private Set<String> extendWithParameterValueReferences(final Set<String> updatedParameterNames, final List<ProcessGroup> groupsReferencingParameterContext) {
         final Set<String> extended = new HashSet<>(updatedParameterNames);
         for (final ProcessGroup group : groupsReferencingParameterContext) {
@@ -1897,10 +1892,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 if (referencedName == null || !updatedParameterNames.contains(referencedName)) {
                     continue;
                 }
-                final Optional<Parameter> referencedParam = groupContext.getParameter(referencedName);
-                if (referencedParam.isPresent()) {
-                    extended.add(entry.getKey().getName());
-                }
+                extended.add(entry.getKey().getName());
             }
         }
         return extended;
@@ -1928,7 +1920,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (!contextParamName.equals(aliasTarget)) {
             return false;
         }
-        return groupContext.getParameter(contextParamName).isPresent();
+        return true;
     }
 
     @Override

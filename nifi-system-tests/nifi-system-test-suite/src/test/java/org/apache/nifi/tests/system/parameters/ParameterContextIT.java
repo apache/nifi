@@ -196,6 +196,65 @@ public class ParameterContextIT extends NiFiSystemIT {
         waitForValidProcessor(processorId);
     }
 
+    @Test
+    @Timeout(30)
+    public void testExistingEmptyParameterContextCanInheritProviderBackedContext() throws NiFiClientException, IOException, InterruptedException {
+        if (getNumberOfNodes() > 1) {
+            waitForAllNodesConnected();
+        }
+
+        final String parameterName = "db.host";
+        final String parameterValue = "localhost";
+        final String parameterGroupName = "Parameters";
+        final String childContextName = getTestName() + " Child";
+        final String parentContextName = getTestName() + " Parent";
+
+        ParameterProviderEntity parameterProvider = createParameterProvider("PropertiesParameterProvider");
+        parameterProvider = updateParameterProviderProperties(parameterProvider,
+                Collections.singletonMap("parameters", parameterName + "=" + parameterValue));
+
+        final ParameterContextEntity childContextEntity = createParameterContextEntity(childContextName, null, Collections.emptySet(),
+                Collections.emptyList(), parameterProvider, parameterGroupName);
+        final ParameterContextEntity createdChildContext = getNifiClient().getParamContextClient().createParamContext(childContextEntity);
+
+        final ParameterGroupConfigurationEntity groupConfiguration = new ParameterGroupConfigurationEntity();
+        groupConfiguration.setSynchronized(true);
+        groupConfiguration.setGroupName(parameterGroupName);
+        groupConfiguration.setParameterContextName(childContextName);
+        groupConfiguration.setParameterSensitivities(Collections.singletonMap(parameterName, ParameterSensitivity.NON_SENSITIVE));
+        fetchAndWaitForAppliedParameters(parameterProvider, Collections.singletonList(groupConfiguration));
+
+        final ParameterContextEntity createdParentContext = getNifiClient().getParamContextClient().createParamContext(
+                createParameterContextEntity(parentContextName, null, Collections.emptySet()));
+
+        final ParameterContextEntity parentUpdate = createParameterContextEntity(parentContextName, null, Collections.emptySet(),
+                Collections.singletonList(createdChildContext), null, null);
+        parentUpdate.setId(createdParentContext.getId());
+        parentUpdate.setRevision(createdParentContext.getRevision());
+        parentUpdate.getComponent().setId(createdParentContext.getComponent().getId());
+
+        final ParameterContextUpdateRequestEntity updateRequest = getNifiClient().getParamContextClient().updateParamContext(parentUpdate);
+        final String requestId = updateRequest.getRequest().getRequestId();
+        getClientUtil().waitForParameterContextRequestToComplete(createdParentContext.getId(), requestId);
+
+        final ParameterContextEntity persistedParent = getNifiClient().getParamContextClient().getParamContext(createdParentContext.getId(), false);
+        assertEquals(1, persistedParent.getComponent().getInheritedParameterContexts().size());
+        assertEquals(createdChildContext.getId(), persistedParent.getComponent().getInheritedParameterContexts().get(0).getId());
+
+        final ParameterDTO effectiveParameter = getNifiClient().getParamContextClient().getParamContext(createdParentContext.getId(), true)
+                .getComponent()
+                .getParameters()
+                .stream()
+                .map(ParameterEntity::getParameter)
+                .filter(parameter -> parameterName.equals(parameter.getName()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(effectiveParameter);
+        assertEquals(parameterValue, effectiveParameter.getValue());
+        assertSame(Boolean.TRUE, effectiveParameter.getInherited());
+        assertSame(Boolean.TRUE, effectiveParameter.getProvided());
+    }
+
     @Timeout(30)
     @Test
     public void testValidationWithRequiredPropertiesAndNoDefault() throws NiFiClientException, IOException, InterruptedException {
