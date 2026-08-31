@@ -80,6 +80,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
@@ -624,10 +625,11 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
             final org.apache.nifi.c2.protocol.component.api.Stateful componentStateful = new org.apache.nifi.c2.protocol.component.api.Stateful();
             componentStateful.setDescription(stateful.getDescription());
             if (stateful.getScopes() != null) {
+                // Collect to LinkedHashSet for deterministic ordering of Scopes
                 componentStateful.setScopes(
                         stateful.getScopes().stream()
                                 .map(this::getScope)
-                                .collect(Collectors.toSet())
+                                .collect(Collectors.toCollection(LinkedHashSet::new))
                 );
                 extensionComponent.setStateful(componentStateful);
             }
@@ -755,10 +757,11 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         };
         propertyResourceDefinition.setCardinality(cardinality);
 
+        // Collect to LinkedHashSet for deterministic ordering of Resource Types
         propertyResourceDefinition.setResourceTypes(
                 resourceDefinition.getResourceTypes().stream()
                         .map(this::getResourceType)
-                        .collect(Collectors.toSet())
+                        .collect(Collectors.toCollection(LinkedHashSet::new))
         );
 
         return propertyResourceDefinition;
