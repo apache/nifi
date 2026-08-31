@@ -19,18 +19,17 @@
 database password for a DBCP service. Use it when you want NiFi to connect to Cloud SQL without storing a long-lived
 database password in NiFi.
 
-The provider supports Cloud SQL for PostgreSQL and Cloud SQL for MySQL over direct JDBC connections. When a DBCP service
-references this provider, the static DBCP password property is ignored.
+The provider works with Cloud SQL for PostgreSQL and Cloud SQL for MySQL. When a DBCP service references this provider,
+the static DBCP password property is ignored.
 
 ## Usage
 
 1. Configure `GCPCredentialsControllerService` so NiFi can obtain Google credentials.
 2. Create and enable `GcpCloudSqlIamDatabasePasswordProvider`.
 3. Set **GCP Credentials Provider Service** to the credentials service.
-4. Set **Database Type** to match the target engine: `POSTGRESQL` or `MYSQL`.
-5. Configure the DBCP service with the JDBC URL, driver, database user, and **Database Password Provider** set to
+4. Configure the DBCP service with the JDBC URL, driver, database user, and **Database Password Provider** set to
    `GcpCloudSqlIamDatabasePasswordProvider`.
-6. Run **Verify** on the provider, then run **Verify** on the DBCP service.
+5. Run **Verify** on the provider, then run **Verify** on the DBCP service.
 
 Create the Cloud SQL IAM database user separately and grant the database privileges required by your application.
 
@@ -39,19 +38,18 @@ Create the Cloud SQL IAM database user separately and grant the database privile
 For Workload Identity Federation, `GCPCredentialsControllerService` must be configured with **Target Service Account**.
 The workload identity principal must also have `roles/iam.workloadIdentityUser` on that target service account.
 
-Without both of these settings, token acquisition for Cloud SQL IAM authentication will not succeed.
+Without target service account impersonation, token acquisition for Cloud SQL IAM authentication will not succeed.
 
 ## PostgreSQL Configuration
 
-Cloud SQL for PostgreSQL expects the DBCP **Database User** to match the IAM identity used for login.
+Cloud SQL for PostgreSQL expects the DBCP **Database User** to match the IAM identity used for login. Configure the
+DBCP service with a PostgreSQL JDBC driver and PostgreSQL JDBC URL. Configure TLS in the DBCP service as required for
+your environment.
 
 | Setting | Value |
 |---|---|
-| Database Type | `POSTGRESQL` |
-| Driver | PostgreSQL JDBC driver |
+| Driver Class Name | `org.postgresql.Driver` |
 | JDBC URL | `jdbc:postgresql://<HOST>:5432/<DATABASE>?sslmode=require` |
-| Accepted `sslmode` values | `prefer`, `require`, `verify-ca`, `verify-full` |
-| Rejected `sslmode` values | missing, `disable`, `allow` |
 | Database User for Google user | full email address |
 | Database User for service account | service-account email without `.gserviceaccount.com` |
 
@@ -63,27 +61,20 @@ Example service-account mapping:
 ## MySQL Configuration
 
 Cloud SQL for MySQL uses the full service-account email when the IAM database user is created, but the JDBC login name
-must be only the portion before `@`.
+must be only the portion before `@`. Configure the DBCP service with a compatible MySQL Connector/J driver and MySQL
+JDBC URL. Configure TLS in the DBCP service as required for your environment.
 
 | Setting | Value |
 |---|---|
-| Database Type | `MYSQL` |
 | Driver Class Name | `com.mysql.cj.jdbc.Driver` |
 | Driver Location(s) | compatible MySQL Connector/J driver jar provided to the DBCP service |
 | JDBC URL | `jdbc:mysql://<HOST>:3306/<DATABASE>?sslMode=REQUIRED` |
-| Accepted `sslMode` values | `REQUIRED`, `VERIFY_CA`, `VERIFY_IDENTITY` |
-| Rejected `sslMode` values | missing, `DISABLED`, `PREFERRED` |
-| Required property spelling | `sslMode` |
 | Database User | service-account identifier before `@` |
 
 Example service-account mapping:
 
 - IAM database user created in Cloud SQL: `nifi-sa@my-project.iam.gserviceaccount.com`
 - DBCP **Database User**: `nifi-sa`
-
-For MySQL, install or provide a compatible MySQL Connector/J driver. Do not set `user` or `password` in JDBC URL
-parameters, and do not set `user` in DBCP connection properties. Do not disable the MySQL clear-password authentication
-plugin required by Cloud SQL IAM authentication.
 
 ## Verify and Troubleshooting
 
@@ -95,24 +86,6 @@ If provider **Verify** fails:
 - Confirm the referenced `GCPCredentialsControllerService` is enabled.
 - For Workload Identity Federation, confirm **Target Service Account** is set and the workload identity principal has
   `roles/iam.workloadIdentityUser` on that service account.
-
-If PostgreSQL authentication fails:
-
-- Confirm the DBCP **Database User** matches the expected PostgreSQL IAM username form.
-- Confirm the JDBC configuration provides an accepted `sslmode` value.
-
-If MySQL authentication fails:
-
-- Confirm the IAM database user was created with the full service-account email.
-- Confirm the DBCP **Database User** uses only the portion before `@`.
-- Confirm the driver class is `com.mysql.cj.jdbc.Driver` and the JDBC URL uses `jdbc:mysql://` with a single host.
-
-If MySQL configuration is rejected before connection:
-
-- Confirm `sslMode` is present and spelled exactly `sslMode`.
-- Remove conflicting TLS properties such as `useSSL`, `requireSSL`, or `verifyServerCertificate`.
-- Remove `user` or `password` from the JDBC URL, and remove `user` from DBCP connection properties.
-- Confirm `disabledAuthenticationPlugins` does not disable the required clear-password plugin.
 
 If provider **Verify** succeeds but DBCP **Verify** fails, token acquisition is working and the problem is in the JDBC
 connection configuration, network path, TLS settings, driver setup, database user, or database privileges.
