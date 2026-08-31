@@ -216,8 +216,6 @@
         <checkstyle.version>14.0.0</checkstyle.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <jacoco.version>0.8.15</jacoco.version>
-        <!--Default value for argLine in order to prevent surefire failure if syntax @{argLine} does not resolve-->
-        <argLine/>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -744,11 +742,6 @@
                             <exclude>**/*ITSpec.class</exclude>
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <!-- Preserve the incoming command-line with the syntax @{argLine} and
-                            configure mockito-core as a Java Agent to enable explicit attachment to processes.
-                            Path for javaagent is wrapped in double quotes in order for the OS to treat the entire path as a single argument string
-                            -->
-                        <argLine>@{argLine} -javaagent:"${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar"</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -1041,24 +1034,6 @@
                             </ignoredDependencies>
                         </configuration>
                     </execution>
-                    <!-- Copy mockito-core library to target directory to avoid warnings in IntelliJ for agent loading -->
-                    <execution>
-                        <id>copy-mockito-core</id>
-                        <phase>initialize</phase>
-                        <goals>
-                            <goal>copy</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>org.mockito</groupId>
-                                    <artifactId>mockito-core</artifactId>
-                                    <outputDirectory>${project.build.directory}/agents</outputDirectory>
-                                    <destFileName>mockito-core.jar</destFileName>
-                                </artifactItem>
-                            </artifactItems>
-                        </configuration>
-                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -1318,6 +1293,60 @@
                                 </goals>
                             </execution>
                         </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>configure-mockito-agent</id>
+            <activation>
+                <property>
+                    <!-- Activates by default, but disables if you pass -DskipMockitoAgent=true -->
+                    <name>!skipMockitoAgent</name>
+                </property>
+            </activation>
+            <properties>
+                <mockitoAgentOpts>-javaagent:"${org.mockito:mockito-core:jar}"</mockitoAgentOpts>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>resolve-mockito-agent-path</id>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>properties</goal>
+                                </goals>
+                            </execution>
+                            <!-- Copy mockito-core library to target directory to avoid warnings in IntelliJ for agent loading -->
+                            <execution>
+                                <id>copy-mockito-core</id>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>org.mockito</groupId>
+                                            <artifactId>mockito-core</artifactId>
+                                            <outputDirectory>${project.build.directory}/agents</outputDirectory>
+                                            <destFileName>mockito-core.jar</destFileName>
+                                        </artifactItem>
+                                    </artifactItems>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <argLine>${mockitoAgentOpts}</argLine>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>

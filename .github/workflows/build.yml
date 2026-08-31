@@ -34,6 +34,8 @@ env:
     -Xmx3g
     -Daether.connector.http.retryHandler.count=5
     -Daether.connector.http.connectionMaxTtl=30
+  NO_JAVA_AGENT_OPT: >-
+    -DskipMockitoAgent=true
   MAVEN_COMPILE_COMMAND: >-
     test-compile
     --show-version
@@ -334,6 +336,7 @@ jobs:
         run: >-
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_VERIFY_COMMAND }}
+          ${{ env.NO_JAVA_AGENT_OPT }}
           -P python-unit-tests
       - name: Upload Test Reports
         uses: actions/upload-artifact@v5
@@ -409,6 +412,7 @@ jobs:
         run: >-
           ${{ env.MAVEN_COMMAND_WINDOWS }}
           ${{ env.MAVEN_VERIFY_COMMAND }}
+          ${{ env.NO_JAVA_AGENT_OPT }}
       - name: Upload Test Reports
         uses: actions/upload-artifact@v5
         with:

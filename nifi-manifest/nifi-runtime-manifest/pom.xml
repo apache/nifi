@@ -95,6 +95,10 @@
                         <!-- Binds the execution to a non-existent phase so it never runs -->
                         <phase>none</phase>
                     </execution>
+                    <execution>
+                        <id>resolve-mockito-agent-path</id>
+                        <phase>none</phase>
+                    </execution>
                 </executions>
                 <dependencies>
                     <dependency>
