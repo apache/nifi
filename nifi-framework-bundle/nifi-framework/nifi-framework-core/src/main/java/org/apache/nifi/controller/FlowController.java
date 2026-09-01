@@ -2368,8 +2368,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             prioritizerClasses.add(name);
         }
 
-        final Set<VersionedConnection> allConns = new HashSet<>();
-        allConns.addAll(versionedFlow.getConnections());
+        final Set<VersionedConnection> allConns = new HashSet<>(versionedFlow.getConnections());
         for (final VersionedProcessGroup childGroup : versionedFlow.getProcessGroups()) {
             allConns.addAll(findAllConnections(childGroup));
         }
@@ -2787,10 +2786,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     // Counters
     //
     public List<Counter> getCounters() {
-        final List<Counter> counters = new ArrayList<>();
 
         final CounterRepository counterRepo = counterRepositoryRef.get();
-        counters.addAll(counterRepo.getCounters());
+        final List<Counter> counters = new ArrayList<>(counterRepo.getCounters());
 
         return counters;
     }
