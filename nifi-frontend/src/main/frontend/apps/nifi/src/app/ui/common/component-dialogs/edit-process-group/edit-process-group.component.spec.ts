@@ -117,7 +117,8 @@ describe('EditProcessGroup', () => {
                     },
                     executionEngine: 'INHERITED',
                     maxConcurrentTasks: 1,
-                    statelessFlowTimeout: '1 min'
+                    statelessFlowTimeout: '1 min',
+                    statelessContentStorageLocation: 'INHERITED'
                 }
             }
         };
@@ -218,7 +219,8 @@ describe('EditProcessGroup', () => {
                     },
                     executionEngine: 'INHERITED',
                     maxConcurrentTasks: 1,
-                    statelessFlowTimeout: '1 min'
+                    statelessFlowTimeout: '1 min',
+                    statelessContentStorageLocation: 'INHERITED'
                 }
             }
         };
@@ -303,7 +305,8 @@ describe('EditProcessGroup', () => {
                     },
                     executionEngine: 'INHERITED',
                     maxConcurrentTasks: 1,
-                    statelessFlowTimeout: '1 min'
+                    statelessFlowTimeout: '1 min',
+                    statelessContentStorageLocation: 'INHERITED'
                 }
             }
         };

@@ -125,6 +125,7 @@ export class EditProcessGroup extends TabbedDialog {
     protected readonly STATELESS: string = 'STATELESS';
     private initialMaxConcurrentTasks: number;
     private initialStatelessFlowTimeout: string;
+    private initialStatelessContentStorageLocation: string;
     private _parameterContexts: ParameterContextEntity[] = [];
 
     editProcessGroupForm: FormGroup;
@@ -147,6 +148,28 @@ export class EditProcessGroup extends TabbedDialog {
             value: this.STATELESS,
             description:
                 'Run the dataflow using the Stateless Execution Engine. See the User Guide for additional details.'
+        }
+    ];
+
+    statelessContentStorageLocationOptions: SelectOption[] = [
+        {
+            text: 'Inherited',
+            value: 'INHERITED',
+            description:
+                'Use whichever FlowFile content storage the parent Process Group is configured to use. If there is no parent Process Group, or the ' +
+                'parent is not using the Stateless Execution Engine, FlowFile content is stored in the Content Repository.'
+        },
+        {
+            text: 'Content Repository',
+            value: 'CONTENT_REPOSITORY',
+            description: 'Store FlowFile content in the configured Content Repository.'
+        },
+        {
+            text: 'In Memory',
+            value: 'IN_MEMORY',
+            description:
+                'Buffer FlowFile content in memory instead of writing to the Content Repository. This can improve performance for flows that keep ' +
+                'only a small amount of data in flight, but is not appropriate for flows that process large amounts of data.'
         }
     ];
 
@@ -226,6 +249,8 @@ export class EditProcessGroup extends TabbedDialog {
 
         this.initialMaxConcurrentTasks = request.entity.component.maxConcurrentTasks;
         this.initialStatelessFlowTimeout = request.entity.component.statelessFlowTimeout;
+        this.initialStatelessContentStorageLocation =
+            request.entity.component.statelessContentStorageLocation ?? 'INHERITED';
 
         this.executionEngineChanged(request.entity.component.executionEngine);
     }
@@ -240,9 +265,14 @@ export class EditProcessGroup extends TabbedDialog {
                 'statelessFlowTimeout',
                 new FormControl(this.initialStatelessFlowTimeout, Validators.required)
             );
+            this.editProcessGroupForm.addControl(
+                'statelessContentStorageLocation',
+                new FormControl(this.initialStatelessContentStorageLocation, Validators.required)
+            );
         } else {
             this.editProcessGroupForm.removeControl('maxConcurrentTasks');
             this.editProcessGroupForm.removeControl('statelessFlowTimeout');
+            this.editProcessGroupForm.removeControl('statelessContentStorageLocation');
         }
     }
 
@@ -279,6 +309,8 @@ export class EditProcessGroup extends TabbedDialog {
         if (this.editProcessGroupForm.get('executionEngine')?.value === this.STATELESS) {
             payload.component.maxConcurrentTasks = this.editProcessGroupForm.get('maxConcurrentTasks')?.value;
             payload.component.statelessFlowTimeout = this.editProcessGroupForm.get('statelessFlowTimeout')?.value;
+            payload.component.statelessContentStorageLocation =
+                this.editProcessGroupForm.get('statelessContentStorageLocation')?.value;
         }
 
         this.editProcessGroup.next(payload);
