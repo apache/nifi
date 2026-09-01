@@ -39,7 +39,6 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.Heartbeat;
@@ -3060,7 +3059,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             return Collections.emptyList();
         }
 
-        return clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED).stream()
+        return clusterCoordinator.getNodeIdentifiers(org.apache.nifi.cluster.coordination.node.NodeConnectionState.CONNECTED).stream()
                 .sorted(Comparator.comparing(NodeIdentifier::getApiAddress).thenComparingInt(NodeIdentifier::getApiPort))
                 .toList();
     }
@@ -3068,6 +3067,39 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     @Override
     public boolean isConfiguredForClustering() {
         return configuredForClustering;
+    }
+
+    @Override
+    public NodeConnectionState getNodeConnectionState() {
+        if (!isConfiguredForClustering()) {
+            return NodeConnectionState.STANDALONE;
+        }
+
+        final NodeIdentifier localNodeId = getNodeId();
+        final ClusterCoordinator coordinator = getClusterCoordinator();
+        if (localNodeId == null || coordinator == null) {
+            return NodeConnectionState.DISCONNECTED;
+        }
+
+        final NodeConnectionStatus localConnectionStatus = coordinator.getConnectionStatus(localNodeId);
+        if (localConnectionStatus == null) {
+            return NodeConnectionState.DISCONNECTED;
+        }
+
+        return mapNodeConnectionState(localConnectionStatus.getState());
+    }
+
+    private static NodeConnectionState mapNodeConnectionState(
+            final org.apache.nifi.cluster.coordination.node.NodeConnectionState connectionState) {
+        return switch (connectionState) {
+            case CONNECTING -> NodeConnectionState.CONNECTING;
+            case CONNECTED -> NodeConnectionState.CONNECTED;
+            case OFFLOADING -> NodeConnectionState.OFFLOADING;
+            case DISCONNECTING -> NodeConnectionState.DISCONNECTING;
+            case OFFLOADED -> NodeConnectionState.OFFLOADED;
+            case DISCONNECTED -> NodeConnectionState.DISCONNECTED;
+            case REMOVED -> NodeConnectionState.REMOVED;
+        };
     }
 
     void registerForClusterCoordinator(final boolean participate) {
@@ -3648,7 +3680,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public boolean isConnected() {
         rwLock.readLock().lock();
         try {
-            return connectionStatus != null && connectionStatus.getState() == NodeConnectionState.CONNECTED;
+            return connectionStatus != null
+                    && connectionStatus.getState() == org.apache.nifi.cluster.coordination.node.NodeConnectionState.CONNECTED;
         } finally {
             rwLock.readLock().unlock();
         }
