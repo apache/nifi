@@ -29,6 +29,7 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.flow.StatelessContentStorageLocation;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
@@ -48,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -392,6 +394,78 @@ class StandardProcessGroupTest {
         );
 
         assertEquals(expected, leaf.getLoggingAttributes());
+    }
+
+    @Test
+    void testResolveStatelessContentStorageLocationWithoutStatelessParentDefaultsToContentRepository() {
+        assertEquals(StatelessContentStorageLocation.CONTENT_REPOSITORY, processGroup.resolveStatelessContentStorageLocation());
+
+        processGroup.setExecutionEngine(ExecutionEngine.STATELESS);
+        processGroup.setStatelessContentStorageLocation(StatelessContentStorageLocation.IN_MEMORY);
+        assertEquals(StatelessContentStorageLocation.IN_MEMORY, processGroup.resolveStatelessContentStorageLocation());
+
+        processGroup.setStatelessContentStorageLocation(StatelessContentStorageLocation.INHERITED);
+        assertEquals(StatelessContentStorageLocation.CONTENT_REPOSITORY, processGroup.resolveStatelessContentStorageLocation());
+    }
+
+    @Test
+    void testResolveStatelessContentStorageLocationInheritsFromStatelessParent() {
+        final StandardProcessGroup parent = createStatelessParent(StatelessContentStorageLocation.IN_MEMORY);
+        final StandardProcessGroup child = createStandardProcessGroup("child");
+        child.setName("Child");
+        parent.addProcessGroup(child);
+
+        assertEquals(StatelessContentStorageLocation.IN_MEMORY, child.resolveStatelessContentStorageLocation());
+
+        // A concrete value that matches the resolved parent value is allowed.
+        child.setStatelessContentStorageLocation(StatelessContentStorageLocation.IN_MEMORY);
+        assertEquals(StatelessContentStorageLocation.IN_MEMORY, child.resolveStatelessContentStorageLocation());
+    }
+
+    @Test
+    void testResolveIgnoresContentStorageWhenParentIsNotStateless() {
+        final StandardProcessGroup parent = createStandardProcessGroup("parent");
+        parent.setName("Parent");
+        parent.setStatelessContentStorageLocation(StatelessContentStorageLocation.IN_MEMORY);
+
+        final StandardProcessGroup child = createStandardProcessGroup("child");
+        child.setName("Child");
+        parent.addProcessGroup(child);
+
+        assertEquals(StatelessContentStorageLocation.CONTENT_REPOSITORY, child.resolveStatelessContentStorageLocation());
+    }
+
+    @Test
+    void testSetStatelessContentStorageLocationRejectsChildDifferingFromStatelessParent() {
+        final StandardProcessGroup parent = createStatelessParent(StatelessContentStorageLocation.IN_MEMORY);
+        final StandardProcessGroup child = createStandardProcessGroup("child");
+        child.setName("Child");
+        parent.addProcessGroup(child);
+
+        assertThrows(IllegalStateException.class, () -> child.setStatelessContentStorageLocation(StatelessContentStorageLocation.CONTENT_REPOSITORY));
+
+        // INHERITED is always allowed because it resolves to the parent's value.
+        child.setStatelessContentStorageLocation(StatelessContentStorageLocation.INHERITED);
+        assertEquals(StatelessContentStorageLocation.IN_MEMORY, child.resolveStatelessContentStorageLocation());
+    }
+
+    @Test
+    void testSetStatelessContentStorageLocationRejectsParentConflictingWithConcreteChild() {
+        final StandardProcessGroup parent = createStatelessParent(StatelessContentStorageLocation.IN_MEMORY);
+        final StandardProcessGroup child = createStandardProcessGroup("child");
+        child.setName("Child");
+        parent.addProcessGroup(child);
+        child.setStatelessContentStorageLocation(StatelessContentStorageLocation.IN_MEMORY);
+
+        assertThrows(IllegalStateException.class, () -> parent.setStatelessContentStorageLocation(StatelessContentStorageLocation.CONTENT_REPOSITORY));
+    }
+
+    private StandardProcessGroup createStatelessParent(final StatelessContentStorageLocation location) {
+        final StandardProcessGroup parent = createStandardProcessGroup("parent");
+        parent.setName("Parent");
+        parent.setExecutionEngine(ExecutionEngine.STATELESS);
+        parent.setStatelessContentStorageLocation(location);
+        return parent;
     }
 
     private StandardProcessGroup createStandardProcessGroup(final String id) {

@@ -137,6 +137,24 @@
                                         [readonly]="readonly" />
                                 </mat-form-field>
                             </div>
+                            <div>
+                                <mat-form-field>
+                                    <mat-label>FlowFile Content Storage</mat-label>
+                                    <mat-select formControlName="statelessContentStorageLocation">
+                                        @for (option of statelessContentStorageLocationOptions; track option) {
+                                            <mat-option
+                                                [value]="option.value"
+                                                [disabled]="readonly"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                [tooltipInputData]="option.description"
+                                                [delayClose]="false">
+                                                {{ option.text }}
+                                            </mat-option>
+                                        }
+                                    </mat-select>
+                                </mat-form-field>
+                            </div>
                         }
                         <div>
                             <mat-form-field>

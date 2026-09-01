@@ -30,6 +30,7 @@ import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.flow.StatelessContentStorageLocation;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ComponentAdditions;
@@ -110,6 +111,9 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         if (processGroup.getExecutionEngine() != null) {
             group.setExecutionEngine(ExecutionEngine.valueOf(processGroup.getExecutionEngine()));
         }
+        if (processGroup.getStatelessContentStorageLocation() != null) {
+            group.setStatelessContentStorageLocation(StatelessContentStorageLocation.valueOf(processGroup.getStatelessContentStorageLocation()));
+        }
 
         // add the process group
         group.setParent(parentGroup);
@@ -131,6 +135,11 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final String executionEngine = processGroup.getExecutionEngine();
         if (executionEngine != null) {
             group.verifyCanSetExecutionEngine(ExecutionEngine.valueOf(executionEngine));
+        }
+
+        final String statelessContentStorageLocation = processGroup.getStatelessContentStorageLocation();
+        if (statelessContentStorageLocation != null) {
+            group.verifyCanSetStatelessContentStorageLocation(StatelessContentStorageLocation.valueOf(statelessContentStorageLocation));
         }
 
         final VersionControlInformationDTO versionControlInfoDTO = processGroup.getVersionControlInformation();
@@ -496,6 +505,9 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         }
         if (processGroupDTO.getStatelessFlowTimeout() != null) {
             group.setStatelessFlowTimeout(processGroupDTO.getStatelessFlowTimeout());
+        }
+        if (processGroupDTO.getStatelessContentStorageLocation() != null) {
+            group.setStatelessContentStorageLocation(StatelessContentStorageLocation.valueOf(processGroupDTO.getStatelessContentStorageLocation()));
         }
 
         if (logFileSuffix != null) {

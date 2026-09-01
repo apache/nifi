@@ -40,6 +40,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     private String executionEngine;
     private Integer maxConcurrentTasks;
     private String statelessFlowTimeout;
+    private String statelessContentStorageLocation;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -421,5 +422,17 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     public void setStatelessFlowTimeout(final String timeout) {
         this.statelessFlowTimeout = timeout;
+    }
+
+    @Schema(description = "Specifies where FlowFile content should be stored when the flow is run using the Stateless Engine: in the Content Repository, " +
+        "in memory, or inherited from the parent Process Group. If there is no parent Process Group, or if the parent Process Group is not configured to use " +
+        "the Stateless Execution Engine, INHERITED resolves to CONTENT_REPOSITORY.",
+        allowableValues = {"INHERITED", "CONTENT_REPOSITORY", "IN_MEMORY"})
+    public String getStatelessContentStorageLocation() {
+        return statelessContentStorageLocation;
+    }
+
+    public void setStatelessContentStorageLocation(final String statelessContentStorageLocation) {
+        this.statelessContentStorageLocation = statelessContentStorageLocation;
     }
 }

@@ -36,6 +36,7 @@ import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.flow.StatelessContentStorageLocation;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
@@ -1318,6 +1319,33 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @return the configured maximum amount of time that a Stateless Flow can run before it times out and is considered a failure
      */
     String getStatelessFlowTimeout();
+
+    /**
+     * @return the configured location for storing FlowFile content when this Process Group is run using the Stateless Execution Engine
+     */
+    StatelessContentStorageLocation getStatelessContentStorageLocation();
+
+    /**
+     * Sets the location for storing FlowFile content when this Process Group is run using the Stateless Execution Engine
+     * @param location the location to use for storing FlowFile content
+     */
+    void setStatelessContentStorageLocation(StatelessContentStorageLocation location);
+
+    /**
+     * Returns the location that should be used for storing FlowFile content when this Process Group is run using the Stateless Execution Engine. If the
+     * Process Group has a location explicitly configured, it will be returned. Otherwise, the location will be resolved by traversing up the Process Group
+     * hierarchy. If no ancestor Process Group is configured to use the Stateless Execution Engine, the Content Repository will be used.
+     *
+     * @return the location that should be used for storing FlowFile content when this Process Group is run using the Stateless Execution Engine
+     */
+    StatelessContentStorageLocation resolveStatelessContentStorageLocation();
+
+    /**
+     * Verifies that the Stateless Content Storage Location can be set to the given value without conflicting with a parent or child Process Group.
+     * @param location the location to set
+     * @throws IllegalStateException if the location cannot be set to the given value
+     */
+    void verifyCanSetStatelessContentStorageLocation(StatelessContentStorageLocation location);
 
     /**
      * @return the FlowFileActivity for this Process Group

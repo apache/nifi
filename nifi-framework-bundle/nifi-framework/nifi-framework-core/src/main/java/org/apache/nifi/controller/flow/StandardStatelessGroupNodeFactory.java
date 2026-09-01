@@ -23,6 +23,7 @@ import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.DeferredStatelessContentRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.NonPurgeableContentRepository;
@@ -33,6 +34,7 @@ import org.apache.nifi.controller.repository.metrics.tracking.StatsTracker;
 import org.apache.nifi.controller.scheduling.StatelessProcessScheduler;
 import org.apache.nifi.controller.scheduling.StatelessProcessSchedulerInitializationContext;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.extensions.BundleAvailability;
 import org.apache.nifi.extensions.ExtensionRepository;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
@@ -121,7 +123,11 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
 
         flowFileRepository.initialize(resourceClaimManager);
 
-        final ContentRepository contentRepository = new NonPurgeableContentRepository(flowController.getRepositoryContextFactory().getContentRepository());
+        // Defer the choice of Content Repository until it is first used (i.e., when the group starts), because at construction time the group's
+        // Stateless Content Storage Location has not yet been configured. When resolved to IN_MEMORY, content is buffered in memory; otherwise the
+        // NiFi instance's Content Repository is used (wrapped so the Stateless flow does not purge content the framework is responsible for cleaning up).
+        final ContentRepository frameworkContentRepository = new NonPurgeableContentRepository(flowController.getRepositoryContextFactory().getContentRepository());
+        final ContentRepository contentRepository = new DeferredStatelessContentRepository(group, frameworkContentRepository, resourceClaimManager, EventReporter.NO_OP);
         final RepositoryContextFactory statelessRepoContextFactory = new StatelessRepositoryContextFactory(
             contentRepository,
             flowFileRepository,
