@@ -18,6 +18,7 @@
 package org.apache.nifi.tests.system.clustering;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.controller.NodeConnectionState;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
@@ -103,7 +104,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         // This should generate a new FlowFile on Node 1.
         final String node2Id = getNodeEntity(2).getNode().getNodeId();
         getClientUtil().disconnectNode(node2Id);
-        waitForNodeState(2, NODE_STATE_DISCONNECTED);
+        waitForNodeState(2, NodeConnectionState.DISCONNECTED);
 
         final ParameterContextUpdateRequestEntity updateRequestEntity = getClientUtil().updateParameterContext(parameterContextEntity, Collections.singletonMap("Param1", "updated"));
         getClientUtil().waitForParameterContextRequestToComplete(parameterContextEntity.getId(), updateRequestEntity.getRequest().getRequestId());
@@ -354,7 +355,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
 
         // Shut down node 2
         disconnectNode(2);
-        waitForNodeState(2, NODE_STATE_DISCONNECTED);
+        waitForNodeState(2, NodeConnectionState.DISCONNECTED);
 
         // Attempt to delete connection. It should throw an Exception.
         assertThrows(Exception.class, () -> getNifiClient().getConnectionClient().deleteConnection(connection));

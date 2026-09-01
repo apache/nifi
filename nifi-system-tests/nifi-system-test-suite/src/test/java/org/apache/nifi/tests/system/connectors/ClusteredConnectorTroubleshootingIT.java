@@ -17,6 +17,7 @@
 
 package org.apache.nifi.tests.system.connectors;
 
+import org.apache.nifi.controller.NodeConnectionState;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -174,7 +175,7 @@ public class ClusteredConnectorTroubleshootingIT extends ConnectorTroubleshootin
             throws InterruptedException, NiFiClientException, IOException {
         // The reconnect must be rejected because Node 2's local Troubleshooting state does not match the cluster, so Node 2
         // returns to DISCONNECTED rather than reaching CONNECTED.
-        waitForNodeState(2, NODE_STATE_DISCONNECTED);
+        waitForNodeState(2, NodeConnectionState.DISCONNECTED);
 
         // Only the coordinator remains connected.
         assertEquals(1, getNifiClient().getFlowClient().getClusterSummary().getClusterSummary().getConnectedNodeCount().intValue());

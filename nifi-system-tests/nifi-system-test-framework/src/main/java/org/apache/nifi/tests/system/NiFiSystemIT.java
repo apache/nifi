@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.tests.system;
 
+import org.apache.nifi.controller.NodeConnectionState;
 import org.apache.nifi.toolkit.client.NiFiClient;
 import org.apache.nifi.toolkit.client.NiFiClientConfig;
 import org.apache.nifi.toolkit.client.NiFiClientException;
@@ -92,15 +93,10 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     public static final String TEST_REPORTING_TASK_PACKAGE = "org.apache.nifi.reporting";
     public static final String TEST_FLOW_ANALYSIS_RULE_PACKAGE = "org.apache.nifi.flowanalysis";
 
-    // Cluster role/node-state values as reported by the REST API's NodeDTO. Defined here as plain Strings, matching
-    // the wire format, instead of depending on nifi-framework-cluster-protocol's ClusterRoles/NodeConnectionState.
+    // Cluster role value as reported by the REST API's NodeDTO. Defined here as a plain String, matching the wire
+    // format - nifi-api has no equivalent type for cluster roles (unlike NodeConnectionState, which it does provide).
     public static final String CLUSTER_ROLE_PRIMARY_NODE = "Primary Node";
     public static final String CLUSTER_ROLE_COORDINATOR = "Cluster Coordinator";
-    public static final String NODE_STATE_CONNECTING = "CONNECTING";
-    public static final String NODE_STATE_CONNECTED = "CONNECTED";
-    public static final String NODE_STATE_OFFLOADING = "OFFLOADING";
-    public static final String NODE_STATE_DISCONNECTING = "DISCONNECTING";
-    public static final String NODE_STATE_DISCONNECTED = "DISCONNECTED";
 
     // Connector state values as reported by the REST API's ConnectorDTO. Defined here as plain Strings, matching
     // the wire format, instead of depending on nifi-framework-core-api's ConnectorState enum.
@@ -689,10 +685,10 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
      */
     protected void disconnectNode(final int nodeIndex) throws NiFiClientException, IOException, InterruptedException {
         final NodeEntity nodeEntity = getNodeEntity(nodeIndex);
-        nodeEntity.getNode().setStatus(NODE_STATE_DISCONNECTING);
+        nodeEntity.getNode().setStatus(NodeConnectionState.DISCONNECTING.name());
         getNifiClient().getControllerClient().disconnectNode(nodeEntity.getNode().getNodeId(), nodeEntity);
 
-        waitForNodeState(nodeIndex, NODE_STATE_DISCONNECTED);
+        waitForNodeState(nodeIndex, NodeConnectionState.DISCONNECTED);
         waitForCoordinatorElected();
     }
 
@@ -703,7 +699,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     protected boolean isCoordinatorElected() throws NiFiClientException, IOException {
         final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
         for (final NodeDTO nodeDto : clusterEntity.getCluster().getNodes()) {
-            if (nodeDto.getRoles().contains(CLUSTER_ROLE_COORDINATOR) && nodeDto.getStatus().equals(NODE_STATE_CONNECTED)) {
+            if (nodeDto.getRoles().contains(CLUSTER_ROLE_COORDINATOR) && nodeDto.getStatus().equals(NodeConnectionState.CONNECTED.name())) {
                 return true;
             }
         }
@@ -718,7 +714,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
 
     protected void reconnectNode(final int nodeIndex) throws NiFiClientException, IOException {
         final NodeEntity nodeEntity = getNodeEntity(nodeIndex);
-        nodeEntity.getNode().setStatus(NODE_STATE_CONNECTING);
+        nodeEntity.getNode().setStatus(NodeConnectionState.CONNECTING.name());
         getNifiClient().getControllerClient().connectNode(nodeEntity.getNode().getNodeId(), nodeEntity);
     }
 
@@ -763,13 +759,13 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         throw new IllegalStateException("Could not find node with API Port of " + expectedPort + "; found nodes: " + nodePorts);
     }
 
-    protected void waitForNodeState(final int nodeIndex, final String... nodeStates) throws InterruptedException {
+    protected void waitForNodeState(final int nodeIndex, final NodeConnectionState... nodeStates) throws InterruptedException {
         waitFor(() -> {
             try {
                 final NodeEntity nodeEntity = getNodeEntity(nodeIndex);
                 final String status = nodeEntity.getNode().getStatus();
-                for (final String state : nodeStates) {
-                    if (state.equals(status)) {
+                for (final NodeConnectionState state : nodeStates) {
+                    if (state.name().equals(status)) {
                         return true;
                     }
                 }

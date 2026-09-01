@@ -18,6 +18,7 @@ package org.apache.nifi.tests.system;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.controller.NodeConnectionState;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -2198,15 +2199,15 @@ public class NiFiClientUtil {
     }
 
     public NodeEntity disconnectNode(final String nodeId) throws NiFiClientException, IOException {
-        return updateNodeState(nodeId, NiFiSystemIT.NODE_STATE_DISCONNECTING);
+        return updateNodeState(nodeId, NodeConnectionState.DISCONNECTING.name());
     }
 
     public NodeEntity connectNode(final String nodeId) throws NiFiClientException, IOException {
-        return updateNodeState(nodeId, NiFiSystemIT.NODE_STATE_CONNECTING);
+        return updateNodeState(nodeId, NodeConnectionState.CONNECTING.name());
     }
 
     public NodeEntity offloadNode(final String nodeId) throws NiFiClientException, IOException {
-        return updateNodeState(nodeId, NiFiSystemIT.NODE_STATE_OFFLOADING);
+        return updateNodeState(nodeId, NodeConnectionState.OFFLOADING.name());
     }
 
     private NodeEntity updateNodeState(final String nodeId, final String state) throws NiFiClientException, IOException {
