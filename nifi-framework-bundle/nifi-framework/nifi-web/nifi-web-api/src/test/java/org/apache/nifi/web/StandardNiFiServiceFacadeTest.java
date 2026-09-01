@@ -29,6 +29,8 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.Group;
+import org.apache.nifi.authorization.ProcessGroupAuthorizable;
+import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.User;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -43,6 +45,7 @@ import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.connector.BacklogReportingConnector;
 import org.apache.nifi.components.connector.Connector;
+import org.apache.nifi.components.connector.ConnectorMigrationSource;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorSyncMode;
@@ -139,6 +142,7 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+import org.apache.nifi.web.api.dto.VersionedFlowMigrationSourceDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
@@ -161,6 +165,7 @@ import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowMigrationSourcesEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ConnectorDAO;
@@ -2112,6 +2117,54 @@ public class StandardNiFiServiceFacadeTest {
         when(managedProcessGroup.findProcessor(processorId)).thenReturn(null);
 
         assertThrows(ResourceNotFoundException.class, () -> serviceFacade.getConnectorProcessorState(connectorId, processorId));
+    }
+
+    @Test
+    public void testGetConnectorMigrationSourcesReturnsAuthorizedProcessGroups() {
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        final String connectorId = "connector-id";
+        final String authorizedGroupId = "authorized-group-id";
+        final String deniedGroupId = "denied-group-id";
+        final String removedGroupId = "removed-group-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+        when(connectorDAO.getMigrationSources(connectorId)).thenReturn(List.of(
+                createMigrationSource(authorizedGroupId),
+                createMigrationSource(deniedGroupId),
+                createMigrationSource(removedGroupId)));
+
+        final ProcessGroupAuthorizable authorizedGroup = createProcessGroupAuthorizable(true);
+        final ProcessGroupAuthorizable deniedGroup = createProcessGroupAuthorizable(false);
+
+        final AuthorizableLookup migrationLookup = mock(AuthorizableLookup.class);
+        serviceFacade.setAuthorizableLookup(migrationLookup);
+        when(migrationLookup.getProcessGroup(authorizedGroupId)).thenReturn(authorizedGroup);
+        when(migrationLookup.getProcessGroup(deniedGroupId)).thenReturn(deniedGroup);
+        when(migrationLookup.getProcessGroup(removedGroupId)).thenThrow(new ResourceNotFoundException("Process Group was removed"));
+
+        final VersionedFlowMigrationSourcesEntity entity = serviceFacade.getConnectorMigrationSources(connectorId);
+
+        final List<VersionedFlowMigrationSourceDTO> migrationSources = entity.getMigrationSources();
+        assertEquals(1, migrationSources.size());
+        assertEquals(authorizedGroupId, migrationSources.getFirst().getProcessGroupId());
+    }
+
+    private ConnectorMigrationSource createMigrationSource(final String processGroupId) {
+        final ConnectorMigrationSource migrationSource = new ConnectorMigrationSource();
+        migrationSource.setProcessGroupId(processGroupId);
+        return migrationSource;
+    }
+
+    private ProcessGroupAuthorizable createProcessGroupAuthorizable(final boolean readAuthorized) {
+        final Authorizable authorizable = mock(Authorizable.class);
+        when(authorizable.isAuthorized(any(Authorizer.class), eq(RequestAction.READ), any(NiFiUser.class))).thenReturn(readAuthorized);
+
+        final ProcessGroupAuthorizable processGroupAuthorizable = mock(ProcessGroupAuthorizable.class);
+        when(processGroupAuthorizable.getAuthorizable()).thenReturn(authorizable);
+        return processGroupAuthorizable;
     }
 
     @Test

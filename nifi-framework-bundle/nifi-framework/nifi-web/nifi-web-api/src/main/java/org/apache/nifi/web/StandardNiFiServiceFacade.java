@@ -40,6 +40,7 @@ import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.Group;
+import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.User;
@@ -4209,9 +4210,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public VersionedFlowMigrationSourcesEntity getConnectorMigrationSources(final String connectorId) {
-        final List<VersionedFlowMigrationSourceDTO> migrationSources = connectorDAO.getMigrationSources(connectorId).stream()
-                .map(this::createVersionedFlowMigrationSourceDto)
-                .toList();
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final List<VersionedFlowMigrationSourceDTO> migrationSources = new ArrayList<>();
+
+        for (final ConnectorMigrationSource migrationSource : connectorDAO.getMigrationSources(connectorId)) {
+            final ProcessGroupAuthorizable processGroupAuthorizable;
+            try {
+                processGroupAuthorizable = authorizableLookup.getProcessGroup(migrationSource.getProcessGroupId());
+            } catch (final ResourceNotFoundException e) {
+                continue;
+            }
+
+            if (processGroupAuthorizable.getAuthorizable().isAuthorized(authorizer, RequestAction.READ, user)) {
+                migrationSources.add(createVersionedFlowMigrationSourceDto(migrationSource));
+            }
+        }
 
         final VersionedFlowMigrationSourcesEntity entity = new VersionedFlowMigrationSourcesEntity();
         entity.setMigrationSources(migrationSources);
