@@ -1661,8 +1661,18 @@ public final class StandardProcessGroup implements ProcessGroup {
         aggregateDropFlowFileStatus.setDroppedSize(aggregateDroppedSize);
         aggregateDropFlowFileStatus.setCurrentSize(aggregateCurrentSize);
 
-        // Individual queues may already be COMPLETE (empty queues finish immediately). The aggregate request is
-        // marked COMPLETE only after every connection drop Future finishes.
+        // Merging never moves the aggregate request into a COMPLETE state; only handleDropAllFlowFiles does that. The
+        // lifecycle is:
+        //   1. handleDropAllFlowFiles creates the aggregate request and merges each connection's drop request into it
+        //      by calling this method once per connection.
+        //   2. A drop request against an empty queue is already COMPLETE when it is created. Copying that state onto
+        //      the aggregate request would make DropFlowFileRequest.setState complete the aggregate's Future, which
+        //      callers treat as "every connection has been drained", even though the connections merged later may
+        //      still be dropping. The aggregate request is therefore held at DROPPING_FLOWFILES while merging.
+        //   3. Once every connection has been merged, handleDropAllFlowFiles sets the aggregate request to COMPLETE,
+        //      or to FAILURE, when the Futures of all of those connections finish. Those Futures are already finished
+        //      when each connection's queue was empty, in which case the aggregate request becomes COMPLETE without
+        //      ever waiting.
         if (aggregateState == DropFlowFileState.COMPLETE) {
             aggregateState = DropFlowFileState.DROPPING_FLOWFILES;
         }
