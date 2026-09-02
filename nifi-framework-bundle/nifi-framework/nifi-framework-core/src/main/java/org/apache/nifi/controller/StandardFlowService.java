@@ -993,9 +993,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     .collect(Collectors.toMap(NodeConnectionStatus::getNodeIdentifier, status -> status)));
         }
 
-        logger.info("Setting Flow Controller's Node ID: {}", nodeId);
         nodeId = response.getNodeIdentifier();
+        logger.info("Setting Flow Controller's Node ID: {}", nodeId);
         controller.setNodeId(nodeId);
+        controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTING));
     }
 
     private void initializeController() throws IOException {

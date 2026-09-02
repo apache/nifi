@@ -31,6 +31,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarManager;
 import org.apache.nifi.state.MockStateMap;
@@ -39,24 +40,23 @@ import org.apache.nifi.web.revision.RevisionManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -142,41 +142,38 @@ public class TestStandardFlowService {
 
     @Test
     public void testNodeConnectionStateConnectingBeforeFlowSynchronization() throws Exception {
-        final AtomicReference<Map<NodeIdentifier, NodeConnectionStatus>> nodeStatuses = new AtomicReference<>(Collections.emptyMap());
-        doAnswer(invocation -> {
-            nodeStatuses.set(invocation.getArgument(0));
-            return null;
-        }).when(clusterCoordinator).resetNodeStatuses(any());
-        when(clusterCoordinator.getConnectionStatus(any())).thenAnswer(invocation -> nodeStatuses.get().get(invocation.getArgument(0)));
-
-        final FlowController clusteredController = mock(FlowController.class, CALLS_REAL_METHODS);
-        doReturn(true).when(clusteredController).isConfiguredForClustering();
-        doReturn(clusterCoordinator).when(clusteredController).getClusterCoordinator();
+        final FlowController clusteredController = mock(FlowController.class);
         final StateManagerProvider stateManagerProvider = controller.getStateManagerProvider();
         final ExtensionManager extensionManager = controller.getExtensionManager();
+        final NarManager narManager = mock(NarManager.class);
         when(clusteredController.getStateManagerProvider()).thenReturn(stateManagerProvider);
         when(clusteredController.getExtensionManager()).thenReturn(extensionManager);
 
         final StandardFlowService clusteredFlowService = spy(StandardFlowService.createClusteredInstance(clusteredController, nifiProperties,
-                mock(NodeProtocolSenderListener.class), clusterCoordinator, mock(RevisionManager.class), mock(NarManager.class),
+                mock(NodeProtocolSenderListener.class), clusterCoordinator, mock(RevisionManager.class), narManager,
                 mock(AssetSynchronizer.class), mock(AssetSynchronizer.class), mock(Authorizer.class)));
         final NodeIdentifier nodeIdentifier = createNodeIdentifier();
         final NodeConnectionStatus connectingStatus = new NodeConnectionStatus(nodeIdentifier, NodeConnectionState.CONNECTING);
         final ConnectionResponse response = new ConnectionResponse(nodeIdentifier,
                 new StandardDataFlow(new byte[0], new byte[0], new byte[0], Collections.emptySet()), "instance-1",
                 List.of(connectingStatus), mock(ComponentRevisionSnapshot.class));
-        final AtomicBoolean flowSynchronizationStarted = new AtomicBoolean();
+        final ArgumentCaptor<NodeConnectionStatus> statusCaptor = ArgumentCaptor.forClass(NodeConnectionStatus.class);
         doAnswer(invocation -> {
-            flowSynchronizationStarted.set(true);
-            assertFalse(clusteredController.isClustered());
-            assertEquals(org.apache.nifi.controller.NodeConnectionState.CONNECTING, clusteredController.getNodeConnectionState());
+            verify(clusteredController, never()).setClustered(eq(true), any());
             throw new FlowSynchronizationException("Stop after observing the flow synchronization boundary");
-        }).when(clusteredFlowService).loadFromBytes(any(), any(Boolean.class), any());
+        }).when(clusteredFlowService).loadFromBytes(any(), eq(true), eq(BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST));
 
         assertThrows(FlowSynchronizationException.class, () -> clusteredFlowService.loadFromConnectionResponse(response));
 
-        assertTrue(flowSynchronizationStarted.get());
-        verify(clusteredController, never()).setClustered(any(Boolean.class), any());
+        final InOrder inOrder = inOrder(clusterCoordinator, clusteredController, narManager, clusteredFlowService);
+        inOrder.verify(clusterCoordinator).resetNodeStatuses(any(Map.class));
+        inOrder.verify(clusteredController).setNodeId(nodeIdentifier);
+        inOrder.verify(clusteredController).setConnectionStatus(statusCaptor.capture());
+        inOrder.verify(narManager).syncWithClusterCoordinator();
+        inOrder.verify(clusteredFlowService).loadFromBytes(any(), eq(true), eq(BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST));
+        assertEquals(nodeIdentifier, statusCaptor.getValue().getNodeIdentifier());
+        assertEquals(NodeConnectionState.CONNECTING, statusCaptor.getValue().getState());
+        verify(clusteredController, never()).setClustered(anyBoolean(), any());
     }
 
     private DisconnectMessage createDisconnectMessage(final String explanation) {
