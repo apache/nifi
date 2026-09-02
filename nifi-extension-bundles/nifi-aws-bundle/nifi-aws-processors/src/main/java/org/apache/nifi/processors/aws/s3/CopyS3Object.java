@@ -51,6 +51,7 @@ import java.util.stream.IntStream;
 import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION_WITH_FF_EL;
 import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.apache.nifi.processors.aws.s3.util.S3Util.createRangeSpec;
+import static org.apache.nifi.processors.aws.s3.util.S3Util.getResourceUrl;
 
 @Tags({"Amazon", "S3", "AWS", "Archive", "Copy"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -156,7 +157,8 @@ public class CopyS3Object extends AbstractS3Processor {
             } else {
                 copyObject(client, context, flowFile, sourceBucket, sourceKey, destinationBucket, destinationKey);
             }
-            session.getProvenanceReporter().send(flowFile, getTransitUrl(destinationBucket, destinationKey));
+            final String url = getResourceUrl(client, destinationBucket, destinationKey);
+            session.getProvenanceReporter().send(flowFile, url);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final Exception e) {
             if (multipartUploadRequired && StringUtils.isNotEmpty(multipartIdRef.get())) {
@@ -274,10 +276,5 @@ public class CopyS3Object extends AbstractS3Processor {
                 .build();
 
         client.copyObject(request);
-    }
-
-    private String getTransitUrl(final String destinationBucket, final String destinationKey) {
-        final String spacer = destinationKey.startsWith("/") ? "" : "/";
-        return String.format("s3://%s%s%s", destinationBucket, spacer, destinationKey);
     }
 }
