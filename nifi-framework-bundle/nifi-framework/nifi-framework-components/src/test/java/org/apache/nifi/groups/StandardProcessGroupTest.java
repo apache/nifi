@@ -21,11 +21,19 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ClusterTopologyProvider;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.queue.DropFlowFileRequest;
+import org.apache.nifi.controller.queue.DropFlowFileState;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.ExecutionEngine;
@@ -52,6 +60,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -394,6 +403,33 @@ class StandardProcessGroupTest {
         assertEquals(expected, leaf.getLoggingAttributes());
     }
 
+    @Test
+    void testDropAllFlowFilesCompletionWaitsForEveryConnection() {
+        when(flowManager.getFlowAnalyzer()).thenReturn(Optional.empty());
+
+        final DropFlowFileRequest emptyDrop = new DropFlowFileRequest("drop-all");
+        emptyDrop.setOriginalSize(new QueueSize(0, 0L));
+        emptyDrop.setCurrentSize(new QueueSize(0, 0L));
+        emptyDrop.setState(DropFlowFileState.COMPLETE);
+
+        final DropFlowFileRequest pendingDrop = new DropFlowFileRequest("drop-all");
+        pendingDrop.setOriginalSize(new QueueSize(300, 300L));
+        pendingDrop.setCurrentSize(new QueueSize(300, 300L));
+        pendingDrop.setState(DropFlowFileState.DROPPING_FLOWFILES);
+
+        addConnectionWithDropStatus("empty-connection", emptyDrop);
+        addConnectionWithDropStatus("queued-connection", pendingDrop);
+
+        final DropFlowFileStatus dropStatus = processGroup.dropAllFlowFiles("drop-all", "test-user");
+        final CompletableFuture<Void> completionFuture = dropStatus.getCompletionFuture();
+
+        assertFalse(completionFuture.isDone());
+
+        pendingDrop.setState(DropFlowFileState.COMPLETE);
+
+        assertTrue(completionFuture.isDone());
+    }
+
     private StandardProcessGroup createStandardProcessGroup(final String id) {
         return new StandardProcessGroup(
                 id,
@@ -411,6 +447,27 @@ class StandardProcessGroupTest {
                 assetManager,
                 null
         );
+    }
+
+    private void addConnectionWithDropStatus(final String connectionId, final DropFlowFileStatus dropStatus) {
+        final Connectable source = mock(Connectable.class);
+        final Connectable destination = mock(Connectable.class);
+        when(source.getConnectableType()).thenReturn(ConnectableType.PROCESSOR);
+        when(destination.getConnectableType()).thenReturn(ConnectableType.PROCESSOR);
+        when(source.getProcessGroup()).thenReturn(processGroup);
+        when(destination.getProcessGroup()).thenReturn(processGroup);
+
+        final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
+        when(flowFileQueue.dropFlowFiles(eq("drop-all"), eq("test-user"))).thenReturn(dropStatus);
+
+        final Connection connection = mock(Connection.class);
+        when(connection.getIdentifier()).thenReturn(connectionId);
+        when(connection.getSource()).thenReturn(source);
+        when(connection.getDestination()).thenReturn(destination);
+        when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
+        when(connection.getVersionedComponentId()).thenReturn(Optional.empty());
+
+        processGroup.addConnection(connection);
     }
 
 }

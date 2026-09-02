@@ -1660,6 +1660,13 @@ public final class StandardProcessGroup implements ProcessGroup {
         aggregateDropFlowFileStatus.setOriginalSize(aggregateOriginalSize);
         aggregateDropFlowFileStatus.setDroppedSize(aggregateDroppedSize);
         aggregateDropFlowFileStatus.setCurrentSize(aggregateCurrentSize);
+
+        // Individual queues may already be COMPLETE (empty queues finish immediately). The aggregate request is
+        // marked COMPLETE only after every connection drop Future finishes.
+        if (aggregateState == DropFlowFileState.COMPLETE) {
+            aggregateState = DropFlowFileState.DROPPING_FLOWFILES;
+        }
+
         aggregateDropFlowFileStatus.setState(aggregateState);
     }
 
