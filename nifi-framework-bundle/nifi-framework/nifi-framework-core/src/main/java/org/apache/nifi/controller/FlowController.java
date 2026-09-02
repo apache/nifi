@@ -190,7 +190,6 @@ import org.apache.nifi.nar.PythonBundle;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.StandardParameterContextManager;
-import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
@@ -602,9 +601,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         processScheduler = new StandardProcessScheduler(timerDrivenEngineRef.get(), this, stateManagerProvider, this.nifiProperties, lifecycleStateManager);
 
         parameterContextManager = new StandardParameterContextManager();
-        final long maxAppendableBytes = getMaxAppendableBytes();
         repositoryContextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository,
-            counterRepositoryRef.get(), componentMetricReporter, provenanceRepository, stateManagerProvider, maxAppendableBytes);
+            counterRepositoryRef.get(), componentMetricReporter, provenanceRepository, stateManagerProvider);
 
         assetManager = createAssetManager(
             nifiProperties,
@@ -1353,7 +1351,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             flowFileRepository.updateMaxFlowFileIdentifier(maxIdFromSwapFiles + 1);
 
             // Begin expiring FlowFiles that are old
-            final long maxAppendableClaimBytes = getMaxAppendableBytes();
             final RepositoryContextFactory contextFactory = new RepositoryContextFactory(
                     contentRepository,
                     flowFileRepository,
@@ -1361,8 +1358,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                     counterRepositoryRef.get(),
                     getComponentMetricReporter(),
                     provenanceRepository,
-                    stateManagerProvider,
-                    maxAppendableClaimBytes
+                    stateManagerProvider
             );
             processScheduler.scheduleFrameworkTask(new ExpireFlowFiles(this, contextFactory), "Expire FlowFiles", 30L, 30L, TimeUnit.SECONDS);
 
@@ -1405,12 +1401,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         } finally {
             writeLock.unlock("initializeFlow");
         }
-    }
-
-    private long getMaxAppendableBytes() {
-        final String maxAppendableClaimSize = nifiProperties.getMaxAppendableClaimSize();
-        final long maxAppendableClaimBytes = DataUnit.parseDataSize(maxAppendableClaimSize, DataUnit.B).longValue();
-        return maxAppendableClaimBytes;
     }
 
     private void notifyComponentsConfigurationRestored() {

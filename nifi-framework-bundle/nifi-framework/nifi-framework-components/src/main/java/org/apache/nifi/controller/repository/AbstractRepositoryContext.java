@@ -56,6 +56,8 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     private final AtomicLong connectionIndex;
     private final StateManager stateManager;
     private final ComponentMetricContext componentMetricContext;
+    private final ContentClaimCreationContext contentClaimCreationContext;
+    private final FlowFileUpdateContext flowFileUpdateContext;
 
     private final String componentNameCounterContext;
     private final String componentTypeCounterContext;
@@ -89,6 +91,11 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
 
         this.componentNameCounterContext = connectable.getName() + " (" + connectable.getIdentifier() + ")";
         this.componentTypeCounterContext = "All " + connectable.getComponentType() + "'s";
+
+        final String connectorIdentifier = connectable.getProcessGroup().findOwningConnectorIdentifier().orElse(null);
+        final LossTolerance lossTolerance = connectable.isLossTolerant() ? LossTolerance.LOSS_TOLERANT : LossTolerance.LOSS_INTOLERANT;
+        this.contentClaimCreationContext = new StandardContentClaimCreationContext(connectable.getIdentifier(), connectorIdentifier, lossTolerance);
+        this.flowFileUpdateContext = new StandardFlowFileUpdateContext(connectable.getIdentifier(), connectorIdentifier);
     }
 
     @Override
@@ -199,8 +206,18 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     }
 
     @Override
+    public ContentClaimCreationContext getContentClaimCreationContext() {
+        return contentClaimCreationContext;
+    }
+
+    @Override
     public FlowFileRepository getFlowFileRepository() {
         return flowFileRepo;
+    }
+
+    @Override
+    public FlowFileUpdateContext getFlowFileUpdateContext() {
+        return flowFileUpdateContext;
     }
 
     @Override

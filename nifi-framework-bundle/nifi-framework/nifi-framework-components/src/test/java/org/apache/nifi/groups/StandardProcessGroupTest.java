@@ -52,7 +52,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -394,7 +396,56 @@ class StandardProcessGroupTest {
         assertEquals(expected, leaf.getLoggingAttributes());
     }
 
+    @Test
+    void testFindOwningConnectorIdentifierWalksParentHierarchy() {
+        final StandardProcessGroup connectorGroup = createStandardProcessGroup("connector-group", "connector-1");
+        final StandardProcessGroup child = createStandardProcessGroup("child");
+        final StandardProcessGroup grandchild = createStandardProcessGroup("grandchild");
+
+        child.setParent(connectorGroup);
+        grandchild.setParent(child);
+
+        assertEquals(Optional.of("connector-1"), connectorGroup.findOwningConnectorIdentifier());
+        assertEquals(Optional.of("connector-1"), child.findOwningConnectorIdentifier());
+        assertEquals(Optional.of("connector-1"), grandchild.findOwningConnectorIdentifier());
+        assertEquals(Optional.empty(), processGroup.findOwningConnectorIdentifier());
+    }
+
+    @Test
+    void testFindOwningConnectorIdentifierResolvesHierarchyOnlyOnce() {
+        when(parentProcessGroup.getConnectorIdentifier()).thenReturn(Optional.of("connector-1"));
+        processGroup.setParent(parentProcessGroup);
+
+        assertEquals(Optional.of("connector-1"), processGroup.findOwningConnectorIdentifier());
+        assertEquals(Optional.of("connector-1"), processGroup.findOwningConnectorIdentifier());
+        assertEquals(Optional.of("connector-1"), processGroup.findOwningConnectorIdentifier());
+        verify(parentProcessGroup, times(1)).getConnectorIdentifier();
+
+        final ProcessGroup unmanagedParent = mock(ProcessGroup.class);
+        final StandardProcessGroup unmanagedGroup = createStandardProcessGroup("unmanaged-group");
+        unmanagedGroup.setParent(unmanagedParent);
+
+        assertEquals(Optional.empty(), unmanagedGroup.findOwningConnectorIdentifier());
+        assertEquals(Optional.empty(), unmanagedGroup.findOwningConnectorIdentifier());
+
+        verify(unmanagedParent, times(1)).getConnectorIdentifier();
+    }
+
+    @Test
+    void testFindOwningConnectorIdentifierResolvedAgainAfterParentAssigned() {
+        assertEquals(Optional.empty(), processGroup.findOwningConnectorIdentifier());
+
+        when(parentProcessGroup.getConnectorIdentifier()).thenReturn(Optional.of("connector-1"));
+        processGroup.setParent(parentProcessGroup);
+
+        assertEquals(Optional.of("connector-1"), processGroup.findOwningConnectorIdentifier());
+    }
+
     private StandardProcessGroup createStandardProcessGroup(final String id) {
+        return createStandardProcessGroup(id, null);
+    }
+
+    private StandardProcessGroup createStandardProcessGroup(final String id, final String connectorId) {
         return new StandardProcessGroup(
                 id,
                 controllerServiceProvider,
@@ -409,7 +460,7 @@ class StandardProcessGroupTest {
                 properties,
                 statelessGroupNodeFactory,
                 assetManager,
-                null
+                connectorId
         );
     }
 

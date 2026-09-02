@@ -178,6 +178,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final AtomicReference<StandardVersionControlInformation> versionControlInfo = new AtomicReference<>();
     private static final SecureRandom randomGenerator = new SecureRandom();
     private final String connectorId;
+    private volatile Optional<String> owningConnectorIdentifier;
 
     private final ProcessScheduler scheduler;
     private final ControllerServiceProvider controllerServiceProvider;
@@ -309,6 +310,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void setParent(final ProcessGroup newParent) {
         parent.set(newParent);
+        // Forget a value resolved before this group was attached to its parent.
+        owningConnectorIdentifier = null;
         // Inherit connector-supplied MDC attributes from the parent so descendants of a connector's managed
         // flow carry the same connector metadata (attributing their logs and status metrics to the connector).
         // Runs on every re-parent (including initial attach), so PGs added later inherit automatically.
@@ -364,19 +367,22 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Optional<ConnectorNode> findOwningConnector() {
-        ProcessGroup group = this;
-        while (group != null) {
-            final Optional<String> owningConnectorId = group.getConnectorIdentifier();
-            if (owningConnectorId.isPresent()) {
-                final ConnectorNode connectorNode = flowManager.getConnector(owningConnectorId.get());
-                return Optional.ofNullable(connectorNode);
-            }
-
-            group = group.getParent();
+    public Optional<String> findOwningConnectorIdentifier() {
+        Optional<String> identifier = owningConnectorIdentifier;
+        // Check-then-modify, but safe. The parent cannot change from one Connector to another; during initialization
+        // it may go from no Connector to some Connector. The only incorrect cached value is null (unresolved), and
+        // the next call looks it up again.
+        if (identifier == null) {
+            identifier = ProcessGroup.super.findOwningConnectorIdentifier();
+            owningConnectorIdentifier = identifier;
         }
 
-        return Optional.empty();
+        return identifier;
+    }
+
+    @Override
+    public Optional<ConnectorNode> findOwningConnector() {
+        return findOwningConnectorIdentifier().map(flowManager::getConnector);
     }
 
     @Override

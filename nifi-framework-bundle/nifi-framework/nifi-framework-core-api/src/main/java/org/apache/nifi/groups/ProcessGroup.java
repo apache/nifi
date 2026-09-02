@@ -145,19 +145,26 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     Optional<String> getConnectorIdentifier();
 
     /**
-     * Returns the owning Connector for this Process Group, traversing the Process Group hierarchy until a Process Group
-     * is found that is associated with a Connector. If no Process Group in the hierarchy is associated with a Connector,
-     * an empty Optional is returned. This is useful for determining whether a component is managed by a Connector.
-     *
-     * <p>The default implementation returns {@link Optional#empty()}. Implementations that can resolve a
-     * {@link ConnectorNode} from a connector identifier (typically via a FlowManager) should override this method
-     * and walk the parent chain using {@link #getConnectorIdentifier()} and {@link #getParent()} to locate the
-     * owning Connector.</p>
-     *
-     * @return an Optional containing the owning ConnectorNode, or empty if this Process Group and all of its ancestors are
-     * not managed by a Connector
+     * @return the Connector that owns this Process Group or an ancestor, or empty if none
      */
     default Optional<ConnectorNode> findOwningConnector() {
+        return Optional.empty();
+    }
+
+    /**
+     * @return the identifier of the Connector that owns this Process Group or an ancestor, or empty if none
+     */
+    default Optional<String> findOwningConnectorIdentifier() {
+        ProcessGroup group = this;
+        while (group != null) {
+            final Optional<String> connectorIdentifier = group.getConnectorIdentifier();
+            if (connectorIdentifier.isPresent()) {
+                return connectorIdentifier;
+            }
+
+            group = group.getParent();
+        }
+
         return Optional.empty();
     }
 
