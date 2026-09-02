@@ -762,7 +762,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     // write lock must already be acquired
-    private void loadFromBytes(final DataFlow proposedFlow, final boolean allowEmptyFlow, final BundleUpdateStrategy bundleUpdateStrategy)
+    void loadFromBytes(final DataFlow proposedFlow, final boolean allowEmptyFlow, final BundleUpdateStrategy bundleUpdateStrategy)
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
         logger.trace("Loading flow from bytes");
 
@@ -920,25 +920,18 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
     }
 
-    private void loadFromConnectionResponse(final ConnectionResponse response) throws ConnectionException {
+    void loadFromConnectionResponse(final ConnectionResponse response) throws ConnectionException {
         writeLock.lock();
         try {
             connectionGeneration.incrementAndGet();
 
-            if (response.getNodeConnectionStatuses() != null) {
-                clusterCoordinator.resetNodeStatuses(response.getNodeConnectionStatuses().stream()
-                    .collect(Collectors.toMap(NodeConnectionStatus::getNodeIdentifier, status -> status)));
-            }
+            initializeNodeConnectionState(response);
 
             // get the dataflow from the response
             final DataFlow dataFlow = response.getDataFlow();
             if (logger.isTraceEnabled()) {
                 logger.trace("ResponseFlow = {}", new String(dataFlow.getFlow(), StandardCharsets.UTF_8));
             }
-
-            logger.info("Setting Flow Controller's Node ID: {}", nodeId);
-            nodeId = response.getNodeIdentifier();
-            controller.setNodeId(nodeId);
 
             // sync NARs before loading flow, otherwise components could be ghosted and fail to join the cluster
             narManager.syncWithClusterCoordinator();
@@ -992,6 +985,18 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             writeLock.unlock();
         }
 
+    }
+
+    private void initializeNodeConnectionState(final ConnectionResponse response) {
+        if (response.getNodeConnectionStatuses() != null) {
+            clusterCoordinator.resetNodeStatuses(response.getNodeConnectionStatuses().stream()
+                    .collect(Collectors.toMap(NodeConnectionStatus::getNodeIdentifier, status -> status)));
+        }
+
+        nodeId = response.getNodeIdentifier();
+        logger.info("Setting Flow Controller's Node ID: {}", nodeId);
+        controller.setNodeId(nodeId);
+        controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTING));
     }
 
     private void initializeController() throws IOException {
