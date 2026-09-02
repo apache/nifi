@@ -69,6 +69,11 @@
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
+                    <!-- This module has no tests and does not need the Mockito Java Agent -->
+                    <execution>
+                        <id>resolve-mockito-agent-path</id>
+                        <phase>none</phase>
+                    </execution>
                     <execution>
                         <id>extract-extension-manifests</id>
                         <goals>

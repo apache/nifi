@@ -216,6 +216,10 @@
         <checkstyle.version>14.0.0</checkstyle.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <jacoco.version>0.8.15</jacoco.version>
+
+        <!-- Surefire argument properties for plugin and environment wiring -->
+        <argLine/>
+        <surefire.opts/>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -742,6 +746,8 @@
                             <exclude>**/*ITSpec.class</exclude>
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                        <!-- Runs Mockito as a Java Agent instead of relying on self-attachment -->
+                        <argLine>@{argLine} ${surefire.opts} -javaagent:"${org.mockito:mockito-core:jar}"</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -1012,6 +1018,16 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <!-- Sets org.mockito:mockito-core:jar to the resolved artifact path for the Surefire argument line -->
+                    <execution>
+                        <id>resolve-mockito-agent-path</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
                     <ignoredPackagings>
                         <ignoredPackaging>nar</ignoredPackaging>
@@ -1103,6 +1119,19 @@
         </plugins>
     </build>
     <profiles>
+        <!-- Apply Java arguments from the SUREFIRE_OPTS environment variable to forked Surefire processes -->
+        <profile>
+            <id>surefire-opts</id>
+            <activation>
+                <property>
+                    <name>env.SUREFIRE_OPTS</name>
+                </property>
+            </activation>
+            <properties>
+                <surefire.opts>${env.SUREFIRE_OPTS}</surefire.opts>
+            </properties>
+        </profile>
+
         <!-- Configure build properties for modules with NAR packaging -->
         <profile>
             <id>nar-packaging</id>
