@@ -56,6 +56,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1167,6 +1168,62 @@ public class ParameterContextIT extends NiFiSystemIT {
         final ParameterContextEntity updatedParent = getNifiClient().getParamContextClient().getParamContext(parentContext.getId(), false);
         assertEquals(1, updatedParent.getComponent().getInheritedParameterContexts().size());
         assertEquals(childContext2.getId(), updatedParent.getComponent().getInheritedParameterContexts().get(0).getId());
+    }
+
+    @Test
+    public void testDeleteLocalParameterOverrideRevealsInheritedParameter() throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity parentContext = getClientUtil().createParameterContext("overrideParent", Map.of("shared", "parent-value"));
+        final ParameterContextEntity childContext = getClientUtil().createParameterContext("overrideChild",
+                Map.of("shared", "child-value"), List.of(parentContext.getId()), null);
+
+        final ParameterContextEntity fetchedChild = getNifiClient().getParamContextClient().getParamContext(childContext.getId(), true);
+        final ParameterEntity localOverride = fetchedChild.getComponent().getParameters().stream()
+                .filter(parameter -> "shared".equals(parameter.getParameter().getName()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(localOverride);
+        assertFalse(localOverride.getParameter().getInherited());
+        assertEquals("child-value", localOverride.getParameter().getValue());
+
+        final ParameterDTO deletionDto = new ParameterDTO();
+        deletionDto.setName("shared");
+        final ParameterEntity deletionEntity = new ParameterEntity();
+        deletionEntity.setParameter(deletionDto);
+        fetchedChild.getComponent().setParameters(Set.of(deletionEntity));
+
+        final ParameterContextUpdateRequestEntity deleteRequest = getNifiClient().getParamContextClient().updateParamContext(fetchedChild);
+        getClientUtil().waitForParameterContextRequestToComplete(childContext.getId(), deleteRequest.getRequest().getRequestId());
+
+        final ParameterContextEntity updatedChildLocal = getNifiClient().getParamContextClient().getParamContext(childContext.getId(), false);
+        assertTrue(updatedChildLocal.getComponent().getParameters().stream()
+                .noneMatch(parameter -> "shared".equals(parameter.getParameter().getName())));
+
+        final ParameterContextEntity updatedChildEffective = getNifiClient().getParamContextClient().getParamContext(childContext.getId(), true);
+        final ParameterEntity inheritedParameter = updatedChildEffective.getComponent().getParameters().stream()
+                .filter(parameter -> "shared".equals(parameter.getParameter().getName()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(inheritedParameter);
+        assertTrue(inheritedParameter.getParameter().getInherited());
+        assertEquals("parent-value", inheritedParameter.getParameter().getValue());
+        assertEquals(parentContext.getId(), inheritedParameter.getParameter().getParameterContext().getId());
+    }
+
+    @Test
+    public void testUpdateReferencedLocalParameterPreservesRawReference() throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity context = getClientUtil().createParameterContext("localReferenceContext",
+                Map.of("X", "original", "Y", "#{X}"));
+
+        final ParameterContextUpdateRequestEntity updateRequest = updateParameterContext(context, "X", "updated");
+        getClientUtil().waitForParameterContextRequestToComplete(context.getId(), updateRequest.getRequest().getRequestId());
+
+        final ParameterContextEntity updatedContext = getNifiClient().getParamContextClient().getParamContext(context.getId(), false);
+        final Map<String, ParameterDTO> parameters = updatedContext.getComponent().getParameters().stream()
+                .map(ParameterEntity::getParameter)
+                .collect(Collectors.toMap(ParameterDTO::getName, Function.identity()));
+
+        assertEquals("updated", parameters.get("X").getValue());
+        assertEquals("#{X}", parameters.get("Y").getValue());
     }
 
     @Test
