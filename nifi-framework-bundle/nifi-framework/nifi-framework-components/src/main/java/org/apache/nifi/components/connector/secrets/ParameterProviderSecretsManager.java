@@ -49,6 +49,7 @@ public class ParameterProviderSecretsManager implements SecretsManager {
 
     private FlowManager flowManager;
     private Duration cacheDuration;
+    private String unrestrictedTagName;
     private final Map<String, CachedSecret> secretCache = new ConcurrentHashMap<>();
 
     // Per-ParameterProvider-id deduplication for the WARN log emitted whenever a SecretReference
@@ -69,6 +70,8 @@ public class ParameterProviderSecretsManager implements SecretsManager {
         final String cacheDurationValue = initializationContext.getApplicationProperty(NiFiProperties.SECRETS_MANAGER_CACHE_DURATION);
         final String effectiveDuration = cacheDurationValue == null ? DEFAULT_CACHE_DURATION : cacheDurationValue;
         this.cacheDuration = Duration.ofNanos(FormatUtils.getTimeDuration(effectiveDuration.trim(), TimeUnit.NANOSECONDS));
+
+        this.unrestrictedTagName = initializationContext.getApplicationProperty(NiFiProperties.SECRETS_MANAGER_UNRESTRICTED_TAG_NAME);
     }
 
     @Override
@@ -122,7 +125,7 @@ public class ParameterProviderSecretsManager implements SecretsManager {
                     logger.info("{} returned to VALID after being logged as [{}] now resolving Secret References", parameterProvider, priorWarnedStatus);
                 }
             }
-            providers.add(new ParameterProviderSecretProvider(parameterProviderNode));
+            providers.add(new ParameterProviderSecretProvider(parameterProviderNode, unrestrictedTagName));
         }
 
         return providers;

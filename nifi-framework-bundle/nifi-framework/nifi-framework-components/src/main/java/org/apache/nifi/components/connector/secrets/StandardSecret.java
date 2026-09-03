@@ -19,6 +19,7 @@ package org.apache.nifi.components.connector.secrets;
 
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.components.connector.PropertyProtectionType;
 
 import java.util.Objects;
 
@@ -31,6 +32,7 @@ public class StandardSecret implements AuthorizableSecret {
     private final String description;
     private final String value;
     private final Authorizable authorizable;
+    private final PropertyProtectionType propertyProtectionType;
 
     private StandardSecret(final Builder builder) {
         this.providerId = builder.providerId;
@@ -40,6 +42,7 @@ public class StandardSecret implements AuthorizableSecret {
         this.description = builder.description;
         this.value = builder.value;
         this.authorizable = builder.authorizable;
+        this.propertyProtectionType = builder.propertyProtectionType;
         this.fullyQualifiedName = builder.fullyQualifiedName == null ? groupName + "." + name : builder.fullyQualifiedName;
     }
 
@@ -76,6 +79,11 @@ public class StandardSecret implements AuthorizableSecret {
     @Override
     public String getFullyQualifiedName() {
         return fullyQualifiedName;
+    }
+
+    @Override
+    public PropertyProtectionType getPropertyProtectionType() {
+        return propertyProtectionType;
     }
 
     @Override
@@ -121,6 +129,7 @@ public class StandardSecret implements AuthorizableSecret {
         private String description;
         private String value;
         private Authorizable authorizable;
+        private PropertyProtectionType propertyProtectionType = PropertyProtectionType.RESTRICTED;
 
         public Builder providerId(final String providerId) {
             this.providerId = providerId;
@@ -159,6 +168,11 @@ public class StandardSecret implements AuthorizableSecret {
 
         public Builder fullyQualifiedName(final String fullyQualifiedName) {
             this.fullyQualifiedName = fullyQualifiedName;
+            return this;
+        }
+
+        public Builder propertyProtectionType(final PropertyProtectionType propertyProtectionType) {
+            this.propertyProtectionType = propertyProtectionType == null ? PropertyProtectionType.RESTRICTED : propertyProtectionType;
             return this;
         }
 
