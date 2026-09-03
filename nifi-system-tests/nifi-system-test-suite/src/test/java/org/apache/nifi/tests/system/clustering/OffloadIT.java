@@ -17,8 +17,10 @@
 
 package org.apache.nifi.tests.system.clustering;
 
+import org.apache.nifi.tests.system.InstanceConfiguration;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
+import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
@@ -36,16 +38,19 @@ import java.util.concurrent.TimeUnit;
 
 public class OffloadIT extends NiFiSystemIT {
     private static final Logger logger = LoggerFactory.getLogger(OffloadIT.class);
+    private static final String GRACEFUL_SHUTDOWN_PERIOD = "1 sec";
 
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
-        return createTwoNodeInstanceFactory();
+        return new SpawnedClusterNiFiInstanceFactory(createClusterNodeConfiguration(1), createClusterNodeConfiguration(2));
     }
 
     @Test
     @Timeout(value = 10, unit = TimeUnit.MINUTES)
     // Test to ensure that node can be offloaded, reconnected, offloaded several times. This test typically takes only about 1-2 minutes
-    // but can occasionally take 5-6 minutes on Github Actions so we set the timeout to 10 minutes to allow for these occasions
+    // but can occasionally take 5-6 minutes on Github Actions so we set the timeout to 10 minutes to allow for these occasions.
+    // Runs against a short nifi.flowcontroller.graceful.shutdown.period (see createClusterNodeConfiguration) so each iteration also
+    // exercises the bounded graceful processor-stop wait added in front of the existing forced termination fallback.
     public void testOffload() throws InterruptedException, IOException, NiFiClientException {
         for (int i = 0; i < 5; i++) {
             logger.info("Running iteration {}", i);
@@ -83,6 +88,14 @@ public class OffloadIT extends NiFiSystemIT {
 
         getClientUtil().connectNode(nodeId);
         waitForAllNodesConnected();
+    }
+
+    private InstanceConfiguration createClusterNodeConfiguration(final int nodeIndex) {
+        return new InstanceConfiguration.Builder()
+                .bootstrapConfig("src/test/resources/conf/clustered/node" + nodeIndex + "/bootstrap.conf")
+                .instanceDirectory("target/node" + nodeIndex)
+                .overrideNifiProperties(Map.of("nifi.flowcontroller.graceful.shutdown.period", GRACEFUL_SHUTDOWN_PERIOD))
+                .build();
     }
 
     /**
