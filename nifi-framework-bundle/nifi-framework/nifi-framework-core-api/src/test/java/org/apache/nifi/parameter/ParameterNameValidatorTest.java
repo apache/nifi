@@ -19,12 +19,14 @@ package org.apache.nifi.parameter;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ParameterNameValidatorTest {
     @Test
     void testValidParameterName() {
+        assertTrue(ParameterNameValidator.isValid("Parameter Name-1.0"));
         assertDoesNotThrow(() -> ParameterNameValidator.validate("Parameter Name-1.0"));
     }
 
@@ -32,6 +34,7 @@ class ParameterNameValidatorTest {
     void testInvalidParameterName() {
         final String parameterName = "PARAMETER_{{ ENVIRONMENT }}";
 
+        assertFalse(ParameterNameValidator.isValid(parameterName));
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> ParameterNameValidator.validate(parameterName));
 

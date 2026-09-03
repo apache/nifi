@@ -954,14 +954,16 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versioned : versionedParameterContext.getParameters()) {
-            ParameterNameValidator.validate(versioned.getName());
+            final String name = versioned.getName();
+            if (!ParameterNameValidator.isValid(name)) {
+                logger.warn("An invalid Parameter name was found and will be loaded so it can be removed");
+            }
             final boolean provided = providerBacked || versioned.isProvided();
             final String parameterValue;
             final String rawValue = versioned.getValue();
             if (rawValue == null) {
                 parameterValue = null;
             } else if (provided) {
-                final String name = versioned.getName();
                 final Parameter providedParameter = providedParameters.get(name);
                 if (providedParameter == null) {
                     logger.warn("Parameter Context [{}] Provided Parameter [{}] not found", versionedParameterContext.getIdentifier(), name);
