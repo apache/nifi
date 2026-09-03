@@ -83,14 +83,20 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -415,13 +421,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     return new ReconnectionResponseMessage();
                 }
                 case OFFLOAD_REQUEST: {
-                    final Thread t = new Thread(() -> {
-                        try {
-                            handleOffloadRequest((OffloadMessage) request);
-                        } catch (InterruptedException e) {
-                            throw new ProtocolException("Could not complete offload request", e);
-                        }
-                    }, "Offload FlowFiles from Node");
+                    final Thread t = new Thread(() -> handleOffloadRequest((OffloadMessage) request), "Offload FlowFiles from Node");
                     t.setDaemon(true);
                     t.start();
 
@@ -657,12 +657,13 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
     }
 
-    private void handleOffloadRequest(final OffloadMessage request) throws InterruptedException {
+    private void handleOffloadRequest(final OffloadMessage request) {
         logger.info("Received offload request message from cluster coordinator with explanation: {}", request.getExplanation());
-        offload(request.getExplanation());
+        offloadNode(request.getExplanation());
     }
 
-    private void offload(final String explanation) throws InterruptedException {
+    void offloadNode(final String explanation) {
+        boolean interrupted = false;
         writeLock.lock();
         try {
             logger.info("Offloading node due to {}", explanation);
@@ -671,26 +672,37 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADING, OffloadCode.OFFLOADED, explanation));
 
             final FlowManager flowManager = controller.getFlowManager();
+            final ProcessGroup rootGroup = flowManager.getRootGroup();
+            final List<ProcessorNode> processors = List.copyOf(rootGroup.findAllProcessors());
 
             // request to stop all processors on node
-            flowManager.getRootGroup().stopProcessing();
+            final GracefulOffloadResult gracefulStopResult = awaitGracefulProcessorStop(rootGroup, processors);
+            interrupted = gracefulStopResult.outcome() == GracefulOffloadOutcome.INTERRUPTED;
+            logGracefulProcessorStop(gracefulStopResult);
 
             // terminate all processors
-            flowManager.getRootGroup().findAllProcessors()
+            processors
                     // filter stream, only stopped processors can be terminated
                     .stream().filter(pn -> pn.getScheduledState() == ScheduledState.STOPPED)
                     .forEach(pn -> pn.getProcessGroup().terminateProcessor(pn));
 
             // request to stop all remote process groups
-            flowManager.getRootGroup().findAllRemoteProcessGroups()
-                    .stream().filter(RemoteProcessGroup::isTransmitting)
-                    .forEach(rpg -> {
-                        try {
-                            rpg.stopTransmitting().get(rpg.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
-                        } catch (final Exception e) {
-                            logger.warn("Encountered failure while waiting for {} to shutdown", rpg, e);
-                        }
-                    });
+            for (final RemoteProcessGroup remoteProcessGroup : rootGroup.findAllRemoteProcessGroups()) {
+                if (!remoteProcessGroup.isTransmitting()) {
+                    continue;
+                }
+
+                try {
+                    remoteProcessGroup.stopTransmitting().get(remoteProcessGroup.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+                } catch (final InterruptedException e) {
+                    if (!interrupted) {
+                        logger.warn("Interrupted while waiting for {} to shutdown; continuing node offload", remoteProcessGroup);
+                    }
+                    interrupted = true;
+                } catch (final ExecutionException | TimeoutException e) {
+                    logger.warn("Encountered failure while waiting for {} to shutdown", remoteProcessGroup, e);
+                }
+            }
 
             // offload all queues on node
             final Set<Connection> connections = flowManager.findAllConnections();
@@ -709,7 +721,14 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 }
 
                 logger.debug("Offloading queues on node {}, remaining queued count: {}", getNodeId(), controllerStatus.getQueuedCount());
-                Thread.sleep(1000);
+                try {
+                    Thread.sleep(1000);
+                } catch (final InterruptedException e) {
+                    if (!interrupted) {
+                        logger.warn("Interrupted while waiting for queued FlowFiles to offload; continuing until queues are drained");
+                    }
+                    interrupted = true;
+                }
             }
 
             // finish offload
@@ -724,7 +743,63 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         } finally {
             writeLock.unlock();
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
         }
+    }
+
+    GracefulOffloadResult awaitGracefulProcessorStop(final ProcessGroup rootGroup, final Collection<ProcessorNode> processors) {
+        final long startNanos = System.nanoTime();
+        GracefulOffloadOutcome outcome = GracefulOffloadOutcome.COMPLETED;
+        Throwable cause = null;
+
+        final CompletableFuture<Void> stopFuture = rootGroup.stopProcessing();
+        try {
+            stopFuture.get(gracefulShutdownSeconds, TimeUnit.SECONDS);
+        } catch (final TimeoutException e) {
+            outcome = GracefulOffloadOutcome.TIMED_OUT;
+        } catch (final InterruptedException e) {
+            outcome = GracefulOffloadOutcome.INTERRUPTED;
+        } catch (final ExecutionException e) {
+            outcome = GracefulOffloadOutcome.EXCEPTIONAL;
+            cause = e.getCause();
+        } catch (final CancellationException e) {
+            outcome = GracefulOffloadOutcome.EXCEPTIONAL;
+            cause = e;
+        }
+
+        final long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        final int notFullyStopped = (int) processors.stream()
+                .map(ProcessorNode::getPhysicalScheduledState)
+                .filter(state -> state != ScheduledState.STOPPED && state != ScheduledState.DISABLED)
+                .count();
+        return new GracefulOffloadResult(outcome, elapsedMillis, processors.size(), notFullyStopped, cause);
+    }
+
+    private void logGracefulProcessorStop(final GracefulOffloadResult result) {
+        if (result.outcome() == GracefulOffloadOutcome.COMPLETED) {
+            logger.info("Processor stop completed gracefully in {} ms within configured {} second window for {} processors; {} processors were not fully stopped",
+                    result.elapsedMillis(), gracefulShutdownSeconds, result.processorCount(), result.processorsNotFullyStopped());
+        } else {
+            logger.warn("Processor stop did not complete gracefully: outcome={}, elapsedMillis={}, configuredSeconds={}, processorCount={}, processorsNotFullyStopped={}",
+                    result.outcome(), result.elapsedMillis(), gracefulShutdownSeconds, result.processorCount(), result.processorsNotFullyStopped(), result.cause());
+        }
+    }
+
+    enum GracefulOffloadOutcome {
+        COMPLETED,
+        TIMED_OUT,
+        INTERRUPTED,
+        EXCEPTIONAL
+    }
+
+    record GracefulOffloadResult(
+            GracefulOffloadOutcome outcome,
+            long elapsedMillis,
+            int processorCount,
+            int processorsNotFullyStopped,
+            Throwable cause) {
     }
 
     // Visible for testing
