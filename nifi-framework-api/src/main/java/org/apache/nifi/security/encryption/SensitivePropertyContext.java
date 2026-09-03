@@ -29,7 +29,7 @@ import java.util.Objects;
  */
 public record SensitivePropertyContext(
         SensitivePropertyCategory category,
-        Map<SensitivePropertyAttribute, String> attributes
+        Map<String, String> attributes
 ) {
     public SensitivePropertyContext {
         Objects.requireNonNull(category, "Category required");

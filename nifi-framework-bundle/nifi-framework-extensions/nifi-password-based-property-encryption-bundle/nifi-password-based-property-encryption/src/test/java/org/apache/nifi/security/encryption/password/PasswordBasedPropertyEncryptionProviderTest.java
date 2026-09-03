@@ -64,7 +64,7 @@ class PasswordBasedPropertyEncryptionProviderTest {
 
     private static final SensitivePropertyContext CONTEXT = new SensitivePropertyContext(
             SensitivePropertyCategory.COMPONENT_PROPERTY,
-            Map.of(SensitivePropertyAttribute.PROPERTY_NAME, "Password")
+            Map.of(SensitivePropertyAttribute.PROPERTY_NAME.getKey(), "Password")
     );
 
     private static final PropertyEncryptionProviderInitializationContext INITIALIZATION_CONTEXT = Mockito.mock(PropertyEncryptionProviderInitializationContext.class);
