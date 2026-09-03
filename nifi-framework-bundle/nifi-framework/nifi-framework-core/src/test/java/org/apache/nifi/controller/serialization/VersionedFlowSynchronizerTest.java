@@ -48,6 +48,7 @@ import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterGroup;
 import org.apache.nifi.parameter.ParameterProvider;
@@ -82,7 +83,6 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -370,7 +370,7 @@ class VersionedFlowSynchronizerTest {
     }
 
     @Test
-    void testSyncRejectsInvalidParameterName() {
+    void testSyncLoadsInvalidParameterName() {
         setRootGroup();
         setFlowController();
 
@@ -382,6 +382,19 @@ class VersionedFlowSynchronizerTest {
             invocation.getArgument(0, Runnable.class).run();
             return null;
         }).when(flowManager).withParameterContextResolution(any());
+        when(flowManager.createParameterContext(any(), any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+            final String contextId = invocation.getArgument(0);
+            final String contextName = invocation.getArgument(1);
+            final Map<String, Parameter> parameters = invocation.getArgument(3);
+            final StandardParameterContext created = new StandardParameterContext.Builder()
+                    .id(contextId)
+                    .name(contextName)
+                    .parameterReferenceManager(ParameterReferenceManager.EMPTY)
+                    .build();
+            created.setParameters(parameters);
+            contextManager.addParameterContext(created);
+            return created;
+        });
 
         final VersionedParameter versionedParameter = new VersionedParameter();
         versionedParameter.setName(invalidParameterName);
@@ -394,10 +407,13 @@ class VersionedFlowSynchronizerTest {
         versionedParameterContext.setParameters(Collections.singleton(versionedParameter));
         when(versionedDataflow.getParameterContexts()).thenReturn(List.of(versionedParameterContext));
 
-        final FlowSynchronizationException exception = assertThrows(FlowSynchronizationException.class, () ->
+        assertDoesNotThrow(() ->
                 versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST));
-        final IllegalArgumentException cause = assertInstanceOf(IllegalArgumentException.class, exception.getCause());
-        assertTrue(cause.getMessage().contains(invalidParameterName));
+
+        final ParameterContext loadedContext = contextManager.getParameterContext("parameter-context-id");
+        final Optional<Parameter> loaded = loadedContext.getParameter(invalidParameterName);
+        assertTrue(loaded.isPresent(), "Illegal Parameter already present in the flow must be loaded so it can be removed");
+        assertEquals("parameter-value", loaded.get().getValue());
     }
 
     private void setRootGroup() {
