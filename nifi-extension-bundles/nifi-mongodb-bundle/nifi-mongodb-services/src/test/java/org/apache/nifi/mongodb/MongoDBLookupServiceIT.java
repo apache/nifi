@@ -114,8 +114,7 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
         assertNotNull(result.get(), "The value was null.");
         assertEquals("Hello, world", result.get(), "The value was wrong.");
 
-        Map<String, Object> clean = new HashMap<>();
-        clean.putAll(criteria);
+        Map<String, Object> clean = new HashMap<>(criteria);
         col.deleteOne(new Document(clean));
 
         try {
@@ -230,8 +229,7 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
         assertEquals(Long.valueOf(1000), subRecord.getValue("nestedLong"));
         assertEquals(list, record.getValue("arrayField"));
 
-        Map<String, Object> clean = new HashMap<>();
-        clean.putAll(criteria);
+        Map<String, Object> clean = new HashMap<>(criteria);
         col.deleteOne(new Document(clean));
 
         try {

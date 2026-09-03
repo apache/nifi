@@ -92,8 +92,7 @@ public class UpdateConfigurationOperationHandlerTest {
         C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
 
-        Map<String, Object> args = new HashMap<>();
-        args.putAll(INCORRECT_LOCATION_MAP);
+        Map<String, Object> args = new HashMap<>(INCORRECT_LOCATION_MAP);
         args.put(FLOW_ID, "argsFlowId");
         operation.setArgs(args);
 

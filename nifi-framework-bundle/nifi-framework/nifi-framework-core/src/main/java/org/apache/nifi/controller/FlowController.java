@@ -39,7 +39,6 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.Heartbeat;
@@ -2358,8 +2357,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             prioritizerClasses.add(name);
         }
 
-        final Set<VersionedConnection> allConns = new HashSet<>();
-        allConns.addAll(versionedFlow.getConnections());
+        final Set<VersionedConnection> allConns = new HashSet<>(versionedFlow.getConnections());
         for (final VersionedProcessGroup childGroup : versionedFlow.getProcessGroups()) {
             allConns.addAll(findAllConnections(childGroup));
         }
@@ -2777,10 +2775,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     // Counters
     //
     public List<Counter> getCounters() {
-        final List<Counter> counters = new ArrayList<>();
 
         final CounterRepository counterRepo = counterRepositoryRef.get();
-        counters.addAll(counterRepo.getCounters());
+        final List<Counter> counters = new ArrayList<>(counterRepo.getCounters());
 
         return counters;
     }
@@ -3052,7 +3049,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             return Collections.emptyList();
         }
 
-        return clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED).stream()
+        return clusterCoordinator.getNodeIdentifiers(org.apache.nifi.cluster.coordination.node.NodeConnectionState.CONNECTED).stream()
                 .sorted(Comparator.comparing(NodeIdentifier::getApiAddress).thenComparingInt(NodeIdentifier::getApiPort))
                 .toList();
     }
@@ -3060,6 +3057,39 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     @Override
     public boolean isConfiguredForClustering() {
         return configuredForClustering;
+    }
+
+    @Override
+    public NodeConnectionState getNodeConnectionState() {
+        final NodeConnectionState nodeConnectionState;
+
+        readLock.lock();
+        try {
+            if (!configuredForClustering) {
+                nodeConnectionState = NodeConnectionState.STANDALONE;
+            } else if (connectionStatus == null) {
+                nodeConnectionState = NodeConnectionState.DISCONNECTED;
+            } else {
+                nodeConnectionState = mapNodeConnectionState(connectionStatus.getState());
+            }
+        } finally {
+            readLock.unlock("getNodeConnectionState");
+        }
+
+        return nodeConnectionState;
+    }
+
+    private static NodeConnectionState mapNodeConnectionState(
+            final org.apache.nifi.cluster.coordination.node.NodeConnectionState connectionState) {
+        return switch (connectionState) {
+            case CONNECTING -> NodeConnectionState.CONNECTING;
+            case CONNECTED -> NodeConnectionState.CONNECTED;
+            case OFFLOADING -> NodeConnectionState.OFFLOADING;
+            case DISCONNECTING -> NodeConnectionState.DISCONNECTING;
+            case OFFLOADED -> NodeConnectionState.OFFLOADED;
+            case DISCONNECTED -> NodeConnectionState.DISCONNECTED;
+            case REMOVED -> NodeConnectionState.REMOVED;
+        };
     }
 
     void registerForClusterCoordinator(final boolean participate) {
@@ -3640,7 +3670,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public boolean isConnected() {
         rwLock.readLock().lock();
         try {
-            return connectionStatus != null && connectionStatus.getState() == NodeConnectionState.CONNECTED;
+            return connectionStatus != null
+                    && connectionStatus.getState() == org.apache.nifi.cluster.coordination.node.NodeConnectionState.CONNECTED;
         } finally {
             rwLock.readLock().unlock();
         }

@@ -29,6 +29,8 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.Group;
+import org.apache.nifi.authorization.ProcessGroupAuthorizable;
+import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.User;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -43,6 +45,7 @@ import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.connector.BacklogReportingConnector;
 import org.apache.nifi.components.connector.Connector;
+import org.apache.nifi.components.connector.ConnectorMigrationSource;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorSyncMode;
@@ -59,6 +62,7 @@ import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -86,6 +90,7 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryClientUserContext;
@@ -112,6 +117,7 @@ import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinFactory;
 import org.apache.nifi.reporting.BulletinQuery;
+import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.UserAwareEventAccess;
 import org.apache.nifi.services.FlowService;
@@ -130,10 +136,13 @@ import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
+import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+import org.apache.nifi.web.api.dto.VersionedFlowMigrationSourceDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
@@ -148,12 +157,15 @@ import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.CopyRequestEntity;
 import org.apache.nifi.web.api.entity.CopyResponseEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowMigrationSourcesEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ConnectorDAO;
@@ -2108,6 +2120,54 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
+    public void testGetConnectorMigrationSourcesReturnsAuthorizedProcessGroups() {
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        final String connectorId = "connector-id";
+        final String authorizedGroupId = "authorized-group-id";
+        final String deniedGroupId = "denied-group-id";
+        final String removedGroupId = "removed-group-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+        when(connectorDAO.getMigrationSources(connectorId)).thenReturn(List.of(
+                createMigrationSource(authorizedGroupId),
+                createMigrationSource(deniedGroupId),
+                createMigrationSource(removedGroupId)));
+
+        final ProcessGroupAuthorizable authorizedGroup = createProcessGroupAuthorizable(true);
+        final ProcessGroupAuthorizable deniedGroup = createProcessGroupAuthorizable(false);
+
+        final AuthorizableLookup migrationLookup = mock(AuthorizableLookup.class);
+        serviceFacade.setAuthorizableLookup(migrationLookup);
+        when(migrationLookup.getProcessGroup(authorizedGroupId)).thenReturn(authorizedGroup);
+        when(migrationLookup.getProcessGroup(deniedGroupId)).thenReturn(deniedGroup);
+        when(migrationLookup.getProcessGroup(removedGroupId)).thenThrow(new ResourceNotFoundException("Process Group was removed"));
+
+        final VersionedFlowMigrationSourcesEntity entity = serviceFacade.getConnectorMigrationSources(connectorId);
+
+        final List<VersionedFlowMigrationSourceDTO> migrationSources = entity.getMigrationSources();
+        assertEquals(1, migrationSources.size());
+        assertEquals(authorizedGroupId, migrationSources.getFirst().getProcessGroupId());
+    }
+
+    private ConnectorMigrationSource createMigrationSource(final String processGroupId) {
+        final ConnectorMigrationSource migrationSource = new ConnectorMigrationSource();
+        migrationSource.setProcessGroupId(processGroupId);
+        return migrationSource;
+    }
+
+    private ProcessGroupAuthorizable createProcessGroupAuthorizable(final boolean readAuthorized) {
+        final Authorizable authorizable = mock(Authorizable.class);
+        when(authorizable.isAuthorized(any(Authorizer.class), eq(RequestAction.READ), any(NiFiUser.class))).thenReturn(readAuthorized);
+
+        final ProcessGroupAuthorizable processGroupAuthorizable = mock(ProcessGroupAuthorizable.class);
+        when(processGroupAuthorizable.getAuthorizable()).thenReturn(authorizable);
+        return processGroupAuthorizable;
+    }
+
+    @Test
     public void testVerifyCanClearConnectorProcessorState() {
         final String connectorId = "connector-id";
         final String processorId = "processor-id";
@@ -2427,6 +2487,212 @@ public class StandardNiFiServiceFacadeTest {
 
         assertNull(entity);
         verifyNoInteractions(dtoFactory);
+    }
+
+    @Test
+    public void testGetComponentsAffectedByParameterContextUpdateTwicePreservesParameterProvenanceAndDetectsAliasChanges() {
+        final String targetContextId = "target-context";
+        final String inheritedContextId = "inherited-context";
+        final String inheritedParameterName = "inherited-provider-param";
+        final String inheritedParameterValue = "provider-value";
+        final String aliasParameterName = "alias-param";
+        final String aliasParameterValue = "#{" + inheritedParameterName + "}";
+        final String processorId = "processor-id";
+
+        final ParameterDescriptor inheritedDescriptor = new ParameterDescriptor.Builder().name(inheritedParameterName).build();
+        final Parameter inheritedParameter = new Parameter.Builder()
+                .descriptor(inheritedDescriptor)
+                .value(inheritedParameterValue)
+                .provided(true)
+                .parameterContextId(inheritedContextId)
+                .build();
+        final ParameterDescriptor aliasDescriptor = new ParameterDescriptor.Builder().name(aliasParameterName).build();
+        final Parameter aliasParameter = new Parameter.Builder()
+                .descriptor(aliasDescriptor)
+                .value(aliasParameterValue)
+                .parameterContextId(targetContextId)
+                .build();
+        final Parameter resolvedAliasParameter = new Parameter.Builder()
+                .fromParameter(aliasParameter)
+                .value(inheritedParameterValue)
+                .build();
+
+        final ParameterContext targetContext = mock(ParameterContext.class);
+        when(targetContext.getIdentifier()).thenReturn(targetContextId);
+        when(targetContext.getName()).thenReturn("Target Context");
+        when(targetContext.getParameters()).thenReturn(Map.of(aliasDescriptor, aliasParameter));
+        when(targetContext.getParameterReferenceManager()).thenReturn(ParameterReferenceManager.EMPTY);
+
+        final ParameterContext inheritedContext = mock(ParameterContext.class);
+        when(inheritedContext.getIdentifier()).thenReturn(inheritedContextId);
+        when(inheritedContext.getName()).thenReturn("Inherited Context");
+        when(inheritedContext.getInheritedParameterContexts()).thenReturn(List.of());
+
+        final ParameterContextDAO parameterContextDAO = mock(ParameterContextDAO.class);
+        when(parameterContextDAO.getParameterContext(targetContextId)).thenReturn(targetContext);
+        when(parameterContextDAO.getParameterContext(inheritedContextId)).thenReturn(inheritedContext);
+        when(parameterContextDAO.getParameters(any(ParameterContextDTO.class), same(targetContext))).thenReturn(Map.of());
+        when(parameterContextDAO.getInheritedParameterContexts(any(ParameterContextDTO.class))).thenReturn(List.of(inheritedContext));
+        when(targetContext.getEffectiveParameterUpdates(anyMap(), eq(List.of(inheritedContext))))
+                .thenReturn(Map.of(inheritedParameterName, inheritedParameter, aliasParameterName, resolvedAliasParameter));
+
+        final ProcessorNode processorNode = mock(ProcessorNode.class);
+        when(processorNode.isRunning()).thenReturn(true);
+        when(processorNode.getReferencedParameterNames()).thenReturn(Set.of(aliasParameterName));
+        when(processorNode.getIdentifier()).thenReturn(processorId);
+        when(processorNode.getName()).thenReturn("Processor");
+        when(processorNode.getProcessGroupIdentifier()).thenReturn("group-id");
+        when(processorNode.getDesiredState()).thenReturn(ScheduledState.STOPPED);
+        when(processorNode.getActiveThreadCount()).thenReturn(0);
+        when(processorNode.getValidationErrors()).thenReturn(List.of());
+
+        final ProcessGroup referencingGroup = mock(ProcessGroup.class);
+        when(referencingGroup.getParameterContext()).thenReturn(targetContext);
+        when(referencingGroup.getProcessors()).thenReturn(List.of(processorNode));
+        when(referencingGroup.getControllerServices(false)).thenReturn(Set.of());
+        when(referencingGroup.getExecutionEngine()).thenReturn(null);
+        when(referencingGroup.getParent()).thenReturn(null);
+        when(referencingGroup.getIdentifier()).thenReturn("group-id");
+        when(referencingGroup.getName()).thenReturn("Group");
+        when(referencingGroup.isAuthorized(any(), any(), any())).thenReturn(false);
+        when(processorNode.getProcessGroup()).thenReturn(referencingGroup);
+
+        final ProcessGroup rootGroup = mock(ProcessGroup.class);
+        when(processGroupDAO.getProcessGroup("root")).thenReturn(rootGroup);
+        when(rootGroup.findAllProcessGroups(any())).thenAnswer(invocation -> {
+            final java.util.function.Predicate<ProcessGroup> predicate = invocation.getArgument(0);
+            return predicate.test(referencingGroup) ? List.of(referencingGroup) : List.of();
+        });
+
+        final ParameterContextReferenceDTO inheritedReference = new ParameterContextReferenceDTO();
+        inheritedReference.setId(inheritedContextId);
+        inheritedReference.setName("Inherited Context");
+
+        final ParameterContextReferenceEntity inheritedReferenceEntity = new ParameterContextReferenceEntity();
+        inheritedReferenceEntity.setId(inheritedContextId);
+        inheritedReferenceEntity.setComponent(inheritedReference);
+
+        final ParameterContextDTO parameterContextDto = new ParameterContextDTO();
+        parameterContextDto.setId(targetContextId);
+        parameterContextDto.setName("Target Context");
+        parameterContextDto.setParameters(new HashSet<>());
+        parameterContextDto.setInheritedParameterContexts(List.of(inheritedReferenceEntity));
+
+        serviceFacade.setParameterContextDAO(parameterContextDAO);
+        serviceFacade.setRevisionManager(new NaiveRevisionManager());
+        final MockTestBulletinRepository bulletinRepository = new MockTestBulletinRepository();
+        serviceFacade.setBulletinRepository(bulletinRepository);
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setEntityFactory(new EntityFactory());
+        final BulletinRepository dtoBulletinRepository = mock(BulletinRepository.class);
+        when(dtoBulletinRepository.findBulletinsForSource(anyString(), anyString())).thenReturn(List.of());
+        dtoFactory.setBulletinRepository(dtoBulletinRepository);
+        serviceFacade.setDtoFactory(dtoFactory);
+
+        final Set<AffectedComponentEntity> firstAffected = serviceFacade.getComponentsAffectedByParameterContextUpdate(List.of(parameterContextDto));
+        assertEquals(1, firstAffected.size());
+        assertEquals(processorId, firstAffected.iterator().next().getId());
+
+        final Map<String, ParameterDTO> firstPassParameters = parameterContextDto.getParameters().stream()
+                .map(ParameterEntity::getParameter)
+                .collect(Collectors.toMap(ParameterDTO::getName, Function.identity()));
+        final ParameterDTO firstPassParameter = firstPassParameters.get(inheritedParameterName);
+        assertEquals(inheritedParameterName, firstPassParameter.getName());
+        assertTrue(firstPassParameter.getInherited());
+        assertTrue(firstPassParameter.getProvided());
+        assertEquals(inheritedContextId, firstPassParameter.getParameterContext().getId());
+        assertEquals(inheritedParameterValue, firstPassParameter.getValue());
+        assertEquals(1, firstPassParameter.getReferencingComponents().size());
+        assertFalse(firstPassParameters.containsKey(aliasParameterName));
+
+        final Set<AffectedComponentEntity> secondAffected = serviceFacade.getComponentsAffectedByParameterContextUpdate(List.of(parameterContextDto));
+        assertEquals(1, secondAffected.size());
+        assertEquals(processorId, secondAffected.iterator().next().getId());
+
+        final Map<String, ParameterDTO> secondPassParameters = parameterContextDto.getParameters().stream()
+                .map(ParameterEntity::getParameter)
+                .collect(Collectors.toMap(ParameterDTO::getName, Function.identity()));
+        final ParameterDTO secondPassParameter = secondPassParameters.get(inheritedParameterName);
+        assertEquals(inheritedParameterName, secondPassParameter.getName());
+        assertTrue(secondPassParameter.getInherited());
+        assertTrue(secondPassParameter.getProvided());
+        assertEquals(inheritedContextId, secondPassParameter.getParameterContext().getId());
+        assertEquals(inheritedParameterValue, secondPassParameter.getValue());
+        assertEquals(1, secondPassParameter.getReferencingComponents().size());
+        assertEquals(processorId, secondPassParameter.getReferencingComponents().iterator().next().getId());
+        assertFalse(secondPassParameters.containsKey(aliasParameterName));
+    }
+
+    @Test
+    public void testGetComponentsAffectedByParameterContextUpdateDoesNotAddSensitiveLocalAliasToUpdate() {
+        final String targetContextId = "target-context";
+        final String inheritedContextId = "inherited-context";
+        final String inheritedParameterName = "inherited-provider-param";
+        final String aliasParameterName = "alias-param";
+
+        final Parameter inheritedParameter = new Parameter.Builder()
+                .name(inheritedParameterName)
+                .value("provider-value")
+                .provided(true)
+                .parameterContextId(inheritedContextId)
+                .build();
+        final ParameterDescriptor aliasDescriptor = new ParameterDescriptor.Builder().name(aliasParameterName).sensitive(true).build();
+        final Parameter aliasParameter = new Parameter.Builder()
+                .descriptor(aliasDescriptor)
+                .value("#{" + inheritedParameterName + "}")
+                .parameterContextId(targetContextId)
+                .build();
+        final Parameter resolvedAliasParameter = new Parameter.Builder()
+                .fromParameter(aliasParameter)
+                .value("provider-value")
+                .build();
+
+        final ParameterContext targetContext = mock(ParameterContext.class);
+        when(targetContext.getIdentifier()).thenReturn(targetContextId);
+        when(targetContext.getParameters()).thenReturn(Map.of(aliasDescriptor, aliasParameter));
+        when(targetContext.getParameterReferenceManager()).thenReturn(ParameterReferenceManager.EMPTY);
+
+        final ParameterContext inheritedContext = mock(ParameterContext.class);
+        when(inheritedContext.getIdentifier()).thenReturn(inheritedContextId);
+        when(inheritedContext.getName()).thenReturn("Inherited Context");
+
+        final ParameterContextDAO parameterContextDAO = mock(ParameterContextDAO.class);
+        when(parameterContextDAO.getParameterContext(targetContextId)).thenReturn(targetContext);
+        when(parameterContextDAO.getParameterContext(inheritedContextId)).thenReturn(inheritedContext);
+        when(parameterContextDAO.getParameters(any(ParameterContextDTO.class), same(targetContext))).thenReturn(Map.of());
+        when(parameterContextDAO.getInheritedParameterContexts(any(ParameterContextDTO.class))).thenReturn(List.of(inheritedContext));
+        when(targetContext.getEffectiveParameterUpdates(anyMap(), eq(List.of(inheritedContext))))
+                .thenReturn(Map.of(inheritedParameterName, inheritedParameter, aliasParameterName, resolvedAliasParameter));
+
+        final ProcessGroup rootGroup = mock(ProcessGroup.class);
+        when(processGroupDAO.getProcessGroup("root")).thenReturn(rootGroup);
+        when(rootGroup.findAllProcessGroups(any())).thenReturn(List.of());
+
+        final ParameterContextReferenceDTO inheritedReference = new ParameterContextReferenceDTO();
+        inheritedReference.setId(inheritedContextId);
+        inheritedReference.setName("Inherited Context");
+        final ParameterContextReferenceEntity inheritedReferenceEntity = new ParameterContextReferenceEntity();
+        inheritedReferenceEntity.setId(inheritedContextId);
+        inheritedReferenceEntity.setComponent(inheritedReference);
+
+        final ParameterContextDTO parameterContextDto = new ParameterContextDTO();
+        parameterContextDto.setId(targetContextId);
+        parameterContextDto.setParameters(new HashSet<>());
+        parameterContextDto.setInheritedParameterContexts(List.of(inheritedReferenceEntity));
+
+        serviceFacade.setParameterContextDAO(parameterContextDAO);
+        serviceFacade.setRevisionManager(new NaiveRevisionManager());
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setEntityFactory(new EntityFactory());
+        serviceFacade.setDtoFactory(dtoFactory);
+
+        serviceFacade.getComponentsAffectedByParameterContextUpdate(List.of(parameterContextDto));
+
+        final Map<String, ParameterDTO> parameters = parameterContextDto.getParameters().stream()
+                .map(ParameterEntity::getParameter)
+                .collect(Collectors.toMap(ParameterDTO::getName, Function.identity()));
+        assertTrue(parameters.containsKey(inheritedParameterName));
+        assertFalse(parameters.containsKey(aliasParameterName));
     }
 
     @Test

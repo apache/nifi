@@ -22,8 +22,8 @@
 
     <properties>
         <guava.version>33.7.1-jre</guava.version>
-        <protobuf.version>4.36.0</protobuf.version>
-        <grpc.version>1.83.1</grpc.version>
+        <protobuf.version>4.36.1</protobuf.version>
+        <grpc.version>1.84.0</grpc.version>
         <snowflake-jdbc-thin.version>4.3.3</snowflake-jdbc-thin.version>
     </properties>
 

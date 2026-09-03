@@ -903,8 +903,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             return first;
         }
 
-        final Map<String, Long> combined = new HashMap<>();
-        combined.putAll(first);
+        final Map<String, Long> combined = new HashMap<>(first);
         second.forEach((key, value) -> combined.merge(key, value, Long::sum));
         return combined;
     }

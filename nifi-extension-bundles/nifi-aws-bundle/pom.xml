@@ -28,7 +28,7 @@
 
     <properties>
         <guava.version>33.7.1-jre</guava.version>
-        <protobuf.version>4.36.0</protobuf.version>
+        <protobuf.version>4.36.1</protobuf.version>
     </properties>
 
     <modules>

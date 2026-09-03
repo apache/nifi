@@ -760,8 +760,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     public Set<RemoteGroupPort> getInputPorts() {
         readLock.lock();
         try {
-            final Set<RemoteGroupPort> set = new HashSet<>();
-            set.addAll(inputPorts.values());
+            final Set<RemoteGroupPort> set = new HashSet<>(inputPorts.values());
             return set;
         } finally {
             readLock.unlock();
@@ -841,8 +840,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     public Set<RemoteGroupPort> getOutputPorts() {
         readLock.lock();
         try {
-            final Set<RemoteGroupPort> set = new HashSet<>();
-            set.addAll(outputPorts.values());
+            final Set<RemoteGroupPort> set = new HashSet<>(outputPorts.values());
             return set;
         } finally {
             readLock.unlock();

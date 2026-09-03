@@ -155,10 +155,9 @@ public class AzureLogAnalyticsReportingTask extends AbstractAzureLogAnalyticsRep
      */
     protected List<Metric> collectMetrics(final String instanceId, final ProcessGroupStatus status,
             final String processGroupName, final boolean jvmMetricsCollected) {
-        List<Metric> allMetrics = new ArrayList<>();
 
         // dataflow process group level metrics
-        allMetrics.addAll(AzureLogAnalyticsMetricsFactory.getDataFlowMetrics(status, instanceId));
+        List<Metric> allMetrics = new ArrayList<>(AzureLogAnalyticsMetricsFactory.getDataFlowMetrics(status, instanceId));
 
         // connections process group level metrics
         final List<ConnectionStatus> connectionStatuses = new ArrayList<>();

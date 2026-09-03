@@ -974,12 +974,10 @@ public class DatabaseMetadataService implements MetadataService {
             return Collections.emptyList();
         }
 
-        final List<Object> args = new ArrayList<>();
-
         final StringBuilder sqlBuilder = new StringBuilder(BASE_EXTENSION_SQL);
         sqlBuilder.append(" AND ");
         addIdentifiersInClause(sqlBuilder, "eb.bucket_id", bucketIdentifiers);
-        args.addAll(bucketIdentifiers);
+        final List<Object> args = new ArrayList<>(bucketIdentifiers);
 
         if (filterParams != null) {
             final BundleType bundleType = filterParams.getBundleType();
@@ -1023,12 +1021,10 @@ public class DatabaseMetadataService implements MetadataService {
             return Collections.emptyList();
         }
 
-        final List<Object> args = new ArrayList<>();
-
         final StringBuilder sqlBuilder = new StringBuilder(BASE_EXTENSION_SQL);
         sqlBuilder.append(" AND ");
         addIdentifiersInClause(sqlBuilder, "eb.bucket_id", bucketIdentifiers);
-        args.addAll(bucketIdentifiers);
+        final List<Object> args = new ArrayList<>(bucketIdentifiers);
 
         sqlBuilder.append(" AND e.id IN (")
                 .append(" SELECT ep.extension_id FROM EXTENSION_PROVIDED_SERVICE_API ep")
