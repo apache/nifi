@@ -596,8 +596,10 @@ public class PublishJMSIT {
             assertTrue(controlledConnectionFactory.awaitSendEntered(5, TimeUnit.SECONDS));
             controlledConnectionFactory.allowSendToProceed();
             assertTrue(controlledConnectionFactory.awaitSendCompleted(5, TimeUnit.SECONDS));
+            assertTrue(processor.awaitRendezvousCompleted(5, TimeUnit.SECONDS));
 
             processor.shutdownConnectionFactoryProvider(processContext);
+            processor.allowRendezvousReturn();
 
             assertNull(future.get(5, TimeUnit.SECONDS));
             assertEquals(1, processSession.getFlowFilesForRelationship(REL_SUCCESS).size());
@@ -648,6 +650,8 @@ public class PublishJMSIT {
 
             processor.shutdownConnectionFactoryProvider(processContext);
             controlledConnectionFactory.allowSendToProceed();
+            assertTrue(processor.awaitRendezvousCompleted(5, TimeUnit.SECONDS));
+            processor.allowRendezvousReturn();
 
             assertNull(future.get(5, TimeUnit.SECONDS));
             assertTrue(processSession.getFlowFilesForRelationship(REL_SUCCESS).isEmpty());
@@ -890,6 +894,20 @@ public class PublishJMSIT {
     private static final class CountingPublishJMS extends PublishJMS {
 
         private final AtomicInteger buildCount = new AtomicInteger();
+        private final CountDownLatch rendezvousCompleted = new CountDownLatch(1);
+        private final CountDownLatch allowRendezvousReturn = new CountDownLatch(1);
+
+        @Override
+        protected void rendezvousWithJms(final ProcessContext context, final ProcessSession processSession, final JMSPublisher publisher) throws ProcessException {
+            super.rendezvousWithJms(context, processSession, publisher);
+            rendezvousCompleted.countDown();
+            try {
+                assertTrue(allowRendezvousReturn.await(5, TimeUnit.SECONDS));
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new ProcessException(e);
+            }
+        }
 
         @Override
         protected JMSPublisher finishBuildingJmsWorker(final org.springframework.jms.connection.CachingConnectionFactory connectionFactory,
@@ -900,6 +918,14 @@ public class PublishJMSIT {
 
         private int getBuildCount() {
             return buildCount.get();
+        }
+
+        private boolean awaitRendezvousCompleted(final long timeout, final TimeUnit timeUnit) throws InterruptedException {
+            return rendezvousCompleted.await(timeout, timeUnit);
+        }
+
+        private void allowRendezvousReturn() {
+            allowRendezvousReturn.countDown();
         }
     }
 
