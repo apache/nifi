@@ -44,7 +44,7 @@ public class AbstractCouchbaseIT {
     protected static final String COUCHBASE_IMAGE_COMMUNITY_RECENT = "couchbase/server:community-7.6.2";
     protected static final String SERVICE_ID = "couchbaseConnectionService";
     protected static final String TEST_DOCUMENT_ID = "test-document-id";
-    private static final Duration CLIENT_READY_TIMEOUT = Duration.ofSeconds(60);
+    protected static final Duration CLIENT_READY_TIMEOUT = Duration.ofSeconds(60);
     private static final Duration CLIENT_READY_POLL_INTERVAL = Duration.ofMillis(100);
 
     protected static final String TEST_DATA = """
