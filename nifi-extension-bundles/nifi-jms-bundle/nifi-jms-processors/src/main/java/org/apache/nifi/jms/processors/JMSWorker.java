@@ -22,6 +22,7 @@ import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 
 import java.nio.channels.Channel;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Base class for implementing publishing and consuming JMS workers.
@@ -34,6 +35,7 @@ abstract class JMSWorker {
     protected final JmsTemplate jmsTemplate;
     protected final ComponentLog processLog;
     private final CachingConnectionFactory connectionFactory;
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private boolean isValid = true;
 
     /**
@@ -51,7 +53,9 @@ abstract class JMSWorker {
     }
 
     public void shutdown() {
-        connectionFactory.destroy();
+        if (shutdown.compareAndSet(false, true)) {
+            connectionFactory.destroy();
+        }
     }
 
     @Override
