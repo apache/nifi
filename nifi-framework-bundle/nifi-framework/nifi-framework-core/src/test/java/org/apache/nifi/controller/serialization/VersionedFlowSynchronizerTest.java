@@ -375,45 +375,91 @@ class VersionedFlowSynchronizerTest {
         setFlowController();
 
         final String invalidParameterName = "PARAMETER_{{ ENVIRONMENT }}";
+        final String parameterValue = "parameter-value";
+        final String contextId = "parameter-context-id";
+        final String contextName = "parameter-context";
 
         final StandardParameterContextManager contextManager = new StandardParameterContextManager();
+        stubParameterContextResolution(contextManager);
+        when(flowManager.createParameterContext(any(), any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+            final StandardParameterContext created = new StandardParameterContext.Builder()
+                    .id(invocation.getArgument(0))
+                    .name(invocation.getArgument(1))
+                    .parameterReferenceManager(ParameterReferenceManager.EMPTY)
+                    .build();
+            created.setParameters(invocation.getArgument(3));
+            contextManager.addParameterContext(created);
+            return created;
+        });
+
+        stubInvalidVersionedParameterContext(invalidParameterName, parameterValue, contextId, contextName);
+
+        assertDoesNotThrow(() ->
+                versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST));
+
+        final ParameterContext loadedContext = contextManager.getParameterContext(contextId);
+        assertLoadedInvalidParameter(loadedContext, invalidParameterName, parameterValue);
+    }
+
+    @Test
+    void testSyncReconcilesExistingInvalidParameterName() {
+        setRootGroup();
+        setFlowController();
+
+        final String invalidParameterName = "PARAMETER_{{ ENVIRONMENT }}";
+        final String parameterValue = "parameter-value";
+        final String contextId = "parameter-context-id";
+        final String contextName = "parameter-context";
+
+        final StandardParameterContext existingContext = new StandardParameterContext.Builder()
+                .id(contextId)
+                .name(contextName)
+                .parameterReferenceManager(ParameterReferenceManager.EMPTY)
+                .build();
+        existingContext.setParameters(Collections.singletonMap(invalidParameterName,
+                new Parameter.Builder()
+                        .name(invalidParameterName)
+                        .value("previous-value")
+                        .sensitive(true)
+                        .build()));
+
+        final StandardParameterContextManager contextManager = new StandardParameterContextManager();
+        contextManager.addParameterContext(existingContext);
+        stubParameterContextResolution(contextManager);
+        stubInvalidVersionedParameterContext(invalidParameterName, parameterValue, contextId, contextName);
+
+        assertDoesNotThrow(() ->
+                versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST));
+
+        assertLoadedInvalidParameter(existingContext, invalidParameterName, parameterValue);
+    }
+
+    private void stubParameterContextResolution(final StandardParameterContextManager contextManager) {
         when(flowManager.getParameterContextManager()).thenReturn(contextManager);
         doAnswer(invocation -> {
             invocation.getArgument(0, Runnable.class).run();
             return null;
         }).when(flowManager).withParameterContextResolution(any());
-        when(flowManager.createParameterContext(any(), any(), any(), any(), any(), any())).thenAnswer(invocation -> {
-            final String contextId = invocation.getArgument(0);
-            final String contextName = invocation.getArgument(1);
-            final Map<String, Parameter> parameters = invocation.getArgument(3);
-            final StandardParameterContext created = new StandardParameterContext.Builder()
-                    .id(contextId)
-                    .name(contextName)
-                    .parameterReferenceManager(ParameterReferenceManager.EMPTY)
-                    .build();
-            created.setParameters(parameters);
-            contextManager.addParameterContext(created);
-            return created;
-        });
+    }
 
+    private void stubInvalidVersionedParameterContext(final String invalidParameterName, final String parameterValue,
+            final String contextId, final String contextName) {
         final VersionedParameter versionedParameter = new VersionedParameter();
         versionedParameter.setName(invalidParameterName);
         versionedParameter.setSensitive(true);
-        versionedParameter.setValue("parameter-value");
+        versionedParameter.setValue(parameterValue);
 
         final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
-        versionedParameterContext.setInstanceIdentifier("parameter-context-id");
-        versionedParameterContext.setName("parameter-context");
+        versionedParameterContext.setInstanceIdentifier(contextId);
+        versionedParameterContext.setName(contextName);
         versionedParameterContext.setParameters(Collections.singleton(versionedParameter));
         when(versionedDataflow.getParameterContexts()).thenReturn(List.of(versionedParameterContext));
+    }
 
-        assertDoesNotThrow(() ->
-                versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST));
-
-        final ParameterContext loadedContext = contextManager.getParameterContext("parameter-context-id");
-        final Optional<Parameter> loaded = loadedContext.getParameter(invalidParameterName);
+    private void assertLoadedInvalidParameter(final ParameterContext context, final String invalidParameterName, final String parameterValue) {
+        final Optional<Parameter> loaded = context.getParameter(invalidParameterName);
         assertTrue(loaded.isPresent(), "Illegal Parameter already present in the flow must be loaded so it can be removed");
-        assertEquals("parameter-value", loaded.get().getValue());
+        assertEquals(parameterValue, loaded.get().getValue());
     }
 
     private void setRootGroup() {
