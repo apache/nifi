@@ -1,0 +1,13 @@
+nifi-password-based-property-encryption-nar
+Copyright 2014-2026 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Bouncy Castle
+******************
+
+The following binary components are provided under an MIT style license. See project link for details.
+
+    (MIT) Bouncy Castle Provider (org.bouncycastle:bcprov-jdk18on - https://www.bouncycastle.org/)

@@ -17,21 +17,20 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-framework-bundle</artifactId>
+        <artifactId>nifi-password-based-property-encryption-bundle</artifactId>
         <version>2.12.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-framework-extensions</artifactId>
-    <packaging>pom</packaging>
-    <modules>
-        <module>nifi-framework-kubernetes-bundle</module>
-        <module>nifi-framework-zookeeper-bundle</module>
-        <module>nifi-kerberos-iaa-providers-bundle</module>
-        <module>nifi-ldap-iaa-providers-bundle</module>
-        <module>nifi-password-based-property-encryption-bundle</module>
-        <module>nifi-provenance-repository-bundle</module>
-        <module>nifi-py4j-framework-bundle</module>
-        <module>nifi-questdb-bundle</module>
-        <module>nifi-single-user-iaa-providers-bundle</module>
-    </modules>
+    <artifactId>nifi-password-based-property-encryption</artifactId>
+    <packaging>jar</packaging>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-framework-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-property-encryptor</artifactId>
+            <version>2.12.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 </project>
-
