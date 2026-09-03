@@ -19,9 +19,12 @@ package org.apache.nifi.jms.processors;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import jakarta.jms.BytesMessage;
+import jakarta.jms.Connection;
 import jakarta.jms.ConnectionFactory;
 import jakarta.jms.Message;
+import jakarta.jms.MessageProducer;
 import jakarta.jms.Queue;
+import jakarta.jms.Session;
 import jakarta.jms.TextMessage;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
@@ -40,6 +43,8 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.MockProcessSession;
+import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -50,12 +55,21 @@ import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.net.SocketFactory;
 
@@ -551,6 +565,106 @@ public class PublishJMSIT {
     }
 
     @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+    public void activeSendShouldRouteSuccessWhenSendCompletesBeforeShutdown() throws Exception {
+        final BrokerService broker = new BrokerService();
+        final ExecutorService executorService = Executors.newSingleThreadExecutor();
+        try {
+            broker.setPersistent(false);
+            broker.setBrokerName("publisher-success-broker");
+            broker.start();
+
+            final BlockingProducerConnectionFactory controlledConnectionFactory = new BlockingProducerConnectionFactory(
+                    new ActiveMQConnectionFactory("vm://publisher-success-broker"));
+            final CountingPublishJMS processor = new CountingPublishJMS();
+            final TestRunner runner = initializeTestRunner(processor, controlledConnectionFactory.getConnectionFactory(), "publisher-success-destination");
+
+            final ProcessContext processContext = runner.getProcessContext();
+            processor.onScheduled(processContext);
+            processor.setup(processContext);
+
+            final MockProcessSession processSession = createEnqueuedSession(processor, "success-message");
+            final Future<Throwable> future = executorService.submit(() -> {
+                try {
+                    processor.onTrigger(processContext, processSession);
+                    return null;
+                } catch (final Throwable throwable) {
+                    return throwable;
+                }
+            });
+
+            assertTrue(controlledConnectionFactory.awaitSendEntered(5, TimeUnit.SECONDS));
+            controlledConnectionFactory.allowSendToProceed();
+            assertTrue(controlledConnectionFactory.awaitSendCompleted(5, TimeUnit.SECONDS));
+
+            processor.shutdownConnectionFactoryProvider(processContext);
+
+            assertNull(future.get(5, TimeUnit.SECONDS));
+            assertEquals(1, processSession.getFlowFilesForRelationship(REL_SUCCESS).size());
+            assertTrue(processSession.getFlowFilesForRelationship(REL_FAILURE).isEmpty());
+            assertEquals(1, controlledConnectionFactory.getOpenedConnections());
+            assertEquals(1, processor.getBuildCount());
+
+            final JmsTemplate verifyTemplate = new JmsTemplate(new ActiveMQConnectionFactory("vm://publisher-success-broker"));
+            verifyTemplate.setReceiveTimeout(5000L);
+            final Message message = verifyTemplate.receive("publisher-success-destination");
+            assertInstanceOf(BytesMessage.class, message);
+        } finally {
+            executorService.shutdownNow();
+            broker.stop();
+        }
+    }
+
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+    public void activeSendShouldRouteFailureWithoutReplacementAfterShutdownInterruptsSend() throws Exception {
+        final BrokerService broker = new BrokerService();
+        final ExecutorService executorService = Executors.newSingleThreadExecutor();
+        try {
+            broker.setPersistent(false);
+            broker.setBrokerName("publisher-failure-broker");
+            broker.start();
+
+            final BlockingProducerConnectionFactory controlledConnectionFactory = new BlockingProducerConnectionFactory(
+                    new ActiveMQConnectionFactory("vm://publisher-failure-broker"));
+            final CountingPublishJMS processor = new CountingPublishJMS();
+            final TestRunner runner = initializeTestRunner(processor, controlledConnectionFactory.getConnectionFactory(), "publisher-failure-destination");
+
+            final ProcessContext processContext = runner.getProcessContext();
+            processor.onScheduled(processContext);
+            processor.setup(processContext);
+
+            final MockProcessSession processSession = createEnqueuedSession(processor, "failure-message");
+            final Future<Throwable> future = executorService.submit(() -> {
+                try {
+                    processor.onTrigger(processContext, processSession);
+                    return null;
+                } catch (final Throwable throwable) {
+                    return throwable;
+                }
+            });
+
+            assertTrue(controlledConnectionFactory.awaitSendEntered(5, TimeUnit.SECONDS));
+
+            processor.shutdownConnectionFactoryProvider(processContext);
+            controlledConnectionFactory.allowSendToProceed();
+
+            assertNull(future.get(5, TimeUnit.SECONDS));
+            assertTrue(processSession.getFlowFilesForRelationship(REL_SUCCESS).isEmpty());
+            assertEquals(1, processSession.getFlowFilesForRelationship(REL_FAILURE).size());
+            assertEquals(1, controlledConnectionFactory.getOpenedConnections());
+            assertEquals(1, processor.getBuildCount());
+
+            final JmsTemplate verifyTemplate = new JmsTemplate(new ActiveMQConnectionFactory("vm://publisher-failure-broker"));
+            verifyTemplate.setReceiveTimeout(250L);
+            assertNull(verifyTemplate.receive("publisher-failure-destination"));
+        } finally {
+            executorService.shutdownNow();
+            broker.stop();
+        }
+    }
+
+    @Test
     public void whenExceptionIsRaisedDuringConnectionFactoryInitializationTheProcessorShouldBeYielded() {
         final String nonExistentClassName = "DummyInitialContextFactoryClass";
 
@@ -756,6 +870,125 @@ public class PublishJMSIT {
     private void assertProvenanceEvent(String expectedDetails) {
         final ProvenanceEventRecord event = assertProvenanceEvent();
         assertEquals(expectedDetails, event.getDetails());
+    }
+
+    private MockProcessSession createEnqueuedSession(final PublishJMS processor, final String content) {
+        final SharedSessionState sharedSessionState = new SharedSessionState(processor, new AtomicLong(0L));
+        final MockProcessSession processSession = new MockProcessSession(sharedSessionState, processor);
+        sharedSessionState.getFlowFileQueue().offer(processSession.createFlowFile(content.getBytes()));
+        return processSession;
+    }
+
+    private static Object invokeTarget(final Object target, final Method method, final Object[] args) throws Throwable {
+        try {
+            return method.invoke(target, args);
+        } catch (final InvocationTargetException exception) {
+            throw exception.getCause();
+        }
+    }
+
+    private static final class CountingPublishJMS extends PublishJMS {
+
+        private final AtomicInteger buildCount = new AtomicInteger();
+
+        @Override
+        protected JMSPublisher finishBuildingJmsWorker(final org.springframework.jms.connection.CachingConnectionFactory connectionFactory,
+                                                       final JmsTemplate jmsTemplate, final ProcessContext processContext) {
+            buildCount.incrementAndGet();
+            return super.finishBuildingJmsWorker(connectionFactory, jmsTemplate, processContext);
+        }
+
+        private int getBuildCount() {
+            return buildCount.get();
+        }
+    }
+
+    private static final class BlockingProducerConnectionFactory {
+
+        private final ConnectionFactory connectionFactory;
+        private final CountDownLatch sendEntered = new CountDownLatch(1);
+        private final CountDownLatch allowSend = new CountDownLatch(1);
+        private final CountDownLatch sendCompleted = new CountDownLatch(1);
+        private final AtomicInteger openedConnections = new AtomicInteger();
+
+        private BlockingProducerConnectionFactory(final ConnectionFactory targetConnectionFactory) {
+            Objects.requireNonNull(targetConnectionFactory);
+            connectionFactory = (ConnectionFactory) Proxy.newProxyInstance(
+                    ConnectionFactory.class.getClassLoader(),
+                    new Class[] {ConnectionFactory.class},
+                    (proxy, method, args) -> {
+                        final Object result = invokeTarget(targetConnectionFactory, method, args);
+                        if ("createConnection".equals(method.getName())) {
+                            openedConnections.incrementAndGet();
+                            return createConnectionProxy((Connection) result);
+                        }
+                        return result;
+                    });
+        }
+
+        private ConnectionFactory getConnectionFactory() {
+            return connectionFactory;
+        }
+
+        private boolean awaitSendEntered(final long timeout, final TimeUnit timeUnit) throws InterruptedException {
+            return sendEntered.await(timeout, timeUnit);
+        }
+
+        private boolean awaitSendCompleted(final long timeout, final TimeUnit timeUnit) throws InterruptedException {
+            return sendCompleted.await(timeout, timeUnit);
+        }
+
+        private void allowSendToProceed() {
+            allowSend.countDown();
+        }
+
+        private int getOpenedConnections() {
+            return openedConnections.get();
+        }
+
+        private Connection createConnectionProxy(final Connection targetConnection) {
+            return (Connection) Proxy.newProxyInstance(
+                    Connection.class.getClassLoader(),
+                    new Class[] {Connection.class},
+                    (proxy, method, args) -> {
+                        final Object result = invokeTarget(targetConnection, method, args);
+                        if ("createSession".equals(method.getName())) {
+                            return createSessionProxy((Session) result);
+                        }
+                        return result;
+                    });
+        }
+
+        private Session createSessionProxy(final Session targetSession) {
+            return (Session) Proxy.newProxyInstance(
+                    Session.class.getClassLoader(),
+                    new Class[] {Session.class},
+                    (proxy, method, args) -> {
+                        final Object result = invokeTarget(targetSession, method, args);
+                        if ("createProducer".equals(method.getName())) {
+                            return createProducerProxy((MessageProducer) result);
+                        }
+                        return result;
+                    });
+        }
+
+        private MessageProducer createProducerProxy(final MessageProducer targetProducer) {
+            return (MessageProducer) Proxy.newProxyInstance(
+                    MessageProducer.class.getClassLoader(),
+                    new Class[] {MessageProducer.class},
+                    (proxy, method, args) -> {
+                        if ("send".equals(method.getName())) {
+                            sendEntered.countDown();
+                            assertTrue(allowSend.await(5, TimeUnit.SECONDS));
+                            try {
+                                return invokeTarget(targetProducer, method, args);
+                            } finally {
+                                sendCompleted.countDown();
+                            }
+                        }
+                        return invokeTarget(targetProducer, method, args);
+                    });
+        }
     }
 
     private static ArrayNode createTestJsonInput() {
