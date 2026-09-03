@@ -47,7 +47,11 @@ public interface RepositoryContext {
 
     ContentRepository getContentRepository();
 
+    ContentClaimCreationContext getContentClaimCreationContext();
+
     FlowFileRepository getFlowFileRepository();
+
+    FlowFileUpdateContext getFlowFileUpdateContext();
 
     FlowFileEventRepository getFlowFileEventRepository();
 

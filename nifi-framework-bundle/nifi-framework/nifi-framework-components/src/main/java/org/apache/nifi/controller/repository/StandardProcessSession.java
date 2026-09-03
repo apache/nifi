@@ -616,7 +616,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             try {
                 final Collection<StandardRepositoryRecord> repoRecords = checkpoint.records.values();
                 if (!repoRecords.isEmpty()) {
-                    context.getFlowFileRepository().updateRepository((Collection) repoRecords);
+                    context.getFlowFileRepository().updateRepository((Collection) repoRecords, context.getFlowFileUpdateContext());
                     context.getConnectable().getFlowFileActivity().updateLatestActivityTime();
                 }
             } catch (final IOException ioe) {
@@ -1387,7 +1387,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         if (!abortedRecords.isEmpty()) {
             try {
-                context.getFlowFileRepository().updateRepository(abortedRecords);
+                context.getFlowFileRepository().updateRepository(abortedRecords, context.getFlowFileUpdateContext());
             } catch (final IOException ioe) {
                 LOG.error("Unable to update FlowFile repository for aborted records", ioe);
             }
@@ -1401,7 +1401,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         if (!transientClaims.isEmpty()) {
             final RepositoryRecord repoRecord = new TransientClaimRepositoryRecord(transientClaims);
             try {
-                context.getFlowFileRepository().updateRepository(Collections.singletonList(repoRecord));
+                context.getFlowFileRepository().updateRepository(Collections.singletonList(repoRecord), context.getFlowFileUpdateContext());
             } catch (final IOException ioe) {
                 LOG.error("Unable to update FlowFile repository to cleanup transient claims", ioe);
             }
@@ -2752,7 +2752,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             };
 
             context.getProvenanceRepository().registerEvents(iterable);
-            context.getFlowFileRepository().updateRepository(expiredRecords);
+            context.getFlowFileRepository().updateRepository(expiredRecords, context.getFlowFileUpdateContext());
         } catch (final IOException e) {
             LOG.error("Failed to update FlowFile Repository to record expired records", e);
         }
@@ -3055,7 +3055,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final ContentRepository contentRepo = context.getContentRepository();
         final ContentClaim newClaim;
         try {
-            newClaim = contentRepo.create(context.getConnectable().isLossTolerant());
+            newClaim = contentRepo.create(context.getContentClaimCreationContext());
             claimLog.debug("Creating ContentClaim {} for 'merge' for {}", newClaim, destinationRecord.getCurrent());
         } catch (final IOException e) {
             throw new FlowFileAccessException("Unable to create ContentClaim due to " + e, e);
@@ -3369,7 +3369,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 claimCache.flush(oldClaim);
 
                 try (final InputStream oldClaimIn = read(source)) {
-                    newClaim = context.getContentRepository().create(context.getConnectable().isLossTolerant());
+                    newClaim = context.getContentRepository().create(context.getContentClaimCreationContext());
                     claimLog.debug("Creating ContentClaim {} for 'append' for {}", newClaim, source);
 
                     final OutputStream rawOutStream = context.getContentRepository().write(newClaim);
@@ -3679,7 +3679,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final long claimOffset;
 
         try {
-            newClaim = context.getContentRepository().create(context.getConnectable().isLossTolerant());
+            newClaim = context.getContentRepository().create(context.getContentClaimCreationContext());
             claimLog.debug("Creating ContentClaim {} for 'importFrom' for {}", newClaim, destination);
         } catch (final IOException e) {
             throw new FlowFileAccessException("Unable to create ContentClaim due to " + e, e);
@@ -3741,7 +3741,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final long newSize;
         try {
             try {
-                newClaim = context.getContentRepository().create(context.getConnectable().isLossTolerant());
+                newClaim = context.getContentRepository().create(context.getContentClaimCreationContext());
                 claimLog.debug("Creating ContentClaim {} for 'importFrom' for {}", newClaim, destination);
 
                 newSize = context.getContentRepository().importFrom(createTaskTerminationStream(source), newClaim);

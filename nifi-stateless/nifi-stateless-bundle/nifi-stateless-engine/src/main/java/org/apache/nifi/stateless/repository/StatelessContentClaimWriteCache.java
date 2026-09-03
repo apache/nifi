@@ -17,6 +17,7 @@
 
 package org.apache.nifi.stateless.repository;
 
+import org.apache.nifi.controller.repository.ContentClaimCreationContext;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
@@ -33,11 +34,13 @@ import java.util.List;
 public class StatelessContentClaimWriteCache implements ContentClaimWriteCache {
     private final ContentRepository contentRepository;
     private final PerformanceTracker performanceTracker;
+    private final ContentClaimCreationContext creationContext;
     private final List<OutputStream> writtenTo = new ArrayList<>();
 
-    public StatelessContentClaimWriteCache(final ContentRepository contentRepository, final PerformanceTracker performanceTracker) {
+    public StatelessContentClaimWriteCache(final ContentRepository contentRepository, final PerformanceTracker performanceTracker, final ContentClaimCreationContext creationContext) {
         this.contentRepository = contentRepository;
         this.performanceTracker = performanceTracker;
+        this.creationContext = creationContext;
     }
 
     @Override
@@ -55,7 +58,7 @@ public class StatelessContentClaimWriteCache implements ContentClaimWriteCache {
 
     @Override
     public ContentClaim getContentClaim() throws IOException {
-        return contentRepository.create(false);
+        return contentRepository.create(creationContext);
     }
 
     @Override

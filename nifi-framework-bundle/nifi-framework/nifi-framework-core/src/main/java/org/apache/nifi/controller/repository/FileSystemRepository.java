@@ -640,6 +640,11 @@ public class FileSystemRepository implements ContentRepository {
     }
 
     @Override
+    public long getMaxAppendableClaimBytes() {
+        return maxAppendableClaimLength;
+    }
+
+    @Override
     public ContentClaim create(final boolean lossTolerant) throws IOException {
         ResourceClaim resourceClaim;
 

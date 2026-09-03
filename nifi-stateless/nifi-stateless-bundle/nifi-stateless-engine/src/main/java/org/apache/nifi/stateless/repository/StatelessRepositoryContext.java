@@ -52,6 +52,6 @@ public class StatelessRepositoryContext extends AbstractRepositoryContext implem
 
     @Override
     public ContentClaimWriteCache createContentClaimWriteCache(final PerformanceTracker performanceTracker) {
-        return new StatelessContentClaimWriteCache(contentRepository, performanceTracker);
+        return new StatelessContentClaimWriteCache(contentRepository, performanceTracker, getContentClaimCreationContext());
     }
 }
