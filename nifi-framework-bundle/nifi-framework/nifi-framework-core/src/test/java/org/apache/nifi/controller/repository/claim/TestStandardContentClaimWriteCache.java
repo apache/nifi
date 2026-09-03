@@ -105,10 +105,11 @@ public class TestStandardContentClaimWriteCache {
         cache.flush();
 
         assertEquals(13L, claim1.getLength());
-        final InputStream in = repository.read(claim1);
-        final byte[] buff = new byte[(int) claim1.getLength()];
-        StreamUtils.fillBuffer(in, buff);
-        assertArrayEquals("hellogood-bye".getBytes(), buff);
+        try (final InputStream in = repository.read(claim1)) {
+            final byte[] buff = new byte[(int) claim1.getLength()];
+            StreamUtils.fillBuffer(in, buff);
+            assertArrayEquals("hellogood-bye".getBytes(), buff);
+        }
 
         final ContentClaim claim2 = cache.getContentClaim();
         final OutputStream out2 = cache.write(claim2);
@@ -119,10 +120,13 @@ public class TestStandardContentClaimWriteCache {
         cache.flush();
 
         assertEquals(13L, claim2.getLength());
-        final InputStream in2 = repository.read(claim2);
-        final byte[] buff2 = new byte[(int) claim2.getLength()];
-        StreamUtils.fillBuffer(in2, buff2);
-        assertArrayEquals("good-dayhello".getBytes(), buff2);
+        try (final InputStream in = repository.read(claim2)) {
+            final byte[] buff = new byte[(int) claim2.getLength()];
+            StreamUtils.fillBuffer(in, buff);
+            assertArrayEquals("good-dayhello".getBytes(), buff);
+        }
+
+        cache.reset();
     }
 
     @Test
