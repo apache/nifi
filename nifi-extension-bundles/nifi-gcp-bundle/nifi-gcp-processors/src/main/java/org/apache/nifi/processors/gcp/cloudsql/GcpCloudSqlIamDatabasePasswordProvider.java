@@ -60,7 +60,6 @@ public class GcpCloudSqlIamDatabasePasswordProvider extends AbstractControllerSe
     static final String VERIFY_SCOPED_CREDENTIALS_UNAVAILABLE = "Failed to apply the Cloud SQL login scope to the configured Google credentials.";
     static final String VERIFY_IMPERSONATION_REQUIRED = "Target service account impersonation is required for Workload Identity Federation Cloud SQL authentication.";
     static final String VERIFY_TOKEN_ACQUISITION_FAILED = "Failed to acquire a Cloud SQL IAM access token.";
-    static final String VERIFY_TOKEN_MISSING = "Cloud SQL IAM access token was empty.";
 
     static final PropertyDescriptor GCP_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
             .name("GCP Credentials Provider Service")
@@ -113,55 +112,36 @@ public class GcpCloudSqlIamDatabasePasswordProvider extends AbstractControllerSe
     public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger,
                                                  final Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>(2);
-
-        final GoogleCredentials googleCredentials;
-
-        try {
-            googleCredentials = resolveGoogleCredentials(context);
-        } catch (final RuntimeException e) {
-            results.add(buildVerificationResult(VERIFY_SCOPE_STEP, Outcome.FAILED, VERIFY_CREDENTIALS_UNAVAILABLE));
-            return results;
-        }
-
-        if (googleCredentials == null) {
-            results.add(buildVerificationResult(VERIFY_SCOPE_STEP, Outcome.FAILED, VERIFY_CREDENTIALS_UNAVAILABLE));
-            return results;
-        }
-
-        final GoogleCredentials scopedVerificationCredentials;
-        try {
-            scopedVerificationCredentials = createSqlLoginScopedCredentials(googleCredentials);
-        } catch (final RuntimeException e) {
-            results.add(buildVerificationResult(VERIFY_SCOPE_STEP, Outcome.FAILED, VERIFY_SCOPED_CREDENTIALS_UNAVAILABLE));
-            return results;
-        }
-
+        final GoogleCredentials scopedVerificationCredentials = resolveVerificationCredentials(context);
         if (scopedVerificationCredentials == null) {
-            results.add(buildVerificationResult(VERIFY_SCOPE_STEP, Outcome.FAILED, VERIFY_SCOPED_CREDENTIALS_UNAVAILABLE));
-            return results;
+            results.add(buildVerificationResult(VERIFY_SCOPE_STEP, Outcome.FAILED, VERIFY_CREDENTIALS_UNAVAILABLE));
+        } else {
+            final ConfigVerificationResult scopedCredentialResult = describeScopedCredential(scopedVerificationCredentials);
+            results.add(scopedCredentialResult);
+            if (scopedCredentialResult.getOutcome() == Outcome.SUCCESSFUL) {
+                results.add(verifyAccessToken(scopedVerificationCredentials));
+            }
         }
-
-        final ConfigVerificationResult scopedCredentialResult = describeScopedCredential(scopedVerificationCredentials);
-        results.add(scopedCredentialResult);
-        if (scopedCredentialResult.getOutcome() == Outcome.FAILED) {
-            return results;
-        }
-
-        final AccessToken accessToken;
-        try {
-            accessToken = scopedVerificationCredentials.refreshAccessToken();
-        } catch (final IOException | RuntimeException e) {
-            results.add(buildVerificationResult(VERIFY_TOKEN_STEP, Outcome.FAILED, VERIFY_TOKEN_ACQUISITION_FAILED));
-            return results;
-        }
-
-        if (!hasTokenValue(accessToken)) {
-            results.add(buildVerificationResult(VERIFY_TOKEN_STEP, Outcome.FAILED, VERIFY_TOKEN_MISSING));
-            return results;
-        }
-
-        results.add(buildTokenVerificationResult());
         return results;
+    }
+
+    private GoogleCredentials resolveVerificationCredentials(final ConfigurationContext context) {
+        try {
+            return createSqlLoginScopedCredentials(resolveGoogleCredentials(context));
+        } catch (final RuntimeException e) {
+            return null;
+        }
+    }
+
+    private ConfigVerificationResult verifyAccessToken(final GoogleCredentials credentials) {
+        try {
+            final AccessToken accessToken = credentials.refreshAccessToken();
+            return hasTokenValue(accessToken)
+                    ? buildTokenVerificationResult()
+                    : buildVerificationResult(VERIFY_TOKEN_STEP, Outcome.FAILED, VERIFY_TOKEN_ACQUISITION_FAILED);
+        } catch (final IOException | RuntimeException e) {
+            return buildVerificationResult(VERIFY_TOKEN_STEP, Outcome.FAILED, VERIFY_TOKEN_ACQUISITION_FAILED);
+        }
     }
 
     private GoogleCredentials requireScopedCredentials(final ConfigurationContext context) throws InitializationException {

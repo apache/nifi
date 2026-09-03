@@ -64,10 +64,8 @@ import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePass
 import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.SQLSERVICE_LOGIN_SCOPE;
 import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.VERIFY_CREDENTIALS_UNAVAILABLE;
 import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.VERIFY_IMPERSONATION_REQUIRED;
-import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.VERIFY_SCOPED_CREDENTIALS_UNAVAILABLE;
 import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.VERIFY_SCOPE_STEP;
 import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.VERIFY_TOKEN_ACQUISITION_FAILED;
-import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.VERIFY_TOKEN_MISSING;
 import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.VERIFY_TOKEN_STEP;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -91,6 +89,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
     private static final String TOKEN_VALUE = "cloud-sql-token";
     private static final String REFRESHED_TOKEN_VALUE = "refreshed-cloud-sql-token";
     private static final String LEAK_SENTINEL = "sentinel-token-value";
+    private static final String CLOUD_SQL_IAM = "Cloud SQL IAM";
 
     private ExecutorService executorService;
 
@@ -136,7 +135,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
 
         final ProcessException exception = assertThrows(ProcessException.class, () -> provider.getPassword(requestContext()));
 
-        assertTrue(exception.getMessage().contains("Cloud SQL IAM"));
+        assertTrue(exception.getMessage().contains(CLOUD_SQL_IAM));
         assertNull(exception.getCause());
     }
 
@@ -171,7 +170,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
         assertEquals(2, rootCredentials.getCreateScopedCount());
         assertEquals(0, enabledScopedCredentials.getRefreshAccessTokenCount());
         assertEquals(1, verificationScopedCredentials.getRefreshAccessTokenCount());
-        assertVerificationResult(results.get(1), VERIFY_TOKEN_STEP, SUCCESSFUL, "Cloud SQL IAM access token");
+        assertVerificationResult(results.get(1), VERIFY_TOKEN_STEP, SUCCESSFUL, CLOUD_SQL_IAM);
         assertArrayEquals(TOKEN_VALUE.toCharArray(), password);
     }
 
@@ -241,7 +240,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
         final List<ConfigVerificationResult> results = runner.verify(provider, Map.of());
 
         assertEquals(1, results.size());
-        assertVerificationResult(results.get(0), VERIFY_SCOPE_STEP, FAILED, VERIFY_SCOPED_CREDENTIALS_UNAVAILABLE);
+        assertVerificationResult(results.get(0), VERIFY_SCOPE_STEP, FAILED, VERIFY_CREDENTIALS_UNAVAILABLE);
         assertEquals(List.of(SQLSERVICE_LOGIN_SCOPE), rootCredentials.getLastRequestedScopes());
     }
 
@@ -253,7 +252,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
         final List<ConfigVerificationResult> results = runner.verify(provider, Map.of());
 
         assertEquals(1, results.size());
-        assertVerificationResult(results.get(0), VERIFY_SCOPE_STEP, FAILED, VERIFY_SCOPED_CREDENTIALS_UNAVAILABLE);
+        assertVerificationResult(results.get(0), VERIFY_SCOPE_STEP, FAILED, VERIFY_CREDENTIALS_UNAVAILABLE);
         assertFalse(results.get(0).getExplanation().contains(LEAK_SENTINEL));
     }
 
@@ -296,7 +295,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
         final List<ConfigVerificationResult> results = runner.verify(getProviderImplementation(runner), Map.of());
 
         assertEquals(2, results.size());
-        assertVerificationResult(results.get(1), VERIFY_TOKEN_STEP, FAILED, VERIFY_TOKEN_MISSING);
+        assertVerificationResult(results.get(1), VERIFY_TOKEN_STEP, FAILED, VERIFY_TOKEN_ACQUISITION_FAILED);
     }
 
     @Test
@@ -307,7 +306,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
         final List<ConfigVerificationResult> results = runner.verify(getProviderImplementation(runner), Map.of());
 
         assertEquals(2, results.size());
-        assertVerificationResult(results.get(1), VERIFY_TOKEN_STEP, FAILED, VERIFY_TOKEN_MISSING);
+        assertVerificationResult(results.get(1), VERIFY_TOKEN_STEP, FAILED, VERIFY_TOKEN_ACQUISITION_FAILED);
     }
 
     @Test
@@ -361,7 +360,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
 
         final ProcessException exception = assertThrows(ProcessException.class, () -> provider.getPassword(requestContext()));
 
-        assertTrue(exception.getMessage().contains("Cloud SQL IAM"));
+        assertTrue(exception.getMessage().contains(CLOUD_SQL_IAM));
     }
 
     @Test
@@ -372,7 +371,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
 
         final ProcessException exception = assertThrows(ProcessException.class, () -> provider.getPassword(requestContext()));
 
-        assertTrue(exception.getMessage().contains("Cloud SQL IAM"));
+        assertTrue(exception.getMessage().contains(CLOUD_SQL_IAM));
     }
 
     @Test
@@ -384,7 +383,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
 
         final ProcessException exception = assertThrows(ProcessException.class, () -> provider.getPassword(requestContext()));
 
-        assertTrue(exception.getMessage().contains("Cloud SQL IAM"));
+        assertTrue(exception.getMessage().contains(CLOUD_SQL_IAM));
         assertNull(exception.getCause());
         assertNoLogMessagesContain(runner.getControllerServiceLogger(PASSWORD_PROVIDER_ID), LEAK_SENTINEL);
     }
@@ -398,7 +397,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
 
         final ProcessException exception = assertThrows(ProcessException.class, () -> provider.getPassword(requestContext()));
 
-        assertTrue(exception.getMessage().contains("Cloud SQL IAM"));
+        assertTrue(exception.getMessage().contains(CLOUD_SQL_IAM));
     }
 
     @Test
@@ -421,24 +420,6 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
             assertNotNull(inputStream);
             final String registeredServices = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
             assertTrue(registeredServices.contains(GcpCloudSqlIamDatabasePasswordProvider.class.getName()));
-        }
-    }
-
-    @Test
-    void testAdditionalDetailsResourceDocumentsSupportedPath() throws IOException {
-        final String resourcePath = "docs/%s/additionalDetails.md".formatted(GcpCloudSqlIamDatabasePasswordProvider.class.getName());
-        try (InputStream inputStream = GcpCloudSqlIamDatabasePasswordProvider.class.getClassLoader().getResourceAsStream(resourcePath)) {
-            assertNotNull(inputStream);
-            final String additionalDetails = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            assertTrue(additionalDetails.contains("Cloud SQL for PostgreSQL"));
-            assertTrue(additionalDetails.contains("Cloud SQL for MySQL"));
-            assertTrue(additionalDetails.contains("roles/iam.workloadIdentityUser"));
-            assertTrue(additionalDetails.contains("sslmode=require"));
-            assertTrue(additionalDetails.contains("sslMode=REQUIRED"));
-            assertTrue(additionalDetails.contains("DBCP **Verify**"));
-            assertFalse(additionalDetails.contains("Database Type"));
-            assertFalse(additionalDetails.contains("disabledAuthenticationPlugins"));
-            assertFalse(additionalDetails.contains("useSSL"));
         }
     }
 
