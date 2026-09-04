@@ -233,10 +233,10 @@ public class ParameterUpdateManager {
                 throw new LifecycleManagementException("Failed to update Flow on all nodes in cluster due to " + explanation);
             }
 
-            return serviceFacade.getParameterContext(updatedContext.getId(), false, user);
+            return serviceFacade.getParameterContext(updatedContext.getId(), false, user, false);
         } else {
             serviceFacade.verifyUpdateParameterContext(updatedContext.getComponent(), true);
-            return serviceFacade.updateParameterContext(revision, updatedContext.getComponent());
+            return serviceFacade.updateParameterContext(revision, updatedContext.getComponent(), false);
         }
     }
 

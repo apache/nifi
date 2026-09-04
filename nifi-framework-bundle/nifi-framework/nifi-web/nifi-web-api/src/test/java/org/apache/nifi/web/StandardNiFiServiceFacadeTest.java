@@ -2444,19 +2444,19 @@ public class StandardNiFiServiceFacadeTest {
         final ParameterContextDTO parameterContextDto = new ParameterContextDTO();
         parameterContextDto.setId(parameterContextId);
         parameterContextDto.setName("context-name");
-        when(dtoFactory.createParameterContextDto(eq(parameterContext), eq(revisionManager), eq(true), any(ParameterContextLookup.class)))
+        when(dtoFactory.createParameterContextDto(eq(parameterContext), eq(revisionManager), eq(true), any(ParameterContextLookup.class), eq(true)))
                 .thenReturn(parameterContextDto);
         when(dtoFactory.createPermissionsDto(eq(parameterContext), any())).thenReturn(null);
         when(dtoFactory.createRevisionDTO(any(Revision.class))).thenReturn(new RevisionDTO());
         when(revisionManager.getRevision(parameterContextId)).thenReturn(new Revision(1L, null, parameterContextId));
 
-        final ParameterContextEntity entity = serviceFacade.getConnectorParameterContext(connectorId, processGroupId);
+        final ParameterContextEntity entity = serviceFacade.getConnectorParameterContext(connectorId, processGroupId, true);
 
         assertNotNull(entity);
         assertEquals(parameterContextId, entity.getId());
 
         final ArgumentCaptor<ParameterContextLookup> lookupCaptor = ArgumentCaptor.forClass(ParameterContextLookup.class);
-        verify(dtoFactory).createParameterContextDto(eq(parameterContext), eq(revisionManager), eq(true), lookupCaptor.capture());
+        verify(dtoFactory).createParameterContextDto(eq(parameterContext), eq(revisionManager), eq(true), lookupCaptor.capture(), eq(true));
         assertNotNull(lookupCaptor.getValue());
         assertNull(lookupCaptor.getValue().getParameterContext("any-id"));
         assertFalse(lookupCaptor.getValue().hasParameterContext("any-id"));
@@ -2483,7 +2483,7 @@ public class StandardNiFiServiceFacadeTest {
         when(managedProcessGroup.findProcessGroup(processGroupId)).thenReturn(targetProcessGroup);
         when(targetProcessGroup.getParameterContext()).thenReturn(null);
 
-        final ParameterContextEntity entity = serviceFacade.getConnectorParameterContext(connectorId, processGroupId);
+        final ParameterContextEntity entity = serviceFacade.getConnectorParameterContext(connectorId, processGroupId, true);
 
         assertNull(entity);
         verifyNoInteractions(dtoFactory);
@@ -2712,7 +2712,7 @@ public class StandardNiFiServiceFacadeTest {
         when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
         when(managedProcessGroup.findProcessGroup(processGroupId)).thenReturn(null);
 
-        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.getConnectorParameterContext(connectorId, processGroupId));
+        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.getConnectorParameterContext(connectorId, processGroupId, true));
     }
 
     private StandardNiFiServiceFacade createBranchTestFacade(final ProcessGroupDAO branchProcessGroupDAO, final FlowRegistryDAO flowRegistryDAO,

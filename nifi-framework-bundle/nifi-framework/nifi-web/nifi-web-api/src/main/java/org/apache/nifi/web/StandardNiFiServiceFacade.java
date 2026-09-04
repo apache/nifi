@@ -1383,13 +1383,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ParameterContextEntity updateParameterContext(final Revision revision, final ParameterContextDTO parameterContextDto) {
+    public ParameterContextEntity updateParameterContext(final Revision revision, final ParameterContextDTO parameterContextDto, final boolean includeReferences) {
         // get the component, ensure we have access to it, and perform the update request
         final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextDto.getId());
         final RevisionUpdate<ParameterContextDTO> snapshot = updateComponent(revision,
                 parameterContext,
                 () -> parameterContextDAO.updateParameterContext(parameterContextDto),
-                context -> dtoFactory.createParameterContextDto(context, revisionManager, false, parameterContextDAO));
+                context -> dtoFactory.createParameterContextDto(context, revisionManager, false, parameterContextDAO, includeReferences));
 
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterContext);
         final RevisionDTO revisionDto = dtoFactory.createRevisionDTO(snapshot.getLastModification());
@@ -1398,17 +1398,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ParameterContextEntity getParameterContext(final String parameterContextId, final boolean includeInheritedParameters, final NiFiUser user) {
+    public ParameterContextEntity getParameterContext(final String parameterContextId, final boolean includeInheritedParameters, final NiFiUser user, final boolean includeReferences) {
         final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextId);
-        return createParameterContextEntity(parameterContext, includeInheritedParameters, user, parameterContextDAO);
+        return createParameterContextEntity(parameterContext, includeInheritedParameters, user, parameterContextDAO, includeReferences);
     }
 
     @Override
-    public Set<ParameterContextEntity> getParameterContexts() {
+    public Set<ParameterContextEntity> getParameterContexts(final boolean includeReferences) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         final Set<ParameterContextEntity> entities = parameterContextDAO.getParameterContexts().stream()
-                .map(context -> createParameterContextEntity(context, false, user, parameterContextDAO))
+                .map(context -> createParameterContextEntity(context, false, user, parameterContextDAO, includeReferences))
                 .collect(Collectors.toSet());
 
         return entities;
@@ -1437,11 +1437,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private ParameterContextEntity createParameterContextEntity(final ParameterContext parameterContext, final boolean includeInheritedParameters, final NiFiUser user,
-                                                                final ParameterContextLookup parameterContextLookup) {
+                                                                final ParameterContextLookup parameterContextLookup, final boolean includeReferences) {
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterContext, user);
         final RevisionDTO revisionDto = dtoFactory.createRevisionDTO(revisionManager.getRevision(parameterContext.getIdentifier()));
         final ParameterContextDTO parameterContextDto = dtoFactory.createParameterContextDto(parameterContext, revisionManager, includeInheritedParameters,
-                parameterContextLookup);
+                parameterContextLookup, includeReferences);
         final ParameterContextEntity entity = entityFactory.createParameterContextEntity(parameterContextDto, revisionDto, permissions);
         return entity;
     }
@@ -1543,7 +1543,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ParameterContextEntity createParameterContext(final Revision revision, final ParameterContextDTO parameterContextDto) {
+    public ParameterContextEntity createParameterContext(final Revision revision, final ParameterContextDTO parameterContextDto, final boolean includeReferences) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // request claim for component to be created... revision already verified (version == 0)
@@ -1558,7 +1558,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             controllerFacade.save();
 
             final ParameterContextDTO dto = dtoFactory.createParameterContextDto(parameterContext, revisionManager, false,
-                    parameterContextDAO);
+                    parameterContextDAO, includeReferences);
             final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
             return new StandardRevisionUpdate<>(dto, lastMod);
         });
@@ -1575,7 +1575,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ParameterContextEntity deleteParameterContext(final Revision revision, final String parameterContextId) {
+    public ParameterContextEntity deleteParameterContext(final Revision revision, final String parameterContextId, final boolean includeReferences) {
         final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextId);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterContext);
         final ParameterContextDTO snapshot = deleteComponent(
@@ -1583,7 +1583,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 parameterContext.getResource(),
                 () -> parameterContextDAO.deleteParameterContext(parameterContextId),
                 true,
-                dtoFactory.createParameterContextDto(parameterContext, revisionManager, false, parameterContextDAO));
+                dtoFactory.createParameterContextDto(parameterContext, revisionManager, false, parameterContextDAO, includeReferences));
 
         return entityFactory.createParameterContextEntity(snapshot, null, permissions);
 
@@ -4128,7 +4128,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ParameterContextEntity getConnectorParameterContext(final String connectorId, final String processGroupId) {
+    public ParameterContextEntity getConnectorParameterContext(final String connectorId, final String processGroupId, final boolean includeReferences) {
         final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
         final ProcessGroup managedProcessGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
         final ProcessGroup targetProcessGroup = managedProcessGroup.findProcessGroup(processGroupId);
@@ -4145,7 +4145,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // global flow's ParameterContextManager, so a DAO-backed lookup would fail to resolve inherited parameters.
         // The DTO factory walks the in-memory inheritance graph reachable from the supplied context to resolve
         // parameter source contexts for connector-managed flows, making an empty lookup safe here.
-        return createParameterContextEntity(parameterContext, true, NiFiUserUtils.getNiFiUser(), ParameterContextLookup.EMPTY);
+        return createParameterContextEntity(parameterContext, true, NiFiUserUtils.getNiFiUser(), ParameterContextLookup.EMPTY, includeReferences);
     }
 
     @Override
@@ -4433,7 +4433,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public List<ParameterContextEntity> getParameterContextUpdatesForAppliedParameters(final String parameterProviderId, final Collection<ParameterGroupConfiguration> parameterGroupConfigurations) {
+    public List<ParameterContextEntity> getParameterContextUpdatesForAppliedParameters(final String parameterProviderId,
+                                                                                       final Collection<ParameterGroupConfiguration> parameterGroupConfigurations,
+                                                                                       final boolean includeReferences) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final Map<String, ParameterGroupConfiguration> parameterGroupConfigurationMap = parameterGroupConfigurations.stream()
                 .collect(Collectors.toMap(ParameterGroupConfiguration::getParameterContextName, Function.identity()));
@@ -4444,7 +4446,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .map(parametersApplication -> {
                     final ParameterContext parameterContext = parametersApplication.getParameterContext();
                     final ParameterGroupConfiguration parameterGroupConfiguration = parameterGroupConfigurationMap.get(parameterContext.getName());
-                    final ParameterContextEntity entity = createParameterContextEntity(parameterContext, false, user, parameterContextDAO);
+                    final ParameterContextEntity entity = createParameterContextEntity(parameterContext, false, user, parameterContextDAO, includeReferences);
                     final ParameterProviderConfigurationDTO parameterProviderConfiguration = entity.getComponent().getParameterProviderConfiguration().getComponent();
                     parameterProviderConfiguration.setSynchronized(parameterGroupConfiguration.isSynchronized());
 
@@ -4473,7 +4475,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                                 updatedParameterEntities.add(parameterEntity);
                             }
                         } else {
-                            parameterEntity = dtoFactory.createParameterEntity(parameterContext, parameter, revisionManager, parameterContextDAO);
+                            parameterEntity = dtoFactory.createParameterEntity(parameterContext, parameter, revisionManager, parameterContextDAO, includeReferences);
                             // Need to unmask in order to actually apply the value
                             if (parameterEntity.getParameter() != null && parameterEntity.getParameter().getSensitive() != null
                                     && parameterEntity.getParameter().getSensitive()) {
