@@ -333,6 +333,45 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .dependsOn(TIMESTAMP_FIELD)
             .build();
 
+    static final PropertyDescriptor PIPELINE = new PropertyDescriptor.Builder()
+            .name("Pipeline")
+            .description("""
+                    The name of the Elasticsearch ingest pipeline to run the documents through. \
+                    Applies to Index and Create operations only. When left blank, no pipeline is set unless \
+                    provided per-document by the Pipeline Field property.\
+                    """)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor PIPELINE_FIELD = new PropertyDescriptor.Builder()
+            .name("Pipeline Field")
+            .description("""
+                    The name of the field within each document to use as the Elasticsearch ingest pipeline, \
+                    interpreted as a literal field name or a nested "/"-delimited path per the Field Path Mode property. \
+                    Applies to Index and Create operations only. If the field is not present in a document or this \
+                    property is left blank, the configured Pipeline property value is used as the fallback.\
+                    """)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor RETAIN_PIPELINE_FIELD = new PropertyDescriptor.Builder()
+            .name("Retain Pipeline Field")
+            .description("""
+                    Whether to keep the Pipeline Field in the document body after extracting it \
+                    for use as the Elasticsearch ingest pipeline. \
+                    When true (default), the field is left in the document; set to false to remove it before indexing. \
+                    For a nested ("/"-delimited) path, any parent object left empty by the removal is also pruned.\
+                    """)
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .dependsOn(PIPELINE_FIELD)
+            .build();
+
     static final Relationship REL_BULK_REQUEST = new Relationship.Builder()
             .name("bulk_request")
             .description("When \"Output Bulk Request\" is enabled, the raw Elasticsearch _bulk API request body is written " +
@@ -352,6 +391,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             INDEX_OP,
             INDEX,
+            PIPELINE,
             TYPE,
             SCRIPT,
             SCRIPTED_UPSERT,
@@ -368,6 +408,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             RETAIN_INDEX_FIELD,
             TIMESTAMP_FIELD,
             RETAIN_TIMESTAMP_FIELD,
+            PIPELINE_FIELD,
+            RETAIN_PIPELINE_FIELD,
             CHARSET,
             MAX_JSON_FIELD_STRING_LENGTH,
             CLIENT_SERVICE,
@@ -496,6 +538,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                 : null;
         final String documentIndexField = fieldPath(context.getProperty(INDEX_FIELD).evaluateAttributeExpressions().getValue(), nestedFieldPaths);
         final String documentTimestampField = fieldPath(context.getProperty(TIMESTAMP_FIELD).evaluateAttributeExpressions().getValue(), nestedFieldPaths);
+        final String documentPipelineField = fieldPath(context.getProperty(PIPELINE_FIELD).evaluateAttributeExpressions().getValue(), nestedFieldPaths);
         // The id/index field paths are loop-invariant, so classify them as nested-vs-flat and decode
         // the flat names once here rather than per record in the NDJSON raw-bytes fast path below.
         final boolean nestedExtractionField = isNestedPath(documentIdField) || isNestedPath(documentIndexField);
@@ -511,6 +554,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                 || context.getProperty(RETAIN_INDEX_FIELD).asBoolean();
         final boolean retainTimestampField = StringUtils.isBlank(documentTimestampField)
                 || context.getProperty(RETAIN_TIMESTAMP_FIELD).asBoolean();
+        final boolean retainPipelineField = StringUtils.isBlank(documentPipelineField)
+                || context.getProperty(RETAIN_PIPELINE_FIELD).asBoolean();
         final int batchSize = InputFormat.SINGLE_JSON == inputFormat
                 ? context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger()
                 : Integer.MAX_VALUE;
@@ -536,6 +581,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         while (flowFile != null) {
             final String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(flowFile).getValue();
             final String index = context.getProperty(INDEX).evaluateAttributeExpressions(flowFile).getValue();
+            final String pipeline = context.getProperty(PIPELINE).evaluateAttributeExpressions(flowFile).getValue();
             final String type = context.getProperty(TYPE).evaluateAttributeExpressions(flowFile).getValue();
             final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue();
             final String flowFileIdAttribute = StringUtils.isNotBlank(idAttribute) ? flowFile.getAttribute(idAttribute) : null;
@@ -568,21 +614,28 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                 final byte[] rawJsonBytes;
                                 final String id;
                                 final String docIndex;
+                                final String docPipeline;
                                 final boolean stripId = !retainIdentifierField && StringUtils.isNotBlank(documentIdField);
                                 final boolean stripIdx = !retainIndexField && StringUtils.isNotBlank(documentIndexField);
+                                final boolean stripPipeline = !retainPipelineField && StringUtils.isNotBlank(documentPipelineField);
                                 final boolean needsTimestamp = StringUtils.isNotBlank(documentTimestampField);
-                                // The raw streaming scan only matches flat field names; a nested
-                                // (/-delimited) id or index path requires the parsed Map.
-                                if (suppressingWriter != null || stripId || stripIdx || needsTimestamp || nestedExtractionField) {
-                                    // Map is needed anyway — extract both fields from the Map directly.
+                                final boolean needsPipelineFromField = StringUtils.isNotBlank(documentPipelineField);
+                                // The raw streaming scan only matches flat field names; a nested (/-delimited) id or
+                                // index path, or a pipeline read from the payload, requires the parsed Map.
+                                if (suppressingWriter != null || stripId || stripIdx || needsTimestamp || nestedExtractionField || needsPipelineFromField) {
+                                    // Map is needed anyway — extract the fields from the Map directly.
                                     final Map<String, Object> contentMap = mapReader.readValue(trimmedLine);
                                     id = resolveId(contentMap, documentIdField, flowFileIdAttribute);
-                                    docIndex = resolveIndex(contentMap, documentIndexField, index);
+                                    docIndex = resolveFieldValue(contentMap, documentIndexField, index);
+                                    docPipeline = resolveFieldValue(contentMap, documentPipelineField, pipeline);
                                     if (stripId) {
                                         removeAtPath(contentMap, documentIdField);
                                     }
                                     if (stripIdx) {
                                         removeAtPath(contentMap, documentIndexField);
+                                    }
+                                    if (stripPipeline) {
+                                        removeAtPath(contentMap, documentPipelineField);
                                     }
                                     applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
                                     rawJsonBytes = suppressingWriter != null
@@ -594,6 +647,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                     final String[] extracted = extractIdAndIndex(trimmedLine, documentIdFieldName, flowFileIdAttribute, documentIndexFieldName, index);
                                     id = extracted[0];
                                     docIndex = extracted[1];
+                                    docPipeline = pipeline;
                                     rawJsonBytes = trimmedLine.getBytes(StandardCharsets.UTF_8);
                                 }
                                 opRequest = IndexOperationRequest.builder()
@@ -605,18 +659,23 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                         .script(scriptMap)
                                         .scriptedUpsert(scriptedUpsert)
                                         .dynamicTemplates(dynamicTemplatesMap)
-                                        .headerFields(bulkHeaderFields)
+                                        .headerFields(withPipeline(bulkHeaderFields, docPipeline))
                                         .build();
                                 docBytes = rawJsonBytes.length;
                             } else {
                                 final Map<String, Object> contentMap = mapReader.readValue(trimmedLine);
                                 final String id = resolveId(contentMap, documentIdField, flowFileIdAttribute);
-                                final String docIndex = resolveIndex(contentMap, documentIndexField, index);
+                                final String docIndex = resolveFieldValue(contentMap, documentIndexField, index);
                                 if (!retainIdentifierField && StringUtils.isNotBlank(documentIdField)) {
                                     removeAtPath(contentMap, documentIdField);
                                 }
                                 if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
                                     removeAtPath(contentMap, documentIndexField);
+                                }
+                                // The pipeline is not applied to this operation, but the field is still stripped when
+                                // requested so the routing metadata is not indexed with the document.
+                                if (!retainPipelineField && StringUtils.isNotBlank(documentPipelineField)) {
+                                    removeAtPath(contentMap, documentPipelineField);
                                 }
                                 applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
                                 opRequest = IndexOperationRequest.builder()
@@ -673,6 +732,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                     final byte[] rawJsonBytes;
                                     final String id;
                                     final String docIndex;
+                                    final String docPipeline;
                                     if (suppressingWriter != null) {
                                         // Parse directly to Map so NON_NULL/NON_EMPTY inclusion filters apply during
                                         // serialization. JsonNode tree serialization bypasses JsonInclude filters,
@@ -680,12 +740,16 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                         final Map<String, Object> contentMap = mapReader.readValue(parser);
                                         docBytes = Math.max(1, parser.currentLocation().getCharOffset() - startOffset);
                                         id = resolveId(contentMap, documentIdField, flowFileIdAttribute);
-                                        docIndex = resolveIndex(contentMap, documentIndexField, index);
+                                        docIndex = resolveFieldValue(contentMap, documentIndexField, index);
+                                        docPipeline = resolveFieldValue(contentMap, documentPipelineField, pipeline);
                                         if (!retainIdentifierField && StringUtils.isNotBlank(documentIdField)) {
                                             removeAtPath(contentMap, documentIdField);
                                         }
                                         if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
                                             removeAtPath(contentMap, documentIndexField);
+                                        }
+                                        if (!retainPipelineField && StringUtils.isNotBlank(documentPipelineField)) {
+                                            removeAtPath(contentMap, documentPipelineField);
                                         }
                                         applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
                                         rawJsonBytes = suppressingWriter.writeValueAsBytes(contentMap);
@@ -693,7 +757,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                         final JsonNode node = mapper.readTree(parser);
                                         docBytes = Math.max(1, parser.currentLocation().getCharOffset() - startOffset);
                                         id = extractId(node, documentIdField, flowFileIdAttribute);
-                                        docIndex = extractIndex(node, documentIndexField, index);
+                                        docIndex = extractFieldValue(node, documentIndexField, index);
+                                        docPipeline = extractFieldValue(node, documentPipelineField, pipeline);
                                         // Field stripping and @timestamp injection only apply to JSON objects.
                                         // Non-object elements (scalars, arrays, null) are passed through unchanged so
                                         // Elasticsearch can reject them per-document rather than failing the whole FlowFile.
@@ -704,6 +769,9 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                             }
                                             if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
                                                 removeAtPath(objectNode, documentIndexField);
+                                            }
+                                            if (!retainPipelineField && StringUtils.isNotBlank(documentPipelineField)) {
+                                                removeAtPath(objectNode, documentPipelineField);
                                             }
                                             applyTimestamp(objectNode, documentTimestampField, retainTimestampField);
                                         }
@@ -718,7 +786,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                         .script(scriptMap)
                                         .scriptedUpsert(scriptedUpsert)
                                         .dynamicTemplates(dynamicTemplatesMap)
-                                        .headerFields(bulkHeaderFields)
+                                        .headerFields(withPipeline(bulkHeaderFields, docPipeline))
                                         .build();
                                     chunkBytes += docBytes;
                                     totalBytesAccumulated += docBytes;
@@ -726,12 +794,17 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                     final Map<String, Object> contentMap = mapReader.readValue(parser);
                                     final long docBytes = Math.max(1, parser.currentLocation().getCharOffset() - startOffset);
                                     final String id = resolveId(contentMap, documentIdField, flowFileIdAttribute);
-                                    final String docIndex = resolveIndex(contentMap, documentIndexField, index);
+                                    final String docIndex = resolveFieldValue(contentMap, documentIndexField, index);
                                     if (!retainIdentifierField && StringUtils.isNotBlank(documentIdField)) {
                                         removeAtPath(contentMap, documentIdField);
                                     }
                                     if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
                                         removeAtPath(contentMap, documentIndexField);
+                                    }
+                                    // The pipeline is not applied to this operation, but the field is still stripped
+                                    // when requested so the routing metadata is not indexed with the document.
+                                    if (!retainPipelineField && StringUtils.isNotBlank(documentPipelineField)) {
+                                        removeAtPath(contentMap, documentPipelineField);
                                     }
                                     applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
                                     opRequest = IndexOperationRequest.builder()
@@ -767,9 +840,17 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                     try (final InputStream in = session.read(flowFile)) {
                         final Map<String, Object> contentMap = mapReader.readValue(in);
                         final String id = StringUtils.isNotBlank(flowFileIdAttribute) ? flowFileIdAttribute : null;
-                        final String docIndex = resolveIndex(contentMap, documentIndexField, index);
+                        final String docIndex = resolveFieldValue(contentMap, documentIndexField, index);
+                        // Ingest pipelines apply to Index/Create operations only.
+                        final boolean pipelineApplies = o == IndexOperationRequest.Operation.Index || o == IndexOperationRequest.Operation.Create;
+                        final String docPipeline = pipelineApplies ? resolveFieldValue(contentMap, documentPipelineField, pipeline) : null;
                         if (!retainIndexField && StringUtils.isNotBlank(documentIndexField)) {
                             removeAtPath(contentMap, documentIndexField);
+                        }
+                        // The field is stripped when requested even for operations the pipeline does not apply to,
+                        // so the routing metadata is not indexed with the document.
+                        if (!retainPipelineField && StringUtils.isNotBlank(documentPipelineField)) {
+                            removeAtPath(contentMap, documentPipelineField);
                         }
                         applyTimestamp(contentMap, documentTimestampField, retainTimestampField);
                         final IndexOperationRequest opRequest = IndexOperationRequest.builder()
@@ -781,7 +862,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                 .script(scriptMap)
                                 .scriptedUpsert(scriptedUpsert)
                                 .dynamicTemplates(dynamicTemplatesMap)
-                                .headerFields(bulkHeaderFields)
+                                .headerFields(withPipeline(bulkHeaderFields, docPipeline))
                                 .build();
                         operations.add(opRequest);
                         operationFlowFiles.add(flowFile);
@@ -1181,31 +1262,45 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     }
 
     /**
-     * Extracts the index name from a pre-parsed {@link JsonNode}.
-     * Used for JSON Array Index/Create operations where the node is already available.
+     * Extracts a string value (e.g. index name or ingest pipeline) at {@code field} from a pre-parsed
+     * {@link JsonNode}. Used for JSON Array Index/Create operations where the node is already available.
      * The field may be a {@code /}-delimited path into nested objects.
-     * Falls back to {@code fallbackIndex} when the field is absent or blank.
+     * Falls back to {@code fallback} when the field is absent or blank.
      */
-    private String extractIndex(final JsonNode node, final String indexField, final String fallbackIndex) {
-        if (StringUtils.isBlank(indexField)) {
-            return fallbackIndex;
+    private String extractFieldValue(final JsonNode node, final String field, final String fallback) {
+        if (StringUtils.isBlank(field)) {
+            return fallback;
         }
-        final String value = fieldNodeToString(nodeAtPath(node, indexField));
-        return StringUtils.isNotBlank(value) ? value : fallbackIndex;
+        final String value = fieldNodeToString(nodeAtPath(node, field));
+        return StringUtils.isNotBlank(value) ? value : fallback;
     }
 
     /**
-     * Resolves the index name from an already-parsed content Map.
-     * Used for Update/Delete/Upsert operations and suppression-enabled Index/Create paths
-     * where the Map is already available. The field may be a {@code /}-delimited path into
-     * nested objects. Falls back to {@code fallbackIndex} when the field is absent or blank.
+     * Resolves a string value (e.g. index name or ingest pipeline) at {@code field} from an already-parsed
+     * content Map. The field may be a {@code /}-delimited path into nested objects.
+     * Falls back to {@code fallback} when the field is absent or blank.
      */
-    private String resolveIndex(final Map<String, Object> contentMap, final String indexField, final String fallbackIndex) {
-        if (StringUtils.isBlank(indexField)) {
-            return fallbackIndex;
+    private String resolveFieldValue(final Map<String, Object> contentMap, final String field, final String fallback) {
+        if (StringUtils.isBlank(field)) {
+            return fallback;
         }
-        final String value = fieldValueToString(valueAtPath(contentMap, indexField));
-        return StringUtils.isNotBlank(value) ? value : fallbackIndex;
+        final String value = fieldValueToString(valueAtPath(contentMap, field));
+        return StringUtils.isNotBlank(value) ? value : fallback;
+    }
+
+    /**
+     * Returns the bulk action-header map for a document: the shared {@code headerFields} plus a
+     * {@code pipeline} entry when {@code pipeline} is non-blank (the ingest pipeline is expressed as a
+     * bulk action-header field). Returns the shared map unchanged when the pipeline is blank so no
+     * per-document copy is allocated in the common case.
+     */
+    private static Map<String, String> withPipeline(final Map<String, String> headerFields, final String pipeline) {
+        if (StringUtils.isBlank(pipeline)) {
+            return headerFields;
+        }
+        final Map<String, String> merged = new HashMap<>(headerFields);
+        merged.put("pipeline", pipeline);
+        return merged;
     }
 
     /**
