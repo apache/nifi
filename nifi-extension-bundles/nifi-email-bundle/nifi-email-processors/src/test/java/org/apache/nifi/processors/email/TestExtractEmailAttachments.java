@@ -51,7 +51,9 @@ public class TestExtractEmailAttachments {
         runner.assertTransferCount(ExtractEmailAttachments.REL_ATTACHMENTS, 1);
         // Have a look at the attachments...
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailAttachments.REL_ATTACHMENTS);
-        splits.get(0).assertAttributeEquals("filename", "pom.xml-0");
+        final MockFlowFile split = splits.getFirst();
+        split.assertAttributeEquals("filename", "pom.xml-0");
+        assertAttachmentHeaderAttributes(split);
     }
 
     @Test
@@ -76,6 +78,10 @@ public class TestExtractEmailAttachments {
         }
 
         assertTrue(filenames.containsAll(Arrays.asList("pom.xml-0", "pom.xml-1", "pom.xml-2")));
+
+        for (MockFlowFile split : splits) {
+            assertAttachmentHeaderAttributes(split);
+        }
     }
 
     @Test
@@ -101,5 +107,13 @@ public class TestExtractEmailAttachments {
         runner.assertTransferCount(ExtractEmailAttachments.REL_ORIGINAL, 0);
         runner.assertTransferCount(ExtractEmailAttachments.REL_FAILURE, 1);
         runner.assertTransferCount(ExtractEmailAttachments.REL_ATTACHMENTS, 0);
+    }
+
+    private void assertAttachmentHeaderAttributes(MockFlowFile split) {
+        final String regex = "^" + ExtractEmailAttachments.ATTACHMENT_HEADER_ATTRIBUTE_PREFIX + ".+";
+        final boolean match = split.getAttributes().keySet().stream()
+                .anyMatch(attribute -> attribute.matches(regex));
+
+        assertTrue(match, "FlowFile did not have any attributes which began with " + ExtractEmailAttachments.ATTACHMENT_HEADER_ATTRIBUTE_PREFIX);
     }
 }

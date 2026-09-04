@@ -19,6 +19,7 @@ package org.apache.nifi.processors.email;
 import jakarta.activation.DataSource;
 import jakarta.mail.Address;
 import jakarta.mail.BodyPart;
+import jakarta.mail.Header;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
 import jakarta.mail.Session;
@@ -46,6 +47,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +63,8 @@ import java.util.Set;
         @WritesAttribute(attribute = "filename ", description = "The filename of the attachment"),
         @WritesAttribute(attribute = "email.attachment.parent.filename ", description = "The filename of the parent FlowFile"),
         @WritesAttribute(attribute = "email.attachment.parent.uuid", description = "The UUID of the original FlowFile."),
-        @WritesAttribute(attribute = "mime.type", description = "The mime type of the attachment.")})
+        @WritesAttribute(attribute = "mime.type", description = "The mime type of the attachment."),
+        @WritesAttribute(attribute = ExtractEmailAttachments.ATTACHMENT_HEADER_ATTRIBUTE_PREFIX + "<attachment header name>", description = "Attachment header.")})
 
 public class ExtractEmailAttachments extends AbstractProcessor {
     public static final String ATTACHMENT_ORIGINAL_FILENAME = "email.attachment.parent.filename";
@@ -80,6 +83,7 @@ public class ExtractEmailAttachments extends AbstractProcessor {
             .description("FlowFiles that could not be parsed")
             .build();
 
+    static final String ATTACHMENT_HEADER_ATTRIBUTE_PREFIX = "email.attachment.header.";
     private static final String ATTACHMENT_DISPOSITION = "attachment";
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
@@ -117,12 +121,13 @@ public class ExtractEmailAttachments extends AbstractProcessor {
 
                 final String originalFlowFileName = originalFlowFile.getAttribute(CoreAttributes.FILENAME.key());
                 try {
-                    final List<DataSource> attachments = new ArrayList<>();
+                    final List<Attachment> attachments = new ArrayList<>();
                     parseAttachments(attachments, originalMessage, 0);
 
-                    for (final DataSource data : attachments) {
+                    for (final Attachment attachment : attachments) {
                         FlowFile split = session.create(originalFlowFile);
                         final Map<String, String> attributes = new HashMap<>();
+                        final DataSource data = attachment.dataSource();
                         final String name = data.getName();
                         if (name != null && !name.isBlank()) {
                             attributes.put(CoreAttributes.FILENAME.key(), name);
@@ -131,6 +136,13 @@ public class ExtractEmailAttachments extends AbstractProcessor {
                         if (contentType != null && !contentType.isBlank()) {
                             attributes.put(CoreAttributes.MIME_TYPE.key(), contentType);
                         }
+
+                        for (Map.Entry<String, String> entry : attachment.headers().entrySet()) {
+                            final String headerAttributeName = ATTACHMENT_HEADER_ATTRIBUTE_PREFIX + entry.getKey();
+                            final String headerAttributeValue = entry.getValue();
+                            attributes.put(headerAttributeName, headerAttributeValue);
+                        }
+
                         String parentUuid = originalFlowFile.getAttribute(CoreAttributes.UUID.key());
                         attributes.put(ATTACHMENT_ORIGINAL_UUID, parentUuid);
                         attributes.put(ATTACHMENT_ORIGINAL_FILENAME, originalFlowFileName);
@@ -176,7 +188,7 @@ public class ExtractEmailAttachments extends AbstractProcessor {
         return RELATIONSHIPS;
     }
 
-    private void parseAttachments(final List<DataSource> attachments, final MimePart parentPart, final int depth) throws MessagingException, IOException {
+    private void parseAttachments(final List<Attachment> attachments, final MimePart parentPart, final int depth) throws MessagingException, IOException {
         final String disposition = parentPart.getDisposition();
 
         final Object parentContent = parentPart.getContent();
@@ -191,7 +203,24 @@ public class ExtractEmailAttachments extends AbstractProcessor {
             }
         } else if (ATTACHMENT_DISPOSITION.equalsIgnoreCase(disposition) || depth > 0) {
             final DataSource dataSource = parentPart.getDataHandler().getDataSource();
-            attachments.add(dataSource);
+            final Map<String, String> extractedHeaders = new HashMap<>();
+
+            if (parentPart instanceof final MimeBodyPart mimeBodyPart) {
+                final Enumeration<Header> headers = mimeBodyPart.getAllHeaders();
+                while (headers.hasMoreElements()) {
+                    final Header header = headers.nextElement();
+                    final String name = header.getName();
+                    if (name != null && !name.isBlank()) {
+                        final String value = header.getValue();
+                        extractedHeaders.put(name, value);
+                    }
+                }
+            }
+
+            final Attachment attachment = new Attachment(dataSource, extractedHeaders);
+            attachments.add(attachment);
         }
     }
 }
+
+record Attachment(DataSource dataSource, Map<String, String> headers) { }
