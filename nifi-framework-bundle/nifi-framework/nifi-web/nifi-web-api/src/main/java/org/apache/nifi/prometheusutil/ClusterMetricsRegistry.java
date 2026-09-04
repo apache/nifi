@@ -48,5 +48,17 @@ public class ClusterMetricsRegistry extends AbstractMetricsRegistry {
                 .help("The total number of nodes in this cluster")
                 .labelNames("instance")
                 .register(registry));
+
+        nameToGaugeMap.put("IS_PRIMARY_NODE", Gauge.build()
+                .name("cluster_is_primary_node")
+                .help("Whether this NiFi instance is the Primary Node. Values are 0 or 1")
+                .labelNames("instance")
+                .register(registry));
+
+        nameToGaugeMap.put("IS_CLUSTER_COORDINATOR", Gauge.build()
+                .name("cluster_is_cluster_coordinator")
+                .help("Whether this NiFi instance is the Cluster Coordinator. Values are 0 or 1")
+                .labelNames("instance")
+                .register(registry));
     }
 }

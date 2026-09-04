@@ -276,13 +276,13 @@ public class TestFlowResource {
         assertTrue(metrics.containsKey(ROOT_FIELD_NAME));
 
         final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
-        assertEquals(13, registryList.size());
+        assertEquals(15, registryList.size());
 
         final Map<String, Long> result = getResult(registryList);
         assertEquals(3L, result.get(SAMPLE_NAME_JVM));
         assertEquals(4L, result.get(SAMPLE_LABEL_VALUES_PROCESS_GROUP));
         assertEquals(2L, result.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP));
-        assertEquals(4L, result.get(CLUSTER_LABEL_KEY));
+        assertEquals(6L, result.get(CLUSTER_LABEL_KEY));
     }
 
     @Test
@@ -836,6 +836,8 @@ public class TestFlowResource {
         clusterMetricsRegistry.setDataPoint(1, "IS_CONNECTED_TO_CLUSTER", "B1Id");
         clusterMetricsRegistry.setDataPoint(2, "CONNECTED_NODE_COUNT", "B1Id", "2 / 3");
         clusterMetricsRegistry.setDataPoint(3, "TOTAL_NODE_COUNT", "B1Id");
+        clusterMetricsRegistry.setDataPoint(1, "IS_PRIMARY_NODE", "B1Id");
+        clusterMetricsRegistry.setDataPoint(0, "IS_CLUSTER_COORDINATOR", "B1Id");
 
         return clusterMetricsRegistry.getRegistry();
     }

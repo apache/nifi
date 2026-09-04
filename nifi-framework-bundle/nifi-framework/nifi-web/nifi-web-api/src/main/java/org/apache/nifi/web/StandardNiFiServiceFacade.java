@@ -8171,7 +8171,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
         final boolean isClustered = clusterCoordinator != null;
         final boolean isConnectedToCluster = isClustered() && clusterCoordinator.isConnected();
-        PrometheusMetricsUtil.createClusterMetrics(clusterMetricsRegistry, instanceId, isClustered, isConnectedToCluster, connectedNodesLabel, connectedNodeCount, totalNodeCount);
+        PrometheusMetricsUtil.createClusterMetrics(clusterMetricsRegistry, instanceId, isClustered, isConnectedToCluster, connectedNodesLabel, connectedNodeCount, totalNodeCount,
+                controllerFacade.isPrimary(), controllerFacade.isClusterCoordinator());
         Collection<AbstractMetricsRegistry> metricsRegistries = Arrays.asList(
                 nifiMetricsRegistry,
                 jvmMetricsRegistry,

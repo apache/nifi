@@ -495,6 +495,20 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
+     * @return true if this node is the Primary Node
+     */
+    public boolean isPrimary() {
+        return flowController.isPrimary();
+    }
+
+    /**
+     * @return true if this node is the Cluster Coordinator
+     */
+    public boolean isClusterCoordinator() {
+        return flowController.isClusterCoordinator();
+    }
+
+    /**
      * Gets the name of this controller.
      *
      * @return name
