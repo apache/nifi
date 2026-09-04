@@ -126,6 +126,20 @@ public class TestSiteToSiteStatusReportingTask {
     }
 
     @Test
+    public void testNullControllerStatus() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, ".*");
+
+        // The controller status is not yet available (e.g. during startup before the flow is initialized)
+        MockSiteToSiteStatusReportingTask task = initTask(properties, null);
+        assertDoesNotThrow(() -> task.onTrigger(context));
+
+        assertTrue(task.dataSent.isEmpty());
+    }
+
+    @Test
     public void testComponentTypeFilter() throws IOException, InitializationException {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
