@@ -124,7 +124,11 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         processGroupIDToPath = new HashMap<>();
 
         final ProcessGroupStatus procGroupStatus = context.getEventAccess().getControllerStatus();
-        final String rootGroupName = procGroupStatus == null ? null : procGroupStatus.getName();
+        if (procGroupStatus == null) {
+            getLogger().debug("Controller status is not yet available; will report status on a subsequent trigger.");
+            return;
+        }
+        final String rootGroupName = procGroupStatus.getName();
 
         final String nifiUrl = context.getProperty(SiteToSiteUtils.INSTANCE_URL).evaluateAttributeExpressions().getValue();
         URL url;
