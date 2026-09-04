@@ -29,6 +29,7 @@ import org.apache.nifi.asset.StandardAssetManagerInitializationContext;
 import org.apache.nifi.asset.StandardAssetReferenceLookup;
 import org.apache.nifi.asset.StandardConnectorAssetManager;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ComponentAccessPolicyDeprecationLogger;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -1618,6 +1619,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
             final Runnable discoverPythonExtensions = () -> extensionManager.discoverNewPythonExtensions(pythonBundle);
             timerDrivenEngineRef.get().scheduleWithFixedDelay(discoverPythonExtensions, 1, 1, TimeUnit.MINUTES);
+
+            ComponentAccessPolicyDeprecationLogger.logComponentPolicies(authorizer, flowManager.getRootGroupId());
         } finally {
             writeLock.unlock("onFlowInitialized");
         }
