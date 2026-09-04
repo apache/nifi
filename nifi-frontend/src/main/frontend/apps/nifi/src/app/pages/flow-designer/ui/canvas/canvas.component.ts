@@ -154,9 +154,13 @@ export class Canvas implements OnInit, OnDestroy {
                 filter((status) => status === 'complete'),
                 switchMap(() => this.store.select(selectCurrentProcessGroupId)),
                 distinctUntilChanged(),
-                switchMap(() => this.store.select(selectProcessGroupRoute)),
-                filter((processGroupRoute) => processGroupRoute != null),
-                concatLatestFrom(() => this.store.select(selectSkipTransform)),
+                switchMap(() =>
+                    this.store.select(selectProcessGroupRoute).pipe(
+                        filter((processGroupRoute) => processGroupRoute != null),
+                        take(1)
+                    )
+                ),
+                concatLatestFrom(() => [this.store.select(selectSkipTransform)]),
                 takeUntilDestroyed()
             )
             .subscribe(([, skipTransform]) => {
