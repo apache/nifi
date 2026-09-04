@@ -30,7 +30,8 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticatedPrincipal;
+import org.springframework.security.saml2.provider.service.authentication.Saml2AssertionAuthentication;
+import org.springframework.security.saml2.provider.service.authentication.Saml2ResponseAssertionAccessor;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 
 import java.net.URI;
@@ -59,7 +60,7 @@ public class Saml2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSu
 
     private final Duration expiration;
 
-    private Converter<Saml2AuthenticatedPrincipal, String> identityConverter = Saml2AuthenticatedPrincipal::getName;
+    private Converter<Saml2ResponseAssertionAccessor, String> identityConverter = Saml2ResponseAssertionAccessor::getNameId;
 
     /**
      * SAML 2 Authentication Success Handler requires Bearer Token Provider and expiration for generated tokens
@@ -82,11 +83,11 @@ public class Saml2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSu
     }
 
     /**
-     * Set Identity Converter for customized mapping of SAML 2 Authenticated Principal to user identity
+     * Set Identity Converter for customized mapping of SAML 2 Response Assertion to user identity
      *
      * @param identityConverter Identity Converter required
      */
-    public void setIdentityConverter(final Converter<Saml2AuthenticatedPrincipal, String> identityConverter) {
+    public void setIdentityConverter(final Converter<Saml2ResponseAssertionAccessor, String> identityConverter) {
         this.identityConverter = Objects.requireNonNull(identityConverter, "Converter required");
     }
 
@@ -123,11 +124,9 @@ public class Saml2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSu
     }
 
     private String getIdentity(final Authentication authentication) {
-        final Object principal = authentication.getPrincipal();
-
         final String identity;
-        if (principal instanceof final Saml2AuthenticatedPrincipal authenticatedPrincipal) {
-            identity = identityConverter.convert(authenticatedPrincipal);
+        if (authentication instanceof final Saml2AssertionAuthentication assertionAuthentication) {
+            identity = identityConverter.convert(assertionAuthentication.getCredentials());
         } else {
             identity = authentication.getName();
         }
