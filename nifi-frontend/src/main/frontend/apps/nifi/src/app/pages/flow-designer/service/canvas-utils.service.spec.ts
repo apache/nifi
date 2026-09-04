@@ -1010,4 +1010,73 @@ describe('CanvasUtils', () => {
             );
         });
     });
+
+    // These resolve a connection endpoint to the component as it is rendered in the group currently
+    // being viewed: a port inside a child group resolves to that group, since that is what the canvas
+    // draws and what the user can select. "View Connections" matches on the result, so every component
+    // type it offers relies on these.
+    describe('connection endpoint resolution', () => {
+        const GROUP_ID = 'group-being-viewed';
+        const CHILD_GROUP_ID = 'child-group';
+        const PARENT_GROUP_ID = 'parent-group';
+
+        function viewing(groupId: string): void {
+            const store = TestBed.inject(MockStore);
+            store.overrideSelector(selectCurrentProcessGroupId, groupId);
+            store.refreshState();
+        }
+
+        function connection(
+            sourceId: string,
+            sourceGroupId: string,
+            destinationId: string,
+            destinationGroupId: string
+        ): any {
+            return { id: 'conn', sourceId, sourceGroupId, destinationId, destinationGroupId };
+        }
+
+        it('resolves a component in the group being viewed to the component itself', () => {
+            viewing(GROUP_ID);
+
+            // a processor wired to a funnel, both drawn in the group being viewed
+            const conn = connection('proc-a', GROUP_ID, 'funnel-a', GROUP_ID);
+
+            expect(service.getConnectionSourceComponentId(conn)).toBe('proc-a');
+            expect(service.getConnectionDestinationComponentId(conn)).toBe('funnel-a');
+        });
+
+        it('resolves a port inside a child group to that child group', () => {
+            viewing(GROUP_ID);
+
+            // a processor in the group being viewed feeding an Input Port of a child group, and an
+            // Output Port of that same child group feeding back in
+            const into = connection('proc-a', GROUP_ID, 'inner-input-port', CHILD_GROUP_ID);
+            const outOf = connection('inner-output-port', CHILD_GROUP_ID, 'proc-a', GROUP_ID);
+
+            expect(service.getConnectionDestinationComponentId(into)).toBe(CHILD_GROUP_ID);
+            expect(service.getConnectionSourceComponentId(outOf)).toBe(CHILD_GROUP_ID);
+        });
+
+        it('resolves a port of the group being viewed to the port when the parent group is searched', () => {
+            // an Input Port's upstream connections are defined in the parent group, so that is the
+            // group whose flow gets searched — but the endpoint is still reported as belonging to the
+            // group being viewed, which is what makes it resolve to the port rather than to the group
+            viewing(GROUP_ID);
+
+            const upstreamOfInputPort = connection('parent-proc', PARENT_GROUP_ID, 'input-port', GROUP_ID);
+            const downstreamOfOutputPort = connection('output-port', GROUP_ID, 'parent-proc', PARENT_GROUP_ID);
+
+            expect(service.getConnectionDestinationComponentId(upstreamOfInputPort)).toBe('input-port');
+            expect(service.getConnectionSourceComponentId(downstreamOfOutputPort)).toBe('output-port');
+        });
+
+        it('resolves both ends of a self loop to the same component', () => {
+            viewing(GROUP_ID);
+
+            const retry = connection('proc-a', GROUP_ID, 'proc-a', GROUP_ID);
+
+            expect(service.getConnectionSourceComponentId(retry)).toBe('proc-a');
+            expect(service.getConnectionDestinationComponentId(retry)).toBe('proc-a');
+        });
+    });
 });
