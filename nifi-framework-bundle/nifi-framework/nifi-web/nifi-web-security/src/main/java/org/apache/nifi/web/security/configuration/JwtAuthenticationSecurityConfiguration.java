@@ -46,6 +46,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 
 import java.security.KeyPairGenerator;
@@ -97,14 +98,17 @@ public class JwtAuthenticationSecurityConfiguration {
      * Bearer Token Authentication Filter responsible for reading and authenticating Bearer JSON Web Tokens from HTTP Requests
      *
      * @param authenticationManager Authentication Manager configured with JWT Authentication Provider
+     * @param authenticationDetailsSource Authentication Details Source for Converter
      * @return Bearer Token Authentication Filter
      */
     @Bean
     public BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter(final AuthenticationManager authenticationManager,
         final AuthenticationDetailsSource<HttpServletRequest, NiFiWebAuthenticationDetails> authenticationDetailsSource) {
-        final BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter = new BearerTokenAuthenticationFilter(authenticationManager);
-        bearerTokenAuthenticationFilter.setAuthenticationDetailsSource(authenticationDetailsSource);
-        bearerTokenAuthenticationFilter.setBearerTokenResolver(bearerTokenResolver());
+        final BearerTokenAuthenticationConverter authenticationConverter = new BearerTokenAuthenticationConverter();
+        authenticationConverter.setAuthenticationDetailsSource(authenticationDetailsSource);
+        authenticationConverter.setBearerTokenResolver(bearerTokenResolver());
+
+        final BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter = new BearerTokenAuthenticationFilter(authenticationManager, authenticationConverter);
         bearerTokenAuthenticationFilter.setAuthenticationEntryPoint(authenticationEntryPoint());
         return bearerTokenAuthenticationFilter;
     }
