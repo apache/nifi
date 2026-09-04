@@ -558,11 +558,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     private AuthorizableLookup authorizableLookup;
 
-    // Prometheus Metrics objects
-    private final JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
-    private final ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
-    private final ClusterMetricsRegistry clusterMetricsRegistry = new ClusterMetricsRegistry();
-
     private RuleViolationsManager ruleViolationsManager;
     private PredictionBasedParallelProcessingService parallelProcessingService;
     private NarManager narManager;
@@ -8077,6 +8072,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
         BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
         VersionInfoRegistry versionInfoRegistry = new VersionInfoRegistry();
+        JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
+        ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
+        ClusterMetricsRegistry clusterMetricsRegistry = new ClusterMetricsRegistry();
 
         final NodeIdentifier node = controllerFacade.getNodeId();
         final String instId = StringUtils.isEmpty(controllerFacade.getInstanceId()) ? "" : controllerFacade.getInstanceId();
