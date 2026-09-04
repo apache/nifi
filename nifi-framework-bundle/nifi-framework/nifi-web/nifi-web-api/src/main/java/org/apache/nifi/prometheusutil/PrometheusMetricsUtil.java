@@ -500,12 +500,15 @@ public class PrometheusMetricsUtil {
     }
 
     public static CollectorRegistry createClusterMetrics(final ClusterMetricsRegistry clusterMetricsRegistry, final String instId, final boolean isClustered, final boolean isConnectedToCluster,
-                                                         final String connectedNodes, final int connectedNodeCount, final int totalNodeCount) {
+                                                         final String connectedNodes, final int connectedNodeCount, final int totalNodeCount,
+                                                         final boolean isPrimaryNode, final boolean isClusterCoordinator) {
         final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
         clusterMetricsRegistry.setDataPoint(isClustered ? 1 : 0, "IS_CLUSTERED", instanceId);
         clusterMetricsRegistry.setDataPoint(isConnectedToCluster ? 1 : 0, "IS_CONNECTED_TO_CLUSTER", instanceId);
         clusterMetricsRegistry.setDataPoint(connectedNodeCount, "CONNECTED_NODE_COUNT", instanceId, connectedNodes);
         clusterMetricsRegistry.setDataPoint(totalNodeCount, "TOTAL_NODE_COUNT", instanceId);
+        clusterMetricsRegistry.setDataPoint(isPrimaryNode ? 1 : 0, "IS_PRIMARY_NODE", instanceId);
+        clusterMetricsRegistry.setDataPoint(isClusterCoordinator ? 1 : 0, "IS_CLUSTER_COORDINATOR", instanceId);
 
         return clusterMetricsRegistry.getRegistry();
     }
