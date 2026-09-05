@@ -17,14 +17,14 @@
 package org.apache.nifi.web.security.saml2.web.authentication.identity;
 
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticatedPrincipal;
+import org.springframework.security.saml2.provider.service.authentication.Saml2ResponseAssertionAccessor;
 
 import java.util.Objects;
 
 /**
  * Converter for customized User Identity using SAML Attribute Value
  */
-public class AttributeNameIdentityConverter implements Converter<Saml2AuthenticatedPrincipal, String> {
+public class AttributeNameIdentityConverter implements Converter<Saml2ResponseAssertionAccessor, String> {
     private final String attributeName;
 
     public AttributeNameIdentityConverter(final String attributeName) {
@@ -32,14 +32,14 @@ public class AttributeNameIdentityConverter implements Converter<Saml2Authentica
     }
 
     /**
-     * Convert Principal to identity using configured attribute name when found
+     * Convert Response Assertion to identity using configured attribute name when found
      *
-     * @param principal SAML 2 Authenticated Principal
-     * @return Attribute Value or Principal Name when attribute not found
+     * @param assertion SAML 2 Response Assertion
+     * @return Attribute Value or Name Identifier when attribute not found
      */
     @Override
-    public String convert(final Saml2AuthenticatedPrincipal principal) {
-        final Object attribute = principal.getFirstAttribute(attributeName);
-        return attribute == null ? principal.getName() : attribute.toString();
+    public String convert(final Saml2ResponseAssertionAccessor assertion) {
+        final Object attribute = assertion.getFirstAttribute(attributeName);
+        return attribute == null ? assertion.getNameId() : attribute.toString();
     }
 }

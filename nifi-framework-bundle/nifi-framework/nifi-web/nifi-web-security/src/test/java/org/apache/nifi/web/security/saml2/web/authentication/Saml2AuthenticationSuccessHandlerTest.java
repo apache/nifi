@@ -21,10 +21,13 @@ import jakarta.servlet.http.Cookie;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
+import org.apache.nifi.web.security.saml2.web.authentication.identity.AttributeNameIdentityConverter;
+import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -32,13 +35,19 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.saml2.provider.service.authentication.Saml2AssertionAuthentication;
+import org.springframework.security.saml2.provider.service.authentication.Saml2ResponseAssertion;
+import org.springframework.security.saml2.provider.service.authentication.Saml2ResponseAssertionAccessor;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class Saml2AuthenticationSuccessHandlerTest {
@@ -71,6 +80,20 @@ class Saml2AuthenticationSuccessHandlerTest {
     static final String ROOT_PATH = "/";
 
     private static final String ALLOWED_CONTEXT_PATHS_PARAMETER = "allowedContextPaths";
+
+    private static final String IDENTITY_ATTRIBUTE_NAME = "urn:oid:0.9.2342.19200300.100.1.3";
+
+    private static final String IDENTITY_ATTRIBUTE_VALUE = "user@localhost.localdomain";
+
+    private static final String MAPPED_IDENTITY_ATTRIBUTE_VALUE = "USER@LOCALHOST.LOCALDOMAIN";
+
+    private static final String NAME_IDENTIFIER = "name-identifier";
+
+    private static final String MAPPED_NAME_IDENTIFIER = "NAME-IDENTIFIER";
+
+    private static final String RESPONSE_VALUE = "<saml2p:Response/>";
+
+    private static final String REGISTRATION_ID = "consumer";
 
     private static final IdentityMapping UPPER_IDENTITY_MAPPING = new IdentityMapping(
             IdentityMapping.Transform.UPPER.toString(),
@@ -128,12 +151,51 @@ class Saml2AuthenticationSuccessHandlerTest {
         assertBearerCookieAdded(FORWARDED_COOKIE_PATH);
     }
 
+    @Test
+    void testDetermineTargetUrlAssertionAuthenticationNameIdentifier() {
+        httpServletRequest.setRequestURI(REQUEST_URI);
+
+        final Authentication authentication = getAssertionAuthentication(Map.of());
+        final String targetUrl = handler.determineTargetUrl(httpServletRequest, httpServletResponse, authentication);
+
+        assertEquals(TARGET_URL, targetUrl);
+        assertBearerTokenIdentityEquals(MAPPED_NAME_IDENTIFIER);
+    }
+
+    @Test
+    void testDetermineTargetUrlAssertionAuthenticationIdentityConverter() {
+        handler.setIdentityConverter(new AttributeNameIdentityConverter(IDENTITY_ATTRIBUTE_NAME));
+        httpServletRequest.setRequestURI(REQUEST_URI);
+
+        final Authentication authentication = getAssertionAuthentication(Map.of(IDENTITY_ATTRIBUTE_NAME, List.of(IDENTITY_ATTRIBUTE_VALUE)));
+        final String targetUrl = handler.determineTargetUrl(httpServletRequest, httpServletResponse, authentication);
+
+        assertEquals(TARGET_URL, targetUrl);
+        assertBearerTokenIdentityEquals(MAPPED_IDENTITY_ATTRIBUTE_VALUE);
+    }
+
     void assertTargetUrlEquals(final String expectedTargetUrl) {
         final Authentication authentication = new TestingAuthenticationToken(IDENTITY, IDENTITY, AUTHORITY);
 
         final String targetUrl = handler.determineTargetUrl(httpServletRequest, httpServletResponse, authentication);
 
         assertEquals(expectedTargetUrl, targetUrl);
+    }
+
+    void assertBearerTokenIdentityEquals(final String expectedIdentity) {
+        final ArgumentCaptor<LoginAuthenticationToken> tokenCaptor = ArgumentCaptor.forClass(LoginAuthenticationToken.class);
+        verify(bearerTokenProvider).getBearerToken(tokenCaptor.capture());
+
+        assertEquals(expectedIdentity, tokenCaptor.getValue().getName());
+    }
+
+    private Authentication getAssertionAuthentication(final Map<String, List<Object>> attributes) {
+        final Saml2ResponseAssertionAccessor assertion = Saml2ResponseAssertion.withResponseValue(RESPONSE_VALUE)
+                .nameId(NAME_IDENTIFIER)
+                .attributes(attributes)
+                .build();
+
+        return new Saml2AssertionAuthentication(NAME_IDENTIFIER, assertion, Collections.emptyList(), REGISTRATION_ID);
     }
 
     void assertBearerCookieAdded(final String expectedCookiePath) {
