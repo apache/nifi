@@ -2055,6 +2055,18 @@ public interface NiFiServiceFacade {
      *
      * @param processGroupId the ID of the Process Group to update
      * @param updatedSnapshot the snapshot to update the Process Group to
+     * @return the impact of updating the Process Group
+     */
+    FlowUpdateImpact getFlowUpdateImpact(String processGroupId, RegisteredFlowSnapshot updatedSnapshot);
+
+    RemovedConnectionDrainClassifier.Context getRemovedConnectionDrainContext();
+
+    /**
+     * Determines which components currently exist in the Process Group with the given identifier and calculates which of those components
+     * would be impacted by updating the Process Group to the provided snapshot
+     *
+     * @param processGroupId the ID of the Process Group to update
+     * @param updatedSnapshot the snapshot to update the Process Group to
      * @return the set of all components that would be affected by updating the Process Group
      */
     Set<AffectedComponentEntity> getComponentsAffectedByFlowUpdate(String processGroupId, RegisteredFlowSnapshot updatedSnapshot);

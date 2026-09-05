@@ -56,6 +56,39 @@ public class StandardAsynchronousWebRequestTest {
     }
 
     @Test
+    public void testAppendFailureDetailAfterCancelRetainsCancellationReason() {
+        final StandardAsynchronousWebRequest<String, String> request = createRequest();
+
+        request.cancel();
+        request.appendFailureDetail("restoration failed: component could not be started");
+
+        assertEquals("Request cancelled by user; restoration failed: component could not be started", request.getFailureReason());
+        assertTrue(request.isCancelled());
+        assertTrue(request.isComplete());
+    }
+
+    @Test
+    public void testAppendFailureDetailEstablishesFailureReason() {
+        final StandardAsynchronousWebRequest<String, String> request = createRequest();
+
+        request.appendFailureDetail("component could not be started");
+
+        assertEquals("component could not be started", request.getFailureReason());
+        assertTrue(request.isComplete());
+        assertFalse(request.isCancelled());
+    }
+
+    @Test
+    public void testAppendFailureDetailAppendsToExistingFailureReason() {
+        final StandardAsynchronousWebRequest<String, String> request = createRequest();
+
+        request.fail("operation failed");
+        request.appendFailureDetail("component could not be started");
+
+        assertEquals("operation failed; component could not be started", request.getFailureReason());
+    }
+
+    @Test
     public void testFailBeforeCancelSetsFailureReason() {
         final StandardAsynchronousWebRequest<String, String> request = createRequest();
 

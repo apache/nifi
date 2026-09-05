@@ -28,6 +28,7 @@ import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
+import org.apache.nifi.authorization.ConnectionAuthorizable;
 import org.apache.nifi.authorization.Group;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
@@ -56,6 +57,8 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ClusterTopologyProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
@@ -67,10 +70,13 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.flow.ConnectableComponent;
+import org.apache.nifi.flow.ConnectableComponentType;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -110,8 +116,12 @@ import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
+import org.apache.nifi.registry.flow.diff.StandardFlowDifference;
 import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
+import org.apache.nifi.registry.flow.mapping.InstantiatedConnectableComponent;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedConnection;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedPort;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.reporting.Bulletin;
@@ -206,6 +216,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -282,6 +293,7 @@ public class StandardNiFiServiceFacadeTest {
 
     private StandardNiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
+    private AuthorizableLookup authorizableLookup;
     private FlowController flowController;
     private ProcessGroupDAO processGroupDAO;
     private ConnectorManagedComponentLookup connectorManagedComponentLookup;
@@ -310,7 +322,7 @@ public class StandardNiFiServiceFacadeTest {
         });
 
         // authorizable lookup
-        final AuthorizableLookup authorizableLookup = mock(AuthorizableLookup.class);
+        authorizableLookup = mock(AuthorizableLookup.class);
         final Answer<ComponentAuthorizable> processorLookupAnswer = getProcessorInvocation -> {
             final String processorId = getProcessorInvocation.getArgument(0);
 
@@ -387,14 +399,19 @@ public class StandardNiFiServiceFacadeTest {
         ruleViolationsManager = mock(RuleViolationsManager.class);
         connectorManagedComponentLookup = mock(ConnectorManagedComponentLookup.class);
 
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setAuthorizer(authorizer);
+        dtoFactory.setEntityFactory(new EntityFactory());
+
         serviceFacade = new StandardNiFiServiceFacade();
         serviceFacade.setAuditService(auditService);
         serviceFacade.setAuthorizableLookup(authorizableLookup);
         serviceFacade.setAuthorizer(authorizer);
         serviceFacade.setEntityFactory(new EntityFactory());
-        serviceFacade.setDtoFactory(new DtoFactory());
+        serviceFacade.setDtoFactory(dtoFactory);
         serviceFacade.setControllerFacade(controllerFacade);
         serviceFacade.setProcessGroupDAO(processGroupDAO);
+        serviceFacade.setRevisionManager(new NaiveRevisionManager());
         serviceFacade.setRuleViolationsManager(ruleViolationsManager);
         serviceFacade.setConnectorManagedComponentLookup(connectorManagedComponentLookup);
 
@@ -457,6 +474,143 @@ public class StandardNiFiServiceFacadeTest {
         assertTrue(affected.isEmpty(), "No local components should be affected for added Stateless group");
     }
 
+    @Test
+    public void testGetFlowUpdateImpactExtractsRemovedConnectionMetadataAndAffectedProjection() {
+        final String rootGroupId = "root-group-instance";
+        final String removedGroupId = "removed-group-instance";
+
+        final ProcessGroup rootGroup = mock(ProcessGroup.class);
+        when(processGroupDAO.getProcessGroup(rootGroupId)).thenReturn(rootGroup);
+
+        final ProcessGroup rootGroupMetadata = mock(ProcessGroup.class);
+        when(rootGroupMetadata.getIdentifier()).thenReturn(rootGroupId);
+        when(rootGroupMetadata.getName()).thenReturn("Root Group");
+
+        final ProcessGroup removedGroup = mock(ProcessGroup.class);
+        when(removedGroup.getIdentifier()).thenReturn(removedGroupId);
+        when(processGroupDAO.getProcessGroup(removedGroupId)).thenReturn(removedGroup);
+        when(removedGroup.findAllProcessors()).thenReturn(List.of());
+        when(removedGroup.findAllFunnels()).thenReturn(List.of());
+        when(removedGroup.findAllInputPorts()).thenReturn(List.of());
+        when(removedGroup.findAllOutputPorts()).thenReturn(List.of());
+        when(removedGroup.findAllRemoteProcessGroups()).thenReturn(List.of());
+        when(removedGroup.findAllControllerServices()).thenReturn(Set.of());
+
+        final ProcessorNode removedSource = createLocalConnectableProcessor(
+                "removed-source-instance", "removed-source-versioned", ConnectableType.PROCESSOR, rootGroupMetadata);
+        final org.apache.nifi.connectable.Port removedDestination = createLocalConnectablePort(
+                "removed-destination-instance", "removed-destination-versioned", ConnectableType.OUTPUT_PORT, rootGroupMetadata);
+        final org.apache.nifi.connectable.Port changedSource = createLocalConnectablePort(
+                "changed-source-instance", "changed-source-versioned", ConnectableType.INPUT_PORT, rootGroupMetadata);
+        final ProcessorNode changedDestination = createLocalConnectableProcessor(
+                "changed-destination-instance", "changed-destination-versioned", ConnectableType.PROCESSOR, rootGroupMetadata);
+
+        when(rootGroup.findAllProcessors()).thenReturn(List.of(removedSource, changedDestination));
+        when(rootGroup.findAllFunnels()).thenReturn(List.of());
+        when(rootGroup.findAllInputPorts()).thenReturn(List.of(changedSource));
+        when(rootGroup.findAllOutputPorts()).thenReturn(List.of(removedDestination));
+        when(rootGroup.findAllRemoteProcessGroups()).thenReturn(List.of());
+
+        stubLocalConnectableAuthorizable(removedSource.getIdentifier());
+        stubLocalConnectableAuthorizable(removedDestination.getIdentifier());
+        stubLocalConnectableAuthorizable(changedSource.getIdentifier());
+        stubLocalConnectableAuthorizable(changedDestination.getIdentifier());
+        stubConnectionAuthorizable("removed-connection-instance");
+        stubConnectionAuthorizable("changed-connection-instance");
+        stubProcessGroupAuthorizable(removedGroupId, removedGroup);
+        stubInputPortAuthorizable("removed-endpoint-instance");
+
+        final FlowComparison comparison = mock(FlowComparison.class);
+        when(comparison.getDifferences()).thenReturn(Set.of(
+                new StandardFlowDifference(DifferenceType.COMPONENT_REMOVED, createRemovedConnection(), null, null, null, "Removed connection"),
+                new StandardFlowDifference(DifferenceType.SOURCE_CHANGED, createSourceChangedConnection(), createReplacementConnection(), null, null, "Source changed connection"),
+                new StandardFlowDifference(DifferenceType.COMPONENT_REMOVED, createRemovedGroup(removedGroupId), null, null, null, "Removed group"),
+                new StandardFlowDifference(DifferenceType.COMPONENT_REMOVED, createRemovedEndpoint(removedGroupId), null, null, null, "Removed endpoint")
+        ));
+
+        final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
+        doReturn(comparison).when(serviceFacadeSpy).compareFlowUpdate(eq(rootGroup), any(RegisteredFlowSnapshot.class));
+
+        final RegisteredFlowSnapshot updatedSnapshot = new RegisteredFlowSnapshot();
+        final FlowUpdateImpact impact = serviceFacadeSpy.getFlowUpdateImpact(rootGroupId, updatedSnapshot);
+
+        assertNotNull(impact);
+        assertEquals(Set.of(removedGroupId), impact.getRemovedProcessGroupIds());
+        assertEquals(Set.of("removed-endpoint-instance"), impact.getRemovedEndpointIds());
+
+        final Map<String, RemovedConnectionDescriptor> removedConnectionByInstanceId = impact.getRemovedConnections().stream()
+                .collect(Collectors.toMap(RemovedConnectionDescriptor::getConnectionInstanceId, Function.identity()));
+        assertEquals(Set.of("removed-connection-instance", "changed-connection-instance"), removedConnectionByInstanceId.keySet());
+
+        final RemovedConnectionDescriptor pureRemoval = removedConnectionByInstanceId.get("removed-connection-instance");
+        assertEquals(RemovalReason.COMPONENT_REMOVED, pureRemoval.getRemovalReason());
+        assertEquals("removed-connection-versioned", pureRemoval.getConnectionVersionedId());
+        assertEquals("root-group-instance", pureRemoval.getContainingProcessGroupId());
+        assertEquals("removed-source-instance", pureRemoval.getSourceInstanceId());
+        assertEquals("removed-source-versioned", pureRemoval.getSourceVersionedId());
+        assertEquals("removed-source-group-instance", pureRemoval.getSourceProcessGroupId());
+        assertEquals(ConnectableType.PROCESSOR, pureRemoval.getSourceType());
+        assertEquals("removed-destination-instance", pureRemoval.getDestinationInstanceId());
+        assertEquals("removed-destination-versioned", pureRemoval.getDestinationVersionedId());
+        assertEquals("removed-destination-group-instance", pureRemoval.getDestinationProcessGroupId());
+        assertEquals(ConnectableType.OUTPUT_PORT, pureRemoval.getDestinationType());
+
+        final RemovedConnectionDescriptor sourceChanged = removedConnectionByInstanceId.get("changed-connection-instance");
+        assertEquals(RemovalReason.SOURCE_CHANGED, sourceChanged.getRemovalReason());
+        assertEquals("changed-source-instance", sourceChanged.getSourceInstanceId());
+        assertEquals("changed-destination-instance", sourceChanged.getDestinationInstanceId());
+
+        final Set<String> affectedIdsFromImpact = impact.getAffectedComponents().stream()
+                .map(AffectedComponentEntity::getId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        assertTrue(affectedIdsFromImpact.contains("removed-source-instance"));
+        assertTrue(affectedIdsFromImpact.contains("removed-destination-instance"));
+        assertTrue(affectedIdsFromImpact.contains("changed-source-instance"));
+        assertTrue(affectedIdsFromImpact.contains("changed-destination-instance"));
+
+        final Set<String> affectedIdsFromProjection = serviceFacadeSpy.getComponentsAffectedByFlowUpdate(rootGroupId, updatedSnapshot).stream()
+                .map(AffectedComponentEntity::getId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        assertEquals(affectedIdsFromImpact, affectedIdsFromProjection);
+    }
+
+    @Test
+    public void testGetFlowUpdateImpactUsesInstanceIdentifiersForRemovedRuntimeIdentities() {
+        final String rootGroupId = "root-group-instance";
+        final ProcessGroup rootGroup = mock(ProcessGroup.class);
+        when(processGroupDAO.getProcessGroup(rootGroupId)).thenReturn(rootGroup);
+        when(rootGroup.findAllProcessors()).thenReturn(List.of());
+        when(rootGroup.findAllFunnels()).thenReturn(List.of());
+        when(rootGroup.findAllInputPorts()).thenReturn(List.of());
+        when(rootGroup.findAllOutputPorts()).thenReturn(List.of());
+        when(rootGroup.findAllRemoteProcessGroups()).thenReturn(List.of());
+
+        final InstantiatedVersionedProcessGroup removedGroup = createRemovedGroup("runtime-group-id");
+        removedGroup.setIdentifier("versioned-group-id");
+
+        final InstantiatedVersionedPort removedEndpoint = createRemovedEndpoint("runtime-group-id");
+        removedEndpoint.setIdentifier("versioned-endpoint-id");
+
+        stubProcessGroupAuthorizable("runtime-group-id", mock(ProcessGroup.class));
+        stubInputPortAuthorizable("removed-endpoint-instance");
+
+        final FlowComparison comparison = mock(FlowComparison.class);
+        when(comparison.getDifferences()).thenReturn(Set.of(
+                new StandardFlowDifference(DifferenceType.COMPONENT_REMOVED, removedGroup, null, null, null, "Removed group"),
+                new StandardFlowDifference(DifferenceType.COMPONENT_REMOVED, removedEndpoint, null, null, null, "Removed endpoint")
+        ));
+
+        final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
+        doReturn(comparison).when(serviceFacadeSpy).compareFlowUpdate(eq(rootGroup), any(RegisteredFlowSnapshot.class));
+
+        final FlowUpdateImpact impact = serviceFacadeSpy.getFlowUpdateImpact(rootGroupId, new RegisteredFlowSnapshot());
+
+        assertEquals(Set.of("runtime-group-id"), impact.getRemovedProcessGroupIds());
+        assertEquals(Set.of("removed-endpoint-instance"), impact.getRemovedEndpointIds());
+        assertFalse(impact.getRemovedProcessGroupIds().contains("versioned-group-id"));
+        assertFalse(impact.getRemovedEndpointIds().contains("versioned-endpoint-id"));
+    }
+
     private FlowChangeAction getAction(final Integer actionId, final String processorId) {
         final FlowChangeAction action = new FlowChangeAction();
         action.setId(actionId);
@@ -464,6 +618,116 @@ public class StandardNiFiServiceFacadeTest {
         action.setSourceType(Component.Processor);
         action.setOperation(Operation.Add);
         return action;
+    }
+
+    private ProcessorNode createLocalConnectableProcessor(final String instanceId, final String versionedId,
+                                                          final ConnectableType connectableType, final ProcessGroup processGroup) {
+        final ProcessorNode connectable = mock(ProcessorNode.class);
+        stubLocalConnectable(connectable, instanceId, versionedId, connectableType, processGroup);
+        return connectable;
+    }
+
+    private org.apache.nifi.connectable.Port createLocalConnectablePort(final String instanceId, final String versionedId,
+                                                                        final ConnectableType connectableType, final ProcessGroup processGroup) {
+        final org.apache.nifi.connectable.Port connectable = mock(org.apache.nifi.connectable.Port.class);
+        stubLocalConnectable(connectable, instanceId, versionedId, connectableType, processGroup);
+        return connectable;
+    }
+
+    private void stubLocalConnectable(final Connectable connectable, final String instanceId, final String versionedId,
+                                      final ConnectableType connectableType, final ProcessGroup processGroup) {
+        final String processGroupId = processGroup.getIdentifier();
+        when(connectable.getIdentifier()).thenReturn(instanceId);
+        when(connectable.getVersionedComponentId()).thenReturn(Optional.of(versionedId));
+        when(connectable.getConnectableType()).thenReturn(connectableType);
+        when(connectable.getProcessGroup()).thenReturn(processGroup);
+        when(connectable.getProcessGroupIdentifier()).thenReturn(processGroupId);
+        when(connectable.getScheduledState()).thenReturn(org.apache.nifi.controller.ScheduledState.RUNNING);
+        when(connectable.getName()).thenReturn(instanceId);
+    }
+
+    private void stubLocalConnectableAuthorizable(final String componentId) {
+        final Authorizable authorizable = mock(Authorizable.class);
+        when(authorizable.isAuthorized(any(Authorizer.class), any(RequestAction.class), any())).thenReturn(true);
+        when(authorizableLookup.getLocalConnectable(componentId)).thenReturn(authorizable);
+    }
+
+    private void stubInputPortAuthorizable(final String componentId) {
+        final Authorizable authorizable = mock(Authorizable.class);
+        when(authorizable.isAuthorized(any(Authorizer.class), any(RequestAction.class), any())).thenReturn(true);
+        when(authorizableLookup.getInputPort(componentId)).thenReturn(authorizable);
+    }
+
+    private void stubConnectionAuthorizable(final String connectionId) {
+        final ConnectionAuthorizable connectionAuthorizable = mock(ConnectionAuthorizable.class);
+        final Authorizable authorizable = mock(Authorizable.class);
+        when(authorizable.isAuthorized(any(Authorizer.class), any(RequestAction.class), any())).thenReturn(true);
+        when(connectionAuthorizable.getAuthorizable()).thenReturn(authorizable);
+        when(authorizableLookup.getConnection(connectionId)).thenReturn(connectionAuthorizable);
+    }
+
+    private void stubProcessGroupAuthorizable(final String groupId, final ProcessGroup processGroup) {
+        final ProcessGroupAuthorizable processGroupAuthorizable = mock(ProcessGroupAuthorizable.class);
+        final Authorizable authorizable = mock(Authorizable.class);
+        when(authorizable.isAuthorized(any(Authorizer.class), any(RequestAction.class), any())).thenReturn(true);
+        when(processGroupAuthorizable.getAuthorizable()).thenReturn(authorizable);
+        when(processGroupAuthorizable.getProcessGroup()).thenReturn(processGroup);
+        when(authorizableLookup.getProcessGroup(groupId)).thenReturn(processGroupAuthorizable);
+    }
+
+    private InstantiatedVersionedConnection createRemovedConnection() {
+        final InstantiatedVersionedConnection connection = new InstantiatedVersionedConnection("removed-connection-instance", "root-group-instance");
+        connection.setIdentifier("removed-connection-versioned");
+        connection.setSource(createConnectableComponent("removed-source-instance", "removed-source-versioned",
+                "removed-source-group-instance", "removed-source-group-versioned", ConnectableType.PROCESSOR));
+        connection.setDestination(createConnectableComponent("removed-destination-instance", "removed-destination-versioned",
+                "removed-destination-group-instance", "removed-destination-group-versioned", ConnectableType.OUTPUT_PORT));
+        return connection;
+    }
+
+    private InstantiatedVersionedConnection createSourceChangedConnection() {
+        final InstantiatedVersionedConnection connection = new InstantiatedVersionedConnection("changed-connection-instance", "root-group-instance");
+        connection.setIdentifier("changed-connection-versioned");
+        connection.setSource(createConnectableComponent("changed-source-instance", "changed-source-versioned",
+                "changed-source-group-instance", "changed-source-group-versioned", ConnectableType.INPUT_PORT));
+        connection.setDestination(createConnectableComponent("changed-destination-instance", "changed-destination-versioned",
+                "changed-destination-group-instance", "changed-destination-group-versioned", ConnectableType.PROCESSOR));
+        return connection;
+    }
+
+    private VersionedConnection createReplacementConnection() {
+        final VersionedConnection connection = new VersionedConnection();
+        connection.setIdentifier("replacement-connection-versioned");
+        connection.setSource(createConnectableComponent("replacement-source-instance", "replacement-source-versioned",
+                "replacement-source-group-instance", "replacement-source-group-versioned", ConnectableType.PROCESSOR));
+        connection.setDestination(createConnectableComponent("changed-destination-instance", "changed-destination-versioned",
+                "changed-destination-group-instance", "changed-destination-group-versioned", ConnectableType.PROCESSOR));
+        return connection;
+    }
+
+    private InstantiatedVersionedProcessGroup createRemovedGroup(final String instanceId) {
+        final InstantiatedVersionedProcessGroup group = new InstantiatedVersionedProcessGroup(instanceId, "root-group-instance");
+        group.setIdentifier("removed-group-versioned");
+        group.setComponentType(org.apache.nifi.flow.ComponentType.PROCESS_GROUP);
+        return group;
+    }
+
+    private InstantiatedVersionedPort createRemovedEndpoint(final String parentGroupId) {
+        final InstantiatedVersionedPort port = new InstantiatedVersionedPort("removed-endpoint-instance", parentGroupId);
+        port.setIdentifier("removed-endpoint-versioned");
+        port.setGroupIdentifier("removed-endpoint-group-versioned");
+        port.setComponentType(org.apache.nifi.flow.ComponentType.INPUT_PORT);
+        return port;
+    }
+
+    private ConnectableComponent createConnectableComponent(final String instanceId, final String versionedId,
+                                                            final String instanceGroupId, final String versionedGroupId,
+                                                            final ConnectableType connectableType) {
+        final InstantiatedConnectableComponent component = new InstantiatedConnectableComponent(instanceId, instanceGroupId);
+        component.setId(versionedId);
+        component.setGroupId(versionedGroupId);
+        component.setType(ConnectableComponentType.valueOf(connectableType.name()));
+        return component;
     }
 
     @Test
