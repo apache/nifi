@@ -23,12 +23,16 @@ import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.connector.BundleCompatibility;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.tests.system.NiFiSystemIT;
+import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
+import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
+import org.apache.nifi.web.api.dto.VerifyConnectorConfigStepRequestDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -37,7 +41,9 @@ import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -51,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -114,6 +121,66 @@ public class ConnectorCrudIT extends NiFiSystemIT {
         final ConfigVerificationResultDTO resultDto = resultDtos.get(1);
         assertEquals("Nop Verification", resultDto.getVerificationStepName());
         assertTrue(resultDto.getExplanation().contains("Test Value"));
+    }
+
+    @Test
+    @Timeout(30)
+    public void testCompletedConfigVerificationRetainedWhenAnotherConnectorIsVerified() throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorEntity firstConnector = getClientUtil().createConnector("NopConnector");
+        final ConnectorEntity secondConnector = getClientUtil().createConnector("NopConnector");
+        final ConnectorClient connectorClient = getNifiClient().getConnectorClient();
+        final String stepName = "Ignored Step";
+
+        final ConnectorValueReferenceDTO propertyValue = new ConnectorValueReferenceDTO();
+        propertyValue.setValueType("STRING_LITERAL");
+        propertyValue.setValue("First Verification");
+        final PropertyGroupConfigurationDTO propertyGroupConfiguration = new PropertyGroupConfigurationDTO();
+        propertyGroupConfiguration.setPropertyValues(Map.of("Ignored Property", propertyValue));
+        final ConfigurationStepConfigurationDTO stepConfiguration = new ConfigurationStepConfigurationDTO();
+        stepConfiguration.setConfigurationStepName(stepName);
+        stepConfiguration.setPropertyGroupConfigurations(List.of(propertyGroupConfiguration));
+        final VerifyConnectorConfigStepRequestDTO request = new VerifyConnectorConfigStepRequestDTO();
+        request.setConnectorId(firstConnector.getId());
+        request.setConfigurationStepName(stepName);
+        request.setConfigurationStep(stepConfiguration);
+        final VerifyConnectorConfigStepRequestEntity requestEntity = new VerifyConnectorConfigStepRequestEntity();
+        requestEntity.setRequest(request);
+
+        // The usual verification helper deletes completed requests. Keep this request so another submission can exercise expiration.
+        final String requestId = connectorClient.submitConfigStepVerificationRequest(requestEntity).getRequest().getRequestId();
+        try {
+            waitFor(() -> connectorClient.getConfigStepVerificationRequest(firstConnector.getId(), stepName, requestId).getRequest().isComplete());
+
+            // Completed requests remain available during the retention interval.
+            Thread.sleep(100L);
+            final VerifyConnectorConfigStepRequestDTO completedRequest = connectorClient.getConfigStepVerificationRequest(firstConnector.getId(), stepName, requestId).getRequest();
+            assertTrue(completedRequest.isComplete());
+            assertNull(completedRequest.getFailureReason());
+            assertEquals(2, completedRequest.getResults().size());
+            assertTrue(completedRequest.getResults().stream().allMatch(result -> Outcome.SUCCESSFUL.name().equals(result.getOutcome())));
+            assertTrue(completedRequest.getResults().get(1).getExplanation().contains("First Verification"));
+
+            // A new submission triggers cleanup in the request manager shared by all connectors.
+            final List<ConfigVerificationResultDTO> secondResults = getClientUtil().verifyConnectorStepConfig(secondConnector.getId(), stepName,
+                Map.of("Ignored Property", "Second Verification"));
+            assertEquals(2, secondResults.size());
+            assertTrue(secondResults.stream().allMatch(result -> Outcome.SUCCESSFUL.name().equals(result.getOutcome())));
+
+            final VerifyConnectorConfigStepRequestEntity retainedRequest =
+                connectorClient.getConfigStepVerificationRequest(firstConnector.getId(), stepName, requestId);
+            assertEquals(requestId, retainedRequest.getRequest().getRequestId());
+            assertTrue(retainedRequest.getRequest().isComplete());
+            assertEquals(completedRequest.getResults().get(1).getExplanation(), retainedRequest.getRequest().getResults().get(1).getExplanation());
+        } finally {
+            try {
+                connectorClient.deleteConfigStepVerificationRequest(firstConnector.getId(), stepName, requestId);
+            } catch (final NiFiClientException e) {
+                // Cleanup accepts a request that expired while the test was running.
+                if (!(e.getCause() instanceof WebApplicationException cause) || cause.getResponse().getStatus() != Response.Status.NOT_FOUND.getStatusCode()) {
+                    throw e;
+                }
+            }
+        }
     }
 
     @Test
