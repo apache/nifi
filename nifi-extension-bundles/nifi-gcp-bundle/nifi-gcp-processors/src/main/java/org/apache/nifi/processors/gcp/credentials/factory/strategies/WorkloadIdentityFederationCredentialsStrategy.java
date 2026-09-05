@@ -20,6 +20,7 @@ import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.IdentityPoolCredentials;
 import com.google.auth.oauth2.IdentityPoolSubjectTokenSupplier;
+import com.google.auth.oauth2.ImpersonatedCredentials;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -60,6 +61,7 @@ public class WorkloadIdentityFederationCredentialsStrategy extends AbstractCrede
         final String scopeValue = context.getProperty(CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SCOPE).getValue();
         final String tokenEndpoint = context.getProperty(CredentialPropertyDescriptors.WORKLOAD_IDENTITY_TOKEN_ENDPOINT).getValue();
         final String subjectTokenType = context.getProperty(CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE).getValue();
+        final String targetServiceAccount = context.getProperty(CredentialPropertyDescriptors.TARGET_SERVICE_ACCOUNT).getValue();
 
         final List<String> scopes = parseScopes(scopeValue);
         final IdentityPoolSubjectTokenSupplier tokenSupplier = createSubjectTokenSupplier(subjectTokenProvider);
@@ -77,7 +79,20 @@ public class WorkloadIdentityFederationCredentialsStrategy extends AbstractCrede
             builder.setHttpTransportFactory(transportFactory);
         }
 
-        return builder.build();
+        final IdentityPoolCredentials sourceCredentials = builder.build();
+        if (StringUtils.isBlank(targetServiceAccount)) {
+            return sourceCredentials;
+        }
+
+        final ImpersonatedCredentials.Builder impersonatedCredentialsBuilder = ImpersonatedCredentials.newBuilder()
+                .setSourceCredentials(sourceCredentials)
+                .setTargetPrincipal(targetServiceAccount)
+                .setScopes(Collections.emptyList());
+        if (transportFactory != null) {
+            impersonatedCredentialsBuilder.setHttpTransportFactory(transportFactory);
+        }
+
+        return impersonatedCredentialsBuilder.build();
     }
 
     private IdentityPoolSubjectTokenSupplier createSubjectTokenSupplier(final OAuth2AccessTokenProvider tokenProvider) {
