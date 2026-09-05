@@ -40,7 +40,7 @@ public class ClusterMetricsRegistry extends AbstractMetricsRegistry {
         nameToGaugeMap.put("CONNECTED_NODE_COUNT", Gauge.build()
                 .name("cluster_connected_node_count")
                 .help("The number of connected nodes in this cluster")
-                .labelNames("instance", "connected_nodes")
+                .labelNames("instance")
                 .register(registry));
 
         nameToGaugeMap.put("TOTAL_NODE_COUNT", Gauge.build()

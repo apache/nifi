@@ -8158,7 +8158,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // Collect cluster summary metrics
         int connectedNodeCount = 0;
         int totalNodeCount = 0;
-        String connectedNodesLabel = "Not clustered";
         if (clusterCoordinator != null && clusterCoordinator.isConnected()) {
             final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = clusterCoordinator.getConnectionStates();
             for (final List<NodeIdentifier> nodeList : stateMap.values()) {
@@ -8166,12 +8165,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
             final List<NodeIdentifier> connectedNodeIds = stateMap.get(NodeConnectionState.CONNECTED);
             connectedNodeCount = (connectedNodeIds == null) ? 0 : connectedNodeIds.size();
-
-            connectedNodesLabel = connectedNodeCount + " / " + totalNodeCount;
         }
         final boolean isClustered = clusterCoordinator != null;
         final boolean isConnectedToCluster = isClustered() && clusterCoordinator.isConnected();
-        PrometheusMetricsUtil.createClusterMetrics(clusterMetricsRegistry, instanceId, isClustered, isConnectedToCluster, connectedNodesLabel, connectedNodeCount, totalNodeCount);
+        PrometheusMetricsUtil.createClusterMetrics(clusterMetricsRegistry, instanceId, isClustered, isConnectedToCluster, connectedNodeCount, totalNodeCount);
         Collection<AbstractMetricsRegistry> metricsRegistries = Arrays.asList(
                 nifiMetricsRegistry,
                 jvmMetricsRegistry,
