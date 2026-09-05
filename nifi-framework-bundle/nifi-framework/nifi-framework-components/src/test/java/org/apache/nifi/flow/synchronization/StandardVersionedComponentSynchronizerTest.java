@@ -1793,6 +1793,39 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     @Test
+    public void testLocallyAssignedParameterContextPreservedWhenChildGroupUpdatedFromOwnStandaloneVersion() {
+        // Updating a child group directly to its own standalone version, which never declared a Parameter Context, must not clear a Parameter Context locally assigned to it by a parent.
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.getIdentifier()).thenReturn("pg1");
+        when(processGroup.getPosition()).thenReturn(new org.apache.nifi.connectable.Position(0, 0));
+        when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
+        when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.BATCH_OUTPUT);
+        when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+
+        // A Parameter Context already bound to the child group, simulating a parent's local assignment.
+        final ParameterContext existingParameterContext = new StandardParameterContext.Builder()
+            .id("existing-pc")
+            .name("HTTP ReceiverB")
+            .parameterReferenceManager(parameterReferenceManager)
+            .build();
+        when(processGroup.getParameterContext()).thenReturn(existingParameterContext);
+
+        // The child group's own standalone versioned flow definition never had a Parameter Context of its own.
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier("pg1");
+        rootGroup.setParameterContextName(null);
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(Collections.emptyMap());
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        // The locally-assigned Parameter Context must survive the update.
+        verify(processGroup, never()).setParameterContext(null);
+    }
+
+    @Test
     public void testNewParameterInInheritedContextAddedDuringSync() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         // Create P2 with paramA
         final VersionedParameterContext versionedP2 = createVersionedParameterContext("P2", Map.of("paramA", "valueA"), Collections.emptySet());
