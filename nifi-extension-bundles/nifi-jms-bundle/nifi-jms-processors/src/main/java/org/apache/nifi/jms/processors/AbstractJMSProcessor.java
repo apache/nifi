@@ -17,7 +17,6 @@
 package org.apache.nifi.jms.processors;
 
 import jakarta.jms.ConnectionFactory;
-import jakarta.jms.Message;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -31,7 +30,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.jms.cf.IJMSConnectionFactoryProvider;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryHandler;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProperties;
-import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
 import org.apache.nifi.jms.cf.JndiJmsConnectionFactoryHandler;
 import org.apache.nifi.jms.cf.JndiJmsConnectionFactoryProperties;
@@ -55,10 +53,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -170,10 +166,8 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
             .required(true)
             .build();
 
-    private volatile IJMSConnectionFactoryProvider connectionFactoryProvider;
-    private volatile BlockingQueue<T> workerPool;
+    private final AtomicReference<JmsWorkerLifecycle<T>> workerLifecycle = new AtomicReference<>();
     private volatile boolean runOnPrimary;
-    private final AtomicBoolean shutdownWorkers = new AtomicBoolean(false);
     private final AtomicInteger clientIdCounter = new AtomicInteger(1);
 
     protected static String getClientId(ProcessContext context) {
@@ -216,25 +210,41 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
 
     @OnPrimaryNodeStateChange
     public void onPrimaryNodeChange(final PrimaryNodeState newState) {
-        if (isScheduled() && runOnPrimary && newState.equals(PrimaryNodeState.PRIMARY_NODE_REVOKED)) {
-            shutdownWorkers.set(true);
-            close();
-        } else {
-            shutdownWorkers.set(false);
+        final JmsWorkerLifecycle<T> lifecycle = workerLifecycle.get();
+        if (isScheduled() && runOnPrimary && lifecycle != null) {
+            if (newState.equals(PrimaryNodeState.PRIMARY_NODE_REVOKED)) {
+                lifecycle.retireGeneration();
+            } else if (newState.equals(PrimaryNodeState.ELECTED_PRIMARY_NODE)) {
+                lifecycle.activateFreshGeneration();
+            }
         }
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        T worker = workerPool.poll();
-        if (worker == null) {
+        final JmsWorkerLifecycle<T> lifecycle = workerLifecycle.get();
+        if (lifecycle == null) {
+            return;
+        }
+
+        final JmsWorkerLifecycle.Generation<T> generation = lifecycle.captureGeneration();
+        T worker = lifecycle.pollIdleWorker(generation);
+        if (worker == null && lifecycle.canCreateWorker(generation)) {
             try {
-                worker = buildTargetResource(context);
+                worker = buildTargetResource(context, lifecycle.getConnectionFactoryProvider());
+                if (!lifecycle.registerWorker(generation, worker)) {
+                    worker.shutdown();
+                    worker = null;
+                }
             } catch (Exception e) {
                 getLogger().error("Failed to initialize JMS Connection Factory", e);
                 context.yield();
                 throw e;
             }
+        }
+
+        if (worker == null) {
+            return;
         }
 
         try {
@@ -245,37 +255,31 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
             //if worker is not valid anymore, don't put it back into a pool, try to rebuild it first, or discard.
             //this will be helpful in a situation, when JNDI has changed, or JMS server is not available
             //and reconnection is required.
-            if (worker == null || !worker.isValid()) {
+            if (!worker.isValid()) {
                 getLogger().debug("Worker is invalid. Will try re-create... ");
                 try {
-                    if (worker != null) {
-                        worker.shutdown();
-                    }
                     // Safe to cast. Method #buildTargetResource(ProcessContext context) sets only CachingConnectionFactory
                     CachingConnectionFactory currentCF = (CachingConnectionFactory) worker.jmsTemplate.getConnectionFactory();
-                    connectionFactoryProvider.resetConnectionFactory(currentCF.getTargetConnectionFactory());
-                    worker = buildTargetResource(context);
+                    if (lifecycle.handleInvalidWorker(generation, worker, currentCF.getTargetConnectionFactory())) {
+                        final T replacementWorker = buildTargetResource(context, lifecycle.getConnectionFactoryProvider());
+                        if (lifecycle.registerWorker(generation, replacementWorker)) {
+                            lifecycle.releaseWorker(generation, replacementWorker);
+                        } else {
+                            replacementWorker.shutdown();
+                        }
+                    }
                 } catch (Exception e) {
-                    getLogger().error("Failed to rebuild:  {}", connectionFactoryProvider);
-                    worker = null;
+                    getLogger().error("Failed to rebuild:  {}", lifecycle.getConnectionFactoryProvider());
                 }
-            }
-            if (worker != null) {
-                worker.jmsTemplate.setExplicitQosEnabled(false);
-                worker.jmsTemplate.setDeliveryMode(Message.DEFAULT_DELIVERY_MODE);
-                worker.jmsTemplate.setTimeToLive(Message.DEFAULT_TIME_TO_LIVE);
-                worker.jmsTemplate.setPriority(Message.DEFAULT_PRIORITY);
-                if (!shutdownWorkers.get()) {
-                    workerPool.offer(worker);
-                } else {
-                    worker.shutdown();
-                }
+            } else {
+                lifecycle.releaseWorker(generation, worker);
             }
         }
     }
 
     @OnScheduled
     public void setup(final ProcessContext context) {
+        final IJMSConnectionFactoryProvider connectionFactoryProvider;
         if (context.getProperty(CF_SERVICE).isSet()) {
             connectionFactoryProvider = context.getProperty(CF_SERVICE).asControllerService(JMSConnectionFactoryProviderDefinition.class);
         } else if (context.getProperty(JndiJmsConnectionFactoryProperties.JNDI_CONNECTION_FACTORY_NAME).isSet()) {
@@ -286,21 +290,23 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
             throw new ProcessException("No Connection Factory configured.");
         }
 
-        workerPool = new LinkedBlockingQueue<>(context.getMaxConcurrentTasks());
+        workerLifecycle.set(new JmsWorkerLifecycle<>(connectionFactoryProvider, context.getMaxConcurrentTasks(), getLogger()));
         runOnPrimary = context.getExecutionNode().equals(ExecutionNode.PRIMARY);
-        shutdownWorkers.set(false);
     }
 
     @OnUnscheduled
     public void shutdownConnectionFactoryProvider(final ProcessContext context) {
-        connectionFactoryProvider = null;
+        final JmsWorkerLifecycle<T> lifecycle = workerLifecycle.getAndSet(null);
+        if (lifecycle != null) {
+            lifecycle.closeCycle();
+        }
     }
 
     @OnStopped
     public void close() {
-        T worker;
-        while ((worker = workerPool.poll()) != null) {
-            worker.shutdown();
+        final JmsWorkerLifecycle<T> lifecycle = workerLifecycle.getAndSet(null);
+        if (lifecycle != null) {
+            lifecycle.closeCycle();
         }
     }
 
@@ -323,12 +329,12 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
     /**
      * This method essentially performs initialization of this Processor by
      * obtaining an instance of the {@link ConnectionFactory} from the
-     * {@link JMSConnectionFactoryProvider} (ControllerService) and performing a
+     * {@link JMSConnectionFactoryProviderDefinition} (ControllerService) and performing a
      * series of {@link ConnectionFactory} adaptations which eventually results
      * in an instance of the {@link CachingConnectionFactory} used to construct
      * {@link JmsTemplate} used by this Processor.
      */
-    private T buildTargetResource(ProcessContext context) {
+    private T buildTargetResource(final ProcessContext context, final IJMSConnectionFactoryProvider connectionFactoryProvider) {
         final ConnectionFactory connectionFactory = connectionFactoryProvider.getConnectionFactory();
 
         final UserCredentialsConnectionFactoryAdapter cfCredentialsAdapter = new UserCredentialsConnectionFactoryAdapter();
