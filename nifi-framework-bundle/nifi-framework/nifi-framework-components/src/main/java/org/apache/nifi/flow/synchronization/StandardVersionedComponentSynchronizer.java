@@ -2193,9 +2193,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         // Update the Parameter Context
         final ParameterContext currentParamContext = group.getParameterContext();
         final String proposedParameterContextName = proposed.getParameterContextName();
-        if (proposedParameterContextName == null && currentParamContext != null) {
-            group.setParameterContext(null);
-        } else if (proposedParameterContextName != null) {
+        // A group's own versioned definition may never carry a Parameter Context if it's meant to be bound locally by
+        // whatever parent embeds it, so a null name here must not clear an existing binding.
+        if (proposedParameterContextName != null) {
             final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(proposedParameterContextName);
             if (versionedParameterContext != null) {
                 createMissingParameterProvider(versionedParameterContext, versionedParameterContext.getParameterProvider(), parameterProviderReferences, componentIdGenerator);
