@@ -47,6 +47,9 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +66,6 @@ import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCES
 import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.GCP_CREDENTIALS_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.SQLSERVICE_LOGIN_SCOPE;
 import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.VERIFY_CREDENTIALS_UNAVAILABLE;
-import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.VERIFY_IMPERSONATION_REQUIRED;
 import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.VERIFY_SCOPE_STEP;
 import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.VERIFY_TOKEN_ACQUISITION_FAILED;
 import static org.apache.nifi.processors.gcp.cloudsql.GcpCloudSqlIamDatabasePasswordProvider.VERIFY_TOKEN_STEP;
@@ -175,34 +177,17 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
     }
 
     @Test
-    void testVerifyIdentityPoolCredentialsRequiresImpersonation() throws Exception {
+    void testVerifyIdentityPoolCredentialsAcquireToken() throws Exception {
         final IdentityPoolCredentials scopedCredentials = identityPoolCredentials(accessToken(TOKEN_VALUE, 15));
         final TestRunner runner = configureRunner(new RootGoogleCredentials(scopedCredentials), false);
         final GcpCloudSqlIamDatabasePasswordProvider provider = getProviderImplementation(runner);
 
         final List<ConfigVerificationResult> results = runner.verify(provider, Map.of());
 
-        assertEquals(1, results.size());
-        assertVerificationResult(results.get(0), VERIFY_SCOPE_STEP, FAILED, VERIFY_IMPERSONATION_REQUIRED);
-        Mockito.verify(scopedCredentials, Mockito.never()).refreshAccessToken();
-    }
-
-    @Test
-    void testOnEnabledRejectsIdentityPoolCredentialsBeforePublishingState() throws Exception {
-        final IdentityPoolCredentials scopedCredentials = identityPoolCredentials(accessToken(TOKEN_VALUE, 15));
-        final GcpCloudSqlIamDatabasePasswordProvider provider = new GcpCloudSqlIamDatabasePasswordProvider();
-        final ConfigurationContext context = mock(ConfigurationContext.class);
-        final PropertyValue credentialsPropertyValue = mock(PropertyValue.class);
-        final GCPCredentialsService credentialsService = mock(GCPCredentialsService.class);
-
-        when(context.getProperty(GCP_CREDENTIALS_PROVIDER_SERVICE)).thenReturn(credentialsPropertyValue);
-        when(credentialsPropertyValue.asControllerService(GCPCredentialsService.class)).thenReturn(credentialsService);
-        when(credentialsService.getGoogleCredentials()).thenReturn(new RootGoogleCredentials(scopedCredentials));
-
-        final InitializationException exception = assertThrows(InitializationException.class, () -> provider.onEnabled(context));
-
-        assertTrue(exception.getMessage().contains("impersonation"));
-        assertNull(getScopedCredentials(provider));
+        assertEquals(2, results.size());
+        assertVerificationResult(results.get(0), VERIFY_SCOPE_STEP, SUCCESSFUL, "Cloud SQL login scope");
+        assertVerificationResult(results.get(1), VERIFY_TOKEN_STEP, SUCCESSFUL, CLOUD_SQL_IAM);
+        Mockito.verify(scopedCredentials).refreshAccessToken();
     }
 
     @Test
@@ -254,6 +239,11 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
         assertEquals(1, results.size());
         assertVerificationResult(results.get(0), VERIFY_SCOPE_STEP, FAILED, VERIFY_CREDENTIALS_UNAVAILABLE);
         assertFalse(results.get(0).getExplanation().contains(LEAK_SENTINEL));
+        assertVerificationExceptionLogged(
+                runner.getControllerServiceLogger(PASSWORD_PROVIDER_ID),
+                "Failed to resolve scoped Google credentials",
+                LEAK_SENTINEL
+        );
     }
 
     @Test
@@ -284,7 +274,11 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
         assertEquals(2, results.size());
         assertVerificationResult(results.get(1), VERIFY_TOKEN_STEP, FAILED, VERIFY_TOKEN_ACQUISITION_FAILED);
         assertFalse(results.get(1).getExplanation().contains(LEAK_SENTINEL));
-        assertNoLogMessagesContain(runner.getControllerServiceLogger(PASSWORD_PROVIDER_ID), LEAK_SENTINEL);
+        assertVerificationExceptionLogged(
+                runner.getControllerServiceLogger(PASSWORD_PROVIDER_ID),
+                "Failed to acquire Cloud SQL IAM access token",
+                LEAK_SENTINEL
+        );
     }
 
     @Test
@@ -389,18 +383,6 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
     }
 
     @Test
-    void testIdentityPoolCredentialsFailClosedAtRuntime() throws Exception {
-        final GcpCloudSqlIamDatabasePasswordProvider provider = getProviderImplementation(
-                configureRunner(new RootGoogleCredentials(new TestScopedGoogleCredentials(accessToken(TOKEN_VALUE, 15)))));
-
-        setScopedCredentials(provider, identityPoolCredentials(accessToken(TOKEN_VALUE, 15)));
-
-        final ProcessException exception = assertThrows(ProcessException.class, () -> provider.getPassword(requestContext()));
-
-        assertTrue(exception.getMessage().contains(CLOUD_SQL_IAM));
-    }
-
-    @Test
     void testGetPasswordReturnsFreshCharacterArrayEachCall() throws Exception {
         final DatabasePasswordProvider provider = getProvider(configureRunner(
                 new RootGoogleCredentials(new TestScopedGoogleCredentials(accessToken(TOKEN_VALUE, 15)))));
@@ -470,7 +452,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
     }
 
     private static AccessToken accessToken(final String tokenValue, final long offsetMinutes) {
-        return tokenValue == null ? null : new AccessToken(tokenValue, java.util.Date.from(Instant.now().plusSeconds(offsetMinutes * 60)));
+        return tokenValue == null ? null : new AccessToken(tokenValue, Date.from(Instant.now().plusSeconds(offsetMinutes * 60)));
     }
 
     private static IOException ioException(final String message) {
@@ -502,8 +484,22 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
                     assertFalse(argValue != null && argValue.contains(value));
                 }
             }
-            assertThrowableChainDoesNotContain(logMessage.getThrowable(), value, java.util.Collections.newSetFromMap(new IdentityHashMap<>()));
+            assertThrowableChainDoesNotContain(logMessage.getThrowable(), value, Collections.newSetFromMap(new IdentityHashMap<>()));
         }
+    }
+
+    private static void assertVerificationExceptionLogged(final MockComponentLog logger, final String message, final String exceptionMessage) {
+        assertTrue(logger.getErrorMessages().stream().anyMatch(logMessage -> {
+            final Object[] arguments = logMessage.getArgs();
+            final Throwable throwable = logMessage.getThrowable();
+            final boolean throwableMatched = throwable != null && exceptionMessage.equals(throwable.getMessage());
+            final boolean argumentMatched = arguments != null
+                    && List.of(arguments).stream()
+                    .filter(Throwable.class::isInstance)
+                    .map(Throwable.class::cast)
+                    .anyMatch(argument -> exceptionMessage.equals(argument.getMessage()));
+            return logMessage.getMsg().contains(message) && (throwableMatched || argumentMatched);
+        }));
     }
 
     private static void assertThrowableChainDoesNotContain(final Throwable throwable, final String value, final Set<Throwable> visited) {
@@ -525,13 +521,6 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
         final Field field = GcpCloudSqlIamDatabasePasswordProvider.class.getDeclaredField("scopedCredentials");
         field.setAccessible(true);
         return (GoogleCredentials) field.get(provider);
-    }
-
-    private static void setScopedCredentials(final GcpCloudSqlIamDatabasePasswordProvider provider, final GoogleCredentials credentials)
-            throws ReflectiveOperationException {
-        final Field field = GcpCloudSqlIamDatabasePasswordProvider.class.getDeclaredField("scopedCredentials");
-        field.setAccessible(true);
-        field.set(provider, credentials);
     }
 
     @SuppressWarnings("unchecked")
@@ -578,7 +567,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
         }
 
         @Override
-        public GoogleCredentials createScoped(final java.util.Collection<String> scopes) {
+        public GoogleCredentials createScoped(final Collection<String> scopes) {
             createScopedCount.incrementAndGet();
             lastRequestedScopes = List.copyOf(scopes);
             if (createScopedException != null) {

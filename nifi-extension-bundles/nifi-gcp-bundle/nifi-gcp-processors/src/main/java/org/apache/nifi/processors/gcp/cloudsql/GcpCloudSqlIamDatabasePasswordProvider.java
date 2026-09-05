@@ -18,7 +18,6 @@ package org.apache.nifi.processors.gcp.cloudsql;
 
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.auth.oauth2.IdentityPoolCredentials;
 import com.google.auth.oauth2.ImpersonatedCredentials;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -58,7 +57,6 @@ public class GcpCloudSqlIamDatabasePasswordProvider extends AbstractControllerSe
     static final String VERIFY_TOKEN_STEP = "Acquire Cloud SQL IAM access token";
     static final String VERIFY_CREDENTIALS_UNAVAILABLE = "Configured GCP Credentials Provider Service did not return Google credentials.";
     static final String VERIFY_SCOPED_CREDENTIALS_UNAVAILABLE = "Failed to apply the Cloud SQL login scope to the configured Google credentials.";
-    static final String VERIFY_IMPERSONATION_REQUIRED = "Target service account impersonation is required for Workload Identity Federation Cloud SQL authentication.";
     static final String VERIFY_TOKEN_ACQUISITION_FAILED = "Failed to acquire a Cloud SQL IAM access token.";
 
     static final PropertyDescriptor GCP_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
@@ -98,8 +96,6 @@ public class GcpCloudSqlIamDatabasePasswordProvider extends AbstractControllerSe
             throw new ProcessException(FAILED_PASSWORD_MESSAGE);
         }
 
-        rejectIdentityPoolCredentialsOnPasswordGeneration(credentials);
-
         final AccessToken accessToken = refreshAccessToken(credentials);
         if (!hasTokenValue(accessToken)) {
             throw new ProcessException(FAILED_PASSWORD_MESSAGE);
@@ -112,34 +108,36 @@ public class GcpCloudSqlIamDatabasePasswordProvider extends AbstractControllerSe
     public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger,
                                                  final Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>(2);
-        final GoogleCredentials scopedVerificationCredentials = resolveVerificationCredentials(context);
+        final GoogleCredentials scopedVerificationCredentials = resolveVerificationCredentials(context, verificationLogger);
         if (scopedVerificationCredentials == null) {
             results.add(buildVerificationResult(VERIFY_SCOPE_STEP, Outcome.FAILED, VERIFY_CREDENTIALS_UNAVAILABLE));
         } else {
             final ConfigVerificationResult scopedCredentialResult = describeScopedCredential(scopedVerificationCredentials);
             results.add(scopedCredentialResult);
             if (scopedCredentialResult.getOutcome() == Outcome.SUCCESSFUL) {
-                results.add(verifyAccessToken(scopedVerificationCredentials));
+                results.add(verifyAccessToken(scopedVerificationCredentials, verificationLogger));
             }
         }
         return results;
     }
 
-    private GoogleCredentials resolveVerificationCredentials(final ConfigurationContext context) {
+    private GoogleCredentials resolveVerificationCredentials(final ConfigurationContext context, final ComponentLog verificationLogger) {
         try {
             return createSqlLoginScopedCredentials(resolveGoogleCredentials(context));
         } catch (final RuntimeException e) {
+            verificationLogger.error("Failed to resolve scoped Google credentials", e);
             return null;
         }
     }
 
-    private ConfigVerificationResult verifyAccessToken(final GoogleCredentials credentials) {
+    private ConfigVerificationResult verifyAccessToken(final GoogleCredentials credentials, final ComponentLog verificationLogger) {
         try {
             final AccessToken accessToken = credentials.refreshAccessToken();
             return hasTokenValue(accessToken)
                     ? buildTokenVerificationResult()
                     : buildVerificationResult(VERIFY_TOKEN_STEP, Outcome.FAILED, VERIFY_TOKEN_ACQUISITION_FAILED);
         } catch (final IOException | RuntimeException e) {
+            verificationLogger.error("Failed to acquire Cloud SQL IAM access token", e);
             return buildVerificationResult(VERIFY_TOKEN_STEP, Outcome.FAILED, VERIFY_TOKEN_ACQUISITION_FAILED);
         }
     }
@@ -167,7 +165,6 @@ public class GcpCloudSqlIamDatabasePasswordProvider extends AbstractControllerSe
             throw new InitializationException(VERIFY_SCOPED_CREDENTIALS_UNAVAILABLE);
         }
 
-        rejectIdentityPoolCredentialsOnEnable(credentials);
         return credentials;
     }
 
@@ -199,32 +196,12 @@ public class GcpCloudSqlIamDatabasePasswordProvider extends AbstractControllerSe
         return googleCredentials.createScoped(List.of(SQLSERVICE_LOGIN_SCOPE));
     }
 
-    private void rejectIdentityPoolCredentialsOnEnable(final GoogleCredentials credentials) throws InitializationException {
-        if (credentials instanceof IdentityPoolCredentials) {
-            throw new InitializationException(VERIFY_IMPERSONATION_REQUIRED);
-        }
-    }
-
-    private void rejectIdentityPoolCredentialsOnPasswordGeneration(final GoogleCredentials credentials) {
-        if (credentials instanceof IdentityPoolCredentials) {
-            throw new ProcessException(FAILED_PASSWORD_MESSAGE);
-        }
-    }
-
     private ConfigVerificationResult describeScopedCredential(final GoogleCredentials scopedVerificationCredentials) {
         if (scopedVerificationCredentials instanceof ImpersonatedCredentials) {
             return buildVerificationResult(
                     VERIFY_SCOPE_STEP,
                     Outcome.SUCCESSFUL,
                     "Resolved GCP credentials and Cloud SQL login scope. Target service account impersonation is active."
-            );
-        }
-
-        if (scopedVerificationCredentials instanceof IdentityPoolCredentials) {
-            return buildVerificationResult(
-                    VERIFY_SCOPE_STEP,
-                    Outcome.FAILED,
-                    VERIFY_IMPERSONATION_REQUIRED
             );
         }
 

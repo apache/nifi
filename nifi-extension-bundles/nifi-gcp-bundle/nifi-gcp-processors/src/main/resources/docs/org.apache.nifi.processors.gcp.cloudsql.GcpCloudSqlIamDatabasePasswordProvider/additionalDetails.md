@@ -35,10 +35,10 @@ Create the Cloud SQL IAM database user separately and grant the database privile
 
 ## Workload Identity Federation
 
-For Workload Identity Federation, `GCPCredentialsControllerService` must be configured with **Target Service Account**.
-The workload identity principal must also have `roles/iam.workloadIdentityUser` on that target service account.
-
-Without target service account impersonation, token acquisition for Cloud SQL IAM authentication will not succeed.
+For the Snowflake Workload Identity Federation configuration tested with this provider, configure
+`GCPCredentialsControllerService` with **Target Service Account**. The workload identity principal must also have
+`roles/iam.workloadIdentityUser` on that target service account. Other Google credential configurations can be used
+when they can acquire a token accepted by Cloud SQL for the configured database user.
 
 ## PostgreSQL Configuration
 
@@ -84,8 +84,8 @@ actual database connection using the configured URL, driver, TLS settings, datab
 If provider **Verify** fails:
 
 - Confirm the referenced `GCPCredentialsControllerService` is enabled.
-- For Workload Identity Federation, confirm **Target Service Account** is set and the workload identity principal has
-  `roles/iam.workloadIdentityUser` on that service account.
+- For Workload Identity Federation using service-account impersonation, confirm **Target Service Account** is set and
+  the workload identity principal has `roles/iam.workloadIdentityUser` on that service account.
 
 If provider **Verify** succeeds but DBCP **Verify** fails, token acquisition is working and the problem is in the JDBC
 connection configuration, network path, TLS settings, driver setup, database user, or database privileges.

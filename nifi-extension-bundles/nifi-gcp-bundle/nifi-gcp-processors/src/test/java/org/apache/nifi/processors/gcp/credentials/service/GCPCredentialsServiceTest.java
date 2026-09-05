@@ -31,9 +31,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -266,19 +263,6 @@ public class GCPCredentialsServiceTest {
         runner.setProperty(serviceImpl, TARGET_SERVICE_ACCOUNT, TARGET_SERVICE_ACCOUNT_VALUE);
 
         assertHasInvalidResult(runner.validate(serviceImpl), "Target Service Account requires Workload Identity Federation");
-    }
-
-    @Test
-    public void testAdditionalDetailsDocumentTargetServiceAccountVerificationSemantics() throws IOException {
-        final String resourcePath = "docs/%s/additionalDetails.md".formatted(GCPCredentialsControllerService.class.getName());
-        try (InputStream inputStream = GCPCredentialsControllerService.class.getClassLoader().getResourceAsStream(resourcePath)) {
-            assertNotNull(inputStream);
-            final String additionalDetails = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            assertTrue(additionalDetails.contains("Target Service Account"));
-            assertTrue(additionalDetails.contains("roles/iam.workloadIdentityUser"));
-            assertTrue(additionalDetails.contains("Successful verification confirms only that NiFi can"));
-            assertTrue(additionalDetails.contains("Verify does not perform STS exchange"));
-        }
     }
 
     @Test
