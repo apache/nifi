@@ -33,6 +33,7 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
+import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderApplyParametersRequestEntity;
@@ -1168,6 +1169,38 @@ public class ParameterContextIT extends NiFiSystemIT {
         final ParameterContextEntity updatedParent = getNifiClient().getParamContextClient().getParamContext(parentContext.getId(), false);
         assertEquals(1, updatedParent.getComponent().getInheritedParameterContexts().size());
         assertEquals(childContext2.getId(), updatedParent.getComponent().getInheritedParameterContexts().get(0).getId());
+
+        final ParameterContextEntity deletedChildContext = getNifiClient().getParamContextClient().getParamContext(childContext1.getId(), false);
+        getNifiClient().getParamContextClient().deleteParamContext(childContext1.getId(), String.valueOf(deletedChildContext.getRevision().getVersion()));
+
+        final ParameterContextsEntity parameterContexts = getNifiClient().getParamContextClient().getParamContexts();
+        final ParameterContextEntity listedParent = parameterContexts.getParameterContexts().stream()
+                .filter(context -> parentContext.getId().equals(context.getId()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(listedParent);
+        assertTrue(parameterContexts.getParameterContexts().stream().anyMatch(context -> childContext2.getId().equals(context.getId())));
+        assertFalse(parameterContexts.getParameterContexts().stream().anyMatch(context -> childContext1.getId().equals(context.getId())));
+        assertEquals(1, listedParent.getComponent().getInheritedParameterContexts().size());
+        assertEquals(childContext2.getId(), listedParent.getComponent().getInheritedParameterContexts().getFirst().getId());
+
+        final ParameterContextEntity survivingParentLocal = getNifiClient().getParamContextClient().getParamContext(parentContext.getId(), false);
+        assertTrue(survivingParentLocal.getComponent().getParameters().stream()
+                .noneMatch(parameter -> "fileToIngest".equals(parameter.getParameter().getName())));
+
+        final ParameterContextEntity survivingParent = getNifiClient().getParamContextClient().getParamContext(parentContext.getId(), true);
+        assertEquals(1, survivingParent.getComponent().getInheritedParameterContexts().size());
+        assertEquals(childContext2.getId(), survivingParent.getComponent().getInheritedParameterContexts().getFirst().getId());
+        final ParameterDTO survivingParameter = survivingParent.getComponent().getParameters().stream()
+                .map(ParameterEntity::getParameter)
+                .filter(parameter -> "otherParam".equals(parameter.getName()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(survivingParameter);
+        assertTrue(survivingParameter.getInherited());
+        assertEquals(childContext2.getId(), survivingParameter.getParameterContext().getId());
+        assertTrue(survivingParent.getComponent().getParameters().stream()
+                .noneMatch(parameter -> "fileToIngest".equals(parameter.getParameter().getName())));
     }
 
     @Test
