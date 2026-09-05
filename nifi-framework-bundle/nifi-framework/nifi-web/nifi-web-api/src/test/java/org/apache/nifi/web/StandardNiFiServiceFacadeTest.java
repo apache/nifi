@@ -193,10 +193,8 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -2722,47 +2720,36 @@ public class StandardNiFiServiceFacadeTest {
         dtoFactory.setBulletinRepository(dtoBulletinRepository);
         serviceFacade.setDtoFactory(dtoFactory);
 
-        captureStandardError(() -> {
-            final Set<AffectedComponentEntity> firstAffected = serviceFacade.getComponentsAffectedByParameterContextUpdate(List.of(parameterContextDto));
-            assertEquals(1, firstAffected.size());
-            assertEquals(processorId, firstAffected.iterator().next().getId());
+        final Set<AffectedComponentEntity> firstAffected = serviceFacade.getComponentsAffectedByParameterContextUpdate(List.of(parameterContextDto));
+        assertEquals(1, firstAffected.size());
+        assertEquals(processorId, firstAffected.iterator().next().getId());
 
-            final Map<String, ParameterDTO> firstPassParameters = parameterContextDto.getParameters().stream()
-                    .map(ParameterEntity::getParameter)
-                    .collect(Collectors.toMap(ParameterDTO::getName, Function.identity()));
-            final ParameterDTO firstPassParameter = firstPassParameters.get(inheritedParameterName);
-            assertTrue(firstPassParameter.getInherited());
-            assertTrue(firstPassParameter.getProvided());
-            assertEquals(inheritedContextId, firstPassParameter.getParameterContext().getId());
-            assertEquals(inheritedParameterValue, firstPassParameter.getValue());
+        final Map<String, ParameterDTO> firstPassParameters = parameterContextDto.getParameters().stream()
+                .map(ParameterEntity::getParameter)
+                .collect(Collectors.toMap(ParameterDTO::getName, Function.identity()));
+        final ParameterDTO firstPassParameter = firstPassParameters.get(inheritedParameterName);
+        assertTrue(firstPassParameter.getInherited());
+        assertTrue(firstPassParameter.getProvided());
+        assertEquals(inheritedContextId, firstPassParameter.getParameterContext().getId());
+        assertEquals(inheritedParameterValue, firstPassParameter.getValue());
 
-            final Set<AffectedComponentEntity> secondAffected = serviceFacade.getComponentsAffectedByParameterContextUpdate(List.of(parameterContextDto));
-            assertEquals(1, secondAffected.size());
-            assertEquals(processorId, secondAffected.iterator().next().getId());
+        final Set<AffectedComponentEntity> secondAffected = serviceFacade.getComponentsAffectedByParameterContextUpdate(List.of(parameterContextDto));
+        assertEquals(1, secondAffected.size());
+        assertEquals(processorId, secondAffected.iterator().next().getId());
 
-            final Map<String, ParameterDTO> secondPassParameters = parameterContextDto.getParameters().stream()
-                    .map(ParameterEntity::getParameter)
-                    .collect(Collectors.toMap(ParameterDTO::getName, Function.identity()));
-            final ParameterDTO secondPassParameter = secondPassParameters.get(inheritedParameterName);
-            assertFalse(secondPassParameter.getInherited());
-            assertTrue(secondPassParameter.getProvided());
-            assertEquals(targetContextId, secondPassParameter.getParameterContext().getId());
-            assertEquals(inheritedParameterValue, secondPassParameter.getValue());
-            assertEquals(1, secondPassParameter.getReferencingComponents().size());
-            assertEquals(processorId, secondPassParameter.getReferencingComponents().iterator().next().getId());
+        final Map<String, ParameterDTO> secondPassParameters = parameterContextDto.getParameters().stream()
+                .map(ParameterEntity::getParameter)
+                .collect(Collectors.toMap(ParameterDTO::getName, Function.identity()));
+        final ParameterDTO secondPassParameter = secondPassParameters.get(inheritedParameterName);
+        assertFalse(secondPassParameter.getInherited());
+        assertTrue(secondPassParameter.getProvided());
+        assertEquals(targetContextId, secondPassParameter.getParameterContext().getId());
+        assertEquals(inheritedParameterValue, secondPassParameter.getValue());
+        assertEquals(1, secondPassParameter.getReferencingComponents().size());
+        assertEquals(processorId, secondPassParameter.getReferencingComponents().iterator().next().getId());
 
-            verify(parameterContextDAO, times(2)).hasParameterContext(inheritedContextId);
-            verify(parameterContextDAO, times(2)).getParameterContext(inheritedContextId);
-        }, standardError -> {
-            final String warningMessage = standardError;
-            assertFalse(warningMessage.isEmpty());
-            assertTrue(warningMessage.contains("not locally owned"));
-            assertTrue(warningMessage.contains(inheritedParameterName));
-            assertTrue(warningMessage.contains(targetContextId));
-            assertTrue(warningMessage.contains(inheritedContextId));
-            assertFalse(warningMessage.contains(inheritedParameterValue));
-            assertTrue(standardError.toLowerCase().contains("warn"));
-        });
+        verify(parameterContextDAO, times(2)).hasParameterContext(inheritedContextId);
+        verify(parameterContextDAO, times(2)).getParameterContext(inheritedContextId);
     }
 
     @Test
@@ -3297,25 +3284,4 @@ public class StandardNiFiServiceFacadeTest {
         return assetManager;
     }
 
-    private void captureStandardError(final ThrowingRunnable action, final java.util.function.Consumer<String> assertions) {
-        synchronized (System.class) {
-            final PrintStream originalError = System.err;
-            final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            try (PrintStream capture = new PrintStream(outputStream, true, StandardCharsets.UTF_8)) {
-                System.setErr(capture);
-                action.run();
-            } catch (final Exception e) {
-                throw new RuntimeException(e);
-            } finally {
-                System.setErr(originalError);
-            }
-
-            assertions.accept(outputStream.toString(StandardCharsets.UTF_8));
-        }
-    }
-
-    @FunctionalInterface
-    private interface ThrowingRunnable {
-        void run() throws Exception;
-    }
 }

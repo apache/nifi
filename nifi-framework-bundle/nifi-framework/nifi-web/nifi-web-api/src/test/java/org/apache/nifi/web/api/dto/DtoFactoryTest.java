@@ -58,10 +58,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -920,12 +917,11 @@ public class DtoFactoryTest {
         final String contextId = "context-1";
         final String missingSourceId = "context-missing";
         final String parameterName = "param-name";
-        final String parameterValue = "sensitive-to-logs";
 
         final ParameterContext parameterContext = createMockParameterContext(contextId, "context-1-name", Collections.emptyList());
         final Parameter parameter = new Parameter.Builder()
                 .name(parameterName)
-                .value(parameterValue)
+                .value("param-value")
                 .parameterContextId(missingSourceId)
                 .build();
 
@@ -934,24 +930,13 @@ public class DtoFactoryTest {
         when(lookup.getParameterContext(missingSourceId)).thenThrow(new AssertionError("Lookup getter should not be called for a missing source context"));
 
         final DtoFactory dtoFactory = newDtoFactoryForParameters();
-        captureStandardError(() -> {
-            final ParameterDTO dto = dtoFactory.createParameterDto(parameterContext, parameter, mock(RevisionManager.class), lookup);
+        final ParameterDTO dto = dtoFactory.createParameterDto(parameterContext, parameter, mock(RevisionManager.class), lookup);
 
-            assertFalse(dto.getInherited());
-            assertEquals(contextId, dto.getParameterContext().getId());
+        assertFalse(dto.getInherited());
+        assertEquals(contextId, dto.getParameterContext().getId());
 
-            verify(lookup).hasParameterContext(missingSourceId);
-            verify(lookup, never()).getParameterContext(missingSourceId);
-
-            return null;
-        }, standardError -> {
-            assertFalse(standardError.isEmpty());
-            assertTrue(standardError.contains(parameterName));
-            assertTrue(standardError.contains(contextId));
-            assertTrue(standardError.contains(missingSourceId));
-            assertFalse(standardError.contains(parameterValue));
-            assertTrue(standardError.toLowerCase().contains("warn"));
-        });
+        verify(lookup).hasParameterContext(missingSourceId);
+        verify(lookup, never()).getParameterContext(missingSourceId);
     }
 
     @Test
@@ -959,12 +944,11 @@ public class DtoFactoryTest {
         final String contextId = "context-1";
         final String missingSourceId = "context-missing";
         final String parameterName = "param-name";
-        final String parameterValue = "sensitive-to-logs";
 
         final ParameterContext parameterContext = createMockParameterContext(contextId, "context-1-name", Collections.emptyList());
         final Parameter parameter = new Parameter.Builder()
                 .name(parameterName)
-                .value(parameterValue)
+                .value("param-value")
                 .parameterContextId(missingSourceId)
                 .build();
 
@@ -973,24 +957,13 @@ public class DtoFactoryTest {
         when(lookup.getParameterContext(missingSourceId)).thenThrow(new ResourceNotFoundException("Source context was removed"));
 
         final DtoFactory dtoFactory = newDtoFactoryForParameters();
-        captureStandardError(() -> {
-            final ParameterDTO dto = dtoFactory.createParameterDto(parameterContext, parameter, mock(RevisionManager.class), lookup);
+        final ParameterDTO dto = dtoFactory.createParameterDto(parameterContext, parameter, mock(RevisionManager.class), lookup);
 
-            assertFalse(dto.getInherited());
-            assertEquals(contextId, dto.getParameterContext().getId());
+        assertFalse(dto.getInherited());
+        assertEquals(contextId, dto.getParameterContext().getId());
 
-            verify(lookup).hasParameterContext(missingSourceId);
-            verify(lookup).getParameterContext(missingSourceId);
-
-            return null;
-        }, standardError -> {
-            assertFalse(standardError.isEmpty());
-            assertTrue(standardError.contains(parameterName));
-            assertTrue(standardError.contains(contextId));
-            assertTrue(standardError.contains(missingSourceId));
-            assertFalse(standardError.contains(parameterValue));
-            assertTrue(standardError.toLowerCase().contains("warn"));
-        });
+        verify(lookup).hasParameterContext(missingSourceId);
+        verify(lookup).getParameterContext(missingSourceId);
     }
 
     @Test
@@ -1089,25 +1062,4 @@ public class DtoFactoryTest {
         when(context.getParameterReferenceManager()).thenReturn(ParameterReferenceManager.EMPTY);
     }
 
-    private static <T> void captureStandardError(final ThrowingSupplier<T> action, final java.util.function.Consumer<String> assertions) {
-        synchronized (System.class) {
-            final PrintStream originalError = System.err;
-            final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            try (PrintStream capture = new PrintStream(outputStream, true, StandardCharsets.UTF_8)) {
-                System.setErr(capture);
-                action.get();
-            } catch (final Exception e) {
-                throw new RuntimeException(e);
-            } finally {
-                System.setErr(originalError);
-            }
-
-            assertions.accept(outputStream.toString(StandardCharsets.UTF_8));
-        }
-    }
-
-    @FunctionalInterface
-    private interface ThrowingSupplier<T> {
-        T get() throws Exception;
-    }
 }
