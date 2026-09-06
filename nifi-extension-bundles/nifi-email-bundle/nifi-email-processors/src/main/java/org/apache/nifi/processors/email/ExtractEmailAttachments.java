@@ -138,7 +138,7 @@ public class ExtractEmailAttachments extends AbstractProcessor {
                         }
 
                         for (Map.Entry<String, String> entry : attachment.headers().entrySet()) {
-                            final String headerAttributeName = ATTACHMENT_HEADER_ATTRIBUTE_PREFIX + entry.getKey();
+                            final String headerAttributeName = ATTACHMENT_HEADER_ATTRIBUTE_PREFIX + entry.getKey().toLowerCase();
                             final String headerAttributeValue = entry.getValue();
                             attributes.put(headerAttributeName, headerAttributeValue);
                         }
