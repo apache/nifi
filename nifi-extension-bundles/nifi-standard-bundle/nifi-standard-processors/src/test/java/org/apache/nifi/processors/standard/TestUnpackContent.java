@@ -23,6 +23,7 @@ import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -31,21 +32,28 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.zip.CRC32;
+import java.util.zip.ZipEntry;
 
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestUnpackContent {
@@ -249,6 +257,153 @@ public class TestUnpackContent {
             flowFile.assertContentEquals(path.toFile());
         }
     }
+
+    @Test
+    public void testZipInvalidCrcRoutesToFailure() throws IOException {
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+
+        final byte[] zipBytes = createStoredZip(true, Map.entry("corrupt.txt", "payload-for-crc-mismatch"));
+        runner.enqueue(zipBytes);
+        runner.run();
+
+        assertOriginalRoutedToFailureOnly(zipBytes);
+        assertCrcMismatchLoggedWithoutStackTrace();
+    }
+
+    @Test
+    public void testZipStoredCrcValidRoutesToSuccess() throws IOException {
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+
+        final byte[] payload = "payload-for-crc-match".getBytes(StandardCharsets.UTF_8);
+        runner.enqueue(createStoredZip(false, Map.entry("ok.txt", "payload-for-crc-match")));
+        runner.run();
+
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS).getFirst().assertContentEquals(payload);
+    }
+
+    @Test
+    public void testZipDeflatedInvalidCrcRoutesToFailure() throws IOException {
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+
+        final byte[] zipBytes = createDeflatedZip(true, Map.entry("corrupt.txt", "deflated-payload-for-crc-mismatch"));
+        runner.enqueue(zipBytes);
+        runner.run();
+
+        assertOriginalRoutedToFailureOnly(zipBytes);
+        assertCrcMismatchLoggedWithoutStackTrace();
+    }
+
+    @Test
+    public void testZipDeflatedCrcValidRoutesToSuccess() throws IOException {
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+
+        final String contents = "deflated-payload-for-crc-match";
+        runner.enqueue(createDeflatedZip(false, Map.entry("ok.txt", contents)));
+        runner.run();
+
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS).getFirst()
+                .assertContentEquals(contents.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void testZipDeflatedInvalidCrcOnSecondEntryRoutesToFailure() throws IOException {
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+
+        final byte[] zipBytes = createDeflatedZip(true,
+                Map.entry("first.txt", "first-entry-valid-crc"),
+                Map.entry("second.txt", "second-entry-invalid-crc"));
+        runner.enqueue(zipBytes);
+        runner.run();
+
+        assertOriginalRoutedToFailureOnly(zipBytes);
+        assertCrcMismatchLoggedWithoutStackTrace();
+    }
+
+    @Test
+    public void testZipStoredInvalidCrcOnSecondEntryRoutesToFailure() throws IOException {
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+
+        final byte[] zipBytes = createStoredZip(true,
+                Map.entry("first.txt", "first-stored-valid-crc"),
+                Map.entry("second.txt", "second-stored-invalid-crc"));
+        runner.enqueue(zipBytes);
+        runner.run();
+
+        assertOriginalRoutedToFailureOnly(zipBytes);
+        assertCrcMismatchLoggedWithoutStackTrace();
+    }
+
+    @Test
+    public void testZipFileFilterExtractsMatchingEntryWhenCrcIsValid() throws IOException {
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+        runner.setProperty(UnpackContent.FILE_FILTER, "^keep.txt$");
+
+        runner.enqueue(createDeflatedZip(false,
+                Map.entry("keep.txt", "keep-me"),
+                Map.entry("skip.txt", "skip-me")));
+        runner.run();
+
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS).getFirst()
+                .assertContentEquals("keep-me".getBytes(StandardCharsets.UTF_8));
+        runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS).getFirst()
+                .assertAttributeEquals(CoreAttributes.FILENAME.key(), "keep.txt");
+    }
+
+    @Test
+    public void testZipFileFilterStillFailsWhenSkippedEntryHasInvalidCrc() throws IOException {
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+        runner.setProperty(UnpackContent.FILE_FILTER, "^keep.txt$");
+
+        final byte[] zipBytes = createDeflatedZip(true,
+                Map.entry("keep.txt", "keep-me"),
+                Map.entry("skip.txt", "corrupt-skipped-entry"));
+        runner.enqueue(zipBytes);
+        runner.run();
+
+        assertOriginalRoutedToFailureOnly(zipBytes);
+        assertCrcMismatchLoggedWithoutStackTrace();
+    }
+
+    @Test
+    public void testZipFileFilterFailsWhenOnlySkippedEntryHasInvalidCrc() throws IOException {
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+        runner.setProperty(UnpackContent.FILE_FILTER, "^keep.txt$");
+
+        final byte[] zipBytes = createStoredZip(true, Map.entry("skip.txt", "not-extracted-and-corrupt"));
+        runner.enqueue(zipBytes);
+        runner.run();
+
+        assertOriginalRoutedToFailureOnly(zipBytes);
+        assertCrcMismatchLoggedWithoutStackTrace();
+    }
+
+    @Test
+    public void testZipDirectoryEntryAndFileWithValidCrcRoutesToSuccess() throws IOException {
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
+
+        runner.enqueue(createDeflatedZip(false,
+                Map.entry("folder/", ""),
+                Map.entry("folder/file.txt", "nested-file")));
+        runner.run();
+
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS).getFirst()
+                .assertContentEquals("nested-file".getBytes(StandardCharsets.UTF_8));
+        runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS).getFirst()
+                .assertAttributeEquals(CoreAttributes.FILENAME.key(), "file.txt");
+    }
+
     @Test
     public void testZipEncodingField() {
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
@@ -710,5 +865,129 @@ public class TestUnpackContent {
         zipOutputStream.close();
 
         return outputStream.toByteArray();
+    }
+
+    private void assertOriginalRoutedToFailureOnly(final byte[] originalZip) throws IOException {
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 1);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 0);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 0);
+        runner.getFlowFilesForRelationship(UnpackContent.REL_FAILURE).getFirst().assertContentEquals(originalZip);
+    }
+
+    private void assertCrcMismatchLoggedWithoutStackTrace() {
+        final List<LogMessage> errors = runner.getLogger().getErrorMessages();
+        assertFalse(errors.isEmpty(), "Expected an error log for CRC mismatch");
+        final LogMessage error = errors.getFirst();
+        final String details = error.getMsg() + Arrays.toString(error.getArgs());
+        assertTrue(details.contains("CRC mismatch"), "Error log should describe the CRC mismatch: " + details);
+        assertNull(error.getThrowable(), "CRC mismatch should be logged without a stack trace");
+    }
+
+    /**
+     * Builds a STORED zip in memory. When {@code invertLastEntryCrc} is true, the CRC-32 of the last
+     * entry in the local file header and central directory is bitwise-inverted so the archive is
+     * well-formed but the checksum no longer matches the entry bytes.
+     */
+    @SafeVarargs
+    private static byte[] createStoredZip(final boolean invertLastEntryCrc, final Map.Entry<String, String>... entries) throws IOException {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zipOutputStream = new java.util.zip.ZipOutputStream(outputStream)) {
+            zipOutputStream.setMethod(java.util.zip.ZipOutputStream.STORED);
+            for (final Map.Entry<String, String> entry : entries) {
+                final byte[] payload = entry.getValue().getBytes(StandardCharsets.UTF_8);
+                final CRC32 crc32 = new CRC32();
+                crc32.update(payload);
+                final ZipEntry zipEntry = new ZipEntry(entry.getKey());
+                zipEntry.setMethod(ZipEntry.STORED);
+                zipEntry.setCrc(crc32.getValue());
+                zipEntry.setSize(payload.length);
+                zipEntry.setCompressedSize(payload.length);
+                zipOutputStream.putNextEntry(zipEntry);
+                zipOutputStream.write(payload);
+                zipOutputStream.closeEntry();
+            }
+        }
+
+        final byte[] zipBytes = outputStream.toByteArray();
+        if (!invertLastEntryCrc) {
+            return zipBytes;
+        }
+
+        final byte[] localFileHeaderSignature = {0x50, 0x4b, 0x03, 0x04};
+        final byte[] centralDirectorySignature = {0x50, 0x4b, 0x01, 0x02};
+        final int centralDirectoryIndex = indexOf(zipBytes, centralDirectorySignature);
+        assertTrue(centralDirectoryIndex > 0, "ZIP central directory signature not found");
+        corruptCrcAt(zipBytes, lastIndexOf(zipBytes, localFileHeaderSignature, centralDirectoryIndex) + 14);
+        corruptCrcAt(zipBytes, lastIndexOf(zipBytes, centralDirectorySignature, zipBytes.length) + 16);
+        return zipBytes;
+    }
+
+    /**
+     * Builds a DEFLATED zip (Java default: data descriptor after the compressed bytes). When
+     * {@code invertLastEntryCrc} is true, the CRC in that last entry's data descriptor and central
+     * directory is inverted.
+     */
+    @SafeVarargs
+    private static byte[] createDeflatedZip(final boolean invertLastEntryCrc, final Map.Entry<String, String>... entries) throws IOException {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zipOutputStream = new java.util.zip.ZipOutputStream(outputStream)) {
+            for (final Map.Entry<String, String> entry : entries) {
+                final ZipEntry zipEntry = new ZipEntry(entry.getKey());
+                zipEntry.setMethod(ZipEntry.DEFLATED);
+                zipOutputStream.putNextEntry(zipEntry);
+                zipOutputStream.write(entry.getValue().getBytes(StandardCharsets.UTF_8));
+                zipOutputStream.closeEntry();
+            }
+        }
+
+        final byte[] zipBytes = outputStream.toByteArray();
+        if (!invertLastEntryCrc) {
+            return zipBytes;
+        }
+
+        final byte[] centralDirectorySignature = {0x50, 0x4b, 0x01, 0x02};
+        final byte[] dataDescriptorSignature = {0x50, 0x4b, 0x07, 0x08};
+        final int centralDirectoryIndex = indexOf(zipBytes, centralDirectorySignature);
+        assertTrue(centralDirectoryIndex > 0, "ZIP central directory signature not found");
+        final int dataDescriptorIndex = lastIndexOf(zipBytes, dataDescriptorSignature, centralDirectoryIndex);
+        assertTrue(dataDescriptorIndex >= 0, "ZIP data descriptor signature not found");
+        corruptCrcAt(zipBytes, dataDescriptorIndex + 4);
+        corruptCrcAt(zipBytes, lastIndexOf(zipBytes, centralDirectorySignature, zipBytes.length) + 16);
+        return zipBytes;
+    }
+
+    private static void corruptCrcAt(final byte[] zipBytes, final int crcIndex) {
+        final int storedCrc = ByteBuffer.wrap(zipBytes, crcIndex, 4).order(ByteOrder.LITTLE_ENDIAN).getInt();
+        ByteBuffer.wrap(zipBytes, crcIndex, 4).order(ByteOrder.LITTLE_ENDIAN).putInt(storedCrc ^ 0xffffffff);
+    }
+
+    private static int indexOf(final byte[] haystack, final byte[] needle) {
+        return indexOf(haystack, needle, 0, haystack.length);
+    }
+
+    private static int lastIndexOf(final byte[] haystack, final byte[] needle, final int endExclusive) {
+        outer:
+        for (int i = endExclusive - needle.length; i >= 0; i--) {
+            for (int j = 0; j < needle.length; j++) {
+                if (haystack[i + j] != needle[j]) {
+                    continue outer;
+                }
+            }
+            return i;
+        }
+        return -1;
+    }
+
+    private static int indexOf(final byte[] haystack, final byte[] needle, final int start, final int endExclusive) {
+        outer:
+        for (int i = start; i <= endExclusive - needle.length; i++) {
+            for (int j = 0; j < needle.length; j++) {
+                if (haystack[i + j] != needle[j]) {
+                    continue outer;
+                }
+            }
+            return i;
+        }
+        return -1;
     }
 }
