@@ -78,7 +78,7 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttribu
                 description = "A one-up number that indicates the ordering of the split FlowFiles that were created from a single parent FlowFile"),
         @WritesAttribute(attribute = "fragment.count",
                 description = "The number of split FlowFiles generated from the parent FlowFile"),
-        @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")
+        @WritesAttribute(attribute = "segment.original.filename", description = "The filename of the parent FlowFile")
 })
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content (as a Document object) is read into memory, " +
         "in addition to all of the generated FlowFiles representing the split XML. A Document object can take approximately 10 times as much memory as the size of " +

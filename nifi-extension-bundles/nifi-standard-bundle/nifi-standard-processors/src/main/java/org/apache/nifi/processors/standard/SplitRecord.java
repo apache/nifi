@@ -66,7 +66,7 @@ import java.util.UUID;
     @WritesAttribute(attribute = "fragment.identifier", description = "All split FlowFiles produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
     @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the split FlowFiles that were created from a single parent FlowFile"),
     @WritesAttribute(attribute = "fragment.count", description = "The number of split FlowFiles generated from the parent FlowFile"),
-    @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")
+    @WritesAttribute(attribute = "segment.original.filename", description = "The filename of the parent FlowFile")
 })
 @CapabilityDescription("Splits up an input FlowFile that is in a record-oriented data format into multiple smaller FlowFiles")
 public class SplitRecord extends AbstractProcessor {

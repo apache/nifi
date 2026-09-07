@@ -103,7 +103,7 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the unpacked FlowFiles that were created from a single "
             + "parent FlowFile"),
     @WritesAttribute(attribute = "fragment.count", description = "The number of unpacked FlowFiles generated from the parent FlowFile"),
-    @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile. Extensions of .tar, .zip or .pkg are removed because "
+    @WritesAttribute(attribute = "segment.original.filename", description = "The filename of the parent FlowFile. Extensions of .tar, .zip or .pkg are removed because "
             + "the MergeContent processor automatically adds those extensions if it is used to rebuild the original FlowFile"),
     @WritesAttribute(attribute = UnpackContent.FILE_LAST_MODIFIED_TIME_ATTRIBUTE, description = "The date and time that the unpacked file was last modified (tar and zip only)."),
     @WritesAttribute(attribute = UnpackContent.FILE_CREATION_TIME_ATTRIBUTE, description = "The date and time that the file was created. For encrypted zip files this attribute" +
