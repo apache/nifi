@@ -39,9 +39,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-@CapabilityDescription("The PutUDP processor receives a FlowFile and packages the FlowFile content into a single UDP datagram packet which is then transmitted to the configured UDP server."
-        + " The user must ensure that the FlowFile content being fed to this processor is not larger than the maximum size for the underlying UDP transport. The maximum transport size will "
-        + "vary based on the platform setup but is generally just under 64KB. FlowFiles will be marked as failed if their content is larger than the maximum transport size.")
+@CapabilityDescription("The PutUDP processor receives a FlowFile and packages the FlowFile content into a single UDP datagram packet which is then transmitted to the configured UDP server. "
+        + "A FlowFile larger than 65,507 bytes (the IPv4 UDP maximum payload) cannot be sent as one datagram and is routed to failure without reading content. "
+        + "The local UDP stack may still reject smaller datagrams; those FlowFiles are also marked as failed.")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SeeAlso({ListenUDP.class, PutTCP.class})
 @Tags({ "remote", "egress", "put", "udp" })
@@ -49,11 +49,24 @@ import java.util.concurrent.TimeUnit;
 @DeprecationNotice(reason = "NIFI-16323: Limited transport size and lack of application protocol semantics")
 public class PutUDP extends AbstractPutEventProcessor<byte[]> {
 
+    /**
+     * Maximum UDP payload for IPv4: 65,535 byte IP packet minus 20 byte IPv4 header minus 8 byte UDP header.
+     */
+    static final int MAX_IPV4_UDP_PAYLOAD_LENGTH = 65_535 - 20 - 8;
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         final ProcessSession session = sessionFactory.createSession();
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
+            return;
+        }
+
+        if (flowFile.getSize() > MAX_IPV4_UDP_PAYLOAD_LENGTH) {
+            getLogger().error("Cannot send {} as a UDP datagram: size {} exceeds the IPv4 maximum payload of {} bytes",
+                    flowFile, flowFile.getSize(), MAX_IPV4_UDP_PAYLOAD_LENGTH);
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            session.commitAsync();
             return;
         }
 
