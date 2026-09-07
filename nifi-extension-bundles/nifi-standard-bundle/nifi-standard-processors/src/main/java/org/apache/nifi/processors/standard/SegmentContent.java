@@ -57,9 +57,7 @@ import java.util.UUID;
     @WritesAttribute(attribute = "fragment.index",
             description = "A one-up number that indicates the ordering of the segments that were created from a single parent FlowFile"),
     @WritesAttribute(attribute = "fragment.count", description = "The number of segments generated from the parent FlowFile"),
-    @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile"),
-    @WritesAttribute(attribute = "segment.original.filename ",
-            description = "The filename will be updated to include the parent's filename, the segment index, and the segment count")})
+    @WritesAttribute(attribute = "segment.original.filename", description = "The filename of the parent FlowFile")})
 @SeeAlso(MergeContent.class)
 public class SegmentContent extends AbstractProcessor {
 
