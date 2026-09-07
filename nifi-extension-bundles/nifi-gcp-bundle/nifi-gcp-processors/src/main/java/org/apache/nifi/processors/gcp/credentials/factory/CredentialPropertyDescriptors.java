@@ -132,6 +132,13 @@ public final class CredentialPropertyDescriptors {
             .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION.getValue())
             .build();
 
+    public static final PropertyDescriptor TARGET_SERVICE_ACCOUNT = new PropertyDescriptor.Builder()
+            .name("Target Service Account")
+            .description("Target Google service account email to impersonate after Workload Identity Federation token exchange.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION.getValue())
+            .build();
+
     public static final PropertyDescriptor DELEGATION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Delegation Strategy")
             .required(true)
