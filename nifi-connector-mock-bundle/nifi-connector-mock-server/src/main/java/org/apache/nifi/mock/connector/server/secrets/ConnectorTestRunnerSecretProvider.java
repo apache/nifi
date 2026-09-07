@@ -60,7 +60,7 @@ public class ConnectorTestRunnerSecretProvider implements SecretProvider {
                 .name(entry.getKey())
                 .value(entry.getValue())
                 .authorizable(AUTHORIZABLE)
-                .fullyQualifiedName(GROUP_NAME + "." + entry.getKey())
+                .fullyQualifiedName(SECRET_PROVIDER_NAME + "." + GROUP_NAME + "." + entry.getKey())
                 .build();
 
             secrets.add(secret);
@@ -72,8 +72,14 @@ public class ConnectorTestRunnerSecretProvider implements SecretProvider {
     @Override
     public List<Secret> getSecrets(final List<String> fullyQualifiedSecretNames) {
         final List<Secret> matchingSecrets = new ArrayList<>();
+        final String secretNamePrefix = SECRET_PROVIDER_NAME + "." + GROUP_NAME + ".";
 
-        for (final String secretName : fullyQualifiedSecretNames) {
+        for (final String fullyQualifiedSecretName : fullyQualifiedSecretNames) {
+            if (!fullyQualifiedSecretName.startsWith(secretNamePrefix)) {
+                continue;
+            }
+
+            final String secretName = fullyQualifiedSecretName.substring(secretNamePrefix.length());
             final String value = secrets.get(secretName);
 
             if (value != null) {
@@ -82,7 +88,7 @@ public class ConnectorTestRunnerSecretProvider implements SecretProvider {
                     .providerName(SECRET_PROVIDER_NAME)
                     .groupName(GROUP_NAME)
                     .name(secretName)
-                    .fullyQualifiedName(GROUP_NAME + "." + secretName)
+                    .fullyQualifiedName(fullyQualifiedSecretName)
                     .value(value)
                     .authorizable(AUTHORIZABLE)
                     .build();

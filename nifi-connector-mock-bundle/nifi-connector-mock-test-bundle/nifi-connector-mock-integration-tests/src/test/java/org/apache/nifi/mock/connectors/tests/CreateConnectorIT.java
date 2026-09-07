@@ -32,9 +32,11 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CreateConnectorIT {
@@ -68,7 +70,7 @@ public class CreateConnectorIT {
     }
 
     @Test
-    public void testStopConnectorWithTimeoutStopsRunningConnector() throws IOException {
+    public void testStopConnectorWithTimeoutStopsRunningConnector() throws IOException, TimeoutException {
         try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
                 .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
                 .narLibraryDirectory(new File("target/libDir"))
@@ -76,13 +78,7 @@ public class CreateConnectorIT {
 
             testRunner.startConnector();
 
-            // Exercises the timeout-aware overload: it initiates the asynchronous stop and actively polls the
-            // Connector's state until it reaches STOPPED, returning as soon as it does rather than after a single
-            // fixed blocking wait. Because start is asynchronous, a stop issued immediately afterwards may have to
-            // ride through the node's internal stop retries (every 10 seconds) before the state settles, so the
-            // budget is generous enough to stay deterministic on a slow CI runner; the poll still returns the
-            // instant the Connector reports STOPPED.
-            assertDoesNotThrow(() -> testRunner.stopConnector(Duration.ofSeconds(120)));
+            testRunner.stopConnector(Duration.ofSeconds(120));
         }
     }
 
@@ -99,6 +95,22 @@ public class CreateConnectorIT {
             final String message = results.getFirst().getExplanation();
             assertTrue(message.contains("com.example.nonexistent:missing-nar:1.0.0"), "Expected exception message to contain missing bundle coordinates but was: " + message);
             assertTrue(message.contains("com.example.nonexistent.MissingProcessor"), "Expected exception message to contain missing processor type but was: " + message);
+        }
+    }
+
+    @Test
+    public void testConnectorWithMissingBundleFailsStart() throws IOException {
+        try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
+                .connectorClassName("org.apache.nifi.mock.connectors.MissingBundleConnector")
+                .narLibraryDirectory(new File("target/libDir"))
+                .build()) {
+
+            final IllegalStateException exception = assertThrows(IllegalStateException.class, testRunner::startConnector);
+            assertEquals("Failed to start Connector", exception.getMessage());
+
+            final IllegalStateException cause = assertInstanceOf(IllegalStateException.class, exception.getCause());
+            assertTrue(cause.getMessage().contains("com.example.nonexistent:missing-nar:1.0.0"));
+            assertTrue(cause.getMessage().contains("com.example.nonexistent.MissingProcessor"));
         }
     }
 
