@@ -175,11 +175,11 @@ public class ConnectorResource extends ApplicationResource {
     private UploadRequestReplicator uploadRequestReplicator;
 
     private final RequestManager<VerifyConnectorConfigStepRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
-            new AsyncRequestManager<>(100, 1L, "Connector Configuration Step Verification");
+            new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Connector Configuration Step Verification");
     private final RequestManager<MigrationRequestEntity, ConnectorEntity> migrationRequestManager =
             new AsyncRequestManager<>(100, MIGRATION_REQUEST_TTL_MILLIS, "Connector Migration");
 
-    private final RequestManager<ConnectorEntity, Void> purgeRequestManager = new AsyncRequestManager<>(100, 1L, "Connector FlowFile Purge");
+    private final RequestManager<ConnectorEntity, Void> purgeRequestManager = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Connector FlowFile Purge");
 
     /**
      * Uploaded migration payloads keyed by their server-assigned identifier. Each entry's age is tracked alongside
