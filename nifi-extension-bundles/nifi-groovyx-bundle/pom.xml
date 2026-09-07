@@ -26,7 +26,7 @@
     <description>NiFi Groovy Extended Processor</description>
 
     <properties>
-        <ant.version>1.10.17</ant.version>
+        <ant.version>1.10.18</ant.version>
     </properties>
 
     <modules>

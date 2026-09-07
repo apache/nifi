@@ -122,7 +122,7 @@
         <nifi.nar.maven.plugin.version>2.4.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.54.10</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.54.13</software.amazon.awssdk.version>
         <software.amazon.encryption.s3.version>4.0.2</software.amazon.encryption.s3.version>
         <azure.sdk.bom.version>1.3.8</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
@@ -143,7 +143,7 @@
         <ozone.version>1.4.1</ozone.version>
 
         <!-- Kubernetes -->
-        <io.fabric8.kubernetes.client.version>7.8.0</io.fabric8.kubernetes.client.version>
+        <io.fabric8.kubernetes.client.version>7.9.0</io.fabric8.kubernetes.client.version>
 
         <!-- Data access -->
         <commons.dbcp2.version>2.14.0</commons.dbcp2.version>
@@ -165,20 +165,20 @@
 
         <!-- JVM languages and bytecode -->
         <aspectj.version>1.9.25.1</aspectj.version>
-        <groovy.version>5.1.1</groovy.version>
+        <groovy.version>5.1.2</groovy.version>
         <kotlin.version>2.4.10</kotlin.version>
 
         <!-- Logging and observability -->
         <log4j2.version>2.26.1</log4j2.version>
         <logback.version>1.6.3</logback.version>
-        <org.slf4j.version>2.0.18</org.slf4j.version>
+        <org.slf4j.version>2.0.19</org.slf4j.version>
         <prometheus.version>0.16.0</prometheus.version>
         <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
 
         <!-- Networking and transport -->
         <netty.4.version>4.2.17.Final</netty.4.version>
         <okhttp.version>5.5.0</okhttp.version>
-        <okio.version>3.18.1</okio.version>
+        <okio.version>3.18.2</okio.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpclient5.version>5.6.4</org.apache.httpcomponents.httpclient5.version>
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
@@ -203,7 +203,7 @@
         <jakarta.activation-api.version>2.1.4</jakarta.activation-api.version>
         <jaxb.runtime.version>4.0.9</jaxb.runtime.version>
         <jersey.bom.version>4.0.2</jersey.bom.version>
-        <jetty.version>12.1.12</jetty.version>
+        <jetty.version>12.1.13</jetty.version>
         <servlet-api.version>6.1.0</servlet-api.version>
         <spring.security.version>7.1.1</spring.security.version>
         <spring.version>7.0.9</spring.version>
@@ -212,8 +212,8 @@
         <!-- Testing and quality -->
         <junit.version>6.1.3</junit.version>
         <mockito.version>5.23.0</mockito.version>
-        <pmd.version>7.26.0</pmd.version>
-        <checkstyle.version>14.0.0</checkstyle.version>
+        <pmd.version>7.27.0</pmd.version>
+        <checkstyle.version>14.1.0</checkstyle.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <jacoco.version>0.8.15</jacoco.version>
 
