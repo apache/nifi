@@ -198,6 +198,7 @@ import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.security.MessageDigestUtils;
 import org.apache.nifi.web.FlowModification;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsSnapshotDTO.ResourceClaimDetailsDTO;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
@@ -1654,8 +1655,19 @@ public final class DtoFactory {
             return fromGraph;
         }
 
-        final ParameterContext fromLookup = parameterContextLookup.getParameterContext(sourceId);
-        return fromLookup != null ? fromLookup : parameterContext;
+        if (parameterContextLookup.hasParameterContext(sourceId)) {
+            try {
+                final ParameterContext fromLookup = parameterContextLookup.getParameterContext(sourceId);
+                if (fromLookup != null) {
+                    return fromLookup;
+                }
+            } catch (final ResourceNotFoundException ignored) {
+            }
+        }
+
+        logger.warn("Parameter [{}] in Parameter Context [{}] references missing source Parameter Context [{}]; reporting as locally defined",
+                parameter.getDescriptor().getName(), parameterContext.getIdentifier(), sourceId);
+        return parameterContext;
     }
 
     private ParameterContext findInheritedParameterContext(final ParameterContext parameterContext, final String sourceId, final Set<String> visited) {

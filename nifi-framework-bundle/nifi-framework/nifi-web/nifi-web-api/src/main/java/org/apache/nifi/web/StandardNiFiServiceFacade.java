@@ -1833,7 +1833,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             return parameterContext;
         }
 
-        return parameterContextDAO.getParameterContext(sourceContextId);
+        if (parameterContextDAO.hasParameterContext(sourceContextId)) {
+            try {
+                return parameterContextDAO.getParameterContext(sourceContextId);
+            } catch (final ResourceNotFoundException ignored) {
+            }
+        }
+
+        logger.warn("Parameter [{}] in Parameter Context [{}] references missing source Parameter Context [{}] and is not locally owned; reporting as locally defined",
+                parameter.getDescriptor().getName(), parameterContext.getIdentifier(), sourceContextId);
+        return parameterContext;
     }
 
     private void addReferencingComponents(final ControllerServiceNode service, final Set<ComponentNode> affectedComponents, final List<ParameterDTO> affectedParameterDtos,
