@@ -65,9 +65,12 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -229,6 +232,32 @@ public class TestStandardConnectorNode {
 
         assertTrue(startFuture1.isDone());
         assertTrue(startFuture2.isDone());
+    }
+
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    public void testConcurrentStartRequestsInvokeConnectorStartOnce() throws Exception {
+        final ConcurrentStartConnector connector = new ConcurrentStartConnector();
+        final CoordinatedConnectorStateTransition stateTransition = new CoordinatedConnectorStateTransition();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector, stateTransition);
+        connector.blockValidation();
+
+        try (final ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            final CompletableFuture<Future<Void>> firstRequest = CompletableFuture.supplyAsync(() -> connectorNode.start(scheduler), executor);
+            final CompletableFuture<Future<Void>> secondRequest = CompletableFuture.supplyAsync(() -> connectorNode.start(scheduler), executor);
+
+            assertTrue(connector.awaitValidationRequests(5, TimeUnit.SECONDS));
+            stateTransition.coordinateNextStateReads(2);
+            connector.releaseValidation();
+
+            final Future<Void> firstStart = firstRequest.get(5, TimeUnit.SECONDS);
+            final Future<Void> secondStart = secondRequest.get(5, TimeUnit.SECONDS);
+            firstStart.get(5, TimeUnit.SECONDS);
+            secondStart.get(5, TimeUnit.SECONDS);
+        }
+
+        assertEquals(1, connector.getStartInvocations());
+        assertEquals(ConnectorState.RUNNING, connectorNode.getCurrentState());
     }
 
     @Test
@@ -1365,8 +1394,20 @@ public class TestStandardConnectorNode {
         return createConnectorNode(connector, defaultSecretsManager);
     }
 
+    private StandardConnectorNode createConnectorNode(final Connector connector, final ConnectorStateTransition stateTransition) throws FlowUpdateException {
+        final SecretsManager defaultSecretsManager = mock(SecretsManager.class);
+        when(defaultSecretsManager.getAllSecrets()).thenReturn(List.of());
+        when(defaultSecretsManager.getSecrets(anySet())).thenReturn(Collections.emptyMap());
+        when(defaultSecretsManager.getSecrets(anySet(), anyBoolean())).thenReturn(Collections.emptyMap());
+        return createConnectorNode(connector, defaultSecretsManager, stateTransition);
+    }
+
     private StandardConnectorNode createConnectorNode(final Connector connector, final SecretsManager initializedSecretsManager) throws FlowUpdateException {
-        final ConnectorStateTransition stateTransition = new StandardConnectorStateTransition("TestConnectorNode");
+        return createConnectorNode(connector, initializedSecretsManager, new StandardConnectorStateTransition("TestConnectorNode"));
+    }
+
+    private StandardConnectorNode createConnectorNode(final Connector connector, final SecretsManager initializedSecretsManager,
+            final ConnectorStateTransition stateTransition) throws FlowUpdateException {
         final ConnectorValidationTrigger validationTrigger = new SynchronousConnectorValidationTrigger();
         final StandardConnectorNode node = new StandardConnectorNode(
             "test-connector-id",
@@ -1390,6 +1431,88 @@ public class TestStandardConnectorNode {
         node.initializeConnector(initializationContext);
         node.loadInitialFlow();
         return node;
+    }
+
+    private static class ConcurrentStartConnector extends SleepingConnector {
+        private final CountDownLatch validationRequests = new CountDownLatch(2);
+        private final CountDownLatch validationRelease = new CountDownLatch(1);
+        private final AtomicInteger startInvocations = new AtomicInteger();
+        private volatile boolean validationBlocked;
+
+        private ConcurrentStartConnector() {
+            super(Duration.ZERO);
+        }
+
+        @Override
+        public List<ValidationResult> validate(final FlowContext flowContext, final ConnectorValidationContext connectorValidationContext) {
+            if (validationBlocked) {
+                validationRequests.countDown();
+                try {
+                    validationRelease.await();
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while waiting to release validation", e);
+                }
+            }
+
+            return List.of();
+        }
+
+        @Override
+        public void start(final FlowContext activeContext) {
+            startInvocations.incrementAndGet();
+        }
+
+        private void blockValidation() {
+            validationBlocked = true;
+        }
+
+        private boolean awaitValidationRequests(final long timeout, final TimeUnit timeUnit) throws InterruptedException {
+            return validationRequests.await(timeout, timeUnit);
+        }
+
+        private void releaseValidation() {
+            validationRelease.countDown();
+        }
+
+        private int getStartInvocations() {
+            return startInvocations.get();
+        }
+    }
+
+    private static class CoordinatedConnectorStateTransition extends StandardConnectorStateTransition {
+        private volatile CountDownLatch coordinatedStateReads;
+
+        private CoordinatedConnectorStateTransition() {
+            super("TestConnectorNode");
+        }
+
+        @Override
+        public ConnectorState getCurrentState() {
+            final CountDownLatch stateReads = coordinatedStateReads;
+            final ConnectorState currentState = super.getCurrentState();
+            if (stateReads != null) {
+                stateReads.countDown();
+                try {
+                    if (!stateReads.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("Timed out waiting for coordinated state reads");
+                    }
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while waiting for coordinated state reads", e);
+                } finally {
+                    if (stateReads.getCount() == 0) {
+                        coordinatedStateReads = null;
+                    }
+                }
+            }
+
+            return currentState;
+        }
+
+        private void coordinateNextStateReads(final int count) {
+            coordinatedStateReads = new CountDownLatch(count);
+        }
     }
 
     private static class SynchronousConnectorValidationTrigger implements ConnectorValidationTrigger {

@@ -56,25 +56,47 @@ public class StandardConnectorStateTransition implements ConnectorStateTransitio
 
     @Override
     public boolean trySetCurrentState(final ConnectorState expectedState, final ConnectorState newState) {
-        final boolean changed = currentState.compareAndSet(expectedState, newState);
-        if (changed) {
-            logger.info("Transitioned current state for {} from {} to {}", componentDescription, expectedState, newState);
-            completeFuturesForStateTransition(newState);
+        final List<CompletableFuture<Void>> futuresToComplete;
+        synchronized (this) {
+            final boolean changed = currentState.compareAndSet(expectedState, newState);
+            if (!changed) {
+                return false;
+            }
+
+            futuresToComplete = removePendingFutures(newState);
         }
 
-        return changed;
+        logger.info("Transitioned current state for {} from {} to {}", componentDescription, expectedState, newState);
+        completeFutures(futuresToComplete, newState);
+        return true;
     }
 
     @Override
     public void setCurrentState(final ConnectorState newState) {
-        final ConnectorState oldState = currentState.getAndSet(newState);
+        final ConnectorState oldState;
+        final List<CompletableFuture<Void>> futuresToComplete;
+        synchronized (this) {
+            oldState = currentState.getAndSet(newState);
+            futuresToComplete = removePendingFutures(newState);
+        }
+
         logger.info("Transitioned current state for {} from {} to {}", componentDescription, oldState, newState);
-        completeFuturesForStateTransition(newState);
+        completeFutures(futuresToComplete, newState);
     }
 
     @Override
-    public synchronized void addPendingStartFuture(final CompletableFuture<Void> future) {
-        pendingStartFutures.add(future);
+    public void addPendingStartFuture(final CompletableFuture<Void> future) {
+        final boolean completeImmediately;
+        synchronized (this) {
+            completeImmediately = currentState.get() == ConnectorState.RUNNING;
+            if (!completeImmediately) {
+                pendingStartFutures.add(future);
+            }
+        }
+
+        if (completeImmediately) {
+            future.complete(null);
+        }
     }
 
     @Override
@@ -82,31 +104,29 @@ public class StandardConnectorStateTransition implements ConnectorStateTransitio
         pendingStopFutures.add(future);
     }
 
-    private synchronized void completeFuturesForStateTransition(final ConnectorState newState) {
+    private List<CompletableFuture<Void>> removePendingFutures(final ConnectorState newState) {
         if (newState == ConnectorState.RUNNING) {
             final List<CompletableFuture<Void>> futuresToComplete = new ArrayList<>(pendingStartFutures);
             pendingStartFutures.clear();
-
-            for (final CompletableFuture<Void> future : futuresToComplete) {
-                future.complete(null);
-            }
-
-            if (!futuresToComplete.isEmpty()) {
-                logger.debug("Completed {} pending start futures for {}", futuresToComplete.size(), componentDescription);
-            }
+            return futuresToComplete;
         }
 
         if (newState == ConnectorState.STOPPED) {
             final List<CompletableFuture<Void>> futuresToComplete = new ArrayList<>(pendingStopFutures);
             pendingStopFutures.clear();
+            return futuresToComplete;
+        }
 
-            for (final CompletableFuture<Void> future : futuresToComplete) {
-                future.complete(null);
-            }
+        return List.of();
+    }
 
-            if (!futuresToComplete.isEmpty()) {
-                logger.debug("Completed {} pending stop futures for {}", futuresToComplete.size(), componentDescription);
-            }
+    private void completeFutures(final List<CompletableFuture<Void>> futures, final ConnectorState newState) {
+        for (final CompletableFuture<Void> future : futures) {
+            future.complete(null);
+        }
+
+        if (!futures.isEmpty()) {
+            logger.debug("Completed {} pending futures for {} on transition to {}", futures.size(), componentDescription, newState);
         }
     }
 }
