@@ -110,7 +110,8 @@ public class TestPutUDP {
         checkNoDataReceived();
         runner.assertQueueEmpty();
         assertTrue(runner.getLogger().getErrorMessages().stream()
-                .anyMatch(message -> message.getMsg().contains("exceeds the IPv4 maximum payload")));
+                .anyMatch(message -> message.getMsg().contains("exceeds the IPv4 maximum payload of "
+                        + PutUDP.MAX_IPV4_UDP_PAYLOAD_LENGTH)));
     }
 
     @Test
