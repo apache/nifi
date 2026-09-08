@@ -90,10 +90,11 @@ import java.util.zip.CheckedOutputStream;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Unpack", "un-merge", "tar", "zip", "archive", "flowfile-stream", "flowfile-stream-v3"})
-@CapabilityDescription("Unpacks the content of FlowFiles that have been packaged with one of several different Packaging Formats, emitting one to many "
-        + "FlowFiles for each input FlowFile. Supported formats are TAR, ZIP, and FlowFile Stream packages. For ZIP, every entry that provides a CRC-32 "
-        + "checksum is validated against the uncompressed bytes, including entries that are not extracted because of File Filter. A mismatch means the "
-        + "archive is corrupt: any FlowFiles already created for earlier entries are removed and the original FlowFile is routed to failure.")
+@CapabilityDescription("""
+        Unpacks the content of FlowFiles that have been packaged with one of several different Packaging Formats, emitting one to many \
+        FlowFiles for each input FlowFile. Supported formats are TAR, ZIP, and FlowFile Stream packages. For ZIP, every entry that provides a CRC-32 \
+        checksum is validated against the uncompressed bytes, including entries that are not extracted because of File Filter. A mismatch means the \
+        archive is corrupt: any FlowFiles already created for earlier entries are removed and the original FlowFile is routed to failure.""")
 @ReadsAttribute(attribute = "mime.type", description = "If the <Packaging Format> property is set to use mime.type attribute, this attribute is used "
         + "to determine the FlowFile's MIME Type. In this case, if the attribute is set to application/tar, the TAR Packaging Format will be used. If "
         + "the attribute is set to application/zip, the ZIP Packaging Format will be used. If the attribute is set to application/flowfile-v3 or "
@@ -179,8 +180,9 @@ public class UnpackContent extends AbstractProcessor {
 
     public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
             .name("File Filter")
-            .description("Only files contained in the archive whose names match the given regular expression will be extracted (tar/zip only). "
-                    + "ZIP CRC-32 checksums are still validated for every entry that provides one, even when the entry is not extracted.")
+            .description("""
+                    Only files contained in the archive whose names match the given regular expression will be extracted (tar/zip only). \
+                    ZIP CRC-32 checksums are still validated for every entry that provides one, even when the entry is not extracted.""")
             .required(true)
             .defaultValue(".*")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
@@ -188,8 +190,10 @@ public class UnpackContent extends AbstractProcessor {
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
-            .description("Password used for decrypting Zip archives encrypted with ZipCrypto or AES. Configuring a password disables support for alternative Zip compression algorithms. "
-                    + "CRC-32 validation is not applied when a password is configured because the encrypted Zip reader does not expose the uncompressed checksum.")
+            .description("""
+                    Password used for decrypting Zip archives encrypted with ZipCrypto or AES. Configuring a password disables support for alternative \
+                    Zip compression algorithms. CRC-32 validation is not applied when a password is configured because the encrypted Zip reader does \
+                    not expose the uncompressed checksum.""")
             .required(false)
             .sensitive(true)
             .dependsOn(PACKAGING_FORMAT, PackageFormat.ZIP_FORMAT, PackageFormat.AUTO_DETECT_FORMAT)
