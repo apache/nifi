@@ -45,7 +45,6 @@ import org.apache.nifi.controller.repository.metrics.tracking.StandardStatsTrack
 import org.apache.nifi.controller.repository.metrics.tracking.StatsTracker;
 import org.apache.nifi.controller.scheduling.LifecycleStateManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.extensions.ExtensionRepository;
 import org.apache.nifi.flow.VersionedExternalFlowMetadata;
@@ -111,7 +110,6 @@ public class StandardStatelessEngine implements StatelessEngine {
     private final ExtensionManager extensionManager;
     private final BulletinRepository bulletinRepository;
     private final StatelessStateManagerProvider stateManagerProvider;
-    private final PropertyEncryptor propertyEncryptor;
     private final ProcessScheduler processScheduler;
     private final AssetManager assetManager;
     private final KerberosConfig kerberosConfig;
@@ -139,7 +137,6 @@ public class StandardStatelessEngine implements StatelessEngine {
         this.extensionManager = requireNonNull(builder.extensionManager, "Extension Manager must be provided");
         this.bulletinRepository = requireNonNull(builder.bulletinRepository, "Bulletin Repository must be provided");
         this.stateManagerProvider = requireNonNull(builder.stateManagerProvider, "State Manager Provider must be provided");
-        this.propertyEncryptor = requireNonNull(builder.propertyEncryptor, "Encryptor must be provided");
         this.processScheduler = requireNonNull(builder.processScheduler, "Process Scheduler must be provided");
         this.kerberosConfig = requireNonNull(builder.kerberosConfig, "Kerberos Configuration must be provided");
         this.flowFileEventRepository = requireNonNull(builder.flowFileEventRepository, "FlowFile Event Repository must be provided");
@@ -615,11 +612,6 @@ public class StandardStatelessEngine implements StatelessEngine {
     }
 
     @Override
-    public PropertyEncryptor getPropertyEncryptor() {
-        return propertyEncryptor;
-    }
-
-    @Override
     public ProcessScheduler getProcessScheduler() {
         return processScheduler;
     }
@@ -683,7 +675,6 @@ public class StandardStatelessEngine implements StatelessEngine {
         private ExtensionManager extensionManager = null;
         private BulletinRepository bulletinRepository = null;
         private StatelessStateManagerProvider stateManagerProvider = null;
-        private PropertyEncryptor propertyEncryptor = null;
         private ProcessScheduler processScheduler = null;
         private KerberosConfig kerberosConfig = null;
         private FlowFileEventRepository flowFileEventRepository = null;
@@ -710,10 +701,6 @@ public class StandardStatelessEngine implements StatelessEngine {
             return this;
         }
 
-        public Builder encryptor(final PropertyEncryptor propertyEncryptor) {
-            this.propertyEncryptor = propertyEncryptor;
-            return this;
-        }
 
         public Builder processScheduler(final ProcessScheduler processScheduler) {
             this.processScheduler = processScheduler;

@@ -35,11 +35,11 @@ import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -91,7 +91,7 @@ class StandardProcessGroupTest {
     private ProcessScheduler processScheduler;
 
     @Mock
-    private PropertyEncryptor propertyEncryptor;
+    private PropertyEncryptionProvider propertyEncryptionProvider;
 
     @Mock
     private ExtensionManager extensionManager;
@@ -146,7 +146,7 @@ class StandardProcessGroupTest {
                 ID,
                 controllerServiceProvider,
                 processScheduler,
-                propertyEncryptor,
+                propertyEncryptionProvider,
                 extensionManager,
                 stateManagerProvider,
                 flowManager,
@@ -485,7 +485,7 @@ class StandardProcessGroupTest {
                 id,
                 controllerServiceProvider,
                 processScheduler,
-                propertyEncryptor,
+                propertyEncryptionProvider,
                 extensionManager,
                 stateManagerProvider,
                 flowManager,

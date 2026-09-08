@@ -165,7 +165,6 @@ import org.apache.nifi.controller.tasks.ExpireFlowFiles;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.diagnostics.SystemDiagnosticsFactory;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
@@ -223,6 +222,7 @@ import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.reporting.StandardEventAccess;
 import org.apache.nifi.reporting.UserAwareEventAccess;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -376,9 +376,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final int heartbeatDelaySeconds;
 
     /**
-     * The sensitive property string encryptor *
+     * Provider that protects sensitive values written to and read from the flow configuration
      */
-    private final PropertyEncryptor encryptor;
+    private final PropertyEncryptionProvider propertyEncryptionProvider;
 
     private final ScheduledExecutorService clusterTaskExecutor = new FlowEngine(3, "Clustering Tasks", true);
     private final ResourceClaimManager resourceClaimManager = new StandardResourceClaimManager();
@@ -433,7 +433,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final Authorizer authorizer,
             final AuditService auditService,
             final ComponentMetricReporter componentMetricReporter,
-            final PropertyEncryptor encryptor,
+            final PropertyEncryptionProvider propertyEncryptionProvider,
             final BulletinRepository bulletinRepo,
             final ExtensionDiscoveringManager extensionManager,
             final StatusHistoryRepository statusHistoryRepository,
@@ -449,7 +449,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 authorizer,
                 auditService,
                 componentMetricReporter,
-                encryptor,
+                propertyEncryptionProvider,
                 /* configuredForClustering */ false,
                 /* NodeProtocolSender */ null,
                 bulletinRepo,
@@ -472,7 +472,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final Authorizer authorizer,
             final AuditService auditService,
             final ComponentMetricReporter componentMetricReporter,
-            final PropertyEncryptor encryptor,
+            final PropertyEncryptionProvider propertyEncryptionProvider,
             final NodeProtocolSender protocolSender,
             final BulletinRepository bulletinRepo,
             final ClusterCoordinator clusterCoordinator,
@@ -493,7 +493,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 authorizer,
                 auditService,
                 componentMetricReporter,
-                encryptor,
+                propertyEncryptionProvider,
                 /* configuredForClustering */ true,
                 protocolSender,
                 bulletinRepo,
@@ -516,7 +516,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final Authorizer authorizer,
             final AuditService auditService,
             final ComponentMetricReporter componentMetricReporter,
-            final PropertyEncryptor encryptor,
+            final PropertyEncryptionProvider propertyEncryptionProvider,
             final boolean configuredForClustering,
             final NodeProtocolSender protocolSender,
             final BulletinRepository bulletinRepo,
@@ -533,7 +533,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
         maxTimerDrivenThreads = new AtomicInteger(10);
 
-        this.encryptor = encryptor;
+        this.propertyEncryptionProvider = requireNonNull(propertyEncryptionProvider, "Property Encryption Provider required");
         this.nifiProperties = nifiProperties;
         this.heartbeatMonitor = heartbeatMonitor;
         this.leaderElectionManager = leaderElectionManager;
@@ -1819,8 +1819,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         return connectorValidationTrigger;
     }
 
-    public PropertyEncryptor getEncryptor() {
-        return encryptor;
+    public PropertyEncryptionProvider getPropertyEncryptionProvider() {
+        return propertyEncryptionProvider;
     }
 
     /**

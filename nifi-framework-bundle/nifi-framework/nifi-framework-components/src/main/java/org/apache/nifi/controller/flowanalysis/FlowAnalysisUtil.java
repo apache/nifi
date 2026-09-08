@@ -21,6 +21,11 @@ import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.PropertyEncryptionProviderInitializationContext;
+import org.apache.nifi.security.encryption.SensitivePropertyContext;
+
+import java.nio.charset.StandardCharsets;
 
 public class FlowAnalysisUtil {
     public static final String ENCRYPTED_SENSITIVE_VALUE_SUBSTITUTE = "*****";
@@ -32,7 +37,7 @@ public class FlowAnalysisUtil {
             .stateLookup(VersionedComponentStateLookup.IDENTITY_LOOKUP)
             .componentIdLookup(ComponentIdLookup.USE_COMPONENT_ID)
             .mapSensitiveConfiguration(true)
-            .sensitiveValueEncryptor(value -> ENCRYPTED_SENSITIVE_VALUE_SUBSTITUTE)
+            .propertyEncryptionProvider(new PlaceholderPropertyEncryptionProvider())
             .mapAssetReferences(true)
             .build();
 
@@ -43,7 +48,7 @@ public class FlowAnalysisUtil {
             }
 
             @Override
-            protected String encrypt(String value) {
+            protected String encrypt(String value, SensitivePropertyContext context) {
                 return ENCRYPTED_SENSITIVE_VALUE_SUBSTITUTE;
             }
         };
@@ -51,4 +56,21 @@ public class FlowAnalysisUtil {
         return mapper;
     }
 
+    private static class PlaceholderPropertyEncryptionProvider implements PropertyEncryptionProvider {
+
+        @Override
+        public void initialize(PropertyEncryptionProviderInitializationContext context) {
+
+        }
+
+        @Override
+        public byte[] encrypt(byte[] property, SensitivePropertyContext context) {
+            return ENCRYPTED_SENSITIVE_VALUE_SUBSTITUTE.getBytes(StandardCharsets.UTF_8);
+        }
+
+        @Override
+        public byte[] decrypt(byte[] encryptedProperty, SensitivePropertyContext context) {
+            return encryptedProperty;
+        }
+    }
 }

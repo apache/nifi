@@ -45,9 +45,9 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
-import org.apache.nifi.registry.flow.mapping.SensitiveValueEncryptor;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,7 +60,8 @@ public class VersionedDataflowMapper {
     private final VersionedComponentFlowMapper flowMapper;
     private final ScheduledStateLookup stateLookup;
 
-    public VersionedDataflowMapper(final FlowController flowController, final ExtensionManager extensionManager, final SensitiveValueEncryptor encryptor, final ScheduledStateLookup stateLookup) {
+    public VersionedDataflowMapper(final FlowController flowController, final ExtensionManager extensionManager,
+                                   final PropertyEncryptionProvider propertyEncryptionProvider, final ScheduledStateLookup stateLookup) {
         this.flowController = flowController;
         this.stateLookup = stateLookup;
 
@@ -70,7 +71,7 @@ public class VersionedDataflowMapper {
             .mapSensitiveConfiguration(true)
             .mapPropertyDescriptors(false)
             .stateLookup(versionedComponentStateLookup)
-            .sensitiveValueEncryptor(encryptor)
+            .propertyEncryptionProvider(propertyEncryptionProvider)
             .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
             .mapInstanceIdentifiers(true)
             .mapControllerServiceReferencesToVersionedId(false)

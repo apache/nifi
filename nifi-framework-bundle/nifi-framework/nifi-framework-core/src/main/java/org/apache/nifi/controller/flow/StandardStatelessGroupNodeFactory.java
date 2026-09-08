@@ -64,6 +64,7 @@ import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.engine.StandardStatelessEngine;
 import org.apache.nifi.stateless.engine.StatelessEngine;
@@ -136,7 +137,7 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
             .mapInstanceIdentifiers(true)
             .mapPropertyDescriptors(false)
             .mapSensitiveConfiguration(true)
-            .sensitiveValueEncryptor(value -> value)    // No need to encrypt, since we won't be persisting the flow
+            .propertyEncryptionProvider(new InternalPassThroughPropertyEncryptionProvider())
             .stateLookup(VersionedComponentStateLookup.IDENTITY_LOOKUP)
             .mapAssetReferences(true)
             .build();
@@ -246,7 +247,6 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
         final StatelessEngine statelessEngine = new StandardStatelessEngine.Builder()
             .bulletinRepository(flowController.getBulletinRepository())
             .counterRepository(flowController.getCounterRepository())
-            .encryptor(flowController.getEncryptor())
             .extensionManager(flowController.getExtensionManager())
             .assetManager(flowController.getAssetManager())
             .extensionRepository(extensionRepository)
@@ -299,7 +299,7 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
             .componentIdGenerator(idGenerator)
             .componentScheduler(ComponentScheduler.NOP_SCHEDULER)
             .componentStopTimeout(Duration.ofSeconds(60))
-            .propertyDecryptor(value -> value)
+            .propertyEncryptionProvider(new InternalPassThroughPropertyEncryptionProvider())
             .topLevelGroupId(group.getIdentifier())
             .updateDescendantVersionedFlows(true)
             .updateGroupSettings(true)

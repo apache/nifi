@@ -21,12 +21,12 @@ import org.apache.nifi.c2.protocol.component.api.DefinedType;
 import org.apache.nifi.c2.protocol.component.api.PropertyDescriptor;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.controller.flow.VersionedDataflow;
-import org.apache.nifi.controller.serialization.FlowSerializer;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
 
 import java.util.List;
 import java.util.Map;
@@ -41,11 +41,8 @@ import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Stream.concat;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
 
 public class StandardFlowPropertyEncryptor implements FlowPropertyEncryptor {
-
-    private static final String ENCRYPTED_FORMAT = "enc{%s}";
 
     private final PropertyEncryptor propertyEncryptor;
     private final RuntimeManifest runTimeManifest;
@@ -72,7 +69,7 @@ public class StandardFlowPropertyEncryptor implements FlowPropertyEncryptor {
             .forEach(parameterContext -> ofNullable(parameterContext.getParameters()).orElse(Set.of())
                 .stream()
                 .filter(VersionedParameter::isSensitive)
-                .filter(not(parameter -> ofNullable(parameter.getValue()).orElse(EMPTY).startsWith(FlowSerializer.ENC_PREFIX)))
+                .filter(not(parameter -> PropertyEncryptionEncoder.isEncrypted(parameter.getValue())))
                 .forEach(parameter -> parameter.setValue(encrypt(parameter.getValue()))));
     }
 
@@ -150,13 +147,13 @@ public class StandardFlowPropertyEncryptor implements FlowPropertyEncryptor {
 
     private Function<Entry<String, String>, String> encryptPropertyIfNeeded(Set<String> sensitivePropertyNames) {
         return entry ->
-            sensitivePropertyNames.contains(entry.getKey()) && !entry.getValue().startsWith(FlowSerializer.ENC_PREFIX)
+            sensitivePropertyNames.contains(entry.getKey()) && !PropertyEncryptionEncoder.isEncrypted(entry.getValue())
                 ? encrypt(entry.getValue())
                 : entry.getValue();
     }
 
     private String encrypt(String parameter) {
-        return String.format(ENCRYPTED_FORMAT, propertyEncryptor.encrypt(parameter));
+        return PropertyEncryptionEncoder.getEncoded(propertyEncryptor.encrypt(parameter));
     }
 
 }

@@ -89,11 +89,14 @@ import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -101,6 +104,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -117,8 +121,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.apache.nifi.flow.synchronization.StandardVersionedComponentSynchronizer.ENC_PREFIX;
-import static org.apache.nifi.flow.synchronization.StandardVersionedComponentSynchronizer.ENC_SUFFIX;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -147,11 +149,14 @@ import static org.mockito.Mockito.when;
 
 public class StandardVersionedComponentSynchronizerTest {
 
-    private static final String ENCODED_TEXT = "ENCODED";
+    private static final String DECRYPTED_TEXT = "Decrypted Value";
 
-    private static final String ENCRYPTED_PROPERTY_VALUE = "%s%s%s".formatted(ENC_PREFIX, ENCODED_TEXT, ENC_SUFFIX);
+    private static final String ENCRYPTED_PROPERTY_VALUE = PropertyEncryptionEncoder.getEncoded(
+        HexFormat.of().formatHex(DECRYPTED_TEXT.getBytes(StandardCharsets.UTF_8)));
 
     private static final String SENSITIVE_PROPERTY_NAME = "Access Token";
+
+    private static final String SENSITIVE_PARAMETER_REFERENCE = "#{Access Token Parameter}";
 
     private static final String PARAM_ABC = "abc";
 
@@ -293,6 +298,7 @@ public class StandardVersionedComponentSynchronizerTest {
             .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(componentScheduler)
             .scheduledStateChangeListener(scheduledStateChangeListener)
+            .propertyEncryptionProvider(new InternalPassThroughPropertyEncryptionProvider())
             .build();
 
         synchronizer = new StandardVersionedComponentSynchronizer(context);
@@ -306,6 +312,7 @@ public class StandardVersionedComponentSynchronizerTest {
             .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(componentScheduler)
             .scheduledStateChangeListener(scheduledStateChangeListener)
+            .propertyEncryptionProvider(new InternalPassThroughPropertyEncryptionProvider())
             .componentStopTimeout(Duration.ofMillis(10))
             .componentStopTimeoutAction(timeoutAction)
             .build();
@@ -435,7 +442,37 @@ public class StandardVersionedComponentSynchronizerTest {
 
         final Map<String, String> migratedProperties = propertiesCaptor.getValue();
         final String propertyValue = migratedProperties.get(SENSITIVE_PROPERTY_NAME);
-        assertEquals(ENCODED_TEXT, propertyValue);
+        assertEquals(DECRYPTED_TEXT, propertyValue);
+    }
+
+    /**
+     * A versioned flow stores a sensitive property as plaintext when the value is a Parameter reference, so the
+     * reference must be applied to the component without being processed as an encrypted value.
+     */
+    @Test
+    public void testSynchronizeProcessorSensitiveParameterReferenceRetained() {
+        final ProcessGroup processGroup = createMockProcessGroup();
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier("rootGroup");
+
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setProperties(Collections.singletonMap(SENSITIVE_PROPERTY_NAME, SENSITIVE_PARAMETER_REFERENCE));
+
+        final ProcessorNode processorNode = createMockProcessor();
+        rootGroup.setProcessors(Set.of(versionedProcessor));
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+
+        when(flowManager.createProcessor(any(), any(), any(), eq(true))).thenReturn(processorNode);
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        verify(processorNode).setProperties(propertiesCaptor.capture(), eq(true), eq(Collections.emptySet()));
+
+        final Map<String, String> appliedProperties = propertiesCaptor.getValue();
+        assertEquals(SENSITIVE_PARAMETER_REFERENCE, appliedProperties.get(SENSITIVE_PROPERTY_NAME));
     }
 
     @Test
@@ -460,7 +497,7 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(processorNode).migrateConfiguration(propertiesCaptor.capture(), any());
         Map<String, String> migratedProperties = propertiesCaptor.getValue();
         String propertyValue = migratedProperties.get(SENSITIVE_PROPERTY_NAME);
-        assertEquals(ENCODED_TEXT, propertyValue);
+        assertEquals(DECRYPTED_TEXT, propertyValue);
 
         verify(group).addControllerService(any(ControllerServiceNode.class));
         verify(controllerServiceNode, atLeastOnce()).setName(eq(versionedService.getName()));
@@ -2097,6 +2134,7 @@ public class StandardVersionedComponentSynchronizerTest {
             .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(componentScheduler)
             .scheduledStateChangeListener(scheduledStateChangeListener)
+            .propertyEncryptionProvider(new InternalPassThroughPropertyEncryptionProvider())
             .preservePublicPortNames(preserve)
             .build();
     }
@@ -2147,7 +2185,7 @@ public class StandardVersionedComponentSynchronizerTest {
 
         final Map<String, String> appliedProperties = propertiesCaptor.getValue();
         final String appliedSensitivePropertyValue = appliedProperties.get(SENSITIVE_PROPERTY_NAME);
-        assertEquals(ENCODED_TEXT, appliedSensitivePropertyValue);
+        assertEquals(DECRYPTED_TEXT, appliedSensitivePropertyValue);
     }
 
     private record ScheduledStateUpdate<T>(T component, org.apache.nifi.controller.ScheduledState state) {

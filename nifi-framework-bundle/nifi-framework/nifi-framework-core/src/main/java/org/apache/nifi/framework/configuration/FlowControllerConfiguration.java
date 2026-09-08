@@ -47,14 +47,11 @@ import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.controller.status.history.VolatileComponentStatusRepository;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.diagnostics.bootstrap.BootstrapDiagnosticsFactory;
-import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParser;
 import org.apache.nifi.manifest.RuntimeManifestService;
 import org.apache.nifi.manifest.StandardRuntimeManifestService;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
-import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.NarComponentManager;
 import org.apache.nifi.nar.NarLoader;
 import org.apache.nifi.nar.NarLoaderHolder;
@@ -66,9 +63,7 @@ import org.apache.nifi.nar.StandardNarComponentManager;
 import org.apache.nifi.nar.StandardNarManager;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
-import org.apache.nifi.security.encryption.PropertyEncryptionProviderInitializationContext;
-import org.apache.nifi.security.encryption.SensitivePropertyContext;
-import org.apache.nifi.security.encryption.StandardPropertyEncryptionProviderInitializationContext;
+import org.apache.nifi.security.encryption.PropertyEncryptionProviderFactory;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -84,12 +79,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.io.IOException;
 import java.time.Duration;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
@@ -221,7 +213,7 @@ public class FlowControllerConfiguration {
                     authorizer,
                     auditService,
                     componentMetricReporter(),
-                    propertyEncryptor(),
+                    propertyEncryptionProvider(),
                     bulletinRepository,
                     extensionManager,
                     statusHistoryRepository(),
@@ -237,7 +229,7 @@ public class FlowControllerConfiguration {
                     authorizer,
                     auditService,
                     componentMetricReporter(),
-                    propertyEncryptor(),
+                    propertyEncryptionProvider(),
                     nodeProtocolSender,
                     bulletinRepository,
                     clusterCoordinator,
@@ -310,16 +302,6 @@ public class FlowControllerConfiguration {
     @Bean
     public RuleViolationsManager ruleViolationsManager() {
         return new StandardRuleViolationsManager();
-    }
-
-    /**
-     * Property Encryptor configured using Application Properties
-     *
-     * @return Property Encryptor
-     */
-    @Bean
-    public PropertyEncryptor propertyEncryptor() {
-        return PropertyEncryptorFactory.getPropertyEncryptor(properties);
     }
 
     /**
@@ -558,88 +540,13 @@ public class FlowControllerConfiguration {
     }
 
     /**
-     * Property Encryption Provider configured from NiFi Application Properties
+     * Property Encryption Provider configured from NiFi Application Properties. Installations that do not configure an
+     * implementation class use the password-based provider, which derives a secret key from the sensitive properties key.
      *
      * @return Property Encryption Provider
      */
     @Bean
     public PropertyEncryptionProvider propertyEncryptionProvider() {
-        final PropertyEncryptionProvider propertyEncryptionProvider;
-
-        final String configuredClassName = properties.getProperty(NiFiProperties.PROPERTY_ENCRYPTION_PROVIDER_IMPLEMENTATION);
-        if (configuredClassName == null || configuredClassName.isBlank()) {
-            // Set null implementation for initial configuration pending wiring to framework components
-            propertyEncryptionProvider = null;
-        } else {
-            try {
-                final PropertyEncryptionProvider provider = NarThreadContextClassLoader.createInstance(
-                        extensionManager, configuredClassName, PropertyEncryptionProvider.class, properties
-                );
-                propertyEncryptionProvider = initializePropertyEncryptionProvider(provider);
-            } catch (final Exception e) {
-                throw new IllegalStateException("Failed to create PropertyEncryptionProvider with class [%s]".formatted(configuredClassName), e);
-            }
-        }
-
-        return propertyEncryptionProvider;
-    }
-
-    private PropertyEncryptionProvider initializePropertyEncryptionProvider(final PropertyEncryptionProvider propertyEncryptionProvider) {
-        final PropertyEncryptionProvider wrappedPropertyEncryptionProvider = wrapWithComponentNarLoader(propertyEncryptionProvider);
-        try {
-            final PropertyEncryptionProviderInitializationContext initializationContext = new StandardPropertyEncryptionProviderInitializationContext(
-                    getPropertyEncryptionProviderProperties(), sslContext, trustManager
-            );
-            wrappedPropertyEncryptionProvider.initialize(initializationContext);
-            return wrappedPropertyEncryptionProvider;
-        } catch (final RuntimeException e) {
-            try {
-                wrappedPropertyEncryptionProvider.close();
-            } catch (final Exception closeException) {
-                e.addSuppressed(closeException);
-            }
-            throw e;
-        }
-    }
-
-    private PropertyEncryptionProvider wrapWithComponentNarLoader(final PropertyEncryptionProvider propertyEncryptionProvider) {
-        final ClassLoader componentClassLoader = propertyEncryptionProvider.getClass().getClassLoader();
-        return new PropertyEncryptionProvider() {
-            @Override
-            public void initialize(final PropertyEncryptionProviderInitializationContext context) {
-                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(componentClassLoader)) {
-                    propertyEncryptionProvider.initialize(context);
-                }
-            }
-
-            @Override
-            public byte[] encrypt(final byte[] property, final SensitivePropertyContext context) {
-                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(componentClassLoader)) {
-                    return propertyEncryptionProvider.encrypt(property, context);
-                }
-            }
-
-            @Override
-            public byte[] decrypt(final byte[] encryptedProperty, final SensitivePropertyContext context) {
-                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(componentClassLoader)) {
-                    return propertyEncryptionProvider.decrypt(encryptedProperty, context);
-                }
-            }
-
-            @Override
-            public void close() throws IOException {
-                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(componentClassLoader)) {
-                    propertyEncryptionProvider.close();
-                }
-            }
-        };
-    }
-
-    private Map<String, String> getPropertyEncryptionProviderProperties() {
-        final String prefix = NiFiProperties.PROPERTY_ENCRYPTION_PROVIDER_PREFIX;
-        return properties.getPropertiesWithPrefix(prefix)
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(entry -> entry.getKey().substring(prefix.length()), Map.Entry::getValue));
+        return PropertyEncryptionProviderFactory.getPropertyEncryptionProvider(extensionManager, properties, sslContext, trustManager);
     }
 }

@@ -242,7 +242,9 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     public ProcessGroup createProcessGroup(final String id, final String connectorId) {
         final ProcessGroup created = new StandardProcessGroup(id, statelessEngine.getControllerServiceProvider(),
             statelessEngine.getProcessScheduler(),
-            statelessEngine.getPropertyEncryptor(),
+            // The Stateless runtime neither restores a persisted flow nor places a group under version control, so no
+            // sensitive value passes through the group and no Property Encryption Provider is required
+            null,
             statelessEngine.getExtensionManager(),
             statelessEngine.getStateManagerProvider(),
             this,

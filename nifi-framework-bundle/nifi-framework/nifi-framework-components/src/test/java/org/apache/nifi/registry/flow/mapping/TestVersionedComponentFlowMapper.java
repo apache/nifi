@@ -46,8 +46,15 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.registry.flow.diff.SensitiveValueDecryptor;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.PropertyEncryptionProviderInitializationContext;
+import org.apache.nifi.security.encryption.ProviderSensitiveValueDecryptor;
+import org.apache.nifi.security.encryption.SensitivePropertyContext;
+import org.apache.nifi.security.encryption.SensitivePropertyContextFactory;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
@@ -68,7 +75,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestVersionedComponentFlowMapper {
-    private static final SensitiveValueEncryptor ENCRYPTOR = value -> new StringBuilder(value).reverse().toString();
+    private static final String PROCESSOR_TYPE = "org.apache.nifi.processors.standard.InvokeHTTP";
+
+    private static final String SENSITIVE_PROPERTY_NAME = "Sensitive Property B";
+
+    private static final String SENSITIVE_PROPERTY_VALUE = "A B C";
+
+    private static final String NON_SENSITIVE_PROPERTY_NAME = "Property A";
 
     @Test
     public void testMappingProcessorWithSensitiveValuesGivesNullValue() {
@@ -116,8 +129,8 @@ public class TestVersionedComponentFlowMapper {
         final FlowMappingOptions mappingOptions = new FlowMappingOptions.Builder()
             .stateLookup(VersionedComponentStateLookup.IDENTITY_LOOKUP)
             .componentIdLookup(ComponentIdLookup.USE_COMPONENT_ID)
+            .propertyEncryptionProvider(new RecordingPropertyEncryptionProvider())
             .mapSensitiveConfiguration(true)
-            .sensitiveValueEncryptor(ENCRYPTOR)
             .build();
 
         final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(extensionManager, mappingOptions);
@@ -133,7 +146,62 @@ public class TestVersionedComponentFlowMapper {
 
         final Map<String, String> versionedProperties = versionedProcessor.getProperties();
         assertEquals("A", versionedProperties.get("Property A"));
-        assertEquals("enc{C B A}", versionedProperties.get("Sensitive Property B"));
+        assertEquals(PropertyEncryptionEncoder.getEncoded("4320422041"), versionedProperties.get("Sensitive Property B"));
+    }
+
+    /**
+     * The context supplied when a sensitive property is mapped must describe the component instance and the property,
+     * because a Property Encryption Provider may bind the context to the encrypted value
+     */
+    @Test
+    public void testMappingProcessorWithProviderSuppliesComponentContext() {
+        final RecordingPropertyEncryptionProvider provider = new RecordingPropertyEncryptionProvider();
+        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(mock(ExtensionManager.class), createProviderMappingOptions(provider));
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(NON_SENSITIVE_PROPERTY_NAME, "A");
+        properties.put(SENSITIVE_PROPERTY_NAME, SENSITIVE_PROPERTY_VALUE);
+
+        final ProcessorNode procNode = createProcessorNode(properties);
+        mapper.mapProcessor(procNode, mock(ControllerServiceProvider.class), Collections.emptySet(), Collections.emptyMap());
+
+        assertEquals(1, provider.encryptionContexts.size());
+        assertEquals(
+                SensitivePropertyContextFactory.forComponent(procNode.getIdentifier(), PROCESSOR_TYPE, SENSITIVE_PROPERTY_NAME),
+                provider.encryptionContexts.getFirst()
+        );
+    }
+
+    /**
+     * Synchronization rebuilds the context from the mapped component rather than from the component node, so the mapped
+     * component must carry enough information to reproduce the context supplied during mapping
+     */
+    @Test
+    public void testSensitivePropertyContextEqualForMappingAndSynchronization() {
+        final RecordingPropertyEncryptionProvider provider = new RecordingPropertyEncryptionProvider();
+        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(mock(ExtensionManager.class), createProviderMappingOptions(provider));
+
+        final ProcessorNode procNode = createProcessorNode(Collections.singletonMap(SENSITIVE_PROPERTY_NAME, SENSITIVE_PROPERTY_VALUE));
+        final VersionedProcessor versionedProcessor = mapper.mapProcessor(procNode, mock(ControllerServiceProvider.class), Collections.emptySet(), Collections.emptyMap());
+
+        final String mappedValue = versionedProcessor.getProperties().get(SENSITIVE_PROPERTY_NAME);
+        final String encryptedValue = PropertyEncryptionEncoder.getDecoded(mappedValue);
+
+        final SensitiveValueDecryptor decryptor = new ProviderSensitiveValueDecryptor(provider);
+        final String decrypted = decryptor.decrypt(versionedProcessor, SENSITIVE_PROPERTY_NAME, encryptedValue);
+
+        assertEquals(SENSITIVE_PROPERTY_VALUE, decrypted);
+        assertEquals(provider.encryptionContexts, provider.decryptionContexts);
+    }
+
+    private FlowMappingOptions createProviderMappingOptions(final PropertyEncryptionProvider provider) {
+        return new FlowMappingOptions.Builder()
+                .stateLookup(VersionedComponentStateLookup.IDENTITY_LOOKUP)
+                .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
+                .mapInstanceIdentifiers(true)
+                .mapSensitiveConfiguration(true)
+                .propertyEncryptionProvider(provider)
+                .build();
     }
 
     @Test
@@ -212,7 +280,7 @@ public class TestVersionedComponentFlowMapper {
         final List<VersionedNodeState> localNodeStates = mappedState.getLocalNodeStates();
         assertNotNull(localNodeStates);
         assertEquals(1, localNodeStates.size());
-        assertEquals(localState, localNodeStates.get(0).getState());
+        assertEquals(localState, localNodeStates.getFirst().getState());
     }
 
     @Test
@@ -272,6 +340,40 @@ public class TestVersionedComponentFlowMapper {
         }
     }
 
+    /**
+     * Provider that records the contexts supplied to each operation so that encryption and decryption contexts can be
+     * compared, and reverses the supplied bytes so that the encoded value differs from the plain value
+     */
+    private static class RecordingPropertyEncryptionProvider implements PropertyEncryptionProvider {
+        private final List<SensitivePropertyContext> encryptionContexts = new ArrayList<>();
+
+        private final List<SensitivePropertyContext> decryptionContexts = new ArrayList<>();
+
+        @Override
+        public void initialize(final PropertyEncryptionProviderInitializationContext context) {
+        }
+
+        @Override
+        public byte[] encrypt(final byte[] property, final SensitivePropertyContext context) {
+            encryptionContexts.add(context);
+            return getReversed(property);
+        }
+
+        @Override
+        public byte[] decrypt(final byte[] encryptedProperty, final SensitivePropertyContext context) {
+            decryptionContexts.add(context);
+            return getReversed(encryptedProperty);
+        }
+
+        private byte[] getReversed(final byte[] bytes) {
+            final byte[] reversed = new byte[bytes.length];
+            for (int i = 0; i < bytes.length; i++) {
+                reversed[i] = bytes[bytes.length - 1 - i];
+            }
+            return reversed;
+        }
+    }
+
     private ProcessorNode createProcessorNode(final Map<String, String> properties) {
         final ExpressionLanguageAgnosticParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
 
@@ -310,6 +412,7 @@ public class TestVersionedComponentFlowMapper {
 
         final String id = UUID.randomUUID().toString();
         when(procNode.getIdentifier()).thenReturn(id);
+        when(procNode.getCanonicalClassName()).thenReturn(PROCESSOR_TYPE);
 
         when(procNode.getBulletinLevel()).thenReturn(LogLevel.WARN);
         when(procNode.getExecutionNode()).thenReturn(ExecutionNode.ALL);

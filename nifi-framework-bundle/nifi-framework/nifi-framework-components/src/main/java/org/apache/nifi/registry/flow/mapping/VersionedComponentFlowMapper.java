@@ -113,6 +113,11 @@ import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.SensitivePropertyCodec;
+import org.apache.nifi.security.encryption.SensitivePropertyContext;
+import org.apache.nifi.security.encryption.SensitivePropertyContextFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -133,9 +138,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class VersionedComponentFlowMapper {
-    private static final String ENCRYPTED_PREFIX = "enc{";
-    private static final String ENCRYPTED_SUFFIX = "}";
-
     private final ExtensionManager extensionManager;
     private final FlowMappingOptions flowMappingOptions;
     private final ParameterValueMapper parameterValueMapper;
@@ -155,7 +157,7 @@ public class VersionedComponentFlowMapper {
         this.flowMappingOptions = flowMappingOptions;
 
         if (flowMappingOptions.isMapSensitiveConfiguration()) {
-            this.parameterValueMapper = new StandardParameterValueMapper(flowMappingOptions.getSensitiveValueEncryptor());
+            this.parameterValueMapper = new StandardParameterValueMapper(flowMappingOptions.getPropertyEncryptionProvider());
         } else {
             this.parameterValueMapper = new FilterSensitiveParameterValueMapper();
         }
@@ -604,7 +606,9 @@ public class VersionedComponentFlowMapper {
                 }
 
                 if (property.isSensitive()) {
-                    value = encrypt(value);
+                    final SensitivePropertyContext context = SensitivePropertyContextFactory.forComponent(
+                            component.getIdentifier(), component.getCanonicalClassName(), property.getName());
+                    value = encrypt(value, context);
                 }
 
                 mapped.put(property.getName(), value);
@@ -613,19 +617,18 @@ public class VersionedComponentFlowMapper {
         return mapped;
     }
 
-    protected String encrypt(final String value) {
+    protected String encrypt(final String value, final SensitivePropertyContext context) {
         if (value == null) {
             return null;
         }
 
-        final SensitiveValueEncryptor encryptor = flowMappingOptions.getSensitiveValueEncryptor();
-        if (encryptor == null) {
-            // This will happen only if the given property is mappable, which means that it is a parameter reference.
+        final PropertyEncryptionProvider propertyEncryptionProvider = flowMappingOptions.getPropertyEncryptionProvider();
+        if (propertyEncryptionProvider == null) {
             return value;
+        } else {
+            final String encrypted = SensitivePropertyCodec.encrypt(propertyEncryptionProvider, value, context);
+            return PropertyEncryptionEncoder.getEncoded(encrypted);
         }
-
-        final String encrypted = encryptor.encrypt(value);
-        return ENCRYPTED_PREFIX + encrypted + ENCRYPTED_SUFFIX;
     }
 
     private boolean isMappable(final PropertyDescriptor propertyDescriptor, final PropertyConfiguration propertyConfiguration) {
@@ -875,7 +878,8 @@ public class VersionedComponentFlowMapper {
         rpg.setProxyPort(remoteGroup.getProxyPort());
         rpg.setProxyUser(remoteGroup.getProxyUser());
         if (flowMappingOptions.isMapSensitiveConfiguration()) {
-            rpg.setProxyPassword(encrypt(remoteGroup.getProxyPassword()));
+            final SensitivePropertyContext context = SensitivePropertyContextFactory.forRemoteProcessGroupProxyPassword(remoteGroup.getIdentifier());
+            rpg.setProxyPassword(encrypt(remoteGroup.getProxyPassword(), context));
         }
         rpg.setTargetUris(remoteGroup.getTargetUris());
         rpg.setTransportProtocol(remoteGroup.getTransportProtocol().name());
@@ -1011,7 +1015,7 @@ public class VersionedComponentFlowMapper {
                 .getReferencedControllerServiceData(parameterContext, parameterDescriptor.getName());
 
             if (referencedControllerServiceData.isEmpty()) {
-                versionedParameter = mapParameter(parameter);
+                versionedParameter = mapParameter(parameterContext.getName(), parameter);
             } else {
                 final String referencedVersionServiceId = referencedControllerServiceData.getFirst().getVersionedServiceId();
                 final String parameterValue = parameter.getValue();
@@ -1019,19 +1023,19 @@ public class VersionedComponentFlowMapper {
                 // If a referenced Versioned Service ID is available, use it directly. Do not attempt to
                 // generate or cache a mapping using a null component identifier.
                 if (referencedVersionServiceId != null) {
-                    versionedParameter = mapParameter(parameter, referencedVersionServiceId);
+                    versionedParameter = mapParameter(parameterContext.getName(), parameter, referencedVersionServiceId);
                 } else if (parameterValue != null && !parameterValue.isBlank()) {
                     // If the parameter has a concrete (non-empty) value referencing a service instance id,
                     // generate a stable Versioned ID for it.
                     final String serviceId = getId(Optional.empty(), parameterValue);
-                    versionedParameter = mapParameter(parameter, serviceId);
+                    versionedParameter = mapParameter(parameterContext.getName(), parameter, serviceId);
                 } else {
                     // No referenced service and no parameter value specified; map as null to avoid NPE
-                    versionedParameter = mapParameter(parameter, null);
+                    versionedParameter = mapParameter(parameterContext.getName(), parameter, null);
                 }
             }
         } else {
-            versionedParameter = mapParameter(parameter);
+            versionedParameter = mapParameter(parameterContext.getName(), parameter);
         }
 
         return versionedParameter;
@@ -1055,11 +1059,11 @@ public class VersionedComponentFlowMapper {
         return reference;
     }
 
-    private VersionedParameter mapParameter(final Parameter parameter) {
-        return mapParameter(parameter, parameter.getValue());
+    private VersionedParameter mapParameter(final String parameterContextName, final Parameter parameter) {
+        return mapParameter(parameterContextName, parameter, parameter.getValue());
     }
 
-    private VersionedParameter mapParameter(final Parameter parameter, final String value) {
+    private VersionedParameter mapParameter(final String parameterContextName, final Parameter parameter, final String value) {
         final ParameterDescriptor descriptor = parameter.getDescriptor();
 
         final VersionedParameter versionedParameter = new VersionedParameter();
@@ -1070,7 +1074,7 @@ public class VersionedComponentFlowMapper {
 
         final List<Asset> referencedAssets = parameter.getReferencedAssets();
         if (referencedAssets == null || referencedAssets.isEmpty()) {
-            final String mapped = parameterValueMapper.getMapped(parameter, value);
+            final String mapped = parameterValueMapper.getMapped(parameterContextName, parameter, value);
             versionedParameter.setValue(mapped);
         } else if (flowMappingOptions.isMapAssetReferences()) {
             final List<VersionedAsset> assetIds = referencedAssets.stream()

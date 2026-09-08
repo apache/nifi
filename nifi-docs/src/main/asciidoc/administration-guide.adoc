@@ -1928,22 +1928,49 @@ Clustered installations of NiFi require the same value to be configured on all n
 
 A Property Encryption Provider is a framework extension, packaged in a NiFi Archive, for protecting sensitive values.
 NiFi loads and initializes the provider during startup using the class name configured in
-`nifi.security.property.encryption.provider.implementation`, and does not load a provider when the property is empty.
-When the property is missing, NiFi loads the standard password-based implementation to support existing configurations.
+`nifi.security.property.encryption.provider.implementation`. When the property is empty or missing, NiFi loads the
+standard password-based implementation to support existing configurations.
 
 The standard distribution includes `org.apache.nifi.security.encryption.password.PasswordBasedPropertyEncryptionProvider`,
 which derives a secret key from `nifi.sensitive.props.key` using the Key Derivation Function selected in
 `nifi.sensitive.props.algorithm`. This provider reads and writes the encrypted representation described in
 <<property-encryption-algorithms>>.
 
-Flow serialization continues to use `nifi.sensitive.props.key` and `nifi.sensitive.props.algorithm` directly.
-Loading a Property Encryption Provider does not change the encryption used for persisted flow configuration.
+The configured provider protects the following values:
+
+* Sensitive component properties written to and read from the persisted flow configuration
+* Sensitive Parameter values written to and read from the persisted flow configuration
+* OpenID Connect authorized client tokens stored on behalf of authenticated users
+
+Because the standard password-based provider produces the representation described in
+<<property-encryption-algorithms>>, a flow configuration written by an earlier version of NiFi continues to load
+without additional migration.
+
+==== Sensitive Property Context
+
+NiFi supplies a Sensitive Property Context with every encryption and decryption operation. The context carries a
+category describing the kind of value being protected, together with attributes describing where the value is located.
+Component properties supply the component identifier, the component type, and the property name. Parameters supply the
+Parameter Context name and the Parameter name. Authorization tokens carry no attributes, because nothing describing the
+authenticated user is known before the stored token is decrypted.
+
+An implementation can supply the context to an external Key Management Service as encryption context, which binds the
+encrypted value to its location in the flow and records the location for auditing. NiFi supplies the same context when
+decrypting a value as it supplied when the value was encrypted. An implementation that binds the context to the
+encrypted value must therefore be prepared for a value to become unreadable if the component or the Parameter that owns
+it is renamed or recreated with a different identifier.
+
+==== Provider Configuration
 
 A provider can read additional configuration from properties that begin with
 `nifi.security.property.encryption.provider.properties.`. NiFi removes the prefix before supplying the properties to the
 provider, so `nifi.security.property.encryption.provider.properties.endpoint` is supplied to the provider as `endpoint`.
 Providers that call remote services, such as implementations backed by an external Key Management Service, can also
 use the TLS configuration that NiFi supplies during initialization.
+
+Changing the configured provider, or changing the key material that a provider uses, makes existing encrypted values
+unreadable. Sensitive values must be reentered after such a change unless the new configuration resolves to the same
+key material.
 
 [[admin-toolkit]]
 == NiFi Toolkit Administrative Tools
@@ -3622,7 +3649,7 @@ These properties pertain to various security features in NiFi. Many of these pro
 |*Property*|*Description*
 |`nifi.sensitive.props.key`|This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
 |`nifi.sensitive.props.algorithm`|The algorithm used to encrypt sensitive properties. The default value is `NIFI_PBKDF2_AES_GCM_256`.
-|`nifi.security.property.encryption.provider.implementation`|The class name of the Property Encryption Provider loaded and initialized during application startup. The default value is `org.apache.nifi.security.encryption.password.PasswordBasedPropertyEncryptionProvider`, which derives a secret key from `nifi.sensitive.props.key`. NiFi does not load a provider when the value is blank. See <<property-encryption-providers>> for additional information.
+|`nifi.security.property.encryption.provider.implementation`|The class name of the Property Encryption Provider loaded and initialized during application startup. The provider protects sensitive component properties, sensitive Parameter values, and OpenID Connect authorized client tokens. The default value is `org.apache.nifi.security.encryption.password.PasswordBasedPropertyEncryptionProvider`, which derives a secret key from `nifi.sensitive.props.key`. NiFi loads the default implementation when the value is blank. See <<property-encryption-providers>> for additional information.
 |`nifi.security.property.encryption.provider.properties.`|The prefix for properties supplied to the configured Property Encryption Provider. NiFi removes the prefix from the property name before supplying the property to the provider. No properties are configured by default.
 |`nifi.security.autoreload.enabled`|Specifies whether the SSL context factory should be automatically reloaded if updates to the keystore and truststore are detected. By default, it is set to `false`.
 |`nifi.security.autoreload.interval`|Specifies the interval at which the keystore and truststore are checked for updates. Only applies if `nifi.security.autoreload.enabled` is set to `true`. The default value is `10 secs`.

@@ -52,7 +52,6 @@ import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.encrypt.EncryptionException;
 import org.apache.nifi.flow.BatchSize;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ComponentType;
@@ -63,6 +62,7 @@ import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedComponentState;
+import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -88,7 +88,6 @@ import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.FlowSynchronizationOptions.ComponentStopTimeoutAction;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.groups.PropertyDecryptor;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.groups.StandardVersionedFlowStatus;
@@ -119,6 +118,7 @@ import org.apache.nifi.registry.flow.diff.FlowComparator;
 import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
+import org.apache.nifi.registry.flow.diff.SensitiveValueDecryptor;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
@@ -130,6 +130,12 @@ import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
+import org.apache.nifi.security.encryption.PropertyEncryptionException;
+import org.apache.nifi.security.encryption.ProviderSensitiveValueDecryptor;
+import org.apache.nifi.security.encryption.SensitivePropertyCodec;
+import org.apache.nifi.security.encryption.SensitivePropertyContext;
+import org.apache.nifi.security.encryption.SensitivePropertyContextFactory;
 import org.apache.nifi.util.FlowDifferenceFilters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,9 +169,6 @@ import java.util.stream.Collectors;
 public class StandardVersionedComponentSynchronizer implements VersionedComponentSynchronizer {
     private static final Logger LOG = LoggerFactory.getLogger(StandardVersionedComponentSynchronizer.class);
     private static final String TEMP_FUNNEL_ID_SUFFIX = "-temp-funnel";
-    public static final String ENC_PREFIX = "enc{";
-    public static final String ENC_SUFFIX = "}";
-
     private static final ParameterParser agnosticParameterParser = new ExpressionLanguageAgnosticParameterParser();
     private final VersionedFlowSynchronizationContext context;
     private final Set<String> updatedVersionedComponentIds = new HashSet<>();
@@ -330,9 +333,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Currently Loaded Flow", versionedGroup);
         final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("Proposed Flow", versionedExternalFlow.getFlowContents());
 
-        final PropertyDecryptor decryptor = options.getPropertyDecryptor();
+        final SensitiveValueDecryptor sensitiveValueDecryptor = options.isDropEncryptedValues()
+            ? (owner, valueName, encryptedValue) -> null
+            : new ProviderSensitiveValueDecryptor(options.getPropertyEncryptionProvider());
         final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow,
-            new StaticDifferenceDescriptor(), decryptor::decrypt, options.getComponentComparisonIdLookup(), FlowComparatorVersionedStrategy.DEEP);
+            new StaticDifferenceDescriptor(), sensitiveValueDecryptor, options.getComponentComparisonIdLookup(), FlowComparatorVersionedStrategy.DEEP);
         final FlowComparison flowComparison = flowComparator.compare();
 
         updatedVersionedComponentIds.clear();
@@ -1460,7 +1465,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             destination.addControllerService(newService);
         }
 
-        final Map<String, String> decryptedProperties = getDecryptedProperties(proposed.getProperties());
+        final Map<String, String> decryptedProperties = getDecryptedProperties(proposed, proposed.getProperties());
         createdAndModifiedExtensions.add(new CreatedOrModifiedExtension(newService, decryptedProperties));
 
         updateControllerService(newService, proposed, topLevelGroup);
@@ -1604,7 +1609,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
 
             final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(service, proposed.getProperties(), proposed.getPropertyDescriptors().values());
-            final Map<String, String> properties = populatePropertiesMap(service, proposed.getProperties(), proposed.getPropertyDescriptors(), service.getProcessGroup(), topLevelGroup);
+            final Map<String, String> properties = populatePropertiesMap(service, proposed, proposed.getProperties(), proposed.getPropertyDescriptors(), service.getProcessGroup(), topLevelGroup);
             service.setProperties(properties, true, sensitiveDynamicPropertyNames);
 
         } finally {
@@ -1631,7 +1636,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         // Find Encrypted Property values and find associated dynamic Property Descriptor names
         proposedProperties.entrySet()
                 .stream()
-                .filter(entry -> isValueEncrypted(entry.getValue()))
+                .filter(entry -> PropertyEncryptionEncoder.isEncrypted(entry.getValue()))
                 .map(Map.Entry::getKey)
                 .map(componentNode::getPropertyDescriptor)
                 .filter(PropertyDescriptor::isDynamic)
@@ -1641,9 +1646,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         return sensitiveDynamicPropertyNames;
     }
 
-    private Map<String, String> populatePropertiesMap(final ComponentNode componentNode, final Map<String, String> proposedProperties,
-                                                      final Map<String, VersionedPropertyDescriptor> proposedPropertyDescriptors,
-                                                      final ProcessGroup group, final ProcessGroup topLevelGroup) {
+    private Map<String, String> populatePropertiesMap(
+            final ComponentNode componentNode,
+            final VersionedComponent proposedComponent,
+            final Map<String, String> proposedProperties,
+            final Map<String, VersionedPropertyDescriptor> proposedPropertyDescriptors,
+            final ProcessGroup group,
+            final ProcessGroup topLevelGroup
+    ) {
 
         // Explicitly set all existing properties to null, except for sensitive properties, so that if there isn't an entry in the proposedProperties
         // it will get removed from the processor. We don't do this for sensitive properties because when we retrieve the VersionedProcessGroup from registry,
@@ -1717,7 +1727,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     // so we want to continue on and update the value to null.
                 }
 
-                fullPropertyMap.put(propertyName, decrypt(value, syncOptions.getPropertyDecryptor()));
+                final String resolvedValue = PropertyEncryptionEncoder.isEncrypted(value)
+                        ? decrypt(value, getSensitivePropertyContext(proposedComponent, propertyName))
+                        : value;
+                fullPropertyMap.put(propertyName, resolvedValue);
             }
         }
 
@@ -1728,34 +1741,54 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         return !agnosticParameterParser.parseTokens(proposedValue).toReferenceList().isEmpty();
     }
 
-    private Map<String, String> getDecryptedProperties(final Map<String, String> properties) {
+    private Map<String, String> getDecryptedProperties(final VersionedComponent component, final Map<String, String> properties) {
         final Map<String, String> decryptedProperties = new LinkedHashMap<>();
 
-        final PropertyDecryptor decryptor = syncOptions.getPropertyDecryptor();
         properties.forEach((propertyName, propertyValue) -> {
-            final String propertyValueDecrypted = decrypt(propertyValue, decryptor);
-            decryptedProperties.put(propertyName, propertyValueDecrypted);
+            final String resolvedValue = PropertyEncryptionEncoder.isEncrypted(propertyValue)
+                    ? decrypt(propertyValue, getSensitivePropertyContext(component, propertyName))
+                    : propertyValue;
+            decryptedProperties.put(propertyName, resolvedValue);
         });
 
         return decryptedProperties;
     }
 
-    private static String decrypt(final String value, final PropertyDecryptor decryptor) {
-        if (isValueEncrypted(value)) {
-            try {
-                return decryptor.decrypt(value.substring(ENC_PREFIX.length(), value.length() - ENC_SUFFIX.length()));
-            } catch (EncryptionException e) {
-                final String moreDescriptiveMessage = "There was a problem decrypting a sensitive flow configuration value. " +
-                        "Check that the nifi.sensitive.props.key value in nifi.properties matches the value used to encrypt the flow.json.gz file";
-                throw new EncryptionException(moreDescriptiveMessage, e);
-            }
-        } else {
-            return value;
-        }
+    /**
+     * Get the context describing a sensitive property of the proposed component. The instance identifier is used rather than the
+     * identifier, because the identifier of a mapped component is a generated versioned identifier while the context supplied when
+     * the value was encrypted described the component instance.
+     */
+    private static SensitivePropertyContext getSensitivePropertyContext(final VersionedComponent component, final String propertyName) {
+        final String componentType = component instanceof final VersionedConfigurableExtension extension ? extension.getType() : null;
+        return SensitivePropertyContextFactory.forComponent(component.getInstanceIdentifier(), componentType, propertyName);
     }
 
-    private static boolean isValueEncrypted(final String value) {
-        return value != null && value.startsWith(ENC_PREFIX) && value.endsWith(ENC_SUFFIX);
+    /**
+     * Decrypt a sensitive value read from a versioned flow. Callers must confirm that the value is encrypted using
+     * {@link PropertyEncryptionEncoder#isEncrypted(String)}, because a versioned flow also stores sensitive values as
+     * plaintext when the value is a Parameter reference or when the flow was mapped without a Property Encryption Provider.
+     *
+     * @param value Encrypted value wrapped with the standard prefix and suffix
+     * @param context Context describing the sensitive property, which must equal the context supplied on encryption
+     * @return Decrypted value, or null when synchronization is configured to drop encrypted values
+     */
+    private String decrypt(final String value, final SensitivePropertyContext context) {
+        final String encryptedValue = PropertyEncryptionEncoder.getDecoded(value);
+
+        final String decrypted;
+
+        if (syncOptions.isDropEncryptedValues()) {
+            decrypted = null;
+        } else {
+            try {
+                decrypted = SensitivePropertyCodec.decrypt(syncOptions.getPropertyEncryptionProvider(), encryptedValue, context);
+            } catch (final PropertyEncryptionException e) {
+                throw new PropertyEncryptionException("Configured Property Encryption Provider failed to decrypt sensitive values", e);
+            }
+        }
+
+        return decrypted;
     }
 
     private void verifyCanSynchronize(final ParameterContext parameterContext, final VersionedParameterContext proposed) throws FlowSynchronizationException {
@@ -2797,7 +2830,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         destination.addProcessor(procNode);
 
-        final Map<String, String> decryptedProperties = getDecryptedProperties(proposed.getProperties());
+        final Map<String, String> decryptedProperties = getDecryptedProperties(proposed, proposed.getProperties());
         createdAndModifiedExtensions.add(new CreatedOrModifiedExtension(procNode, decryptedProperties));
 
         updateProcessor(procNode, proposed, topLevelGroup);
@@ -3127,7 +3160,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
 
             final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(processor, proposed.getProperties(), proposed.getPropertyDescriptors().values());
-            final Map<String, String> properties = populatePropertiesMap(processor, proposed.getProperties(), proposed.getPropertyDescriptors(), processor.getProcessGroup(), topLevelGroup);
+            final Map<String, String> properties = populatePropertiesMap(processor, proposed, proposed.getProperties(), proposed.getPropertyDescriptors(), processor.getProcessGroup(), topLevelGroup);
             processor.setProperties(properties, true, sensitiveDynamicPropertyNames);
             processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
             processor.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
@@ -3324,7 +3357,12 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         rpg.setProxyHost(proposed.getProxyHost());
         rpg.setProxyPort(proposed.getProxyPort());
         rpg.setProxyUser(proposed.getProxyUser());
-        rpg.setProxyPassword(decrypt(proposed.getProxyPassword(), syncOptions.getPropertyDecryptor()));
+
+        final String proposedProxyPassword = proposed.getProxyPassword();
+        final String proxyPassword = PropertyEncryptionEncoder.isEncrypted(proposedProxyPassword)
+                ? decrypt(proposedProxyPassword, SensitivePropertyContextFactory.forRemoteProcessGroupProxyPassword(proposed.getInstanceIdentifier()))
+                : proposedProxyPassword;
+        rpg.setProxyPassword(proxyPassword);
         rpg.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(proposed.getTransportProtocol()));
         rpg.setYieldDuration(proposed.getYieldDuration());
 
@@ -3882,7 +3920,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final ReportingTaskNode taskNode = context.getFlowManager().createReportingTask(reportingTask.getType(), reportingTask.getInstanceIdentifier(), coordinate, false);
         updateReportingTask(taskNode, reportingTask);
 
-        final Map<String, String> decryptedProperties = getDecryptedProperties(reportingTask.getProperties());
+        final Map<String, String> decryptedProperties = getDecryptedProperties(reportingTask, reportingTask.getProperties());
         createdAndModifiedExtensions.add(new CreatedOrModifiedExtension(taskNode, decryptedProperties));
 
         return taskNode;

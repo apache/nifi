@@ -18,7 +18,10 @@ package org.apache.nifi.web.security.oidc.client.web.converter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.SensitivePropertyCodec;
+import org.apache.nifi.security.encryption.SensitivePropertyContext;
+import org.apache.nifi.security.encryption.SensitivePropertyContextFactory;
 import org.apache.nifi.web.security.jwt.provider.SupportedClaim;
 import org.apache.nifi.web.security.oidc.OidcConfigurationException;
 import org.apache.nifi.web.security.oidc.client.web.OidcAuthorizedClient;
@@ -43,15 +46,17 @@ public class StandardAuthorizedClientConverter implements AuthorizedClientConver
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().registerModules(new JavaTimeModule());
 
-    private final PropertyEncryptor propertyEncryptor;
+    private static final SensitivePropertyContext AUTHORIZATION_TOKEN_CONTEXT = SensitivePropertyContextFactory.forAuthorizationToken();
+
+    private final PropertyEncryptionProvider propertyEncryptionProvider;
 
     private final ClientRegistrationRepository clientRegistrationRepository;
 
     public StandardAuthorizedClientConverter(
-            final PropertyEncryptor propertyEncryptor,
+            final PropertyEncryptionProvider propertyEncryptionProvider,
             final ClientRegistrationRepository clientRegistrationRepository
     ) {
-        this.propertyEncryptor = Objects.requireNonNull(propertyEncryptor, "Property Encryptor required");
+        this.propertyEncryptionProvider = Objects.requireNonNull(propertyEncryptionProvider, "Property Encryption Provider required");
         this.clientRegistrationRepository = Objects.requireNonNull(clientRegistrationRepository, "Client Registry Repository required");
     }
 
@@ -68,7 +73,7 @@ public class StandardAuthorizedClientConverter implements AuthorizedClientConver
         try {
             final AuthorizedClient authorizedClient = writeAuthorizedClient(oidcAuthorizedClient);
             final String serialized = OBJECT_MAPPER.writeValueAsString(authorizedClient);
-            return propertyEncryptor.encrypt(serialized);
+            return SensitivePropertyCodec.encrypt(propertyEncryptionProvider, serialized, AUTHORIZATION_TOKEN_CONTEXT);
         } catch (final Exception e) {
             throw new OidcConfigurationException("OIDC Authorized Client serialization failed", e);
         }
@@ -85,7 +90,7 @@ public class StandardAuthorizedClientConverter implements AuthorizedClientConver
         Objects.requireNonNull(encoded, "Encoded representation required");
 
         try {
-            final String decrypted = propertyEncryptor.decrypt(encoded);
+            final String decrypted = SensitivePropertyCodec.decrypt(propertyEncryptionProvider, encoded, AUTHORIZATION_TOKEN_CONTEXT);
             final AuthorizedClient authorizedClient = OBJECT_MAPPER.readValue(decrypted, AuthorizedClient.class);
             return readAuthorizedClient(authorizedClient);
         } catch (final Exception e) {
