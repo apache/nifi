@@ -337,6 +337,10 @@ public abstract class AbstractEventAccess implements EventAccess {
                         relationships.add(relationship.getName());
                     }
                     connStatus.setName(StringUtils.join(relationships, ", "));
+                } else {
+                    // Fall back to the identifier so that the status name is never null, e.g. for an
+                    // unnamed connection from a port or funnel whose relationship list is empty
+                    connStatus.setName(conn.getIdentifier());
                 }
             } else {
                 connStatus.setName(conn.getIdentifier());

@@ -185,6 +185,27 @@ public class TestSiteToSiteStatusReportingTask {
     }
 
     @Test
+    public void testConnectionStatusWithNullName() throws IOException, InitializationException {
+        final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
+        // A connection may carry no name in the status snapshot, e.g. an unnamed
+        // connection from a port or funnel whose relationship list is empty
+        pgStatus.getConnectionStatus().iterator().next().setName(null);
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "100");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, ".*");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Connection)");
+
+        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        assertDoesNotThrow(() -> task.onTrigger(context));
+
+        // All 12 connections are reported, including the one without a name
+        final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        assertEquals(12, jsonReader.readArray().size());
+    }
+
+    @Test
     public void testConnectionStatusWithNullValues() throws IOException, InitializationException {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
