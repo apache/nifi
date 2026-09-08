@@ -221,7 +221,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
      */
     private boolean componentMatchesFilters(final String componentType, final String componentName) {
         return componentTypeFilter.matcher(componentType).matches()
-                && componentNameFilter.matcher(componentName).matches();
+                && componentNameFilter.matcher(componentName == null ? "" : componentName).matches();
     }
 
     /**
