@@ -70,6 +70,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -497,19 +498,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testSetConfigurationCallsOnConfigured() throws FlowUpdateException {
-        final TrackingConnector trackingConnector = new TrackingConnector();
-        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
-        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
-
-        connectorNode.transitionStateForUpdating();
-        connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("testGroup", createStepConfiguration());
-        connectorNode.applyUpdate();
-    }
-
-    @Test
-    public void testSetConfigurationCallsOnPropertyGroupConfiguredForChangedConfigurationSteps() throws FlowUpdateException, ExecutionException, InterruptedException, TimeoutException {
+    public void testSetConfigurationCallsOnStepConfiguredWhenChanged() throws FlowUpdateException {
         final TrackingConnector trackingConnector = new TrackingConnector();
         final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
@@ -523,26 +512,8 @@ public class TestStandardConnectorNode {
         connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.setConfiguration("configurationStep1", createStepConfiguration(Map.of("prop1", "value2")));
-        connectorNode.applyUpdate();
 
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("configurationStep1"));
-    }
-
-    @Test
-    public void testDiscardWorkingConfigurationCallsOnStepConfigured() throws FlowUpdateException {
-        final TrackingConnector trackingConnector = new TrackingConnector();
-        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
-
-        connectorNode.transitionStateForUpdating();
-        connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("prop1", "value1")));
-        connectorNode.applyUpdate();
-
-        trackingConnector.reset();
-
-        connectorNode.discardWorkingConfiguration();
-
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("configurationStep1"));
     }
 
     @Test
@@ -563,12 +534,12 @@ public class TestStandardConnectorNode {
         connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("prop1", "value2")));
         connectorNode.applyUpdate();
 
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step2"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("step1"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("step2"));
     }
 
     @Test
-    public void testDiscardWorkingConfigurationCallsOnStepConfiguredForMultipleSteps() throws FlowUpdateException {
+    public void testDiscardWorkingConfigurationCallsOnStepConfiguredForEveryStep() throws FlowUpdateException {
         final TrackingConnector trackingConnector = new TrackingConnector();
         final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
 
@@ -582,8 +553,8 @@ public class TestStandardConnectorNode {
 
         connectorNode.discardWorkingConfiguration();
 
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step2"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("step1"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("step2"));
     }
 
     @Test
@@ -602,7 +573,7 @@ public class TestStandardConnectorNode {
         connectorNode.prepareForUpdate();
         connectorNode.applyUpdate();
 
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("step1"));
     }
 
     @Test
@@ -619,7 +590,7 @@ public class TestStandardConnectorNode {
 
         connectorNode.replaceWorkingConfiguration("step1", createStepConfiguration(Map.of("propA", "newA")));
 
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("step1"));
         final ConnectorConfiguration workingConfig = connectorNode.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
         final NamedStepConfiguration namedStep = workingConfig.getNamedStepConfigurations().iterator().next();
         assertEquals("step1", namedStep.stepName());
@@ -640,29 +611,145 @@ public class TestStandardConnectorNode {
 
         connectorNode.replaceWorkingConfiguration("step1", createStepConfiguration(Map.of("propA", "valueA")));
 
-        assertFalse(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+        assertFalse(trackingConnector.wasOnConfigurationStepConfiguredCalled("step1"));
     }
 
     @Test
-    public void testDiscardWorkingConfigurationFiresOnConfiguredForEveryWorkingStep() throws FlowUpdateException {
-        final TrackingConnector trackingConnector = new TrackingConnector();
-        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+    @Timeout(10)
+    public void testReplaceWorkingConfigurationWaitsForWorkingContextRecreation() throws Exception {
+        final BlockingWorkingFlowContextFactory blockingFlowContextFactory = new BlockingWorkingFlowContextFactory(flowContextFactory);
+        flowContextFactory = blockingFlowContextFactory;
 
+        final StandardConnectorNode connectorNode = createConnectorNode(new TrackingConnector());
         connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("propA", "valueA")));
-        connectorNode.setConfiguration("step2", createStepConfiguration(Map.of("propB", "valueB")));
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("propA", "oldA")));
         connectorNode.applyUpdate();
+        blockingFlowContextFactory.blockNextWorkingContextCreation();
 
-        trackingConnector.reset();
+        final ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            final Future<?> recreationFuture = executor.submit(connectorNode::recreateWorkingFlowContext);
+            assertTrue(blockingFlowContextFactory.awaitWorkingContextCreation(5, TimeUnit.SECONDS));
 
-        // Recreating the working flow context from the active flow must fire onConfigurationStepConfigured
-        // for every working configuration step so that flow parameters derived from the configuration
-        // (resolved asset paths, secrets, etc.) are refreshed.
-        connectorNode.discardWorkingConfiguration();
+            final CountDownLatch replaceStarted = new CountDownLatch(1);
+            final Future<?> replacementFuture = executor.submit(() -> {
+                replaceStarted.countDown();
+                connectorNode.replaceWorkingConfiguration("step1", createStepConfiguration(Map.of("propA", "newA")));
+                return null;
+            });
+            assertTrue(replaceStarted.await(5, TimeUnit.SECONDS));
 
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step2"));
+            try {
+                assertThrows(TimeoutException.class, () -> replacementFuture.get(STOP_NOT_EXPECTED_MILLIS, TimeUnit.MILLISECONDS));
+            } finally {
+                blockingFlowContextFactory.releaseWorkingContextCreation();
+            }
+
+            recreationFuture.get(5, TimeUnit.SECONDS);
+            replacementFuture.get(5, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
+
+        final ConnectorConfiguration workingConfiguration = connectorNode.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
+        final NamedStepConfiguration namedStep = workingConfiguration.getNamedStepConfigurations().iterator().next();
+        assertEquals(Map.of("propA", new StringLiteralValue("newA")), namedStep.configuration().getPropertyValues());
+    }
+
+    @Test
+    @Timeout(10)
+    public void testRecreationRefreshDoesNotOverwriteConcurrentReplace() throws Exception {
+        final CountDownLatch refreshStarted = new CountDownLatch(1);
+        final CountDownLatch permitRefresh = new CountDownLatch(1);
+        final AtomicBoolean blockNextRefresh = new AtomicBoolean();
+        final AtomicReference<String> refreshingStepName = new AtomicReference<>();
+        final TrackingConnector trackingConnector = new TrackingConnector() {
+            @Override
+            protected void onStepConfigured(final String stepName, final FlowContext workingContext) throws FlowUpdateException {
+                if (!blockNextRefresh.compareAndSet(true, false)) {
+                    return;
+                }
+
+                refreshingStepName.set(stepName);
+                refreshStarted.countDown();
+                try {
+                    permitRefresh.await();
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new FlowUpdateException("Interrupted while waiting to refresh the working flow context", e);
+                }
+            }
+        };
+
+        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("propA", "oldA")));
+        connectorNode.setConfiguration("step2", createStepConfiguration(Map.of("propA", "oldB")));
+        connectorNode.applyUpdate();
+        blockNextRefresh.set(true);
+
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            final Future<?> recreationFuture = executor.submit(connectorNode::recreateWorkingFlowContext);
+            final String replacedStepName;
+            try {
+                assertTrue(refreshStarted.await(5, TimeUnit.SECONDS));
+                replacedStepName = "step1".equals(refreshingStepName.get()) ? "step2" : "step1";
+                connectorNode.replaceWorkingConfiguration(replacedStepName, createStepConfiguration(Map.of("propA", "newA")));
+            } finally {
+                permitRefresh.countDown();
+            }
+
+            recreationFuture.get(5, TimeUnit.SECONDS);
+
+            final ConnectorConfiguration workingConfiguration = connectorNode.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
+            final NamedStepConfiguration namedStep = workingConfiguration.getNamedStepConfiguration(replacedStepName);
+            assertEquals(Map.of("propA", new StringLiteralValue("newA")), namedStep.configuration().getPropertyValues());
+        } finally {
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    @Timeout(10)
+    public void testOnConfigurationStepConfiguredCanWaitForWorkingContextRecreation() throws Exception {
+        final AtomicReference<StandardConnectorNode> nodeReference = new AtomicReference<>();
+        final AtomicBoolean waitForWorkingContextRecreation = new AtomicBoolean();
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            final TrackingConnector trackingConnector = new TrackingConnector() {
+                @Override
+                protected void onStepConfigured(final String stepName, final FlowContext workingContext) throws FlowUpdateException {
+                    if (!waitForWorkingContextRecreation.compareAndSet(true, false)) {
+                        return;
+                    }
+
+                    final StandardConnectorNode connectorNode = nodeReference.get();
+                    try {
+                        executor.submit(connectorNode::recreateWorkingFlowContext).get(5, TimeUnit.SECONDS);
+                    } catch (final InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new FlowUpdateException("Interrupted while waiting to recreate the working flow context", e);
+                    } catch (final ExecutionException | TimeoutException e) {
+                        throw new FlowUpdateException("Failed to recreate the working flow context from onConfigurationStepConfigured", e);
+                    }
+                }
+            };
+
+            final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+            nodeReference.set(connectorNode);
+            connectorNode.transitionStateForUpdating();
+            connectorNode.prepareForUpdate();
+            waitForWorkingContextRecreation.set(true);
+            connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("propA", "valueA")));
+        } finally {
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
     }
 
     @Test
@@ -750,7 +837,7 @@ public class TestStandardConnectorNode {
 
         connectorNode.discardWorkingConfiguration();
 
-        assertTrue(failingStepConnector.wasOnPropertyGroupConfiguredCalled("successStep"));
+        assertTrue(failingStepConnector.wasOnConfigurationStepConfiguredCalled("successStep"));
     }
 
     @Test
@@ -1549,6 +1636,56 @@ public class TestStandardConnectorNode {
         }
     }
 
+    /**
+     * Blocks the calling thread inside {@link #createWorkingFlowContext} while
+     * {@link StandardConnectorNode#recreateWorkingFlowContext()} is in progress, until
+     * {@link #releaseWorkingContextCreation()} is invoked.
+     */
+    private static class BlockingWorkingFlowContextFactory implements FlowContextFactory {
+        private final FlowContextFactory delegate;
+        private final CountDownLatch workingContextCreationStarted = new CountDownLatch(1);
+        private final CountDownLatch permitWorkingContextCreation = new CountDownLatch(1);
+        private volatile boolean blockWorkingContextCreation;
+
+        private BlockingWorkingFlowContextFactory(final FlowContextFactory delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public FrameworkFlowContext createActiveFlowContext(final String connectorId, final ComponentLog connectorLogger, final Bundle bundle) {
+            return delegate.createActiveFlowContext(connectorId, connectorLogger, bundle);
+        }
+
+        @Override
+        public FrameworkFlowContext createWorkingFlowContext(final String connectorId, final ComponentLog connectorLogger,
+                final MutableConnectorConfigurationContext currentConfiguration, final Bundle bundle) {
+
+            if (blockWorkingContextCreation) {
+                workingContextCreationStarted.countDown();
+                try {
+                    permitWorkingContextCreation.await();
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while waiting to create the working flow context", e);
+                }
+            }
+
+            return delegate.createWorkingFlowContext(connectorId, connectorLogger, currentConfiguration, bundle);
+        }
+
+        private void blockNextWorkingContextCreation() {
+            blockWorkingContextCreation = true;
+        }
+
+        private boolean awaitWorkingContextCreation(final long timeout, final TimeUnit timeUnit) throws InterruptedException {
+            return workingContextCreationStarted.await(timeout, timeUnit);
+        }
+
+        private void releaseWorkingContextCreation() {
+            permitWorkingContextCreation.countDown();
+        }
+    }
+
     private ConnectorDetails createConnectorDetails(final Connector connector) {
         final ComponentLog componentLog = new MockComponentLog("TestConnector", connector);
         final BundleCoordinate bundleCoordinate = new BundleCoordinate("org.apache.nifi", "test-standard-connector-node", "1.0.0");
@@ -1626,7 +1763,7 @@ public class TestStandardConnectorNode {
             return List.of();
         }
 
-        public boolean wasOnPropertyGroupConfiguredCalled(final String stepName) {
+        public boolean wasOnConfigurationStepConfiguredCalled(final String stepName) {
             return onConfigurationStepConfiguredCalls.contains(stepName);
         }
 
