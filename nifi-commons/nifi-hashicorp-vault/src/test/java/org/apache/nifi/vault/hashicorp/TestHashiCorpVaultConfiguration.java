@@ -25,12 +25,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.mock.http.client.MockClientHttpRequest;
 import org.springframework.vault.authentication.ClientAuthentication;
 import org.springframework.vault.client.VaultEndpoint;
+import org.springframework.vault.client.VaultHttpHeaders;
 import org.springframework.vault.core.VaultKeyValueOperationsSupport;
 import org.springframework.vault.support.SslConfiguration;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -44,8 +48,10 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestHashiCorpVaultConfiguration {
     public static final String VAULT_AUTHENTICATION = "vault.authentication";
@@ -186,6 +192,70 @@ public class TestHashiCorpVaultConfiguration {
 
         final ClientAuthentication clientAuthentication = config.clientAuthentication();
         assertNotNull(clientAuthentication);
+    }
+
+    /**
+     * Exposes the protected {@code restTemplateBuilder} for testing.
+     */
+    private static class TestableHashiCorpVaultConfiguration extends HashiCorpVaultConfiguration {
+        private final String namespace;
+
+        TestableHashiCorpVaultConfiguration(final ConfigurableEnvironment environment,
+                                            final PropertySource<?> propertySource,
+                                            final String namespace) {
+            super(environment, propertySource);
+            this.namespace = namespace;
+        }
+
+        @Override
+        public String getNamespace() {
+            return namespace;
+        }
+
+        RestTemplate buildRestTemplate() {
+            return restTemplateBuilder(vaultEndpointProvider(), new SimpleClientHttpRequestFactory()).build();
+        }
+    }
+
+    @Test
+    public void testNamespacePropagatedToRestTemplateBuilder() {
+        final String namespace = "test-namespace";
+        config = new TestableHashiCorpVaultConfiguration(
+                createIsolatedEnvironment(), new HashiCorpVaultPropertySource(propertiesBuilder.build()), namespace);
+
+        final RestTemplate restTemplate = ((TestableHashiCorpVaultConfiguration) config).buildRestTemplate();
+
+        final boolean namespaceHeaderPropagated = restTemplate.getInterceptors().stream().anyMatch(interceptor -> {
+            final MockClientHttpRequest request = new MockClientHttpRequest();
+            try {
+                interceptor.intercept(request, new byte[0], (req, body) -> null);
+            } catch (final IOException e) {
+                return false;
+            }
+            return namespace.equals(request.getHeaders().getFirst(VaultHttpHeaders.VAULT_NAMESPACE));
+        });
+        assertTrue(namespaceHeaderPropagated,
+                "Expected the X-Vault-Namespace header to be propagated to the RestTemplateBuilder interceptors");
+    }
+
+    @Test
+    public void testNoNamespaceHeaderWhenNamespaceNotConfigured() {
+        config = new TestableHashiCorpVaultConfiguration(
+                createIsolatedEnvironment(), new HashiCorpVaultPropertySource(propertiesBuilder.build()), null);
+
+        final RestTemplate restTemplate = ((TestableHashiCorpVaultConfiguration) config).buildRestTemplate();
+
+        final boolean namespaceHeaderPresent = restTemplate.getInterceptors().stream().anyMatch(interceptor -> {
+            final MockClientHttpRequest request = new MockClientHttpRequest();
+            try {
+                interceptor.intercept(request, new byte[0], (req, body) -> null);
+            } catch (final IOException e) {
+                return false;
+            }
+            return request.getHeaders().get(VaultHttpHeaders.VAULT_NAMESPACE) != null;
+        });
+        assertFalse(namespaceHeaderPresent,
+                "Expected no X-Vault-Namespace header when vault.namespace is not configured");
     }
 
     @Test

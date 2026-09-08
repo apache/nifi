@@ -24,7 +24,10 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.vault.client.RestTemplateBuilder;
 import org.springframework.vault.client.RestTemplateFactory;
+import org.springframework.vault.client.VaultEndpointProvider;
+import org.springframework.vault.client.VaultHttpHeaders;
 import org.springframework.vault.config.AbstractVaultConfiguration;
 import org.springframework.vault.config.EnvironmentVaultConfiguration;
 import org.springframework.vault.core.VaultKeyValueOperationsSupport.KeyValueBackend;
@@ -177,6 +180,19 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
      */
     public String getNamespace() {
         return getEnvironment().getProperty(VaultConfigurationKey.NAMESPACE.key);
+    }
+
+    @Override
+    protected RestTemplateBuilder restTemplateBuilder(final VaultEndpointProvider endpointProvider,
+                                                       final ClientHttpRequestFactory requestFactory) {
+        RestTemplateBuilder builder = super.restTemplateBuilder(endpointProvider, requestFactory);
+        final String namespace = getNamespace();
+
+        if (namespace != null && !namespace.isEmpty()) {
+            builder = builder.defaultHeader(VaultHttpHeaders.VAULT_NAMESPACE, namespace);
+        }
+
+        return builder;
     }
 
     @Override
