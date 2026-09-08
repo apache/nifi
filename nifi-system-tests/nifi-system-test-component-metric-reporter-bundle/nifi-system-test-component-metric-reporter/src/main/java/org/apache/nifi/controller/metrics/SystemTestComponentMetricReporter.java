@@ -41,7 +41,8 @@ public class SystemTestComponentMetricReporter implements ComponentMetricReporte
         logger.info("Recording Gauge [{}] Value [{}]", gaugeRecord.name(), gaugeRecord.value());
 
         final ComponentMetricContext componentMetricContext = gaugeRecord.componentMetricContext();
-        final String formatted = "Gauge [%s] Value [%s] Component ID [%s]".formatted(gaugeRecord.name(), gaugeRecord.value(), componentMetricContext.id());
+        final String id = componentMetricContext.id();
+        final String formatted = "Gauge [%s] Value [%s] Attributes %s Component ID [%s]".formatted(gaugeRecord.name(), gaugeRecord.value(), gaugeRecord.attributes(), id);
         final String filename = "%s.GaugeRecord.%d.log".formatted(LOG_FILE_PREFIX, System.nanoTime());
         final Path log = USER_DIRECTORY.resolve(filename);
 
@@ -57,7 +58,8 @@ public class SystemTestComponentMetricReporter implements ComponentMetricReporte
         logger.info("Recording Counter [{}] Value [{}]", counterRecord.name(), counterRecord.value());
 
         final ComponentMetricContext componentMetricContext = counterRecord.componentMetricContext();
-        final String formatted = "Counter [%s] Value [%s] Component ID [%s]".formatted(counterRecord.name(), counterRecord.value(), componentMetricContext.id());
+        final String id = componentMetricContext.id();
+        final String formatted = "Counter [%s] Value [%s] Attributes %s Component ID [%s]".formatted(counterRecord.name(), counterRecord.value(), counterRecord.attributes(), id);
         final String filename = "%s.CounterRecord.%d.log".formatted(LOG_FILE_PREFIX, System.nanoTime());
         final Path log = USER_DIRECTORY.resolve(filename);
 

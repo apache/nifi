@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
@@ -172,11 +173,11 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     }
 
     @Override
-    public void adjustCounter(final String name, final long delta) {
+    public void adjustCounter(final String name, final long delta, final Map<String, String> attributes) {
         counterRepo.adjustCounter(componentNameCounterContext, name, delta);
         counterRepo.adjustCounter(componentTypeCounterContext, name, delta);
 
-        final CounterRecord counterRecord = new CounterRecord(name, delta, Instant.now(), componentMetricContext);
+        final CounterRecord counterRecord = new CounterRecord(name, delta, attributes, Instant.now(), componentMetricContext);
         componentMetricReporter.recordCounter(counterRecord);
     }
 

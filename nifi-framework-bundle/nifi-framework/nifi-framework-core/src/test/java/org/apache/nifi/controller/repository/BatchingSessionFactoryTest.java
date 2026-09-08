@@ -30,8 +30,13 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +47,12 @@ class BatchingSessionFactoryTest {
     private static final String GAUGE_NAME = "recording";
 
     private static final double GAUGE_VALUE = 64.5;
+
+    private static final String COUNTER_NAME = "recorded";
+
+    private static final long COUNTER_DELTA = 5;
+
+    private static final Map<String, String> METRIC_ATTRIBUTES = Map.of("service.name", "Processing", "deployment.environment", "production");
 
     private final TaskTermination taskTermination = () -> false;
 
@@ -76,10 +87,31 @@ class BatchingSessionFactoryTest {
         assertNotNull(session);
 
         session.recordGauge(GAUGE_NAME, GAUGE_VALUE, CommitTiming.NOW);
+        session.recordGauge(GAUGE_NAME, GAUGE_VALUE, METRIC_ATTRIBUTES, CommitTiming.NOW);
 
-        verify(repositoryContext).recordGauge(gaugeRecordCaptor.capture());
-        final GaugeRecord gaugeRecord = gaugeRecordCaptor.getValue();
-        assertEquals(GAUGE_NAME, gaugeRecord.name());
-        assertEquals(GAUGE_VALUE, gaugeRecord.value());
+        verify(repositoryContext, times(2)).recordGauge(gaugeRecordCaptor.capture());
+        final List<GaugeRecord> gaugeRecords = gaugeRecordCaptor.getAllValues();
+
+        final GaugeRecord firstGaugeRecord = gaugeRecords.getFirst();
+        assertEquals(GAUGE_NAME, firstGaugeRecord.name());
+        assertEquals(GAUGE_VALUE, firstGaugeRecord.value());
+        assertEquals(Map.of(), firstGaugeRecord.attributes());
+
+        final GaugeRecord secondGaugeRecord = gaugeRecords.getLast();
+        assertEquals(GAUGE_NAME, secondGaugeRecord.name());
+        assertEquals(GAUGE_VALUE, secondGaugeRecord.value());
+        assertEquals(METRIC_ATTRIBUTES, secondGaugeRecord.attributes());
+    }
+
+    @Test
+    void testCreateSessionAdjustCounter() {
+        final ProcessSession session = factory.createSession();
+        assertNotNull(session);
+
+        session.adjustCounter(COUNTER_NAME, COUNTER_DELTA, true);
+        verify(repositoryContext).adjustCounter(eq(COUNTER_NAME), eq(COUNTER_DELTA), eq(Map.of()));
+
+        session.adjustCounter(COUNTER_NAME, COUNTER_DELTA, METRIC_ATTRIBUTES, CommitTiming.NOW);
+        verify(repositoryContext).adjustCounter(eq(COUNTER_NAME), eq(COUNTER_DELTA), eq(METRIC_ATTRIBUTES));
     }
 }

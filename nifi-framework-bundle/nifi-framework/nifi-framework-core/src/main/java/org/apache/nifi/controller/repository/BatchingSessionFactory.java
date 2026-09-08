@@ -117,8 +117,18 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         }
 
         @Override
+        public void adjustCounter(final String name, final long delta, final Map<String, String> attributes, final CommitTiming commitTiming) {
+            session.adjustCounter(name, delta, attributes, commitTiming);
+        }
+
+        @Override
         public void recordGauge(final String name, final double value, final CommitTiming commitTiming) {
             session.recordGauge(name, value, commitTiming);
+        }
+
+        @Override
+        public void recordGauge(final String name, final double value, final Map<String, String> attributes, final CommitTiming commitTiming) {
+            session.recordGauge(name, value, attributes, commitTiming);
         }
 
         @Override

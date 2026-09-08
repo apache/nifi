@@ -34,6 +34,7 @@ import org.apache.nifi.provenance.ProvenanceEventRepository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
 public interface RepositoryContext {
@@ -69,7 +70,7 @@ public interface RepositoryContext {
 
     long getNextFlowFileSequence();
 
-    void adjustCounter(String name, long delta);
+    void adjustCounter(String name, long delta, Map<String, String> attributes);
 
     void recordGauge(GaugeRecord gaugeRecord);
 

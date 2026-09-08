@@ -40,6 +40,8 @@ public class ComponentMetricReporterIT extends NiFiSystemIT {
 
     private static final String COUNTER_RECORD_LOG = "%s.CounterRecord".formatted(REPORTER_CLASS);
 
+    private static final String METRIC_ATTRIBUTE = "service.name=UpdateMetric";
+
     @Override
     protected Map<String, String> getNifiPropertiesOverrides() {
         return Map.of(REPORTER_IMPLEMENTATION, REPORTER_CLASS);
@@ -52,8 +54,8 @@ public class ComponentMetricReporterIT extends NiFiSystemIT {
         getClientUtil().waitForStoppedProcessor(updateMetric.getId());
 
         final String componentId = updateMetric.getId();
-        assertLogComponentIdFound(GAUGE_RECORD_LOG, componentId);
-        assertLogComponentIdFound(COUNTER_RECORD_LOG, componentId);
+        assertLogRecordFound(GAUGE_RECORD_LOG, componentId);
+        assertLogRecordFound(COUNTER_RECORD_LOG, componentId);
     }
 
     private Optional<Path> findReportedLog(final String fileNameSearch) throws IOException {
@@ -63,7 +65,7 @@ public class ComponentMetricReporterIT extends NiFiSystemIT {
         }
     }
 
-    private void assertLogComponentIdFound(final String fileNameSearch, final String componentId) throws IOException {
+    private void assertLogRecordFound(final String fileNameSearch, final String componentId) throws IOException {
         final Optional<Path> reportedLogFound = findReportedLog(fileNameSearch);
         assertTrue(reportedLogFound.isPresent(), "Component Metric Reporter [%s] log not found".formatted(fileNameSearch));
 
@@ -71,5 +73,6 @@ public class ComponentMetricReporterIT extends NiFiSystemIT {
         final String log = Files.readString(reportedLog);
 
         assertTrue(log.contains(componentId), "Update Metric ID [%s] not found in log [%s]".formatted(componentId, log));
+        assertTrue(log.contains(METRIC_ATTRIBUTE), "Update Metric Attribute [%s] not found in log [%s]".formatted(METRIC_ATTRIBUTE, log));
     }
 }

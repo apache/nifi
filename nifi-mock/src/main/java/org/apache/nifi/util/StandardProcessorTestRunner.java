@@ -579,8 +579,18 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public Long getCounterValue(final String name, final Map<String, String> attributes) {
+        return sharedState.getCounterValue(name, attributes);
+    }
+
+    @Override
     public List<Double> getGaugeValues(final String name) {
         return sharedState.getGaugeValues(name);
+    }
+
+    @Override
+    public List<Double> getGaugeValues(final String name, final Map<String, String> attributes) {
+        return sharedState.getGaugeValues(name, attributes);
     }
 
     @Override

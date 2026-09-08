@@ -24,6 +24,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.metrics.CommitTiming;
 
+import java.util.Map;
 import java.util.Set;
 
 public class UpdateMetric extends AbstractProcessor {
@@ -35,6 +36,8 @@ public class UpdateMetric extends AbstractProcessor {
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(SUCCESS);
 
+    private static final Map<String, String> METRIC_ATTRIBUTES = Map.of("service.name", "UpdateMetric");
+
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
@@ -42,11 +45,11 @@ public class UpdateMetric extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        session.adjustCounter("onTrigger", 1, true);
+        session.adjustCounter("onTrigger", 1, METRIC_ATTRIBUTES, CommitTiming.NOW);
 
         final Runtime runtime = Runtime.getRuntime();
         final long freeMemory = runtime.freeMemory();
-        session.recordGauge("freeMemory", freeMemory, CommitTiming.NOW);
+        session.recordGauge("freeMemory", freeMemory, METRIC_ATTRIBUTES, CommitTiming.NOW);
 
         FlowFile flowFile = session.get();
         if (flowFile == null) {
