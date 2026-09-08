@@ -1919,6 +1919,167 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     @Test
+    public void testExistingLocalParameterValuePreservedWhenDescriptionUpdated() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedParameterContext versionedContext = createVersionedParameterContextWithDescriptions(CONTEXT_NAME_PARAMS,
+            SINGLE_PARAMETER, ORIGINAL_DESCRIPTION_MAP, Collections.emptySet());
+        synchronizer.synchronize(null, versionedContext, synchronizationOptions);
+
+        final ParameterContext paramContext = parameterContextManager.getParameterContextNameMapping().get(CONTEXT_NAME_PARAMS);
+        assertEquals(VALUE_XYZ, paramContext.getParameter(PARAM_ABC).get().getValue());
+        assertEquals(ORIGINAL_PARAMETER_DESCRIPTION, paramContext.getParameter(PARAM_ABC).get().getDescriptor().getDescription());
+
+        final ProcessGroup processGroup = createMockProcessGroup();
+        when(processGroup.getParameterContext()).thenReturn(paramContext);
+
+        final VersionedParameterContext proposedParams = createVersionedParameterContextWithDescriptions(CONTEXT_NAME_PARAMS,
+            Map.of(PARAM_ABC, VALUE_123), UPDATED_DESCRIPTION_MAP, Collections.emptySet());
+        proposedParams.setDescription(UPDATED_CONTEXT_DESCRIPTION);
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier(processGroup.getIdentifier());
+        rootGroup.setParameterContextName(CONTEXT_NAME_PARAMS);
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(Map.of(CONTEXT_NAME_PARAMS, proposedParams));
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        assertEquals(VALUE_XYZ, paramContext.getParameter(PARAM_ABC).get().getValue(),
+            "Existing parameter value must not be overwritten by versioned flow value");
+        assertEquals(UPDATED_DESCRIPTION_MAP.get(PARAM_ABC), paramContext.getParameter(PARAM_ABC).get().getDescriptor().getDescription(),
+            "Parameter description should be updated from versioned flow");
+        assertEquals(UPDATED_CONTEXT_DESCRIPTION, paramContext.getDescription(),
+            "Parameter context description should be updated from versioned flow");
+    }
+
+    @Test
+    public void testInheritedParameterNotMaterializedAsLocalOverrideWhenDescriptionDiffers()
+            throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedParameterContext versionedParent = createVersionedParameterContextWithDescriptions("P2",
+            Map.of("paramA", "prod-value"), Map.of("paramA", "parent-description"), Collections.emptySet());
+        synchronizer.synchronize(null, versionedParent, synchronizationOptions);
+        final ParameterContext parent = parameterContextManager.getParameterContextNameMapping().get("P2");
+
+        final VersionedParameterContext versionedChild = createVersionedParameterContext("P1", Map.of("paramOwn", "ownValue"), Collections.emptySet());
+        synchronizer.synchronize(null, versionedChild, synchronizationOptions);
+        final ParameterContext child = parameterContextManager.getParameterContextNameMapping().get("P1");
+        child.setInheritedParameterContexts(List.of(parent));
+
+        assertFalse(child.getParameters().containsKey(new ParameterDescriptor.Builder().name("paramA").build()),
+            "paramA should be inherited, not local, before sync");
+        assertEquals("prod-value", child.getParameter("paramA").get().getValue());
+        assertEquals("parent-description", child.getParameter("paramA").get().getDescriptor().getDescription());
+
+        final ProcessGroup processGroup = createMockProcessGroup();
+        when(processGroup.getParameterContext()).thenReturn(child);
+
+        // Versioned flow has child and parent contexts, with paramA having a dev value and a different description
+        final VersionedParameterContext proposedParent = createVersionedParameterContextWithDescriptions("P2",
+            Map.of("paramA", "dev-value"), Map.of("paramA", "dev-description"), Collections.emptySet());
+        final VersionedParameterContext proposedChild = createVersionedParameterContextWithDescriptions("P1",
+            Map.of("paramOwn", "ownValue", "paramA", "dev-value"), Map.of("paramA", "dev-description"), Collections.emptySet());
+        proposedChild.setInheritedParameterContexts(List.of("P2"));
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier(processGroup.getIdentifier());
+        rootGroup.setParameterContextName("P1");
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(Map.of("P1", proposedChild, "P2", proposedParent));
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        assertFalse(child.getParameters().containsKey(new ParameterDescriptor.Builder().name("paramA").build()),
+            "Synchronization must not create a local override on child for an inherited parameter even when descriptions differ");
+        assertEquals("prod-value", child.getParameter("paramA").get().getValue());
+        assertEquals("prod-value", parent.getParameter("paramA").get().getValue(),
+            "Synchronization must not overwrite the inherited parameter's value on the parent context");
+        assertEquals("dev-description", parent.getParameter("paramA").get().getDescriptor().getDescription(),
+            "Parent context parameter description should be updated");
+    }
+
+    @Test
+    public void testParameterReferencePreservedWhenDescriptionUpdated()
+            throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        // Parent context defines targetParam
+        final VersionedParameterContext versionedParent = createVersionedParameterContext("ParentContext",
+            Map.of("targetParam", "targetValue"), Collections.emptySet());
+        synchronizer.synchronize(null, versionedParent, synchronizationOptions);
+        final ParameterContext parentContext = parameterContextManager.getParameterContextNameMapping().get("ParentContext");
+
+        // Child context inherits ParentContext and defines aliasParam referencing #{targetParam}
+        final VersionedParameterContext versionedChild = createVersionedParameterContextWithDescriptions("ChildContext",
+            Map.of("aliasParam", "#{targetParam}"),
+            Map.of("aliasParam", "old alias description"),
+            Collections.emptySet());
+        synchronizer.synchronize(null, versionedChild, synchronizationOptions);
+        final ParameterContext childContext = parameterContextManager.getParameterContextNameMapping().get("ChildContext");
+        childContext.setInheritedParameterContexts(List.of(parentContext));
+
+        // Effective value resolves to targetValue, but raw local value is #{targetParam}
+        assertEquals("targetValue", childContext.getParameter("aliasParam").get().getValue());
+        assertEquals("#{targetParam}", childContext.getParameters().get(new ParameterDescriptor.Builder().name("aliasParam").build()).getValue());
+
+        final ProcessGroup processGroup = createMockProcessGroup();
+        when(processGroup.getParameterContext()).thenReturn(childContext);
+
+        // Versioned flow has aliasParam with a new description and literal value
+        final VersionedParameterContext proposedChild = createVersionedParameterContextWithDescriptions("ChildContext",
+            Map.of("aliasParam", "devLiteral"),
+            Map.of("aliasParam", "new alias description"),
+            Collections.emptySet());
+        proposedChild.setInheritedParameterContexts(List.of("ParentContext"));
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier(processGroup.getIdentifier());
+        rootGroup.setParameterContextName("ChildContext");
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(Map.of("ChildContext", proposedChild, "ParentContext", versionedParent));
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        assertEquals("new alias description", childContext.getParameter("aliasParam").get().getDescriptor().getDescription(),
+            "Parameter description should be updated from versioned flow");
+        assertEquals("#{targetParam}", childContext.getParameters().get(new ParameterDescriptor.Builder().name("aliasParam").build()).getValue(),
+            "Raw parameter value must preserve the '#{targetParam}' reference syntax and not flatten to a resolved literal");
+        assertEquals("targetValue", childContext.getParameter("aliasParam").get().getValue(),
+            "Effective parameter value must still resolve through the reference");
+    }
+
+    @Test
+    public void testMissingParameterStillAddedWhenPreserveExistingEntries() throws FlowSynchronizationException, InterruptedException, TimeoutException {
+        final VersionedParameterContext versionedContext = createVersionedParameterContext(CONTEXT_NAME_PARAMS, SINGLE_PARAMETER, Collections.emptySet());
+        synchronizer.synchronize(null, versionedContext, synchronizationOptions);
+
+        final ParameterContext paramContext = parameterContextManager.getParameterContextNameMapping().get(CONTEXT_NAME_PARAMS);
+
+        final ProcessGroup processGroup = createMockProcessGroup();
+        when(processGroup.getParameterContext()).thenReturn(paramContext);
+
+        final VersionedParameterContext proposedParams = createVersionedParameterContext(CONTEXT_NAME_PARAMS,
+            Map.of(PARAM_ABC, VALUE_123, "paramNew", "new-value"), Collections.emptySet());
+
+        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier(processGroup.getIdentifier());
+        rootGroup.setParameterContextName(CONTEXT_NAME_PARAMS);
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(rootGroup);
+        externalFlow.setParameterContexts(Map.of(CONTEXT_NAME_PARAMS, proposedParams));
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        assertEquals(VALUE_XYZ, paramContext.getParameter(PARAM_ABC).get().getValue(),
+            "Existing parameter value must be preserved");
+        assertTrue(paramContext.getParameter("paramNew").isPresent(), "Missing parameters should still be added");
+        assertEquals("new-value", paramContext.getParameter("paramNew").get().getValue());
+    }
+
+    @Test
     public void testParameterDescriptionUnchangedWhenValueSame() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final VersionedParameterContext versionedContext = createVersionedParameterContextWithDescriptions(CONTEXT_NAME_1,
             SINGLE_PARAMETER, ORIGINAL_DESCRIPTION_MAP, Collections.emptySet());
