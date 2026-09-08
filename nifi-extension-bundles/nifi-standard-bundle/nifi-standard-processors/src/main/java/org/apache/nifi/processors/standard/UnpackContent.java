@@ -495,9 +495,6 @@ public class UnpackContent extends AbstractProcessor {
     }
 
     private static class ZipUnpacker extends Unpacker {
-        // ZipArchiveEntry.getCrc() returns -1 when the archive does not declare a checksum for the entry
-        private static final long UNKNOWN_CRC = -1;
-
         private final char[] password;
         private final boolean allowStoredEntriesWithDataDescriptor;
         private final Charset filenameEncoding;
@@ -564,7 +561,7 @@ public class UnpackContent extends AbstractProcessor {
              *
              * @return CRC-32 of the uncompressed entry bytes
              */
-            protected long processEntry(final InputStream zipInputStream, boolean directory, String zipEntryName, Map<String, String> attributes) throws IOException {
+            protected long processEntry(final InputStream zipInputStream, final boolean directory, final String zipEntryName, final Map<String, String> attributes) throws IOException {
                 final CRC32 crc = new CRC32();
                 if (!isFileEntryMatched(directory, zipEntryName)) {
                     zipInputStream.transferTo(new CheckedOutputStream(OutputStream.nullOutputStream(), crc));
@@ -632,7 +629,7 @@ public class UnpackContent extends AbstractProcessor {
 
             private boolean crcMatches() {
                 final long expectedCrc = entry.getCrc();
-                return expectedCrc == UNKNOWN_CRC || expectedCrc == actualCrc;
+                return expectedCrc == ZipArchiveEntry.CRC_UNKNOWN || expectedCrc == actualCrc;
             }
 
             private String describeMismatch() {

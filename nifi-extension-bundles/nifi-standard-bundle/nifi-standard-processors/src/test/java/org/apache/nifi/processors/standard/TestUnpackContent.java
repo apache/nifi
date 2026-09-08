@@ -68,6 +68,23 @@ public class TestUnpackContent {
 
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ");
 
+    private static final String ZIP_ENTRY_OK = "ok.txt";
+    private static final String ZIP_ENTRY_CORRUPT = "corrupt.txt";
+    private static final String ZIP_ENTRY_FIRST = "first.txt";
+    private static final String ZIP_ENTRY_SECOND = "second.txt";
+    private static final String ZIP_ENTRY_KEEP = "keep.txt";
+    private static final String ZIP_ENTRY_SKIP = "skip.txt";
+    private static final String ZIP_ENTRY_KEEP_CONTENT = "keep-me";
+    private static final String ZIP_STORED_CRC_MATCH_CONTENT = "payload-for-crc-match";
+    private static final String ZIP_STORED_CRC_MISMATCH_CONTENT = "payload-for-crc-mismatch";
+    private static final String ZIP_DEFLATED_CRC_MATCH_CONTENT = "deflated-payload-for-crc-match";
+    private static final String ZIP_DEFLATED_CRC_MISMATCH_CONTENT = "deflated-payload-for-crc-mismatch";
+    private static final String ZIP_ENCRYPTION_PASSWORD = String.class.getSimpleName();
+    private static final String ZIP_ENCRYPTION_CONTENTS = TestRunner.class.getCanonicalName();
+    private static final byte[] ZIP_LOCAL_FILE_HEADER_SIGNATURE = {0x50, 0x4b, 0x03, 0x04};
+    private static final byte[] ZIP_CENTRAL_DIRECTORY_SIGNATURE = {0x50, 0x4b, 0x01, 0x02};
+    private static final byte[] ZIP_DATA_DESCRIPTOR_SIGNATURE = {0x50, 0x4b, 0x07, 0x08};
+
     private final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
     private final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
 
@@ -262,7 +279,7 @@ public class TestUnpackContent {
     public void testZipInvalidCrcRoutesToFailure() throws IOException {
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
 
-        final byte[] zipBytes = createStoredZip(true, Map.entry("corrupt.txt", "payload-for-crc-mismatch"));
+        final byte[] zipBytes = createStoredZip(true, Map.entry(ZIP_ENTRY_CORRUPT, ZIP_STORED_CRC_MISMATCH_CONTENT));
         runner.enqueue(zipBytes);
         runner.run();
 
@@ -274,8 +291,8 @@ public class TestUnpackContent {
     public void testZipStoredCrcValidRoutesToSuccess() throws IOException {
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
 
-        final byte[] payload = "payload-for-crc-match".getBytes(StandardCharsets.UTF_8);
-        runner.enqueue(createStoredZip(false, Map.entry("ok.txt", "payload-for-crc-match")));
+        final byte[] payload = ZIP_STORED_CRC_MATCH_CONTENT.getBytes(StandardCharsets.UTF_8);
+        runner.enqueue(createStoredZip(false, Map.entry(ZIP_ENTRY_OK, ZIP_STORED_CRC_MATCH_CONTENT)));
         runner.run();
 
         runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
@@ -288,7 +305,7 @@ public class TestUnpackContent {
     public void testZipDeflatedInvalidCrcRoutesToFailure() throws IOException {
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
 
-        final byte[] zipBytes = createDeflatedZip(true, Map.entry("corrupt.txt", "deflated-payload-for-crc-mismatch"));
+        final byte[] zipBytes = createDeflatedZip(true, Map.entry(ZIP_ENTRY_CORRUPT, ZIP_DEFLATED_CRC_MISMATCH_CONTENT));
         runner.enqueue(zipBytes);
         runner.run();
 
@@ -300,8 +317,8 @@ public class TestUnpackContent {
     public void testZipDeflatedCrcValidRoutesToSuccess() throws IOException {
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
 
-        final String contents = "deflated-payload-for-crc-match";
-        runner.enqueue(createDeflatedZip(false, Map.entry("ok.txt", contents)));
+        final String contents = ZIP_DEFLATED_CRC_MATCH_CONTENT;
+        runner.enqueue(createDeflatedZip(false, Map.entry(ZIP_ENTRY_OK, contents)));
         runner.run();
 
         runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
@@ -316,8 +333,8 @@ public class TestUnpackContent {
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
 
         final byte[] zipBytes = createDeflatedZip(true,
-                Map.entry("first.txt", "first-entry-valid-crc"),
-                Map.entry("second.txt", "second-entry-invalid-crc"));
+                Map.entry(ZIP_ENTRY_FIRST, "first-entry-valid-crc"),
+                Map.entry(ZIP_ENTRY_SECOND, "second-entry-invalid-crc"));
         runner.enqueue(zipBytes);
         runner.run();
 
@@ -330,8 +347,8 @@ public class TestUnpackContent {
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
 
         final byte[] zipBytes = createStoredZip(true,
-                Map.entry("first.txt", "first-stored-valid-crc"),
-                Map.entry("second.txt", "second-stored-invalid-crc"));
+                Map.entry(ZIP_ENTRY_FIRST, "first-stored-valid-crc"),
+                Map.entry(ZIP_ENTRY_SECOND, "second-stored-invalid-crc"));
         runner.enqueue(zipBytes);
         runner.run();
 
@@ -342,30 +359,30 @@ public class TestUnpackContent {
     @Test
     public void testZipFileFilterExtractsMatchingEntryWhenCrcIsValid() throws IOException {
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
-        runner.setProperty(UnpackContent.FILE_FILTER, "^keep.txt$");
+        runner.setProperty(UnpackContent.FILE_FILTER, "^" + ZIP_ENTRY_KEEP + "$");
 
         runner.enqueue(createDeflatedZip(false,
-                Map.entry("keep.txt", "keep-me"),
-                Map.entry("skip.txt", "skip-me")));
+                Map.entry(ZIP_ENTRY_KEEP, ZIP_ENTRY_KEEP_CONTENT),
+                Map.entry(ZIP_ENTRY_SKIP, "skip-me")));
         runner.run();
 
         runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
         runner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
         runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
         runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS).getFirst()
-                .assertContentEquals("keep-me".getBytes(StandardCharsets.UTF_8));
+                .assertContentEquals(ZIP_ENTRY_KEEP_CONTENT.getBytes(StandardCharsets.UTF_8));
         runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS).getFirst()
-                .assertAttributeEquals(CoreAttributes.FILENAME.key(), "keep.txt");
+                .assertAttributeEquals(CoreAttributes.FILENAME.key(), ZIP_ENTRY_KEEP);
     }
 
     @Test
     public void testZipFileFilterStillFailsWhenSkippedEntryHasInvalidCrc() throws IOException {
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
-        runner.setProperty(UnpackContent.FILE_FILTER, "^keep.txt$");
+        runner.setProperty(UnpackContent.FILE_FILTER, "^" + ZIP_ENTRY_KEEP + "$");
 
         final byte[] zipBytes = createDeflatedZip(true,
-                Map.entry("keep.txt", "keep-me"),
-                Map.entry("skip.txt", "corrupt-skipped-entry"));
+                Map.entry(ZIP_ENTRY_KEEP, ZIP_ENTRY_KEEP_CONTENT),
+                Map.entry(ZIP_ENTRY_SKIP, "corrupt-skipped-entry"));
         runner.enqueue(zipBytes);
         runner.run();
 
@@ -376,9 +393,9 @@ public class TestUnpackContent {
     @Test
     public void testZipFileFilterFailsWhenOnlySkippedEntryHasInvalidCrc() throws IOException {
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
-        runner.setProperty(UnpackContent.FILE_FILTER, "^keep.txt$");
+        runner.setProperty(UnpackContent.FILE_FILTER, "^" + ZIP_ENTRY_KEEP + "$");
 
-        final byte[] zipBytes = createStoredZip(true, Map.entry("skip.txt", "not-extracted-and-corrupt"));
+        final byte[] zipBytes = createStoredZip(true, Map.entry(ZIP_ENTRY_SKIP, "not-extracted-and-corrupt"));
         runner.enqueue(zipBytes);
         runner.run();
 
@@ -460,11 +477,10 @@ public class TestUnpackContent {
         autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         autoUnpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
         autoUnpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
-        final String password = String.class.getSimpleName();
-        autoUnpackRunner.setProperty(UnpackContent.PASSWORD, password);
+        autoUnpackRunner.setProperty(UnpackContent.PASSWORD, ZIP_ENCRYPTION_PASSWORD);
 
-        final char[] streamPassword = password.toCharArray();
-        final String contents = TestRunner.class.getCanonicalName();
+        final char[] streamPassword = ZIP_ENCRYPTION_PASSWORD.toCharArray();
+        final String contents = ZIP_ENCRYPTION_CONTENTS;
         String specialChar = "\u00E4";
         String pathInZip = "path_with_special_%s_char/".formatted(specialChar);
         String filename = "filename_with_special_char%s.txt".formatted(specialChar);
@@ -501,9 +517,8 @@ public class TestUnpackContent {
     public void testZipEncryptionNoPasswordConfigured() throws IOException {
         autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
 
-        final String password = String.class.getSimpleName();
-        final char[] streamPassword = password.toCharArray();
-        final String contents = TestRunner.class.getCanonicalName();
+        final char[] streamPassword = ZIP_ENCRYPTION_PASSWORD.toCharArray();
+        final String contents = ZIP_ENCRYPTION_CONTENTS;
 
         final byte[] zipEncrypted = createZipEncrypted(EncryptionMethod.AES, streamPassword, contents);
         autoUnpackRunner.enqueue(zipEncrypted);
@@ -811,11 +826,10 @@ public class TestUnpackContent {
     private void runZipEncryptionMethod(final EncryptionMethod encryptionMethod) throws IOException {
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
-        final String password = String.class.getSimpleName();
-        runner.setProperty(UnpackContent.PASSWORD, password);
+        runner.setProperty(UnpackContent.PASSWORD, ZIP_ENCRYPTION_PASSWORD);
 
-        final char[] streamPassword = password.toCharArray();
-        final String contents = TestRunner.class.getCanonicalName();
+        final char[] streamPassword = ZIP_ENCRYPTION_PASSWORD.toCharArray();
+        final String contents = ZIP_ENCRYPTION_CONTENTS;
 
         final byte[] zipEncrypted = createZipEncrypted(encryptionMethod, streamPassword, contents);
         runner.enqueue(zipEncrypted);
@@ -913,12 +927,10 @@ public class TestUnpackContent {
             return zipBytes;
         }
 
-        final byte[] localFileHeaderSignature = {0x50, 0x4b, 0x03, 0x04};
-        final byte[] centralDirectorySignature = {0x50, 0x4b, 0x01, 0x02};
-        final int centralDirectoryIndex = indexOf(zipBytes, centralDirectorySignature);
+        final int centralDirectoryIndex = indexOf(zipBytes, ZIP_CENTRAL_DIRECTORY_SIGNATURE);
         assertTrue(centralDirectoryIndex > 0, "ZIP central directory signature not found");
-        corruptCrcAt(zipBytes, lastIndexOf(zipBytes, localFileHeaderSignature, centralDirectoryIndex) + 14);
-        corruptCrcAt(zipBytes, lastIndexOf(zipBytes, centralDirectorySignature, zipBytes.length) + 16);
+        corruptCrcAt(zipBytes, lastIndexOf(zipBytes, ZIP_LOCAL_FILE_HEADER_SIGNATURE, centralDirectoryIndex) + 14);
+        corruptCrcAt(zipBytes, lastIndexOf(zipBytes, ZIP_CENTRAL_DIRECTORY_SIGNATURE, zipBytes.length) + 16);
         return zipBytes;
     }
 
@@ -945,14 +957,12 @@ public class TestUnpackContent {
             return zipBytes;
         }
 
-        final byte[] centralDirectorySignature = {0x50, 0x4b, 0x01, 0x02};
-        final byte[] dataDescriptorSignature = {0x50, 0x4b, 0x07, 0x08};
-        final int centralDirectoryIndex = indexOf(zipBytes, centralDirectorySignature);
+        final int centralDirectoryIndex = indexOf(zipBytes, ZIP_CENTRAL_DIRECTORY_SIGNATURE);
         assertTrue(centralDirectoryIndex > 0, "ZIP central directory signature not found");
-        final int dataDescriptorIndex = lastIndexOf(zipBytes, dataDescriptorSignature, centralDirectoryIndex);
+        final int dataDescriptorIndex = lastIndexOf(zipBytes, ZIP_DATA_DESCRIPTOR_SIGNATURE, centralDirectoryIndex);
         assertTrue(dataDescriptorIndex >= 0, "ZIP data descriptor signature not found");
         corruptCrcAt(zipBytes, dataDescriptorIndex + 4);
-        corruptCrcAt(zipBytes, lastIndexOf(zipBytes, centralDirectorySignature, zipBytes.length) + 16);
+        corruptCrcAt(zipBytes, lastIndexOf(zipBytes, ZIP_CENTRAL_DIRECTORY_SIGNATURE, zipBytes.length) + 16);
         return zipBytes;
     }
 
