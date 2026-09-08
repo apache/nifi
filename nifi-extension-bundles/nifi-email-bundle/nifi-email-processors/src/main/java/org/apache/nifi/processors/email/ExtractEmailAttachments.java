@@ -60,8 +60,8 @@ import java.util.Set;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Extract attachments from a mime formatted email file, splitting them into individual FlowFiles.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "filename ", description = "The filename of the attachment"),
-        @WritesAttribute(attribute = "email.attachment.parent.filename ", description = "The filename of the parent FlowFile"),
+        @WritesAttribute(attribute = "filename", description = "The filename of the attachment"),
+        @WritesAttribute(attribute = "email.attachment.parent.filename", description = "The filename of the parent FlowFile"),
         @WritesAttribute(attribute = "email.attachment.parent.uuid", description = "The UUID of the original FlowFile."),
         @WritesAttribute(attribute = "mime.type", description = "The mime type of the attachment."),
         @WritesAttribute(attribute = ExtractEmailAttachments.ATTACHMENT_HEADER_ATTRIBUTE_PREFIX + "<attachment header name>", description = "Attachment header.")})
