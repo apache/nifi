@@ -76,6 +76,7 @@ import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.migration.ControllerServiceCreationDetails;
 import org.apache.nifi.migration.ControllerServiceFactory;
+import org.apache.nifi.migration.PropertyMigrationPreview;
 import org.apache.nifi.migration.StandardPropertyConfiguration;
 import org.apache.nifi.migration.StandardRelationshipConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
@@ -2294,6 +2295,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         // In order to account for this, we need to refresh our controller service references by removing an previously existing
         // references and establishing new references.
         updateControllerServiceReferences();
+    }
+
+    @Override
+    public Optional<Map<String, String>> previewMigratedProperties(final Map<String, String> originalPropertyValues) {
+        return PropertyMigrationPreview.preview(getProcessor(), getExtensionManager(), getIdentifier(), toString(),
+                this::mapRawValueToEffectiveValue, originalPropertyValues);
     }
 
     @Override
