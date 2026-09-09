@@ -190,6 +190,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final int hashCode;
     private volatile boolean hasActiveThreads = false;
 
+    // Tracks the callback for the current start so that a stop requested while the Processor is STARTING can cancel the
+    // start future even if the @OnScheduled method never returns. It is cleared with compareAndSet so that an abandoned
+    // start attempt cannot clear a callback belonging to a later start.
+    private final AtomicReference<SchedulingAgentCallback> activeStartCallback = new AtomicReference<>();
+    // Tracks the thread currently invoking @OnScheduled so that a stop can interrupt it.
+    private final AtomicReference<Thread> onScheduledThread = new AtomicReference<>();
+    // Tracks the Future for a scheduled start retry so that a stop can cancel a retry that is waiting between attempts,
+    // rather than leaving the Processor STARTING until the administrative yield elapses.
+    private final AtomicReference<Future<?>> scheduledStartRetry = new AtomicReference<>();
+
     private volatile int retryCount;
     private volatile Set<String> retriedRelationships;
     private volatile BackoffMechanism backoffMechanism;
@@ -1500,21 +1510,24 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final ComponentLog procLog = new StandardComponentLog(StandardProcessorNode.this.getIdentifier(), processor, new StandardLoggingContext(StandardProcessorNode.this));
         LOG.debug("Starting {}", this);
 
-        ScheduledState currentState;
-        boolean starting;
-        synchronized (this) {
-            currentState = this.scheduledState.get();
+        final ScheduledState currentState;
+        final boolean starting;
+        synchronized (onScheduledThread) {
+            synchronized (this) {
+                currentState = this.scheduledState.get();
 
-            if (currentState == ScheduledState.STOPPED) {
-                starting = this.scheduledState.compareAndSet(ScheduledState.STOPPED, scheduledState);
-                if (starting) {
+                if (currentState == ScheduledState.STOPPED) {
+                    starting = this.scheduledState.compareAndSet(ScheduledState.STOPPED, scheduledState);
+                    if (starting) {
+                        setDesiredState(desiredState);
+                        activeStartCallback.set(schedulingAgentCallback);
+                    }
+                } else if (currentState == ScheduledState.STOPPING && !failIfStopping) {
                     setDesiredState(desiredState);
+                    return;
+                } else {
+                    starting = false;
                 }
-            } else if (currentState == ScheduledState.STOPPING && !failIfStopping) {
-                setDesiredState(desiredState);
-                return;
-            } else {
-                starting = false;
             }
         }
 
@@ -1692,6 +1705,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
         // Create a task to invoke the @OnScheduled annotation of the processor
         final Callable<Void> startupTask = () -> {
+            // If a newer start has replaced the callback for this Processor, this attempt has been abandoned and must not
+            // invoke @OnScheduled, schedule another retry, or complete a stop, because a different start now owns the
+            // Processor's lifecycle. Treating a non-current callback as dead prevents an orphaned retry that was published
+            // just before a stop from interfering with a subsequent start whose physical state is again STARTING.
+            if (activeStartCallback.get() != schedulingAgentCallback) {
+                LOG.info("Abandoning start attempt of {} because a newer start now owns the Processor", StandardProcessorNode.this);
+                schedulingAgentCallback.onTaskComplete();
+                return null;
+            }
+
             final ScheduledState currentScheduleState = scheduledState.get();
             if (currentScheduleState == ScheduledState.STOPPING || currentScheduleState == ScheduledState.STOPPED || getDesiredState() == ScheduledState.STOPPED) {
                 LOG.info("Aborting start of {}: scheduledState={}, desiredState={}, validationStatus={}",
@@ -1725,11 +1748,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     LOG.debug("Cannot start {} because Processor is currently not valid; will try again after 500 ms", StandardProcessorNode.this);
                 }
 
-                // re-initiate the entire process
-                final Runnable initiateStartTask = () -> initiateStart(taskScheduler, administrativeYieldMillis, timeoutMillis, startupAttemptCount,
-                    processContextFactory, schedulingAgentCallback, triggerLifecycleMethods);
-
-                taskScheduler.schedule(initiateStartTask, 500, TimeUnit.MILLISECONDS);
+                // Re-initiate the entire process after a short delay while the Processor remains invalid.
+                scheduleStartRetry(taskScheduler, administrativeYieldMillis, timeoutMillis, startupAttemptCount, processContextFactory, schedulingAgentCallback, triggerLifecycleMethods, 500);
 
                 schedulingAgentCallback.onTaskComplete();
                 return null;
@@ -1742,9 +1762,36 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), processor.getClass(), processor.getIdentifier())) {
                 try {
-                    hasActiveThreads = true;
-
                     if (triggerLifecycleMethods) {
+                        // Register the thread that is about to invoke @OnScheduled under the same lock that stop() uses to
+                        // transition STARTING to STOPPING. Rechecking the state here ensures that a stop which has already
+                        // transitioned the Processor to STOPPING is observed before @OnScheduled is invoked, so that either
+                        // the invocation is skipped or the registered thread is guaranteed to be interrupted by that stop.
+                        final boolean invokeOnScheduled;
+                        synchronized (onScheduledThread) {
+                            final ScheduledState stateBeforeInvocation = scheduledState.get();
+                            final boolean startCurrent = activeStartCallback.get() == schedulingAgentCallback && !schedulingAgentCallback.isStartTerminated();
+                            invokeOnScheduled = startCurrent && (stateBeforeInvocation == ScheduledState.STARTING || stateBeforeInvocation == ScheduledState.RUN_ONCE);
+                            if (invokeOnScheduled) {
+                                // Claim active threads together with registering the invoking thread, under the same lock a
+                                // stop uses. A stop that has already completed leaves the Processor STOPPED without any active
+                                // thread, so hasActiveThreads must only be set when this attempt actually commits to invoking
+                                // @OnScheduled while still STARTING.
+                                hasActiveThreads = true;
+                                onScheduledThread.set(Thread.currentThread());
+                            }
+                        }
+
+                        if (!invokeOnScheduled) {
+                            // A stop transitioned this Processor away from STARTING before @OnScheduled could be invoked. The
+                            // stop path completed the stop itself once it observed that no @OnScheduled thread was registered,
+                            // so this abandoned attempt must not claim a successful @OnScheduled, must not invoke @OnUnscheduled
+                            // or @OnStopped, and must not complete the stop again. hasActiveThreads was never set here, so the
+                            // Processor is left STOPPED with no active thread.
+                            LOG.info("Aborting start of {} because this start no longer owns a Processor in STARTING state; current state = {}", processor, scheduledState.get());
+                            return null;
+                        }
+
                         LOG.debug("Invoking @OnScheduled methods of {}", processor);
                         activateThread();
                         try {
@@ -1753,14 +1800,25 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             deactivateThread();
                         }
                     } else {
+                        hasActiveThreads = true;
                         LOG.debug("Will not invoke @OnScheduled methods of {} because triggerLifecycleMethods = false", processor);
                     }
 
-                    if (
-                        (desiredState == ScheduledState.RUNNING && scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.RUNNING))
-                            || (desiredState == ScheduledState.RUN_ONCE && scheduledState.compareAndSet(ScheduledState.RUN_ONCE, ScheduledState.RUN_ONCE))
-                    ) {
+                    final boolean startTerminated;
+                    final boolean started;
+                    synchronized (onScheduledThread) {
+                        startTerminated = schedulingAgentCallback.isStartTerminated() || activeStartCallback.get() != schedulingAgentCallback;
+                        started = !startTerminated
+                            && ((desiredState == ScheduledState.RUNNING && scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.RUNNING))
+                                || (desiredState == ScheduledState.RUN_ONCE && scheduledState.compareAndSet(ScheduledState.RUN_ONCE, ScheduledState.RUN_ONCE)));
+                        onScheduledThread.compareAndSet(Thread.currentThread(), null);
+                    }
+
+                    if (startTerminated) {
+                        LOG.info("Completed @OnScheduled methods of {} but this start's LifecycleState has been terminated, so a newer start owns the Processor", processor);
+                    } else if (started) {
                         LOG.debug("Successfully completed the @OnScheduled methods of {}; will now start triggering processor to run", processor);
+                        activeStartCallback.compareAndSet(schedulingAgentCallback, null);
                         schedulingAgentCallback.trigger(); // callback provided by StandardProcessScheduler to essentially initiate component's onTrigger() cycle
                     } else {
                         LOG.info("Successfully invoked @OnScheduled methods of {} but scheduled state is no longer STARTING so will stop processor now; current state = {}, desired state = {}",
@@ -1772,7 +1830,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             try {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
-                                hasActiveThreads = false;
                             } finally {
                                 deactivateThread();
                             }
@@ -1780,12 +1837,18 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             LOG.debug("Will not trigger @OnUnscheduled / @OnStopped methods on {} because triggerLifecycleMethods = false", processor);
                         }
 
-                        completeStopAction();
+                        synchronized (onScheduledThread) {
+                            if (!schedulingAgentCallback.isStartTerminated() && activeStartCallback.get() == schedulingAgentCallback) {
+                                hasActiveThreads = false;
+                                activeStartCallback.compareAndSet(schedulingAgentCallback, null);
+                                completeStopAction();
 
-                        if (desiredState == ScheduledState.DISABLED) {
-                            final boolean disabled = scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED);
-                            if (disabled) {
-                                LOG.info("After stopping {}, determined that Desired State is DISABLED so disabled processor", processor);
+                                if (desiredState == ScheduledState.DISABLED) {
+                                    final boolean disabled = scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED);
+                                    if (disabled) {
+                                        LOG.info("After stopping {}, determined that Desired State is DISABLED so disabled processor", processor);
+                                    }
+                                }
                             }
                         }
                     }
@@ -1794,8 +1857,15 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 }
             } catch (Exception e) {
                 final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
-                procLog.error("Failed to properly initialize Processor. If still scheduled to run, NiFi will attempt to "
-                    + "initialize and run the Processor again after the 'Administrative Yield Duration' has elapsed. Failure is due to " + cause, cause);
+                final boolean interruptedWhileStopping = cause instanceof InterruptedException
+                    && (scheduledState.get() != ScheduledState.STARTING || getDesiredState() == ScheduledState.STOPPED);
+                if (interruptedWhileStopping) {
+                    Thread.interrupted();
+                    LOG.debug("@OnScheduled method of {} was interrupted while stopping", processor);
+                } else {
+                    procLog.error("Failed to properly initialize Processor. If still scheduled to run, NiFi will attempt to "
+                        + "initialize and run the Processor again after the 'Administrative Yield Duration' has elapsed. Failure is due to " + cause, cause);
+                }
 
                 // If processor's task completed Exceptionally, then we want to retry initiating the start (if Processor is still scheduled to run).
                 try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), processor.getClass(), processor.getIdentifier())) {
@@ -1803,21 +1873,25 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     try {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
-                        hasActiveThreads = false;
                     } finally {
                         deactivateThread();
                     }
                 }
 
-                // make sure we only continue retry loop if STOP action wasn't initiated
-                if (scheduledState.get() != ScheduledState.STOPPING && scheduledState.get() != ScheduledState.RUN_ONCE) {
-                    // re-initiate the entire process
-                    final Runnable initiateStartTask = () -> initiateStart(taskScheduler, administrativeYieldMillis, timeoutMillis, startupAttemptCount,
-                        processContextFactory, schedulingAgentCallback, triggerLifecycleMethods);
-
-                    taskScheduler.schedule(initiateStartTask, administrativeYieldMillis, TimeUnit.MILLISECONDS);
-                } else {
-                    completeStopAction();
+                synchronized (onScheduledThread) {
+                    onScheduledThread.compareAndSet(Thread.currentThread(), null);
+                    if (schedulingAgentCallback.isStartTerminated() || activeStartCallback.get() != schedulingAgentCallback) {
+                        LOG.info("@OnScheduled methods of {} failed but this start's LifecycleState has been terminated, so this attempt will neither retry nor complete a stop", processor);
+                    } else {
+                        hasActiveThreads = false;
+                        if (scheduleStartRetry(taskScheduler, administrativeYieldMillis, timeoutMillis, startupAttemptCount, processContextFactory, schedulingAgentCallback,
+                                triggerLifecycleMethods, administrativeYieldMillis)) {
+                            LOG.debug("Rescheduled start of {} after its @OnScheduled method failed", processor);
+                        } else {
+                            activeStartCallback.compareAndSet(schedulingAgentCallback, null);
+                            completeStopAction();
+                        }
+                    }
                 }
             }
 
@@ -1851,6 +1925,28 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
         final Future<?> future = taskScheduler.scheduleWithFixedDelay(monitoringTask, 1, 10, TimeUnit.MILLISECONDS);
         futureRef.set(future);
+    }
+
+    private boolean scheduleStartRetry(final ScheduledExecutorService taskScheduler, final long administrativeYieldMillis, final long timeoutMillis,
+            final AtomicLong startupAttemptCount, final Supplier<ProcessContext> processContextFactory, final SchedulingAgentCallback schedulingAgentCallback,
+            final boolean triggerLifecycleMethods, final long retryDelayMillis) {
+        final Runnable initiateStartTask = () -> initiateStart(taskScheduler, administrativeYieldMillis, timeoutMillis, startupAttemptCount,
+            processContextFactory, schedulingAgentCallback, triggerLifecycleMethods);
+
+        synchronized (onScheduledThread) {
+            // Publish the retry under the same lock that stop() uses to transition STARTING to STOPPING, and only if this
+            // start still owns the Processor and it is still STARTING. If a stop has already transitioned the Processor
+            // away from STARTING, or a newer start has replaced the callback, no retry is scheduled. This guarantees that
+            // a stop which emptied and cancelled the retry slot can never be followed by an orphaned retry.
+            final ScheduledState currentState = scheduledState.get();
+            if (currentState != ScheduledState.STARTING || activeStartCallback.get() != schedulingAgentCallback) {
+                LOG.debug("Not scheduling another start attempt of {} because it is no longer STARTING or a newer start now owns it; current state = {}", this, currentState);
+                return false;
+            }
+
+            scheduledStartRetry.set(taskScheduler.schedule(initiateStartTask, retryDelayMillis, TimeUnit.MILLISECONDS));
+            return true;
+        }
     }
 
     /**
@@ -1993,9 +2089,43 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             // before stop() was called. If that happens the stop processor
             // routine will be initiated in start() method, otherwise the IF
             // part will handle the stop processor routine.
-            final boolean updated = this.scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.STOPPING);
-            if (updated) {
-                LOG.debug("Transitioned state of {} from STARTING to STOPPING", this);
+            final boolean updated;
+            boolean completeStopDirectly = false;
+            synchronized (onScheduledThread) {
+                updated = this.scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.STOPPING);
+                if (updated) {
+                    LOG.debug("Transitioned state of {} from STARTING to STOPPING", this);
+
+                    // Cancel the in-flight start so that a caller waiting on the start future is released even if the
+                    // @OnScheduled method never returns.
+                    final SchedulingAgentCallback startCallback = activeStartCallback.get();
+                    if (startCallback != null) {
+                        startCallback.cancelStart();
+                    }
+
+                    // Cancel any start retry that is waiting between attempts so that the stop does not have to wait for
+                    // the administrative yield to elapse before the retry observes the STOPPING state.
+                    final Future<?> pendingRetry = scheduledStartRetry.getAndSet(null);
+                    if (pendingRetry != null) {
+                        pendingRetry.cancel(false);
+                    }
+
+                    final Thread invocationThread = onScheduledThread.get();
+                    if (invocationThread == null) {
+                        // No @OnScheduled invocation is running, and none can start now because a starting invocation
+                        // rechecks the state under this same lock and observes STOPPING. Complete the stop directly rather
+                        // than waiting for the next retry to observe the STOPPING state.
+                        completeStopDirectly = true;
+                    } else {
+                        // Interrupt the thread invoking @OnScheduled so that an interruptible invocation can exit and allow
+                        // the normal lifecycle cleanup to finish the stop without requiring termination.
+                        invocationThread.interrupt();
+                    }
+                }
+            }
+
+            if (completeStopDirectly) {
+                completeStopAction();
             }
         }
 

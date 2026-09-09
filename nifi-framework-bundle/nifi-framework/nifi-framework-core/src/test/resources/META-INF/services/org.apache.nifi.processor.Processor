@@ -24,3 +24,4 @@ org.apache.nifi.components.connector.processors.LogFlowFileContents
 org.apache.nifi.components.connector.processors.ExposeFileValues
 org.apache.nifi.components.connector.processors.Sleep
 org.apache.nifi.components.connector.processors.OnPropertyModifiedTracker
+org.apache.nifi.components.connector.processors.ManagedStartHangProcessor

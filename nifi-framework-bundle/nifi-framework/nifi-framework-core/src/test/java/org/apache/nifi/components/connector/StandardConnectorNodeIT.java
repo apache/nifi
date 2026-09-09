@@ -22,12 +22,16 @@ import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.processors.CreateDummyFlowFile;
 import org.apache.nifi.components.connector.processors.DuplicateFlowFile;
 import org.apache.nifi.components.connector.processors.LogFlowFileContents;
+import org.apache.nifi.components.connector.processors.ManagedStartHangProcessor;
 import org.apache.nifi.components.connector.processors.OnPropertyModifiedTracker;
 import org.apache.nifi.components.connector.processors.OverwriteFlowFile;
 import org.apache.nifi.components.connector.processors.TerminateFlowFile;
 import org.apache.nifi.components.connector.secrets.ParameterProviderSecretsManager;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.components.connector.services.CounterService;
+import org.apache.nifi.components.connector.services.impl.BlockingEnableDisableCounterService;
+import org.apache.nifi.components.connector.services.impl.BlockingEnablingCounterService;
+import org.apache.nifi.components.connector.services.impl.FailingEnablingCounterService;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.StandardVerifiableComponentFactory;
 import org.apache.nifi.components.validation.ValidationState;
@@ -42,6 +46,7 @@ import org.apache.nifi.controller.MockStateManagerProvider;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.StandardFlowManager;
 import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
@@ -62,6 +67,8 @@ import org.apache.nifi.controller.scheduling.StandardLifecycleStateManager;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.mock.MockNodeTypeProvider;
@@ -93,17 +100,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 
 import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -121,11 +129,10 @@ public class StandardConnectorNodeIT {
     private StandardFlowManager flowManager;
     private FlowEngine componentLifecycleThreadPool;
     private ConnectorRepository connectorRepository;
+    private ControllerServiceProvider controllerServiceProvider;
 
     @BeforeEach
     public void setup() {
-        final ControllerServiceProvider controllerServiceProvider = mock(ControllerServiceProvider.class);
-        when(controllerServiceProvider.disableControllerServicesAsync(anyCollection())).thenReturn(CompletableFuture.completedFuture(null));
         connectorRepository = new StandardConnectorRepository();
 
         final SecretsManager secretsManager = new ParameterProviderSecretsManager();
@@ -139,7 +146,8 @@ public class StandardConnectorNodeIT {
         final LifecycleStateManager lifecycleStateManager = new StandardLifecycleStateManager();
         final ReloadComponent reloadComponent = mock(ReloadComponent.class);
 
-        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties");
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties",
+            Map.of(NiFiProperties.ADMINISTRATIVE_YIELD_DURATION, "100 millis"));
 
         final FlowController flowController = mock(FlowController.class);
         when(flowController.isInitialized()).thenReturn(true);
@@ -158,7 +166,6 @@ public class StandardConnectorNodeIT {
 
         when(flowController.getRepositoryContextFactory()).thenReturn(repoContextFactory);
         when(flowController.getGarbageCollectionLog()).thenReturn(mock(GarbageCollectionLog.class));
-        when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
         when(flowController.getProvenanceRepository()).thenReturn(provRepo);
         when(flowController.getBulletinRepository()).thenReturn(bulletinRepository);
         when(flowController.getLifecycleStateManager()).thenReturn(lifecycleStateManager);
@@ -186,6 +193,8 @@ public class StandardConnectorNodeIT {
         extensionManager.discoverExtensions(systemBundle, Set.of());
 
         flowManager = new StandardFlowManager(nifiProperties, null, flowController, flowFileEventRepository, parameterContextManager);
+        controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, flowManager, extensionManager);
+        when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
         flowManager.initialize(controllerServiceProvider, mock(PythonBridge.class), mock(FlowAnalyzer.class), mock(RuleViolationsManager.class));
         final ProcessGroup rootGroup = flowManager.createProcessGroup("root");
         rootGroup.setName("Root");
@@ -395,6 +404,298 @@ public class StandardConnectorNodeIT {
         assertNotNull(serviceNodes);
         assertEquals(1, serviceNodes.size());
         assertInstanceOf(CounterService.class, serviceNodes.iterator().next().getControllerServiceImplementation());
+    }
+
+    @Test
+    @Timeout(20)
+    public void testStopConnectorWhileManagedServiceBlocksInOnEnabled() throws Exception {
+        final ConnectorNode connectorNode = initializeControllerServiceEnablingConnector(ControllerServiceEnablingConnector.BLOCKING_ENABLING);
+        final ControllerServiceNode serviceNode = getManagedControllerService(connectorNode);
+        final BlockingEnablingCounterService service = (BlockingEnablingCounterService) serviceNode.getControllerServiceImplementation();
+
+        connectorNode.start(componentLifecycleThreadPool);
+        try {
+            waitForServiceState(serviceNode, ControllerServiceState.ENABLING);
+            waitForEnableInvocation(service::enableInvocationCount, 1);
+
+            final Future<Void> stopFuture = connectorNode.stop(componentLifecycleThreadPool);
+            stopFuture.get(5, TimeUnit.SECONDS);
+
+            assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+            assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
+
+            // Stopping while the service was blocked in @OnEnabled must interrupt that invocation and then invoke @OnDisabled
+            // exactly once before the service reaches DISABLED.
+            assertTrue(service.wasInterrupted());
+            assertEquals(1, service.disableInvocationCount());
+        } finally {
+            service.releaseEnable();
+        }
+    }
+
+    @Test
+    @Timeout(30)
+    public void testRestartConnectorAfterStopWhileManagedServiceBlocksInOnEnabled() throws Exception {
+        final ConnectorNode connectorNode = initializeControllerServiceEnablingConnector(ControllerServiceEnablingConnector.BLOCKING_ENABLING);
+        final ControllerServiceNode serviceNode = getManagedControllerService(connectorNode);
+        final BlockingEnablingCounterService service = (BlockingEnablingCounterService) serviceNode.getControllerServiceImplementation();
+
+        connectorNode.start(componentLifecycleThreadPool);
+        waitForServiceState(serviceNode, ControllerServiceState.ENABLING);
+        waitForEnableInvocation(service::enableInvocationCount, 1);
+
+        connectorNode.stop(componentLifecycleThreadPool).get(10, TimeUnit.SECONDS);
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+        assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
+        assertEquals(1, service.disableInvocationCount());
+
+        // Starting the Connector again begins a new enable cycle. The second @OnEnabled must not begin until the first
+        // @OnDisabled has completed, which is guaranteed because the service reached DISABLED before the restart.
+        connectorNode.start(componentLifecycleThreadPool);
+        try {
+            waitForEnableInvocation(service::enableInvocationCount, 2);
+            assertEquals(1, service.disableInvocationCount());
+        } finally {
+            service.releaseEnable();
+        }
+
+        waitForServiceState(serviceNode, ControllerServiceState.ENABLED);
+        connectorNode.stop(componentLifecycleThreadPool).get(10, TimeUnit.SECONDS);
+        assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
+    }
+
+    @Test
+    @Timeout(30)
+    public void testStopConnectorWhileManagedServiceKeepsFailingOnEnabled() throws Exception {
+        final ConnectorNode connectorNode = initializeControllerServiceEnablingConnector(ControllerServiceEnablingConnector.FAILING_ENABLING);
+        final ControllerServiceNode serviceNode = getManagedControllerService(connectorNode);
+
+        connectorNode.start(componentLifecycleThreadPool);
+        final FailingEnablingCounterService service = (FailingEnablingCounterService) serviceNode.getControllerServiceImplementation();
+        waitForEnableInvocation(service::enableInvocationCount, 2);
+
+        final Future<Void> stopFuture = connectorNode.stop(componentLifecycleThreadPool);
+        stopFuture.get(5, TimeUnit.SECONDS);
+
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+        assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
+    }
+
+    @Test
+    @Timeout(30)
+    public void testRestartConnectorAfterStopWhileManagedServiceKeepsFailingOnEnabled() throws Exception {
+        final ConnectorNode connectorNode = initializeControllerServiceEnablingConnector(ControllerServiceEnablingConnector.FAILING_ENABLING);
+        final ControllerServiceNode serviceNode = getManagedControllerService(connectorNode);
+        final FailingEnablingCounterService service = (FailingEnablingCounterService) serviceNode.getControllerServiceImplementation();
+
+        connectorNode.start(componentLifecycleThreadPool);
+
+        // Wait until @OnEnabled has been invoked and retried at least once, which proves the failure-retry loop is active and
+        // that a retry has been scheduled by the time the stop arrives.
+        waitForEnableInvocation(service::enableInvocationCount, 2);
+
+        // Stopping the Connector disables the managed service, which cancels the in-flight enable attempt and its pending
+        // retry. The stop future completes only after the service reaches DISABLED, at which point the cancelled retry can no
+        // longer invoke @OnEnabled for this cycle, so the invocation count for the first cycle is final.
+        connectorNode.stop(componentLifecycleThreadPool).get(10, TimeUnit.SECONDS);
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+        assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
+        final int invocationsAfterStop = service.enableInvocationCount();
+        Thread.sleep(500L);
+        assertEquals(invocationsAfterStop, service.enableInvocationCount());
+
+        // Restarting the Connector begins a new enable cycle, so @OnEnabled must be invoked again beyond the count reached in
+        // the first cycle.
+        connectorNode.start(componentLifecycleThreadPool);
+        waitForEnableInvocation(service::enableInvocationCount, invocationsAfterStop + 1);
+
+        connectorNode.stop(componentLifecycleThreadPool).get(10, TimeUnit.SECONDS);
+        assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
+        final int invocationsAfterSecondStop = service.enableInvocationCount();
+        Thread.sleep(500L);
+        assertEquals(invocationsAfterSecondStop, service.enableInvocationCount());
+
+        // A cancelled retry from the first cycle must never run alongside a live @OnEnabled from the second cycle, so the peak
+        // number of concurrent @OnEnabled invocations across both cycles stays exactly one.
+        assertEquals(1, service.maxConcurrentEnableInvocationCount());
+    }
+
+    @Test
+    @Timeout(30)
+    public void testStopThenRestartEnforcesEnableThenDisableThenEnableOrdering() throws Exception {
+        final ConnectorNode connectorNode = initializeControllerServiceEnablingConnector(ControllerServiceEnablingConnector.ORDERED_BLOCKING);
+        final ControllerServiceNode serviceNode = getManagedControllerService(connectorNode);
+        final BlockingEnableDisableCounterService service = (BlockingEnableDisableCounterService) serviceNode.getControllerServiceImplementation();
+
+        try {
+            connectorNode.start(componentLifecycleThreadPool);
+            waitForServiceState(serviceNode, ControllerServiceState.ENABLING);
+            waitForEnableInvocation(service::enableInvocationCount, 1);
+
+            // Stop while the interruption-resistant @OnEnabled is still running. The service moves to DISABLING and stays
+            // there: @OnDisabled has not started and no second @OnEnabled has begun while the stop is pending.
+            final Future<Void> stopFuture = connectorNode.stop(componentLifecycleThreadPool);
+            waitForServiceState(serviceNode, ControllerServiceState.DISABLING);
+            assertTrue(service.wasInterrupted());
+            assertEquals(1, service.enableInvocationCount());
+            assertEquals(0, service.disableInvocationCount());
+            assertFalse(stopFuture.isDone());
+
+            // Requesting a restart while the Connector is stopping records a pending start; no second @OnEnabled may begin yet
+            // because the Connector cannot finish stopping until the managed service is disabled.
+            connectorNode.start(componentLifecycleThreadPool);
+            assertEquals(ControllerServiceState.DISABLING, serviceNode.getState());
+            assertEquals(1, service.enableInvocationCount());
+            assertEquals(0, service.disableInvocationCount());
+            assertFalse(stopFuture.isDone());
+
+            // Releasing @OnEnabled lets the enable task invoke @OnDisabled, which blocks. The service stays DISABLING and no
+            // second @OnEnabled begins until @OnDisabled returns.
+            service.releaseEnable();
+            waitForCount(service::disableInvocationCount, 1);
+            assertEquals(ControllerServiceState.DISABLING, serviceNode.getState());
+            assertEquals(1, service.enableInvocationCount());
+            assertFalse(stopFuture.isDone());
+
+            // Releasing @OnDisabled lets the service reach DISABLED, which completes the stop and begins the pending start's
+            // second @OnEnabled.
+            service.releaseDisable();
+            stopFuture.get(10, TimeUnit.SECONDS);
+            waitForEnableInvocation(service::enableInvocationCount, 2);
+            assertEquals(1, service.disableInvocationCount());
+        } finally {
+            service.releaseEnable();
+            service.releaseDisable();
+        }
+
+        connectorNode.stop(componentLifecycleThreadPool).get(10, TimeUnit.SECONDS);
+        assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
+    }
+
+    @Test
+    @Timeout(30)
+    public void testStopConnectorWhileManagedProcessorKeepsFailingOnScheduled() throws Exception {
+        final ConnectorNode connectorNode = initializeProcessorStartHangConnector(ProcessorStartHangConnector.ROOT_GROUP);
+        final ProcessorNode processorNode = getManagedHangProcessorNode(connectorNode);
+        final ManagedStartHangProcessor processor = (ManagedStartHangProcessor) processorNode.getProcessor();
+        processor.setStartBehavior(ManagedStartHangProcessor.StartBehavior.REPEATED_FAILURE);
+
+        connectorNode.start(componentLifecycleThreadPool);
+        waitForCount(processor::getOnScheduledInvocationCount, 1);
+
+        final Future<Void> stopFuture = connectorNode.stop(componentLifecycleThreadPool);
+        stopFuture.get(20, TimeUnit.SECONDS);
+
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+        assertEquals(ScheduledState.STOPPED, processorNode.getPhysicalScheduledState());
+    }
+
+    @Test
+    @Timeout(30)
+    public void testStopConnectorWhileManagedProcessorBlocksInInterruptibleOnScheduled() throws Exception {
+        final ConnectorNode connectorNode = initializeProcessorStartHangConnector(ProcessorStartHangConnector.ROOT_GROUP);
+        final ProcessorNode processorNode = getManagedHangProcessorNode(connectorNode);
+        final ManagedStartHangProcessor processor = (ManagedStartHangProcessor) processorNode.getProcessor();
+        processor.setStartBehavior(ManagedStartHangProcessor.StartBehavior.INTERRUPTIBLE_BLOCK);
+
+        connectorNode.start(componentLifecycleThreadPool);
+        waitForCount(processor::getOnScheduledInvocationCount, 1);
+
+        final Future<Void> stopFuture = connectorNode.stop(componentLifecycleThreadPool);
+        stopFuture.get(20, TimeUnit.SECONDS);
+
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+        assertEquals(ScheduledState.STOPPED, processorNode.getPhysicalScheduledState());
+        assertTrue(processor.getInterruptionCount() >= 1);
+    }
+
+    @Test
+    @Timeout(30)
+    public void testStopConnectorWhileManagedProcessorInChildGroupKeepsFailingOnScheduled() throws Exception {
+        final ConnectorNode connectorNode = initializeProcessorStartHangConnector(ProcessorStartHangConnector.CHILD_GROUP);
+        final ProcessorNode processorNode = getManagedHangProcessorNode(connectorNode);
+        final ManagedStartHangProcessor processor = (ManagedStartHangProcessor) processorNode.getProcessor();
+        processor.setStartBehavior(ManagedStartHangProcessor.StartBehavior.REPEATED_FAILURE);
+
+        assertNotEquals(connectorNode.getActiveFlowContext().getManagedProcessGroup().getIdentifier(), processorNode.getProcessGroup().getIdentifier());
+
+        connectorNode.start(componentLifecycleThreadPool);
+        waitForCount(processor::getOnScheduledInvocationCount, 1);
+
+        final Future<Void> stopFuture = connectorNode.stop(componentLifecycleThreadPool);
+        stopFuture.get(20, TimeUnit.SECONDS);
+
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+        assertEquals(ScheduledState.STOPPED, processorNode.getPhysicalScheduledState());
+    }
+
+    private ConnectorNode initializeProcessorStartHangConnector(final String placement) throws FlowUpdateException {
+        final ConnectorNode connectorNode = flowManager.createConnector(ProcessorStartHangConnector.class.getName(),
+                "processor-start-hang-connector", SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
+
+        final StepConfiguration stepConfiguration = new StepConfiguration(Map.of(
+            ProcessorStartHangConnector.PROCESSOR_PLACEMENT.getName(), new StringLiteralValue(placement)));
+
+        final NamedStepConfiguration namedStepConfiguration = new NamedStepConfiguration(ProcessorStartHangConnector.CONFIGURATION_STEP_NAME, stepConfiguration);
+        configure(connectorNode, new ConnectorConfiguration(Set.of(namedStepConfiguration)));
+        return connectorNode;
+    }
+
+    private ProcessorNode getManagedHangProcessorNode(final ConnectorNode connectorNode) {
+        final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        for (final ProcessorNode processorNode : managedGroup.findAllProcessors()) {
+            if (processorNode.getProcessor() instanceof ManagedStartHangProcessor) {
+                return processorNode;
+            }
+        }
+
+        throw new IllegalStateException("Managed flow does not contain a ManagedStartHangProcessor");
+    }
+
+    private void waitForCount(final IntSupplier countSupplier, final int expectedCount) throws InterruptedException {
+        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+        while (countSupplier.getAsInt() < expectedCount && System.nanoTime() < deadline) {
+            Thread.sleep(10L);
+        }
+
+        assertTrue(countSupplier.getAsInt() >= expectedCount);
+    }
+
+    private ConnectorNode initializeControllerServiceEnablingConnector(final String enablingBehavior) throws FlowUpdateException {
+        final ConnectorNode connectorNode = flowManager.createConnector(ControllerServiceEnablingConnector.class.getName(),
+                "controller-service-enabling-connector", SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
+
+        final StepConfiguration stepConfiguration = new StepConfiguration(Map.of(
+            ControllerServiceEnablingConnector.ENABLING_BEHAVIOR.getName(), new StringLiteralValue(enablingBehavior)));
+
+        final NamedStepConfiguration namedStepConfiguration = new NamedStepConfiguration(ControllerServiceEnablingConnector.CONFIGURATION_STEP_NAME, stepConfiguration);
+        configure(connectorNode, new ConnectorConfiguration(Set.of(namedStepConfiguration)));
+        return connectorNode;
+    }
+
+    private ControllerServiceNode getManagedControllerService(final ConnectorNode connectorNode) {
+        final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final Set<ControllerServiceNode> services = managedGroup.getControllerServices(true);
+        assertEquals(1, services.size());
+        return services.iterator().next();
+    }
+
+    private void waitForServiceState(final ControllerServiceNode serviceNode, final ControllerServiceState desiredState) throws InterruptedException {
+        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (serviceNode.getState() != desiredState && System.nanoTime() < deadline) {
+            Thread.sleep(10L);
+        }
+
+        assertEquals(desiredState, serviceNode.getState());
+    }
+
+    private void waitForEnableInvocation(final IntSupplier enableInvocationCount, final int expectedCount) throws InterruptedException {
+        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+        while (enableInvocationCount.getAsInt() < expectedCount && System.nanoTime() < deadline) {
+            Thread.sleep(10L);
+        }
+
+        assertTrue(enableInvocationCount.getAsInt() >= expectedCount);
     }
 
     @Test

@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -108,18 +109,29 @@ public class ServiceStateTransition {
         return true;
     }
 
-    public boolean transitionToDisabling(final ControllerServiceState expectedState, final CompletableFuture<?> disabledFuture) {
+    public ControllerServiceState transitionToDisabling(final CompletableFuture<?> disabledFuture) {
         writeLock.lock();
         try {
-            if (expectedState != state) {
-                logger.debug("{} cannot be transitioned to DISABLING because its state is {}, not the expected {}", controllerServiceNode, state, expectedState);
-                return false;
+            final ControllerServiceState previousState = state;
+            if (previousState == ControllerServiceState.DISABLED) {
+                disabledFuture.complete(null);
+            } else if (previousState == ControllerServiceState.DISABLING) {
+                disabledFutures.add(disabledFuture);
+            } else {
+                state = ControllerServiceState.DISABLING;
+                stateChangeCondition.signalAll();
+                disabledFutures.add(disabledFuture);
             }
 
-            state = ControllerServiceState.DISABLING;
-            stateChangeCondition.signalAll();
-            disabledFutures.add(disabledFuture);
-            return true;
+            if (previousState == ControllerServiceState.ENABLING) {
+                for (final CompletableFuture<?> enabledFuture : enabledFutures) {
+                    enabledFuture.completeExceptionally(new CancellationException("Controller Service enablement cancelled by disable request"));
+                }
+
+                enabledFutures.clear();
+            }
+
+            return previousState;
         } finally {
             writeLock.unlock();
         }

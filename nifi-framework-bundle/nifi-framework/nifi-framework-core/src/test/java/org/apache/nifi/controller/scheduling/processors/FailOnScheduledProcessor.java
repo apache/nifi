@@ -25,6 +25,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class FailOnScheduledProcessor extends AbstractProcessor {
 
@@ -34,6 +35,7 @@ public class FailOnScheduledProcessor extends AbstractProcessor {
     private volatile int onScheduledSleepIterations = 0;
     private volatile boolean allowSleepInterrupt = true;
     private final AtomicBoolean succeeded = new AtomicBoolean();
+    private final AtomicInteger onScheduledReturnCount = new AtomicInteger();
 
     public void setDesiredFailureCount(final int desiredFailureCount) {
         this.desiredFailureCount = desiredFailureCount;
@@ -53,27 +55,31 @@ public class FailOnScheduledProcessor extends AbstractProcessor {
     public void onScheduled() throws InterruptedException {
         invocationCount++;
 
-        if (invocationCount <= onScheduledSleepIterations && onScheduledSleepMillis > 0L) {
-            final long sleepFinish = System.currentTimeMillis() + onScheduledSleepMillis;
+        try {
+            if (invocationCount <= onScheduledSleepIterations && onScheduledSleepMillis > 0L) {
+                final long sleepFinish = System.currentTimeMillis() + onScheduledSleepMillis;
 
-            while (System.currentTimeMillis() < sleepFinish) {
-                try {
-                    Thread.sleep(Math.max(0, sleepFinish - System.currentTimeMillis()));
-                } catch (final InterruptedException ie) {
-                    if (allowSleepInterrupt) {
-                        Thread.currentThread().interrupt();
-                        throw ie;
-                    } else {
-                        continue;
+                while (System.currentTimeMillis() < sleepFinish) {
+                    try {
+                        Thread.sleep(Math.max(0, sleepFinish - System.currentTimeMillis()));
+                    } catch (final InterruptedException ie) {
+                        if (allowSleepInterrupt) {
+                            Thread.currentThread().interrupt();
+                            throw ie;
+                        } else {
+                            continue;
+                        }
                     }
                 }
             }
-        }
 
-        if (invocationCount < desiredFailureCount) {
-            throw new ProcessException("Intentional failure for unit test");
-        } else {
-            succeeded.set(true);
+            if (invocationCount < desiredFailureCount) {
+                throw new ProcessException("Intentional failure for unit test");
+            } else {
+                succeeded.set(true);
+            }
+        } finally {
+            onScheduledReturnCount.incrementAndGet();
         }
     }
 
@@ -83,6 +89,10 @@ public class FailOnScheduledProcessor extends AbstractProcessor {
 
     public boolean isSucceeded() {
         return succeeded.get();
+    }
+
+    public int getOnScheduledReturnCount() {
+        return onScheduledReturnCount.get();
     }
 
     @Override

@@ -20,3 +20,6 @@ org.apache.nifi.controller.service.mock.ServiceC
 org.apache.nifi.controller.service.mock.ServiceD
 
 org.apache.nifi.components.connector.services.impl.StandardCounterService
+org.apache.nifi.components.connector.services.impl.BlockingEnablingCounterService
+org.apache.nifi.components.connector.services.impl.BlockingEnableDisableCounterService
+org.apache.nifi.components.connector.services.impl.FailingEnablingCounterService

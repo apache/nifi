@@ -25,4 +25,21 @@ public interface SchedulingAgentCallback {
     Future<?> scheduleTask(Callable<?> task);
 
     void trigger();
+
+    /**
+     * Cancels the start that this callback represents by completing its start future exceptionally. This allows a caller
+     * that is waiting on the start future to be released when a Processor is stopped while it is still starting, even if
+     * its {@code @OnScheduled} method never returns.
+     */
+    default void cancelStart() {
+    }
+
+    /**
+     * @return {@code true} if the LifecycleState captured for this start has been terminated. A start whose LifecycleState
+     * has been terminated must not transition the Processor to RUNNING, invoke {@link #trigger()}, schedule another start
+     * attempt, or complete a later stop, because the Processor instance and context it holds have been abandoned.
+     */
+    default boolean isStartTerminated() {
+        return false;
+    }
 }

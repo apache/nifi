@@ -71,6 +71,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -436,6 +437,16 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             @Override
             public void onTaskComplete() {
                 lifecycleState.decrementActiveThreadCount();
+            }
+
+            @Override
+            public void cancelStart() {
+                future.completeExceptionally(new CancellationException("Start of " + procNode + " was cancelled because the Processor was stopped while it was still starting"));
+            }
+
+            @Override
+            public boolean isStartTerminated() {
+                return lifecycleState.isTerminated();
             }
         };
 

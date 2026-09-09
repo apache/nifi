@@ -94,7 +94,9 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -132,6 +134,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     private final VerifiableComponentFactory verifiableComponentFactory;
 
     private final AtomicBoolean active;
+
+    // Represents the current enable cycle. A disable request cancels this attempt so that the running enable task can
+    // recognize it has been superseded and hand the DISABLING to DISABLED transition off to the correct owner.
+    private final AtomicReference<EnableAttempt> currentEnableAttempt = new AtomicReference<>();
 
     public StandardControllerServiceNode(final LoggableComponent<ControllerService> implementation, final LoggableComponent<ControllerService> proxiedControllerService,
                                          final ControllerServiceInvocationHandler invocationHandler, final String id, final ValidationContextFactory validationContextFactory,
@@ -629,9 +635,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
      * Upon successful invocation of @OnEnabled this service will be transitioned to
      * ENABLED state.
      * <br>
-     * In the event where enabling took longer then expected by the user and such user
-     * initiated disable operation, this service will be automatically disabled as soon
-     * as it reached ENABLED state.
+     * When a disable operation is initiated during enabling, the enable future is completed exceptionally with a
+     * {@link CancellationException} and the current enable attempt is cancelled. If the @OnEnabled method is running, the
+     * enable task is interrupted and, once it returns, invokes @OnDisabled before the service transitions to DISABLED. If
+     * no @OnEnabled invocation is running, the disable request transitions the service to DISABLED directly.
      */
     @Override
     public CompletableFuture<Void> enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis, final boolean completeExceptionallyOnFailure) {
@@ -642,15 +649,22 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     public CompletableFuture<Void> enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis, final boolean completeExceptionallyOnFailure,
             final ConfigurationContext providedConfigurationContext) {
 
-        final CompletableFuture<Void> future = new CompletableFuture<>();
-
-        if (!stateTransition.transitionToEnabling(ControllerServiceState.DISABLED, future)) {
-            future.complete(null);
-            return future;
-        }
+        final EnableAttempt attempt = new EnableAttempt();
+        final CompletableFuture<Void> future = attempt.getFuture();
 
         synchronized (active) {
+            // Publish the enable attempt and the active flag under the same lock that guards the ENABLING transition so
+            // that a concurrent disable either transitions this service to DISABLING and observes this attempt in order to
+            // cancel it, or fails to enable and leaves the service DISABLED. Performing the transition and the publication
+            // together prevents a disable from moving the service to DISABLED while a non-cancelled attempt and an active
+            // flag remain published for the same enable cycle.
+            if (!stateTransition.transitionToEnabling(ControllerServiceState.DISABLED, future)) {
+                future.complete(null);
+                return future;
+            }
+
             this.active.set(true);
+            currentEnableAttempt.set(attempt);
         }
 
         final AtomicLong enablingDelay = new AtomicLong(0);
@@ -660,16 +674,14 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         scheduler.execute(new Runnable() {
             @Override
             public void run() {
+                if (attempt.isCancelled() || currentEnableAttempt.get() != attempt) {
+                    LOG.debug("Not proceeding with enabling {} because this enable attempt has been cancelled or superseded", serviceNode);
+                    return;
+                }
+
                 final ConfigurationContext configContext = providedConfigurationContext == null
                     ? new StandardConfigurationContext(serviceNode, controllerServiceProvider, null)
                     : providedConfigurationContext;
-
-                if (!isActive()) {
-                    LOG.warn("Enabling {} stopped: no active status", serviceNode);
-                    stateTransition.disable();
-                    future.complete(null);
-                    return;
-                }
 
                 // Perform validation - if a ConfigurationContext was provided, validate against its properties
                 final ValidationState validationState;
@@ -683,9 +695,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 }
 
                 final ValidationStatus validationStatus = validationState.getStatus();
-                if (validationStatus == ValidationStatus.VALID) {
-                    LOG.debug("Enabling {} proceeding after performing validation", serviceNode);
-                } else {
+                if (validationStatus != ValidationStatus.VALID) {
                     final Collection<ValidationResult> errors = validationState.getValidationErrors();
                     if (completeExceptionallyOnFailure) {
                         future.completeExceptionally(new IllegalStateException("Enabling %s failed: Validation Status [%s] Errors %s".formatted(serviceNode, validationStatus, errors)));
@@ -698,56 +708,141 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                         LOG.warn("Validation rescheduled in {} ms for {} Errors {}", selectedValidationDelay, serviceNode, errors);
                     }
 
-                    try {
-                        scheduler.schedule(this, selectedValidationDelay, TimeUnit.MILLISECONDS);
-                        LOG.debug("Validation rescheduled in {} ms for {}", selectedValidationDelay, serviceNode);
-                    } catch (final RejectedExecutionException e) {
-                        LOG.debug("Validation rescheduling rejected for {}", serviceNode, e);
-                        future.completeExceptionally(new IllegalStateException("Enabling %s rejected: Validation Status [%s] Errors %s".formatted(serviceNode, validationStatus, errors)));
+                    synchronized (active) {
+                        // Recheck ownership and cancellation under the active lock before publishing the retry so that a
+                        // disable which cancelled this attempt is never followed by a newly scheduled retry. When the
+                        // attempt has been cancelled or superseded, the disable request owns completing the lifecycle.
+                        if (attempt.isCancelled() || currentEnableAttempt.get() != attempt) {
+                            LOG.debug("Not rescheduling validation for {} because the enable attempt was cancelled or superseded", serviceNode);
+                            return;
+                        }
+
+                        try {
+                            attempt.setScheduledTask(scheduler.schedule(this, selectedValidationDelay, TimeUnit.MILLISECONDS));
+                            LOG.debug("Validation rescheduled in {} ms for {}", selectedValidationDelay, serviceNode);
+                        } catch (final RejectedExecutionException e) {
+                            LOG.debug("Validation rescheduling rejected for {}", serviceNode, e);
+                            future.completeExceptionally(new IllegalStateException("Enabling %s rejected: Validation Status [%s] Errors %s".formatted(serviceNode, validationStatus, errors)));
+                        }
                     }
 
                     // Enable command rescheduled or rejected
                     return;
                 }
 
+                LOG.debug("Enabling {} proceeding after performing validation", serviceNode);
+
+                // Register this thread as the one invoking @OnEnabled and claim ownership of terminal cleanup, rechecking under
+                // the active lock that the attempt has not been cancelled and that the service is still ENABLING. Once this
+                // attempt owns cleanup, a concurrent disable interrupts this thread (to unblock @OnEnabled) and defers the
+                // transition to DISABLED to this task rather than performing it directly. When the attempt does not claim
+                // ownership, the disable request completes the lifecycle itself. Exactly one path performs the transition.
+                final boolean invokeOnEnabled;
+                synchronized (active) {
+                    invokeOnEnabled = active.get() && !attempt.isCancelled() && stateTransition.getState() == ControllerServiceState.ENABLING;
+                    if (invokeOnEnabled) {
+                        attempt.setInvocationThread(Thread.currentThread());
+                        attempt.setOwnsCleanup(true);
+                    }
+                }
+
+                if (!invokeOnEnabled) {
+                    LOG.debug("Not invoking @OnEnabled methods of {} because the enable attempt was cancelled; the disable request will complete the lifecycle", serviceNode);
+                    return;
+                }
+
                 final ControllerService controllerService = getControllerServiceImplementation();
+                boolean invocationFailed = false;
                 try {
                     try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), controllerService.getClass(), getIdentifier())) {
                         ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, controllerService, configContext);
                     }
-
-                    boolean shouldEnable;
-                    synchronized (active) {
-                        shouldEnable = active.get() && stateTransition.enable(getReferences()); // Transitioning the state to ENABLED will complete our future.
-                    }
-
-                    if (!shouldEnable) {
-                        LOG.info("Disabling {} after enabled due to disable action initiated", serviceNode);
-                        // Can only happen if user initiated DISABLE operation before service finished enabling. It's state will be
-                        // set to DISABLING (see disable() operation)
-                        invokeDisable(configContext);
-                        stateTransition.disable();
-                        future.complete(null);
-                    } else {
-                        LOG.info("Enabled {}", serviceNode);
-                    }
                 } catch (final Exception e) {
-                    if (completeExceptionallyOnFailure) {
-                        future.completeExceptionally(e);
+                    invocationFailed = true;
+
+                    // A disable request interrupts the @OnEnabled invocation, so a failure on a cancelled attempt is the
+                    // expected result of shutting the service down and is not logged as an enable failure.
+                    if (!attempt.isCancelled()) {
+                        if (completeExceptionallyOnFailure) {
+                            future.completeExceptionally(e);
+                        }
+
+                        final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+                        final ComponentLog componentLog = new StandardComponentLog(getIdentifier(), controllerService, new StandardLoggingContext(serviceNode));
+                        componentLog.error("Failed to invoke @OnEnabled method", cause);
                     }
+                } finally {
+                    synchronized (active) {
+                        // @OnEnabled has returned, so release the interrupt target. A disable that raced this invocation
+                        // interrupts this thread to unblock @OnEnabled; consume any such interrupt here so it neither leaks into
+                        // the @OnDisabled cleanup below nor into a subsequent task that reuses this pooled thread. This attempt
+                        // still owns terminal cleanup (ownsCleanup remains set) until the decision below is committed.
+                        attempt.setInvocationThread(null);
+                        if (attempt.isCancelled()) {
+                            Thread.interrupted();
+                        }
+                    }
+                }
 
-                    final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                    final ComponentLog componentLog = new StandardComponentLog(getIdentifier(), controllerService, new StandardLoggingContext(serviceNode));
-                    componentLog.error("Failed to invoke @OnEnabled method", cause);
-                    invokeDisable(configContext);
-
-                    if (isActive()) {
-                        // Increment enabling delay to avoid excessive retries
-                        final long selectedEnablingDelay = getDelay(enablingDelay, administrativeYieldMillis);
-                        scheduler.schedule(this, selectedEnablingDelay, TimeUnit.MILLISECONDS);
+                // Decide the outcome of this invocation under the active lock while this attempt still owns terminal cleanup.
+                // A concurrent disable either acquires the lock first (cancelling this attempt, so this task performs the
+                // @OnDisabled cleanup and transition) or acquires it afterward (observing the committed ENABLED state). A
+                // disable never transitions the service to DISABLED on its own while this attempt still owes @OnDisabled;
+                // ownership of cleanup is released only once the terminal decision has been made.
+                final boolean enableSucceeded;
+                final boolean enableCancelled;
+                synchronized (active) {
+                    if (attempt.isCancelled()) {
+                        enableSucceeded = false;
+                        enableCancelled = true;
+                    } else if (invocationFailed) {
+                        enableSucceeded = false;
+                        enableCancelled = false;
+                    } else if (active.get() && stateTransition.enable(getReferences())) { // Transitioning the state to ENABLED completes the enable future.
+                        enableSucceeded = true;
+                        enableCancelled = false;
+                        attempt.setOwnsCleanup(false);
+                        currentEnableAttempt.compareAndSet(attempt, null);
                     } else {
-                        stateTransition.disable();
+                        enableSucceeded = false;
+                        enableCancelled = true;
                     }
+                }
+
+                if (enableSucceeded) {
+                    LOG.info("Enabled {}", serviceNode);
+                    return;
+                }
+
+                if (enableCancelled) {
+                    // A disable cancelled this attempt. Because @OnEnabled ran (successfully or was interrupted), this task owns
+                    // the cleanup: invoke @OnDisabled, release the invocation thread, and transition to DISABLED so the disable
+                    // future completes only after @OnDisabled returns.
+                    LOG.info("Enable of {} was cancelled by a disable request; invoking @OnDisabled and disabling", serviceNode);
+                    completeCancelledEnable(attempt, configContext);
+                    return;
+                }
+
+                // @OnEnabled failed without a disable. Invoke @OnDisabled to clean up partial state while this attempt still
+                // owns cleanup, then decide under the active lock whether a disable arrived meanwhile (transition to DISABLED
+                // after @OnDisabled) or the enable should be retried after the administrative yield. Ownership of cleanup is
+                // released only inside the lock: if a disable then arrives it transitions directly, which is correct because
+                // @OnDisabled has already been invoked for this failed attempt.
+                invokeDisable(configContext);
+
+                final boolean disabledByRequest;
+                synchronized (active) {
+                    disabledByRequest = attempt.isCancelled() || currentEnableAttempt.get() != attempt;
+                    if (!disabledByRequest) {
+                        final long selectedEnablingDelay = getDelay(enablingDelay, administrativeYieldMillis);
+                        attempt.setScheduledTask(scheduler.schedule(this, selectedEnablingDelay, TimeUnit.MILLISECONDS));
+                    }
+                    attempt.setOwnsCleanup(false);
+                }
+
+                if (disabledByRequest) {
+                    LOG.debug("Enable of {} failed and a disable request cancelled the attempt; transitioning to DISABLED after invoking @OnDisabled", serviceNode);
+                    transitionToDisabledAfterCancellation(attempt);
                 }
             }
         });
@@ -756,18 +851,11 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     }
 
     /**
-     * Will atomically disable this service by invoking its @OnDisabled operation.
-     * It uses CAS operation on {@link #stateTransition} to transition this service
-     * from ENABLED to DISABLING state. If such transition succeeds the service
-     * will be de-activated (see {@link ControllerServiceNode#isActive()}).
-     * If such transition doesn't succeed (the service is still in ENABLING state)
-     * then the service will still be transitioned to DISABLING state to ensure that
-     * no other transition could happen on this service. However in such event
-     * (e.g., its @OnEnabled finally succeeded), the {@link #enable(ScheduledExecutorService, long, boolean)}
-     * operation will initiate service disabling javadoc for (see {@link #enable(ScheduledExecutorService, long, boolean)}
-     * <br>
-     * Upon successful invocation of @OnDisabled this service will be transitioned to
-     * DISABLED state.
+     * Atomically transitions this service to DISABLING. Services that are ENABLING complete pending enable futures
+     * exceptionally with a {@link CancellationException} and cancel the current enable attempt. If the @OnEnabled method is
+     * running it is interrupted and invokes @OnDisabled before the service transitions to DISABLED; otherwise the disable
+     * request transitions the service to DISABLED directly. Services that are ENABLED invoke their @OnDisabled methods
+     * before transitioning to DISABLED. All callers receive a future that completes when the service is DISABLED.
      */
     @Override
     public CompletableFuture<Void> disable(final ScheduledExecutorService scheduler) {
@@ -777,35 +865,50 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
          * service since it will attempt to transition service state from
          * ENABLING to ENABLED but only if it's active.
          */
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        final ControllerServiceState previousState;
+        final EnableAttempt cancelledAttempt;
+        final boolean enableTaskOwnsCleanup;
         synchronized (this.active) {
             this.active.set(false);
-        }
 
-        final CompletableFuture<Void> future = new CompletableFuture<>();
-        // If already disabled, complete immediately
-        if (getState() == ControllerServiceState.DISABLED) {
-            future.complete(null);
-            return future;
-        }
+            cancelledAttempt = currentEnableAttempt.get();
+            previousState = stateTransition.transitionToDisabling(future);
 
-        final boolean transitioned = this.stateTransition.transitionToDisabling(ControllerServiceState.ENABLING, future);
-        if (transitioned) {
-            // If we transitioned from ENABLING to DISABLING, we need to immediately complete the disable
-            // because the enable task may be scheduled to run far in the future (up to 10 minutes) due to
-            // validation retries. Rather than making the user wait, we immediately transition to DISABLED.
-            scheduler.execute(() -> {
-                stateTransition.disable();
+            if (cancelledAttempt == null) {
+                enableTaskOwnsCleanup = false;
+            } else {
+                cancelledAttempt.cancel();
 
-                // Now all components that reference this service will be invalid. Trigger validation to occur so that
-                // this is reflected in any response that may go back to a user/client.
-                for (final ComponentNode component : getReferences().getReferencingComponents()) {
-                    component.performValidation();
+                final Future<?> scheduledTask = cancelledAttempt.getScheduledTask();
+                if (scheduledTask != null) {
+                    // Cancel any retry that is waiting between attempts so the disable does not wait for it to run.
+                    scheduledTask.cancel(false);
                 }
-            });
+
+                final Thread invocationThread = cancelledAttempt.getInvocationThread();
+                if (invocationThread != null) {
+                    // The enable task is running @OnEnabled. Interrupt it so it can exit; that task owns the lifecycle cleanup.
+                    invocationThread.interrupt();
+                }
+
+                enableTaskOwnsCleanup = cancelledAttempt.ownsCleanup();
+            }
+        }
+
+        if (previousState == ControllerServiceState.ENABLING) {
+            // The enable task may be scheduled far in the future due to validation or enabling retries. If the current attempt
+            // owns cleanup, it has begun invoking @OnEnabled and still owes @OnDisabled, so it invokes @OnDisabled and
+            // transitions to DISABLED once it returns. Otherwise no invocation owes @OnDisabled, so the disable transitions the
+            // service to DISABLED directly.
+            if (!enableTaskOwnsCleanup) {
+                scheduler.execute(() -> transitionToDisabledAfterCancellation(cancelledAttempt));
+            }
+
             return future;
         }
 
-        if (this.stateTransition.transitionToDisabling(ControllerServiceState.ENABLED, future)) {
+        if (previousState == ControllerServiceState.ENABLED) {
             final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null);
             scheduler.execute(() -> {
                 try {
@@ -823,6 +926,32 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         }
 
         return future;
+    }
+
+    /**
+     * Invoked by the enable task when a disable request cancelled the current enable attempt while its @OnEnabled method
+     * was running. Invokes @OnDisabled and then transitions the service to DISABLED.
+     */
+    private void completeCancelledEnable(final EnableAttempt attempt, final ConfigurationContext configContext) {
+        invokeDisable(configContext);
+        synchronized (active) {
+            attempt.setOwnsCleanup(false);
+        }
+        transitionToDisabledAfterCancellation(attempt);
+    }
+
+    /**
+     * Transitions the service to DISABLED after an enable attempt was cancelled, clears the attempt, and triggers
+     * validation of referencing components so that their state reflects the now-disabled service. This is invoked either
+     * by the disable request when no @OnEnabled invocation is running, or by the enable task after it invokes @OnDisabled.
+     */
+    private void transitionToDisabledAfterCancellation(final EnableAttempt attempt) {
+        stateTransition.disable();
+        currentEnableAttempt.compareAndSet(attempt, null);
+
+        for (final ComponentNode component : getReferences().getReferencingComponents()) {
+            component.performValidation();
+        }
     }
 
     private void invokeDisable(ConfigurationContext configContext) {
@@ -1051,6 +1180,60 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         }
 
         return selectedDelay;
+    }
+
+    /**
+     * Represents a single enable cycle. The attempt owns the enable {@link CompletableFuture} that completes when this
+     * cycle finishes, a cancelled flag that a disable request sets so that the enable task can detect that it has been
+     * superseded, the scheduled retry task that is waiting between attempts, the thread currently invoking @OnEnabled, and a
+     * cleanup-ownership flag. The enable task sets cleanup ownership before invoking @OnEnabled and clears it once it has
+     * committed the terminal outcome (ENABLED, a retry after a failure whose @OnDisabled cleanup already ran, or a
+     * cancelled-driven transition to DISABLED). While the attempt owns cleanup, a disable interrupts the invoking thread and
+     * defers the transition to DISABLED to the enable task; otherwise the disable transitions the service directly. The
+     * invocation thread and the cleanup-ownership flag are both read and written while holding the {@code active} monitor.
+     */
+    private static final class EnableAttempt {
+        private final CompletableFuture<Void> future = new CompletableFuture<>();
+        private final AtomicBoolean cancelled = new AtomicBoolean(false);
+        private volatile Future<?> scheduledTask;
+        private volatile Thread invocationThread;
+        private boolean ownsCleanup = false;
+
+        private CompletableFuture<Void> getFuture() {
+            return future;
+        }
+
+        private boolean isCancelled() {
+            return cancelled.get();
+        }
+
+        private void cancel() {
+            cancelled.set(true);
+        }
+
+        private void setScheduledTask(final Future<?> scheduledTask) {
+            this.scheduledTask = scheduledTask;
+        }
+
+        private Future<?> getScheduledTask() {
+            return scheduledTask;
+        }
+
+        private void setInvocationThread(final Thread invocationThread) {
+            this.invocationThread = invocationThread;
+        }
+
+        private Thread getInvocationThread() {
+            return invocationThread;
+        }
+
+        private void setOwnsCleanup(final boolean ownsCleanup) {
+            this.ownsCleanup = ownsCleanup;
+        }
+
+        private boolean ownsCleanup() {
+            return ownsCleanup;
+        }
     }
 
 }
