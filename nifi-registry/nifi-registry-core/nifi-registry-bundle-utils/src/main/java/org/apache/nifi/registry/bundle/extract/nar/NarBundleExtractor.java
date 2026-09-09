@@ -134,33 +134,21 @@ public class NarBundleExtractor implements BundleExtractor {
     }
 
     private BundleIdentifier getBundleCoordinate(final Attributes attributes) {
-        try {
-            final String groupId = attributes.getValue(NarManifestEntry.NAR_GROUP.getManifestName());
-            final String artifactId = attributes.getValue(NarManifestEntry.NAR_ID.getManifestName());
-            final String version = attributes.getValue(NarManifestEntry.NAR_VERSION.getManifestName());
-
-            return new BundleIdentifier(groupId, artifactId, version);
-        } catch (Exception e) {
-            throw new BundleException("Unable to obtain bundle coordinate due to: " + e.getMessage(), e);
-        }
+        final String groupId = attributes.getValue(NarManifestEntry.NAR_GROUP.getManifestName());
+        final String artifactId = attributes.getValue(NarManifestEntry.NAR_ID.getManifestName());
+        final String version = attributes.getValue(NarManifestEntry.NAR_VERSION.getManifestName());
+        return new BundleIdentifier(groupId, artifactId, version);
     }
 
     private BundleIdentifier getDependencyBundleCoordinate(final Attributes attributes) {
-        try {
-            final String dependencyGroupId = attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_GROUP.getManifestName());
-            final String dependencyArtifactId = attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_ID.getManifestName());
-            final String dependencyVersion = attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_VERSION.getManifestName());
-
-            final BundleIdentifier dependencyCoordinate;
-            if (dependencyArtifactId != null) {
-                dependencyCoordinate = new BundleIdentifier(dependencyGroupId, dependencyArtifactId, dependencyVersion);
-            } else {
-                dependencyCoordinate = null;
-            }
-            return dependencyCoordinate;
-        } catch (Exception e) {
-            throw new BundleException("Unable to obtain bundle coordinate for dependency due to: " + e.getMessage(), e);
+        final String dependencyGroupId = attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_GROUP.getManifestName());
+        final String dependencyArtifactId = attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_ID.getManifestName());
+        final String dependencyVersion = attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_VERSION.getManifestName());
+        if (dependencyArtifactId == null) {
+            return null;
         }
+
+        return new BundleIdentifier(dependencyGroupId, dependencyArtifactId, dependencyVersion);
     }
 
     private BuildInfo getBuildInfo(final Attributes attributes) {

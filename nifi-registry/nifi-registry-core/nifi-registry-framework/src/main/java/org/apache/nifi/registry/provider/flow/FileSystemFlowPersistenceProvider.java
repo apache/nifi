@@ -78,14 +78,14 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
 
     @Override
     public synchronized void saveFlowContent(final FlowSnapshotContext context, final byte[] content) throws FlowPersistenceException {
-        final File bucketDir = getChildLocation(flowStorageDir, getNormalizedIdPath(context.getBucketId()));
+        final File bucketDir = FileUtils.getChildLocation(flowStorageDir, getNormalizedIdPath(context.getBucketId()));
         try {
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(bucketDir);
         } catch (IOException e) {
             throw new FlowPersistenceException("Error accessing bucket directory at " + bucketDir.getAbsolutePath(), e);
         }
 
-        final File flowDir = getChildLocation(bucketDir, getNormalizedIdPath(context.getFlowId()));
+        final File flowDir = FileUtils.getChildLocation(bucketDir, getNormalizedIdPath(context.getFlowId()));
         try {
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(flowDir);
         } catch (IOException e) {
@@ -93,7 +93,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
         }
 
         final String versionString = String.valueOf(context.getVersion());
-        final File versionDir = getChildLocation(flowDir, Paths.get(versionString));
+        final File versionDir = FileUtils.getChildLocation(flowDir, Paths.get(versionString));
         try {
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(versionDir);
         } catch (IOException e) {
@@ -101,7 +101,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
         }
 
         final String versionExtension = versionString + SNAPSHOT_EXTENSION;
-        final File versionFile = getChildLocation(versionDir, Paths.get(versionExtension));
+        final File versionFile = FileUtils.getChildLocation(versionDir, Paths.get(versionExtension));
         if (versionFile.exists()) {
             throw new FlowPersistenceException("Unable to save, a snapshot already exists with version " + versionString);
         }
@@ -141,7 +141,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
         final Path bucketIdPath = getNormalizedIdPath(bucketId);
         final Path flowIdPath = getNormalizedIdPath(flowId);
         final Path bucketFlowPath = bucketIdPath.resolve(flowIdPath);
-        final File flowDir = getChildLocation(flowStorageDir, bucketFlowPath);
+        final File flowDir = FileUtils.getChildLocation(flowStorageDir, bucketFlowPath);
         if (!flowDir.exists()) {
             LOGGER.debug("Snapshot directory does not exist at {}", flowDir.getAbsolutePath());
             return;
@@ -161,7 +161,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
         }
 
         // delete the directory for the bucket if there is nothing left
-        final File bucketDir = getChildLocation(flowStorageDir, getNormalizedIdPath(bucketId));
+        final File bucketDir = FileUtils.getChildLocation(flowStorageDir, getNormalizedIdPath(bucketId));
         final File[] bucketFiles = bucketDir.listFiles();
         if (bucketFiles == null || bucketFiles.length == 0) {
             final boolean deletedBucket = bucketDir.delete();
@@ -192,17 +192,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
     protected File getSnapshotFile(final String bucketId, final String flowId, final int version) {
         final String versionExtension = version + SNAPSHOT_EXTENSION;
         final Path snapshotLocation = Paths.get(getNormalizedId(bucketId), getNormalizedId(flowId), Integer.toString(version), versionExtension);
-        return getChildLocation(flowStorageDir, snapshotLocation);
-    }
-
-    private File getChildLocation(final File parentDir, final Path childLocation) {
-        final Path parentPath = parentDir.toPath().normalize();
-        final Path childPathNormalized = childLocation.normalize();
-        final Path childPath = parentPath.resolve(childPathNormalized);
-        if (childPath.startsWith(parentPath)) {
-            return childPath.toFile();
-        }
-        throw new IllegalArgumentException(String.format("Child location not valid [%s]", childLocation));
+        return FileUtils.getChildLocation(flowStorageDir, snapshotLocation);
     }
 
     private Path getNormalizedIdPath(final String id) {
