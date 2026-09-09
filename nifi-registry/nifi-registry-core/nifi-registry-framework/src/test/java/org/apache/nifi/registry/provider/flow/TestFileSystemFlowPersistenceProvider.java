@@ -178,6 +178,18 @@ public class TestFileSystemFlowPersistenceProvider {
         fileSystemFlowProvider.deleteFlowContent(SECOND_BUCKET_ID, FLOW_ID, 1);
     }
 
+    @Test
+    public void testSaveRejectsParentDirectoryIdentifiers() {
+        final FlowSnapshotContext context = Mockito.mock(FlowSnapshotContext.class);
+        when(context.getBucketId()).thenReturn("..");
+        when(context.getFlowId()).thenReturn(FLOW_ID);
+        when(context.getVersion()).thenReturn(1);
+
+        assertThrows(IllegalArgumentException.class, () -> fileSystemFlowProvider.saveFlowContent(context, FIRST_VERSION.getBytes(StandardCharsets.UTF_8)));
+        assertTrue(flowStorageDir.exists());
+        assertFalse(new File(flowStorageDir.getParentFile(), FLOW_ID).exists());
+    }
+
     private void createAndSaveSnapshot(final FlowPersistenceProvider flowPersistenceProvider, final int version, final String contentString) {
         final FlowSnapshotContext context = Mockito.mock(FlowSnapshotContext.class);
         when(context.getBucketId()).thenReturn(BUCKET_ID);

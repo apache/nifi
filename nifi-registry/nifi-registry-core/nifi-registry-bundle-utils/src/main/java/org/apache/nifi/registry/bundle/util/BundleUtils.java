@@ -34,4 +34,16 @@ public class BundleUtils {
         }
     }
 
+    public static void validateCoordinateField(final String fieldName, final String value) {
+        validateNotBlank(fieldName, value);
+
+        if (".".equals(value) || "..".equals(value)) {
+            throw new IllegalArgumentException(fieldName + " is not a valid coordinate field");
+        }
+
+        if (value.indexOf('/') >= 0 || value.indexOf('\\') >= 0 || value.indexOf('\0') >= 0) {
+            throw new IllegalArgumentException(fieldName + " contains invalid characters");
+        }
+    }
+
 }

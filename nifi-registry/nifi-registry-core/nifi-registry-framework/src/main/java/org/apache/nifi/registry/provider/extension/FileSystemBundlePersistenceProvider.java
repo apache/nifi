@@ -186,14 +186,14 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         // delete the directory for the group and bucket if there is nothing left
         final File groupDir = bundleDir.getParentFile();
         final File[] groupFiles = groupDir.listFiles();
-        if (groupFiles.length == 0) {
+        if (groupFiles != null && groupFiles.length == 0) {
             final boolean deletedGroup = groupDir.delete();
             if (!deletedGroup) {
                 LOGGER.error("Unable to delete group directory: {}", groupDir.getAbsolutePath());
             } else {
                 final File bucketDir = groupDir.getParentFile();
                 final File[] bucketFiles = bucketDir.listFiles();
-                if (bucketFiles.length == 0) {
+                if (bucketFiles != null && bucketFiles.length == 0) {
                     final boolean deletedBucket = bucketDir.delete();
                     if (!deletedBucket) {
                         LOGGER.error("Unable to delete bucket directory: {}", bucketDir.getAbsolutePath());
@@ -214,7 +214,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         final String artifactId = bundleCoordinate.getArtifactId();
 
         final Path artifactPath = getArtifactPath(bucketId, groupId, artifactId);
-        return getChildLocation(bundleStorageDir, artifactPath);
+        return FileUtils.getChildLocation(bundleStorageDir, artifactPath);
     }
 
     static File getBundleVersionDirectory(final File bundleStorageDir, final BundleVersionCoordinate versionCoordinate) {
@@ -225,7 +225,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
 
         final Path artifactPath = getArtifactPath(bucketId, groupId, artifactId);
         final Path versionPath = Paths.get(sanitize(version)).normalize();
-        return getChildLocation(bundleStorageDir, artifactPath.resolve(versionPath));
+        return FileUtils.getChildLocation(bundleStorageDir, artifactPath.resolve(versionPath));
     }
 
     static File getBundleFile(final File parentDir, final BundleVersionCoordinate versionCoordinate) {
@@ -235,7 +235,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
 
         final String bundleFileExtension = getBundleFileExtension(bundleType);
         final String bundleFilename = sanitize(artifactId) + "-" + sanitize(version) + bundleFileExtension;
-        return getChildLocation(parentDir, Paths.get(bundleFilename));
+        return FileUtils.getChildLocation(parentDir, Paths.get(bundleFilename));
     }
 
     static Path getArtifactPath(final String bucketId, final String groupId, final String artifactId) {
@@ -243,7 +243,12 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
     }
 
     static String sanitize(final String input) {
-        return FileUtils.sanitizeFilename(input).trim().toLowerCase();
+        final String sanitized = FileUtils.sanitizeFilename(input).trim().toLowerCase();
+        if (".".equals(sanitized) || "..".equals(sanitized)) {
+            throw new IllegalArgumentException("Coordinate component is not a valid path name");
+        }
+
+        return sanitized;
     }
 
     static String getBundleFileExtension(final BundleVersionType bundleType) {
@@ -265,12 +270,4 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         }
     }
 
-    private static File getChildLocation(final File parentDir, final Path childLocation) {
-        final Path parentPath = parentDir.toPath().normalize();
-        final Path childPath = parentPath.resolve(childLocation.normalize());
-        if (childPath.startsWith(parentPath)) {
-            return childPath.toFile();
-        }
-        throw new IllegalArgumentException(String.format("Child location not valid [%s]", childLocation));
-    }
 }

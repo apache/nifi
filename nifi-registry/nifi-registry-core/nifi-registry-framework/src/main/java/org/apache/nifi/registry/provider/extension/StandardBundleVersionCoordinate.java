@@ -17,6 +17,7 @@
 package org.apache.nifi.registry.provider.extension;
 
 import org.apache.commons.lang3.Validate;
+import org.apache.nifi.registry.bundle.util.BundleUtils;
 import org.apache.nifi.registry.extension.BundleVersionCoordinate;
 import org.apache.nifi.registry.extension.BundleVersionType;
 
@@ -41,6 +42,10 @@ public class StandardBundleVersionCoordinate implements BundleVersionCoordinate 
         Validate.notBlank(this.artifactId, "Artifact Id is required");
         Validate.notBlank(this.version, "Version is required");
         Validate.notNull(this.type, "BundleVersionType is required");
+        BundleUtils.validateCoordinateField("Bucket Id", this.bucketId);
+        BundleUtils.validateCoordinateField("Group Id", this.groupId);
+        BundleUtils.validateCoordinateField("Artifact Id", this.artifactId);
+        BundleUtils.validateCoordinateField("Version", this.version);
     }
 
     @Override

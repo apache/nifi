@@ -457,13 +457,7 @@ public class StandardExtensionService implements ExtensionService {
         metadataService.deleteBundle(bundle.getIdentifier());
 
         // delete all content associated with the bundle in the persistence provider
-        final BundleCoordinate bundleCoordinate = new StandardBundleCoordinate.Builder()
-                .bucketId(bundle.getBucketIdentifier())
-                .groupId(bundle.getGroupId())
-                .artifactId(bundle.getArtifactId())
-                .build();
-
-        bundlePersistenceProvider.deleteAllBundleVersions(bundleCoordinate);
+        deletePersistedBundleVersions(bundle);
 
         return bundle;
     }
@@ -622,8 +616,7 @@ public class StandardExtensionService implements ExtensionService {
         metadataService.deleteBundleVersion(extensionBundleVersionId);
 
         // delete content associated with the bundle version in the persistence provider
-        final BundleVersionCoordinate versionCoordinate = getVersionCoordinate(bundleVersion);
-        bundlePersistenceProvider.deleteBundleVersion(versionCoordinate);
+        deletePersistedBundleVersion(bundleVersion);
 
         return bundleVersion;
     }
@@ -906,6 +899,30 @@ public class StandardExtensionService implements ExtensionService {
     }
 
     // ------ Helper Methods -------
+
+    private void deletePersistedBundleVersions(final Bundle bundle) {
+        try {
+            final BundleCoordinate bundleCoordinate = new StandardBundleCoordinate.Builder()
+                    .bucketId(bundle.getBucketIdentifier())
+                    .groupId(bundle.getGroupId())
+                    .artifactId(bundle.getArtifactId())
+                    .build();
+            bundlePersistenceProvider.deleteAllBundleVersions(bundleCoordinate);
+        } catch (final IllegalArgumentException e) {
+            LOGGER.error("Unable to delete persisted content for bundle [{}] because the stored coordinates are not a valid path",
+                    bundle.getIdentifier(), e);
+        }
+    }
+
+    private void deletePersistedBundleVersion(final BundleVersion bundleVersion) {
+        try {
+            final BundleVersionCoordinate versionCoordinate = getVersionCoordinate(bundleVersion);
+            bundlePersistenceProvider.deleteBundleVersion(versionCoordinate);
+        } catch (final IllegalArgumentException e) {
+            LOGGER.error("Unable to delete persisted content for bundle version [{}] because the stored coordinates are not a valid path",
+                    bundleVersion.getVersionMetadata().getId(), e);
+        }
+    }
 
     private BundleVersionCoordinate getVersionCoordinate(final BundleVersion bundleVersion) {
         return getVersionCoordinate(bundleVersion.getBundle(), bundleVersion.getVersionMetadata());

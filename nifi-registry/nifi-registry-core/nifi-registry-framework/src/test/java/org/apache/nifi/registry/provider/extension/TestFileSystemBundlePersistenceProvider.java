@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -250,6 +251,52 @@ public class TestFileSystemBundlePersistenceProvider {
         assertEquals(0, bundleStorageDir.listFiles().length);
     }
 
+    @Test
+    public void testCreateRejectsParentDirectoryCoordinates() throws IOException {
+        final File markerFile = createParentMarker();
+        try {
+            final BundleVersionCoordinate versionCoordinate = getVersionCoordinate(BUCKET_ID, "..", "..", FIRST_VERSION, BundleVersionType.NIFI_NAR);
+            assertThrows(IllegalArgumentException.class, () -> createBundleVersion(fileSystemBundleProvider, versionCoordinate, "evil"));
+            assertTrue(markerFile.exists());
+            assertTrue(bundleStorageDir.exists());
+            assertFalse(new File(bundleStorageDir.getParentFile(), FIRST_VERSION).exists());
+        } finally {
+            markerFile.delete();
+        }
+    }
+
+    @Test
+    public void testCreateAllowsSnapshotAndBuildMetadataVersions() throws IOException {
+        final String snapshotContent = "snapshot-content";
+        final BundleVersionCoordinate snapshotCoordinate = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, "2.0.0-SNAPSHOT", BundleVersionType.NIFI_NAR);
+        createBundleVersion(fileSystemBundleProvider, snapshotCoordinate, snapshotContent);
+        verifyBundleVersion(bundleStorageDir, snapshotCoordinate, snapshotContent);
+
+        final String buildMetadataContent = "build-metadata-content";
+        final BundleVersionCoordinate buildMetadataCoordinate = getVersionCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID, "1.0.0+build.5", BundleVersionType.NIFI_NAR);
+        createBundleVersion(fileSystemBundleProvider, buildMetadataCoordinate, buildMetadataContent);
+        verifyBundleVersion(bundleStorageDir, buildMetadataCoordinate, buildMetadataContent);
+    }
+
+    @Test
+    public void testDeleteAllBundleVersionsRejectsParentDirectoryCoordinates() throws IOException {
+        final File markerFile = createParentMarker();
+        try {
+            final BundleCoordinate bundleCoordinate = getBundleCoordinate(BUCKET_ID, "..", "..");
+            assertThrows(IllegalArgumentException.class, () -> fileSystemBundleProvider.deleteAllBundleVersions(bundleCoordinate));
+            assertTrue(markerFile.exists());
+            assertTrue(bundleStorageDir.exists());
+        } finally {
+            markerFile.delete();
+        }
+    }
+
+    private File createParentMarker() throws IOException {
+        final File markerFile = new File(bundleStorageDir.getParentFile(), "registry-parent-marker.txt");
+        Files.writeString(markerFile.toPath(), "keep");
+        return markerFile;
+    }
+
     private void createBundleVersion(final BundlePersistenceProvider persistenceProvider,
                                      final BundleVersionCoordinate versionCoordinate,
                                      final String content) throws IOException {
@@ -287,10 +334,14 @@ public class TestFileSystemBundlePersistenceProvider {
     }
 
     private static BundleCoordinate getBundleCoordinate() {
+        return getBundleCoordinate(BUCKET_ID, GROUP_ID, ARTIFACT_ID);
+    }
+
+    private static BundleCoordinate getBundleCoordinate(final String bucketId, final String groupId, final String artifactId) {
         final BundleCoordinate coordinate = Mockito.mock(BundleCoordinate.class);
-        when(coordinate.getBucketId()).thenReturn(BUCKET_ID);
-        when(coordinate.getGroupId()).thenReturn(GROUP_ID);
-        when(coordinate.getArtifactId()).thenReturn(ARTIFACT_ID);
+        when(coordinate.getBucketId()).thenReturn(bucketId);
+        when(coordinate.getGroupId()).thenReturn(groupId);
+        when(coordinate.getArtifactId()).thenReturn(artifactId);
         return coordinate;
     }
 
