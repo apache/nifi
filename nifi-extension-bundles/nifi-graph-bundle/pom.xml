@@ -25,7 +25,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <gremlin.version>3.8.1</gremlin.version>
+        <gremlin.version>3.8.2</gremlin.version>
     </properties>
 
     <modules>
