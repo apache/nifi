@@ -32,6 +32,7 @@ import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
+import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
 
 public class FlowControllerProcessGroupFacadeFactory implements ProcessGroupFacadeFactory {
     private final FlowController flowController;
@@ -46,7 +47,7 @@ public class FlowControllerProcessGroupFacadeFactory implements ProcessGroupFaca
             .mapSensitiveConfiguration(true)
             .mapPropertyDescriptors(true)
             .stateLookup(VersionedComponentStateLookup.IDENTITY_LOOKUP)
-            .sensitiveValueEncryptor(value -> value)
+            .propertyEncryptionProvider(new InternalPassThroughPropertyEncryptionProvider())
             .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
             .mapInstanceIdentifiers(true)
             .mapControllerServiceReferencesToVersionedId(true)

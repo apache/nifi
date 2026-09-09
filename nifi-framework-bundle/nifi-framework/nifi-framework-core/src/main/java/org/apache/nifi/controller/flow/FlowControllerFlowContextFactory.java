@@ -41,6 +41,7 @@ import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
+import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -93,7 +94,7 @@ public class FlowControllerFlowContextFactory implements FlowContextFactory {
             .mapSensitiveConfiguration(true)
             .mapPropertyDescriptors(true)
             .stateLookup(VersionedComponentStateLookup.ENABLED_OR_DISABLED)
-            .sensitiveValueEncryptor(value -> value)
+            .propertyEncryptionProvider(new InternalPassThroughPropertyEncryptionProvider())
             .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
             .mapInstanceIdentifiers(true)
             .mapControllerServiceReferencesToVersionedId(true)

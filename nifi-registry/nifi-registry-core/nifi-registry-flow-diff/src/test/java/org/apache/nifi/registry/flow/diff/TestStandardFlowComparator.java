@@ -47,6 +47,10 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestStandardFlowComparator {
+    private static final String ENCRYPTED_VALUE_PREFIX = "enc{";
+
+    private static final String ENCRYPTED_VALUE_SUFFIX = "}";
+
     private Map<String, String> decryptedToEncrypted;
     private Map<String, String> encryptedToDecrypted;
     private StandardFlowComparator comparator;
@@ -182,6 +186,46 @@ public class TestStandardFlowComparator {
         comparator.compare(contextA, contextB, differences);
 
         assertEquals(4, differences.size());
+    }
+
+    @Test
+    public void testSensitiveParameterReferenceComparedWithoutDecryption() {
+        final String propertyName = "Password";
+        final String parameterReference = "#{secret.password}";
+
+        final VersionedProcessGroup groupA = new VersionedProcessGroup();
+        groupA.setIdentifier("rootPG");
+        groupA.getProcessors().add(createProcessorWithSensitiveProperty("processor", propertyName, parameterReference));
+
+        final VersionedProcessGroup groupB = new VersionedProcessGroup();
+        groupB.setIdentifier("rootPG");
+        groupB.getProcessors().add(createProcessorWithSensitiveProperty("processor", propertyName, parameterReference));
+
+        final SensitiveValueDecryptor failingDecryptor = (owner, valueName, encryptedValue) -> {
+            throw new IllegalArgumentException("Value is not encrypted: " + encryptedValue);
+        };
+
+        final StandardFlowComparator testComparator = new StandardFlowComparator(
+                new StandardComparableDataFlow("Flow A", groupA),
+                new StandardComparableDataFlow("Flow B", groupB),
+                new StaticDifferenceDescriptor(),
+                failingDecryptor,
+                VersionedComponent::getIdentifier,
+                FlowComparatorVersionedStrategy.SHALLOW);
+
+        assertTrue(testComparator.compare().getDifferences().isEmpty());
+    }
+
+    private VersionedProcessor createProcessorWithSensitiveProperty(final String identifier, final String propertyName, final String propertyValue) {
+        final VersionedPropertyDescriptor descriptor = new VersionedPropertyDescriptor();
+        descriptor.setName(propertyName);
+        descriptor.setSensitive(true);
+
+        final VersionedProcessor processor = new VersionedProcessor();
+        processor.setIdentifier(identifier);
+        processor.setProperties(Map.of(propertyName, propertyValue));
+        processor.setPropertyDescriptors(Map.of(propertyName, descriptor));
+        return processor;
     }
 
     @Test
@@ -571,10 +615,21 @@ public class TestStandardFlowComparator {
     private VersionedParameter createParameter(final String name, final String value, final boolean sensitive, final List<VersionedAsset> referencedAssets) {
         final VersionedParameter parameter = new VersionedParameter();
         parameter.setName(name);
-        parameter.setValue(sensitive ? "enc{" + decryptedToEncrypted.get(value) + "}" : value);
+        parameter.setValue(sensitive ? encode(decryptedToEncrypted.get(value)) : value);
         parameter.setSensitive(sensitive);
         parameter.setReferencedAssets(referencedAssets);
         return parameter;
+    }
+
+    /**
+     * Wrap an encrypted value with the prefix and suffix that a serialized flow uses to mark an encrypted value. Only
+     * values carrying this wrapper are decrypted during comparison.
+     *
+     * @param encryptedValue Encrypted value, which may be null
+     * @return Wrapped encrypted value, or null when no encrypted value is supplied
+     */
+    private String encode(final String encryptedValue) {
+        return encryptedValue == null ? null : ENCRYPTED_VALUE_PREFIX + encryptedValue + ENCRYPTED_VALUE_SUFFIX;
     }
 
     private VersionedAsset createAsset(final String id, final String name) {

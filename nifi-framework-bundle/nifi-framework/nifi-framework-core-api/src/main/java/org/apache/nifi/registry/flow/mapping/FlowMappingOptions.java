@@ -18,11 +18,12 @@
 package org.apache.nifi.registry.flow.mapping;
 
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
 
 import static java.util.Objects.requireNonNull;
 
 public class FlowMappingOptions {
-    private final SensitiveValueEncryptor encryptor;
+    private final PropertyEncryptionProvider propertyEncryptionProvider;
     private final VersionedComponentStateLookup stateLookup;
     private final ComponentIdLookup componentIdLookup;
     private final boolean mapPropertyDescriptors;
@@ -36,7 +37,7 @@ public class FlowMappingOptions {
     private final int localNodeOrdinal;
 
     private FlowMappingOptions(final Builder builder) {
-        encryptor = builder.encryptor;
+        propertyEncryptionProvider = builder.propertyEncryptionProvider;
         stateLookup = builder.stateLookup;
         componentIdLookup = builder.componentIdLookup;
         mapPropertyDescriptors = builder.mapPropertyDescriptors;
@@ -50,8 +51,8 @@ public class FlowMappingOptions {
         localNodeOrdinal = builder.localNodeOrdinal;
     }
 
-    public SensitiveValueEncryptor getSensitiveValueEncryptor() {
-        return encryptor;
+    public PropertyEncryptionProvider getPropertyEncryptionProvider() {
+        return propertyEncryptionProvider;
     }
 
     public VersionedComponentStateLookup getStateLookup() {
@@ -99,7 +100,7 @@ public class FlowMappingOptions {
     }
 
     public static class Builder {
-        private SensitiveValueEncryptor encryptor;
+        private PropertyEncryptionProvider propertyEncryptionProvider;
         private VersionedComponentStateLookup stateLookup;
         private ComponentIdLookup componentIdLookup;
         private boolean mapPropertyDescriptors;
@@ -113,14 +114,14 @@ public class FlowMappingOptions {
         private int localNodeOrdinal = 0;
 
         /**
-         * Sets the SensitiveValueEncryptor to use for encrypting sensitive values. This value must be set
-         * if {@link #mapSensitiveConfiguration(boolean) mapSensitiveConfiguration} is set to <code>true</code>.
+         * Sets the Property Encryption Provider to use for encrypting sensitive values. Must be set when
+         * {@link #mapSensitiveConfiguration(boolean) mapSensitiveConfiguration} is set to <code>true</code>.
          *
-         * @param encryptor the PropertyEncryptor to use
+         * @param propertyEncryptionProvider the Property Encryption Provider to use
          * @return the builder
          */
-        public Builder sensitiveValueEncryptor(final SensitiveValueEncryptor encryptor) {
-            this.encryptor = encryptor;
+        public Builder propertyEncryptionProvider(final PropertyEncryptionProvider propertyEncryptionProvider) {
+            this.propertyEncryptionProvider = propertyEncryptionProvider;
             return this;
         }
 
@@ -162,9 +163,9 @@ public class FlowMappingOptions {
         }
 
         /**
-         * Sets whether or not to map sensitive values. If <code>true</code>, the {@link #sensitiveValueEncryptor(SensitiveValueEncryptor)} must be set
+         * Sets whether to map sensitive values
          *
-         * @param mapSensitiveConfiguration whether or not sensitive values should be mapped
+         * @param mapSensitiveConfiguration whether sensitive values should be mapped
          * @return the builder
          */
         public Builder mapSensitiveConfiguration(final boolean mapSensitiveConfiguration) {
@@ -254,15 +255,18 @@ public class FlowMappingOptions {
          *
          * @return the FlowMappingOptions
          * @throws NullPointerException if the {@link #stateLookup(VersionedComponentStateLookup) StateLookup} is not set, the
-         *                              {@link #componentIdLookup(ComponentIdLookup) ComponentIdLookup} is not set, or if {@link #mapSensitiveConfiguration(boolean) mapSensitiveConfiguration}
-         *                              is set to true but the {@link #sensitiveValueEncryptor(SensitiveValueEncryptor) SensitiveValueEncryptor} has not been set
+         *                              {@link #componentIdLookup(ComponentIdLookup) ComponentIdLookup} is not set, or the
+         *                              {@link #stateManagerProvider(StateManagerProvider) StateManagerProvider} is not set when
+         *                              {@link #mapComponentState(boolean) mapComponentState} is set to true
+         * @throws IllegalArgumentException if {@link #mapSensitiveConfiguration(boolean) mapSensitiveConfiguration} is set to true but the
+         *                              {@link #propertyEncryptionProvider(PropertyEncryptionProvider) PropertyEncryptionProvider} has not been set
          */
         public FlowMappingOptions build() {
             requireNonNull(stateLookup, "State Lookup must be set");
             requireNonNull(componentIdLookup, "Component ID Lookup must be set");
 
-            if (mapSensitiveConfiguration) {
-                requireNonNull(encryptor, "Property Encryptor must be set when sensitive configuration is to be mapped");
+            if (mapSensitiveConfiguration && propertyEncryptionProvider == null) {
+                throw new IllegalArgumentException("Property Encryption Provider must be set when sensitive configuration is to be mapped");
             }
 
             if (mapComponentState) {
@@ -278,7 +282,7 @@ public class FlowMappingOptions {
      * a dataflow to a NiFi Registry.
      */
     public static final FlowMappingOptions DEFAULT_OPTIONS = new Builder()
-        .sensitiveValueEncryptor(null)
+        .propertyEncryptionProvider(null)
         .stateLookup(VersionedComponentStateLookup.ENABLED_OR_DISABLED)
         .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
         .mapPropertyDescriptors(true)

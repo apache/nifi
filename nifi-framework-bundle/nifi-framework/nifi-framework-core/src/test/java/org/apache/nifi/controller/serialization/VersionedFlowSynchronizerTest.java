@@ -34,7 +34,6 @@ import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedConnector;
@@ -58,6 +57,8 @@ import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.persistence.FlowConfigurationArchiveManager;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
+import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
@@ -109,9 +110,11 @@ class VersionedFlowSynchronizerTest {
 
     private static final String SENSITIVE_PROPERTY_NAME = "Protected";
 
-    private static final String ENCRYPTED_PROPERTY_VALUE = "enc{encoded}";
+    private static final String ENCRYPTED_PROPERTY_VALUE = PropertyEncryptionEncoder.getEncoded("656e636f646564");
 
     private static final String DECRYPTED_PROPERTY_VALUE = "decoded";
+
+    private static final byte[] DECRYPTED_PROPERTY_BYTES = DECRYPTED_PROPERTY_VALUE.getBytes(StandardCharsets.UTF_8);
 
     private static final String REPORTING_TASK_INSTANCE_ID = "reporting-task-instance-id";
 
@@ -145,7 +148,7 @@ class VersionedFlowSynchronizerTest {
     private SnippetManager snippetManager;
 
     @Mock
-    private PropertyEncryptor encryptor;
+    private PropertyEncryptionProvider propertyEncryptionProvider;
 
     @Mock
     private VersionedComponentStateLookup stateLookup;
@@ -197,7 +200,7 @@ class VersionedFlowSynchronizerTest {
         // Mock Property Descriptor for sensitive Property with decrypted value
         final PropertyDescriptor sensitivePropertyDescriptor = mock(PropertyDescriptor.class);
         when(controllerServiceNode.getPropertyDescriptor(eq(SENSITIVE_PROPERTY_NAME))).thenReturn(sensitivePropertyDescriptor);
-        when(encryptor.decrypt(any())).thenReturn(DECRYPTED_PROPERTY_VALUE);
+        when(propertyEncryptionProvider.decrypt(any(), any())).thenReturn(DECRYPTED_PROPERTY_BYTES);
 
         // Return created Controller Service Node as a result of null returned for initial lookup method
         when(flowManager.createControllerService(any(), any(), any(), any(), eq(true), eq(true), any())).thenReturn(controllerServiceNode);
@@ -232,7 +235,7 @@ class VersionedFlowSynchronizerTest {
         // Mock Property Descriptor for sensitive Property with decrypted value
         final PropertyDescriptor sensitivePropertyDescriptor = mock(PropertyDescriptor.class);
         when(reportingTaskNode.getPropertyDescriptor(eq(SENSITIVE_PROPERTY_NAME))).thenReturn(sensitivePropertyDescriptor);
-        when(encryptor.decrypt(any())).thenReturn(DECRYPTED_PROPERTY_VALUE);
+        when(propertyEncryptionProvider.decrypt(any(), any())).thenReturn(DECRYPTED_PROPERTY_BYTES);
 
         // Return created Reporting Task Node
         when(flowController.createReportingTask(any(), eq(REPORTING_TASK_INSTANCE_ID), any(), eq(false))).thenReturn(reportingTaskNode);
@@ -478,7 +481,7 @@ class VersionedFlowSynchronizerTest {
         when(dataFlow.getVersionedDataflow()).thenReturn(versionedDataflow);
         when(dataFlow.getFlow()).thenReturn("{}".getBytes(StandardCharsets.UTF_8));
         when(versionedDataflow.getRootGroup()).thenReturn(versionedRootGroup);
-        when(flowController.getEncryptor()).thenReturn(encryptor);
+        when(flowController.getPropertyEncryptionProvider()).thenReturn(propertyEncryptionProvider);
         when(flowController.createVersionedComponentStateLookup(any())).thenReturn(stateLookup);
         when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
 

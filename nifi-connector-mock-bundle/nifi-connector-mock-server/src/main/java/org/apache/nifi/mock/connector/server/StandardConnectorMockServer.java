@@ -57,7 +57,6 @@ import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.controller.status.history.VolatileComponentStatusRepository;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -137,7 +136,6 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
         final FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
         final Authorizer authorizer = new PermitAllAuthorizer();
         final AuditService auditService = new MockAuditService();
-        final PropertyEncryptor propertyEncryptor = new NopPropertyEncryptor();
         final BulletinRepository bulletinRepository = new VolatileBulletinRepository();
         final StatusHistoryRepository statusHistoryRepository = new VolatileComponentStatusRepository(nifiProperties);
         final RuleViolationsManager ruleViolationManager = new MockRuleViolationsManager();
@@ -150,7 +148,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
             authorizer,
             auditService,
             new DefaultComponentMetricReporter(),
-            propertyEncryptor,
+            new MockPropertyEncryptionProvider(),
             bulletinRepository,
             extensionManager,
             statusHistoryRepository,
@@ -515,7 +513,6 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
             .mapSensitiveConfiguration(false)
             .mapPropertyDescriptors(true)
             .stateLookup(VersionedComponentStateLookup.ENABLED_OR_DISABLED)
-            .sensitiveValueEncryptor(value -> value)
             .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
             .mapInstanceIdentifiers(true)
             .mapControllerServiceReferencesToVersionedId(true)

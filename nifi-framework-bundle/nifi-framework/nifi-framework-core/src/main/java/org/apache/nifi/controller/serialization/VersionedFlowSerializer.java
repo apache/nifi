@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.VersionedDataflow;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
 
 import java.io.IOException;
@@ -47,8 +46,7 @@ public class VersionedFlowSerializer implements FlowSerializer<VersionedDataflow
 
     @Override
     public VersionedDataflow transform(final FlowController controller, final ScheduledStateLookup stateLookup) throws FlowSerializationException {
-        final PropertyEncryptor encryptor = controller.getEncryptor();
-        final VersionedDataflowMapper dataflowMapper = new VersionedDataflowMapper(controller, extensionManager, encryptor::encrypt, stateLookup);
+        final VersionedDataflowMapper dataflowMapper = new VersionedDataflowMapper(controller, extensionManager, controller.getPropertyEncryptionProvider(), stateLookup);
         final VersionedDataflow dataflow = dataflowMapper.createMapping();
         return dataflow;
     }

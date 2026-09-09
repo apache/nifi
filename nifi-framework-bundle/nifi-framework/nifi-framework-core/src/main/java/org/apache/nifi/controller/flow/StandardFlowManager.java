@@ -66,8 +66,6 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.deprecation.log.DeprecationLogger;
 import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
-import org.apache.nifi.flow.VersionedExternalFlow;
-import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
@@ -93,11 +91,6 @@ import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterReferenceManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
-import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
-import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
-import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
-import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
-import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.StandardPublicPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroup;
@@ -305,7 +298,8 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     public ProcessGroup createProcessGroup(final String id, final String connectorId) {
         final StatelessGroupNodeFactory statelessGroupNodeFactory = new StandardStatelessGroupNodeFactory(flowController, sslContext, flowController.createKerberosConfig(nifiProperties));
 
-        final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler, flowController.getEncryptor(),
+        final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler,
+            flowController.getPropertyEncryptionProvider(),
             flowController.getExtensionManager(), flowController.getStateManagerProvider(), this,
             flowController.getReloadComponent(), flowController, flowController, nifiProperties, statelessGroupNodeFactory,
             flowController.getAssetManager(), connectorId);
@@ -816,43 +810,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         return connectorNode;
     }
-
-    private void copyGroupContents(final ProcessGroup sourceGroup, final ProcessGroup destinationGroup, final String componentIdSeed) {
-        final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
-            .mapSensitiveConfiguration(true)
-            .mapPropertyDescriptors(true)
-            .stateLookup(VersionedComponentStateLookup.ENABLED_OR_DISABLED)
-            .sensitiveValueEncryptor(value -> value)
-            .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
-            .mapInstanceIdentifiers(true)
-            .mapControllerServiceReferencesToVersionedId(true)
-            .mapFlowRegistryClientId(true)
-            .mapAssetReferences(true)
-            .build();
-
-        final VersionedComponentFlowMapper flowMapper = new VersionedComponentFlowMapper(flowController.getExtensionManager(), flowMappingOptions);
-        final Map<String, VersionedParameterContext> parameterContexts = flowMapper.mapParameterContexts(sourceGroup, true, Map.of());
-        final InstantiatedVersionedProcessGroup versionedGroup = flowMapper.mapProcessGroup(sourceGroup, flowController.getControllerServiceProvider(), this, true);
-        final VersionedExternalFlow versionedExternalFlow = new VersionedExternalFlow();
-        versionedExternalFlow.setFlowContents(versionedGroup);
-        versionedExternalFlow.setExternalControllerServices(Map.of());
-        versionedExternalFlow.setParameterProviders(Map.of());
-        versionedExternalFlow.setParameterContexts(parameterContexts);
-
-        destinationGroup.updateFlow(versionedExternalFlow, componentIdSeed, false, true, true);
-    }
-
-    private void gatherParameterContexts(final ProcessGroup sourceGroup, final Map<String, ParameterContext> parameterContexts) {
-        final ParameterContext parameterContext = sourceGroup.getParameterContext();
-        if (parameterContext != null && !parameterContexts.containsKey(parameterContext.getIdentifier())) {
-            parameterContexts.put(parameterContext.getIdentifier(), parameterContext);
-        }
-
-        for (final ProcessGroup childGroup : sourceGroup.getProcessGroups()) {
-            gatherParameterContexts(childGroup, parameterContexts);
-        }
-    }
-
 
     @Override
     public List<ConnectorNode> getAllConnectors() {

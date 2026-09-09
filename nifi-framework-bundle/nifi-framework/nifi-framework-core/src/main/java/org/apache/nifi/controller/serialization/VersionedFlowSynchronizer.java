@@ -54,7 +54,6 @@ import org.apache.nifi.controller.inheritance.ConnectionMissingCheck;
 import org.apache.nifi.controller.inheritance.FlowInheritability;
 import org.apache.nifi.controller.inheritance.FlowInheritabilityCheck;
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ScheduledState;
@@ -106,6 +105,10 @@ import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.ProviderSensitiveValueDecryptor;
+import org.apache.nifi.security.encryption.SensitivePropertyContext;
+import org.apache.nifi.security.encryption.SensitivePropertyContextFactory;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FlowDifferenceFilters;
@@ -192,7 +195,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         AffectedComponentSet activeSet = null;
 
         if (!existingFlowEmpty) {
-            flowComparison = compareFlows(existingDataFlow, proposedFlow, controller.getEncryptor());
+            flowComparison = compareFlows(existingDataFlow, proposedFlow, controller.getPropertyEncryptionProvider());
             final Set<FlowDifference> flowDifferences = flowComparison.getDifferences();
 
             if (flowDifferences.isEmpty()) {
@@ -439,7 +442,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         try {
             final VersionedDataflow versionedFlow = proposedFlow.getVersionedDataflow();
 
-            final PropertyEncryptor encryptor = controller.getEncryptor();
+            final PropertyEncryptionProvider propertyEncryptionProvider = controller.getPropertyEncryptionProvider();
 
             if (versionedFlow != null) {
                 controller.setMaxTimerDrivenThreadCount(versionedFlow.getMaxTimerDrivenThreadCount());
@@ -489,14 +492,14 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     .updateGroupSettings(true)
                     .updateDescendantVersionedFlows(true)
                     .updateRpgUrls(true)
-                    .propertyDecryptor(encryptor::decrypt)
+                    .propertyEncryptionProvider(propertyEncryptionProvider)
                     .build();
 
                 final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
                     .mapSensitiveConfiguration(true)
                     .mapPropertyDescriptors(false)
                     .stateLookup(stateLookup)
-                    .sensitiveValueEncryptor(encryptor::encrypt)
+                    .propertyEncryptionProvider(propertyEncryptionProvider)
                     .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
                     .mapInstanceIdentifiers(true)
                     .mapControllerServiceReferencesToVersionedId(false)
@@ -517,7 +520,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    private FlowComparison compareFlows(final DataFlow existingFlow, final DataFlow proposedFlow, final PropertyEncryptor encryptor) {
+    private FlowComparison compareFlows(final DataFlow existingFlow, final DataFlow proposedFlow, final PropertyEncryptionProvider propertyEncryptionProvider) {
         final DifferenceDescriptor differenceDescriptor = new StaticDifferenceDescriptor();
 
         final VersionedDataflow clusterVersionedFlow = proposedFlow.getVersionedDataflow();
@@ -548,7 +551,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         );
 
         final FlowComparator flowComparator = new StandardFlowComparator(localDataFlow, clusterDataFlow,
-            differenceDescriptor, encryptor::decrypt, VersionedComponent::getInstanceIdentifier, FlowComparatorVersionedStrategy.DEEP);
+            differenceDescriptor, new ProviderSensitiveValueDecryptor(propertyEncryptionProvider),
+            VersionedComponent::getInstanceIdentifier, FlowComparatorVersionedStrategy.DEEP);
         return flowComparator.compare();
     }
 
@@ -602,7 +606,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             if (existing == null) {
                 addFlowRegistryClient(controller, versionedFlowRegistryClient);
             } else if (affectedComponentSet.isFlowRegistryClientAffected(existing.getIdentifier())) {
-                final Map<String, String> decryptedProperties = decryptProperties(versionedFlowRegistryClient.getProperties(), controller.getEncryptor());
+                final Map<String, String> decryptedProperties = decryptProperties(versionedFlowRegistryClient, versionedFlowRegistryClient.getProperties(), controller.getPropertyEncryptionProvider());
                 updateRegistry(existing, versionedFlowRegistryClient, decryptedProperties);
             }
         }
@@ -628,7 +632,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final FlowRegistryClientNode flowRegistryClient = flowController.getFlowManager().createFlowRegistryClient(
                 versionedFlowRegistryClient.getType(), versionedFlowRegistryClient.getIdentifier(), coordinate, Collections.emptySet(), false, true, null);
 
-        final Map<String, String> decryptedProperties = decryptProperties(versionedFlowRegistryClient.getProperties(), flowController.getEncryptor());
+        final Map<String, String> decryptedProperties = decryptProperties(versionedFlowRegistryClient, versionedFlowRegistryClient.getProperties(), flowController.getPropertyEncryptionProvider());
         updateRegistry(flowRegistryClient, versionedFlowRegistryClient, decryptedProperties);
 
         final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(flowController.getExtensionManager(), flowController.getFlowManager(),
@@ -669,7 +673,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final ReportingTaskNode taskNode = controller.createReportingTask(reportingTask.getType(), reportingTask.getInstanceIdentifier(), coordinate, false);
 
-        final Map<String, String> decryptedProperties = decryptProperties(reportingTask.getProperties(), controller.getEncryptor());
+        final Map<String, String> decryptedProperties = decryptProperties(reportingTask, reportingTask.getProperties(), controller.getPropertyEncryptionProvider());
         configureReportingTask(taskNode, reportingTask, decryptedProperties);
 
         final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(),
@@ -719,7 +723,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void updateReportingTask(final ReportingTaskNode taskNode, final VersionedReportingTask reportingTask, final FlowController controller) {
-        final Map<String, String> decryptedProperties = decryptProperties(reportingTask.getProperties(), controller.getEncryptor());
+        final Map<String, String> decryptedProperties = decryptProperties(reportingTask, reportingTask.getProperties(), controller.getPropertyEncryptionProvider());
         configureReportingTask(taskNode, reportingTask, decryptedProperties);
         startReportingTask(taskNode, reportingTask, controller);
     }
@@ -763,7 +767,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         ruleNode.setEnforcementPolicy(flowAnalysisRule.getEnforcementPolicy());
 
         final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(ruleNode, flowAnalysisRule);
-        final Map<String, String> decryptedProperties = decryptProperties(flowAnalysisRule.getProperties(), controller.getEncryptor());
+        final Map<String, String> decryptedProperties = decryptProperties(flowAnalysisRule, flowAnalysisRule.getProperties(), controller.getPropertyEncryptionProvider());
         ruleNode.setProperties(decryptedProperties, false, sensitiveDynamicPropertyNames);
 
         switch (flowAnalysisRule.getScheduledState()) {
@@ -793,9 +797,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
             final ParameterProviderNode existing = flowManager.getParameterProvider(versionedParameterProvider.getInstanceIdentifier());
             if (existing == null) {
-                addParameterProvider(controller, versionedParameterProvider, controller.getEncryptor());
+                addParameterProvider(controller, versionedParameterProvider, controller.getPropertyEncryptionProvider());
             } else if (affectedComponentSet.isParameterProviderAffected(existing.getIdentifier())) {
-                final Map<String, String> decryptedProperties = decryptProperties(versionedParameterProvider.getProperties(), controller.getEncryptor());
+                final Map<String, String> decryptedProperties = decryptProperties(versionedParameterProvider, versionedParameterProvider.getProperties(), controller.getPropertyEncryptionProvider());
                 updateParameterProvider(existing, versionedParameterProvider, decryptedProperties);
             }
         }
@@ -807,13 +811,14 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    private void addParameterProvider(final FlowController controller, final VersionedParameterProvider parameterProvider, final PropertyEncryptor encryptor) {
+    private void addParameterProvider(final FlowController controller, final VersionedParameterProvider parameterProvider,
+                                      final PropertyEncryptionProvider propertyEncryptionProvider) {
         final BundleCoordinate coordinate = createBundleCoordinate(extensionManager, parameterProvider.getBundle(), parameterProvider.getType());
 
         final ParameterProviderNode parameterProviderNode = controller.getFlowManager()
                 .createParameterProvider(parameterProvider.getType(), parameterProvider.getInstanceIdentifier(), coordinate, false);
 
-        final Map<String, String> decryptedProperties = decryptProperties(parameterProvider.getProperties(), encryptor);
+        final Map<String, String> decryptedProperties = decryptProperties(parameterProvider, parameterProvider.getProperties(), propertyEncryptionProvider);
         updateParameterProvider(parameterProviderNode, parameterProvider, decryptedProperties);
 
         final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(),
@@ -865,7 +870,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             parameterContexts.forEach(context -> namedParameterContexts.put(context.getName(), context));
 
             for (final VersionedParameterContext versionedParameterContext : parameterContexts) {
-                inheritParameterContext(versionedParameterContext, controller.getFlowManager(), namedParameterContexts, controller.getEncryptor(), controller.getAssetManager());
+                inheritParameterContext(versionedParameterContext, controller.getFlowManager(), namedParameterContexts, controller.getPropertyEncryptionProvider(), controller.getAssetManager());
             }
         });
     }
@@ -874,15 +879,15 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final VersionedParameterContext versionedParameterContext,
             final FlowManager flowManager,
             final Map<String, VersionedParameterContext> namedParameterContexts,
-            final PropertyEncryptor encryptor,
+            final PropertyEncryptionProvider propertyEncryptionProvider,
             final AssetManager assetManager
     ) {
         final ParameterContextManager contextManager = flowManager.getParameterContextManager();
         final ParameterContext existingContext = contextManager.getParameterContextNameMapping().get(versionedParameterContext.getName());
         if (existingContext == null) {
-            addParameterContext(versionedParameterContext, flowManager, namedParameterContexts, encryptor, assetManager);
+            addParameterContext(versionedParameterContext, flowManager, namedParameterContexts, propertyEncryptionProvider, assetManager);
         } else {
-            updateParameterContext(versionedParameterContext, existingContext, flowManager, namedParameterContexts, encryptor, assetManager);
+            updateParameterContext(versionedParameterContext, existingContext, flowManager, namedParameterContexts, propertyEncryptionProvider, assetManager);
         }
     }
 
@@ -890,10 +895,10 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final VersionedParameterContext versionedParameterContext,
             final FlowManager flowManager,
             final Map<String, VersionedParameterContext> namedParameterContexts,
-            final PropertyEncryptor encryptor,
+            final PropertyEncryptionProvider propertyEncryptionProvider,
             final AssetManager assetManager
     ) {
-        final Map<String, Parameter> parameters = createParameterMap(flowManager, versionedParameterContext, encryptor, assetManager);
+        final Map<String, Parameter> parameters = createParameterMap(flowManager, versionedParameterContext, propertyEncryptionProvider, assetManager);
 
         final ParameterContextManager contextManager = flowManager.getParameterContextManager();
         final List<String> referenceIds = findReferencedParameterContextIds(versionedParameterContext, contextManager, namedParameterContexts);
@@ -941,7 +946,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private Map<String, Parameter> createParameterMap(
             final FlowManager flowManager,
             final VersionedParameterContext versionedParameterContext,
-            final PropertyEncryptor encryptor,
+            final PropertyEncryptionProvider propertyEncryptionProvider,
             final AssetManager assetManager
     ) {
         final Map<String, Parameter> providedParameters = getProvidedParameters(flowManager, versionedParameterContext);
@@ -972,7 +977,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     parameterValue = providedParameter.getValue();
                 }
             } else if (versioned.isSensitive()) {
-                parameterValue = decrypt(rawValue, encryptor);
+                final SensitivePropertyContext context = SensitivePropertyContextFactory.forParameter(versionedParameterContext.getName(), name);
+                parameterValue = decrypt(rawValue, context, propertyEncryptionProvider);
             } else {
                 parameterValue = rawValue;
             }
@@ -1018,10 +1024,10 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final ParameterContext parameterContext,
             final FlowManager flowManager,
             final Map<String, VersionedParameterContext> namedParameterContexts,
-            final PropertyEncryptor encryptor,
+            final PropertyEncryptionProvider propertyEncryptionProvider,
             final AssetManager assetManager
     ) {
-        final Map<String, Parameter> parameters = createParameterMap(flowManager, versionedParameterContext, encryptor, assetManager);
+        final Map<String, Parameter> parameters = createParameterMap(flowManager, versionedParameterContext, propertyEncryptionProvider, assetManager);
 
         final Map<String, String> currentValues = new HashMap<>();
         final Map<String, Set<String>> currentAssetReferences = new HashMap<>();
@@ -1151,7 +1157,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
             if (controllerServicesAddedAndProperties.containsKey(serviceNode) || affectedComponentSet.isControllerServiceAffected(serviceNode.getIdentifier())) {
                 // Set Decrypted Properties for subsequent migrate configuration using actual values
-                final Map<String, String> decryptedProperties = decryptProperties(versionedControllerService.getProperties(), controller.getEncryptor());
+                final Map<String, String> decryptedProperties = decryptProperties(versionedControllerService, versionedControllerService.getProperties(), controller.getPropertyEncryptionProvider());
                 controllerServicesAddedAndProperties.put(serviceNode, decryptedProperties);
                 updateRootControllerService(serviceNode, versionedControllerService, decryptedProperties);
             }

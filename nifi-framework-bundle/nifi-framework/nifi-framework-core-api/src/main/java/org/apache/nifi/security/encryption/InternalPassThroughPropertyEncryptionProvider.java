@@ -14,19 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.security.encryption;
 
-package org.apache.nifi.mock.connector.server;
-
-import org.apache.nifi.encrypt.PropertyEncryptor;
-
-public class NopPropertyEncryptor implements PropertyEncryptor {
+/**
+ * Internal Pass Through implementation of Property Encryption Provider that does not modify property values.
+ *
+ * <p>Intended for flows that are mapped and synchronized in memory rather than persisted. Sensitive values still pass
+ * through {@link SensitivePropertyCodec}, which represents them as hexadecimal, so a flow mapped using this Provider
+ * must also be synchronized using this Provider in order to recover the original values.</p>
+ */
+public class InternalPassThroughPropertyEncryptionProvider implements PropertyEncryptionProvider {
     @Override
-    public String encrypt(final String property) {
+    public void initialize(final PropertyEncryptionProviderInitializationContext context) {
+
+    }
+
+    @Override
+    public byte[] encrypt(final byte[] property, final SensitivePropertyContext context) {
         return property;
     }
 
     @Override
-    public String decrypt(final String encryptedProperty) {
+    public byte[] decrypt(final byte[] encryptedProperty, final SensitivePropertyContext context) {
         return encryptedProperty;
     }
 }

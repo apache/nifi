@@ -6233,7 +6233,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
 
         final FlowMappingOptions mappingOptions = new FlowMappingOptions.Builder()
-                .sensitiveValueEncryptor(null)
+                .propertyEncryptionProvider(null)
                 .stateLookup(VersionedComponentStateLookup.ENABLED_OR_DISABLED)
                 .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
                 .mapPropertyDescriptors(true)
@@ -6374,7 +6374,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         final FlowMappingOptions mappingOptions = new FlowMappingOptions.Builder()
-                .sensitiveValueEncryptor(null)
+                .propertyEncryptionProvider(null)
                 .stateLookup(VersionedComponentStateLookup.ENABLED_OR_DISABLED)
                 .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
                 .mapPropertyDescriptors(true)
