@@ -17,8 +17,7 @@
 package org.apache.nifi.framework.configuration;
 
 import org.apache.nifi.framework.ssl.FrameworkSslContextHolder;
-import org.apache.nifi.framework.ssl.SecurityStoreChangedPathListener;
-import org.apache.nifi.framework.ssl.WatchServiceMonitorCommand;
+import org.apache.nifi.framework.ssl.SecurityStoreMonitorCommand;
 import org.apache.nifi.security.ssl.KeyManagerListener;
 import org.apache.nifi.security.ssl.PemCertificateKeyStoreBuilder;
 import org.apache.nifi.security.ssl.PemPrivateKeyCertificateKeyStoreBuilder;
@@ -36,17 +35,12 @@ import org.springframework.scheduling.TaskScheduler;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchService;
 import java.security.KeyStore;
 import java.time.Duration;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
@@ -107,10 +101,11 @@ public class SslContextConfiguration {
     }
 
     @Bean
-    public WatchServiceMonitorCommand watchServiceMonitorCommand() {
-        final WatchServiceMonitorCommand command;
+    public SecurityStoreMonitorCommand securityStoreMonitorCommand() {
+        final SecurityStoreMonitorCommand command;
 
         if (isReloadEnabled()) {
+            final Set<Path> storePaths = getStorePaths();
             final String reloadIntervalProperty = properties.getProperty(SECURITY_AUTO_RELOAD_INTERVAL, NiFiProperties.DEFAULT_SECURITY_AUTO_RELOAD_INTERVAL);
             final long reloadIntervalSeconds = Math.round(FormatUtils.getPreciseTimeDuration(reloadIntervalProperty, TimeUnit.SECONDS));
             final Duration reloadDuration = Duration.ofSeconds(reloadIntervalSeconds);
@@ -118,17 +113,13 @@ public class SslContextConfiguration {
             final X509ExtendedKeyManager keyManager = keyManager();
             final X509ExtendedTrustManager trustManager = trustManager();
             if (keyManager instanceof final KeyManagerListener keyManagerListener && trustManager instanceof final TrustManagerListener trustManagerListener) {
-                final Set<Path> storeFileNames = getStoreFileNames();
-                final SecurityStoreChangedPathListener changedPathListener = new SecurityStoreChangedPathListener(
-                        storeFileNames,
+                command = new SecurityStoreMonitorCommand(
+                        storePaths,
                         keyManagerListener,
                         FrameworkSslContextHolder.getKeyManagerBuilder(),
                         trustManagerListener,
                         FrameworkSslContextHolder.getTrustManagerBuilder()
                 );
-
-                final WatchService watchService = storeWatchService();
-                command = new WatchServiceMonitorCommand(watchService, changedPathListener);
 
                 taskScheduler.scheduleAtFixedRate(command, reloadDuration);
                 logger.info("Scheduled Security Store Monitor with Duration [{}]", reloadDuration);
@@ -139,33 +130,6 @@ public class SslContextConfiguration {
             command = null;
         }
         return command;
-    }
-
-    @Bean
-    public WatchService storeWatchService() {
-        final WatchService watchService;
-
-        final String keyStoreProperty = properties.getProperty(SECURITY_KEYSTORE);
-        final String keyStorePrivateKeyProperty = properties.getProperty(SECURITY_KEYSTORE_PRIVATE_KEY);
-        if ((keyStoreProperty == null || keyStoreProperty.isBlank()) && (keyStorePrivateKeyProperty == null || keyStorePrivateKeyProperty.isBlank())) {
-            watchService = null;
-        } else if (isReloadEnabled()) {
-            final Set<Path> storeDirectories = getStoreDirectories();
-            final FileSystem fileSystem = FileSystems.getDefault();
-            try {
-                watchService = fileSystem.newWatchService();
-
-                for (final Path storeDirectory : storeDirectories) {
-                    storeDirectory.register(watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY);
-                }
-            } catch (final IOException e) {
-                throw new UncheckedIOException("Store Watch Service creation failed", e);
-            }
-        } else {
-            watchService = null;
-        }
-
-        return watchService;
     }
 
     @Bean
@@ -240,80 +204,23 @@ public class SslContextConfiguration {
         return trustStore;
     }
 
-    private Set<Path> getStoreFileNames() {
-        final Set<Path> storeFileNames = new HashSet<>();
+    private Set<Path> getStorePaths() {
+        final Set<Path> storePaths = new LinkedHashSet<>();
 
         if (isPemStoreType(SECURITY_KEYSTORE_TYPE)) {
-            final Path keyStorePrivateKeyPath = getPropertyPath(SECURITY_KEYSTORE_PRIVATE_KEY);
-            addStoreFileName(keyStorePrivateKeyPath, storeFileNames);
-            final Path keyStoreCertificatePath = getPropertyPath(SECURITY_KEYSTORE_CERTIFICATE);
-            addStoreFileName(keyStoreCertificatePath, storeFileNames);
+            storePaths.add(getPropertyPath(SECURITY_KEYSTORE_PRIVATE_KEY));
+            storePaths.add(getPropertyPath(SECURITY_KEYSTORE_CERTIFICATE));
         } else {
-            final Path keyStorePath = getPropertyPath(SECURITY_KEYSTORE);
-            addStoreFileName(keyStorePath, storeFileNames);
+            storePaths.add(getPropertyPath(SECURITY_KEYSTORE));
         }
 
         if (isPemStoreType(SECURITY_TRUSTSTORE_TYPE)) {
-            final Path trustStoreCertificatePath = getPropertyPath(SECURITY_TRUSTSTORE_CERTIFICATE);
-            addStoreFileName(trustStoreCertificatePath, storeFileNames);
+            storePaths.add(getPropertyPath(SECURITY_TRUSTSTORE_CERTIFICATE));
         } else {
-            final Path trustStorePath = getPropertyPath(SECURITY_TRUSTSTORE);
-            addStoreFileName(trustStorePath, storeFileNames);
+            storePaths.add(getPropertyPath(SECURITY_TRUSTSTORE));
         }
 
-        return storeFileNames;
-    }
-
-    private void addStoreFileName(final Path storePath, final Set<Path> storeFileNames) {
-        storeFileNames.add(storePath.getFileName());
-
-        if (Files.isSymbolicLink(storePath)) {
-            try {
-                final Path realStorePath = storePath.toRealPath();
-                storeFileNames.add(realStorePath.getFileName());
-            } catch (final IOException e) {
-                throw new UncheckedIOException("Failed to resolve Store Path Link [%s]".formatted(storePath), e);
-            }
-        }
-    }
-
-    private Set<Path> getStoreDirectories() {
-        final Set<Path> storeDirectories = new HashSet<>();
-
-        if (isPemStoreType(SECURITY_KEYSTORE_TYPE)) {
-            final Path keyStorePrivateKeyPath = getPropertyPath(SECURITY_KEYSTORE_PRIVATE_KEY);
-            addStorePath(keyStorePrivateKeyPath, storeDirectories);
-            final Path keyStoreCertificatePath = getPropertyPath(SECURITY_KEYSTORE_CERTIFICATE);
-            addStorePath(keyStoreCertificatePath, storeDirectories);
-        } else {
-            final Path keyStorePath = getPropertyPath(SECURITY_KEYSTORE);
-            addStorePath(keyStorePath, storeDirectories);
-        }
-
-        if (isPemStoreType(SECURITY_TRUSTSTORE_TYPE)) {
-            final Path trustStoreCertificatePath = getPropertyPath(SECURITY_TRUSTSTORE_CERTIFICATE);
-            addStorePath(trustStoreCertificatePath, storeDirectories);
-        } else {
-            final Path trustStorePath = getPropertyPath(SECURITY_TRUSTSTORE);
-            addStorePath(trustStorePath, storeDirectories);
-        }
-
-        return storeDirectories;
-    }
-
-    private void addStorePath(final Path storePath, final Set<Path> storeDirectories) {
-        final Path storeDirectory = storePath.getParent();
-        storeDirectories.add(storeDirectory);
-
-        if (Files.isSymbolicLink(storePath)) {
-            try {
-                final Path realStorePath = storePath.toRealPath();
-                final Path realStoreDirectory = realStorePath.getParent();
-                storeDirectories.add(realStoreDirectory);
-            } catch (final IOException e) {
-                throw new UncheckedIOException("Failed to resolve Store Path Link [%s]".formatted(storePath), e);
-            }
-        }
+        return storePaths;
     }
 
     private Path getPropertyPath(final String propertyName) {
