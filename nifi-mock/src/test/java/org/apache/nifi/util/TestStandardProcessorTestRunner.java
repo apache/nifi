@@ -42,6 +42,7 @@ import java.util.function.Predicate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -49,7 +50,15 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class TestStandardProcessorTestRunner {
 
     private static final String NAMED_GAUGE = "Processing Time";
-    private static final double NAMED_GAUGE_VALUE = 120.35;
+    private static final double FIRST_NAMED_GAUGE_VALUE = 120.35;
+    private static final double SECOND_NAMED_GAUGE_VALUE = 121.35;
+    private static final double THIRD_NAMED_GAUGE_VALUE = 122.35;
+    private static final List<Double> NAMED_GAUGE_VALUES = List.of(FIRST_NAMED_GAUGE_VALUE, SECOND_NAMED_GAUGE_VALUE, THIRD_NAMED_GAUGE_VALUE);
+    private static final List<Double> ATTRIBUTED_NAMED_GAUGE_VALUES = List.of(FIRST_NAMED_GAUGE_VALUE, THIRD_NAMED_GAUGE_VALUE);
+    private static final String NAMED_COUNTER = "Processed Records";
+    private static final long NAMED_COUNTER_DELTA = 5;
+    private static final Map<String, String> METRIC_ATTRIBUTES = Map.of("service.name", "Processing", "deployment.environment", "production");
+    private static final Map<String, String> UNRECORDED_METRIC_ATTRIBUTES = Map.of("service.name", "Unrecorded");
 
     @Test
     public void testProcessContextPassedToOnStoppedMethods() {
@@ -110,16 +119,45 @@ public class TestStandardProcessorTestRunner {
     }
 
     @Test
-    public void testRecordGauge() {
-        final RecordGaugeProcessor processor = new RecordGaugeProcessor();
+    public void testRecordGaugeNow() {
+        final RecordMetricProcessor processor = new RecordMetricProcessor(CommitTiming.NOW);
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.run();
 
-        final List<Double> gaugeValues = runner.getGaugeValues(NAMED_GAUGE);
-        assertFalse(gaugeValues.isEmpty());
-        final Double firstValue = gaugeValues.getFirst();
-        assertEquals(NAMED_GAUGE_VALUE, firstValue);
+        assertGaugeValues(runner);
+    }
+
+    @Test
+    public void testRecordGaugeSessionCommitted() {
+        final RecordMetricProcessor processor = new RecordMetricProcessor(CommitTiming.SESSION_COMMITTED);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.run();
+
+        assertGaugeValues(runner);
+    }
+
+    private void assertGaugeValues(final TestRunner runner) {
+        assertEquals(NAMED_GAUGE_VALUES, runner.getGaugeValues(NAMED_GAUGE));
+        assertEquals(ATTRIBUTED_NAMED_GAUGE_VALUES, runner.getGaugeValues(NAMED_GAUGE, METRIC_ATTRIBUTES));
+        assertEquals(List.of(SECOND_NAMED_GAUGE_VALUE), runner.getGaugeValues(NAMED_GAUGE, Map.of()));
+        assertTrue(runner.getGaugeValues(NAMED_GAUGE, UNRECORDED_METRIC_ATTRIBUTES).isEmpty());
+    }
+
+    @Test
+    public void testAdjustCounter() {
+        final RecordMetricProcessor processor = new RecordMetricProcessor(CommitTiming.NOW);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.run();
+
+        // Measurements recorded without attributes and with attributes are both summed for the Counter name
+        assertEquals(NAMED_COUNTER_DELTA * 2, runner.getCounterValue(NAMED_COUNTER));
+
+        assertEquals(NAMED_COUNTER_DELTA, runner.getCounterValue(NAMED_COUNTER, METRIC_ATTRIBUTES));
+        assertEquals(NAMED_COUNTER_DELTA, runner.getCounterValue(NAMED_COUNTER, Map.of()));
+        assertNull(runner.getCounterValue(NAMED_COUNTER, UNRECORDED_METRIC_ATTRIBUTES));
     }
 
     @Test
@@ -233,10 +271,21 @@ public class TestStandardProcessorTestRunner {
         runner.assertValid();
     }
 
-    private static class RecordGaugeProcessor extends AbstractProcessor {
+    private static class RecordMetricProcessor extends AbstractProcessor {
+        private final CommitTiming gaugeCommitTiming;
+
+        private RecordMetricProcessor(final CommitTiming gaugeCommitTiming) {
+            this.gaugeCommitTiming = gaugeCommitTiming;
+        }
+
         @Override
         public void onTrigger(final ProcessContext context, final ProcessSession session) {
-            session.recordGauge(NAMED_GAUGE, NAMED_GAUGE_VALUE, CommitTiming.NOW);
+            session.recordGauge(NAMED_GAUGE, FIRST_NAMED_GAUGE_VALUE, METRIC_ATTRIBUTES, gaugeCommitTiming);
+            session.recordGauge(NAMED_GAUGE, SECOND_NAMED_GAUGE_VALUE, Map.of(), gaugeCommitTiming);
+            session.recordGauge(NAMED_GAUGE, THIRD_NAMED_GAUGE_VALUE, METRIC_ATTRIBUTES, gaugeCommitTiming);
+
+            session.adjustCounter(NAMED_COUNTER, NAMED_COUNTER_DELTA, true);
+            session.adjustCounter(NAMED_COUNTER, NAMED_COUNTER_DELTA, METRIC_ATTRIBUTES, CommitTiming.NOW);
         }
     }
 
