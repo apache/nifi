@@ -78,17 +78,23 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+import java.util.zip.CRC32;
+import java.util.zip.CheckedOutputStream;
 
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Unpack", "un-merge", "tar", "zip", "archive", "flowfile-stream", "flowfile-stream-v3"})
-@CapabilityDescription("Unpacks the content of FlowFiles that have been packaged with one of several different Packaging Formats, emitting one to many "
-        + "FlowFiles for each input FlowFile. Supported formats are TAR, ZIP, and FlowFile Stream packages.")
+@CapabilityDescription("""
+        Unpacks the content of FlowFiles that have been packaged with one of several different Packaging Formats, emitting one to many \
+        FlowFiles for each input FlowFile. Supported formats are TAR, ZIP, and FlowFile Stream packages. For ZIP, every entry that provides a CRC-32 \
+        checksum is validated against the uncompressed bytes, including entries that are not extracted because of File Filter. A mismatch means the \
+        archive is corrupt: any FlowFiles already created for earlier entries are removed and the original FlowFile is routed to failure.""")
 @ReadsAttribute(attribute = "mime.type", description = "If the <Packaging Format> property is set to use mime.type attribute, this attribute is used "
         + "to determine the FlowFile's MIME Type. In this case, if the attribute is set to application/tar, the TAR Packaging Format will be used. If "
         + "the attribute is set to application/zip, the ZIP Packaging Format will be used. If the attribute is set to application/flowfile-v3 or "
@@ -174,7 +180,9 @@ public class UnpackContent extends AbstractProcessor {
 
     public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
             .name("File Filter")
-            .description("Only files contained in the archive whose names match the given regular expression will be extracted (tar/zip only)")
+            .description("""
+                    Only files contained in the archive whose names match the given regular expression will be extracted (tar/zip only). \
+                    ZIP CRC-32 checksums are still validated for every entry that provides one, even when the entry is not extracted.""")
             .required(true)
             .defaultValue(".*")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
@@ -182,7 +190,10 @@ public class UnpackContent extends AbstractProcessor {
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
-            .description("Password used for decrypting Zip archives encrypted with ZipCrypto or AES. Configuring a password disables support for alternative Zip compression algorithms.")
+            .description("""
+                    Password used for decrypting Zip archives encrypted with ZipCrypto or AES. Configuring a password disables support for alternative \
+                    Zip compression algorithms. CRC-32 validation is not applied when a password is configured because the encrypted Zip reader does \
+                    not expose the uncompressed checksum.""")
             .required(false)
             .sensitive(true)
             .dependsOn(PACKAGING_FORMAT, PackageFormat.ZIP_FORMAT, PackageFormat.AUTO_DETECT_FORMAT)
@@ -220,7 +231,7 @@ public class UnpackContent extends AbstractProcessor {
             .build();
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("The original FlowFile is sent to this relationship when it cannot be unpacked for some reason")
+            .description("The original FlowFile is sent to this relationship when it cannot be unpacked for some reason, including a ZIP CRC-32 mismatch")
             .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
@@ -332,7 +343,14 @@ public class UnpackContent extends AbstractProcessor {
 
         final List<FlowFile> unpacked = new ArrayList<>();
         try {
-            unpacker.unpack(session, flowFile, unpacked);
+            final UnpackResult result = unpacker.unpack(session, flowFile, unpacked);
+            if (result.failed()) {
+                logger.error("Unable to unpack {} because {}; routing to failure", flowFile, result.failureReason());
+                session.transfer(flowFile, REL_FAILURE);
+                session.remove(unpacked);
+                return;
+            }
+
             if (unpacked.isEmpty()) {
                 logger.error("Unable to unpack {} because it does not appear to have any entries; routing to failure", flowFile);
                 session.transfer(flowFile, REL_FAILURE);
@@ -377,7 +395,12 @@ public class UnpackContent extends AbstractProcessor {
             this.fileFilter = fileFilter;
         }
 
-        abstract void unpack(ProcessSession session, FlowFile source, List<FlowFile> unpacked);
+        /**
+         * Unpacks the source FlowFile, adding extracted children to {@code unpacked}.
+         *
+         * @return success, or a validation failure such as a ZIP CRC mismatch
+         */
+        abstract UnpackResult unpack(ProcessSession session, FlowFile source, List<FlowFile> unpacked);
 
         protected boolean fileMatches(final ArchiveEntry entry) {
             return fileMatches(entry.getName());
@@ -388,13 +411,32 @@ public class UnpackContent extends AbstractProcessor {
         }
     }
 
+    /**
+     * Outcome of unpacking one archive. {@link #failed()} is an expected validation failure, not an unexpected error.
+     */
+    private record UnpackResult(String failureReason) {
+        private static final UnpackResult SUCCESS = new UnpackResult(null);
+
+        private static UnpackResult success() {
+            return SUCCESS;
+        }
+
+        private static UnpackResult failure(final String reason) {
+            return new UnpackResult(reason);
+        }
+
+        private boolean failed() {
+            return failureReason != null;
+        }
+    }
+
     private static class TarUnpacker extends Unpacker {
         public TarUnpacker(Pattern fileFilter) {
             super(fileFilter);
         }
 
         @Override
-        public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
+        public UnpackResult unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
             final String fragmentId = UUID.randomUUID().toString();
             final Map<String, String> attributes = new HashMap<>();
             session.read(source, inputStream -> {
@@ -452,6 +494,7 @@ public class UnpackContent extends AbstractProcessor {
                     }
                 }
             });
+            return UnpackResult.success();
         }
     }
 
@@ -467,13 +510,19 @@ public class UnpackContent extends AbstractProcessor {
         }
 
         @Override
-        public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
+        public UnpackResult unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
             final String fragmentId = UUID.randomUUID().toString();
             if (password == null) {
-                session.read(source, new CompressedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, allowStoredEntriesWithDataDescriptor, filenameEncoding));
-            } else {
-                session.read(source, new EncryptedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, password, filenameEncoding));
+                final CompressedZipInputStreamCallback callback = new CompressedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId,
+                        allowStoredEntriesWithDataDescriptor, filenameEncoding);
+                session.read(source, callback);
+                return callback.getCrcMismatch()
+                        .map(UnpackResult::failure)
+                        .orElseGet(UnpackResult::success);
             }
+
+            session.read(source, new EncryptedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, password, filenameEncoding));
+            return UnpackResult.success();
         }
 
         private abstract static class ZipInputStreamCallback implements InputStreamCallback {
@@ -509,24 +558,36 @@ public class UnpackContent extends AbstractProcessor {
                 return !directory && (fileFilter == null || fileFilter.matcher(fileName).find());
             }
 
-            protected void processEntry(final InputStream zipInputStream, boolean directory, String zipEntryName, Map<String, String> attributes) {
-                if (isFileEntryMatched(directory, zipEntryName)) {
-                    final File file = new File(zipEntryName);
-                    final String parentDirectory = (file.getParent() == null) ? PATH_SEPARATOR : file.getParent();
-
-                    FlowFile unpackedFile = session.create(sourceFlowFile);
-                    try {
-                        attributes.put(CoreAttributes.FILENAME.key(), file.getName());
-                        attributes.put(CoreAttributes.PATH.key(), parentDirectory);
-                        attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
-                        attributes.put(FRAGMENT_ID, fragmentId);
-                        attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentIndex));
-                        unpackedFile = session.putAllAttributes(unpackedFile, attributes);
-                        unpackedFile = session.write(unpackedFile, zipInputStream::transferTo);
-                    } finally {
-                        unpacked.add(unpackedFile);
-                    }
+            /**
+             * Reads the current ZIP entry, updating CRC-32 of the uncompressed bytes. When the entry is a
+             * matching file, those bytes are also written to a child FlowFile. Filtered and directory entries
+             * are consumed without creating a FlowFile so their checksum can still be verified.
+             *
+             * @return CRC-32 of the uncompressed entry bytes
+             */
+            protected long processEntry(final InputStream zipInputStream, final boolean directory, final String zipEntryName, final Map<String, String> attributes) throws IOException {
+                final CRC32 crc = new CRC32();
+                if (!isFileEntryMatched(directory, zipEntryName)) {
+                    zipInputStream.transferTo(new CheckedOutputStream(OutputStream.nullOutputStream(), crc));
+                    return crc.getValue();
                 }
+
+                final File file = new File(zipEntryName);
+                final String parentDirectory = (file.getParent() == null) ? PATH_SEPARATOR : file.getParent();
+
+                FlowFile unpackedFile = session.create(sourceFlowFile);
+                try {
+                    attributes.put(CoreAttributes.FILENAME.key(), file.getName());
+                    attributes.put(CoreAttributes.PATH.key(), parentDirectory);
+                    attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
+                    attributes.put(FRAGMENT_ID, fragmentId);
+                    attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentIndex));
+                    unpackedFile = session.putAllAttributes(unpackedFile, attributes);
+                    unpackedFile = session.write(unpackedFile, outputStream -> zipInputStream.transferTo(new CheckedOutputStream(outputStream, crc)));
+                } finally {
+                    unpacked.add(unpackedFile);
+                }
+                return crc.getValue();
             }
 
             protected void addFileSizeAttribute(long fileSize, Map<String, String> attributes) {
@@ -564,10 +625,28 @@ public class UnpackContent extends AbstractProcessor {
             }
         }
 
+        /**
+         * Zip entry whose uncompressed CRC has been calculated but whose stored CRC is not comparable
+         * until Commons Compress closes the entry, which happens on the following call to getNextEntry().
+         */
+        private record UnverifiedEntry(ZipArchiveEntry entry, long actualCrc) {
+
+            private boolean crcMatches() {
+                final long expectedCrc = entry.getCrc();
+                return expectedCrc == ZipArchiveEntry.CRC_UNKNOWN || expectedCrc == actualCrc;
+            }
+
+            private String describeMismatch() {
+                return "CRC mismatch for zip entry '%s': expected 0x%x but calculated 0x%x".formatted(entry.getName(), entry.getCrc(), actualCrc);
+            }
+        }
+
         private static class CompressedZipInputStreamCallback extends ZipInputStreamCallback {
 
             private final boolean allowStoredEntriesWithDataDescriptor;
             private final Charset filenameEncoding;
+
+            private Optional<String> crcMismatch = Optional.empty();
 
             private CompressedZipInputStreamCallback(
                     final Pattern fileFilter,
@@ -583,13 +662,32 @@ public class UnpackContent extends AbstractProcessor {
                 this.filenameEncoding = filenameEncoding;
             }
 
+            private Optional<String> getCrcMismatch() {
+                return crcMismatch;
+            }
+
+            private boolean recordIfCrcMismatch(final UnverifiedEntry unverifiedEntry) {
+                if (unverifiedEntry != null && !unverifiedEntry.crcMatches()) {
+                    crcMismatch = Optional.of(unverifiedEntry.describeMismatch());
+                    return true;
+                }
+                return false;
+            }
+
             @Override
             public void process(final InputStream inputStream) throws IOException {
                 try (final ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(inputStream),
                     filenameEncoding.toString(), true, allowStoredEntriesWithDataDescriptor)) {
-                    ZipArchiveEntry zipEntry;
                     final Map<String, String> attributes = new HashMap<>();
+                    UnverifiedEntry unverifiedEntry = null;
+
+                    ZipArchiveEntry zipEntry;
                     while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+                        // getNextEntry() closed the preceding entry, making its stored CRC available for comparison
+                        if (recordIfCrcMismatch(unverifiedEntry)) {
+                            return;
+                        }
+
                         addEncryptionMethodAttribute(EncryptionMethod.NONE, attributes);
                         addFileSizeAttribute(zipEntry.getSize(), attributes);
                         addFilePermissionsAttribute(zipEntry.getUnixMode(), attributes);
@@ -599,9 +697,12 @@ public class UnpackContent extends AbstractProcessor {
                         Instant creation = zipEntry.getTime() > 0 ? new Date(zipEntry.getTime()).toInstant() : null;
                         Instant lastAccess = zipEntry.getLastAccessTime() != null ? zipEntry.getLastAccessTime().toInstant() : null;
                         addZipEntryTimeAttributes(lastModified, creation, lastAccess, attributes);
-                        processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getName(), attributes);
+
+                        unverifiedEntry = new UnverifiedEntry(zipEntry, processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getName(), attributes));
                         attributes.clear();
                     }
+
+                    recordIfCrcMismatch(unverifiedEntry);
                 }
             }
         }
@@ -658,7 +759,7 @@ public class UnpackContent extends AbstractProcessor {
         }
 
         @Override
-        public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
+        public UnpackResult unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
             session.read(source, inputStream -> {
                 try (final InputStream in = new BufferedInputStream(inputStream)) {
                     while (unpackager.hasMoreData()) {
@@ -700,6 +801,7 @@ public class UnpackContent extends AbstractProcessor {
                     }
                 }
             });
+            return UnpackResult.success();
         }
     }
 
