@@ -1669,6 +1669,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
         final Map<String, String> resolvedProperties = new HashMap<>();
         final Map<String, ConnectorPropertyDescriptor> descriptorLookup = buildPropertyDescriptorLookup(configurationStep);
+        final StepConfiguration effectiveConfiguration = createEffectiveStepConfiguration(configurationStep.getName(), configurationOverrides);
 
         try {
             // Secret References can be expensive to lookup so we don't want to call getSecret() for each one. Instead, we
@@ -1680,7 +1681,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                 .filter(entry -> !isEmptySecretReference((SecretReference) entry.getValue()))
                 .filter(entry -> {
                     final ConnectorPropertyDescriptor descriptor = descriptorLookup.get(entry.getKey());
-                    return descriptor == null || isPropertyDependencySatisfied(descriptor, descriptorLookup::get, configurationOverrides);
+                    return descriptor == null || isPropertyDependencySatisfied(descriptor, descriptorLookup::get, effectiveConfiguration);
                 })
                 .map(entry -> (SecretReference) entry.getValue())
                 .collect(Collectors.toSet());
@@ -1703,7 +1704,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                 }
 
                 final ConnectorPropertyDescriptor descriptor = descriptorLookup.get(propertyName);
-                if (descriptor != null && !isPropertyDependencySatisfied(descriptor, descriptorLookup::get, configurationOverrides)) {
+                if (descriptor != null && !isPropertyDependencySatisfied(descriptor, descriptorLookup::get, effectiveConfiguration)) {
                     // Omit values for properties that are not applicable so merged configuration does not retain stale overrides
                     // (createWithOverrides removes keys when the override value is null).
                     resolvedProperties.put(propertyName, null);
@@ -1733,11 +1734,40 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                     invalidAssetRefs.add((AssetReference) valueReference);
                 }
             }
+
+            for (final ConnectorPropertyDescriptor descriptor : descriptorLookup.values()) {
+                if (descriptor.getDefaultValue() != null
+                        && !effectiveConfiguration.getPropertyValues().containsKey(descriptor.getName())
+                        && isPropertyDependencySatisfied(descriptor, descriptorLookup::get, effectiveConfiguration)) {
+                    resolvedProperties.put(descriptor.getName(), descriptor.getDefaultValue());
+                }
+            }
         } catch (final IOException ioe) {
             throw new UncheckedIOException("Failed to resolve Secret references for " + this, ioe);
         }
 
         return resolvedProperties;
+    }
+
+    private StepConfiguration createEffectiveStepConfiguration(final String stepName, final StepConfiguration configurationOverrides) {
+        final Map<String, ConnectorValueReference> effectiveProperties = new HashMap<>();
+        final NamedStepConfiguration workingStepConfiguration = workingFlowContext.getConfigurationContext()
+            .toConnectorConfiguration()
+            .getNamedStepConfiguration(stepName);
+        if (workingStepConfiguration != null) {
+            effectiveProperties.putAll(workingStepConfiguration.configuration().getPropertyValues());
+        }
+
+        for (final Map.Entry<String, ConnectorValueReference> entry : configurationOverrides.getPropertyValues().entrySet()) {
+            final ConnectorValueReference valueReference = entry.getValue();
+            if (valueReference == null || valueReference instanceof final StringLiteralValue stringLiteralValue && stringLiteralValue.getValue() == null) {
+                effectiveProperties.remove(entry.getKey());
+            } else {
+                effectiveProperties.put(entry.getKey(), valueReference);
+            }
+        }
+
+        return new StepConfiguration(effectiveProperties);
     }
 
     private static Map<String, ConnectorPropertyDescriptor> buildPropertyDescriptorLookup(final ConfigurationStep configurationStep) {

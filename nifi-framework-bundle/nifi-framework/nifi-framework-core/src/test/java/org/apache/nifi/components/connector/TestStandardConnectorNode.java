@@ -776,6 +776,28 @@ public class TestStandardConnectorNode {
     }
 
     @Test
+    public void testVerifyConfigurationStepIncludesApplicableDefaultsAndExplicitOverrides() throws FlowUpdateException {
+        final DefaultValueVerifyingConnector connector = new DefaultValueVerifyingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("settings", new StepConfiguration(Map.of("Greeting", new StringLiteralValue("Hello"))));
+        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep(
+            "settings", new StepConfiguration(Map.of("Greeting", new StringLiteralValue("Welcome"))));
+
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, results.getFirst().getOutcome());
+        assertEquals("Welcome", connector.getVerifiedGreeting());
+        assertEquals("1", connector.getVerifiedRepeatCount());
+
+        connectorNode.setConfiguration("settings", new StepConfiguration(Map.of("Repeat Count", new StringLiteralValue("2"))));
+        connectorNode.verifyConfigurationStep("settings", new StepConfiguration(Map.of("Greeting", new StringLiteralValue("Hello again"))));
+
+        assertEquals("Hello again", connector.getVerifiedGreeting());
+        assertEquals("2", connector.getVerifiedRepeatCount());
+    }
+
+    @Test
     public void testVerifyConfigurationStepSkipsSecretReferenceWhenPropertyDependenciesNotMet() throws FlowUpdateException {
         // Use a SecretsManager that fails the test if it is consulted. This isolates the dependency-skip path: a regression
         // that stopped short-circuiting on unsatisfied dependencies would surface the lookup attempt as a hard failure here
@@ -1880,6 +1902,27 @@ public class TestStandardConnectorNode {
         @Override
         public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
             return List.of();
+        }
+    }
+
+    private static class DefaultValueVerifyingConnector extends DefaultValueConnector {
+        private String verifiedGreeting;
+        private String verifiedRepeatCount;
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            final ConnectorConfigurationContext configurationContext = flowContext.getConfigurationContext().createWithOverrides(stepName, overrides);
+            verifiedGreeting = configurationContext.getProperty(stepName, "Greeting").getValue();
+            verifiedRepeatCount = configurationContext.getProperty(stepName, "Repeat Count").getValue();
+            return List.of();
+        }
+
+        public String getVerifiedGreeting() {
+            return verifiedGreeting;
+        }
+
+        public String getVerifiedRepeatCount() {
+            return verifiedRepeatCount;
         }
     }
 
