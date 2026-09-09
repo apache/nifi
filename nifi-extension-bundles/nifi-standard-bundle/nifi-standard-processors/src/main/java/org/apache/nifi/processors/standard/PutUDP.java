@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
@@ -45,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 @SeeAlso({ListenUDP.class, PutTCP.class})
 @Tags({ "remote", "egress", "put", "udp" })
 @SupportsBatching
+@DeprecationNotice(reason = "NIFI-16323: Limited transport size and lack of application protocol semantics")
 public class PutUDP extends AbstractPutEventProcessor<byte[]> {
 
     @Override
