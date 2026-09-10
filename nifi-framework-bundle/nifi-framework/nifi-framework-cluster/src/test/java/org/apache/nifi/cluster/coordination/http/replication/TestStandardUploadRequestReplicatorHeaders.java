@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -179,6 +180,93 @@ class TestStandardUploadRequestReplicatorHeaders {
 
         final Map<String, String> result = replicator.buildOutboundHeaders(request);
         assertEquals("explicit-name.txt", result.get(FILENAME_HEADER));
+    }
+
+    @Test
+    void testForwardedContentTypeCaseVariantCollapsesToSingleHeader() {
+        // Regression for the NAR upload 400 in cluster mode: HTTP/2 (and Envoy) lowercase header names,
+        // so the forwarded inbound header arrives as "content-type" while the builder adds "Content-Type".
+        // Without case-insensitive merging both survive in the outbound request, and a duplicate singleton
+        // field such as Content-Type is rejected by the receiving node with 400.
+        final Map<String, String> forwarded = new HashMap<>();
+        forwarded.put("content-type", CONTENT_TYPE_VALUE);
+
+        final UploadRequest<String> request = buildUploadRequest(forwarded);
+        final Map<String, String> result = replicator.buildOutboundHeaders(request);
+
+        final List<String> contentTypeKeys = result.keySet().stream()
+                .filter(CONTENT_TYPE_HEADER::equalsIgnoreCase)
+                .toList();
+        assertEquals(List.of(CONTENT_TYPE_HEADER), contentTypeKeys,
+                "Expected a single Content-Type header, but got: " + result.keySet());
+        assertEquals(CONTENT_TYPE_VALUE, result.get(CONTENT_TYPE_HEADER));
+    }
+
+    @Test
+    void testMultipleForwardedContentTypeCaseVariantsAllCollapseToSingleHeader() {
+        // Defensive: a single servlet request cannot deliver multiple case-variants of one header
+        // (the container collapses them), but buildOutboundHeaders must still remove every inbound
+        // case-variant, not just the first, so a differently-cased builder header cannot leave strays.
+        final Map<String, String> forwarded = new HashMap<>();
+        forwarded.put("content-type", CONTENT_TYPE_VALUE);
+        forwarded.put("Content-TYPE", CONTENT_TYPE_VALUE);
+        forwarded.put("CONTENT-type", CONTENT_TYPE_VALUE);
+
+        final UploadRequest<String> request = buildUploadRequest(forwarded);
+        final Map<String, String> result = replicator.buildOutboundHeaders(request);
+
+        final List<String> contentTypeKeys = result.keySet().stream()
+                .filter(CONTENT_TYPE_HEADER::equalsIgnoreCase)
+                .toList();
+        assertEquals(List.of(CONTENT_TYPE_HEADER), contentTypeKeys,
+                "Expected a single Content-Type header, but got: " + result.keySet());
+        assertEquals(CONTENT_TYPE_VALUE, result.get(CONTENT_TYPE_HEADER));
+    }
+
+    @Test
+    void testUnrelatedForwardedHeadersUntouchedWhileCollisionCollapses() {
+        // The case-insensitive removal must be scoped to the builder's own header names: a Content-Type
+        // collision collapses to one, while unrelated forwarded headers pass through verbatim - exact key
+        // case preserved and value unchanged.
+        final Map<String, String> forwarded = new HashMap<>();
+        forwarded.put("content-type", CONTENT_TYPE_VALUE);   // collides with builder "Content-Type"
+        forwarded.put("Content-TYPE", CONTENT_TYPE_VALUE);   // a second variant
+        forwarded.put(CUSTOM_HEADER, CUSTOM_HEADER_VALUE);   // unrelated, mixed case
+        forwarded.put(CUSTOM_TOKEN_HEADER, CUSTOM_TOKEN_VALUE);
+
+        final UploadRequest<String> request = buildUploadRequest(forwarded);
+        final Map<String, String> result = replicator.buildOutboundHeaders(request);
+
+        // Content-Type collapses to a single canonical entry with the builder's value.
+        final List<String> contentTypeKeys = result.keySet().stream()
+                .filter(CONTENT_TYPE_HEADER::equalsIgnoreCase)
+                .toList();
+        assertEquals(List.of(CONTENT_TYPE_HEADER), contentTypeKeys,
+                "Expected a single Content-Type header, but got: " + result.keySet());
+        assertEquals(CONTENT_TYPE_VALUE, result.get(CONTENT_TYPE_HEADER));
+
+        // Unrelated forwarded headers are untouched: exact key case preserved and value unchanged.
+        assertTrue(result.containsKey(CUSTOM_HEADER));
+        assertEquals(CUSTOM_HEADER_VALUE, result.get(CUSTOM_HEADER));
+        assertTrue(result.containsKey(CUSTOM_TOKEN_HEADER));
+        assertEquals(CUSTOM_TOKEN_VALUE, result.get(CUSTOM_TOKEN_HEADER));
+    }
+
+    @Test
+    void testLowercaseForwardedFilenameCollapsesToSingleCanonicalHeader() {
+        // Same case-collision guard for the Filename header (lowercased inbound + canonical builder header).
+        final Map<String, String> forwarded = new HashMap<>();
+        forwarded.put("filename", "forwarded-name.txt");
+
+        final UploadRequest<String> request = buildUploadRequest(forwarded);
+        final Map<String, String> result = replicator.buildOutboundHeaders(request);
+
+        final List<String> filenameKeys = result.keySet().stream()
+                .filter(FILENAME_HEADER::equalsIgnoreCase)
+                .toList();
+        assertEquals(List.of(FILENAME_HEADER), filenameKeys,
+                "Expected a single, canonically-cased Filename header, but got: " + result.keySet());
+        assertEquals(TEST_FILENAME, result.get(FILENAME_HEADER));
     }
 
     @Test
