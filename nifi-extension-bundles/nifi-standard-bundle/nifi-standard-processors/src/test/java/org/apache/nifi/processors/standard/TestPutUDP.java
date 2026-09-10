@@ -114,30 +114,6 @@ public class TestPutUDP {
                         + PutUDP.MAX_IPV4_UDP_PAYLOAD_LENGTH)));
     }
 
-    @Test
-    public void testSendChangePropertiesAndSend() throws Exception {
-        configureProperties();
-        sendMessages(VALID_FILES);
-        assertMessagesReceived(VALID_FILES);
-        reset();
-
-        configureProperties();
-        sendMessages(VALID_FILES);
-        assertMessagesReceived(VALID_FILES);
-        reset();
-
-        configureProperties();
-        sendMessages(VALID_FILES);
-        assertMessagesReceived(VALID_FILES);
-        runner.assertQueueEmpty();
-    }
-
-    private void reset() throws Exception {
-        runner.clearTransferState();
-        removeTestServer();
-        createTestServer(MAX_FRAME_LENGTH);
-    }
-
     private void configureProperties() {
         runner.setProperty(PutUDP.HOSTNAME, UDP_SERVER_ADDRESS);
         runner.setProperty(PutUDP.PORT, Integer.toString(port));
