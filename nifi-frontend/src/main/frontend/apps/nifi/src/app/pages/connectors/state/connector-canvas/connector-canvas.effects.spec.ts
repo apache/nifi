@@ -1452,7 +1452,11 @@ describe('ConnectorCanvasEffects', () => {
 
             const result = await firstValueFrom(effects.loadConnectorParameterContext$);
 
-            expect(mockConnectorService.getConnectorParameterContext).toHaveBeenCalledWith('connector-123', 'pg-abc');
+            expect(mockConnectorService.getConnectorParameterContext).toHaveBeenCalledWith(
+                'connector-123',
+                'pg-abc',
+                false
+            );
             expect(result).toEqual(loadConnectorParameterContextSuccess({ parameterContext }));
         });
 

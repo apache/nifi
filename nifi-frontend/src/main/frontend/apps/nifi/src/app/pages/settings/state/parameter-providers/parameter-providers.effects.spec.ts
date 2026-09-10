@@ -469,7 +469,7 @@ describe('ParameterProvidersEffects', () => {
                     response: { parameterProvider: mockResponse }
                 })
             );
-            expect(mockParameterProviderService.fetchParameters).toHaveBeenCalledWith(mockRequest);
+            expect(mockParameterProviderService.fetchParameters).toHaveBeenCalledWith(mockRequest, true);
         });
 
         it('should handle error when fetching parameters fails', async () => {

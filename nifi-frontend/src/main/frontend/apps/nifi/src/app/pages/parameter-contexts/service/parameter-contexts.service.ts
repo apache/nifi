@@ -31,42 +31,63 @@ export class ParameterContextService {
 
     private static readonly API: string = '../nifi-api';
 
-    getParameterContexts(): Observable<any> {
-        return this.httpClient.get(`${ParameterContextService.API}/flow/parameter-contexts`);
+    getParameterContexts(includeReferencingComponents: boolean): Observable<any> {
+        return this.httpClient.get(`${ParameterContextService.API}/flow/parameter-contexts`, {
+            params: { includeReferencingComponents }
+        });
     }
 
-    createParameterContext(createParameterContext: CreateParameterContextRequest): Observable<any> {
+    createParameterContext(
+        createParameterContext: CreateParameterContextRequest,
+        includeReferencingComponents: boolean
+    ): Observable<any> {
         return this.httpClient.post(
             `${ParameterContextService.API}/parameter-contexts`,
-            createParameterContext.payload
+            createParameterContext.payload,
+            { params: { includeReferencingComponents } }
         );
     }
 
-    getParameterContext(id: string, includeInheritedParameters = true): Observable<any> {
+    getParameterContext(id: string, includeInheritedParameters: boolean, includeReferencingComponents: boolean): Observable<any> {
         return this.httpClient.get(`${ParameterContextService.API}/parameter-contexts/${id}`, {
             params: {
-                includeInheritedParameters
+                includeInheritedParameters,
+                includeReferencingComponents
             }
         });
     }
 
-    submitParameterContextUpdate(configureParameterContext: SubmitParameterContextUpdate): Observable<any> {
+    submitParameterContextUpdate(
+        configureParameterContext: SubmitParameterContextUpdate,
+        includeReferencingComponents: boolean
+    ): Observable<any> {
         return this.httpClient.post(
             `${ParameterContextService.API}/parameter-contexts/${configureParameterContext.id}/update-requests`,
-            configureParameterContext.payload
+            configureParameterContext.payload,
+            { params: { includeReferencingComponents } }
         );
     }
 
-    pollParameterContextUpdate(parameterContextId: string, requestId: string): Observable<any> {
+    pollParameterContextUpdate(
+        parameterContextId: string,
+        requestId: string,
+        includeReferencingComponents: boolean
+    ): Observable<any> {
         return this.httpClient.get(
-            `${ParameterContextService.API}/parameter-contexts/${parameterContextId}/update-requests/${requestId}`
+            `${ParameterContextService.API}/parameter-contexts/${parameterContextId}/update-requests/${requestId}`,
+            { params: { includeReferencingComponents } }
         );
     }
 
-    deleteParameterContextUpdate(parameterContextId: string, requestId: string): Observable<any> {
+    deleteParameterContextUpdate(
+        parameterContextId: string,
+        requestId: string,
+        includeReferencingComponents: boolean
+    ): Observable<any> {
         const params = new HttpParams({
             fromObject: {
-                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                includeReferencingComponents
             }
         });
         return this.httpClient.delete(
@@ -75,12 +96,16 @@ export class ParameterContextService {
         );
     }
 
-    deleteParameterContext(deleteParameterContext: DeleteParameterContextRequest): Observable<any> {
+    deleteParameterContext(
+        deleteParameterContext: DeleteParameterContextRequest,
+        includeReferencingComponents: boolean
+    ): Observable<any> {
         const entity: ParameterContextEntity = deleteParameterContext.parameterContext;
         const params = new HttpParams({
             fromObject: {
                 ...this.client.getRevision(entity),
-                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                includeReferencingComponents
             }
         });
         return this.httpClient.delete(`${ParameterContextService.API}/parameter-contexts/${entity.id}`, { params });

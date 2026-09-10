@@ -96,7 +96,10 @@ export class ParameterProviderService implements PropertyDescriptorRetriever {
         );
     }
 
-    fetchParameters(request: FetchParameterProviderParametersRequest): Observable<any> {
+    fetchParameters(
+        request: FetchParameterProviderParametersRequest,
+        includeReferencingComponents: boolean
+    ): Observable<any> {
         return this.httpClient.post(
             `${ParameterProviderService.API}/parameter-providers/${request.id}/parameters/fetch-requests`,
             {
@@ -104,31 +107,44 @@ export class ParameterProviderService implements PropertyDescriptorRetriever {
                 revision: request.revision,
                 disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
             },
-            { params: { disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged() } }
+            {
+                params: {
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                    includeReferencingComponents
+                }
+            }
         );
     }
 
-    applyParameters(request: ParameterProviderParameterApplicationEntity): Observable<any> {
+    applyParameters(
+        request: ParameterProviderParameterApplicationEntity,
+        includeReferencingComponents: boolean
+    ): Observable<any> {
         return this.httpClient.post(
             `${ParameterProviderService.API}/parameter-providers/${request.id}/apply-parameters-requests`,
-            request
+            request,
+            { params: { includeReferencingComponents } }
         );
     }
 
     pollParameterProviderParametersUpdateRequest(
-        updateRequest: ParameterProviderApplyParametersRequest
+        updateRequest: ParameterProviderApplyParametersRequest,
+        includeReferencingComponents: boolean
     ): Observable<any> {
         return this.httpClient.get(
-            `${ParameterProviderService.API}/parameter-providers/${updateRequest.parameterProvider.id}/apply-parameters-requests/${updateRequest.requestId}`
+            `${ParameterProviderService.API}/parameter-providers/${updateRequest.parameterProvider.id}/apply-parameters-requests/${updateRequest.requestId}`,
+            { params: { includeReferencingComponents } }
         );
     }
 
     deleteParameterProviderParametersUpdateRequest(
-        updateRequest: ParameterProviderApplyParametersRequest
+        updateRequest: ParameterProviderApplyParametersRequest,
+        includeReferencingComponents: boolean
     ): Observable<any> {
         const params = new HttpParams({
             fromObject: {
-                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                includeReferencingComponents
             }
         });
         return this.httpClient.delete(

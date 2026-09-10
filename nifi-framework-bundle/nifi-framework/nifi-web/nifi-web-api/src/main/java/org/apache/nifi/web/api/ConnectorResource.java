@@ -2061,7 +2061,7 @@ public class ConnectorResource extends ApplicationResource {
             @QueryParam("includeDescendantGroups")
             @DefaultValue("false") final boolean includeDescendantGroups,
             @Parameter(description = "Whether or not to include services' referencing components in the response")
-            @QueryParam("includeReferencingComponents")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS)
             @DefaultValue("true") final boolean includeReferences) {
 
         if (isReplicateRequest()) {
@@ -2123,7 +2123,9 @@ public class ConnectorResource extends ApplicationResource {
             @Parameter(description = "The connector id.", required = true)
             @PathParam("connectorId") final String connectorId,
             @Parameter(description = "The process group id.", required = true)
-            @PathParam("processGroupId") final String processGroupId) {
+            @PathParam("processGroupId") final String processGroupId,
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true") final boolean includeReferences) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -2135,7 +2137,7 @@ public class ConnectorResource extends ApplicationResource {
             connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
-        final ParameterContextEntity entity = serviceFacade.getConnectorParameterContext(connectorId, processGroupId);
+        final ParameterContextEntity entity = serviceFacade.getConnectorParameterContext(connectorId, processGroupId, includeReferences);
         if (entity == null) {
             return Response.noContent().build();
         }
