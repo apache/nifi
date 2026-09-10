@@ -55,6 +55,16 @@ public interface MutableConnectorConfigurationContext extends ConnectorConfigura
     void resolvePropertyValues();
 
     /**
+     * Resolves all existing property values, optionally using cached Secret values.
+     *
+     * @implSpec Implementations that cache Secret values must override this method to honor {@code useCache}.
+     * @param useCache whether cached Secret values may be used
+     */
+    default void resolvePropertyValues(final boolean useCache) {
+        resolvePropertyValues();
+    }
+
+    /**
      * Converts this mutable configuration context to an immutable ConnectorConfiguration.
      * @return the ConnectorConfiguration
      */

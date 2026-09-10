@@ -54,6 +54,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -84,6 +85,7 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -181,6 +183,33 @@ public class TestStandardConnectorNode {
         assertEquals(ConnectorState.STOPPED, connectorNode.getDesiredState());
         assertTrue(stopFuture.isDone());
         assertFalse(stopFuture.isCancelled());
+    }
+
+    @Test
+    public void testRestartRefreshesSecretBeforeStartingConnector() throws Exception {
+        final SecretReference secretReference = new SecretReference("provider-id", "Provider", "password", "Provider.group.password");
+        final Secret firstSecret = mock(Secret.class);
+        when(firstSecret.getValue()).thenReturn("first");
+        final Secret secondSecret = mock(Secret.class);
+        when(secondSecret.getValue()).thenReturn("second");
+        final AtomicReference<Secret> currentSecret = new AtomicReference<>(firstSecret);
+
+        when(secretsManager.getSecrets(anySet())).thenReturn(Map.of(secretReference, firstSecret));
+        when(secretsManager.getSecrets(anySet(), eq(true))).thenReturn(Map.of(secretReference, firstSecret));
+        when(secretsManager.getSecrets(anySet(), eq(false))).thenAnswer(invocation -> Map.of(secretReference, currentSecret.get()));
+
+        final StartRecordingSecretConnector connector = new StartRecordingSecretConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector, secretsManager);
+        seedActiveConfiguration(connectorNode, "requiredStep", Map.of("RequiredSecret", secretReference));
+
+        connectorNode.start(scheduler).get(5, TimeUnit.SECONDS);
+        connectorNode.stop(scheduler).get(5, TimeUnit.SECONDS);
+        currentSecret.set(secondSecret);
+        connectorNode.start(scheduler).get(5, TimeUnit.SECONDS);
+        connectorNode.start(scheduler).get(5, TimeUnit.SECONDS);
+
+        assertEquals(List.of("first", "second"), connector.getStartedSecrets());
+        verify(secretsManager, times(2)).getSecrets(Set.of(secretReference), false);
     }
 
     @Test
@@ -1980,6 +2009,23 @@ public class TestStandardConnectorNode {
         @Override
         public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
             return List.of();
+        }
+    }
+
+    private static class StartRecordingSecretConnector extends RequiredSecretConnector {
+        private final List<String> startedSecrets = new ArrayList<>();
+
+        @Override
+        public void start(final FlowContext activeContext) {
+            startedSecrets.add(activeContext.getConfigurationContext().getProperty("requiredStep", "RequiredSecret").getValue());
+        }
+
+        @Override
+        public void stop(final FlowContext activeContext) {
+        }
+
+        private List<String> getStartedSecrets() {
+            return startedSecrets;
         }
     }
 
