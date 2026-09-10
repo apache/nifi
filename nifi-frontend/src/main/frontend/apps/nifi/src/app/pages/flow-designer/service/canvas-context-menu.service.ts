@@ -49,11 +49,13 @@ import {
     runOnce,
     stopVersionControlRequest,
     terminateThreads,
-    updatePositions
+    updatePositions,
+    viewComponentConnections
 } from '../state/flow/flow.actions';
 import { ComponentType } from '@nifi/shared';
 import {
     ConfirmStopVersionControlRequest,
+    ConnectionDirection,
     MoveComponentRequest,
     OpenChangeVersionDialogRequest,
     OpenLocalChangesDialogRequest
@@ -286,25 +288,23 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         id: 'upstream-downstream',
         menuItems: [
             {
-                condition: () => {
-                    // TODO - hasUpstream
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.hasUpstream(selection);
                 },
-                clazz: 'icon',
+                clazz: 'fa fa-long-arrow-up fa-rotate-45',
                 text: 'Upstream',
-                action: () => {
-                    // TODO - showUpstream
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    this.requestComponentConnections(selection, 'upstream');
                 }
             },
             {
-                condition: () => {
-                    // TODO - hasDownstream
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.hasDownstream(selection);
                 },
-                clazz: 'icon',
+                clazz: 'fa fa-long-arrow-down fa-rotate-45',
                 text: 'Downstream',
-                action: () => {
-                    // TODO - showDownstream
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    this.requestComponentConnections(selection, 'downstream');
                 }
             }
         ]
@@ -1433,5 +1433,49 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             const selection = this.canvasUtils.getSelection();
             menuItem.action(selection, event);
         }
+    }
+
+    /**
+     * Requests the connections attached to the specified component in the specified direction.
+     *
+     * A component's connections are defined in the group that encloses it, which is the group currently
+     * on the canvas. The exception is a port whose connections cross that group's own boundary — the
+     * upstream side of an Input Port and the downstream side of an Output Port — which are defined one
+     * level up and are not rendered alongside the port at all. Those are the two cases that
+     * hasUpstream/hasDownstream gate on the presence of a parent group.
+     */
+    private requestComponentConnections(
+        selection: d3.Selection<any, any, any, any>,
+        direction: ConnectionDirection
+    ): void {
+        const crossesParentBoundary: boolean =
+            (direction === 'upstream' && this.canvasUtils.isInputPort(selection)) ||
+            (direction === 'downstream' && this.canvasUtils.isOutputPort(selection));
+
+        let groupId: string | null = this.canvasUtils.getProcessGroupId();
+        if (crossesParentBoundary) {
+            groupId = this.canvasUtils.getParentProcessGroupId();
+
+            // hasUpstream/hasDownstream do not offer these directions without a parent group
+            if (groupId === null) {
+                return;
+            }
+        }
+
+        const selectionData = selection.datum();
+        this.store.dispatch(
+            viewComponentConnections({
+                request: {
+                    id: selectionData.id,
+                    // funnels have no name, and an unreadable component has no name to read
+                    name: selectionData.permissions.canRead
+                        ? (selectionData.component.name ?? selectionData.id)
+                        : selectionData.id,
+                    type: selectionData.type,
+                    groupId,
+                    direction
+                }
+            })
+        );
     }
 }
