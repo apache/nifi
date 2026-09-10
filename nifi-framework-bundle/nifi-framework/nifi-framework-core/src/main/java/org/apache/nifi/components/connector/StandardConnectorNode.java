@@ -1059,7 +1059,8 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             }
 
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
-                activeFlowContext.getConfigurationContext().resolvePropertyValues(false);
+                initializationContext.getSecretsManager().invalidateCache();
+                activeFlowContext.getConfigurationContext().resolvePropertyValues();
                 verifyCanStart();
                 connectorDetails.getConnector().start(activeFlowContext);
             } catch (final Exception e) {

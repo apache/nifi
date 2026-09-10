@@ -33,7 +33,6 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -251,8 +250,9 @@ public class TestStandardConnectorConfigurationContext {
         final Secret secret = mockSecret(SECRET_VALUE_1);
 
         final SecretsManager secretsManager = mock(SecretsManager.class);
-        when(secretsManager.getSecrets(anySet())).thenReturn(Map.of());
-        when(secretsManager.getSecrets(anySet(), eq(true))).thenReturn(Map.of(SECRET_REF_1, secret));
+        when(secretsManager.getSecrets(anySet()))
+            .thenReturn(Map.of())
+            .thenReturn(Map.of(SECRET_REF_1, secret));
 
         final StandardConnectorConfigurationContext testContext = new StandardConnectorConfigurationContext(mock(AssetManager.class), secretsManager);
 
@@ -268,22 +268,6 @@ public class TestStandardConnectorConfigurationContext {
 
         assertEquals(PLAIN_VALUE, testContext.getProperty("step1", "plain").getValue());
         assertEquals(SECRET_VALUE_1, testContext.getProperty("step1", "secret").getValue());
-    }
-
-    @Test
-    public void testResolvePropertyValuesBypassesSecretCache() {
-        final Secret secret = mockSecret(SECRET_VALUE_1);
-        final SecretsManager secretsManager = mock(SecretsManager.class);
-        when(secretsManager.getSecrets(anySet())).thenReturn(Map.of());
-        when(secretsManager.getSecrets(anySet(), eq(false))).thenReturn(Map.of(SECRET_REF_1, secret));
-
-        final StandardConnectorConfigurationContext testContext = new StandardConnectorConfigurationContext(mock(AssetManager.class), secretsManager);
-        testContext.setProperties("step1", new StepConfiguration(Map.of("secret", SECRET_REF_1)));
-
-        testContext.resolvePropertyValues(false);
-
-        assertEquals(SECRET_VALUE_1, testContext.getProperty("step1", "secret").getValue());
-        verify(secretsManager).getSecrets(Set.of(SECRET_REF_1), false);
     }
 
     @Test
@@ -316,7 +300,6 @@ public class TestStandardConnectorConfigurationContext {
 
         final SecretsManager secretsManager = mock(SecretsManager.class);
         when(secretsManager.getSecrets(anySet())).thenReturn(Map.of(SECRET_REF_1, secret1, SECRET_REF_3, secret3));
-        when(secretsManager.getSecrets(anySet(), eq(true))).thenReturn(Map.of(SECRET_REF_1, secret1, SECRET_REF_3, secret3));
 
         final StandardConnectorConfigurationContext testContext = new StandardConnectorConfigurationContext(mock(AssetManager.class), secretsManager);
 
@@ -333,8 +316,8 @@ public class TestStandardConnectorConfigurationContext {
         testContext.resolvePropertyValues();
 
         final ArgumentCaptor<Set<SecretReference>> captor = ArgumentCaptor.forClass(Set.class);
-        verify(secretsManager).getSecrets(captor.capture(), eq(true));
-        assertEquals(Set.of(SECRET_REF_1, SECRET_REF_3), captor.getValue());
+        verify(secretsManager, times(3)).getSecrets(captor.capture());
+        assertEquals(Set.of(SECRET_REF_1, SECRET_REF_3), captor.getAllValues().get(2));
 
         assertEquals(SECRET_VALUE_1, testContext.getProperty("step1", "secret1").getValue());
         assertEquals(SECRET_VALUE_3, testContext.getProperty("step2", "secret3").getValue());

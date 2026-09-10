@@ -260,11 +260,6 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
 
     @Override
     public void resolvePropertyValues() {
-        resolvePropertyValues(true);
-    }
-
-    @Override
-    public void resolvePropertyValues(final boolean useCache) {
         writeLock.lock();
         try {
             final Set<SecretReference> allSecretReferences = new HashSet<>();
@@ -276,7 +271,7 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
                 }
             }
 
-            final Map<SecretReference, Secret> resolvedSecrets = allSecretReferences.isEmpty() ? Map.of() : secretsManager.getSecrets(allSecretReferences, useCache);
+            final Map<SecretReference, Secret> resolvedSecrets = allSecretReferences.isEmpty() ? Map.of() : secretsManager.getSecrets(allSecretReferences);
 
             for (final Map.Entry<String, StepConfiguration> entry : propertyConfigurations.entrySet()) {
                 final StepConfiguration resolvedConfig = resolvePropertyValues(entry.getValue().getPropertyValues(), resolvedSecrets);
