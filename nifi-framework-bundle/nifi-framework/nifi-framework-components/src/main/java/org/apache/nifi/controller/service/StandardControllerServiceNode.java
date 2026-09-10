@@ -64,6 +64,7 @@ import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.migration.ControllerServiceCreationDetails;
 import org.apache.nifi.migration.ControllerServiceFactory;
+import org.apache.nifi.migration.PropertyMigrationPreview;
 import org.apache.nifi.migration.StandardPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
@@ -936,6 +937,12 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), implementationClass, getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, getControllerServiceImplementation(), nodeState);
         }
+    }
+
+    @Override
+    public Optional<Map<String, String>> previewMigratedProperties(final Map<String, String> originalPropertyValues) {
+        return PropertyMigrationPreview.preview(getControllerServiceImplementation(), getExtensionManager(), getIdentifier(), toString(),
+                super::mapRawValueToEffectiveValue, originalPropertyValues);
     }
 
     @Override
