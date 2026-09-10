@@ -71,7 +71,10 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -94,6 +97,7 @@ public class TestStandardControllerServiceProvider {
     private static ExtensionDiscoveringManager extensionManager;
     private static Bundle systemBundle;
     private FlowManager flowManager;
+    private ReloadComponent reloadComponent;
 
     @BeforeAll
     public static void setNiFiProps() {
@@ -110,6 +114,7 @@ public class TestStandardControllerServiceProvider {
     @BeforeEach
     public void setup() {
         flowManager = mock(FlowManager.class);
+        reloadComponent = mock(ReloadComponent.class);
 
         final ConcurrentMap<String, ProcessorNode> processorMap = new ConcurrentHashMap<>();
         doAnswer((Answer<ProcessorNode>) invocation -> {
@@ -144,7 +149,7 @@ public class TestStandardControllerServiceProvider {
             .processScheduler(mock(ProcessScheduler.class))
             .nodeTypeProvider(mock(NodeTypeProvider.class))
             .validationTrigger(mock(ValidationTrigger.class))
-            .reloadComponent(mock(ReloadComponent.class))
+            .reloadComponent(reloadComponent)
             .verifiableComponentFactory(mock(VerifiableComponentFactory.class))
             .stateManagerProvider(mock(StateManagerProvider.class))
             .extensionManager(extensionManager)
@@ -170,6 +175,53 @@ public class TestStandardControllerServiceProvider {
         serviceNode.getValidationStatus(5, TimeUnit.SECONDS);
         provider.enableControllerService(serviceNode);
         provider.disableControllerService(serviceNode);
+    }
+
+    @Test
+    public void testEnableAfterConcurrentDisable() throws Exception {
+        final StandardProcessScheduler scheduler = createScheduler();
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);
+        final ControllerServiceNode serviceNode = createControllerService(ServiceB.class.getName(), "B", systemBundle.getBundleDetails().getCoordinate(), provider);
+        final ScheduledExecutorService lifecycleExecutor = Executors.newScheduledThreadPool(2);
+        final AtomicReference<CompletableFuture<Void>> disableFutureReference = new AtomicReference<>();
+        final AtomicReference<Thread> enableThreadReference = new AtomicReference<>();
+
+        // Reloading holds the lifecycle monitor. Start enabling on another thread so that disabling can be requested before the monitor is released.
+        doAnswer(invocation -> {
+            final Thread enableThread = new Thread(() -> serviceNode.enable(lifecycleExecutor, 10, true), "Controller Service Enable");
+            enableThreadReference.set(enableThread);
+            enableThread.start();
+
+            final long waitDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            while (enableThread.getState() != Thread.State.BLOCKED && System.nanoTime() < waitDeadline) {
+                Thread.sleep(10);
+            }
+            assertEquals(Thread.State.BLOCKED, enableThread.getState());
+
+            disableFutureReference.set(serviceNode.disable(lifecycleExecutor));
+            return null;
+        }).when(reloadComponent).reload(any(ControllerServiceNode.class), anyString(), any(BundleCoordinate.class), any());
+
+        try {
+            serviceNode.performValidation();
+            assertEquals(ValidationStatus.VALID, serviceNode.getValidationStatus(5, TimeUnit.SECONDS));
+
+            serviceNode.reload(Collections.emptySet());
+
+            final Thread enableThread = enableThreadReference.get();
+            enableThread.join(TimeUnit.SECONDS.toMillis(5));
+            assertFalse(enableThread.isAlive());
+            disableFutureReference.get().get(5, TimeUnit.SECONDS);
+
+            // A later enable request must remain effective after the concurrent enable and disable operations finish.
+            provider.enableControllerService(serviceNode);
+
+            assertTrue(serviceNode.awaitEnabled(5, TimeUnit.SECONDS));
+            assertEquals(ControllerServiceState.ENABLED, serviceNode.getState());
+        } finally {
+            lifecycleExecutor.shutdownNow();
+            scheduler.shutdown();
+        }
     }
 
     @Test

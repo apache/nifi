@@ -648,13 +648,17 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
 
-        if (!stateTransition.transitionToEnabling(ControllerServiceState.DISABLED, future)) {
-            future.complete(null);
-            return future;
+        final boolean transitionedToEnabling;
+        synchronized (active) {
+            transitionedToEnabling = stateTransition.transitionToEnabling(ControllerServiceState.DISABLED, future);
+            if (transitionedToEnabling) {
+                active.set(true);
+            }
         }
 
-        synchronized (active) {
-            this.active.set(true);
+        if (!transitionedToEnabling) {
+            future.complete(null);
+            return future;
         }
 
         final AtomicLong enablingDelay = new AtomicLong(0);
