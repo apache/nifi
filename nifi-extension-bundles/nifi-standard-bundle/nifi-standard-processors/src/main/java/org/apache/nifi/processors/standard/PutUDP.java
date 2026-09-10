@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
 import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
@@ -37,11 +38,15 @@ import org.apache.nifi.util.StopWatch;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.concurrent.TimeUnit;
 
-@CapabilityDescription("The PutUDP processor receives a FlowFile and packages the FlowFile content into a single UDP datagram packet which is then transmitted to the configured UDP server."
-        + " The user must ensure that the FlowFile content being fed to this processor is not larger than the maximum size for the underlying UDP transport. The maximum transport size will "
-        + "vary based on the platform setup but is generally just under 64KB. FlowFiles will be marked as failed if their content is larger than the maximum transport size.")
+@CapabilityDescription("The PutUDP processor receives a FlowFile and packages the FlowFile content into a single UDP datagram packet which is then transmitted to the configured UDP server. "
+        + "A FlowFile larger than the destination address family maximum (65,507 bytes for IPv4, 65,527 bytes for IPv6) cannot be sent as one datagram "
+        + "and is routed to failure without reading content. "
+        + "The local UDP stack may still reject smaller datagrams; those FlowFiles are also marked as failed.")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SeeAlso({ListenUDP.class, PutTCP.class})
 @Tags({ "remote", "egress", "put", "udp" })
@@ -49,11 +54,37 @@ import java.util.concurrent.TimeUnit;
 @DeprecationNotice(reason = "NIFI-16323: Limited transport size and lack of application protocol semantics")
 public class PutUDP extends AbstractPutEventProcessor<byte[]> {
 
+    /**
+     * Maximum UDP payload for IPv4: 65,535 byte IP packet minus 20 byte IPv4 header minus 8 byte UDP header.
+     */
+    static final int MAX_IPV4_UDP_PAYLOAD_LENGTH = 65_535 - 20 - 8;
+
+    /**
+     * Maximum UDP payload for IPv6: 16-bit UDP Length covers the 8 byte UDP header and payload; the IPv6 header is not included.
+     */
+    static final int MAX_IPV6_UDP_PAYLOAD_LENGTH = 65_535 - 8;
+
+    private volatile int maxUdpPayloadLength = MAX_IPV4_UDP_PAYLOAD_LENGTH;
+
+    @OnScheduled
+    public void resolveMaxUdpPayloadLength(final ProcessContext context) {
+        final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
+        maxUdpPayloadLength = maxPayloadLength(hostname);
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         final ProcessSession session = sessionFactory.createSession();
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
+            return;
+        }
+
+        if (flowFile.getSize() > maxUdpPayloadLength) {
+            getLogger().error("Cannot send {} as a UDP datagram: size {} exceeds the {} maximum payload of {} bytes",
+                    flowFile, flowFile.getSize(), addressFamilyLabel(maxUdpPayloadLength), maxUdpPayloadLength);
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            session.commitAsync();
             return;
         }
 
@@ -81,6 +112,44 @@ public class PutUDP extends AbstractPutEventProcessor<byte[]> {
     @Override
     protected NettyEventSenderFactory<byte[]> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
         return new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.UDP);
+    }
+
+    /**
+     * Returns the UDP payload ceiling for the destination hostname. When any resolved address is a non-mapped IPv6
+     * address the IPv6 maximum is used so dual-stack names are not rejected at the IPv4 ceiling. Unknown hosts use
+     * the IPv6 maximum as a copy cap so IPv6-legal sizes are not rejected before send.
+     */
+    static int maxPayloadLength(final String hostname) {
+        try {
+            for (final InetAddress address : InetAddress.getAllByName(hostname)) {
+                if (isUnmappedIPv6Address(address)) {
+                    return MAX_IPV6_UDP_PAYLOAD_LENGTH;
+                }
+            }
+            return MAX_IPV4_UDP_PAYLOAD_LENGTH;
+        } catch (final UnknownHostException e) {
+            return MAX_IPV6_UDP_PAYLOAD_LENGTH;
+        }
+    }
+
+    static boolean isUnmappedIPv6Address(final InetAddress address) {
+        return address instanceof Inet6Address && !isIPv4MappedAddress(address.getAddress());
+    }
+
+    private static boolean isIPv4MappedAddress(final byte[] address) {
+        if (address.length != 16) {
+            return false;
+        }
+        for (int i = 0; i < 10; i++) {
+            if (address[i] != 0) {
+                return false;
+            }
+        }
+        return address[10] == (byte) 0xff && address[11] == (byte) 0xff;
+    }
+
+    private static String addressFamilyLabel(final int maxPayloadLength) {
+        return maxPayloadLength == MAX_IPV6_UDP_PAYLOAD_LENGTH ? "IPv6" : "IPv4";
     }
 
     private byte[] readContent(final ProcessSession session, final FlowFile flowFile) throws IOException {

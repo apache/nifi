@@ -39,6 +39,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Timeout(10)
 public class TestPutUDP {
@@ -49,7 +50,7 @@ public class TestPutUDP {
     private static final Charset CHARSET = StandardCharsets.UTF_8;
     private static final int MAX_FRAME_LENGTH = 32800;
     private static final int VALID_LARGE_FILE_SIZE = 32768;
-    private static final int INVALID_LARGE_FILE_SIZE = 1_000_000;
+    private static final int OVERSIZE_UDP_PAYLOAD = PutUDP.MAX_IPV4_UDP_PAYLOAD_LENGTH + 1;
     private static final char CONTENT_CHAR = 'x';
     private static final int DATA_WAIT_PERIOD = 50;
     private static final String[] EMPTY_FILE = {""};
@@ -100,13 +101,17 @@ public class TestPutUDP {
     }
 
     @Test
-    public void testSendLargeFileInvalid() throws Exception {
+    public void testSendLargerThanUdpPayloadLimit() throws Exception {
         configureProperties();
-        String[] testData = createContent(INVALID_LARGE_FILE_SIZE);
-        sendMessages(testData);
-        checkRelationships(0, testData.length);
+        runner.enqueue(new byte[OVERSIZE_UDP_PAYLOAD]);
+        runner.run();
+
+        checkRelationships(0, 1);
         checkNoDataReceived();
         runner.assertQueueEmpty();
+        assertTrue(runner.getLogger().getErrorMessages().stream()
+                .anyMatch(message -> message.getMsg().contains("exceeds the IPv4 maximum payload of "
+                        + PutUDP.MAX_IPV4_UDP_PAYLOAD_LENGTH)));
     }
 
     @Test
