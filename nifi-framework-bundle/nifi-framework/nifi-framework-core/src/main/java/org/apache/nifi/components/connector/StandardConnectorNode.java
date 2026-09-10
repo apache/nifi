@@ -90,6 +90,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -127,6 +128,8 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     private volatile String name;
     private volatile FrameworkConnectorInitializationContext initializationContext;
 
+    // Serializes Connector start and stop invocations so that a stop request cannot complete before an in-flight start invocation returns.
+    private final ReentrantLock componentLifecycleLock = new ReentrantLock();
     private final Object loggingAttributesLock = new Object();
     private volatile Map<String, String> customLoggingAttributes = Map.of();
     private volatile Map<String, String> mergedLoggingAttributes = Map.of();
@@ -861,8 +864,8 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
             // Check current state for existing start request in progress
             if (stateUpdated && currentState == ConnectorState.STARTING) {
-                logger.info("{} is currently starting so will not stop the Connector until the start has completed", this);
                 stateTransition.addPendingStopFuture(stopCompleteFuture);
+                stopManagedProcessGroup(scheduler);
                 return stopCompleteFuture;
             }
         }
@@ -870,6 +873,33 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         scheduler.schedule(() -> stopComponent(scheduler, stopCompleteFuture), 0, TimeUnit.SECONDS);
 
         return stopCompleteFuture;
+    }
+
+    private void stopManagedProcessGroup(final FlowEngine scheduler) {
+        if (getCurrentState() != ConnectorState.STOPPING) {
+            return;
+        }
+
+        logger.info("Stopping the managed Process Group for {} so that its startup can finish and the Connector can stop", this);
+        final CompletableFuture<Void> processGroupStopFuture;
+        try {
+            processGroupStopFuture = activeFlowContext.getRootGroup().getLifecycle().stop();
+        } catch (final Exception e) {
+            logger.warn("Failed to stop the managed Process Group for {}. The Connector cannot finish stopping until its components stop, so this will be tried again in 10 seconds", this, e);
+            scheduler.schedule(() -> stopManagedProcessGroup(scheduler), 10, TimeUnit.SECONDS);
+            return;
+        }
+
+        processGroupStopFuture.whenComplete((result, failure) -> {
+            if (failure != null) {
+                logger.warn("Failed to stop the managed Process Group for {}. The Connector cannot finish stopping until its components stop, so this will be tried again in 10 seconds",
+                    this, failure);
+                scheduler.schedule(() -> stopManagedProcessGroup(scheduler), 10, TimeUnit.SECONDS);
+                return;
+            }
+
+            scheduler.schedule(() -> completeDeferredStop(scheduler), 0, TimeUnit.SECONDS);
+        });
     }
 
     @Override
@@ -990,49 +1020,64 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     }
 
     private void stopComponent(final FlowEngine scheduler, final CompletableFuture<Void> stopCompleteFuture) {
-        logger.debug("Stopping component for {}", this);
-        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
-            connectorDetails.getConnector().stop(activeFlowContext);
-        } catch (final Exception e) {
-            logger.error("Failed to stop {}. Will try again in 10 seconds", this, e);
-            scheduler.schedule(() -> stopComponent(scheduler, stopCompleteFuture), 10, TimeUnit.SECONDS);
-            return;
-        }
+        componentLifecycleLock.lock();
+        try {
+            if (getCurrentState() != ConnectorState.STOPPING) {
+                return;
+            }
 
-        stateTransition.setCurrentState(ConnectorState.STOPPED);
-        stopCompleteFuture.complete(null);
-        logger.info("Successfully stopped {}", this);
+            logger.debug("Stopping component for {}", this);
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
+                connectorDetails.getConnector().stop(activeFlowContext);
+            } catch (final Exception e) {
+                logger.error("Failed to stop {}. Will try again in 10 seconds", this, e);
+                scheduler.schedule(() -> stopComponent(scheduler, stopCompleteFuture), 10, TimeUnit.SECONDS);
+                return;
+            }
 
-        final ConnectorState desiredState = getDesiredState();
-        if (desiredState == ConnectorState.RUNNING) {
-            logger.info("{} was requested to be RUNNING while it was stopping so will attempt to start again", this);
-            start(scheduler, new CompletableFuture<>());
+            stateTransition.setCurrentState(ConnectorState.STOPPED);
+            stopCompleteFuture.complete(null);
+            logger.info("Successfully stopped {}", this);
+
+            final ConnectorState desiredState = getDesiredState();
+            if (desiredState == ConnectorState.RUNNING) {
+                logger.info("{} was requested to be RUNNING while it was stopping so will attempt to start again", this);
+                start(scheduler, new CompletableFuture<>());
+            }
+        } finally {
+            componentLifecycleLock.unlock();
         }
     }
 
     private void startComponent(final FlowEngine scheduler, final CompletableFuture<Void> startCompleteFuture) {
-        logger.debug("Starting component for {}", this);
-        final ConnectorState desiredState = getDesiredState();
-        if (desiredState != ConnectorState.RUNNING) {
-            logger.info("Will not start {} because the desired state is no longer RUNNING but is now {}", this, desiredState);
-            completeDeferredStop(scheduler);
-            return;
-        }
-
-        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
-            connectorDetails.getConnector().start(activeFlowContext);
-        } catch (final Exception e) {
-            if (getCurrentState() == ConnectorState.STOPPING) {
-                logger.error("Failed to start {} and a stop has since been requested, so the Connector will be stopped instead of started", this, e);
+        componentLifecycleLock.lock();
+        try {
+            logger.debug("Starting component for {}", this);
+            final ConnectorState desiredState = getDesiredState();
+            if (desiredState != ConnectorState.RUNNING) {
+                logger.info("Will not start {} because the desired state is no longer RUNNING but is now {}", this, desiredState);
                 completeDeferredStop(scheduler);
-            } else {
-                logger.error("Failed to start {} retrying in 10 seconds", this, e);
-                scheduler.schedule(() -> startComponent(scheduler, startCompleteFuture), 10, TimeUnit.SECONDS);
+                return;
             }
 
-            return;
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
+                connectorDetails.getConnector().start(activeFlowContext);
+            } catch (final Exception e) {
+                if (getCurrentState() == ConnectorState.STOPPING) {
+                    logger.error("Failed to start {} and a stop has since been requested, so the Connector will be stopped instead of started", this, e);
+                    completeDeferredStop(scheduler);
+                } else {
+                    logger.error("Failed to start {} retrying in 10 seconds", this, e);
+                    scheduler.schedule(() -> startComponent(scheduler, startCompleteFuture), 10, TimeUnit.SECONDS);
+                }
+
+                return;
+            }
+        } finally {
+            componentLifecycleLock.unlock();
         }
 
+        // Reconcile the state after releasing the lock so a completed disable operation can acquire it and finish a pending stop.
         // A stop requested while the Connector was starting transitioned the current state away from STARTING, so the
         // Connector may be reported as RUNNING only if it is still STARTING. Otherwise, this thread owns the stop that
         // was deferred while the start was in flight.
@@ -1048,12 +1093,21 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     }
 
     private void completeDeferredStop(final FlowEngine scheduler) {
-        if (getCurrentState() == ConnectorState.STOPPING) {
-            logger.info("{} was requested to stop while it was starting so will now be stopped", this);
-            stopComponent(scheduler, new CompletableFuture<>());
+        if (!componentLifecycleLock.tryLock()) {
+            logger.debug("{} has not finished its start invocation, so the Connector stop will be checked again", this);
+            scheduler.schedule(() -> completeDeferredStop(scheduler), 100, TimeUnit.MILLISECONDS);
+            return;
+        }
+
+        try {
+            if (getCurrentState() == ConnectorState.STOPPING) {
+                logger.info("{} was requested to stop while it was starting so will now be stopped", this);
+                stopComponent(scheduler, new CompletableFuture<>());
+            }
+        } finally {
+            componentLifecycleLock.unlock();
         }
     }
-
 
     @Override
     public void verifyCanDelete() {

@@ -57,7 +57,7 @@ public class CreateDummyFlowFile extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return List.of(TEXT);
+        return List.of(TEXT, COUNT_SERVICE);
     }
 
     @Override
