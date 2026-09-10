@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -67,7 +68,7 @@ public class ServiceStateTransition {
         }
     }
 
-    public boolean enable(final ControllerServiceReference controllerServiceReference) {
+    public boolean enable(final ControllerServiceReference controllerServiceReference, final CompletableFuture<?> enabledFuture) {
         writeLock.lock();
         try {
             if (state == ControllerServiceState.ENABLED) {
@@ -75,8 +76,8 @@ public class ServiceStateTransition {
                 return true;
             }
 
-            if (state != ControllerServiceState.ENABLING) {
-                logger.debug("{} cannot be transitioned to enabled because it's not currently ENABLING but rather {}", controllerServiceNode, state);
+            if (state != ControllerServiceState.ENABLING || !enabledFutures.contains(enabledFuture)) {
+                logger.debug("{} cannot be transitioned to enabled because the enable request is no longer active and the current state is {}", controllerServiceNode, state);
                 return false;
             }
 
@@ -84,6 +85,7 @@ public class ServiceStateTransition {
             logger.debug("{} is now fully ENABLED", controllerServiceNode);
 
             enabledFutures.forEach(future -> future.complete(null));
+            enabledFutures.clear();
         } finally {
             writeLock.unlock();
         }
@@ -108,31 +110,58 @@ public class ServiceStateTransition {
         return true;
     }
 
-    public boolean transitionToDisabling(final ControllerServiceState expectedState, final CompletableFuture<?> disabledFuture) {
+    public boolean isEnabling(final CompletableFuture<?> enabledFuture) {
+        readLock.lock();
+        try {
+            return state == ControllerServiceState.ENABLING && enabledFutures.contains(enabledFuture);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    public ControllerServiceState transitionToDisabling(final CompletableFuture<?> disabledFuture) {
         writeLock.lock();
         try {
-            if (expectedState != state) {
-                logger.debug("{} cannot be transitioned to DISABLING because its state is {}, not the expected {}", controllerServiceNode, state, expectedState);
-                return false;
+            final ControllerServiceState previousState = state;
+            if (previousState == ControllerServiceState.DISABLED) {
+                disabledFuture.complete(null);
+            } else if (previousState == ControllerServiceState.DISABLING) {
+                disabledFutures.add(disabledFuture);
+            } else {
+                state = ControllerServiceState.DISABLING;
+                stateChangeCondition.signalAll();
+                disabledFutures.add(disabledFuture);
             }
 
-            state = ControllerServiceState.DISABLING;
-            stateChangeCondition.signalAll();
-            disabledFutures.add(disabledFuture);
-            return true;
+            if (previousState == ControllerServiceState.ENABLING) {
+                for (final CompletableFuture<?> enabledFuture : enabledFutures) {
+                    enabledFuture.completeExceptionally(new CancellationException("Controller Service enablement cancelled by disable request"));
+                }
+
+                enabledFutures.clear();
+            }
+
+            return previousState;
         } finally {
             writeLock.unlock();
         }
     }
 
-    public void disable() {
+    public boolean disable() {
         writeLock.lock();
         try {
+            if (state != ControllerServiceState.DISABLING) {
+                logger.debug("{} cannot be transitioned to DISABLED because its state is {}", controllerServiceNode, state);
+                return false;
+            }
+
             state = ControllerServiceState.DISABLED;
             logger.info("{} is now fully DISABLED", controllerServiceNode);
 
             stateChangeCondition.signalAll();
             disabledFutures.forEach(future -> future.complete(null));
+            disabledFutures.clear();
+            return true;
         } finally {
             writeLock.unlock();
         }

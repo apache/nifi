@@ -425,7 +425,7 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
         final Collection<ProcessorNode> processors = recursive ? processGroup.findAllProcessors() : processGroup.getProcessors();
         final List<CompletableFuture<Void>> stopFutures = new ArrayList<>();
         for (final ProcessorNode processor : processors) {
-            final ScheduledState processorState = processor.getScheduledState();
+            final ScheduledState processorState = processor.getPhysicalScheduledState();
             if (processorState == ScheduledState.DISABLED || processorState == ScheduledState.STOPPED) {
                 logger.debug("Not stopping Processor {} because its state is {}", processor, processorState);
                 continue;
