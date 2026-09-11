@@ -213,7 +213,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
         String errorMessage = Throwables.getMessage(t, null, 950);
         String stackTrace = Throwables.stringStackTrace(t);
         for (FlowFile f : toFail) {
-            if (t != null && r != null) {
+            if (r != null) {
                 f = session.putAttribute(f, ERROR_MESSAGE, errorMessage);
                 f = session.putAttribute(f, ERROR_STACKTRACE, stackTrace);
             }

@@ -165,7 +165,7 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         // only that method, but the object itself is a javax.jms.BytesMessage, then code such as the following will result in `isBytes == false`
         // when it should be `true`:
         final List<Class<?>> interfaces = ClassUtils.getAllInterfaces(bareObject.getClass());
-        if (interfaces == null || interfaces.isEmpty()) {
+        if (interfaces.isEmpty()) {
             return bareObject;
         }
 

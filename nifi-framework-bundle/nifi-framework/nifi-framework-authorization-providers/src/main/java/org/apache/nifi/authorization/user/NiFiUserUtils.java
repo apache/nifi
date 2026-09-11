@@ -99,16 +99,12 @@ public final class NiFiUserUtils {
         final Optional<Object> authenticationCredentials;
 
         final SecurityContext securityContext = SecurityContextHolder.getContext();
-        if (securityContext == null) {
+        final Authentication authentication = securityContext.getAuthentication();
+        if (authentication == null) {
             authenticationCredentials = Optional.empty();
         } else {
-            final Authentication authentication = securityContext.getAuthentication();
-            if (authentication == null) {
-                authenticationCredentials = Optional.empty();
-            } else {
-                final Object credentials = authentication.getCredentials();
-                authenticationCredentials = Optional.ofNullable(credentials);
-            }
+            final Object credentials = authentication.getCredentials();
+            authenticationCredentials = Optional.ofNullable(credentials);
         }
 
         return authenticationCredentials;

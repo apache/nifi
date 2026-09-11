@@ -431,9 +431,7 @@ public class PublishJMSIT {
             runner.run();
             assertFalse(tcpTransport.get().isConnected(), "It is expected transport be closed. ");
         } finally {
-            if (broker != null) {
-                broker.stop();
-            }
+            broker.stop();
         }
     }
 
@@ -493,9 +491,7 @@ public class PublishJMSIT {
             assertEquals(threads, connectionFactoryProxy.openedProducers(), "It is expected " + threads + " MessageProducer to be opened and there are " + connectionFactoryProxy.openedProducers());
             assertTrue(connectionFactoryProxy.isAllResourcesClosed(), "Some resources were not closed.");
         } finally {
-            if (broker != null) {
-                broker.stop();
-            }
+            broker.stop();
         }
     }
 
@@ -558,9 +554,7 @@ public class PublishJMSIT {
             assertTrue(connectionFactoryProxy.openedProducers() <= threads, "It is expected " + threads + " MessageProducer to be opened and there are " + connectionFactoryProxy.openedProducers());
             assertTrue(connectionFactoryProxy.isAllResourcesClosed(), "Some resources were not closed.");
         } finally {
-            if (broker != null) {
-                broker.stop();
-            }
+            broker.stop();
         }
     }
 

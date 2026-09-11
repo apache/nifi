@@ -274,7 +274,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         for (Map.Entry<String, Object> entry : doc.entrySet()) {
             if (entry.getValue() != null && entry.getValue().getClass().isArray()) {
                 retVal.put(entry.getKey(), convertArrays((Object[]) entry.getValue()));
-            } else if (entry.getValue() != null && (entry.getValue() instanceof Map || entry.getValue() instanceof Document)) {
+            } else if (entry.getValue() != null && entry.getValue() instanceof Map) {
                 retVal.put(entry.getKey(), convertArrays(new Document((Map) entry.getValue())));
             } else {
                 retVal.put(entry.getKey(), entry.getValue());

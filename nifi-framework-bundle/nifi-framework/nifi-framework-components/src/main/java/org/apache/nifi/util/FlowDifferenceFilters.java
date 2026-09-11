@@ -1205,7 +1205,7 @@ public class FlowDifferenceFilters {
     private static Optional<VersionedPropertyDescriptor> getVersionedPropertyDescriptor(final FlowDifference difference, final boolean fromComponentA) {
         final VersionedComponent component = fromComponentA ? difference.getComponentA() : difference.getComponentB();
         final Map<String, VersionedPropertyDescriptor> descriptors = getPropertyDescriptors(component);
-        if (descriptors == null || descriptors.isEmpty()) {
+        if (descriptors.isEmpty()) {
             return Optional.empty();
         }
 

@@ -78,10 +78,6 @@ public class MathEvaluator extends NumberEvaluator {
                             methodNamedValue + "'", subjectlessNoMethodException);
                 }
 
-                if (method == null) {
-                    throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no subjectless method was found with the name:'" + methodNamedValue + "'");
-                }
-
                 executionValue = (Number) method.invoke(null);
 
             } else if (optionalArg == null) {
@@ -92,11 +88,6 @@ public class MathEvaluator extends NumberEvaluator {
                 } catch (NoSuchMethodException noOptionalNoMethodException) {
                     throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no method was found matching the passed parameters:" +
                             " name:'" + methodNamedValue + "', one argument of type: '" + (subjectIsDecimal ? "double" : "long") + "'", noOptionalNoMethodException);
-                }
-
-                if (method == null) {
-                    throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no method was found matching the passed parameters:" +
-                            " name:'" + methodNamedValue + "', one argument of type: '" + (subjectIsDecimal ? "double" : "long") + "'");
                 }
 
                 if (subjectIsDecimal) {
@@ -128,12 +119,6 @@ public class MathEvaluator extends NumberEvaluator {
                         throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no method was found matching the passed parameters: " + "name:'" +
                                 methodNamedValue + "', first argument type: '" + (subjectIsDecimal ? "double" : "long") + "', second argument type:  'double'", withOptionalNoMethodException);
                     }
-                }
-
-                if (method == null) {
-                    throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no method was found matching the passed parameters: " +
-                            "name:'" + methodNamedValue + "', first argument type: '" + (subjectIsDecimal ? "double" : "long") + "', second argument type:  '"
-                            + (optionalArgIsDecimal ? "double" : "long") + "'");
                 }
 
                 if (optionalArgIsDecimal) {

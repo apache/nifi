@@ -189,7 +189,7 @@ public class StandardValidationContext implements ValidationContext {
         }
 
         final List<Range> elRanges = Query.extractExpressionRanges(value);
-        return (elRanges != null && !elRanges.isEmpty());
+        return !elRanges.isEmpty();
     }
 
     @Override

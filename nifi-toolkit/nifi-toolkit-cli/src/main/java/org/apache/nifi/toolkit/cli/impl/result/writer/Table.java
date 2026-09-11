@@ -29,7 +29,7 @@ public class Table {
 
     private Table(final Builder builder) {
         this.columns = Collections.unmodifiableList(
-                builder.columns == null ? Collections.emptyList() : new ArrayList<>(builder.columns));
+                builder.columns.isEmpty() ? Collections.emptyList() : new ArrayList<>(builder.columns));
 
         if (this.columns.isEmpty()) {
             throw new IllegalStateException("Cannot create a table with no columns");

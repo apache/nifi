@@ -22,6 +22,8 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import org.apache.nifi.processors.box.utils.BoxMetadataUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -39,16 +41,10 @@ public class BoxParseJsonTest {
         assertEquals(expected, result);
     }
 
-    @Test
-    void testParseBoolean() {
-        // Test true
-        boolean expected = true;
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testParseBoolean(boolean expected) {
         Object result = BoxMetadataUtils.parseJsonValue(Json.value(expected));
-        assertEquals(expected, result);
-
-        // Test false
-        expected = false;
-        result = BoxMetadataUtils.parseJsonValue(Json.value(expected));
         assertEquals(expected, result);
     }
 

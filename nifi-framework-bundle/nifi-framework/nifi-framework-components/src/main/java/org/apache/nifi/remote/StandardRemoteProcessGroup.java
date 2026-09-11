@@ -637,6 +637,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                         // If port has connections, it will be cleaned up when connections are removed
                         if (port.getConnections().isEmpty()) {
                             itr.remove();
+                            prunedCount++;
                             logger.info("Pruning unused Output Port {} from {}", port, this);
                         }
                     }

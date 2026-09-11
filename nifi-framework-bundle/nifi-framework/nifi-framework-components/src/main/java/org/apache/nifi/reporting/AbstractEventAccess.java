@@ -256,16 +256,14 @@ public abstract class AbstractEventAccess implements EventAccess {
         status.setRemoteProcessGroupStatus(remoteProcessGroupStatusCollection);
         for (final RemoteProcessGroup remoteGroup : group.getRemoteProcessGroups()) {
             final RemoteProcessGroupStatus remoteStatus = createRemoteGroupStatus(remoteGroup, statusReport, isAuthorized);
-            if (remoteStatus != null) {
-                if (populateChildStatuses) {
-                    remoteProcessGroupStatusCollection.add(remoteStatus);
-                }
-
-                flowFilesReceived += remoteStatus.getReceivedCount();
-                bytesReceived += remoteStatus.getReceivedContentSize();
-                flowFilesSent += remoteStatus.getSentCount();
-                bytesSent += remoteStatus.getSentContentSize();
+            if (populateChildStatuses) {
+                remoteProcessGroupStatusCollection.add(remoteStatus);
             }
+
+            flowFilesReceived += remoteStatus.getReceivedCount();
+            bytesReceived += remoteStatus.getReceivedContentSize();
+            flowFilesSent += remoteStatus.getSentCount();
+            bytesSent += remoteStatus.getSentContentSize();
         }
 
         // connection status

@@ -38,7 +38,7 @@ public class StandardEvent implements Event {
 
     private StandardEvent(final Builder builder) {
         this.eventType = Objects.requireNonNull(builder.eventType);
-        this.eventFields = Collections.unmodifiableList(builder.eventFields == null
+        this.eventFields = Collections.unmodifiableList(builder.eventFields.isEmpty()
                 ? Collections.emptyList() : new ArrayList<>(builder.eventFields));
     }
 

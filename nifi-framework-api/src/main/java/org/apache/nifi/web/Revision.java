@@ -104,7 +104,7 @@ public class Revision implements Serializable {
             return false;
         }
 
-        if (this.version != null && this.version.equals(thatRevision.version)) {
+        if (this.version.equals(thatRevision.version)) {
             return true;
         } else {
             return clientId != null && !clientId.isBlank() && clientId.equals(thatRevision.getClientId());
@@ -115,8 +115,8 @@ public class Revision implements Serializable {
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 59 * hash + (this.componentId != null ? this.componentId.hashCode() : 0);
-        hash = 59 * hash + (this.version != null ? this.version.hashCode() : 0);
+        hash = 59 * hash + this.componentId.hashCode();
+        hash = 59 * hash + this.version.hashCode();
         hash = 59 * hash + (this.clientId != null ? this.clientId.hashCode() : 0);
         return hash;
     }

@@ -101,7 +101,7 @@ public class ResourceAuthorizationFilter extends GenericFilterBean {
                     HttpMethod httpMethod = HttpMethod.valueOf(httpMethodStr);
 
                     // Only require authorization for HTTP methods included in this resource type's rule set
-                    if (httpMethod != null && authorizationRules.requiresAuthorization(httpMethod)) {
+                    if (authorizationRules.requiresAuthorization(httpMethod)) {
                         authorizationCheckIsRequired = true;
                         action = authorizationRules.mapHttpMethodToAction(httpMethod);
                     }

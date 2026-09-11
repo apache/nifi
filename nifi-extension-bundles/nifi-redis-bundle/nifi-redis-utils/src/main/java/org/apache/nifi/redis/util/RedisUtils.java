@@ -472,7 +472,7 @@ public class RedisUtils {
                     .build());
         } else if (REDIS_MODE_STANDALONE.getValue().equals(redisMode)) {
             final String[] hostAndPort = connectionString.split("[:]");
-            if (hostAndPort == null || hostAndPort.length != 2 || StringUtils.isBlank(hostAndPort[0]) || StringUtils.isBlank(hostAndPort[1]) || !isInteger(hostAndPort[1])) {
+            if (hostAndPort.length != 2 || StringUtils.isBlank(hostAndPort[0]) || StringUtils.isBlank(hostAndPort[1]) || !isInteger(hostAndPort[1])) {
                 results.add(new ValidationResult.Builder()
                         .subject(CONNECTION_STRING.getDisplayName())
                         .input(connectionString)
@@ -483,7 +483,7 @@ public class RedisUtils {
         } else {
             for (final String connection : connectionString.split("[,]")) {
                 final String[] hostAndPort = connection.split("[:]");
-                if (hostAndPort == null || hostAndPort.length != 2 || StringUtils.isBlank(hostAndPort[0]) || StringUtils.isBlank(hostAndPort[1]) || !isInteger(hostAndPort[1])) {
+                if (hostAndPort.length != 2 || StringUtils.isBlank(hostAndPort[0]) || StringUtils.isBlank(hostAndPort[1]) || !isInteger(hostAndPort[1])) {
                     results.add(new ValidationResult.Builder()
                             .subject(CONNECTION_STRING.getDisplayName())
                             .input(connection)

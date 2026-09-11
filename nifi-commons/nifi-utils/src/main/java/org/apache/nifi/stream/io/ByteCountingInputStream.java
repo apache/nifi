@@ -66,10 +66,8 @@ public class ByteCountingInputStream extends InputStream {
     @Override
     public long skip(final long n) throws IOException {
         final long skipped = in.skip(n);
-        if (skipped >= 0) {
-            bytesSkipped += skipped;
-            bytesSkippedSinceMark += skipped;
-        }
+        bytesSkipped += skipped;
+        bytesSkippedSinceMark += skipped;
         return skipped;
     }
 

@@ -42,9 +42,6 @@ public class BootstrapCodec {
     public void communicate() throws IOException {
         final String line = reader.readLine();
         final String[] splits = line.split(" ");
-        if (splits.length < 0) {
-            throw new IOException("Received invalid command from NiFi Registry: " + line);
-        }
 
         final String cmd = splits[0];
         final String[] args;

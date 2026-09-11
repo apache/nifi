@@ -156,7 +156,7 @@ public class QueryTask implements Runnable {
 
             final Tuple<List<ProvenanceEventRecord>, Long> eventsAndTotalHits = readDocuments(topDocs, storedFields);
 
-            if (eventsAndTotalHits == null) {
+            if (eventsAndTotalHits.getKey().isEmpty() && eventsAndTotalHits.getValue() == 0L) {
                 queryResult.update(Collections.emptyList(), 0L);
                 logger.info("Will not update query results for queried index {} for query {} because the maximum number of results have been reached already",
                     indexDir, query);

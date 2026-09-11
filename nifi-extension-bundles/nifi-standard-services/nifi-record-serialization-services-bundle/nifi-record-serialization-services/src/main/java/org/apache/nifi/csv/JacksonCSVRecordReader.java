@@ -161,7 +161,7 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
             final int numFieldNames = rawFieldNames.size();
             for (int i = 0; i < csvRecord.length; i++) {
                 final String rawFieldName = numFieldNames <= i ? "unknown_field_index_" + i : rawFieldNames.get(i);
-                String rawValue = (i >= csvRecord.length) ? null : csvRecord[i];
+                String rawValue = csvRecord[i];
 
                 final Optional<DataType> dataTypeOption = schema.getDataType(rawFieldName);
 
