@@ -25,7 +25,6 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.lifecycle.TaskTerminationAwareStateManager;
 import org.apache.nifi.controller.metrics.ProcessSessionEvent;
-import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.ActiveProcessSessionFactory;
 import org.apache.nifi.controller.repository.BatchingSessionFactory;
 import org.apache.nifi.controller.repository.RepositoryContext;
@@ -65,6 +64,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ConnectableTask {
 
     private static final Logger logger = LoggerFactory.getLogger(ConnectableTask.class);
+    private static final InvocationResult NOT_PRIMARY_NODE_YIELD_RESULT = InvocationResult.yield("This node is not the primary node");
+    private static final InvocationResult NO_WORK_YIELD_RESULT = InvocationResult.yield("No work to do");
+    private static final InvocationResult BACKPRESSURE_YIELD_RESULT = InvocationResult.yield("Backpressure Applied");
 
     private final SchedulingAgent schedulingAgent;
     private final Connectable connectable;
@@ -115,10 +117,9 @@ public class ConnectableTask {
     }
 
     private boolean isYielded() {
-        // after one yield period, the scheduling agent could call this again when
-        // yieldExpiration == currentTime, and we don't want that to still be considered 'yielded'
-        // so this uses ">" instead of ">="
-        return connectable.getYieldExpiration() > System.currentTimeMillis();
+        // Equality means that the yield has expired.
+        final long yieldExpiration = connectable.getYieldExpiration();
+        return yieldExpiration > 0L && yieldExpiration > System.currentTimeMillis();
     }
 
     /**
@@ -135,33 +136,31 @@ public class ConnectableTask {
      * @return true if there is work to do, otherwise false
      */
     private boolean isWorkToDo() {
-        boolean hasNonLoopConnection = Connectables.hasNonLoopConnection(connectable);
-
         if (connectable.getConnectableType() == ConnectableType.FUNNEL) {
             // Handle Funnel as a special case because it will never be a 'source' component,
             // and also its outgoing connections can not be terminated.
             // Incoming FlowFiles from other components, and at least one outgoing connection are required.
             return connectable.hasIncomingConnection()
-                    && hasNonLoopConnection
                     && !connectable.getConnections().isEmpty()
+                    && Connectables.hasNonLoopConnection(connectable)
                     && Connectables.flowFilesQueued(connectable);
         }
 
-        final boolean isSourceComponent = connectable.isTriggerWhenEmpty()
-                // No input connections
-                || !connectable.hasIncomingConnection()
-                // Every incoming connection loops back to itself, no inputs from other components
-                || !hasNonLoopConnection;
+        if (connectable.isTriggerWhenEmpty() || !connectable.hasIncomingConnection()) {
+            return true;
+        }
 
-        // If it is not a 'source' component, it requires a FlowFile to process.
-        return isSourceComponent || Connectables.flowFilesQueued(connectable);
+        return !Connectables.hasNonLoopConnection(connectable) || Connectables.flowFilesQueued(connectable);
     }
 
     private boolean isBackPressureEngaged() {
-        return connectable.getIncomingConnections().stream()
-            .filter(con -> con.getSource() == connectable)
-            .map(Connection::getFlowFileQueue)
-            .anyMatch(FlowFileQueue::isFull);
+        for (final Connection connection : connectable.getIncomingConnections()) {
+            if (connection.getSource() == connectable && connection.getFlowFileQueue().isFull()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public InvocationResult invoke() {
@@ -186,20 +185,20 @@ public class ConnectableTask {
             } else {
                 logger.debug("Will not trigger {} because this is not the primary node", connectable);
             }
-            return InvocationResult.yield("This node is not the primary node");
+            return NOT_PRIMARY_NODE_YIELD_RESULT;
         }
 
         // Make sure processor has work to do.
         if (!isWorkToDo()) {
             logger.debug("Yielding {} because it has no work to do", connectable);
-            return InvocationResult.yield("No work to do");
+            return NO_WORK_YIELD_RESULT;
         }
 
         if (numRelationships > 0) {
             final int requiredNumberOfAvailableRelationships = connectable.isTriggerWhenAnyDestinationAvailable() ? 1 : numRelationships;
             if (!repositoryContext.isRelationshipAvailabilitySatisfied(requiredNumberOfAvailableRelationships)) {
                 logger.debug("Yielding {} because Backpressure is Applied", connectable);
-                return InvocationResult.yield("Backpressure Applied");
+                return BACKPRESSURE_YIELD_RESULT;
             }
         }
 

@@ -25,6 +25,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.GarbageCollectionLog;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RepositoryContext;
@@ -33,6 +34,7 @@ import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.status.FlowFileAvailability;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
 import org.junit.jupiter.api.Test;
 
@@ -40,11 +42,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -53,6 +58,7 @@ public class TestConnectableTask {
     private ConnectableTask createTask(final Connectable connectable) {
         final FlowController flowController = mock(FlowController.class);
         when(flowController.getStateManagerProvider()).thenReturn(mock(StateManagerProvider.class));
+        when(flowController.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
 
         final RepositoryContext repoContext = mock(StandardRepositoryContext.class);
         when(repoContext.getFlowFileEventRepository()).thenReturn(mock(FlowFileEventRepository.class));
@@ -66,6 +72,33 @@ public class TestConnectableTask {
 
         return new ConnectableTask(mock(SchedulingAgent.class), connectable,
                 flowController, contextFactory, scheduleState);
+    }
+
+    @Test
+    public void testInvokeDoesNotHoldTaskMonitorDuringProcessorInvocation() {
+        final ProcessorNode processorNode = mock(ProcessorNode.class);
+        final Processor processor = mock(Processor.class);
+        final AtomicBoolean processorInvoked = new AtomicBoolean();
+        final AtomicBoolean taskMonitorHeld = new AtomicBoolean();
+        final AtomicReference<ConnectableTask> taskReference = new AtomicReference<>();
+        when(processorNode.getIdentifier()).thenReturn("processor-id");
+        when(processorNode.getRunnableComponent()).thenReturn(processor);
+        when(processorNode.getRelationships()).thenReturn(Collections.emptySet());
+        when(processorNode.getIncomingConnections()).thenReturn(Collections.emptyList());
+        when(processorNode.getScheduledState()).thenReturn(ScheduledState.RUNNING);
+        doAnswer(invocation -> {
+            processorInvoked.set(true);
+            taskMonitorHeld.set(Thread.holdsLock(taskReference.get()));
+            return null;
+        }).when(processorNode).onTrigger(any(), any());
+
+        final ConnectableTask task = createTask(processorNode);
+        taskReference.set(task);
+
+        task.invoke();
+
+        assertTrue(processorInvoked.get());
+        assertFalse(taskMonitorHeld.get());
     }
 
     @Test

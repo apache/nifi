@@ -137,6 +137,7 @@ import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.StandardLifecycleStateManager;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.scheduling.TimerDrivenSchedulingAgent;
+import org.apache.nifi.controller.scheduling.VirtualThreadSchedulingAgent;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSerializer;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
@@ -295,6 +296,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     private final AtomicInteger maxTimerDrivenThreads;
     private final AtomicReference<FlowEngine> timerDrivenEngineRef;
+    private final VirtualThreadSchedulingAgent virtualThreadSchedulingAgent;
 
     private final ContentRepository contentRepository;
     private final FlowFileRepository flowFileRepository;
@@ -551,6 +553,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             stateManagerProvider.enableClusterProvider();
         }
 
+        final boolean virtualThreadSchedulingEnabled = nifiProperties.isVirtualThreadSchedulingEnabled();
         timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
 
         final FlowFileRepository flowFileRepo = createFlowFileRepository(nifiProperties, extensionManager, resourceClaimManager);
@@ -671,10 +674,20 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             flowAnalyzer.initialize(controllerServiceProvider);
         }
 
-        final CronSchedulingAgent cronSchedulingAgent = new CronSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory);
-        final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory, this.nifiProperties);
-        processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, timerDrivenAgent);
-        processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, cronSchedulingAgent);
+        if (virtualThreadSchedulingEnabled) {
+            this.virtualThreadSchedulingAgent = new VirtualThreadSchedulingAgent(this, repositoryContextFactory, this.nifiProperties, maxTimerDrivenThreads.get());
+            processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, virtualThreadSchedulingAgent);
+            processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, virtualThreadSchedulingAgent);
+            LOG.info("Component scheduling configured to use virtual threads with a maximum of {} concurrent tasks", maxTimerDrivenThreads.get());
+        } else {
+            this.virtualThreadSchedulingAgent = null;
+
+            final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory, this.nifiProperties);
+            final CronSchedulingAgent cronSchedulingAgent = new CronSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory);
+            processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, timerDrivenAgent);
+            processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, cronSchedulingAgent);
+            LOG.info("Component scheduling configured to use a platform thread pool of {} threads", maxTimerDrivenThreads.get());
+        }
 
         startConnectablesAfterInitialization = new HashSet<>();
         startRemoteGroupPortsAfterInitialization = new HashSet<>();
@@ -1875,7 +1888,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public boolean isTerminated() {
         this.readLock.lock();
         try {
-            return null == this.timerDrivenEngineRef.get() || this.timerDrivenEngineRef.get().isTerminated();
+            final boolean timerDrivenEngineTerminated = timerDrivenEngineRef.get() == null || timerDrivenEngineRef.get().isTerminated();
+            return timerDrivenEngineTerminated && (virtualThreadSchedulingAgent == null || virtualThreadSchedulingAgent.isTerminated());
         } finally {
             this.readLock.unlock("isTerminated");
         }
@@ -1950,18 +1964,33 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
             if (kill) {
                 this.timerDrivenEngineRef.get().shutdownNow();
+
+                if (virtualThreadSchedulingAgent != null) {
+                    virtualThreadSchedulingAgent.shutdown();
+                }
+
                 LOG.info("Initiated immediate shutdown of flow controller...");
             } else {
                 this.timerDrivenEngineRef.get().shutdown();
+
+                if (virtualThreadSchedulingAgent != null) {
+                    virtualThreadSchedulingAgent.shutdownGracefully();
+                }
+
                 LOG.info("Initiated graceful shutdown of flow controller...waiting up to {} seconds", gracefulShutdownSeconds);
             }
 
             try {
-                // Give thread pool up to the configured amount of time to finish, but no less than 2 seconds,
-                // in order to allow for a more graceful shutdown.
-                final long millisToWait = Math.max(2000, shutdownEnd - System.currentTimeMillis());
-                this.timerDrivenEngineRef.get().awaitTermination(millisToWait, TimeUnit.MILLISECONDS);
-            } catch (final InterruptedException ie) {
+                final long terminationEnd = Math.max(shutdownEnd, System.currentTimeMillis() + 2_000L);
+                final long timerDrivenMillisToWait = Math.max(0L, terminationEnd - System.currentTimeMillis());
+                this.timerDrivenEngineRef.get().awaitTermination(timerDrivenMillisToWait, TimeUnit.MILLISECONDS);
+
+                if (virtualThreadSchedulingAgent != null) {
+                    final long virtualThreadMillisToWait = Math.max(0L, terminationEnd - System.currentTimeMillis());
+                    virtualThreadSchedulingAgent.awaitTermination(virtualThreadMillisToWait, TimeUnit.MILLISECONDS);
+                }
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
                 LOG.info("Interrupted while waiting for controller termination.");
             }
 
@@ -1971,7 +2000,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 LOG.warn("Unable to shut down FlowFileRepository", t);
             }
 
-            if (this.timerDrivenEngineRef.get().isTerminated()) {
+            final boolean virtualThreadSchedulingTerminated = virtualThreadSchedulingAgent == null || virtualThreadSchedulingAgent.isTerminated();
+            if (this.timerDrivenEngineRef.get().isTerminated() && virtualThreadSchedulingTerminated) {
                 LOG.info("Controller has been terminated successfully.");
             } else {
                 LOG.warn("Controller hasn't terminated properly.  There exists an uninterruptible thread that "
@@ -2194,39 +2224,38 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     }
 
     public int getActiveTimerDrivenThreadCount() {
-        return timerDrivenEngineRef.get().getActiveCount();
+        if (virtualThreadSchedulingAgent == null) {
+            return timerDrivenEngineRef.get().getActiveCount();
+        }
+
+        return timerDrivenEngineRef.get().getActiveCount() + virtualThreadSchedulingAgent.getActiveThreadCount();
     }
 
     public void setMaxTimerDrivenThreadCount(final int maxThreadCount) {
-        writeLock.lock();
-        try {
-            setMaxThreadCount(maxThreadCount, "Timer Driven", this.timerDrivenEngineRef.get(), this.maxTimerDrivenThreads);
-        } finally {
-            writeLock.unlock("setMaxTimerDrivenThreadCount");
-        }
-    }
-
-    /**
-     * Updates the number of threads that can be simultaneously used for executing processors.
-     * This method must be called while holding the write lock!
-     *
-     * @param maxThreadCount Requested new thread pool size
-     * @param poolName Thread Pool Name
-     * @param engine Flow Engine executor or null when terminated
-     * @param maxThreads Internal tracker for Maximum Threads
-     */
-    private void setMaxThreadCount(final int maxThreadCount, final String poolName, final FlowEngine engine, final AtomicInteger maxThreads) {
         if (maxThreadCount < 1) {
             throw new IllegalArgumentException("Cannot set max number of threads to less than 1");
         }
 
-        maxThreads.getAndSet(maxThreadCount);
-        if (engine == null) {
-            LOG.debug("[{}] Engine not found: Maximum Thread Count not updated", poolName);
-        } else {
-            final int previousCorePoolSize = engine.getCorePoolSize();
-            engine.setCorePoolSize(maxThreadCount);
-            LOG.info("[{}] Maximum Thread Count updated [{}] previous [{}]", poolName, maxThreadCount, previousCorePoolSize);
+        writeLock.lock();
+        try {
+            final int previousMax = maxTimerDrivenThreads.getAndSet(maxThreadCount);
+
+            if (virtualThreadSchedulingAgent != null) {
+                virtualThreadSchedulingAgent.setMaxThreadCount(maxThreadCount);
+            }
+
+            final FlowEngine engine = timerDrivenEngineRef.get();
+            if (engine == null) {
+                LOG.debug("Timer-Driven Engine not found: Maximum Thread Count not updated");
+            } else {
+                final int previousCorePoolSize = engine.getCorePoolSize();
+                engine.setCorePoolSize(maxThreadCount);
+                LOG.debug("Timer-Driven Engine core pool size updated [{}] previous [{}]", maxThreadCount, previousCorePoolSize);
+            }
+
+            LOG.info("Maximum Timer-Driven Thread Count updated [{}] previous [{}]", maxThreadCount, previousMax);
+        } finally {
+            writeLock.unlock("setMaxTimerDrivenThreadCount");
         }
     }
 
@@ -2868,7 +2897,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     }
 
     public int getActiveThreadCount() {
-        return timerDrivenEngineRef.get().getActiveCount();
+        return getActiveTimerDrivenThreadCount();
     }
 
     //
