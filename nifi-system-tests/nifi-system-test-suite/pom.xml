@@ -381,6 +381,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-system-test-flow-registry-nar</artifactId>
+            <version>2.12.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-system-test-flow-action-reporter-nar</artifactId>
             <version>2.12.0-SNAPSHOT</version>
             <type>nar</type>
