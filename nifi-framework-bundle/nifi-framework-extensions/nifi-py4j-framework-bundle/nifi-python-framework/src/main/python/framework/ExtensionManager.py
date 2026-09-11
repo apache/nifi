@@ -55,7 +55,9 @@ class ExtensionManager:
     """
 
     processor_interfaces = ['org.apache.nifi.python.processor.FlowFileTransform',
+                            'org.apache.nifi.python.processor.FlowFileTransformMultipleOutput',
                             'org.apache.nifi.python.processor.RecordTransform',
+                            'org.apache.nifi.python.processor.MultipleFlowFileSource',
                             'org.apache.nifi.python.processor.FlowFileSource']
     processor_details = {}
     processor_class_by_name = {}

@@ -18,7 +18,8 @@ from nifiapi.__jvm__ import JvmHolder
 from nifiapi.properties import ProcessContext
 from nifiapi.flowfilesourceresult import FlowFileSourceResult
 
-class FlowFileSource(ABC):
+
+class MultipleFlowFileSource(ABC):
     # These will be set by the PythonProcessorAdapter when the component is created
     identifier = None
     logger = None
@@ -29,10 +30,12 @@ class FlowFileSource(ABC):
     def setContext(self, context):
         self.process_context = ProcessContext(context)
 
-    def createFlowFile(self):
-        return self.create(self.process_context)
+    def createFlowFiles(self):
+        results = self.arrayList()
+        for (result) in self.create(self.process_context):
+            results.add(result)
+        return results
 
     @abstractmethod
     def create(self, context):
         pass
-
