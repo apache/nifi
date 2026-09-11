@@ -257,6 +257,19 @@ public class NiFiPropertiesTest {
     }
 
     @Test
+    public void testComponentSchedulingMode() {
+        final NiFiProperties defaultProperties = NiFiProperties.createBasicNiFiProperties(null, Map.of());
+        assertEquals(ComponentSchedulingMode.VIRTUAL, defaultProperties.getComponentSchedulingMode());
+
+        final NiFiProperties standardProperties = NiFiProperties.createBasicNiFiProperties(null,
+                Map.of(NiFiProperties.COMPONENT_SCHEDULING_MODE, ComponentSchedulingMode.STANDARD.name()));
+        assertEquals(ComponentSchedulingMode.STANDARD, standardProperties.getComponentSchedulingMode());
+
+        final NiFiProperties invalidProperties = NiFiProperties.createBasicNiFiProperties(null, Map.of(NiFiProperties.COMPONENT_SCHEDULING_MODE, "INVALID"));
+        assertThrows(IllegalArgumentException.class, invalidProperties::getComponentSchedulingMode);
+    }
+
+    @Test
     public void testIsZooKeeperTlsConfigurationPresent() {
         NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
             NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true",

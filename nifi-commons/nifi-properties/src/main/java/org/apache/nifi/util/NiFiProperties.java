@@ -83,7 +83,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String REMOTE_CONTENTS_CACHE_EXPIRATION = "nifi.remote.contents.cache.expiration";
     public static final String ADMINISTRATIVE_YIELD_DURATION = "nifi.administrative.yield.duration";
     public static final String BORED_YIELD_DURATION = "nifi.bored.yield.duration";
-    public static final String VIRTUAL_THREAD_SCHEDULING_ENABLED = "nifi.scheduler.virtual.threads.enabled";
+    public static final String COMPONENT_SCHEDULING_MODE = "nifi.scheduler.mode";
     public static final String PROCESSOR_SCHEDULING_TIMEOUT = "nifi.processor.scheduling.timeout";
     public static final String BACKPRESSURE_COUNT = "nifi.queue.backpressure.count";
     public static final String BACKPRESSURE_SIZE = "nifi.queue.backpressure.size";
@@ -377,7 +377,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_ADMINISTRATIVE_YIELD_DURATION = "30 sec";
     public static final String DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "5 mins";
     public static final String DEFAULT_BORED_YIELD_DURATION = "10 millis";
-    public static final String DEFAULT_VIRTUAL_THREAD_SCHEDULING_ENABLED = "true";
+    public static final ComponentSchedulingMode DEFAULT_COMPONENT_SCHEDULING_MODE = ComponentSchedulingMode.VIRTUAL;
     public static final String DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT = "3 secs";
     public static final String DEFAULT_ZOOKEEPER_SESSION_TIMEOUT = "3 secs";
     public static final String DEFAULT_ZOOKEEPER_ROOT_NODE = "/nifi";
@@ -1470,8 +1470,14 @@ public class NiFiProperties extends ApplicationProperties {
         return getProperty(BORED_YIELD_DURATION, DEFAULT_BORED_YIELD_DURATION);
     }
 
-    public boolean isVirtualThreadSchedulingEnabled() {
-        return Boolean.parseBoolean(getProperty(VIRTUAL_THREAD_SCHEDULING_ENABLED, DEFAULT_VIRTUAL_THREAD_SCHEDULING_ENABLED));
+    public ComponentSchedulingMode getComponentSchedulingMode() {
+        final String configuredMode = getProperty(COMPONENT_SCHEDULING_MODE, DEFAULT_COMPONENT_SCHEDULING_MODE.name());
+        try {
+            return ComponentSchedulingMode.valueOf(configuredMode);
+        } catch (final IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unsupported value [%s] configured for property [%s]. Supported values are STANDARD and VIRTUAL."
+                    .formatted(configuredMode, COMPONENT_SCHEDULING_MODE), e);
+        }
     }
 
     public File getStateManagementConfigFile() {
