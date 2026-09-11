@@ -294,6 +294,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     private static final String ZOOKEEPER_STATE_PROVIDER_SERVER_CLASS = "org.apache.nifi.controller.state.providers.zookeeper.server.ZooKeeperStateProviderServer";
     private static final int MINIMUM_JAVA_VERSION_FOR_AUTOMATIC_VIRTUAL_THREAD_SCHEDULING = 25;
+    private static final int FRAMEWORK_TASK_THREAD_COUNT = 8;
 
     private final AtomicInteger maxTimerDrivenThreads;
     private final AtomicReference<FlowEngine> timerDrivenEngineRef;
@@ -555,7 +556,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
 
         final boolean virtualThreadSchedulingEnabled = isVirtualThreadSchedulingEnabled(nifiProperties.getSchedulingStrategy(), Runtime.version().feature());
-        timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
+        final int flowEngineThreadCount = virtualThreadSchedulingEnabled ? FRAMEWORK_TASK_THREAD_COUNT : maxTimerDrivenThreads.get();
+        final String flowEngineName = virtualThreadSchedulingEnabled ? "Framework Task" : "Timer-Driven Process";
+        timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(flowEngineThreadCount, flowEngineName));
 
         final FlowFileRepository flowFileRepo = createFlowFileRepository(nifiProperties, extensionManager, resourceClaimManager);
         flowFileRepository = flowFileRepo;
@@ -2246,7 +2249,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             return timerDrivenEngineRef.get().getActiveCount();
         }
 
-        return timerDrivenEngineRef.get().getActiveCount() + virtualThreadSchedulingAgent.getActiveThreadCount();
+        return virtualThreadSchedulingAgent.getActiveThreadCount();
     }
 
     public void setMaxTimerDrivenThreadCount(final int maxThreadCount) {
@@ -2260,15 +2263,15 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
             if (virtualThreadSchedulingAgent != null) {
                 virtualThreadSchedulingAgent.setMaxThreadCount(maxThreadCount);
-            }
-
-            final FlowEngine engine = timerDrivenEngineRef.get();
-            if (engine == null) {
-                LOG.debug("Timer-Driven Engine not found: Maximum Thread Count not updated");
             } else {
-                final int previousCorePoolSize = engine.getCorePoolSize();
-                engine.setCorePoolSize(maxThreadCount);
-                LOG.debug("Timer-Driven Engine core pool size updated [{}] previous [{}]", maxThreadCount, previousCorePoolSize);
+                final FlowEngine engine = timerDrivenEngineRef.get();
+                if (engine == null) {
+                    LOG.debug("Timer-Driven Engine not found: Maximum Thread Count not updated");
+                } else {
+                    final int previousCorePoolSize = engine.getCorePoolSize();
+                    engine.setCorePoolSize(maxThreadCount);
+                    LOG.debug("Timer-Driven Engine core pool size updated [{}] previous [{}]", maxThreadCount, previousCorePoolSize);
+                }
             }
 
             LOG.info("Maximum Timer-Driven Thread Count updated [{}] previous [{}]", maxThreadCount, previousMax);
