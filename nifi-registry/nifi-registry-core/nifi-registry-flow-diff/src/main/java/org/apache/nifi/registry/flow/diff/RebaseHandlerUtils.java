@@ -89,6 +89,21 @@ class RebaseHandlerUtils {
         return null;
     }
 
+    static VersionedProcessGroup findProcessGroupById(final VersionedProcessGroup group, final String identifier) {
+        if (identifier.equals(group.getIdentifier()) || identifier.equals(group.getInstanceIdentifier())) {
+            return group;
+        }
+
+        for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
+            final VersionedProcessGroup result = findProcessGroupById(childGroup, identifier);
+            if (result != null) {
+                return result;
+            }
+        }
+
+        return null;
+    }
+
     static VersionedConnection findConnectionById(final VersionedProcessGroup group, final String identifier) {
         for (final VersionedConnection connection : group.getConnections()) {
             if (identifier.equals(connection.getIdentifier())) {
