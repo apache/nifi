@@ -293,6 +293,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public static final long DEFAULT_GRACEFUL_SHUTDOWN_SECONDS = 10;
 
     private static final String ZOOKEEPER_STATE_PROVIDER_SERVER_CLASS = "org.apache.nifi.controller.state.providers.zookeeper.server.ZooKeeperStateProviderServer";
+    private static final int MINIMUM_JAVA_VERSION_FOR_AUTOMATIC_VIRTUAL_THREAD_SCHEDULING = 25;
 
     private final AtomicInteger maxTimerDrivenThreads;
     private final AtomicReference<FlowEngine> timerDrivenEngineRef;
@@ -553,13 +554,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             stateManagerProvider.enableClusterProvider();
         }
 
-        final String componentSchedulingStrategy = nifiProperties.getSchedulingStrategy();
-
-        if (!NiFiProperties.STANDARD_SCHEDULING_STRATEGY.equals(componentSchedulingStrategy)
-                && !NiFiProperties.VIRTUAL_SCHEDULING_STRATEGY.equals(componentSchedulingStrategy)) {
-            throw new IllegalArgumentException("Unsupported value [%s] configured for property [%s]. Supported values are STANDARD and VIRTUAL."
-                    .formatted(componentSchedulingStrategy, NiFiProperties.SCHEDULING_STRATEGY));
-        }
+        final boolean virtualThreadSchedulingEnabled = isVirtualThreadSchedulingEnabled(nifiProperties.getSchedulingStrategy(), Runtime.version().feature());
         timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
 
         final FlowFileRepository flowFileRepo = createFlowFileRepository(nifiProperties, extensionManager, resourceClaimManager);
@@ -680,7 +675,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             flowAnalyzer.initialize(controllerServiceProvider);
         }
 
-        if (NiFiProperties.VIRTUAL_SCHEDULING_STRATEGY.equals(componentSchedulingStrategy)) {
+        if (virtualThreadSchedulingEnabled) {
             this.virtualThreadSchedulingAgent = new VirtualThreadSchedulingAgent(this, repositoryContextFactory, this.nifiProperties, maxTimerDrivenThreads.get());
             processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, virtualThreadSchedulingAgent);
             processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, virtualThreadSchedulingAgent);
@@ -908,6 +903,23 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         longRunningTaskMonitorThreadPool = isLongRunningTaskMonitorEnabled()
                 ? Optional.of(new FlowEngine(1, "Long Running Task Monitor", true))
                 : Optional.empty();
+    }
+
+    static boolean isVirtualThreadSchedulingEnabled(final String schedulingStrategy, final int javaFeatureVersion) {
+        if (NiFiProperties.AUTO_SCHEDULING_STRATEGY.equals(schedulingStrategy)) {
+            return javaFeatureVersion >= MINIMUM_JAVA_VERSION_FOR_AUTOMATIC_VIRTUAL_THREAD_SCHEDULING;
+        }
+
+        if (NiFiProperties.VIRTUAL_SCHEDULING_STRATEGY.equals(schedulingStrategy)) {
+            return true;
+        }
+
+        if (NiFiProperties.STANDARD_SCHEDULING_STRATEGY.equals(schedulingStrategy)) {
+            return false;
+        }
+
+        throw new IllegalArgumentException("Unsupported value [%s] configured for property [%s]. Supported values are AUTO, STANDARD, and VIRTUAL."
+                .formatted(schedulingStrategy, NiFiProperties.SCHEDULING_STRATEGY));
     }
 
     @Override
