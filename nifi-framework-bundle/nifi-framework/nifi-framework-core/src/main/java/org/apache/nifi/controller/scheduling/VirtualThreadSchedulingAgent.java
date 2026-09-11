@@ -53,7 +53,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(VirtualThreadSchedulingAgent.class);
 
-    private static final long PERMIT_POLL_INTERVAL_NANOS = TimeUnit.MILLISECONDS.toNanos(25L);
+    private static final long PERMIT_POLL_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(1L);
 
     private final FlowController flowController;
     private final RepositoryContextFactory contextFactory;
