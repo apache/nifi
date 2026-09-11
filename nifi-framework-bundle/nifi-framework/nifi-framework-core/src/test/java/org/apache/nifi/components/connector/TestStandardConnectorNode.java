@@ -215,6 +215,27 @@ public class TestStandardConnectorNode {
     }
 
     @Test
+    public void testStartResolvesPropertyBeforeValidation() throws Exception {
+        final SecretReference secretReference = new SecretReference("provider-id", "Provider", "password", "Provider.group.password");
+        final AtomicReference<Secret> currentSecret = new AtomicReference<>();
+        when(secretsManager.getSecrets(anySet())).thenAnswer(invocation -> {
+            final Secret secret = currentSecret.get();
+            return secret == null ? Map.of() : Map.of(secretReference, secret);
+        });
+
+        final Secret secret = mock(Secret.class);
+        when(secret.getValue()).thenReturn(FIRST_SECRET_VALUE);
+
+        final StandardConnectorNode connectorNode = createConnectorNode(new StartRecordingSecretConnector(), secretsManager);
+        seedActiveConfiguration(connectorNode, REQUIRED_STEP, Map.of(REQUIRED_SECRET, secretReference));
+        currentSecret.set(secret);
+
+        connectorNode.start(scheduler).get(5, TimeUnit.SECONDS);
+
+        assertEquals(ConnectorState.RUNNING, connectorNode.getCurrentState());
+    }
+
+    @Test
     public void testStartFutureCompletedOnlyWhenRunning() throws Exception {
         final StandardConnectorNode connectorNode = createConnectorNode();
         final Future<Void> startFuture = connectorNode.start(scheduler);

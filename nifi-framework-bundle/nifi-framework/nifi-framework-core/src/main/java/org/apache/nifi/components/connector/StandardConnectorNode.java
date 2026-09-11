@@ -789,6 +789,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     private void start(final FlowEngine scheduler, final CompletableFuture<Void> startCompleteFuture) {
         try {
             stateTransition.setDesiredState(ConnectorState.RUNNING);
+            activeFlowContext.getConfigurationContext().resolvePropertyValues();
             verifyCanStart();
 
             boolean startScheduled = false;
