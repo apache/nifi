@@ -151,6 +151,31 @@ class VirtualThreadSchedulingAgentTest {
     }
 
     @Test
+    void testProcessorContinuesAfterInterruptStatusSet() throws InterruptedException {
+        final AtomicInteger invocationCount = new AtomicInteger();
+        final CountDownLatch secondInvocation = new CountDownLatch(1);
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.TIMER_DRIVEN, new AtomicInteger(), new CountDownLatch(0));
+        doAnswer(invocation -> {
+            if (invocationCount.incrementAndGet() == 1) {
+                Thread.currentThread().interrupt();
+            } else {
+                secondInvocation.countDown();
+            }
+
+            return null;
+        }).when(connectable).onTrigger(any(), any());
+
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+        scheduleConnectable(connectable, lifecycleState);
+
+        try {
+            assertTrue(secondInvocation.await(2, TimeUnit.SECONDS));
+        } finally {
+            unscheduleConnectable(connectable, lifecycleState);
+        }
+    }
+
+    @Test
     void testSchedulingThreadUsesFrameworkClassLoaderWithoutInheritedThreadLocals() throws InterruptedException {
         final InheritableThreadLocal<String> inheritedValue = new InheritableThreadLocal<>();
         final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
@@ -490,6 +515,42 @@ class VirtualThreadSchedulingAgentTest {
             lifecycleState.setScheduled(false);
             agent.unschedule(taskNode, lifecycleState);
             waitForRunningThreadCount(0, 2, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    void testReportingTaskContinuesAfterInterruptStatusSet() throws InterruptedException {
+        final AtomicInteger invocationCount = new AtomicInteger();
+        final CountDownLatch secondInvocation = new CountDownLatch(1);
+        final ReportingTask reportingTask = mock(ReportingTask.class);
+        doAnswer(invocation -> {
+            if (invocationCount.incrementAndGet() == 1) {
+                Thread.currentThread().interrupt();
+            } else {
+                secondInvocation.countDown();
+            }
+
+            return null;
+        }).when(reportingTask).onTrigger(any());
+
+        final ReportingTaskNode taskNode = mock(ReportingTaskNode.class);
+        when(taskNode.getSchedulingStrategy()).thenReturn(SchedulingStrategy.TIMER_DRIVEN);
+        when(taskNode.getSchedulingPeriod(TimeUnit.NANOSECONDS)).thenReturn(TimeUnit.MILLISECONDS.toNanos(100L));
+        when(taskNode.getReportingTask()).thenReturn(reportingTask);
+        when(taskNode.getReportingContext()).thenReturn(mock(ReportingContext.class));
+        when(taskNode.getIdentifier()).thenReturn(COMPONENT_ID);
+        when(taskNode.getName()).thenReturn("TestReporter");
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+        lifecycleState.setScheduled(true);
+        agent.schedule(taskNode, lifecycleState);
+
+        try {
+            assertTrue(secondInvocation.await(2, TimeUnit.SECONDS));
+        } finally {
+            lifecycleState.setScheduled(false);
+            agent.unschedule(taskNode, lifecycleState);
         }
     }
 

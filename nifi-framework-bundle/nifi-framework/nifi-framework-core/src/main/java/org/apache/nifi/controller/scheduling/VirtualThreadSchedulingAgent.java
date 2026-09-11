@@ -381,6 +381,8 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                 try {
                     invocationResult = connectableTask.invoke();
                 } finally {
+                    // Interrupt status from one invocation must not carry into the scheduling loop.
+                    Thread.interrupted();
                     globalSemaphore.release();
                 }
 
@@ -470,6 +472,8 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                 try {
                     reportingTaskWrapper.run();
                 } finally {
+                    // Interrupt status from one invocation must not carry into the scheduling loop.
+                    Thread.interrupted();
                     globalSemaphore.release();
                 }
 
