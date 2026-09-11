@@ -228,7 +228,6 @@ import org.apache.nifi.services.FlowService;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.ComponentIdGenerator;
-import org.apache.nifi.util.ComponentSchedulingMode;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
@@ -554,7 +553,13 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             stateManagerProvider.enableClusterProvider();
         }
 
-        final ComponentSchedulingMode componentSchedulingMode = nifiProperties.getComponentSchedulingMode();
+        final String componentSchedulingStrategy = nifiProperties.getSchedulingStrategy();
+
+        if (!NiFiProperties.STANDARD_SCHEDULING_STRATEGY.equals(componentSchedulingStrategy)
+                && !NiFiProperties.VIRTUAL_SCHEDULING_STRATEGY.equals(componentSchedulingStrategy)) {
+            throw new IllegalArgumentException("Unsupported value [%s] configured for property [%s]. Supported values are STANDARD and VIRTUAL."
+                    .formatted(componentSchedulingStrategy, NiFiProperties.SCHEDULING_STRATEGY));
+        }
         timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
 
         final FlowFileRepository flowFileRepo = createFlowFileRepository(nifiProperties, extensionManager, resourceClaimManager);
@@ -675,7 +680,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             flowAnalyzer.initialize(controllerServiceProvider);
         }
 
-        if (componentSchedulingMode == ComponentSchedulingMode.VIRTUAL) {
+        if (NiFiProperties.VIRTUAL_SCHEDULING_STRATEGY.equals(componentSchedulingStrategy)) {
             this.virtualThreadSchedulingAgent = new VirtualThreadSchedulingAgent(this, repositoryContextFactory, this.nifiProperties, maxTimerDrivenThreads.get());
             processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, virtualThreadSchedulingAgent);
             processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, virtualThreadSchedulingAgent);

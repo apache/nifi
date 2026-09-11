@@ -48,7 +48,7 @@ public class NiFiPropertiesDiagnosticTask implements DiagnosticTask {
         "nifi.flowfile.repository.always.sync",
         "nifi.components.status.snapshot.frequency",
         "nifi.bored.yield.duration",
-        "nifi.scheduler.mode",
+        "nifi.scheduling.strategy",
         "nifi.queue.swap.threshold",
         "nifi.security.identity.mapping.pattern.dn",
         "nifi.security.identity.mapping.value.dn",

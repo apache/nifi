@@ -40,7 +40,7 @@ public class VirtualThreadStartStopCycleIT extends NiFiSystemIT {
 
     @Override
     protected Map<String, String> getNifiPropertiesOverrides() {
-        return Map.of("nifi.scheduler.mode", "VIRTUAL");
+        return Map.of("nifi.scheduling.strategy", "VIRTUAL");
     }
 
     @Test
