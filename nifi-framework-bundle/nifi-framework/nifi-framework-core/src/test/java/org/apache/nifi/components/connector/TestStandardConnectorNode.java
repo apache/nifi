@@ -54,6 +54,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -84,12 +85,17 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestStandardConnectorNode {
 
     private static final long STOP_NOT_EXPECTED_MILLIS = 250L;
+    private static final String REQUIRED_STEP = "requiredStep";
+    private static final String REQUIRED_SECRET = "RequiredSecret";
+    private static final String FIRST_SECRET_VALUE = "first";
+    private static final String SECOND_SECRET_VALUE = "second";
 
     private FlowEngine scheduler;
 
@@ -181,6 +187,52 @@ public class TestStandardConnectorNode {
         assertEquals(ConnectorState.STOPPED, connectorNode.getDesiredState());
         assertTrue(stopFuture.isDone());
         assertFalse(stopFuture.isCancelled());
+    }
+
+    @Test
+    public void testRestartRefreshesSecretBeforeStartingConnector() throws Exception {
+        final SecretReference secretReference = new SecretReference("provider-id", "Provider", "password", "Provider.group.password");
+        final Secret firstSecret = mock(Secret.class);
+        when(firstSecret.getValue()).thenReturn(FIRST_SECRET_VALUE);
+        final Secret secondSecret = mock(Secret.class);
+        when(secondSecret.getValue()).thenReturn(SECOND_SECRET_VALUE);
+        final AtomicReference<Secret> currentSecret = new AtomicReference<>(firstSecret);
+
+        when(secretsManager.getSecrets(anySet())).thenAnswer(invocation -> Map.of(secretReference, currentSecret.get()));
+
+        final StartRecordingSecretConnector connector = new StartRecordingSecretConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector, secretsManager);
+        seedActiveConfiguration(connectorNode, REQUIRED_STEP, Map.of(REQUIRED_SECRET, secretReference));
+
+        connectorNode.start(scheduler).get(5, TimeUnit.SECONDS);
+        connectorNode.stop(scheduler).get(5, TimeUnit.SECONDS);
+        currentSecret.set(secondSecret);
+        connectorNode.start(scheduler).get(5, TimeUnit.SECONDS);
+        connectorNode.start(scheduler).get(5, TimeUnit.SECONDS);
+
+        assertEquals(List.of(FIRST_SECRET_VALUE, SECOND_SECRET_VALUE), connector.getStartedSecrets());
+        verify(secretsManager, times(2)).invalidateCache();
+    }
+
+    @Test
+    public void testStartResolvesPropertyBeforeValidation() throws Exception {
+        final SecretReference secretReference = new SecretReference("provider-id", "Provider", "password", "Provider.group.password");
+        final AtomicReference<Secret> currentSecret = new AtomicReference<>();
+        when(secretsManager.getSecrets(anySet())).thenAnswer(invocation -> {
+            final Secret secret = currentSecret.get();
+            return secret == null ? Map.of() : Map.of(secretReference, secret);
+        });
+
+        final Secret secret = mock(Secret.class);
+        when(secret.getValue()).thenReturn(FIRST_SECRET_VALUE);
+
+        final StandardConnectorNode connectorNode = createConnectorNode(new StartRecordingSecretConnector(), secretsManager);
+        seedActiveConfiguration(connectorNode, REQUIRED_STEP, Map.of(REQUIRED_SECRET, secretReference));
+        currentSecret.set(secret);
+
+        connectorNode.start(scheduler).get(5, TimeUnit.SECONDS);
+
+        assertEquals(ConnectorState.RUNNING, connectorNode.getCurrentState());
     }
 
     @Test
@@ -923,9 +975,9 @@ public class TestStandardConnectorNode {
         // Without the empty-stub filter this would surface as "[null] could not be found"; with it, the connector's
         // required-property validation should produce "<name> is required" instead.
         final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
-        propertyValues.put("RequiredSecret", new SecretReference(null, "My Provider", null, null));
+        propertyValues.put(REQUIRED_SECRET, new SecretReference(null, "My Provider", null, null));
 
-        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep("requiredStep", new StepConfiguration(propertyValues));
+        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep(REQUIRED_STEP, new StepConfiguration(propertyValues));
 
         final List<ConfigVerificationResult> failures = results.stream()
             .filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.FAILED)
@@ -952,8 +1004,8 @@ public class TestStandardConnectorNode {
         connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
-        propertyValues.put("RequiredSecret", new SecretReference(null, "My Provider", null, null));
-        connectorNode.setConfiguration("requiredStep", new StepConfiguration(propertyValues));
+        propertyValues.put(REQUIRED_SECRET, new SecretReference(null, "My Provider", null, null));
+        connectorNode.setConfiguration(REQUIRED_STEP, new StepConfiguration(propertyValues));
         connectorNode.applyUpdate();
 
         final ValidationState state = connectorNode.performValidation();
@@ -1949,7 +2001,7 @@ public class TestStandardConnectorNode {
         @Override
         public List<ConfigurationStep> getConfigurationSteps() {
             final ConnectorPropertyDescriptor secretProperty = new ConnectorPropertyDescriptor.Builder()
-                .name("RequiredSecret")
+                .name(REQUIRED_SECRET)
                 .description("A required secret with no dependencies")
                 .type(PropertyType.SECRET)
                 .required(true)
@@ -1962,7 +2014,7 @@ public class TestStandardConnectorNode {
                 .build();
 
             final ConfigurationStep step = new ConfigurationStep.Builder()
-                .name("requiredStep")
+                .name(REQUIRED_STEP)
                 .propertyGroups(List.of(propertyGroup))
                 .build();
 
@@ -1980,6 +2032,23 @@ public class TestStandardConnectorNode {
         @Override
         public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
             return List.of();
+        }
+    }
+
+    private static class StartRecordingSecretConnector extends RequiredSecretConnector {
+        private final List<String> startedSecrets = new ArrayList<>();
+
+        @Override
+        public void start(final FlowContext activeContext) {
+            startedSecrets.add(activeContext.getConfigurationContext().getProperty(REQUIRED_STEP, REQUIRED_SECRET).getValue());
+        }
+
+        @Override
+        public void stop(final FlowContext activeContext) {
+        }
+
+        private List<String> getStartedSecrets() {
+            return startedSecrets;
         }
     }
 
