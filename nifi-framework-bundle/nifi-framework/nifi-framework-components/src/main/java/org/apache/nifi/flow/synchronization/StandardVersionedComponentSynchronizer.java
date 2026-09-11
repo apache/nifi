@@ -60,7 +60,6 @@ import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ConnectableComponentType;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ParameterProviderReference;
-import org.apache.nifi.flow.StatelessContentStorageLocation;
 import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedComponentState;
@@ -497,9 +496,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         if (statelessTimeout != null) {
             group.setStatelessFlowTimeout(statelessTimeout);
         }
-        final StatelessContentStorageLocation statelessContentStorageLocation = proposed.getStatelessContentStorageLocation();
-        if (statelessContentStorageLocation != null) {
-            group.setStatelessContentStorageLocation(statelessContentStorageLocation);
+        final String statelessFlowFileContentInMemoryMax = proposed.getStatelessFlowFileContentInMemoryMax();
+        if (statelessFlowFileContentInMemoryMax != null) {
+            group.setStatelessFlowFileContentInMemoryMax(statelessFlowFileContentInMemoryMax);
         }
         if (proposed.getScheduledState() != null && ScheduledState.RUNNING.name().equals(proposed.getScheduledState().name())) {
             context.getComponentScheduler().startStatelessGroup(group);

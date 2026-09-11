@@ -19,6 +19,7 @@ package org.apache.nifi.tests.system.stateless;
 
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -33,6 +34,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StatelessInMemoryContentIT extends NiFiSystemIT {
 
@@ -42,127 +44,68 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
     // Result of reversing "Hello World" to "dlroW olleH", appending "!!!", then reversing "dlroW olleH!!!" back.
     private static final String TRANSFORMED = EXCLAMATIONS + HELLO_WORLD;
 
-    private static final String INHERITED = "INHERITED";
-    private static final String CONTENT_REPOSITORY = "CONTENT_REPOSITORY";
-    private static final String IN_MEMORY = "IN_MEMORY";
+    private static final String LARGE_BUDGET = "1 MB";
+    private static final String TINY_BUDGET = "10 B";
+
+    @Override
+    protected boolean isAllowFactoryReuse() {
+        return false;
+    }
+
+    @Override
+    protected boolean isDestroyEnvironmentAfterEachTest() {
+        return true;
+    }
 
     @Test
-    public void testContentProcessedInMemoryWithoutWritingToDisk() throws NiFiClientException, IOException, InterruptedException {
-        // A Process Group that buffers FlowFile content in memory must be disconnected from all other components, so the entire flow is self-contained.
+    public void testContentUnderBudgetStaysInMemory() throws NiFiClientException, IOException, InterruptedException {
+        final SelfContainedFlow flow = createSelfContainedTransformFlow(LARGE_BUDGET);
+        final long contentBytesBeforeStart = contentBytesOnDisk();
+
+        getClientUtil().startProcessGroupComponents(flow.groupId());
+
+        waitFor(() -> Files.exists(flow.markerFile()));
+        assertEquals(contentBytesBeforeStart, contentBytesOnDisk());
+        waitFor(() -> getProcessorFlowFilesIn(flow.matchedTerminateId()) >= 1);
+        getClientUtil().stopProcessGroupComponents(flow.groupId());
+
+        assertEquals(0, getProcessorFlowFilesIn(flow.unmatchedTerminateId()));
+    }
+
+    @Test
+    public void testContentOverBudgetSpills() throws NiFiClientException, IOException, InterruptedException {
+        final SelfContainedFlow flow = createSelfContainedTransformFlow(TINY_BUDGET);
+        final long contentBytesBeforeStart = contentBytesOnDisk();
+
+        getClientUtil().startProcessGroupComponents(flow.groupId());
+
+        waitFor(() -> Files.exists(flow.markerFile()));
+        assertTrue(contentBytesOnDisk() > contentBytesBeforeStart);
+        waitFor(() -> getProcessorFlowFilesIn(flow.matchedTerminateId()) >= 1);
+        getClientUtil().stopProcessGroupComponents(flow.groupId());
+
+        assertEquals(0, getProcessorFlowFilesIn(flow.unmatchedTerminateId()));
+    }
+
+    @Test
+    public void testInputOutputPortsUnderBudget() throws NiFiClientException, IOException, InterruptedException {
+        verifyInputOutputPortsReverseContent(LARGE_BUDGET, HELLO_WORLD);
+    }
+
+    @Test
+    public void testInputOutputPortsSpillOver() throws NiFiClientException, IOException, InterruptedException {
+        final StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < 200; i++) {
+            builder.append("ABCDEFGHIJ");
+        }
+
+        verifyInputOutputPortsReverseContent(TINY_BUDGET, builder.toString());
+    }
+
+    @Test
+    public void testCannotChangeInMemoryMaxWhileRunning() throws NiFiClientException, IOException, InterruptedException {
         final ProcessGroupEntity statelessGroup = getClientUtil().createProcessGroup("Stateless", "root");
-        getClientUtil().markStateless(statelessGroup, "1 min", IN_MEMORY);
-        final String groupId = statelessGroup.getId();
-
-        final ProcessorEntity generate = getClientUtil().createProcessor(GENERATE_FLOWFILE, groupId);
-        getClientUtil().updateProcessorProperties(generate, Map.of("Text", HELLO_WORLD));
-
-        // Modify the content several times so it is written to and read back from the in-memory Content Repository repeatedly.
-        final ProcessorEntity reverseFirst = getClientUtil().createProcessor(REVERSE_CONTENTS, groupId);
-        final ProcessorEntity append = getClientUtil().createProcessor("UpdateContent", groupId);
-        getClientUtil().updateProcessorProperties(append, Map.of("Content", EXCLAMATIONS, "Update Strategy", "Append"));
-        final ProcessorEntity reverseSecond = getClientUtil().createProcessor(REVERSE_CONTENTS, groupId);
-
-        // VerifyContents routes to a "matched" relationship when the content equals the expected value, otherwise to "unmatched".
-        final ProcessorEntity verify = getClientUtil().createProcessor("VerifyContents", groupId);
-        getClientUtil().updateProcessorProperties(verify, Map.of("matched", TRANSFORMED));
-        final ProcessorEntity matchedTerminate = getClientUtil().createProcessor(TERMINATE_FLOWFILE, groupId);
-        final ProcessorEntity unmatchedTerminate = getClientUtil().createProcessor(TERMINATE_FLOWFILE, groupId);
-
-        getClientUtil().createConnection(generate, reverseFirst, SUCCESS, groupId);
-        getClientUtil().createConnection(reverseFirst, append, SUCCESS, groupId);
-        getClientUtil().createConnection(append, reverseSecond, SUCCESS, groupId);
-        getClientUtil().createConnection(reverseSecond, verify, SUCCESS, groupId);
-        getClientUtil().createConnection(verify, matchedTerminate, "matched", groupId);
-        getClientUtil().createConnection(verify, unmatchedTerminate, "unmatched", groupId);
-
-        getClientUtil().waitForValidProcessor(generate.getId());
-        getClientUtil().waitForValidProcessor(reverseFirst.getId());
-        getClientUtil().waitForValidProcessor(append.getId());
-        getClientUtil().waitForValidProcessor(reverseSecond.getId());
-        getClientUtil().waitForValidProcessor(verify.getId());
-
-        getClientUtil().startProcessGroupComponents(groupId);
-
-        // The content flows through several in-memory read/write cycles and must arrive at the "matched" relationship with the expected value.
-        waitFor(() -> getProcessorFlowFilesIn(matchedTerminate.getId()) >= 1);
-        getClientUtil().stopProcessGroupComponents(groupId);
-
-        // No FlowFile should have reached the "unmatched" relationship, proving the content was correct after the in-memory modifications.
-        assertEquals(0, getProcessorFlowFilesIn(unmatchedTerminate.getId()));
-
-        // Because the group buffers content in memory, nothing should have been written to the on-disk Content Repository.
-        final File contentRepository = new File(getNiFiInstance().getInstanceDirectory(), "content_repository");
-        assertEquals(0L, contentBytesWrittenToDisk(contentRepository));
-    }
-
-    @Test
-    public void testInMemoryNotAllowedWhenGroupHasConnections() throws NiFiClientException, IOException {
-        // A group with an incoming connection cannot buffer content in memory.
-        final ProcessGroupEntity incomingGroup = getClientUtil().createProcessGroup("IncomingConnected", "root");
-        final PortEntity inputPort = getClientUtil().createInputPort("In", incomingGroup.getId());
-        final ProcessorEntity generate = getClientUtil().createProcessor(GENERATE_FLOWFILE);
-        getClientUtil().createConnection(generate, inputPort, SUCCESS);
-        assertThrows(NiFiClientException.class, () -> getClientUtil().markStateless(incomingGroup, "1 min", IN_MEMORY));
-
-        // A group with an outgoing connection cannot buffer content in memory.
-        final ProcessGroupEntity outgoingGroup = getClientUtil().createProcessGroup("OutgoingConnected", "root");
-        final PortEntity outputPort = getClientUtil().createOutputPort("Out", outgoingGroup.getId());
-        final ProcessorEntity terminate = getClientUtil().createProcessor(TERMINATE_FLOWFILE);
-        getClientUtil().createConnection(outputPort, terminate);
-        assertThrows(NiFiClientException.class, () -> getClientUtil().markStateless(outgoingGroup, "1 min", IN_MEMORY));
-    }
-
-    @Test
-    public void testCannotConnectToInMemoryGroup() throws NiFiClientException, IOException {
-        // A group with ports but no connections may buffer content in memory.
-        final ProcessGroupEntity statelessGroup = getClientUtil().createProcessGroup("Stateless", "root");
-        final PortEntity inputPort = getClientUtil().createInputPort("In", statelessGroup.getId());
-        final PortEntity outputPort = getClientUtil().createOutputPort("Out", statelessGroup.getId());
-        getClientUtil().markStateless(statelessGroup, "1 min", IN_MEMORY);
-
-        // Once configured to buffer content in memory, connecting a component into or out of the group is not allowed.
-        final ProcessorEntity generate = getClientUtil().createProcessor(GENERATE_FLOWFILE);
-        assertThrows(NiFiClientException.class, () -> getClientUtil().createConnection(generate, inputPort, SUCCESS));
-
-        final ProcessorEntity terminate = getClientUtil().createProcessor(TERMINATE_FLOWFILE);
-        assertThrows(NiFiClientException.class, () -> getClientUtil().createConnection(outputPort, terminate));
-    }
-
-    @Test
-    public void testCannotConfigureChildDifferentlyFromStatelessParent() throws NiFiClientException, IOException {
-        final ProcessGroupEntity parent = getClientUtil().createProcessGroup("Parent", "root");
-        getClientUtil().markStateless(parent, "1 min", CONTENT_REPOSITORY);
-
-        final ProcessGroupEntity child = getClientUtil().createProcessGroup("Child", parent.getId());
-
-        // The child resolves to the parent's Stateless Execution Engine, so it cannot buffer content in memory while the parent uses the Content Repository.
-        assertThrows(NiFiClientException.class, () -> getClientUtil().setStatelessContentStorageLocation(child, IN_MEMORY));
-    }
-
-    @Test
-    public void testCannotMoveInMemoryGroupIntoContentRepositoryParent() throws NiFiClientException, IOException {
-        final ProcessGroupEntity inMemoryGroup = getClientUtil().createProcessGroup("InMemoryGroup", "root");
-        getClientUtil().markStateless(inMemoryGroup, "1 min", IN_MEMORY);
-
-        final ProcessGroupEntity contentRepoParent = getClientUtil().createProcessGroup("ContentRepositoryParent", "root");
-        getClientUtil().markStateless(contentRepoParent, "1 min", CONTENT_REPOSITORY);
-
-        final ProcessGroupEntity toMove = getNifiClient().getProcessGroupClient().getProcessGroup(inMemoryGroup.getId());
-        assertThrows(NiFiClientException.class, () -> getClientUtil().moveProcessGroup(toMove, contentRepoParent.getId()));
-
-        // Once the group inherits its content storage, the move is allowed and it takes on the parent's Content Repository setting.
-        getClientUtil().setStatelessContentStorageLocation(inMemoryGroup, INHERITED);
-        final ProcessGroupEntity inheritedGroup = getNifiClient().getProcessGroupClient().getProcessGroup(inMemoryGroup.getId());
-        getClientUtil().moveProcessGroup(inheritedGroup, contentRepoParent.getId());
-
-        final ProcessGroupEntity moved = getNifiClient().getProcessGroupClient().getProcessGroup(inMemoryGroup.getId());
-        assertEquals(contentRepoParent.getId(), moved.getComponent().getParentGroupId());
-    }
-
-    @Test
-    public void testCannotChangeContentStorageWhileRunning() throws NiFiClientException, IOException, InterruptedException {
-        final ProcessGroupEntity statelessGroup = getClientUtil().createProcessGroup("Stateless", "root");
-        getClientUtil().markStateless(statelessGroup, "1 min", IN_MEMORY);
+        getClientUtil().markStateless(statelessGroup, "1 min", LARGE_BUDGET);
         final String groupId = statelessGroup.getId();
 
         final ProcessorEntity generate = getClientUtil().createProcessor(GENERATE_FLOWFILE, groupId);
@@ -175,20 +118,134 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
 
         waitFor(() -> getProcessorFlowFilesIn(terminate.getId()) >= 1);
 
-        // The Content Repository is chosen when the Stateless flow starts, so the location cannot be changed while the group is running.
-        assertThrows(NiFiClientException.class, () -> getClientUtil().setStatelessContentStorageLocation(statelessGroup, CONTENT_REPOSITORY));
+        // The in-memory budget is applied when the Stateless flow starts, so it cannot be changed while the group is running.
+        assertThrows(NiFiClientException.class, () -> getClientUtil().setStatelessFlowFileContentInMemoryMax(statelessGroup, TINY_BUDGET));
 
         getClientUtil().stopProcessGroupComponents(groupId);
 
-        final ProcessGroupEntity stoppedGroup = getClientUtil().setStatelessContentStorageLocation(statelessGroup, CONTENT_REPOSITORY);
-        assertEquals(CONTENT_REPOSITORY, stoppedGroup.getComponent().getStatelessContentStorageLocation());
+        final ProcessGroupEntity stoppedGroup = getClientUtil().setStatelessFlowFileContentInMemoryMax(statelessGroup, TINY_BUDGET);
+        assertEquals(TINY_BUDGET, stoppedGroup.getComponent().getStatelessFlowFileContentInMemoryMax());
+
+        getClientUtil().startProcessGroupComponents(groupId);
+        waitFor(() -> getProcessorFlowFilesIn(terminate.getId()) >= 2);
+        getClientUtil().stopProcessGroupComponents(groupId);
+
+        assertTrue(contentBytesOnDisk() > 0L, "The updated in-memory maximum must be applied when the Stateless group restarts");
+    }
+
+    /**
+     * Builds a flow in which a FlowFile is generated outside the Stateless group, sent into it through an Input Port, has its content rewritten inside the group by
+     * ReverseContents, and leaves through an Output Port into a connection whose destination is never started. The FlowFile therefore remains queued outside the
+     * group, which keeps the content that left the group referenced on disk. The transformed content is verified byte-for-byte. For the spill case, a Sleep
+     * processor keeps the transformed FlowFile inside the Stateless group long enough to confirm that its claim is written to disk before it reaches the Output
+     * Port boundary.
+     */
+    private void verifyInputOutputPortsReverseContent(final String budget, final String content) throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity generate = getClientUtil().createProcessor(GENERATE_FLOWFILE);
+        getClientUtil().updateProcessorProperties(generate, Map.of("Text", content));
+        final boolean verifySpill = TINY_BUDGET.equals(budget);
+
+        final ProcessGroupEntity statelessGroup = getClientUtil().createProcessGroup("Stateless", "root");
+        getClientUtil().markStateless(statelessGroup, "1 min", budget);
+        final String groupId = statelessGroup.getId();
+
+        final PortEntity inputPort = getClientUtil().createInputPort("In", groupId);
+        final PortEntity outputPort = getClientUtil().createOutputPort("Out", groupId);
+
+        final ProcessorEntity reverse = getClientUtil().createProcessor(REVERSE_CONTENTS, groupId);
+        getClientUtil().createConnection(inputPort, reverse, groupId);
+        if (verifySpill) {
+            final ProcessorEntity sleep = getClientUtil().createProcessor("Sleep", groupId);
+            getClientUtil().updateProcessorProperties(sleep, Map.of("onTrigger Sleep Time", "10 sec"));
+            getClientUtil().createConnection(reverse, sleep, SUCCESS, groupId);
+            getClientUtil().createConnection(sleep, outputPort, SUCCESS);
+            getClientUtil().waitForValidProcessor(sleep.getId());
+        } else {
+            getClientUtil().createConnection(reverse, outputPort, SUCCESS);
+        }
+
+        final ProcessorEntity terminate = getClientUtil().createProcessor(TERMINATE_FLOWFILE);
+        final ConnectionEntity inputToStateless = getClientUtil().createConnection(generate, inputPort, SUCCESS);
+        final ConnectionEntity outputToTerminate = getClientUtil().createConnection(outputPort, terminate);
+
+        getClientUtil().waitForValidProcessor(generate.getId());
+        getClientUtil().waitForValidProcessor(reverse.getId());
+
+        getClientUtil().runProcessorOnce(generate);
+        waitForQueueCount(inputToStateless.getId(), 1);
+        final long contentBytesBeforeStateless = contentBytesOnDisk();
+        getClientUtil().startProcessGroupComponents(groupId);
+
+        if (verifySpill) {
+            waitFor(() -> contentBytesOnDisk() > contentBytesBeforeStateless);
+            assertEquals(0, getConnectionQueueSize(outputToTerminate.getId()));
+        }
+
+        waitForQueueCount(outputToTerminate.getId(), 1);
+
+        final String expected = new StringBuilder(content).reverse().toString();
+        final String outputContent = getClientUtil().getFlowFileContentAsUtf8(outputToTerminate.getId(), 0);
+        assertEquals(expected, outputContent);
+        assertEquals(content.length(), getClientUtil().getQueueFlowFile(outputToTerminate.getId(), 0).getFlowFile().getSize());
+
+        getClientUtil().stopProcessGroupComponents(groupId);
+    }
+
+    private SelfContainedFlow createSelfContainedTransformFlow(final String budget) throws NiFiClientException, IOException, InterruptedException {
+        final ProcessGroupEntity statelessGroup = getClientUtil().createProcessGroup("Stateless", "root");
+        statelessGroup.getComponent().setMaxConcurrentTasks(4);
+        getClientUtil().markStateless(statelessGroup, "1 min", budget);
+        final String groupId = statelessGroup.getId();
+
+        final ProcessorEntity generate = getClientUtil().createProcessor(GENERATE_FLOWFILE, groupId);
+        getClientUtil().updateProcessorProperties(generate, Map.of("Text", HELLO_WORLD));
+
+        final ProcessorEntity reverseFirst = getClientUtil().createProcessor(REVERSE_CONTENTS, groupId);
+        final ProcessorEntity append = getClientUtil().createProcessor("UpdateContent", groupId);
+        getClientUtil().updateProcessorProperties(append, Map.of("Content", EXCLAMATIONS, "Update Strategy", "Append"));
+        final ProcessorEntity reverseSecond = getClientUtil().createProcessor(REVERSE_CONTENTS, groupId);
+        getClientUtil().updateProcessorRunDuration(reverseFirst, 25);
+        getClientUtil().updateProcessorRunDuration(append, 25);
+        getClientUtil().updateProcessorRunDuration(reverseSecond, 25);
+
+        final ProcessorEntity verify = getClientUtil().createProcessor("VerifyContents", groupId);
+        getClientUtil().updateProcessorProperties(verify, Map.of("matched", TRANSFORMED));
+        final Path markerFile = new File(getNiFiInstance().getInstanceDirectory(), "target/stateless-content-marker-" + groupId).getAbsoluteFile().toPath();
+        Files.deleteIfExists(markerFile);
+        final ProcessorEntity writeMarker = getClientUtil().createProcessor("WriteToFile", groupId);
+        getClientUtil().updateProcessorProperties(writeMarker, Map.of("Filename", markerFile.toString()));
+        getClientUtil().setAutoTerminatedRelationships(writeMarker, "failure");
+        final ProcessorEntity sleep = getClientUtil().createProcessor("Sleep", groupId);
+        getClientUtil().updateProcessorProperties(sleep, Map.of("onTrigger Sleep Time", "10 sec"));
+        final ProcessorEntity matchedTerminate = getClientUtil().createProcessor(TERMINATE_FLOWFILE, groupId);
+        final ProcessorEntity unmatchedTerminate = getClientUtil().createProcessor(TERMINATE_FLOWFILE, groupId);
+
+        getClientUtil().createConnection(generate, reverseFirst, SUCCESS, groupId);
+        getClientUtil().createConnection(reverseFirst, append, SUCCESS, groupId);
+        getClientUtil().createConnection(append, reverseSecond, SUCCESS, groupId);
+        getClientUtil().createConnection(reverseSecond, verify, SUCCESS, groupId);
+        getClientUtil().createConnection(verify, writeMarker, "matched", groupId);
+        getClientUtil().createConnection(writeMarker, sleep, SUCCESS, groupId);
+        getClientUtil().createConnection(sleep, matchedTerminate, SUCCESS, groupId);
+        getClientUtil().createConnection(verify, unmatchedTerminate, "unmatched", groupId);
+
+        getClientUtil().waitForValidProcessor(generate.getId());
+        getClientUtil().waitForValidProcessor(reverseFirst.getId());
+        getClientUtil().waitForValidProcessor(append.getId());
+        getClientUtil().waitForValidProcessor(reverseSecond.getId());
+        getClientUtil().waitForValidProcessor(verify.getId());
+        getClientUtil().waitForValidProcessor(writeMarker.getId());
+        getClientUtil().waitForValidProcessor(sleep.getId());
+
+        return new SelfContainedFlow(groupId, matchedTerminate.getId(), unmatchedTerminate.getId(), markerFile);
     }
 
     private int getProcessorFlowFilesIn(final String processorId) throws NiFiClientException, IOException {
         return getNifiClient().getProcessorClient().getProcessor(processorId).getStatus().getAggregateSnapshot().getFlowFilesIn();
     }
 
-    private long contentBytesWrittenToDisk(final File contentRepository) throws IOException {
+    private long contentBytesOnDisk() throws IOException {
+        final File contentRepository = new File(getNiFiInstance().getInstanceDirectory(), "content_repository");
         if (!contentRepository.exists()) {
             return 0L;
         }
@@ -198,5 +255,8 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
                 .mapToLong(path -> path.toFile().length())
                 .sum();
         }
+    }
+
+    private record SelfContainedFlow(String groupId, String matchedTerminateId, String unmatchedTerminateId, Path markerFile) {
     }
 }

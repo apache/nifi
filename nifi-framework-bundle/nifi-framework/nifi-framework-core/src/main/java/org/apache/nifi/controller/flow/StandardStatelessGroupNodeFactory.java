@@ -123,11 +123,12 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
 
         flowFileRepository.initialize(resourceClaimManager);
 
-        // Defer the choice of Content Repository until it is first used (i.e., when the group starts), because at construction time the group's
-        // Stateless Content Storage Location has not yet been configured. When resolved to IN_MEMORY, content is buffered in memory; otherwise the
-        // NiFi instance's Content Repository is used (wrapped so the Stateless flow does not purge content the framework is responsible for cleaning up).
+        // Defer the choice of Content Repository until it is first used (i.e., when the group starts), because at construction time the group's maximum
+        // in-memory FlowFile content size has not yet been configured. When that size is greater than zero, content is buffered in memory and spills to the
+        // NiFi Content Repository once the size is exceeded; otherwise the NiFi instance's Content Repository is used directly. In either case the NiFi
+        // Content Repository is wrapped so the Stateless flow does not purge content the framework is responsible for cleaning up.
         final ContentRepository frameworkContentRepository = new NonPurgeableContentRepository(flowController.getRepositoryContextFactory().getContentRepository());
-        final ContentRepository contentRepository = new DeferredStatelessContentRepository(group, frameworkContentRepository, resourceClaimManager, EventReporter.NO_OP);
+        final ContentRepository contentRepository = new DeferredStatelessContentRepository(group, frameworkContentRepository, underlyingFlowFileRepository, resourceClaimManager, EventReporter.NO_OP);
         final RepositoryContextFactory statelessRepoContextFactory = new StatelessRepositoryContextFactory(
             contentRepository,
             flowFileRepository,

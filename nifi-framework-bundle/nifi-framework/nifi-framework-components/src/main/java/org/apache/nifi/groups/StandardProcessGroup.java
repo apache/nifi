@@ -68,7 +68,6 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.ExecutionEngine;
-import org.apache.nifi.flow.StatelessContentStorageLocation;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -127,6 +126,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -137,6 +137,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -155,6 +156,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -206,7 +208,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private volatile ExecutionEngine executionEngine = ExecutionEngine.INHERITED;
     private volatile int maxConcurrentTasks = 1;
     private volatile String statelessFlowTimeout = "1 min";
-    private volatile StatelessContentStorageLocation statelessContentStorageLocation = StatelessContentStorageLocation.INHERITED;
+    private volatile String statelessFlowFileContentInMemoryMax = DEFAULT_STATELESS_FLOWFILE_CONTENT_IN_MEMORY_MAX;
     private volatile Authorizable explicitParentAuthorizable;
     private final FlowFileActivity flowFileActivity = new ProcessGroupFlowFileActivity(this);
 
@@ -227,6 +229,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final String DEFAULT_FLOWFILE_EXPIRATION = "0 sec";
     private static final long DEFAULT_BACKPRESSURE_OBJECT = 10_000L;
     private static final String DEFAULT_BACKPRESSURE_DATA_SIZE = "1 GB";
+    private static final String DEFAULT_STATELESS_FLOWFILE_CONTENT_IN_MEMORY_MAX = "0 B";
     private static final Pattern INVALID_DIRECTORY_NAME_CHARACTERS = Pattern.compile("[\\s\\<\\>:\\'\\\"\\/\\\\\\|\\?\\*]");
     private static final String PATH_SEPARATOR = "/";
     private static final String VERSION_SEPARATOR = ":";
@@ -1470,19 +1473,6 @@ public final class StandardProcessGroup implements ProcessGroup {
                             "] destination " + destination.getConnectableType().name() + "[" + destination.getIdentifier() +
                             "] because they are in different Process Groups and neither is an Input Port or Output Port");
                 }
-            }
-
-            // A child Process Group that buffers FlowFile content in memory must remain disconnected from all other components, so reject a Connection
-            // that would cross its boundary (into one of its Input Ports or out of one of its Output Ports).
-            if (isInputPort(destination) && processGroups.containsKey(destinationGroup.getIdentifier())
-                    && destinationGroup.resolveStatelessContentStorageLocation() == StatelessContentStorageLocation.IN_MEMORY) {
-                throw new IllegalStateException("Cannot add a Connection into " + destinationGroup + " because it is configured to buffer FlowFile content in memory. " +
-                    "A Process Group must be disconnected from all other components while it is configured to buffer FlowFile content in memory.");
-            }
-            if (isOutputPort(source) && processGroups.containsKey(sourceGroup.getIdentifier())
-                    && sourceGroup.resolveStatelessContentStorageLocation() == StatelessContentStorageLocation.IN_MEMORY) {
-                throw new IllegalStateException("Cannot add a Connection out of " + sourceGroup + " because it is configured to buffer FlowFile content in memory. " +
-                    "A Process Group must be disconnected from all other components while it is configured to buffer FlowFile content in memory.");
             }
 
             ensureUniqueVersionControlId(connection, ProcessGroup::getConnections);
@@ -3225,7 +3215,6 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             final ExecutionEngine newGroupExecutionEngine = newProcessGroup.resolveExecutionEngine();
             final ExecutionEngine executionEngine = resolveExecutionEngine();
-            final StatelessContentStorageLocation newGroupStorageLocation = newProcessGroup.resolveStatelessContentStorageLocation();
 
             for (final String id : snippet.getInputPorts().keySet()) {
                 final Port port = getInputPort(id);
@@ -3270,22 +3259,6 @@ public final class StandardProcessGroup implements ProcessGroup {
                     throw new IllegalStateException("Cannot move a Process Group that is configured to run with the " + childEngine +
                         " Execution Engine to a Process Group that is configured to run with the " + newGroupExecutionEngine +
                         " unless all components are stopped");
-                }
-
-                // When moving into a Stateless Process Group, the moved group and its descendants must not explicitly configure a FlowFile content
-                // storage that differs from the destination, because a Stateless Process Group and its descendants share a single Content Repository.
-                if (newGroupExecutionEngine == ExecutionEngine.STATELESS) {
-                    final List<ProcessGroup> movedGroups = new ArrayList<>(childGroup.findAllProcessGroups());
-                    movedGroups.add(childGroup);
-
-                    for (final ProcessGroup movedGroup : movedGroups) {
-                        final StatelessContentStorageLocation movedLocation = movedGroup.getStatelessContentStorageLocation();
-                        if (movedLocation != StatelessContentStorageLocation.INHERITED && movedLocation != newGroupStorageLocation) {
-                            throw new IllegalStateException("Cannot move " + childGroup + " into " + newProcessGroup + " because " + movedGroup + " is configured to " +
-                                describeContentStorage(movedLocation) + ", while the destination Process Group is configured to " + describeContentStorage(newGroupStorageLocation) +
-                                ". A Stateless Process Group must use the same FlowFile content storage as its parent.");
-                        }
-                    }
                 }
             }
 
@@ -4780,112 +4753,73 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public StatelessContentStorageLocation getStatelessContentStorageLocation() {
-        return statelessContentStorageLocation;
+    public String getStatelessFlowFileContentInMemoryMax() {
+        return statelessFlowFileContentInMemoryMax;
     }
 
     @Override
-    public void setStatelessContentStorageLocation(final StatelessContentStorageLocation location) {
+    public void setStatelessFlowFileContentInMemoryMax(final String maxSize) {
         writeLock.lock();
         try {
-            verifyCanSetStatelessContentStorageLocation(location);
-            this.statelessContentStorageLocation = location;
+            verifyCanSetStatelessFlowFileContentInMemoryMax(maxSize);
+            this.statelessFlowFileContentInMemoryMax = normalizeStatelessFlowFileContentInMemoryMax(maxSize);
         } finally {
             writeLock.unlock();
         }
     }
 
     @Override
-    public StatelessContentStorageLocation resolveStatelessContentStorageLocation() {
-        final StatelessContentStorageLocation location = getStatelessContentStorageLocation();
-        if (location != StatelessContentStorageLocation.INHERITED) {
-            return location;
-        }
-
-        final ProcessGroup parent = getParent();
-        if (parent == null || parent.resolveExecutionEngine() != ExecutionEngine.STATELESS) {
-            return StatelessContentStorageLocation.CONTENT_REPOSITORY;
-        }
-
-        return parent.resolveStatelessContentStorageLocation();
+    public long resolveStatelessFlowFileContentInMemoryMaxBytes() {
+        return parseStatelessFlowFileContentInMemoryMaxBytes(getStatelessFlowFileContentInMemoryMax());
     }
 
     @Override
-    public void verifyCanSetStatelessContentStorageLocation(final StatelessContentStorageLocation location) {
-        Objects.requireNonNull(location);
+    public void verifyCanSetStatelessFlowFileContentInMemoryMax(final String maxSize) {
+        // Validate that the value is a parseable data size. A blank value is treated as the default of "0 B".
+        final long proposedMaxSizeBytes = parseStatelessFlowFileContentInMemoryMaxBytes(maxSize);
 
-        final StatelessContentStorageLocation resolvedProposed;
-        if (location == StatelessContentStorageLocation.INHERITED) {
-            final ProcessGroup parent = getParent();
-            if (parent == null || parent.resolveExecutionEngine() != ExecutionEngine.STATELESS) {
-                resolvedProposed = StatelessContentStorageLocation.CONTENT_REPOSITORY;
-            } else {
-                resolvedProposed = parent.resolveStatelessContentStorageLocation();
-            }
-        } else {
-            resolvedProposed = location;
-        }
-
-        // A Process Group that buffers FlowFile content in memory must be disconnected from all other Process Groups. This ensures that FlowFile content
-        // never needs to be transferred between the in-memory Content Repository and the NiFi Content Repository.
-        if (resolvedProposed == StatelessContentStorageLocation.IN_MEMORY) {
-            for (final Port inputPort : getInputPorts()) {
-                if (!inputPort.getIncomingConnections().isEmpty()) {
-                    throw new IllegalStateException("Cannot configure " + this + " to buffer FlowFile content in memory because it has one or more incoming connections. " +
-                        "A Process Group must be disconnected from all other components before it can buffer FlowFile content in memory.");
-                }
-            }
-
-            for (final Port outputPort : getOutputPorts()) {
-                if (!outputPort.getConnections().isEmpty()) {
-                    throw new IllegalStateException("Cannot configure " + this + " to buffer FlowFile content in memory because it has one or more outgoing connections. " +
-                        "A Process Group must be disconnected from all other components before it can buffer FlowFile content in memory.");
-                }
-            }
-        }
-
-        // If the resolved value is unchanged, there is nothing more to check.
-        if (resolvedProposed == resolveStatelessContentStorageLocation()) {
-            return;
-        }
-
-        // A concrete value must not differ from the value used by an ancestor Stateless Process Group, because a Stateless Process Group and its
-        // descendants run as a single dataflow that shares a single Content Repository.
-        if (location != StatelessContentStorageLocation.INHERITED) {
-            final ProcessGroup statelessParent = getStatelessGroup(getParent());
-            if (statelessParent != null) {
-                final StatelessContentStorageLocation parentLocation = statelessParent.resolveStatelessContentStorageLocation();
-                if (parentLocation != resolvedProposed) {
-                    throw new IllegalStateException("Cannot configure " + this + " to " + describeContentStorage(resolvedProposed) + " because its parent " + statelessParent +
-                        " is configured to " + describeContentStorage(parentLocation) + ". A Stateless Process Group must use the same FlowFile content storage as its parent.");
-                }
-            }
-        }
-
-        // A descendant must not explicitly configure a different value when this Process Group runs using the Stateless Execution Engine.
-        if (resolveExecutionEngine() == ExecutionEngine.STATELESS) {
-            for (final ProcessGroup descendant : findAllProcessGroups()) {
-                final StatelessContentStorageLocation descendantLocation = descendant.getStatelessContentStorageLocation();
-                if (descendantLocation != StatelessContentStorageLocation.INHERITED && descendantLocation != resolvedProposed) {
-                    throw new IllegalStateException("Cannot configure " + this + " to " + describeContentStorage(resolvedProposed) + " because it has a child " + descendant +
-                        " that is configured to " + describeContentStorage(descendantLocation) + ". A Stateless Process Group must use the same FlowFile content storage as its children.");
-                }
-            }
-        }
-
-        // The Content Repository is selected when the Stateless flow starts, so the location cannot change while the flow is running.
+        // The Content Repository is selected when the Stateless flow starts, so the setting cannot change while the flow is running.
         final ProcessGroup statelessGroup = getStatelessGroup(this);
-        if (statelessGroup != null && statelessGroup.getStatelessScheduledState() != StatelessGroupScheduledState.STOPPED) {
-            throw new IllegalStateException("Cannot change the FlowFile content storage for " + this + " while the Stateless flow is running. Stop the Process Group before changing this setting.");
+        if (statelessGroup != null && statelessGroup.getStatelessScheduledState() != StatelessGroupScheduledState.STOPPED
+            && proposedMaxSizeBytes != resolveStatelessFlowFileContentInMemoryMaxBytes()) {
+            throw new IllegalStateException("Cannot change the maximum in-memory FlowFile content for " + this
+                + " while the Stateless flow is running. Stop the Process Group before changing this setting.");
         }
     }
 
-    private static String describeContentStorage(final StatelessContentStorageLocation location) {
-        return switch (location) {
-            case IN_MEMORY -> "buffer FlowFile content in memory";
-            case CONTENT_REPOSITORY -> "store FlowFile content in the Content Repository";
-            case INHERITED -> "inherit the FlowFile content storage from its parent Process Group";
+    private static String normalizeStatelessFlowFileContentInMemoryMax(final String maxSize) {
+        if (maxSize == null || maxSize.isBlank()) {
+            return DEFAULT_STATELESS_FLOWFILE_CONTENT_IN_MEMORY_MAX;
+        }
+
+        return maxSize.trim();
+    }
+
+    private static long parseStatelessFlowFileContentInMemoryMaxBytes(final String maxSize) {
+        if (maxSize == null || maxSize.isBlank()) {
+            return 0L;
+        }
+
+        final String normalizedMaxSize = maxSize.trim().toUpperCase(Locale.ROOT);
+        final Matcher matcher = DataUnit.DATA_SIZE_PATTERN.matcher(normalizedMaxSize);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Invalid data size: " + maxSize);
+        }
+
+        final long multiplier = switch (matcher.group(2)) {
+            case "B" -> 1L;
+            case "KB" -> 1L << 10;
+            case "MB" -> 1L << 20;
+            case "GB" -> 1L << 30;
+            case "TB" -> 1L << 40;
+            default -> throw new IllegalArgumentException("Invalid data size: " + maxSize);
         };
+
+        try {
+            return new BigDecimal(matcher.group(1)).multiply(BigDecimal.valueOf(multiplier)).longValueExact();
+        } catch (final ArithmeticException e) {
+            throw new IllegalArgumentException("Data size must represent a whole number of bytes within the supported range: " + maxSize, e);
+        }
     }
 
     private void setLoggingAttributes(final boolean recursive) {

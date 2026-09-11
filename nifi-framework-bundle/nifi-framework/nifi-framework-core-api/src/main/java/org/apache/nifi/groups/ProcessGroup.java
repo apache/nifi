@@ -36,7 +36,6 @@ import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ExecutionEngine;
-import org.apache.nifi.flow.StatelessContentStorageLocation;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
@@ -1321,31 +1320,30 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     String getStatelessFlowTimeout();
 
     /**
-     * @return the configured location for storing FlowFile content when this Process Group is run using the Stateless Execution Engine
+     * @return the configured maximum amount of FlowFile content to buffer in memory when this Process Group is run using the Stateless Execution Engine,
+     * specified as a data size such as "0 B" or "100 MB". A value of "0 B" indicates that all FlowFile content is written to the Content Repository.
      */
-    StatelessContentStorageLocation getStatelessContentStorageLocation();
+    String getStatelessFlowFileContentInMemoryMax();
 
     /**
-     * Sets the location for storing FlowFile content when this Process Group is run using the Stateless Execution Engine
-     * @param location the location to use for storing FlowFile content
+     * Sets the maximum amount of FlowFile content to buffer in memory when this Process Group is run using the Stateless Execution Engine
+     * @param maxSize the maximum amount of FlowFile content to buffer in memory, as a data size such as "0 B" or "100 MB"
      */
-    void setStatelessContentStorageLocation(StatelessContentStorageLocation location);
+    void setStatelessFlowFileContentInMemoryMax(String maxSize);
 
     /**
-     * Returns the location that should be used for storing FlowFile content when this Process Group is run using the Stateless Execution Engine. If the
-     * Process Group has a location explicitly configured, it will be returned. Otherwise, the location will be resolved by traversing up the Process Group
-     * hierarchy. If no ancestor Process Group is configured to use the Stateless Execution Engine, the Content Repository will be used.
-     *
-     * @return the location that should be used for storing FlowFile content when this Process Group is run using the Stateless Execution Engine
+     * @return the configured maximum amount of FlowFile content to buffer in memory, in bytes, when this Process Group is run using the Stateless Execution
+     * Engine. A value of 0 indicates that all FlowFile content is written to the Content Repository.
      */
-    StatelessContentStorageLocation resolveStatelessContentStorageLocation();
+    long resolveStatelessFlowFileContentInMemoryMaxBytes();
 
     /**
-     * Verifies that the Stateless Content Storage Location can be set to the given value without conflicting with a parent or child Process Group.
-     * @param location the location to set
-     * @throws IllegalStateException if the location cannot be set to the given value
+     * Verifies that the maximum in-memory FlowFile content can be set to the given value.
+     * @param maxSize the maximum amount of FlowFile content to buffer in memory, as a data size such as "0 B" or "100 MB"
+     * @throws IllegalArgumentException if the value is not a valid data size
+     * @throws IllegalStateException if the value cannot be set because the Stateless flow is running
      */
-    void verifyCanSetStatelessContentStorageLocation(StatelessContentStorageLocation location);
+    void verifyCanSetStatelessFlowFileContentInMemoryMax(String maxSize);
 
     /**
      * @return the FlowFileActivity for this Process Group

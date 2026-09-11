@@ -25,11 +25,11 @@ import org.apache.nifi.controller.ClusterTopologyProvider;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.ExecutionEngine;
-import org.apache.nifi.flow.StatelessContentStorageLocation;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
@@ -54,6 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -397,75 +398,54 @@ class StandardProcessGroupTest {
     }
 
     @Test
-    void testResolveStatelessContentStorageLocationWithoutStatelessParentDefaultsToContentRepository() {
-        assertEquals(StatelessContentStorageLocation.CONTENT_REPOSITORY, processGroup.resolveStatelessContentStorageLocation());
-
-        processGroup.setExecutionEngine(ExecutionEngine.STATELESS);
-        processGroup.setStatelessContentStorageLocation(StatelessContentStorageLocation.IN_MEMORY);
-        assertEquals(StatelessContentStorageLocation.IN_MEMORY, processGroup.resolveStatelessContentStorageLocation());
-
-        processGroup.setStatelessContentStorageLocation(StatelessContentStorageLocation.INHERITED);
-        assertEquals(StatelessContentStorageLocation.CONTENT_REPOSITORY, processGroup.resolveStatelessContentStorageLocation());
+    void testStatelessFlowFileContentInMemoryMaxDefaultsToZero() {
+        assertEquals("0 B", processGroup.getStatelessFlowFileContentInMemoryMax());
+        assertEquals(0L, processGroup.resolveStatelessFlowFileContentInMemoryMaxBytes());
     }
 
     @Test
-    void testResolveStatelessContentStorageLocationInheritsFromStatelessParent() {
-        final StandardProcessGroup parent = createStatelessParent(StatelessContentStorageLocation.IN_MEMORY);
-        final StandardProcessGroup child = createStandardProcessGroup("child");
-        child.setName("Child");
-        parent.addProcessGroup(child);
+    void testSetStatelessFlowFileContentInMemoryMaxParsesDataSize() {
+        processGroup.setStatelessFlowFileContentInMemoryMax("100 MB");
+        assertEquals("100 MB", processGroup.getStatelessFlowFileContentInMemoryMax());
+        assertEquals(100L * 1024 * 1024, processGroup.resolveStatelessFlowFileContentInMemoryMaxBytes());
 
-        assertEquals(StatelessContentStorageLocation.IN_MEMORY, child.resolveStatelessContentStorageLocation());
+        processGroup.setStatelessFlowFileContentInMemoryMax("1 KB");
+        assertEquals(1024L, processGroup.resolveStatelessFlowFileContentInMemoryMaxBytes());
 
-        // A concrete value that matches the resolved parent value is allowed.
-        child.setStatelessContentStorageLocation(StatelessContentStorageLocation.IN_MEMORY);
-        assertEquals(StatelessContentStorageLocation.IN_MEMORY, child.resolveStatelessContentStorageLocation());
+        processGroup.setStatelessFlowFileContentInMemoryMax("1.5 kb");
+        assertEquals(1536L, processGroup.resolveStatelessFlowFileContentInMemoryMaxBytes());
     }
 
     @Test
-    void testResolveIgnoresContentStorageWhenParentIsNotStateless() {
-        final StandardProcessGroup parent = createStandardProcessGroup("parent");
-        parent.setName("Parent");
-        parent.setStatelessContentStorageLocation(StatelessContentStorageLocation.IN_MEMORY);
+    void testSetStatelessFlowFileContentInMemoryMaxTreatsBlankAsZero() {
+        processGroup.setStatelessFlowFileContentInMemoryMax("100 MB");
 
-        final StandardProcessGroup child = createStandardProcessGroup("child");
-        child.setName("Child");
-        parent.addProcessGroup(child);
-
-        assertEquals(StatelessContentStorageLocation.CONTENT_REPOSITORY, child.resolveStatelessContentStorageLocation());
+        processGroup.setStatelessFlowFileContentInMemoryMax("   ");
+        assertEquals("0 B", processGroup.getStatelessFlowFileContentInMemoryMax());
+        assertEquals(0L, processGroup.resolveStatelessFlowFileContentInMemoryMaxBytes());
     }
 
     @Test
-    void testSetStatelessContentStorageLocationRejectsChildDifferingFromStatelessParent() {
-        final StandardProcessGroup parent = createStatelessParent(StatelessContentStorageLocation.IN_MEMORY);
-        final StandardProcessGroup child = createStandardProcessGroup("child");
-        child.setName("Child");
-        parent.addProcessGroup(child);
-
-        assertThrows(IllegalStateException.class, () -> child.setStatelessContentStorageLocation(StatelessContentStorageLocation.CONTENT_REPOSITORY));
-
-        // INHERITED is always allowed because it resolves to the parent's value.
-        child.setStatelessContentStorageLocation(StatelessContentStorageLocation.INHERITED);
-        assertEquals(StatelessContentStorageLocation.IN_MEMORY, child.resolveStatelessContentStorageLocation());
+    void testSetStatelessFlowFileContentInMemoryMaxRejectsInvalidDataSize() {
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessFlowFileContentInMemoryMax("not a size"));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessFlowFileContentInMemoryMax("-1 MB"));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessFlowFileContentInMemoryMax("limit 1 MB"));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessFlowFileContentInMemoryMax("0.9 B"));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessFlowFileContentInMemoryMax("999999999999999999999999999999999999999999999 TB"));
     }
 
     @Test
-    void testSetStatelessContentStorageLocationRejectsParentConflictingWithConcreteChild() {
-        final StandardProcessGroup parent = createStatelessParent(StatelessContentStorageLocation.IN_MEMORY);
-        final StandardProcessGroup child = createStandardProcessGroup("child");
-        child.setName("Child");
-        parent.addProcessGroup(child);
-        child.setStatelessContentStorageLocation(StatelessContentStorageLocation.IN_MEMORY);
+    void testSetStatelessFlowFileContentInMemoryMaxWhileRunningAllowsSameByteCount() {
+        final StatelessGroupNode statelessGroupNode = mock(StatelessGroupNode.class);
+        when(statelessGroupNodeFactory.createStatelessGroupNode(any())).thenReturn(statelessGroupNode);
+        final StandardProcessGroup runningGroup = createStandardProcessGroup("running");
+        runningGroup.setStatelessFlowFileContentInMemoryMax("1 MB");
+        runningGroup.setExecutionEngine(ExecutionEngine.STATELESS);
+        when(statelessGroupNode.getCurrentState()).thenReturn(ScheduledState.RUNNING);
 
-        assertThrows(IllegalStateException.class, () -> parent.setStatelessContentStorageLocation(StatelessContentStorageLocation.CONTENT_REPOSITORY));
-    }
-
-    private StandardProcessGroup createStatelessParent(final StatelessContentStorageLocation location) {
-        final StandardProcessGroup parent = createStandardProcessGroup("parent");
-        parent.setName("Parent");
-        parent.setExecutionEngine(ExecutionEngine.STATELESS);
-        parent.setStatelessContentStorageLocation(location);
-        return parent;
+        runningGroup.setStatelessFlowFileContentInMemoryMax("1024 KB");
+        assertEquals("1024 KB", runningGroup.getStatelessFlowFileContentInMemoryMax());
+        assertThrows(IllegalStateException.class, () -> runningGroup.setStatelessFlowFileContentInMemoryMax("2 MB"));
     }
 
     private StandardProcessGroup createStandardProcessGroup(final String id) {

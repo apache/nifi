@@ -40,7 +40,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     private String executionEngine;
     private Integer maxConcurrentTasks;
     private String statelessFlowTimeout;
-    private String statelessContentStorageLocation;
+    private String statelessFlowFileContentInMemoryMax;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -424,15 +424,14 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.statelessFlowTimeout = timeout;
     }
 
-    @Schema(description = "Specifies where FlowFile content should be stored when the flow is run using the Stateless Engine: in the Content Repository, " +
-        "in memory, or inherited from the parent Process Group. If there is no parent Process Group, or if the parent Process Group is not configured to use " +
-        "the Stateless Execution Engine, INHERITED resolves to CONTENT_REPOSITORY.",
-        allowableValues = {"INHERITED", "CONTENT_REPOSITORY", "IN_MEMORY"})
-    public String getStatelessContentStorageLocation() {
-        return statelessContentStorageLocation;
+    @Schema(description = "The maximum amount of FlowFile content to buffer in memory when the flow is run using the Stateless Engine, specified as a data size such as " +
+        "\"0 B\" or \"100 MB\". A value of \"0 B\" causes all FlowFile content to be written to the Content Repository. Any value greater than zero causes FlowFile content " +
+        "to be buffered in memory up to the configured size, spilling to the Content Repository once the size is exceeded.")
+    public String getStatelessFlowFileContentInMemoryMax() {
+        return statelessFlowFileContentInMemoryMax;
     }
 
-    public void setStatelessContentStorageLocation(final String statelessContentStorageLocation) {
-        this.statelessContentStorageLocation = statelessContentStorageLocation;
+    public void setStatelessFlowFileContentInMemoryMax(final String statelessFlowFileContentInMemoryMax) {
+        this.statelessFlowFileContentInMemoryMax = statelessFlowFileContentInMemoryMax;
     }
 }
