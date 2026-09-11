@@ -17,7 +17,16 @@
 
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+    AbstractControl,
+    FormBuilder,
+    FormControl,
+    FormGroup,
+    FormsModule,
+    ReactiveFormsModule,
+    ValidationErrors,
+    Validators
+} from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -69,6 +78,16 @@ import {
     ]
 })
 export class EditProcessGroup extends TabbedDialog {
+    private static readonly DATA_SIZE_PATTERN = /^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB)$/i;
+    private static readonly DATA_SIZE_MULTIPLIERS = {
+        B: 1n,
+        KB: 1n << 10n,
+        MB: 1n << 20n,
+        GB: 1n << 30n,
+        TB: 1n << 40n
+    };
+    private static readonly MAXIMUM_DATA_SIZE_BYTES = 9223372036854775807n;
+
     request = inject<EditComponentDialogRequest>(MAT_DIALOG_DATA);
     private formBuilder = inject(FormBuilder);
     private client = inject(Client);
@@ -125,7 +144,7 @@ export class EditProcessGroup extends TabbedDialog {
     protected readonly STATELESS: string = 'STATELESS';
     private initialMaxConcurrentTasks: number;
     private initialStatelessFlowTimeout: string;
-    private initialStatelessContentStorageLocation: string;
+    private initialStatelessFlowFileContentInMemoryMax: string;
     private _parameterContexts: ParameterContextEntity[] = [];
 
     editProcessGroupForm: FormGroup;
@@ -148,28 +167,6 @@ export class EditProcessGroup extends TabbedDialog {
             value: this.STATELESS,
             description:
                 'Run the dataflow using the Stateless Execution Engine. See the User Guide for additional details.'
-        }
-    ];
-
-    statelessContentStorageLocationOptions: SelectOption[] = [
-        {
-            text: 'Inherited',
-            value: 'INHERITED',
-            description:
-                'Use whichever FlowFile content storage the parent Process Group is configured to use. If there is no parent Process Group, or the ' +
-                'parent is not using the Stateless Execution Engine, FlowFile content is stored in the Content Repository.'
-        },
-        {
-            text: 'Content Repository',
-            value: 'CONTENT_REPOSITORY',
-            description: 'Store FlowFile content in the configured Content Repository.'
-        },
-        {
-            text: 'In Memory',
-            value: 'IN_MEMORY',
-            description:
-                'Buffer FlowFile content in memory instead of writing to the Content Repository. This can improve performance for flows that keep ' +
-                'only a small amount of data in flight, but is not appropriate for flows that process large amounts of data.'
         }
     ];
 
@@ -249,8 +246,8 @@ export class EditProcessGroup extends TabbedDialog {
 
         this.initialMaxConcurrentTasks = request.entity.component.maxConcurrentTasks;
         this.initialStatelessFlowTimeout = request.entity.component.statelessFlowTimeout;
-        this.initialStatelessContentStorageLocation =
-            request.entity.component.statelessContentStorageLocation ?? 'INHERITED';
+        this.initialStatelessFlowFileContentInMemoryMax =
+            request.entity.component.statelessFlowFileContentInMemoryMax ?? '0 B';
 
         this.executionEngineChanged(request.entity.component.executionEngine);
     }
@@ -266,14 +263,44 @@ export class EditProcessGroup extends TabbedDialog {
                 new FormControl(this.initialStatelessFlowTimeout, Validators.required)
             );
             this.editProcessGroupForm.addControl(
-                'statelessContentStorageLocation',
-                new FormControl(this.initialStatelessContentStorageLocation, Validators.required)
+                'statelessFlowFileContentInMemoryMax',
+                new FormControl(
+                    {
+                        value: this.initialStatelessFlowFileContentInMemoryMax,
+                        disabled: this.request.entity.component.statelessGroupScheduledState !== 'STOPPED'
+                    },
+                    [Validators.required, EditProcessGroup.validateDataSize]
+                )
             );
         } else {
             this.editProcessGroupForm.removeControl('maxConcurrentTasks');
             this.editProcessGroupForm.removeControl('statelessFlowTimeout');
-            this.editProcessGroupForm.removeControl('statelessContentStorageLocation');
+            this.editProcessGroupForm.removeControl('statelessFlowFileContentInMemoryMax');
         }
+    }
+
+    private static validateDataSize(control: AbstractControl): ValidationErrors | null {
+        if (typeof control.value !== 'string') {
+            return { dataSize: true };
+        }
+
+        const match = EditProcessGroup.DATA_SIZE_PATTERN.exec(control.value.trim());
+        if (match === null) {
+            return { dataSize: true };
+        }
+
+        const size = match[1];
+        const unit = match[2].toUpperCase() as keyof typeof EditProcessGroup.DATA_SIZE_MULTIPLIERS;
+        const [integerPart, fractionalPart = ''] = size.split('.');
+        const unscaledSize = BigInt(integerPart + fractionalPart);
+        const divisor = 10n ** BigInt(fractionalPart.length);
+        const unscaledBytes = unscaledSize * EditProcessGroup.DATA_SIZE_MULTIPLIERS[unit];
+
+        if (unscaledBytes % divisor !== 0n || unscaledBytes / divisor > EditProcessGroup.MAXIMUM_DATA_SIZE_BYTES) {
+            return { dataSize: true };
+        }
+
+        return null;
     }
 
     submitForm() {
@@ -309,8 +336,9 @@ export class EditProcessGroup extends TabbedDialog {
         if (this.editProcessGroupForm.get('executionEngine')?.value === this.STATELESS) {
             payload.component.maxConcurrentTasks = this.editProcessGroupForm.get('maxConcurrentTasks')?.value;
             payload.component.statelessFlowTimeout = this.editProcessGroupForm.get('statelessFlowTimeout')?.value;
-            payload.component.statelessContentStorageLocation =
-                this.editProcessGroupForm.get('statelessContentStorageLocation')?.value;
+            payload.component.statelessFlowFileContentInMemoryMax = this.editProcessGroupForm.get(
+                'statelessFlowFileContentInMemoryMax'
+            )?.value;
         }
 
         this.editProcessGroup.next(payload);

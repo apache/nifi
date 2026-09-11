@@ -21,9 +21,7 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.flow.StatelessContentStorageLocation;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,45 +31,57 @@ import java.util.Set;
 
 /**
  * A {@link ContentRepository} for an embedded Stateless Process Group that defers the choice of backing repository until it is first used. This is necessary
- * because the {@link org.apache.nifi.groups.StatelessGroupNode} is created when the Process Group is constructed, which is before the Process Group's
- * Stateless Content Storage Location has been configured. Resolving the backing repository lazily ensures the configured value is honored: when the Process
- * Group is resolved to buffer FlowFile content in memory, an in-memory {@link ByteArrayContentRepository} is used; otherwise the NiFi instance's Content
- * Repository is used.
+ * because the {@link org.apache.nifi.groups.StatelessGroupNode} is created when the Process Group is constructed, which is before the Process Group's maximum
+ * in-memory FlowFile content size has been configured. Resolving the backing repository lazily ensures the configured value is honored: when the maximum
+ * in-memory FlowFile content size is greater than zero, a {@link SpillableContentRepository} buffers FlowFile content in memory up to that size and spills to
+ * the NiFi instance's Content Repository once it is exceeded; when the size is zero, the NiFi instance's Content Repository is used directly.
  */
 public class DeferredStatelessContentRepository implements ContentRepository {
     private final ProcessGroup processGroup;
     private final ContentRepository contentRepositoryDelegate;
+    private final FlowFileRepository nifiFlowFileRepository;
     private final ResourceClaimManager resourceClaimManager;
     private final EventReporter eventReporter;
 
     private volatile ContentRepository delegate;
+    private volatile long resolvedMemoryThresholdBytes = Long.MIN_VALUE;
 
-    public DeferredStatelessContentRepository(final ProcessGroup processGroup, final ContentRepository contentRepositoryDelegate,
+    public DeferredStatelessContentRepository(final ProcessGroup processGroup, final ContentRepository contentRepositoryDelegate, final FlowFileRepository nifiFlowFileRepository,
                                               final ResourceClaimManager resourceClaimManager, final EventReporter eventReporter) {
         this.processGroup = processGroup;
         this.contentRepositoryDelegate = contentRepositoryDelegate;
+        this.nifiFlowFileRepository = nifiFlowFileRepository;
         this.resourceClaimManager = resourceClaimManager;
         this.eventReporter = eventReporter;
     }
 
-    private ContentRepository getDelegate() {
-        ContentRepository resolved = delegate;
-        if (resolved != null) {
-            return resolved;
+    /**
+     * Ensures that the content for the given claim is accessible outside of the Stateless Process Group and returns a Content Claim that references it in the
+     * NiFi instance's Content Repository. When FlowFile content was buffered in memory, this writes it to the NiFi Content Repository and returns the new claim.
+     * When content was not buffered in memory (or the Process Group is not configured to buffer content in memory), the claim is returned unchanged.
+     *
+     * @param claim the claim to make externally accessible
+     * @return a Content Claim whose content is stored in the NiFi instance's Content Repository
+     * @throws IOException if the content cannot be written to the NiFi Content Repository
+     */
+    public ContentClaim exportForExternalUse(final ContentClaim claim) throws IOException {
+        final ContentRepository resolved = getDelegate();
+        if (resolved instanceof final SpillableContentRepository spillableContentRepository) {
+            return spillableContentRepository.exportForExternalUse(claim);
         }
 
-        synchronized (this) {
-            if (delegate == null) {
-                if (processGroup.resolveStatelessContentStorageLocation() == StatelessContentStorageLocation.IN_MEMORY) {
-                    final ByteArrayContentRepository inMemoryContentRepository = new ByteArrayContentRepository();
-                    inMemoryContentRepository.initialize(new StandardContentRepositoryContext(resourceClaimManager, eventReporter));
-                    delegate = inMemoryContentRepository;
-                } else {
-                    delegate = contentRepositoryDelegate;
-                }
-            }
+        return claim;
+    }
 
-            return delegate;
+    /**
+     * Completes the handoff of a prepared Content Claim after the NiFi FlowFile Repository has been updated successfully.
+     *
+     * @param claim the original claim passed to {@link #exportForExternalUse(ContentClaim)}
+     */
+    public void commitExportForExternalUse(final ContentClaim claim) {
+        final ContentRepository resolved = getDelegate();
+        if (resolved instanceof final SpillableContentRepository spillableContentRepository) {
+            spillableContentRepository.commitExportForExternalUse(claim);
         }
     }
 
@@ -217,5 +227,36 @@ public class DeferredStatelessContentRepository implements ContentRepository {
     @Override
     public boolean isAccessible(final ContentClaim contentClaim) throws IOException {
         return getDelegate().isAccessible(contentClaim);
+    }
+
+    private ContentRepository getDelegate() {
+        long memoryThresholdBytes = processGroup.resolveStatelessFlowFileContentInMemoryMaxBytes();
+        ContentRepository resolved = delegate;
+        if (resolved != null && resolvedMemoryThresholdBytes == memoryThresholdBytes) {
+            return resolved;
+        }
+
+        synchronized (this) {
+            memoryThresholdBytes = processGroup.resolveStatelessFlowFileContentInMemoryMaxBytes();
+            resolved = delegate;
+            if (resolved == null || resolvedMemoryThresholdBytes != memoryThresholdBytes) {
+                if (resolved != null) {
+                    resolved.shutdown();
+                }
+
+                if (memoryThresholdBytes > 0) {
+                    final SpillableContentRepository spillableContentRepository = new SpillableContentRepository(contentRepositoryDelegate, nifiFlowFileRepository, memoryThresholdBytes);
+                    spillableContentRepository.initialize(new StandardContentRepositoryContext(resourceClaimManager, eventReporter));
+                    resolved = spillableContentRepository;
+                } else {
+                    resolved = contentRepositoryDelegate;
+                }
+
+                resolvedMemoryThresholdBytes = memoryThresholdBytes;
+                delegate = resolved;
+            }
+
+            return resolved;
+        }
     }
 }

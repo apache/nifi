@@ -2840,7 +2840,7 @@ public final class DtoFactory {
         dto.setResolvedExecutionEngine(group.resolveExecutionEngine().name());
         dto.setMaxConcurrentTasks(group.getMaxConcurrentTasks());
         dto.setStatelessFlowTimeout(group.getStatelessFlowTimeout());
-        dto.setStatelessContentStorageLocation(group.getStatelessContentStorageLocation().name());
+        dto.setStatelessFlowFileContentInMemoryMax(group.getStatelessFlowFileContentInMemoryMax());
 
         final ParameterContext parameterContext = group.getParameterContext();
         if (parameterContext != null) {
@@ -4833,7 +4833,7 @@ public final class DtoFactory {
         copy.setResolvedExecutionEngine(original.getResolvedExecutionEngine());
         copy.setMaxConcurrentTasks(original.getMaxConcurrentTasks());
         copy.setStatelessFlowTimeout(original.getStatelessFlowTimeout());
-        copy.setStatelessContentStorageLocation(original.getStatelessContentStorageLocation());
+        copy.setStatelessFlowFileContentInMemoryMax(original.getStatelessFlowFileContentInMemoryMax());
 
         copy.setRunningCount(original.getRunningCount());
         copy.setStoppedCount(original.getStoppedCount());

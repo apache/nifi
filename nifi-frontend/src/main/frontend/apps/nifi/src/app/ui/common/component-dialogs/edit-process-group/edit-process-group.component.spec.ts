@@ -118,7 +118,8 @@ describe('EditProcessGroup', () => {
                     executionEngine: 'INHERITED',
                     maxConcurrentTasks: 1,
                     statelessFlowTimeout: '1 min',
-                    statelessContentStorageLocation: 'INHERITED'
+                    statelessFlowFileContentInMemoryMax: '0 B',
+                    statelessGroupScheduledState: 'STOPPED'
                 }
             }
         };
@@ -148,6 +149,46 @@ describe('EditProcessGroup', () => {
 
         it('should create', () => {
             expect(component).toBeTruthy();
+        });
+
+        it('validates the stateless in-memory content maximum as a data size', () => {
+            component.executionEngineChanged('STATELESS');
+            const control = component.editProcessGroupForm.get('statelessFlowFileContentInMemoryMax');
+
+            control?.setValue('not a size');
+            expect(control?.valid).toBeFalsy();
+
+            control?.setValue('0.9 B');
+            expect(control?.valid).toBeFalsy();
+
+            control?.setValue('1.5 KB');
+            expect(control?.valid).toBeTruthy();
+
+            control?.setValue('999999999999999999999999999999999999999999999 TB');
+            expect(control?.valid).toBeFalsy();
+
+            control?.setValue('100 MB');
+            expect(control?.valid).toBeTruthy();
+
+            control?.setValue(' 100 MB ');
+            expect(control?.valid).toBeTruthy();
+        });
+
+        it('disables the stateless in-memory content maximum while the group is running', () => {
+            data.entity.component.statelessGroupScheduledState = 'RUNNING';
+            const runningFixture = TestBed.createComponent(EditProcessGroup);
+            try {
+                const runningComponent = runningFixture.componentInstance;
+                runningComponent.executionEngineChanged('STATELESS');
+
+                expect(
+                    runningComponent.editProcessGroupForm.get('statelessFlowFileContentInMemoryMax')?.disabled
+                ).toBeTruthy();
+                expect(runningComponent.editProcessGroupForm.get('statelessFlowTimeout')?.enabled).toBeTruthy();
+            } finally {
+                data.entity.component.statelessGroupScheduledState = 'STOPPED';
+                runningFixture.destroy();
+            }
         });
 
         it('verify parameter context value initialized', () => {
@@ -220,7 +261,7 @@ describe('EditProcessGroup', () => {
                     executionEngine: 'INHERITED',
                     maxConcurrentTasks: 1,
                     statelessFlowTimeout: '1 min',
-                    statelessContentStorageLocation: 'INHERITED'
+                    statelessFlowFileContentInMemoryMax: '0 B'
                 }
             }
         };
@@ -306,7 +347,7 @@ describe('EditProcessGroup', () => {
                     executionEngine: 'INHERITED',
                     maxConcurrentTasks: 1,
                     statelessFlowTimeout: '1 min',
-                    statelessContentStorageLocation: 'INHERITED'
+                    statelessFlowFileContentInMemoryMax: '0 B'
                 }
             }
         };

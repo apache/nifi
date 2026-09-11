@@ -139,20 +139,19 @@
                             </div>
                             <div>
                                 <mat-form-field>
-                                    <mat-label>FlowFile Content Storage</mat-label>
-                                    <mat-select formControlName="statelessContentStorageLocation">
-                                        @for (option of statelessContentStorageLocationOptions; track option) {
-                                            <mat-option
-                                                [value]="option.value"
-                                                [disabled]="readonly"
-                                                nifiTooltip
-                                                [tooltipComponentType]="TextTip"
-                                                [tooltipInputData]="option.description"
-                                                [delayClose]="false">
-                                                {{ option.text }}
-                                            </mat-option>
-                                        }
-                                    </mat-select>
+                                    <mat-label>
+                                        Max In-Memory FlowFile Content
+                                        <i
+                                            class="fa fa-info-circle"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="A value of 0 B writes all FlowFile content to the Content Repository. Larger values buffer content in memory up to the configured size, then spill to the Content Repository."></i>
+                                    </mat-label>
+                                    <input
+                                        matInput
+                                        formControlName="statelessFlowFileContentInMemoryMax"
+                                        type="text"
+                                        [readonly]="readonly" />
                                 </mat-form-field>
                             </div>
                         }

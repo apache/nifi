@@ -35,7 +35,6 @@ import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ExecutionEngine;
-import org.apache.nifi.flow.StatelessContentStorageLocation;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.groups.BatchCounts;
 import org.apache.nifi.groups.ComponentAdditions;
@@ -911,21 +910,21 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public StatelessContentStorageLocation getStatelessContentStorageLocation() {
-        return StatelessContentStorageLocation.CONTENT_REPOSITORY;
+    public String getStatelessFlowFileContentInMemoryMax() {
+        return "0 B";
     }
 
     @Override
-    public void setStatelessContentStorageLocation(final StatelessContentStorageLocation location) {
+    public void setStatelessFlowFileContentInMemoryMax(final String maxSize) {
     }
 
     @Override
-    public StatelessContentStorageLocation resolveStatelessContentStorageLocation() {
-        return StatelessContentStorageLocation.CONTENT_REPOSITORY;
+    public long resolveStatelessFlowFileContentInMemoryMaxBytes() {
+        return 0L;
     }
 
     @Override
-    public void verifyCanSetStatelessContentStorageLocation(final StatelessContentStorageLocation location) {
+    public void verifyCanSetStatelessFlowFileContentInMemoryMax(final String maxSize) {
     }
 
     @Override

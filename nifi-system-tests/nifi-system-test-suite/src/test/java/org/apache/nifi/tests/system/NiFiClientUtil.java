@@ -2894,19 +2894,19 @@ public class NiFiClientUtil {
         return nifiClient.getProcessGroupClient().updateProcessGroup(group);
     }
 
-    public ProcessGroupEntity markStateless(final ProcessGroupEntity group, final String timeout, final String contentStorageLocation)
+    public ProcessGroupEntity markStateless(final ProcessGroupEntity group, final String timeout, final String inMemoryContentMax)
             throws NiFiClientException, IOException {
         group.getComponent().setStatelessFlowTimeout(timeout);
         group.getComponent().setExecutionEngine("STATELESS");
-        group.getComponent().setStatelessContentStorageLocation(contentStorageLocation);
+        group.getComponent().setStatelessFlowFileContentInMemoryMax(inMemoryContentMax);
 
         return nifiClient.getProcessGroupClient().updateProcessGroup(group);
     }
 
-    public ProcessGroupEntity setStatelessContentStorageLocation(final ProcessGroupEntity group, final String contentStorageLocation)
+    public ProcessGroupEntity setStatelessFlowFileContentInMemoryMax(final ProcessGroupEntity group, final String inMemoryContentMax)
             throws NiFiClientException, IOException {
         final ProcessGroupEntity current = nifiClient.getProcessGroupClient().getProcessGroup(group.getId());
-        current.getComponent().setStatelessContentStorageLocation(contentStorageLocation);
+        current.getComponent().setStatelessFlowFileContentInMemoryMax(inMemoryContentMax);
         return nifiClient.getProcessGroupClient().updateProcessGroup(current);
     }
 
