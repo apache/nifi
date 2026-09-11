@@ -42,41 +42,15 @@
 
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-cassandra-session-provider-service</artifactId>
+            <artifactId>nifi-cql-session-provider-shared</artifactId>
             <version>2.12.0-SNAPSHOT</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.cassandra</groupId>
-                    <artifactId>java-driver-core</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
+        <!-- ScyllaDB's shard-aware fork, for nifi-cql-session-provider-shared's provided-scope dependency. -->
         <dependency>
             <groupId>com.scylladb</groupId>
             <artifactId>java-driver-core</artifactId>
             <version>4.19.2.0</version>
-        </dependency>
-
-        <!--
-        Declared explicitly rather than inherited: the shade plugin below folds the Cassandra service's
-        classes into this artifact, and those classes use the query builder, so it has to be on this NAR's
-        runtime classpath in its own right. It previously arrived via nifi-cql-services-api-nar, which is
-        exactly the leak that put the driver on the backend-agnostic modules' classpath.
-
-        The DataStax core artifact is excluded because ScyllaDB's shard-aware fork below supplies the same
-        com.datastax.oss.driver.api.core packages; keeping both would put two copies on the classpath.
-        -->
-        <dependency>
-            <groupId>org.apache.cassandra</groupId>
-            <artifactId>java-driver-query-builder</artifactId>
-            <version>4.19.3</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.cassandra</groupId>
-                    <artifactId>java-driver-core</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
@@ -90,6 +64,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -105,17 +80,6 @@
             <version>${testcontainers.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-record</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-avro-record-utils</artifactId>
-            <version>2.12.0-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-cql-it-common</artifactId>
@@ -142,50 +106,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <!--
-                The ScyllaDB session provider is just a thin extension of the Cassandra provider that provides
-                ScyllaDB-specific metadata. The goal here is to ensure that the same essential underlying controller
-                service functionality can be used against two different sets of dependencies that implement the
-                same Java interfaces but have different Maven coordinates. The Shade plugin here is used to
-                extract just enough of the Cassandra session provider's final JAR to enable the same underlying
-                code to be used with completely different database driver packages without duplication of code.
-            -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.6.0</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <artifactSet>
-                                <includes>
-                                    <include>org.apache.nifi:nifi-cassandra-session-provider-service</include>
-                                </includes>
-                            </artifactSet>
-                            <filters>
-                                <filter>
-                                    <artifact>org.apache.nifi:nifi-cassandra-session-provider-service</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/services/org.apache.nifi.controller.ControllerService</exclude>
-                                        <exclude>META-INF/MANIFEST.MF</exclude>
-                                        <exclude>META-INF/LICENSE</exclude>
-                                        <exclude>META-INF/NOTICE</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <createDependencyReducedPom>true</createDependencyReducedPom>
-                            <dependencyReducedPomLocation>${project.build.directory}/dependency-reduced-pom.xml</dependencyReducedPomLocation>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 </project>

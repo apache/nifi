@@ -37,6 +37,7 @@
         <module>nifi-cql-services-api</module>
         <module>nifi-cql-services-api-nar</module>
         <module>nifi-cql-it-common</module>
+        <module>nifi-cql-session-provider-shared</module>
         <module>nifi-cassandra-session-provider-service</module>
         <module>nifi-cassandra-session-provider-service-nar</module>
         <module>nifi-scylladb-session-provider-service</module>

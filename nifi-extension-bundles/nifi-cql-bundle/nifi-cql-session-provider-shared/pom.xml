@@ -21,7 +21,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>nifi-cassandra-session-provider-service</artifactId>
+    <artifactId>nifi-cql-session-provider-shared</artifactId>
     <packaging>jar</packaging>
 
     <properties>
@@ -44,20 +44,31 @@
             <scope>provided</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-cql-session-provider-shared</artifactId>
-            <version>2.12.0-SNAPSHOT</version>
-        </dependency>
-
-        <!-- The concrete driver for nifi-cql-session-provider-shared's provided-scope dependency. -->
+        <!-- Provided: Cassandra and ScyllaDB publish this under different coordinates; each leaf supplies its own. -->
         <dependency>
             <groupId>org.apache.cassandra</groupId>
             <artifactId>java-driver-core</artifactId>
             <version>${driver.version}</version>
+            <scope>provided</scope>
         </dependency>
 
-        <!-- Provided scope doesn't propagate transitively; redeclared here since shared needs it at runtime too. -->
+        <!-- Not forked by ScyllaDB, so compile scope is fine; its transitive driver-core/guava-shaded are excluded so they don't leak in behind the provided scope above. -->
+        <dependency>
+            <groupId>org.apache.cassandra</groupId>
+            <artifactId>java-driver-query-builder</artifactId>
+            <version>${driver.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.cassandra</groupId>
+                    <artifactId>java-driver-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.cassandra</groupId>
+                    <artifactId>java-driver-guava-shaded</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ssl-context-service-api</artifactId>
@@ -68,39 +79,24 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-mock</artifactId>
-            <scope>test</scope>
+            <artifactId>nifi-record</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-avro-record-utils</artifactId>
+            <version>2.12.0-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers-cassandra</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers-junit-jupiter</artifactId>
-            <version>${testcontainers.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-security-cert-builder</artifactId>
-            <version>2.12.0-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-ssl-context-service</artifactId>
-            <version>2.12.0-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-cql-it-common</artifactId>
-            <version>2.12.0-SNAPSHOT</version>
-            <classifier>tests</classifier>
+            <artifactId>nifi-mock</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
