@@ -27,12 +27,19 @@
                     <ng-container matColumnDef="sourceProcessGroup">
                         <th mat-header-cell *matHeaderCellDef>Source<br>Process Group</th>
                         <td mat-cell *matCellDef="let row">
-                            <a
-                                [matTooltip]="resolveGroupName(row.source.groupId)"
-                                (click)="navigateTo(row.source.groupId, dialogRequestGroupId, processGroupType)">
-                                <i class="icon component-type-icon" [class]="componentIcon(processGroupType)"></i>
-                                {{ resolveGroupName(row.source.groupId) }}
-                            </a>
+                            @if (isCurrentProcessGroup(row.source.groupId)) {
+                                <span [matTooltip]="resolveGroupName(row.source.groupId)">
+                                    <i class="icon component-type-icon" [class]="componentIcon(processGroupType)"></i>
+                                    {{ resolveGroupName(row.source.groupId) }}
+                                </span>
+                            } @else {
+                                <a
+                                    [matTooltip]="resolveGroupName(row.source.groupId)"
+                                    (click)="navigateTo(row.source.groupId, dialogRequestGroupId, processGroupType)">
+                                    <i class="icon component-type-icon" [class]="componentIcon(processGroupType)"></i>
+                                    {{ resolveGroupName(row.source.groupId) }}
+                                </a>
+                            }
                         </td>
                     </ng-container>
 
@@ -74,12 +81,19 @@
                     <ng-container matColumnDef="destinationProcessGroup">
                         <th mat-header-cell *matHeaderCellDef>Destination<br>Process Group</th>
                         <td mat-cell *matCellDef="let row">
-                            <a
-                                [matTooltip]="resolveGroupName(row.destination.groupId)"
-                                (click)="navigateTo(row.destination.groupId, dialogRequestGroupId, processGroupType)">
-                                <i class="icon component-type-icon" [class]="componentIcon(processGroupType)"></i>
-                                {{ resolveGroupName(row.destination.groupId) }}
-                            </a>
+                            @if (isCurrentProcessGroup(row.destination.groupId)) {
+                                <span [matTooltip]="resolveGroupName(row.destination.groupId)">
+                                    <i class="icon component-type-icon" [class]="componentIcon(processGroupType)"></i>
+                                    {{ resolveGroupName(row.destination.groupId) }}
+                                </span>
+                            } @else {
+                                <a
+                                    [matTooltip]="resolveGroupName(row.destination.groupId)"
+                                    (click)="navigateTo(row.destination.groupId, dialogRequestGroupId, processGroupType)">
+                                    <i class="icon component-type-icon" [class]="componentIcon(processGroupType)"></i>
+                                    {{ resolveGroupName(row.destination.groupId) }}
+                                </a>
+                            }
                         </td>
                     </ng-container>
 

@@ -139,6 +139,16 @@ export class ComponentConnectionsDialog extends CloseOnEscapeDialog {
     }
 
     /**
+     * Determines whether the given process group is the group currently shown on the canvas.
+     *
+     * @param groupId the process group id to check
+     * @returns whether the group is the current canvas group
+     */
+    isCurrentProcessGroup(groupId: string): boolean {
+        return groupId === this.dialogRequestGroupId;
+    }
+
+    /**
      * Maps a Process Group ID value to its name.
      *
      * @param groupId the uuid of the process group
