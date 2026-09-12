@@ -549,6 +549,110 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         return getNifiClient().getProcessGroupClient().createProcessGroup("root", groupEntity, true);
     }
 
+    /**
+     * NIFI-16318: Importing a versioned flow with KEEP_EXISTING must not overwrite existing parameter values,
+     * even when a Controller Service in another process group references the parameter and is ENABLED.
+     */
+    @Test
+    void testKeepExistingImportDoesNotOverwriteParameterReferencedByEnabledService() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final String contextName = "SharedKeepExistingParams";
+        final String registryValue = "dev-driver";
+        final String liveValue = "prod-driver";
+
+        final ParameterContextEntity sourceContext = util.createParameterContext(contextName, Map.of(PARAMETER_NAME, registryValue, COUNT_PARAMETER_NAME, COUNT_PARAMETER_VALUE));
+        final ProcessGroupEntity sourceGroup = util.createProcessGroup("KeepExistingSource", "root");
+        util.setParameterContext(sourceGroup.getId(), sourceContext);
+
+        final ProcessorEntity sourceProcessor = util.createProcessor(PROCESSOR_TYPE, sourceGroup.getId());
+        util.updateProcessorProperties(sourceProcessor, Collections.singletonMap(PROCESSOR_PROPERTY_TEXT, PARAMETER_REFERENCE));
+        util.setAutoTerminatedRelationships(sourceProcessor, RELATIONSHIP_SUCCESS);
+
+        final VersionControlInformationEntity vci = util.startVersionControl(sourceGroup, clientEntity, TEST_FLOWS_BUCKET, "KeepExistingValueFlow");
+        final String flowId = vci.getVersionControlInformation().getFlowId();
+
+        final ProcessGroupEntity sourceForStopVc = getNifiClient().getProcessGroupClient().getProcessGroup(sourceGroup.getId());
+        getNifiClient().getVersionsClient().stopVersionControl(sourceForStopVc);
+        util.deleteAll(sourceGroup.getId());
+        final ProcessGroupEntity sourceToDelete = getNifiClient().getProcessGroupClient().getProcessGroup(sourceGroup.getId());
+        getNifiClient().getProcessGroupClient().deleteProcessGroup(sourceToDelete);
+
+        final ParameterContextEntity currentContext = getNifiClient().getParamContextClient().getParamContext(sourceContext.getId(), false);
+        final ParameterContextUpdateRequestEntity valueUpdate = util.updateParameterContext(currentContext,
+                Map.of(PARAMETER_NAME, liveValue, COUNT_PARAMETER_NAME, COUNT_PARAMETER_VALUE));
+        util.waitForParameterContextRequestToComplete(sourceContext.getId(), valueUpdate.getRequest().getRequestId());
+
+        final ProcessGroupEntity runningGroup = util.createProcessGroup("KeepExistingRunning", "root");
+        util.setParameterContext(runningGroup.getId(), sourceContext);
+
+        final ControllerServiceEntity runningService = util.createControllerService(COUNT_SERVICE_TYPE, runningGroup.getId());
+        util.updateControllerServiceProperties(runningService, Map.of(COUNT_SERVICE_START_VALUE_PROPERTY, COUNT_PARAMETER_REFERENCE));
+        final ControllerServiceEntity runningServiceForEnable = getNifiClient().getControllerServicesClient().getControllerService(runningService.getId());
+        util.enableControllerService(runningServiceForEnable);
+        util.waitForControllerServicesEnabled(runningGroup.getId(), List.of(runningService.getId()));
+
+        importFlowWithKeepExisting(clientEntity.getId(), flowId, VERSION_1);
+
+        final ParameterContextEntity contextAfterImport = getNifiClient().getParamContextClient().getParamContext(sourceContext.getId(), false);
+        assertEquals(liveValue, getParameterValue(contextAfterImport, PARAMETER_NAME),
+                "KEEP_EXISTING import must not overwrite existing parameter values with registry values");
+        assertEquals(COUNT_PARAMETER_VALUE, getParameterValue(contextAfterImport, COUNT_PARAMETER_NAME));
+
+        final ControllerServiceEntity serviceAfterImport = getNifiClient().getControllerServicesClient().getControllerService(runningService.getId());
+        assertEquals(CONTROLLER_SERVICE_STATE_ENABLED, serviceAfterImport.getComponent().getState(),
+                "Referencing Controller Service must remain ENABLED after KEEP_EXISTING import");
+    }
+
+    /**
+     * NIFI-16318: When a snapshot parameter exists only via inheritance on the target, KEEP_EXISTING import must
+     * not create a local override (which would replace the inherited production value with the registry value).
+     */
+    @Test
+    void testKeepExistingImportDoesNotOverrideInheritedParameter() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final String parentName = "KeepExistingRootParams";
+        final String childName = "KeepExistingChildParams";
+        final String registryValue = "dev-driver";
+        final String liveValue = "prod-driver";
+
+        final ParameterContextEntity parentContext = util.createParameterContext(parentName, Map.of(PARAMETER_NAME, registryValue));
+        final ParameterContextEntity childContext = util.createParameterContext(childName, Map.of("ownParam", "ownValue"), List.of(parentContext.getId()), null);
+
+        final ProcessGroupEntity sourceGroup = util.createProcessGroup("KeepExistingInheritedSource", "root");
+        util.setParameterContext(sourceGroup.getId(), childContext);
+
+        final ProcessorEntity sourceProcessor = util.createProcessor(PROCESSOR_TYPE, sourceGroup.getId());
+        util.updateProcessorProperties(sourceProcessor, Collections.singletonMap(PROCESSOR_PROPERTY_TEXT, PARAMETER_REFERENCE));
+        util.setAutoTerminatedRelationships(sourceProcessor, RELATIONSHIP_SUCCESS);
+
+        final VersionControlInformationEntity vci = util.startVersionControl(sourceGroup, clientEntity, TEST_FLOWS_BUCKET, "KeepExistingInheritedFlow");
+        final String flowId = vci.getVersionControlInformation().getFlowId();
+
+        final ProcessGroupEntity sourceForStopVc = getNifiClient().getProcessGroupClient().getProcessGroup(sourceGroup.getId());
+        getNifiClient().getVersionsClient().stopVersionControl(sourceForStopVc);
+        util.deleteAll(sourceGroup.getId());
+        final ProcessGroupEntity sourceToDelete = getNifiClient().getProcessGroupClient().getProcessGroup(sourceGroup.getId());
+        getNifiClient().getProcessGroupClient().deleteProcessGroup(sourceToDelete);
+
+        final ParameterContextEntity currentParent = getNifiClient().getParamContextClient().getParamContext(parentContext.getId(), false);
+        final ParameterContextUpdateRequestEntity parentUpdate = util.updateParameterContext(currentParent, Map.of(PARAMETER_NAME, liveValue));
+        util.waitForParameterContextRequestToComplete(parentContext.getId(), parentUpdate.getRequest().getRequestId());
+
+        importFlowWithKeepExisting(clientEntity.getId(), flowId, VERSION_1);
+
+        final ParameterContextEntity parentAfterImport = getNifiClient().getParamContextClient().getParamContext(parentContext.getId(), false);
+        assertEquals(liveValue, getParameterValue(parentAfterImport, PARAMETER_NAME),
+                "KEEP_EXISTING import must not overwrite an inherited parameter on the parent context");
+
+        final ParameterContextEntity childAfterImport = getNifiClient().getParamContextClient().getParamContext(childContext.getId(), false);
+        assertFalse(getParameterNames(childAfterImport).contains(PARAMETER_NAME),
+                "KEEP_EXISTING import must not materialize a local override for an inherited parameter");
+    }
+
     private ProcessGroupEntity getNestedProcessGroup(final ProcessGroupEntity parent, final String name) throws NiFiClientException, IOException {
         final ProcessGroupFlowEntity flowEntity = getNifiClient().getFlowClient().getProcessGroup(parent.getId());
         final FlowDTO flowDto = flowEntity.getProcessGroupFlow().getFlow();
