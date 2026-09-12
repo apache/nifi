@@ -25,6 +25,7 @@ import {
     CreateComponentRequest,
     CreateComponentResponse,
     CreateConnection,
+    CreateFlowBranchRequest,
     CreateLabelRequest,
     CreatePortRequest,
     CreateProcessGroupRequest,
@@ -50,6 +51,7 @@ import {
 } from '../state/flow';
 import { Client } from '../../../service/client.service';
 import { ComponentType, NiFiCommon } from '@nifi/shared';
+import { Revision } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import {
     BacklogRequestEntity,
@@ -429,6 +431,33 @@ export class FlowService implements PropertyDescriptorRetriever {
         return this.httpClient.post(
             `${FlowService.API}/versions/process-groups/${request.processGroupId}`,
             saveRequest
+        ) as Observable<VersionControlInformationEntity>;
+    }
+
+    createFlowBranch(request: CreateFlowBranchRequest): Observable<VersionControlInformationEntity> {
+        const payload: {
+            processGroupRevision: Revision;
+            branch: string;
+            disconnectedNodeAcknowledged: boolean;
+            sourceBranch?: string;
+            sourceVersion?: string;
+        } = {
+            processGroupRevision: request.revision,
+            branch: request.branch,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+        };
+
+        if (request.sourceBranch) {
+            payload.sourceBranch = request.sourceBranch;
+        }
+
+        if (request.sourceVersion) {
+            payload.sourceVersion = request.sourceVersion;
+        }
+
+        return this.httpClient.post(
+            `${FlowService.API}/versions/process-groups/${request.processGroupId}/branches`,
+            payload
         ) as Observable<VersionControlInformationEntity>;
     }
 

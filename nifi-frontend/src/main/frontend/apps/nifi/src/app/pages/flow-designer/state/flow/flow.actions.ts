@@ -16,6 +16,7 @@
  */
 
 import { createAction, props } from '@ngrx/store';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
     CenterComponentRequest,
     ChangeColorRequest,
@@ -28,6 +29,8 @@ import {
     CreateComponentResponse,
     CreateConnection,
     CreateConnectionRequest,
+    CreateBranchDialogRequest,
+    CreateFlowBranchRequest,
     CreatePortRequest,
     CreateProcessGroupDialogRequest,
     CreateProcessGroupRequest,
@@ -71,6 +74,7 @@ import {
     NavigateToQueueListing,
     OpenChangeVersionDialogRequest,
     OpenComponentDialogRequest,
+    OpenCreateBranchDialogRequest,
     OpenGroupComponentsDialogRequest,
     OpenLocalChangesDialogRequest,
     OpenSaveVersionDialogRequest,
@@ -850,6 +854,31 @@ export const saveToFlowRegistry = createAction(
 export const saveToFlowRegistrySuccess = createAction(
     `${CANVAS_PREFIX} Save To Version Control Success`,
     props<{ response: VersionControlInformationEntity }>()
+);
+
+export const openCreateBranchDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Create Branch Dialog Request`,
+    props<{ request: OpenCreateBranchDialogRequest }>()
+);
+
+export const openCreateBranchDialog = createAction(
+    `${CANVAS_PREFIX} Open Create Branch Dialog`,
+    props<{ request: CreateBranchDialogRequest }>()
+);
+
+export const createFlowBranch = createAction(
+    `${CANVAS_PREFIX} Create Flow Branch`,
+    props<{ request: CreateFlowBranchRequest }>()
+);
+
+export const createFlowBranchSuccess = createAction(
+    `${CANVAS_PREFIX} Create Flow Branch Success`,
+    props<{ response: VersionControlInformationEntity }>()
+);
+
+export const createFlowBranchFailure = createAction(
+    `${CANVAS_PREFIX} Create Flow Branch Failure`,
+    props<{ errorResponse: HttpErrorResponse }>()
 );
 
 export const stopVersionControlRequest = createAction(

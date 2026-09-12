@@ -24,6 +24,9 @@ import {
     createComponentSuccess,
     createConnection,
     createFunnel,
+    createFlowBranch,
+    createFlowBranchFailure,
+    createFlowBranchSuccess,
     createLabel,
     createPort,
     createProcessGroup,
@@ -604,9 +607,34 @@ export const flowReducer = createReducer(
             draftState.saving = false;
         });
     }),
-    on(saveToFlowRegistry, stopVersionControl, (state) => ({
+    on(saveToFlowRegistry, stopVersionControl, createFlowBranch, (state) => ({
         ...state,
         versionSaving: true
+    })),
+    on(createFlowBranchSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const collection: any[] | null = getComponentCollection(draftState, ComponentType.ProcessGroup);
+
+            if (collection) {
+                const componentIndex: number = collection.findIndex(
+                    (f: any) => response.versionControlInformation?.groupId === f.id
+                );
+                if (componentIndex > -1) {
+                    collection[componentIndex].revision = response.processGroupRevision;
+                    collection[componentIndex].versionedFlowState = response.versionControlInformation?.state;
+                    if (collection[componentIndex].component) {
+                        collection[componentIndex].component.versionControlInformation =
+                            response.versionControlInformation;
+                    }
+                }
+            }
+
+            draftState.versionSaving = false;
+        });
+    }),
+    on(createFlowBranchFailure, (state) => ({
+        ...state,
+        versionSaving: false
     })),
     on(saveToFlowRegistrySuccess, (state, { response }) => {
         return produce(state, (draftState) => {

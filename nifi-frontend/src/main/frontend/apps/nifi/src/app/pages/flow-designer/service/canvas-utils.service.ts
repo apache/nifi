@@ -26,13 +26,14 @@ import {
     selectConnections,
     selectCurrentParameterContext,
     selectCurrentProcessGroupId,
-    selectParentProcessGroupId
+    selectParentProcessGroupId,
+    selectRegistryClients
 } from '../state/flow/flow.selectors';
 import { initialState as initialFlowState } from '../state/flow/flow.reducer';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BulletinsTip } from '../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { Position } from '../state/shared';
-import { BreadcrumbEntity } from '../../../state/shared';
+import { BreadcrumbEntity, RegistryClientEntity } from '../../../state/shared';
 import { BulletinEntity, ComponentType, NiFiCommon, ParameterContextReferenceEntity, Permissions } from '@nifi/shared';
 import { CurrentUser } from '../../../state/current-user';
 import { initialState as initialUserState } from '../../../state/current-user/current-user.reducer';
@@ -89,6 +90,7 @@ export class CanvasUtils {
     private connections: any[] = [];
     private breadcrumbs: BreadcrumbEntity | null = null;
     private copiedSnippet: CopiedSnippet | null = null;
+    private registryClients: RegistryClientEntity[] = initialFlowState.registryClients;
 
     private readonly humanizeDuration: Humanizer;
 
@@ -157,6 +159,13 @@ export class CanvasUtils {
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((scale) => {
                 this.scale = scale;
+            });
+
+        this.store
+            .select(selectRegistryClients)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((registryClients) => {
+                this.registryClients = registryClients;
             });
     }
 
@@ -2170,6 +2179,32 @@ export class CanvasUtils {
             versionControlInformation.state !== 'LOCALLY_MODIFIED_AND_STALE' &&
             versionControlInformation.state !== 'SYNC_FAILURE'
         );
+    }
+
+    /**
+     * Returns whether the process group supports creating a new branch. This requires that the
+     * process group is under version control with a registry client that supports branching.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                       Whether the selection supports creating a branch.
+     */
+    public supportsCreateFlowBranch(selection: d3.Selection<any, any, any, any>): boolean {
+        if (!this.canVersionFlows()) {
+            return false;
+        }
+
+        const versionControlInformation = this.getFlowVersionControlInformation(selection);
+
+        if (!versionControlInformation || !versionControlInformation.registryId) {
+            return false;
+        }
+
+        if (versionControlInformation.state === 'SYNC_FAILURE') {
+            return false;
+        }
+
+        const registryClient = this.registryClients.find((client) => client.id === versionControlInformation.registryId);
+        return !!registryClient?.component.supportsBranching;
     }
 
     /**
