@@ -17,47 +17,45 @@
 package org.apache.nifi.services.protobuf;
 
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
-import org.apache.nifi.serialization.record.SchemaIdentifier;
+
+import java.util.Map;
 
 /**
- * Validates Protocol Buffer SchemaDefinition objects and schema identifiers.
+ * Validates the schema references of Protocol Buffer SchemaDefinition objects.
  */
 final class ProtobufSchemaValidator {
+
+    private static final String PROTO_EXTENSION = ".proto";
 
     private ProtobufSchemaValidator() {
     }
 
     /**
-     * Validates that all SchemaDefinition identifiers end with .proto extension.
-     * Performs recursive validation on all referenced schemas.
+     * Validates that every schema reference, at any depth, is keyed by a path ending in the .proto extension.
+     * <p>
+     * A reference is keyed by the path used in the import statement of the referencing schema, for example
+     * {@code airlines/ph/cdm/shared.proto}, and the referenced schema is written to exactly that path so the import
+     * resolves. The extension is required because the compiler only discovers files named {@code *.proto}; without it
+     * the schema would fail to compile later with an unresolved import that does not indicate the cause.
+     * <p>
+     * The identifier of a referenced schema is deliberately not validated. It carries the subject the schema is
+     * registered under, which is unrelated to the import path and legitimately has no .proto suffix. Under the
+     * Confluent RecordNameStrategy, for instance, a subject is a fully qualified record name.
      *
-     * @param schemaDefinition       the schema definition to validate
-     * @param isRootSchemaDefinition set to true if schema definition is a root definition, false otherwise
-     * @throws IllegalArgumentException if any identifier does not end with .proto extension
+     * @param schemaDefinition the schema definition whose references should be validated
+     * @throws IllegalArgumentException if any reference is keyed by a path that does not end in .proto
      */
-    static void validateSchemaDefinitionIdentifiers(final SchemaDefinition schemaDefinition, final boolean isRootSchemaDefinition) {
-        // do not validate schema identifier names for root schema definitions. They might be coming from sources like text fields,
-        // flow file attributes and other sources that do not support naming.
-        if (!isRootSchemaDefinition) {
-            validateSchemaIdentifier(schemaDefinition.getIdentifier());
-        }
-
-        // Recursively validate all referenced schemas
-        // schema references have to end with .proto extension.
-        for (final SchemaDefinition referencedSchema : schemaDefinition.getReferences().values()) {
-            validateSchemaDefinitionIdentifiers(referencedSchema, false);
+    static void validateSchemaReferencePaths(final SchemaDefinition schemaDefinition) {
+        for (final Map.Entry<String, SchemaDefinition> reference : schemaDefinition.getReferences().entrySet()) {
+            validateReferencePath(reference.getKey());
+            validateSchemaReferencePaths(reference.getValue());
         }
     }
 
-    /**
-     * Validates that a single SchemaIdentifier has a name ending with .proto extension.
-     *
-     * @param schemaIdentifier the schema identifier to validate
-     * @throws IllegalArgumentException if the identifier name does not end with .proto extension
-     */
-    private static void validateSchemaIdentifier(final SchemaIdentifier schemaIdentifier) {
-        schemaIdentifier.getName()
-            .filter(name -> name.endsWith(".proto"))
-            .orElseThrow(() -> new IllegalArgumentException("Schema identifier must have a name that ends with .proto extension. Schema identifier: " + schemaIdentifier));
+    private static void validateReferencePath(final String referencePath) {
+        if (referencePath == null || !referencePath.endsWith(PROTO_EXTENSION)) {
+            throw new IllegalArgumentException(
+                "Schema reference must be keyed by the import path of the referenced schema, ending with the .proto extension. Schema reference: " + referencePath);
+        }
     }
 }
