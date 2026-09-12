@@ -89,6 +89,7 @@ public class FileSystemRepository implements ContentRepository {
     public static final long MIN_CLEANUP_INTERVAL_MILLIS = TimeUnit.SECONDS.toMillis(1L);
     public static final long DEFAULT_CLEANUP_INTERVAL_MILLIS = TimeUnit.MINUTES.toMillis(1L);
     public static final String ARCHIVE_DIR_NAME = "archive";
+    private static final int ARCHIVE_SCAN_SECTION_LOG_INTERVAL = 256;
     // 100 MB cap for the configurable NiFiProperties.MAX_APPENDABLE_CLAIM_SIZE property to prevent
     // unnecessarily large resource claim files
     public static final String APPENDABLE_CLAIM_LENGTH_CAP = "100 MB";
@@ -326,7 +327,7 @@ public class FileSystemRepository implements ContentRepository {
 
             // If the path didn't exist to begin with, there's no archive directory, so don't bother scanning.
             if (pathExists) {
-                futures.add(executor.submit(() -> scanArchiveDirectories(realPath.toFile(), containerState)));
+                futures.add(executor.submit(() -> scanArchiveDirectories(containerName, realPath.toFile(), containerState)));
             }
         }
 
@@ -349,7 +350,8 @@ public class FileSystemRepository implements ContentRepository {
         containers.putAll(realPathMap);
     }
 
-    private void scanArchiveDirectories(final File containerDir, final ContainerState containerState) {
+    private void scanArchiveDirectories(final String containerName, final File containerDir, final ContainerState containerState) {
+        long archivedFilesFound = 0L;
         for (int i = 0; i < SECTIONS_PER_CONTAINER; i++) {
             final File sectionDir = new File(containerDir, String.valueOf(i));
             final File archiveDir = new File(sectionDir, ARCHIVE_DIR_NAME);
@@ -363,7 +365,15 @@ public class FileSystemRepository implements ContentRepository {
             }
 
             containerState.incrementArchiveCount(filenames.length);
+            archivedFilesFound += filenames.length;
+
+            final int sectionsScanned = i + 1;
+            if (sectionsScanned % ARCHIVE_SCAN_SECTION_LOG_INTERVAL == 0 && sectionsScanned < SECTIONS_PER_CONTAINER) {
+                LOG.info("Scanned {} Sections for [{}] found {} Archived Files", sectionsScanned, containerName, archivedFilesFound);
+            }
         }
+
+        LOG.info("Finished scanning {} Sections for [{}] found {} Archived Files", SECTIONS_PER_CONTAINER, containerName, archivedFilesFound);
     }
 
     // Visible for testing

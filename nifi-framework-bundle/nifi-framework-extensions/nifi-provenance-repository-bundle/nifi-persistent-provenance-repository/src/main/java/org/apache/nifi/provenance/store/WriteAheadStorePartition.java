@@ -59,6 +59,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -66,6 +67,7 @@ import java.util.stream.Stream;
 
 public class WriteAheadStorePartition implements EventStorePartition {
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadStorePartition.class);
+    private static final int REINDEX_FILE_PROGRESS_LOG_INTERVAL = 25;
 
     private final RepositoryConfiguration config;
     private final File partitionDirectory;
@@ -611,6 +613,8 @@ public class WriteAheadStorePartition implements EventStorePartition {
         final ExecutorService executor = Executors.newFixedThreadPool(Math.min(4, eventFilesToReindex.size()), new NamedThreadFactory("Re-Index Provenance Events", true));
         final List<Future<?>> futures = new ArrayList<>(eventFilesToReindex.size());
         final AtomicLong reindexedCount = new AtomicLong(0L);
+        final AtomicInteger filesReindexed = new AtomicInteger(0);
+        final int totalFilesToReindex = eventFilesToReindex.size();
 
         // Re-Index the last bunch of events.
         // We don't use an Event Iterator here because it's possible that one of the event files could be corrupt (for example, if NiFi does while
@@ -659,6 +663,12 @@ public class WriteAheadStorePartition implements EventStorePartition {
                     logger.warn("Failed to find event with ID {} in Event File {}", minEventIdToReindex, eventFile, eof);
                 } catch (final Exception e) {
                     logger.error("Failed to index Provenance Events found in {}", eventFile, e);
+                } finally {
+                    final int filesCompleted = filesReindexed.incrementAndGet();
+                    if (filesCompleted == 1 || filesCompleted == totalFilesToReindex || filesCompleted % REINDEX_FILE_PROGRESS_LOG_INTERVAL == 0) {
+                        logger.info("Re-indexed {} of {} Files for Partition [{}] including {} of {} Events",
+                                filesCompleted, totalFilesToReindex, partitionName, reindexedCount.get(), eventsToReindex);
+                    }
                 }
             };
 
