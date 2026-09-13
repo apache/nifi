@@ -28,6 +28,7 @@ import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ExtensionBuilder;
@@ -125,7 +126,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -258,6 +261,55 @@ public class TestStandardProcessScheduler {
     }
 
     @Test
+    @Timeout(30)
+    public void testReportingTaskRunsWithVirtualThreadSchedulingAgent() throws InterruptedException, InitializationException {
+        verifyReportingTaskRunsWithSchedulingAgent(true);
+    }
+
+    @Test
+    @Timeout(30)
+    public void testReportingTaskRunsWithTimerDrivenSchedulingAgent() throws InterruptedException, InitializationException {
+        verifyReportingTaskRunsWithSchedulingAgent(false);
+    }
+
+    private void verifyReportingTaskRunsWithSchedulingAgent(final boolean virtualThreads) throws InterruptedException, InitializationException {
+        final FlowController flowController = mock(FlowController.class);
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        when(flowController.getReloadComponent()).thenReturn(mock(ReloadComponent.class));
+
+        final FlowEngine flowEngine = new FlowEngine(2, "Scheduling Agent Unit Test", true);
+        final StandardProcessScheduler realScheduler = new StandardProcessScheduler(flowEngine, extensionManager,
+                flowController, () -> serviceProvider, mock(ReloadComponent.class), stateMgrProvider, nifiProperties, new StandardLifecycleStateManager());
+
+        final RepositoryContextFactory contextFactory = mock(RepositoryContextFactory.class);
+        final SchedulingAgent schedulingAgent = virtualThreads
+                ? new VirtualThreadSchedulingAgent(flowController, contextFactory, nifiProperties, 10)
+                : new TimerDrivenSchedulingAgent(flowController, flowEngine, contextFactory, nifiProperties);
+        realScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, schedulingAgent);
+
+        final TestReportingTask task = new TestReportingTask();
+        task.failOnScheduled.set(false);
+        final ReportingInitializationContext config = new StandardReportingInitializationContext(UUID.randomUUID().toString(), "SchedulingAgentTest", SchedulingStrategy.TIMER_DRIVEN,
+                "10 millis", mock(ComponentLog.class), null, KerberosConfig.NOT_CONFIGURED, null);
+
+        task.initialize(config);
+        final LoggableComponent<ReportingTask> loggableTask = new LoggableComponent<>(task, systemBundle.getBundleDetails().getCoordinate(), mock(TerminationAwareLogger.class));
+        final ReportingTaskNode taskNode = new StandardReportingTaskNode(loggableTask, UUID.randomUUID().toString(), flowController, realScheduler,
+                new StandardValidationContextFactory(null), mock(ReloadComponent.class), extensionManager, new SynchronousValidationTrigger());
+        taskNode.setSchedulingPeriod("10 millis");
+        taskNode.performValidation();
+
+        realScheduler.schedule(taskNode);
+
+        try {
+            assertTrue(task.triggered.await(5, TimeUnit.SECONDS));
+        } finally {
+            realScheduler.unschedule(taskNode);
+            realScheduler.shutdown();
+        }
+    }
+
+    @Test
     @Timeout(60)
     public void testDisableControllerServiceWithProcessorTryingToStartUsingIt() throws InterruptedException, ExecutionException {
         final String uuid = UUID.randomUUID().toString();
@@ -304,19 +356,21 @@ public class TestStandardProcessScheduler {
         private final AtomicBoolean failOnScheduled = new AtomicBoolean(true);
         private final AtomicInteger onScheduleAttempts = new AtomicInteger(0);
         private final AtomicInteger triggerCount = new AtomicInteger(0);
+        private final CountDownLatch triggered = new CountDownLatch(1);
 
         @OnScheduled
         public void onScheduled() {
             onScheduleAttempts.incrementAndGet();
 
             if (failOnScheduled.get()) {
-                throw new RuntimeException("Intentional Exception for testing purposes");
+                throw new IllegalStateException("Intentional Exception for testing purposes");
             }
         }
 
         @Override
         public void onTrigger(final ReportingContext context) {
             triggerCount.getAndIncrement();
+            triggered.countDown();
         }
     }
 
@@ -631,6 +685,26 @@ public class TestStandardProcessScheduler {
         assertEquals(ScheduledState.STOPPED, processorNode.getPhysicalScheduledState());
     }
 
+    @Test
+    public void testFunnelCanStartAfterSchedulingFailure() {
+        final SchedulingAgent schedulingAgent = mock(SchedulingAgent.class);
+        final IllegalStateException schedulingFailure = new IllegalStateException("Scheduling failed");
+        doThrow(schedulingFailure).doNothing().when(schedulingAgent).schedule(any(Connectable.class), any(LifecycleState.class));
+        scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, schedulingAgent);
+
+        final Funnel funnel = mock(Funnel.class);
+        when(funnel.getIdentifier()).thenReturn("funnel");
+        when(funnel.getProcessGroup()).thenReturn(rootGroup);
+        when(funnel.getScheduledState()).thenReturn(ScheduledState.STOPPED);
+        when(funnel.getSchedulingStrategy()).thenReturn(SchedulingStrategy.TIMER_DRIVEN);
+
+        assertSame(schedulingFailure, assertThrows(IllegalStateException.class, () -> scheduler.startFunnel(funnel)));
+        scheduler.startFunnel(funnel);
+        scheduler.startFunnel(funnel);
+
+        verify(schedulingAgent, times(2)).schedule(any(Connectable.class), any(LifecycleState.class));
+    }
+
     private Void scheduleAgent(final boolean scheduled, final LifecycleState lifecycleState,
             final CountDownLatch callbackStarted, final Semaphore callbackRelease) {
         lifecycleState.setScheduled(scheduled);
@@ -853,14 +927,7 @@ public class TestStandardProcessScheduler {
     }
 
     /**
-     * Verifies that the stop background poll loop in {@code StandardProcessorNode.stop()} exits cleanly
-     * once {@link LifecycleState#terminate()} has been invoked, instead of rescheduling itself every
-     * 100ms forever in the component lifecycle thread pool.
-     *
-     * Without the fix, {@code LifecycleState.terminate()} resets the active thread count to zero, which
-     * the poll loop interprets as "still waiting for threads to drain" (it is comparing against 1, which
-     * represents the stop background thread itself), so it keeps rescheduling and leaks one polling task
-     * per terminated processor.
+     * Verifies that the stop background poll loop exits when the lifecycle state is terminated.
      */
     @Test
     @Timeout(30)

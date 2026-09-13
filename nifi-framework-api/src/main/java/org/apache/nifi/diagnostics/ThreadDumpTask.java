@@ -16,116 +16,139 @@
  */
 package org.apache.nifi.diagnostics;
 
+import com.sun.management.HotSpotDiagnosticMXBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 import java.lang.management.LockInfo;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MonitorInfo;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Captures platform and virtual thread stack traces when supported by the Java runtime.
+ */
 public class ThreadDumpTask implements DiagnosticTask {
+
+    private static final Logger logger = LoggerFactory.getLogger(ThreadDumpTask.class);
+
     @Override
-    public DiagnosticsDumpElement captureDump(boolean verbose) {
-        final ThreadMXBean mbean = ManagementFactory.getThreadMXBean();
+    public DiagnosticsDumpElement captureDump(final boolean verbose) {
+        final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+        final String threadDump = captureThreadDump(threadMXBean);
 
-        final ThreadInfo[] infos = mbean.dumpAllThreads(true, true);
-        final long[] deadlockedThreadIds = mbean.findDeadlockedThreads();
-        final long[] monitorDeadlockThreadIds = mbean.findMonitorDeadlockedThreads();
+        final StringBuilder dumpBuilder = new StringBuilder(threadDump);
+        appendDeadlockedThreadIds(dumpBuilder, "DEADLOCK DETECTED!", threadMXBean.findDeadlockedThreads());
+        appendDeadlockedThreadIds(dumpBuilder, "MONITOR DEADLOCK DETECTED!", threadMXBean.findMonitorDeadlockedThreads());
 
-        final List<ThreadInfo> sortedInfos = new ArrayList<>(infos.length);
-        Collections.addAll(sortedInfos, infos);
-        sortedInfos.sort(new Comparator<>() {
-            @Override
-            public int compare(ThreadInfo o1, ThreadInfo o2) {
-                return o1.getThreadName().toLowerCase().compareTo(o2.getThreadName().toLowerCase());
+        return new StandardDiagnosticsDumpElement("Thread Dump", Collections.singletonList(dumpBuilder.toString()));
+    }
+
+    private String captureThreadDump(final ThreadMXBean threadMXBean) {
+        try {
+            return captureHotSpotThreadDump();
+        } catch (final IOException | RuntimeException | LinkageError e) {
+            logger.warn("Failed to capture virtual threads using the HotSpot diagnostic interface; capturing platform threads instead", e);
+            return capturePlatformThreadDump(threadMXBean);
+        }
+    }
+
+    private String captureHotSpotThreadDump() throws IOException {
+        final HotSpotDiagnosticMXBean diagnosticMXBean = ManagementFactory.getPlatformMXBean(HotSpotDiagnosticMXBean.class);
+        if (diagnosticMXBean == null) {
+            throw new UnsupportedOperationException("HotSpot diagnostic interface is not available");
+        }
+
+        final Path tempDirectory = Files.createTempDirectory("nifi-thread-dump-");
+        final Path tempFile = tempDirectory.resolve("thread-dump.txt");
+        try {
+            diagnosticMXBean.dumpThreads(tempFile.toString(), HotSpotDiagnosticMXBean.ThreadDumpFormat.TEXT_PLAIN);
+            return Files.readString(tempFile);
+        } finally {
+            try {
+                Files.deleteIfExists(tempFile);
+                Files.deleteIfExists(tempDirectory);
+            } catch (final IOException e) {
+                logger.debug("Failed to delete temporary thread-dump files in {}", tempDirectory, e);
             }
-        });
+        }
+    }
 
-        final StringBuilder sb = new StringBuilder();
-        for (final ThreadInfo info : sortedInfos) {
-            sb.append("\n");
-            sb.append("\"").append(info.getThreadName()).append("\" Id=");
-            sb.append(info.getThreadId()).append(" ");
-            sb.append(info.getThreadState().toString()).append(" ");
+    String capturePlatformThreadDump(final ThreadMXBean threadMXBean) {
+        final ThreadInfo[] threadInfos = threadMXBean.dumpAllThreads(true, true);
+        final List<ThreadInfo> sortedThreadInfos = new ArrayList<>(threadInfos.length);
+        Collections.addAll(sortedThreadInfos, threadInfos);
+        sortedThreadInfos.sort(Comparator.comparing(ThreadInfo::getThreadName, String.CASE_INSENSITIVE_ORDER));
 
-            switch (info.getThreadState()) {
+        final StringBuilder dumpBuilder = new StringBuilder();
+        for (final ThreadInfo threadInfo : sortedThreadInfos) {
+            dumpBuilder.append(System.lineSeparator())
+                    .append('"').append(threadInfo.getThreadName()).append("\" Id=")
+                    .append(threadInfo.getThreadId()).append(' ')
+                    .append(threadInfo.getThreadState());
+
+            switch (threadInfo.getThreadState()) {
                 case BLOCKED:
                 case TIMED_WAITING:
                 case WAITING:
-                    sb.append(" on ");
-                    sb.append(info.getLockInfo());
+                    dumpBuilder.append(" on ").append(threadInfo.getLockInfo());
+                    if (threadInfo.getLockOwnerName() != null) {
+                        dumpBuilder.append(" owned by \"").append(threadInfo.getLockOwnerName()).append("\" Id=").append(threadInfo.getLockOwnerId());
+                    }
                     break;
                 default:
                     break;
             }
 
-            if (info.isSuspended()) {
-                sb.append(" (suspended)");
+            if (threadInfo.isSuspended()) {
+                dumpBuilder.append(" (suspended)");
             }
-            if (info.isInNative()) {
-                sb.append(" (in native code)");
+            if (threadInfo.isInNative()) {
+                dumpBuilder.append(" (in native code)");
             }
 
-            if (deadlockedThreadIds != null) {
-                for (final long id : deadlockedThreadIds) {
-                    if (id == info.getThreadId()) {
-                        sb.append(" ** DEADLOCKED THREAD **");
+            final MonitorInfo[] lockedMonitors = threadInfo.getLockedMonitors();
+            for (final StackTraceElement stackTraceElement : threadInfo.getStackTrace()) {
+                dumpBuilder.append(System.lineSeparator()).append("\tat ").append(stackTraceElement);
+                for (final MonitorInfo monitorInfo : lockedMonitors) {
+                    if (Objects.equals(monitorInfo.getLockedStackFrame(), stackTraceElement)) {
+                        dumpBuilder.append(System.lineSeparator()).append("\t- locked ").append(monitorInfo);
                     }
                 }
             }
 
-            if (monitorDeadlockThreadIds != null) {
-                for (final long id : monitorDeadlockThreadIds) {
-                    if (id == info.getThreadId()) {
-                        sb.append(" ** MONITOR-DEADLOCKED THREAD **");
-                    }
+            final LockInfo[] lockedSynchronizers = threadInfo.getLockedSynchronizers();
+            if (lockedSynchronizers.length > 0) {
+                dumpBuilder.append(System.lineSeparator()).append("\tNumber of Locked Synchronizers: ").append(lockedSynchronizers.length);
+                for (final LockInfo lockInfo : lockedSynchronizers) {
+                    dumpBuilder.append(System.lineSeparator()).append("\t- locked ").append(lockInfo);
                 }
             }
-
-            final StackTraceElement[] stackTraces = info.getStackTrace();
-            for (final StackTraceElement element : stackTraces) {
-                sb.append("\n\tat ").append(element);
-
-                final MonitorInfo[] monitors = info.getLockedMonitors();
-                for (final MonitorInfo monitor : monitors) {
-                    if (Objects.equals(monitor.getLockedStackFrame(), element)) {
-                        sb.append("\n\t- waiting on ").append(monitor);
-                    }
-                }
-            }
-
-            final LockInfo[] lockInfos = info.getLockedSynchronizers();
-            if (lockInfos.length > 0) {
-                sb.append("\n\t");
-                sb.append("Number of Locked Synchronizers: ").append(lockInfos.length);
-                for (final LockInfo lockInfo : lockInfos) {
-                    sb.append("\n\t- ").append(lockInfo.toString());
-                }
-            }
-
-            sb.append("\n");
+            dumpBuilder.append(System.lineSeparator());
         }
 
-        if (deadlockedThreadIds != null && deadlockedThreadIds.length > 0) {
-            sb.append("\n\nDEADLOCK DETECTED!");
-            sb.append("\nThe following thread IDs are deadlocked:");
-            for (final long id : deadlockedThreadIds) {
-                sb.append("\n").append(id);
-            }
+        return dumpBuilder.toString();
+    }
+
+    private void appendDeadlockedThreadIds(final StringBuilder dumpBuilder, final String heading, final long[] threadIds) {
+        if (threadIds == null || threadIds.length == 0) {
+            return;
         }
 
-        if (monitorDeadlockThreadIds != null && monitorDeadlockThreadIds.length > 0) {
-            sb.append("\n\nMONITOR DEADLOCK DETECTED!");
-            sb.append("\nThe following thread IDs are deadlocked:");
-            for (final long id : monitorDeadlockThreadIds) {
-                sb.append("\n").append(id);
-            }
-        }
+        dumpBuilder.append(System.lineSeparator()).append(System.lineSeparator()).append(heading)
+                .append(System.lineSeparator()).append("The following thread IDs are deadlocked:");
 
-        return new StandardDiagnosticsDumpElement("Thread Dump", Collections.singletonList(sb.toString()));
+        for (final long threadId : threadIds) {
+            dumpBuilder.append(System.lineSeparator()).append(threadId);
+        }
     }
 }

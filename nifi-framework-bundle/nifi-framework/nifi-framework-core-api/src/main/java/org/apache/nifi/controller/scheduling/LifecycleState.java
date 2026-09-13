@@ -110,7 +110,13 @@ public class LifecycleState {
         mustCallOnStoppedMethods.set(true);
 
         if (!scheduled) {
-            lastStopTime = System.currentTimeMillis();
+            final long previousStopTime = lastStopTime;
+            long nextStopTime = System.currentTimeMillis();
+            if (nextStopTime <= previousStopTime) {
+                nextStopTime = previousStopTime + 1L;
+            }
+
+            lastStopTime = nextStopTime;
         }
     }
 
