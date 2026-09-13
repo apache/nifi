@@ -152,7 +152,16 @@ public class PythonNarDeletionDuringInitIT extends NiFiSystemIT {
         final NarSummaryDTO reuploadedNarSummary = narUploadUtil.uploadNar(pythonTestExtensionsNar);
         waitFor(narUploadUtil.getWaitForNarStateSupplier(reuploadedNarSummary.getIdentifier(), NarState.INSTALLED));
 
-        final DocumentedTypeDTO reloadedProcessorType = getDocumentedTypeDTO(PYTHON_WRITE_BECH_32_CHARSET);
+        // Retry every 200 ms because processor type registration may lag NAR install completion.
+        // Use a monotonic 30-second deadline to cap wait time while allowing many retries.
+        DocumentedTypeDTO reloadedProcessorType = null;
+        final long reloadTypeDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+        while (reloadedProcessorType == null && System.nanoTime() < reloadTypeDeadline) {
+            reloadedProcessorType = getDocumentedTypeDTO(PYTHON_WRITE_BECH_32_CHARSET);
+            if (reloadedProcessorType == null) {
+                Thread.sleep(200L);
+            }
+        }
         assertNotNull(reloadedProcessorType);
 
         final ProcessorEntity secondProcessor = getClientUtil().createProcessor(
