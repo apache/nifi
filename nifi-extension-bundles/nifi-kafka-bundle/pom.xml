@@ -41,6 +41,7 @@
         <module>nifi-kafka-service-aws-nar</module>
         <module>nifi-kafka-service-shared</module>
         <module>nifi-kafka-shared</module>
+        <module>nifi-kafka-provenance-reporting-task</module>
     </modules>
 
     <build>
