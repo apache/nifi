@@ -38,6 +38,7 @@ org.apache.nifi.processors.tests.system.HoldInput
 org.apache.nifi.processors.tests.system.IngestFile
 org.apache.nifi.processors.tests.system.LoopFlowFile
 org.apache.nifi.processors.tests.system.MigrateProperties
+org.apache.nifi.processors.tests.system.MigrateToControllerService
 org.apache.nifi.processors.tests.system.MultiKeyState
 org.apache.nifi.processors.tests.system.MultiKeyStateNotDroppable
 org.apache.nifi.processors.tests.system.PartitionText
