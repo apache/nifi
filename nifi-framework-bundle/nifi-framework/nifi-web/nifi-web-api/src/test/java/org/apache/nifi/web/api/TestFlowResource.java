@@ -124,6 +124,12 @@ public class TestFlowResource {
     private static final int COMPONENT_TYPE_VALUE_INDEX = 1;
     private static final String CLUSTER_TYPE_LABEL = "cluster";
     private static final String CLUSTER_LABEL_KEY = "instance";
+    private static final String IS_CLUSTERED_LABEL_KEY = "cluster_is_clustered";
+    private static final String IS_CONNECTED_TO_CLUSTER_LABEL_KEY = "cluster_is_connected_to_cluster";
+    private static final String CONNECTED_NODE_COUNT_LABEL_KEY = "cluster_connected_node_count";
+    private static final String TOTAL_NODE_COUNT_LABEL_KEY = "cluster_total_node_count";
+    private static final String IS_PRIMARY_NODE_LABEL_KEY = "cluster_is_primary_node";
+    private static final String IS_CLUSTER_COORDINATOR_LABEL_KEY = "cluster_is_cluster_coordinator";
     private static final String SAMPLE_REGISTRY_ID = "0e87642a-7720-4799-a3bd-04db74b86e85";
     private static final String SAMPLE_BRANCH_ID_A = "c302f541-976e-4c51-952d-345516444e3d";
     private static final String SAMPLE_BUCKET_ID_A = "23da421d-a8da-4fa3-939e-658d8f35b972";
@@ -276,13 +282,20 @@ public class TestFlowResource {
         assertTrue(metrics.containsKey(ROOT_FIELD_NAME));
 
         final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
-        assertEquals(13, registryList.size());
+        assertEquals(15, registryList.size());
 
-        final Map<String, Long> result = getResult(registryList);
-        assertEquals(3L, result.get(SAMPLE_NAME_JVM));
-        assertEquals(4L, result.get(SAMPLE_LABEL_VALUES_PROCESS_GROUP));
-        assertEquals(2L, result.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP));
-        assertEquals(4L, result.get(CLUSTER_LABEL_KEY));
+        final Map<String, Long> sampleCounts = getSampleCounts(registryList);
+        assertEquals(3L, sampleCounts.get(SAMPLE_NAME_JVM));
+        assertEquals(4L, sampleCounts.get(SAMPLE_LABEL_VALUES_PROCESS_GROUP));
+        assertEquals(2L, sampleCounts.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP));
+        assertEquals(6L, sampleCounts.get(CLUSTER_LABEL_KEY));
+
+        assertSample(registryList, IS_CLUSTERED_LABEL_KEY, 1.0);
+        assertSample(registryList, IS_CONNECTED_TO_CLUSTER_LABEL_KEY, 1.0);
+        assertSample(registryList, CONNECTED_NODE_COUNT_LABEL_KEY, 2.0);
+        assertSample(registryList, TOTAL_NODE_COUNT_LABEL_KEY, 3.0);
+        assertSample(registryList, IS_PRIMARY_NODE_LABEL_KEY, 1.0);
+        assertSample(registryList, IS_CLUSTER_COORDINATOR_LABEL_KEY, 0.0);
     }
 
     @Test
@@ -301,8 +314,8 @@ public class TestFlowResource {
         final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
         assertEquals(3, registryList.size());
 
-        final Map<String, Long> result = getResult(registryList);
-        assertEquals(3L, result.get(SAMPLE_NAME_JVM));
+        final Map<String, Long> sampleCounts = getSampleCounts(registryList);
+        assertEquals(3L, sampleCounts.get(SAMPLE_NAME_JVM));
     }
 
     @Test
@@ -321,8 +334,8 @@ public class TestFlowResource {
         final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
         assertEquals(2, registryList.size());
 
-        final Map<String, Long> result = getResult(registryList);
-        assertEquals(2L, result.get(SAMPLE_NAME_JVM));
+        final Map<String, Long> sampleCounts = getSampleCounts(registryList);
+        assertEquals(2L, sampleCounts.get(SAMPLE_NAME_JVM));
     }
 
     @Test
@@ -341,8 +354,8 @@ public class TestFlowResource {
         final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
         assertEquals(2, registryList.size());
 
-        final Map<String, Long> result = getResult(registryList);
-        assertEquals(2L, result.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP));
+        final Map<String, Long> sampleCounts = getSampleCounts(registryList);
+        assertEquals(2L, sampleCounts.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP));
     }
 
     @Test
@@ -362,9 +375,9 @@ public class TestFlowResource {
         final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
         assertEquals(5, registryList.size());
 
-        final Map<String, Long> result = getResult(registryList);
-        assertEquals(3L, result.get(SAMPLE_NAME_JVM));
-        assertEquals(2L, result.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP));
+        final Map<String, Long> sampleCounts = getSampleCounts(registryList);
+        assertEquals(3L, sampleCounts.get(SAMPLE_NAME_JVM));
+        assertEquals(2L, sampleCounts.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP));
     }
 
     @Test
@@ -753,14 +766,14 @@ public class TestFlowResource {
         return mapper.readValue(json, typeReference);
     }
 
-    private Map<String, Long> getResult(final List<Sample> registries) {
-        return registries.stream()
+    private Map<String, Long> getSampleCounts(final List<Sample> samples) {
+        return samples.stream()
                 .collect(Collectors.groupingBy(
-                        sample -> getResultKey(sample),
+                        sample -> getSampleKey(sample),
                         Collectors.counting()));
     }
 
-    private String getResultKey(final Sample sample) {
+    private String getSampleKey(final Sample sample) {
         if (sample.labelNames.contains(COMPONENT_TYPE_LABEL)) {
             return sample.labelValues.get(COMPONENT_TYPE_VALUE_INDEX);
         }
@@ -768,6 +781,15 @@ public class TestFlowResource {
             return CLUSTER_LABEL_KEY;
         }
         return SAMPLE_NAME_JVM;
+    }
+
+    private void assertSample(final List<Sample> samples, final String sampleName, final double expectedValue) {
+        final Sample sample = samples.stream()
+                .filter(s -> sampleName.equals(s.name))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(sample, String.format("Sample [%s] not found", sampleName));
+        assertEquals(expectedValue, sample.value);
     }
 
     private static List<CollectorRegistry> getCollectorRegistriesForJson() {
@@ -836,6 +858,8 @@ public class TestFlowResource {
         clusterMetricsRegistry.setDataPoint(1, "IS_CONNECTED_TO_CLUSTER", "B1Id");
         clusterMetricsRegistry.setDataPoint(2, "CONNECTED_NODE_COUNT", "B1Id");
         clusterMetricsRegistry.setDataPoint(3, "TOTAL_NODE_COUNT", "B1Id");
+        clusterMetricsRegistry.setDataPoint(1, "IS_PRIMARY_NODE", "B1Id");
+        clusterMetricsRegistry.setDataPoint(0, "IS_CLUSTER_COORDINATOR", "B1Id");
 
         return clusterMetricsRegistry.getRegistry();
     }
