@@ -79,6 +79,7 @@ import {
 })
 export class EditProcessGroup extends TabbedDialog {
     private static readonly DATA_SIZE_PATTERN = /^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB)$/i;
+    private static readonly MAXIMUM_HEAP_PERCENTAGE = 90;
     private static readonly DATA_SIZE_MULTIPLIERS = {
         B: 1n,
         KB: 1n << 10n,
@@ -145,6 +146,7 @@ export class EditProcessGroup extends TabbedDialog {
     private initialMaxConcurrentTasks: number;
     private initialStatelessFlowTimeout: string;
     private initialStatelessFlowFileContentInMemoryMax: string;
+    private initialStatelessFlowFileContentInMemoryHeapPercentage: string | number;
     private _parameterContexts: ParameterContextEntity[] = [];
 
     editProcessGroupForm: FormGroup;
@@ -247,7 +249,9 @@ export class EditProcessGroup extends TabbedDialog {
         this.initialMaxConcurrentTasks = request.entity.component.maxConcurrentTasks;
         this.initialStatelessFlowTimeout = request.entity.component.statelessFlowTimeout;
         this.initialStatelessFlowFileContentInMemoryMax =
-            request.entity.component.statelessFlowFileContentInMemoryMax ?? '0 B';
+            request.entity.component.statelessFlowFileContentInMemoryMax ?? '';
+        this.initialStatelessFlowFileContentInMemoryHeapPercentage =
+            request.entity.component.statelessFlowFileContentInMemoryHeapPercentage ?? 0;
 
         this.executionEngineChanged(request.entity.component.executionEngine);
     }
@@ -269,22 +273,42 @@ export class EditProcessGroup extends TabbedDialog {
                         value: this.initialStatelessFlowFileContentInMemoryMax,
                         disabled: this.request.entity.component.statelessGroupScheduledState !== 'STOPPED'
                     },
-                    [Validators.required, EditProcessGroup.validateDataSize]
+                    EditProcessGroup.validateInMemoryContentMax
+                )
+            );
+            this.editProcessGroupForm.addControl(
+                'statelessFlowFileContentInMemoryHeapPercentage',
+                new FormControl(
+                    {
+                        value: this.initialStatelessFlowFileContentInMemoryHeapPercentage,
+                        disabled: this.request.entity.component.statelessGroupScheduledState !== 'STOPPED'
+                    },
+                    EditProcessGroup.validateInMemoryHeapPercentage
                 )
             );
         } else {
             this.editProcessGroupForm.removeControl('maxConcurrentTasks');
             this.editProcessGroupForm.removeControl('statelessFlowTimeout');
             this.editProcessGroupForm.removeControl('statelessFlowFileContentInMemoryMax');
+            this.editProcessGroupForm.removeControl('statelessFlowFileContentInMemoryHeapPercentage');
         }
     }
 
-    private static validateDataSize(control: AbstractControl): ValidationErrors | null {
+    private static validateInMemoryContentMax(control: AbstractControl): ValidationErrors | null {
+        if (control.value === null || control.value === undefined || control.value === '') {
+            return null;
+        }
+
         if (typeof control.value !== 'string') {
             return { dataSize: true };
         }
 
-        const match = EditProcessGroup.DATA_SIZE_PATTERN.exec(control.value.trim());
+        const trimmedValue = control.value.trim();
+        if (trimmedValue.length === 0) {
+            return null;
+        }
+
+        const match = EditProcessGroup.DATA_SIZE_PATTERN.exec(trimmedValue);
         if (match === null) {
             return { dataSize: true };
         }
@@ -298,6 +322,19 @@ export class EditProcessGroup extends TabbedDialog {
 
         if (unscaledBytes % divisor !== 0n || unscaledBytes / divisor > EditProcessGroup.MAXIMUM_DATA_SIZE_BYTES) {
             return { dataSize: true };
+        }
+
+        return null;
+    }
+
+    private static validateInMemoryHeapPercentage(control: AbstractControl): ValidationErrors | null {
+        if (control.value === null || control.value === undefined || control.value === '') {
+            return null;
+        }
+
+        const percentage = Number(control.value);
+        if (!Number.isInteger(percentage) || percentage < 0 || percentage > EditProcessGroup.MAXIMUM_HEAP_PERCENTAGE) {
+            return { heapPercentage: true };
         }
 
         return null;
@@ -336,9 +373,15 @@ export class EditProcessGroup extends TabbedDialog {
         if (this.editProcessGroupForm.get('executionEngine')?.value === this.STATELESS) {
             payload.component.maxConcurrentTasks = this.editProcessGroupForm.get('maxConcurrentTasks')?.value;
             payload.component.statelessFlowTimeout = this.editProcessGroupForm.get('statelessFlowTimeout')?.value;
-            payload.component.statelessFlowFileContentInMemoryMax = this.editProcessGroupForm.get(
-                'statelessFlowFileContentInMemoryMax'
+            payload.component.statelessFlowFileContentInMemoryMax =
+                this.editProcessGroupForm.get('statelessFlowFileContentInMemoryMax')?.value ?? '';
+            const heapPercentage = this.editProcessGroupForm.get(
+                'statelessFlowFileContentInMemoryHeapPercentage'
             )?.value;
+            payload.component.statelessFlowFileContentInMemoryHeapPercentage =
+                heapPercentage === null || heapPercentage === undefined || heapPercentage === ''
+                    ? ''
+                    : String(heapPercentage);
         }
 
         this.editProcessGroup.next(payload);

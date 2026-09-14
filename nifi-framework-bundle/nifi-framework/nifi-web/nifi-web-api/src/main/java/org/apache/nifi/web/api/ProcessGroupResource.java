@@ -71,6 +71,7 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlow;
@@ -578,6 +579,27 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         final Integer maxConcurrentTasks = requestProcessGroupDTO.getMaxConcurrentTasks();
         if (maxConcurrentTasks != null && maxConcurrentTasks < 1) {
             throw new IllegalArgumentException("Illegal value proposed for Max Concurrent Tasks: " + maxConcurrentTasks);
+        }
+
+        final String statelessFlowFileContentInMemoryMax = requestProcessGroupDTO.getStatelessFlowFileContentInMemoryMax();
+        if (statelessFlowFileContentInMemoryMax != null && !statelessFlowFileContentInMemoryMax.isBlank()) {
+            try {
+                DataUnit.parseDataSize(statelessFlowFileContentInMemoryMax.trim(), DataUnit.B);
+            } catch (final Exception e) {
+                throw new IllegalArgumentException("Illegal value proposed for Max In-Memory FlowFile Content: " + statelessFlowFileContentInMemoryMax);
+            }
+        }
+
+        final String heapPercentage = requestProcessGroupDTO.getStatelessFlowFileContentInMemoryHeapPercentage();
+        if (heapPercentage != null && !heapPercentage.isBlank()) {
+            try {
+                final int parsedHeapPercentage = Integer.parseInt(heapPercentage.trim());
+                if (parsedHeapPercentage < 0 || parsedHeapPercentage > 90) {
+                    throw new IllegalArgumentException("Illegal value proposed for Max In-Memory Heap Percentage: " + heapPercentage);
+                }
+            } catch (final NumberFormatException e) {
+                throw new IllegalArgumentException("Illegal value proposed for Max In-Memory Heap Percentage: " + heapPercentage);
+            }
         }
 
         if (isReplicateRequest()) {

@@ -2899,6 +2899,7 @@ public class NiFiClientUtil {
         group.getComponent().setStatelessFlowTimeout(timeout);
         group.getComponent().setExecutionEngine("STATELESS");
         group.getComponent().setStatelessFlowFileContentInMemoryMax(inMemoryContentMax);
+        group.getComponent().setStatelessFlowFileContentInMemoryHeapPercentage("");
 
         return nifiClient.getProcessGroupClient().updateProcessGroup(group);
     }
@@ -2907,6 +2908,7 @@ public class NiFiClientUtil {
             throws NiFiClientException, IOException {
         final ProcessGroupEntity current = nifiClient.getProcessGroupClient().getProcessGroup(group.getId());
         current.getComponent().setStatelessFlowFileContentInMemoryMax(inMemoryContentMax);
+        current.getComponent().setStatelessFlowFileContentInMemoryHeapPercentage("");
         return nifiClient.getProcessGroupClient().updateProcessGroup(current);
     }
 

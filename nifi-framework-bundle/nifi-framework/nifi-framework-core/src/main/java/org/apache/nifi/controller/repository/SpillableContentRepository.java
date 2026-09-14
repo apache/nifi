@@ -538,6 +538,8 @@ public class SpillableContentRepository implements ContentRepository {
             spillStream = createdSpillStream;
             buffer = null;
             memoryUsed.addAndGet(-reserved);
+            logger.debug("Spilled Content Claim {} to the Content Repository after buffering {} bytes in memory; in-memory budget is {} bytes", contentClaim.getResourceClaim().getId(), reserved,
+                memoryThresholdBytes);
             reserved = 0L;
         }
 

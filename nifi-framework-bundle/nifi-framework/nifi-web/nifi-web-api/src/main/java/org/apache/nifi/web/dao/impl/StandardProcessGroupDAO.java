@@ -111,7 +111,10 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             group.setExecutionEngine(ExecutionEngine.valueOf(processGroup.getExecutionEngine()));
         }
         if (processGroup.getStatelessFlowFileContentInMemoryMax() != null) {
-            group.setStatelessFlowFileContentInMemoryMax(processGroup.getStatelessFlowFileContentInMemoryMax());
+            group.setStatelessContentMaxHeap(processGroup.getStatelessFlowFileContentInMemoryMax());
+        }
+        if (processGroup.getStatelessFlowFileContentInMemoryHeapPercentage() != null) {
+            group.setStatelessContentMaxHeapPercentage(processGroup.toStatelessFlowFileContentInMemoryHeapPercentage());
         }
 
         // add the process group
@@ -136,9 +139,11 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             group.verifyCanSetExecutionEngine(ExecutionEngine.valueOf(executionEngine));
         }
 
-        final String statelessFlowFileContentInMemoryMax = processGroup.getStatelessFlowFileContentInMemoryMax();
-        if (statelessFlowFileContentInMemoryMax != null) {
-            group.verifyCanSetStatelessFlowFileContentInMemoryMax(statelessFlowFileContentInMemoryMax);
+        if (processGroup.getStatelessFlowFileContentInMemoryMax() != null) {
+            group.verifyCanSetStatelessContentMaxHeap(processGroup.getStatelessFlowFileContentInMemoryMax());
+        }
+        if (processGroup.getStatelessFlowFileContentInMemoryHeapPercentage() != null) {
+            group.verifyCanSetStatelessContentMaxHeapPercentage(processGroup.toStatelessFlowFileContentInMemoryHeapPercentage());
         }
 
         final VersionControlInformationDTO versionControlInfoDTO = processGroup.getVersionControlInformation();
@@ -506,7 +511,10 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             group.setStatelessFlowTimeout(processGroupDTO.getStatelessFlowTimeout());
         }
         if (processGroupDTO.getStatelessFlowFileContentInMemoryMax() != null) {
-            group.setStatelessFlowFileContentInMemoryMax(processGroupDTO.getStatelessFlowFileContentInMemoryMax());
+            group.setStatelessContentMaxHeap(processGroupDTO.getStatelessFlowFileContentInMemoryMax());
+        }
+        if (processGroupDTO.getStatelessFlowFileContentInMemoryHeapPercentage() != null) {
+            group.setStatelessContentMaxHeapPercentage(processGroupDTO.toStatelessFlowFileContentInMemoryHeapPercentage());
         }
 
         if (logFileSuffix != null) {

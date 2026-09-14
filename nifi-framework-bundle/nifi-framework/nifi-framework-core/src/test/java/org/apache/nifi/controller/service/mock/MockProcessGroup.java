@@ -910,21 +910,34 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public String getStatelessFlowFileContentInMemoryMax() {
-        return "0 B";
+    public String getStatelessContentMaxHeap() {
+        return null;
     }
 
     @Override
-    public void setStatelessFlowFileContentInMemoryMax(final String maxSize) {
+    public void setStatelessContentMaxHeap(final String maxSize) {
     }
 
     @Override
-    public long resolveStatelessFlowFileContentInMemoryMaxBytes() {
+    public Integer getStatelessContentMaxHeapPercentage() {
+        return 0;
+    }
+
+    @Override
+    public void setStatelessContentMaxHeapPercentage(final Integer heapPercentage) {
+    }
+
+    @Override
+    public long resolveStatelessContentMaxHeap() {
         return 0L;
     }
 
     @Override
-    public void verifyCanSetStatelessFlowFileContentInMemoryMax(final String maxSize) {
+    public void verifyCanSetStatelessContentMaxHeap(final String maxSize) {
+    }
+
+    @Override
+    public void verifyCanSetStatelessContentMaxHeapPercentage(final Integer heapPercentage) {
     }
 
     @Override

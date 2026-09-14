@@ -145,12 +145,31 @@
                                             class="fa fa-info-circle"
                                             nifiTooltip
                                             [tooltipComponentType]="TextTip"
-                                            tooltipInputData="A value of 0 B writes all FlowFile content to the Content Repository. Larger values buffer content in memory up to the configured size, then spill to the Content Repository."></i>
+                                            tooltipInputData="A data size such as 4 GB. 0 B means zero bytes. Leave empty if this limit should not apply. When both this value and the heap percentage are set, the smaller of the two is used. For example, 80% up to 4 GB."></i>
                                     </mat-label>
                                     <input
                                         matInput
                                         formControlName="statelessFlowFileContentInMemoryMax"
                                         type="text"
+                                        [readonly]="readonly" />
+                                </mat-form-field>
+                            </div>
+                            <div>
+                                <mat-form-field>
+                                    <mat-label>
+                                        Max In-Memory Heap Percentage
+                                        <i
+                                            class="fa fa-info-circle"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="A whole number from 0 to 90. 0 means zero percent of the heap. Leave empty if this limit should not apply. When both this value and the data size are set, the smaller of the two is used. For example, 80% up to 4 GB. The default is 0."></i>
+                                    </mat-label>
+                                    <input
+                                        matInput
+                                        formControlName="statelessFlowFileContentInMemoryHeapPercentage"
+                                        type="number"
+                                        min="0"
+                                        max="90"
                                         [readonly]="readonly" />
                                 </mat-form-field>
                             </div>

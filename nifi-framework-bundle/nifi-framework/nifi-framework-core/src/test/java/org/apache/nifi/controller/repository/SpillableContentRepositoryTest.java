@@ -463,7 +463,7 @@ class SpillableContentRepositoryTest {
     void testDeferredRepositoryResolvesChangedThreshold() throws IOException {
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         final AtomicLong threshold = new AtomicLong(BUDGET);
-        when(processGroup.resolveStatelessFlowFileContentInMemoryMaxBytes()).thenAnswer(invocation -> threshold.get());
+        when(processGroup.resolveStatelessContentMaxHeap()).thenAnswer(invocation -> threshold.get());
         final DeferredStatelessContentRepository deferredRepository = new DeferredStatelessContentRepository(
             processGroup, backingRepository, flowFileRepository, resourceClaimManager, EventReporter.NO_OP);
 

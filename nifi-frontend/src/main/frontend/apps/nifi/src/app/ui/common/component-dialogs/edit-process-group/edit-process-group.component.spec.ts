@@ -172,6 +172,38 @@ describe('EditProcessGroup', () => {
 
             control?.setValue(' 100 MB ');
             expect(control?.valid).toBeTruthy();
+
+            control?.setValue('');
+            expect(control?.valid).toBeTruthy();
+
+            control?.setValue('0 B');
+            expect(control?.valid).toBeTruthy();
+
+            control?.setValue('50%');
+            expect(control?.valid).toBeFalsy();
+        });
+
+        it('validates the stateless in-memory heap percentage', () => {
+            component.executionEngineChanged('STATELESS');
+            const control = component.editProcessGroupForm.get('statelessFlowFileContentInMemoryHeapPercentage');
+
+            control?.setValue(0);
+            expect(control?.valid).toBeTruthy();
+
+            control?.setValue(90);
+            expect(control?.valid).toBeTruthy();
+
+            control?.setValue('');
+            expect(control?.valid).toBeTruthy();
+
+            control?.setValue(91);
+            expect(control?.valid).toBeFalsy();
+
+            control?.setValue(-1);
+            expect(control?.valid).toBeFalsy();
+
+            control?.setValue(50.5);
+            expect(control?.valid).toBeFalsy();
         });
 
         it('disables the stateless in-memory content maximum while the group is running', () => {
@@ -183,6 +215,10 @@ describe('EditProcessGroup', () => {
 
                 expect(
                     runningComponent.editProcessGroupForm.get('statelessFlowFileContentInMemoryMax')?.disabled
+                ).toBeTruthy();
+                expect(
+                    runningComponent.editProcessGroupForm.get('statelessFlowFileContentInMemoryHeapPercentage')
+                        ?.disabled
                 ).toBeTruthy();
                 expect(runningComponent.editProcessGroupForm.get('statelessFlowTimeout')?.enabled).toBeTruthy();
             } finally {

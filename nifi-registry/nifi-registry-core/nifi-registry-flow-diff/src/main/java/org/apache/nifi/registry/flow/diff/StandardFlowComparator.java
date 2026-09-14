@@ -613,6 +613,8 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.SCHEDULED_STATE_CHANGED, groupA, groupB, VersionedProcessGroup::getScheduledState, true, ScheduledState.ENABLED);
         addIfDifferent(differences, DifferenceType.CONCURRENT_TASKS_CHANGED, groupA, groupB, VersionedProcessGroup::getMaxConcurrentTasks, true, 1);
         addIfDifferent(differences, DifferenceType.TIMEOUT_CHANGED, groupA, groupB, VersionedProcessGroup::getStatelessFlowTimeout, false, "1 min");
+        addIfDifferent(differences, DifferenceType.STATELESS_IN_MEMORY_CONTENT_MAX_CHANGED, groupA, groupB, VersionedProcessGroup::getStatelessFlowFileContentInMemoryMax, false, null);
+        addIfDifferent(differences, DifferenceType.STATELESS_IN_MEMORY_HEAP_PERCENTAGE_CHANGED, groupA, groupB, VersionedProcessGroup::getStatelessFlowFileContentInMemoryHeapPercentage, true, null);
     }
 
     private void extractPGComponentsDifferences(final VersionedProcessGroup groupA, final VersionedProcessGroup groupB, final Set<FlowDifference> differences) {
