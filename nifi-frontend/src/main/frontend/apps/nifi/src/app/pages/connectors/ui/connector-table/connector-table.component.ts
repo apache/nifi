@@ -24,6 +24,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import {
     ConnectorEntity,
     ConnectorActionName,
+    ConnectorState,
     NifiTooltipDirective,
     NiFiCommon,
     StatusBadge,
@@ -88,6 +89,7 @@ export class ConnectorTable {
     @Output() drainConnector = new EventEmitter<ConnectorEntity>();
     @Output() cancelDrainConnector = new EventEmitter<ConnectorEntity>();
     @Output() purgeConnector = new EventEmitter<ConnectorEntity>();
+    @Output() changeConnectorVersion = new EventEmitter<ConnectorEntity>();
 
     displayedColumns: string[] = ['moreDetails', 'name', 'type', 'bundle', 'state', 'actions'];
     dataSource: MatTableDataSource<ConnectorEntity> = new MatTableDataSource<ConnectorEntity>();
@@ -155,6 +157,20 @@ export class ConnectorTable {
 
     canPurge(entity: ConnectorEntity): boolean {
         return isConnectorActionAllowed(entity, 'PURGE_FLOWFILES');
+    }
+
+    canChangeVersion(entity: ConnectorEntity): boolean {
+        const versionChangeEligibleStates = [
+            ConnectorState.STOPPED,
+            ConnectorState.UPDATED,
+            ConnectorState.UPDATE_FAILED
+        ];
+        return (
+            this.canRead(entity) &&
+            this.canModify(entity) &&
+            versionChangeEligibleStates.includes(entity.component.state as ConnectorState) &&
+            entity.component.multipleVersionsAvailable === true
+        );
     }
 
     formatName(entity: ConnectorEntity): string {
@@ -229,6 +245,10 @@ export class ConnectorTable {
 
     purgeClicked(entity: ConnectorEntity): void {
         this.purgeConnector.next(entity);
+    }
+
+    changeVersionClicked(entity: ConnectorEntity): void {
+        this.changeConnectorVersion.next(entity);
     }
 
     canManageAccessPolicies(): boolean {

@@ -19,9 +19,11 @@ package org.apache.nifi.components.connector;
 
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.connector.components.FlowContext;
+import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.logging.ComponentLog;
 
 public interface FrameworkFlowContext extends FlowContext {
     ProcessGroup getManagedProcessGroup();
@@ -53,4 +55,8 @@ public interface FrameworkFlowContext extends FlowContext {
      *                                    persisted while the Connector was in Troubleshooting mode
      */
     void restoreTroubleshootingFlow(VersionedProcessGroup troubleshootingProcessGroup);
+
+    default void reload(final Bundle bundle, final ComponentLog connectorLog) {
+        throw new UnsupportedOperationException();
+    }
 }

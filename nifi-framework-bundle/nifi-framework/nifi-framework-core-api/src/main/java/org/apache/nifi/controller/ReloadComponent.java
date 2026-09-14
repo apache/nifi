@@ -17,6 +17,8 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.controller.exception.ConnectorInstantiationException;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
@@ -104,4 +106,14 @@ public interface ReloadComponent {
      */
     void reload(FlowRegistryClientNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls)
             throws FlowRepositoryClientInstantiationException;
+
+    /**
+     * Changes the underlying Connector held by the node to an instance of the new type.
+     *
+     * @param existingNode the ConnectorNode being updated
+     * @param newType the fully qualified class name of the new type
+     * @param bundleCoordinate the bundle coordinate of the new type
+     * @throws ConnectorInstantiationException if unable to create an instance of the new type
+     */
+    void reload(ConnectorNode existingNode, String newType, BundleCoordinate bundleCoordinate) throws ConnectorInstantiationException;
 }

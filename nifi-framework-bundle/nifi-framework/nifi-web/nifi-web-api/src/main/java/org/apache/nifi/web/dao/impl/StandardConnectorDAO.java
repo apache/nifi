@@ -37,12 +37,16 @@ import org.apache.nifi.components.connector.StandardConnectorMigrationManager;
 import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.exception.ConnectorInstantiationException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.AssetReferenceDTO;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
@@ -74,6 +78,7 @@ public class StandardConnectorDAO implements ConnectorDAO {
     private FlowController flowController;
     private NiFiServiceFacade serviceFacade;
     private ConnectorMigrationManager connectorMigrationManager;
+    private ReloadComponent reloadComponent;
 
     @Autowired
     public void setFlowController(final FlowController flowController) {
@@ -145,8 +150,30 @@ public class StandardConnectorDAO implements ConnectorDAO {
     @Override
     public void updateConnector(final ConnectorDTO connectorDTO) {
         final ConnectorNode connector = requireConnector(connectorDTO.getId(), ConnectorSyncMode.LOCAL_ONLY);
+        updateBundle(connector, connectorDTO);
+
         if (connectorDTO.getName() != null) {
             getConnectorRepository().updateConnector(connector, connectorDTO.getName());
+        }
+    }
+
+    private void updateBundle(final ConnectorNode connector, final ConnectorDTO connectorDTO) {
+        final BundleDTO bundleDTO = connectorDTO.getBundle();
+        if (bundleDTO == null) {
+            return;
+        }
+
+        final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(flowController.getExtensionManager(), connector.getCanonicalClassName(), bundleDTO);
+        final BundleCoordinate existingCoordinate = connector.getBundleCoordinate();
+        if (existingCoordinate.getCoordinate().equals(incomingCoordinate.getCoordinate())) {
+            return;
+        }
+
+        try {
+            reloadComponent.reload(connector, connector.getCanonicalClassName(), incomingCoordinate);
+        } catch (final ConnectorInstantiationException | IllegalStateException | IllegalArgumentException e) {
+            throw new NiFiCoreException(String.format("Unable to update connector %s from %s to %s due to: %s",
+                    connectorDTO.getId(), connector.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
         }
     }
 
@@ -385,6 +412,11 @@ public class StandardConnectorDAO implements ConnectorDAO {
         } catch (final Exception e) {
             throw new NiFiCoreException("Failed to migrate Connector from Versioned Flow: " + e.getMessage(), e);
         }
+    }
+
+    @Autowired
+    public void setReloadComponent(final ReloadComponent reloadComponent) {
+        this.reloadComponent = reloadComponent;
     }
 }
 

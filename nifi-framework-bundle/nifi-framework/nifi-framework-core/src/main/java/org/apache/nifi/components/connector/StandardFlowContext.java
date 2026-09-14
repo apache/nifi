@@ -36,13 +36,12 @@ public class StandardFlowContext implements FrameworkFlowContext {
     private final MutableConnectorConfigurationContext configurationContext;
     private final ProcessGroupFacadeFactory groupFacadeFactory;
     private final ParameterContextFacadeFactory parameterContextFacadeFactory;
-    private final ComponentLog connectorLog;
     private final FlowContextType flowContextType;
-    private final Bundle bundle;
+    private volatile ComponentLog connectorLog;
+    private volatile Bundle bundle;
 
     private volatile ProcessGroupFacade rootGroup;
     private volatile ParameterContextFacade parameterContext;
-
 
     public StandardFlowContext(final ProcessGroup managedProcessGroup, final MutableConnectorConfigurationContext configurationContext,
                 final ProcessGroupFacadeFactory groupFacadeFactory, final ParameterContextFacadeFactory parameterContextFacadeFactory,
@@ -138,6 +137,13 @@ public class StandardFlowContext implements FrameworkFlowContext {
     @Override
     public Bundle getBundle() {
         return bundle;
+    }
+
+    @Override
+    public void reload(final Bundle bundle, final ComponentLog connectorLog) {
+        this.bundle = bundle;
+        this.connectorLog = connectorLog;
+        this.rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
     }
 
     @Override
