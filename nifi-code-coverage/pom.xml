@@ -28,7 +28,7 @@
 
     <properties>
         <ant.version>1.10.18</ant.version>
-        <mime4j.version>0.8.14</mime4j.version>
+        <mime4j.version>0.8.15</mime4j.version>
     </properties>
 
     <!-- Managed Dependency Versions for referenced modules required based on different parent bundle project -->
