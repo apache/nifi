@@ -28,8 +28,11 @@ import org.apache.nifi.kafka.processors.consumer.GroupType;
 import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
 import org.apache.nifi.kafka.service.api.consumer.share.ShareAcknowledgementMode;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessSession;
+import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,10 +47,16 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.spy;
 
 class ConsumeKafkaShareGroupIT extends AbstractConsumeKafkaIT {
 
@@ -100,6 +109,52 @@ class ConsumeKafkaShareGroupIT extends AbstractConsumeKafkaIT {
         flowFile.assertAttributeExists(KafkaFlowFileAttribute.KAFKA_PARTITION);
         flowFile.assertAttributeExists(KafkaFlowFileAttribute.KAFKA_OFFSET);
         flowFile.assertAttributeExists(KafkaFlowFileAttribute.KAFKA_TIMESTAMP);
+    }
+
+    @Test
+    @Timeout(120)
+    void testShareGroupExplicitRollbackRedeliversRecord() throws ExecutionException, InterruptedException, TimeoutException {
+        final String topic = "share-group-rollback-topic-" + UUID.randomUUID();
+        final String shareGroupId = "share-group-rollback-" + UUID.randomUUID();
+
+        runner.setProperty(ConsumeKafka.GROUP_ID, shareGroupId);
+        runner.setProperty(ConsumeKafka.TOPICS, topic);
+        runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.FLOW_FILE.getValue());
+        runner.setProperty(ConsumeKafka.MAX_UNCOMMITTED_TIME, "5 sec");
+
+        runner.run(1, false, true);
+        waitForShareGroupAssignment(shareGroupId, topic);
+        produceOne(topic, null, null, RECORD_VALUE, Collections.emptyList());
+
+        final ConsumeKafka processor = (ConsumeKafka) runner.getProcessor();
+        final SharedSessionState sharedState = new SharedSessionState(processor, new AtomicLong());
+        final MockProcessSession failingSession = spy(MockProcessSession.builder(sharedState, processor).build());
+        final AtomicReference<MockFlowFile> initiallyDeliveredReference = new AtomicReference<>();
+        doAnswer(invocation -> {
+            initiallyDeliveredReference.set(failingSession.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).getFirst());
+            failingSession.rollback();
+            final Consumer<Throwable> onFailure = invocation.getArgument(1);
+            onFailure.accept(new IllegalStateException("Simulated session commit failure"));
+            return null;
+        }).when(failingSession).commitAsync(any(Runnable.class), any());
+        final ProcessSessionFactory failingSessionFactory = () -> failingSession;
+
+        processor.onTrigger(runner.getProcessContext(), failingSessionFactory);
+
+        final MockFlowFile initiallyDelivered = initiallyDeliveredReference.get();
+        assertNotNull(initiallyDelivered);
+        final String initialOffset = initiallyDelivered.getAttribute(KafkaFlowFileAttribute.KAFKA_OFFSET);
+        final String initialPartition = initiallyDelivered.getAttribute(KafkaFlowFileAttribute.KAFKA_PARTITION);
+
+        runner.clearTransferState();
+        waitForFlowFile();
+        runner.run(1, true, false);
+
+        final MockFlowFile redelivered = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).getFirst();
+        redelivered.assertContentEquals(RECORD_VALUE);
+        redelivered.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_TOPIC, topic);
+        redelivered.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_PARTITION, initialPartition);
+        redelivered.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_OFFSET, initialOffset);
     }
 
     private void waitForFlowFile() throws TimeoutException {
@@ -177,7 +232,7 @@ class ConsumeKafkaShareGroupIT extends AbstractConsumeKafkaIT {
 
     @Test
     @Timeout(120)
-    void testShareGroupConsumesProducedRecordWithImplicitAcknowledgement() throws ExecutionException, InterruptedException, TimeoutException {
+    void testShareGroupImplicitModeConsumesProducedRecord() throws ExecutionException, InterruptedException, TimeoutException {
         final String topic = "share-group-implicit-topic-" + UUID.randomUUID();
         final String shareGroupId = "share-group-implicit-" + UUID.randomUUID();
 

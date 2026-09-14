@@ -296,11 +296,20 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         properties.putAll(consumerProperties);
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, shareGroupContext.getGroupId());
 
-        // Configurations rejected by ShareConsumerConfig.SHARE_GROUP_UNSUPPORTED_CONFIGS in
-        // Kafka 4.2+. Remove rather than override so KafkaShareConsumer construction does not
-        // throw ConfigException on properties carried over from the classic-consumer setup.
-        // Keep this list in sync with org.apache.kafka.clients.consumer.ShareConsumerConfig
-        // when upgrading the kafka-clients dependency.
+        stripShareUnsupportedConsumerConfigs(properties);
+
+        final ShareAcknowledgementMode acknowledgementMode = shareGroupContext.getAcknowledgementMode();
+        properties.put(ConsumerConfig.SHARE_ACKNOWLEDGEMENT_MODE_CONFIG, acknowledgementMode.name().toLowerCase(Locale.ROOT));
+
+        final ByteArrayDeserializer deserializer = new ByteArrayDeserializer();
+        final KafkaShareConsumer<byte[], byte[]> shareConsumer = new KafkaShareConsumer<>(properties, deserializer, deserializer);
+
+        return new Kafka4ShareConsumerService(getLogger(), shareConsumer, acknowledgementMode, shareGroupContext.getTopics());
+    }
+
+    static void stripShareUnsupportedConsumerConfigs(final Properties properties) {
+        // KafkaShareConsumer rejects these classic-consumer properties in the bundled kafka-clients library.
+        // Keep this list aligned when upgrading the kafka-clients dependency.
         properties.remove(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
         properties.remove(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG);
         properties.remove(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG);
@@ -311,14 +320,6 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         properties.remove(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG);
         properties.remove(ConsumerConfig.GROUP_PROTOCOL_CONFIG);
         properties.remove(ConsumerConfig.GROUP_REMOTE_ASSIGNOR_CONFIG);
-
-        final ShareAcknowledgementMode acknowledgementMode = shareGroupContext.getAcknowledgementMode();
-        properties.put(ConsumerConfig.SHARE_ACKNOWLEDGEMENT_MODE_CONFIG, acknowledgementMode.name().toLowerCase(Locale.ROOT));
-
-        final ByteArrayDeserializer deserializer = new ByteArrayDeserializer();
-        final KafkaShareConsumer<byte[], byte[]> shareConsumer = new KafkaShareConsumer<>(properties, deserializer, deserializer);
-
-        return new Kafka4ShareConsumerService(getLogger(), shareConsumer, acknowledgementMode, shareGroupContext.getTopics());
     }
 
     private Subscription createSubscription(final PollingContext pollingContext) {
