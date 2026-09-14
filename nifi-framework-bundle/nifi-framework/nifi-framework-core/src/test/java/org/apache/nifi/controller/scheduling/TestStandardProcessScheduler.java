@@ -475,13 +475,7 @@ public class TestStandardProcessScheduler {
     }
 
     /**
-     * Validates that service that is infinitely blocking in @OnEnabled can
-     * still have DISABLE operation initiated. The service itself will be set to
-     * DISABLING state at which point UI and all will know that such service can
-     * not be transitioned any more into any other state until it finishes
-     * enabling (which will never happen in our case thus should be addressed by
-     * user). However, regardless of user's mistake NiFi will remain
-     * functioning.
+     * Validates that a service blocking indefinitely in @OnEnabled can be interrupted and disabled.
      */
     @Test
     public void validateNeverEnablingServiceCanStillBeDisabled() throws Exception {
@@ -490,23 +484,24 @@ public class TestStandardProcessScheduler {
         final ControllerServiceNode serviceNode = flowManager.createControllerService(LongEnablingService.class.getName(),
                 "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true, null);
 
-        final LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
-        ts.setLimit(Long.MAX_VALUE);
+        final LongEnablingService service = (LongEnablingService) serviceNode.getControllerServiceImplementation();
+        service.setLimit(Long.MAX_VALUE);
 
         serviceNode.performValidation();
         scheduler.enableControllerService(serviceNode);
 
         assertTrue(serviceNode.isActive());
         final long maxTime = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-        while (ts.enableInvocationCount() != 1 && System.nanoTime() <= maxTime) {
+        while (service.enableInvocationCount() != 1 && System.nanoTime() <= maxTime) {
             Thread.sleep(1L);
         }
-        assertEquals(1, ts.enableInvocationCount());
+        assertEquals(1, service.enableInvocationCount());
 
-        scheduler.disableControllerService(serviceNode);
+        final CompletableFuture<Void> disableFuture = scheduler.disableControllerService(serviceNode);
+        disableFuture.get(5, TimeUnit.SECONDS);
         assertFalse(serviceNode.isActive());
-        assertEquals(ControllerServiceState.DISABLING, serviceNode.getState());
-        assertEquals(0, ts.disableInvocationCount());
+        assertEquals(1, service.disableInvocationCount());
+        assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
     }
 
     @Test
