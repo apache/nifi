@@ -70,6 +70,11 @@ export const selectParentProcessGroupId = createSelector(
     (state: FlowState) => state.flow.processGroupFlow.parentGroupId
 );
 
+export const selectResolvedExecutionEngine = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flow.processGroupFlow.resolvedExecutionEngine
+);
+
 export const selectProcessGroupIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {
         // always select the process group from the route

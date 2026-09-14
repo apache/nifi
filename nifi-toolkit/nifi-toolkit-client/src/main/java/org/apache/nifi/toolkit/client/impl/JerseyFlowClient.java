@@ -167,6 +167,32 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
     }
 
     @Override
+    public ScheduleComponentsEntity stopProcessGroupSources(
+            final String processGroupId, final ScheduleComponentsEntity scheduleComponentsEntity)
+            throws NiFiClientException, IOException {
+
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null");
+        }
+
+        if (scheduleComponentsEntity == null) {
+            throw new IllegalArgumentException("ScheduleComponentsEntity cannot be null");
+        }
+
+        scheduleComponentsEntity.setId(processGroupId);
+
+        return executeAction("Error stopping process group sources", () -> {
+            final WebTarget target = flowTarget
+                    .path("process-groups/{id}/sources")
+                    .resolveTemplate("id", processGroupId);
+
+            return getRequestBuilder(target).put(
+                    Entity.entity(scheduleComponentsEntity, MediaType.APPLICATION_JSON_TYPE),
+                    ScheduleComponentsEntity.class);
+        });
+    }
+
+    @Override
     public VersionedFlowSnapshotMetadataSetEntity getVersions(final String registryId, final String bucketId, final String flowId)
             throws NiFiClientException, IOException {
         return getVersions(registryId, bucketId, flowId, null);

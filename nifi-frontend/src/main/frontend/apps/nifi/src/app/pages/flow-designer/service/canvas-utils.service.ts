@@ -20,13 +20,15 @@ import * as d3 from 'd3';
 import { humanizer, Humanizer } from 'humanize-duration';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
+import type { ResolvedExecutionEngine } from '../state/flow';
 import {
     selectBreadcrumbs,
     selectCanvasPermissions,
     selectConnections,
     selectCurrentParameterContext,
     selectCurrentProcessGroupId,
-    selectParentProcessGroupId
+    selectParentProcessGroupId,
+    selectResolvedExecutionEngine
 } from '../state/flow/flow.selectors';
 import { initialState as initialFlowState } from '../state/flow/flow.reducer';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -80,6 +82,8 @@ export class CanvasUtils {
     private trimLengthCaches: Map<string, Map<string, Map<number, number>>> = new Map();
     private currentProcessGroupId: string = initialFlowState.id;
     private parentProcessGroupId: string | null = initialFlowState.flow.processGroupFlow.parentGroupId;
+    private currentResolvedExecutionEngine: ResolvedExecutionEngine =
+        initialFlowState.flow.processGroupFlow.resolvedExecutionEngine;
     private canvasPermissions: Permissions = initialFlowState.flow.permissions;
     private currentUser: CurrentUser = initialUserState.user;
     private currentParameterContext: ParameterContextReferenceEntity | null =
@@ -108,6 +112,13 @@ export class CanvasUtils {
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((parentProcessGroupId) => {
                 this.parentProcessGroupId = parentProcessGroupId;
+            });
+
+        this.store
+            .select(selectResolvedExecutionEngine)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((resolvedExecutionEngine) => {
+                this.currentResolvedExecutionEngine = resolvedExecutionEngine;
             });
 
         this.store
@@ -227,6 +238,14 @@ export class CanvasUtils {
      */
     public getProcessGroupId(): string {
         return this.currentProcessGroupId;
+    }
+
+    /**
+     * The Execution Engine that will actually run the current Process Group
+     * after resolving INHERITED. Always STANDARD or STATELESS.
+     */
+    public getResolvedExecutionEngine(): ResolvedExecutionEngine {
+        return this.currentResolvedExecutionEngine;
     }
 
     /**

@@ -47,6 +47,7 @@ import {
     replayLastProvenanceEvent,
     requestRefreshRemoteProcessGroup,
     runOnce,
+    stopSources,
     stopVersionControlRequest,
     terminateThreads,
     updatePositions
@@ -772,6 +773,36 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 clazz: 'fa fa-stop',
                 text: 'Stop',
                 action: this.canvasActionsService.getActionFunction('stop')
+            },
+            {
+                condition: (selection: any) => {
+                    if (!(selection.empty() || this.canvasUtils.isProcessGroup(selection))) {
+                        return false;
+                    }
+                    const resolved = selection.empty()
+                        ? this.canvasUtils.getResolvedExecutionEngine()
+                        : selection.datum().resolvedExecutionEngine;
+                    return resolved === 'STANDARD';
+                },
+                clazz: 'fa fa-stop-circle-o',
+                text: 'Stop sources',
+                action: (selection: any) => {
+                    let processGroupId: string;
+                    if (selection.empty()) {
+                        processGroupId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        const selectionData = selection.datum();
+                        processGroupId = selectionData.id;
+                    }
+
+                    this.store.dispatch(
+                        stopSources({
+                            request: {
+                                id: processGroupId
+                            }
+                        })
+                    );
+                }
             },
             {
                 condition: (selection: any) => {

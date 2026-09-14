@@ -38,6 +38,7 @@ public class ProcessGroupFlowDTO {
     private FlowBreadcrumbEntity breadcrumb;
     private FlowDTO flow;
     private Date lastRefreshed;
+    private String resolvedExecutionEngine;
 
     /**
      * @return contents of this process group. This field will be populated if the request is marked verbose
@@ -129,5 +130,16 @@ public class ProcessGroupFlowDTO {
 
     public void setParameterContext(ParameterContextReferenceEntity parameterContext) {
         this.parameterContext = parameterContext;
+    }
+
+    @Schema(description = "The Execution Engine that will actually run this Process Group after resolving INHERITED. Never INHERITED; a root group configured as INHERITED resolves to STANDARD.",
+        allowableValues = {"STATELESS", "STANDARD"},
+        accessMode = Schema.AccessMode.READ_ONLY)
+    public String getResolvedExecutionEngine() {
+        return resolvedExecutionEngine;
+    }
+
+    public void setResolvedExecutionEngine(final String resolvedExecutionEngine) {
+        this.resolvedExecutionEngine = resolvedExecutionEngine;
     }
 }

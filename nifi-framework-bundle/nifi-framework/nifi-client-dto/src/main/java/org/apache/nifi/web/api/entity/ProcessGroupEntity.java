@@ -56,6 +56,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     private ParameterContextReferenceEntity parameterContext;
 
     private String processGroupUpdateStrategy;
+    private String resolvedExecutionEngine;
 
     /**
      * The ProcessGroupDTO that is being serialized.
@@ -328,5 +329,17 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
 
     public void setProcessGroupUpdateStrategy(String processGroupUpdateStrategy) {
         this.processGroupUpdateStrategy = processGroupUpdateStrategy;
+    }
+
+    @Schema(description = "The Execution Engine that will actually run this Process Group after resolving INHERITED. Never INHERITED; a root group configured as INHERITED resolves to STANDARD. "
+            + "Promoted onto the entity so it is available when the user cannot read the Process Group.",
+            allowableValues = {"STATELESS", "STANDARD"},
+            accessMode = Schema.AccessMode.READ_ONLY)
+    public String getResolvedExecutionEngine() {
+        return resolvedExecutionEngine;
+    }
+
+    public void setResolvedExecutionEngine(final String resolvedExecutionEngine) {
+        this.resolvedExecutionEngine = resolvedExecutionEngine;
     }
 }

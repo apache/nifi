@@ -73,6 +73,8 @@ import {
     startComponentSuccess,
     startPollingProcessorUntilStopped,
     startProcessGroupSuccess,
+    stopSources,
+    stopSourcesSuccess,
     startRemoteProcessGroupPolling,
     stopComponent,
     stopComponentSuccess,
@@ -123,6 +125,7 @@ export const initialState: FlowState = {
                 }
             },
             parameterContext: null,
+            resolvedExecutionEngine: 'STANDARD',
             flow: {
                 processGroups: [],
                 remoteProcessGroups: [],
@@ -432,6 +435,7 @@ export const flowReducer = createReducer(
         disableComponent,
         startComponent,
         stopComponent,
+        stopSources,
         runOnce,
         (state) => ({
             ...state,
@@ -443,6 +447,7 @@ export const flowReducer = createReducer(
         disableProcessGroupSuccess,
         startProcessGroupSuccess,
         stopProcessGroupSuccess,
+        stopSourcesSuccess,
         (state) => ({
             ...state,
             saving: false

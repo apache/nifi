@@ -56,6 +56,9 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ClusterTopologyProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
@@ -114,6 +117,8 @@ import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
+import org.apache.nifi.remote.PublicPort;
+import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinFactory;
 import org.apache.nifi.reporting.BulletinQuery;
@@ -3258,6 +3263,291 @@ public class StandardNiFiServiceFacadeTest {
         assertNotNull(assetEntity);
         assertEquals(ASSET_ID, assetEntity.getAsset().getId());
         verify(assetManager).deleteAsset(ASSET_ID);
+    }
+
+    @Test
+    public void testFindSourceComponentIdsIncludesProcessorWithNoIncomingConnections() {
+        final ProcessorNode processor = sourceProcessor("source-processor");
+        final ProcessGroup group = sourceProcessGroup(List.of(processor), List.of(), List.of());
+
+        assertEquals(Set.of("source-processor"), serviceFacade.findSourceComponentIds(group));
+    }
+
+    @Test
+    public void testFindSourceComponentIdsIncludesProcessorWithSelfLoop() {
+        final ProcessorNode processor = sourceProcessor("self-loop-processor");
+        final Connection selfLoop = connectionFrom(processor);
+        when(processor.getIncomingConnections()).thenReturn(List.of(selfLoop));
+        final ProcessGroup group = sourceProcessGroup(List.of(processor), List.of(), List.of());
+
+        assertEquals(Set.of("self-loop-processor"), serviceFacade.findSourceComponentIds(group));
+    }
+
+    @Test
+    public void testFindSourceComponentIdsExcludesProcessorWithIncomingConnectionFromOtherComponent() {
+        final ProcessorNode upstream = sourceProcessor("upstream");
+        final ProcessorNode downstream = sourceProcessor("downstream");
+        final Connection incomingConnection = connectionFrom(upstream);
+        when(downstream.getIncomingConnections()).thenReturn(List.of(incomingConnection));
+        final ProcessGroup group = sourceProcessGroup(List.of(upstream, downstream), List.of(), List.of());
+
+        assertEquals(Set.of("upstream"), serviceFacade.findSourceComponentIds(group));
+    }
+
+    @Test
+    public void testFindSourceComponentIdsIncludesNestedProcessGroupProcessors() {
+        final ProcessorNode parentSource = sourceProcessor("parent-source");
+        final ProcessorNode nestedSource = sourceProcessor("nested-source");
+        final ProcessGroup group = sourceProcessGroup(List.of(parentSource, nestedSource), List.of(), List.of());
+
+        assertEquals(Set.of("parent-source", "nested-source"), serviceFacade.findSourceComponentIds(group));
+    }
+
+    @Test
+    public void testFindSourceComponentIdsExcludesSourcesInStatelessProcessGroups() {
+        final ProcessorNode statelessProcessor = sourceProcessor("stateless-processor");
+        final RemoteGroupPort statelessRemoteOutput = remotePort("stateless-remote-output");
+        final RemoteProcessGroup statelessRemoteProcessGroup = mock(RemoteProcessGroup.class);
+        when(statelessRemoteProcessGroup.getOutputPorts()).thenReturn(Set.of(statelessRemoteOutput));
+        final PublicPort statelessPublicInput = sourcePublicPort("stateless-public-input");
+        final ProcessGroup group = sourceProcessGroup(
+                List.of(statelessProcessor),
+                List.of(statelessRemoteProcessGroup),
+                List.of(statelessPublicInput)
+        );
+        final ProcessGroup statelessGroup = mock(ProcessGroup.class);
+        when(statelessGroup.resolveExecutionEngine()).thenReturn(ExecutionEngine.STATELESS);
+        when(statelessProcessor.getProcessGroup()).thenReturn(statelessGroup);
+        when(statelessRemoteProcessGroup.getProcessGroup()).thenReturn(statelessGroup);
+        when(statelessPublicInput.getProcessGroup()).thenReturn(statelessGroup);
+
+        assertTrue(serviceFacade.findSourceComponentIds(group).isEmpty());
+    }
+
+    @Test
+    public void testVerifyStopSourcesRejectsStatelessProcessGroup() {
+        final ProcessGroup group = mock(ProcessGroup.class);
+        when(group.resolveExecutionEngine()).thenReturn(ExecutionEngine.STATELESS);
+        when(processGroupDAO.getProcessGroup("stateless-group")).thenReturn(group);
+
+        assertThrows(IllegalStateException.class, () -> serviceFacade.verifyStopSources("stateless-group"));
+    }
+
+    @Test
+    public void testVerifyStopSourcesAllowsStandardProcessGroup() {
+        final ProcessGroup group = mock(ProcessGroup.class);
+        when(group.resolveExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+        when(processGroupDAO.getProcessGroup("standard-group")).thenReturn(group);
+
+        serviceFacade.verifyStopSources("standard-group");
+    }
+
+    @Test
+    public void testVerifyStopSourcesAllowsMatchingSourceComponents() {
+        final ProcessorNode sourceProcessor = sourceProcessor("source-processor");
+        final ProcessGroup group = sourceProcessGroup(List.of(sourceProcessor), List.of(), List.of());
+        when(processGroupDAO.getProcessGroup("standard-group")).thenReturn(group);
+
+        serviceFacade.verifyStopSources("standard-group", Set.of("source-processor"));
+    }
+
+    @Test
+    public void testVerifyStopSourcesRejectsMissingSourceComponent() {
+        final ProcessorNode sourceProcessor = sourceProcessor("source-processor");
+        final ProcessGroup group = sourceProcessGroup(List.of(sourceProcessor), List.of(), List.of());
+        when(processGroupDAO.getProcessGroup("standard-group")).thenReturn(group);
+
+        assertThrows(IllegalStateException.class, () -> serviceFacade.verifyStopSources("standard-group", Set.of()));
+    }
+
+    @Test
+    public void testVerifyStopSourcesRejectsNonSourceComponent() {
+        final ProcessorNode sourceProcessor = sourceProcessor("source-processor");
+        final ProcessorNode downstreamProcessor = sourceProcessor("downstream-processor");
+        final Connection incomingConnection = connectionFrom(sourceProcessor);
+        when(downstreamProcessor.getIncomingConnections()).thenReturn(List.of(incomingConnection));
+        final ProcessGroup group = sourceProcessGroup(List.of(sourceProcessor, downstreamProcessor), List.of(), List.of());
+        when(processGroupDAO.getProcessGroup("standard-group")).thenReturn(group);
+
+        assertThrows(IllegalStateException.class,
+                () -> serviceFacade.verifyStopSources("standard-group", Set.of("source-processor", "downstream-processor")));
+    }
+
+    @Test
+    public void testVerifyStopSourcesRejectsComponentInStatelessDescendant() {
+        final ProcessorNode statelessProcessor = sourceProcessor("stateless-processor");
+        final ProcessGroup group = sourceProcessGroup(List.of(statelessProcessor), List.of(), List.of());
+        final ProcessGroup statelessGroup = mock(ProcessGroup.class);
+        when(statelessGroup.resolveExecutionEngine()).thenReturn(ExecutionEngine.STATELESS);
+        when(statelessProcessor.getProcessGroup()).thenReturn(statelessGroup);
+        when(processGroupDAO.getProcessGroup("standard-group")).thenReturn(group);
+
+        assertThrows(IllegalStateException.class,
+                () -> serviceFacade.verifyStopSources("standard-group", Set.of("stateless-processor")));
+    }
+
+    @Test
+    public void testFindSourceComponentIdsExcludesNonRunningSourceProcessor() {
+        final ProcessorNode nonRunningSource = sourceProcessor("non-running-source", false);
+        final ProcessGroup group = sourceProcessGroup(List.of(nonRunningSource), List.of(), List.of());
+
+        assertTrue(serviceFacade.findSourceComponentIds(group).isEmpty());
+    }
+
+    @Test
+    public void testFindSourceComponentIdsExcludesNonTransmittingRemoteOutputPort() {
+        final RemoteGroupPort remoteOutput = remotePort("remote-output", ScheduledState.STOPPED);
+        final RemoteProcessGroup remoteProcessGroup = mock(RemoteProcessGroup.class);
+        when(remoteProcessGroup.getOutputPorts()).thenReturn(Set.of(remoteOutput));
+        when(remoteProcessGroup.getInputPorts()).thenReturn(Set.of());
+        final ProcessGroup group = sourceProcessGroup(List.of(), List.of(remoteProcessGroup), List.of());
+
+        assertTrue(serviceFacade.findSourceComponentIds(group).isEmpty());
+    }
+
+    @Test
+    public void testFindSourceComponentIdsExcludesStoppedPublicInputPort() {
+        final PublicPort publicInput = sourcePublicPort("public-input", ScheduledState.STOPPED);
+        final ProcessGroup group = sourceProcessGroup(List.of(), List.of(), List.of(publicInput));
+
+        assertTrue(serviceFacade.findSourceComponentIds(group).isEmpty());
+    }
+
+    @Test
+    public void testFindSourceComponentIdsIncludesRemoteOutputPortAndExcludesRemoteInputPort() {
+        final RemoteGroupPort remoteOutput = remotePort("remote-output");
+        final RemoteGroupPort remoteInput = remotePort("remote-input");
+        final RemoteProcessGroup remoteProcessGroup = mock(RemoteProcessGroup.class);
+        when(remoteProcessGroup.getIdentifier()).thenReturn("rpg");
+        when(remoteProcessGroup.getOutputPorts()).thenReturn(Set.of(remoteOutput));
+        when(remoteProcessGroup.getInputPorts()).thenReturn(Set.of(remoteInput));
+        final ProcessGroup group = sourceProcessGroup(List.of(), List.of(remoteProcessGroup), List.of());
+
+        final Set<String> sourceIds = serviceFacade.findSourceComponentIds(group);
+        assertEquals(Set.of("remote-output"), sourceIds);
+        assertFalse(sourceIds.contains("rpg"));
+        assertFalse(sourceIds.contains("remote-input"));
+    }
+
+    @Test
+    public void testFindSourceComponentIdsExcludesLocalPorts() {
+        final Port localInput = sourcePort("local-input");
+        final Port localOutput = sourcePort("local-output");
+        final ProcessGroup group = sourceProcessGroup(List.of(), List.of(), List.of(localInput));
+        when(group.findAllOutputPorts()).thenReturn(List.of(localOutput));
+
+        assertTrue(serviceFacade.findSourceComponentIds(group).isEmpty());
+    }
+
+    @Test
+    public void testFindSourceComponentIdsIncludesPublicInputPortWithNoIncomingConnections() {
+        final PublicPort publicInput = sourcePublicPort("public-input");
+        final ProcessGroup group = sourceProcessGroup(List.of(), List.of(), List.of(publicInput));
+
+        assertEquals(Set.of("public-input"), serviceFacade.findSourceComponentIds(group));
+    }
+
+    @Test
+    public void testFindSourceComponentIdsExcludesPublicInputPortWithIncomingConnectionFromParent() {
+        final Connectable parentOutput = sourceProcessor("parent-output");
+        final PublicPort publicInput = sourcePublicPort("nested-public-input");
+        final Connection incomingConnection = connectionFrom(parentOutput);
+        when(publicInput.getIncomingConnections()).thenReturn(List.of(incomingConnection));
+        final ProcessGroup group = sourceProcessGroup(List.of(), List.of(), List.of(publicInput));
+
+        assertTrue(serviceFacade.findSourceComponentIds(group).isEmpty());
+    }
+
+    @Test
+    public void testFindSourceComponentIdsExcludesPublicOutputPort() {
+        final PublicPort publicOutput = sourcePublicPort("public-output");
+        final ProcessGroup group = sourceProcessGroup(List.of(), List.of(), List.of());
+        when(group.findAllOutputPorts()).thenReturn(List.of(publicOutput));
+
+        assertTrue(serviceFacade.findSourceComponentIds(group).isEmpty());
+    }
+
+    @Test
+    public void testFindSourceComponentIdsMixOfSourcesAndNonSources() {
+        final ProcessorNode sourceProcessor = sourceProcessor("source-processor");
+        final ProcessorNode downstream = sourceProcessor("downstream");
+        final Connection incomingConnection = connectionFrom(sourceProcessor);
+        when(downstream.getIncomingConnections()).thenReturn(List.of(incomingConnection));
+
+        final RemoteGroupPort remoteOutput = remotePort("remote-output");
+        final RemoteGroupPort remoteInput = remotePort("remote-input");
+        final RemoteProcessGroup remoteProcessGroup = mock(RemoteProcessGroup.class);
+        when(remoteProcessGroup.getIdentifier()).thenReturn("rpg");
+        when(remoteProcessGroup.getOutputPorts()).thenReturn(Set.of(remoteOutput));
+        when(remoteProcessGroup.getInputPorts()).thenReturn(Set.of(remoteInput));
+
+        final PublicPort publicInput = sourcePublicPort("public-input");
+        final Port localInput = sourcePort("local-input");
+
+        final ProcessGroup group = sourceProcessGroup(List.of(sourceProcessor, downstream), List.of(remoteProcessGroup), List.of(publicInput, localInput));
+
+        assertEquals(Set.of("source-processor", "remote-output", "public-input"), serviceFacade.findSourceComponentIds(group));
+    }
+
+    private static ProcessGroup sourceProcessGroup(final List<ProcessorNode> processors, final List<RemoteProcessGroup> remoteProcessGroups, final List<Port> inputPorts) {
+        final ProcessGroup group = mock(ProcessGroup.class);
+        when(group.resolveExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+        when(group.findAllProcessors()).thenReturn(processors);
+        when(group.findAllRemoteProcessGroups()).thenReturn(remoteProcessGroups);
+        when(group.findAllInputPorts()).thenReturn(inputPorts);
+        when(group.findAllOutputPorts()).thenReturn(Collections.emptyList());
+        processors.forEach(processor -> when(processor.getProcessGroup()).thenReturn(group));
+        remoteProcessGroups.forEach(remoteProcessGroup -> when(remoteProcessGroup.getProcessGroup()).thenReturn(group));
+        inputPorts.forEach(inputPort -> when(inputPort.getProcessGroup()).thenReturn(group));
+        return group;
+    }
+
+    private static ProcessorNode sourceProcessor(final String identifier) {
+        return sourceProcessor(identifier, true);
+    }
+
+    private static ProcessorNode sourceProcessor(final String identifier, final boolean running) {
+        final ProcessorNode processor = mock(ProcessorNode.class);
+        when(processor.getIdentifier()).thenReturn(identifier);
+        when(processor.getIncomingConnections()).thenReturn(Collections.emptyList());
+        when(processor.isRunning()).thenReturn(running);
+        return processor;
+    }
+
+    private static Port sourcePort(final String identifier) {
+        final Port port = mock(Port.class);
+        when(port.getIdentifier()).thenReturn(identifier);
+        when(port.getIncomingConnections()).thenReturn(Collections.emptyList());
+        return port;
+    }
+
+    private static PublicPort sourcePublicPort(final String identifier) {
+        return sourcePublicPort(identifier, ScheduledState.RUNNING);
+    }
+
+    private static PublicPort sourcePublicPort(final String identifier, final ScheduledState scheduledState) {
+        final PublicPort port = mock(PublicPort.class);
+        when(port.getIdentifier()).thenReturn(identifier);
+        when(port.getIncomingConnections()).thenReturn(Collections.emptyList());
+        when(port.getScheduledState()).thenReturn(scheduledState);
+        return port;
+    }
+
+    private static RemoteGroupPort remotePort(final String identifier) {
+        return remotePort(identifier, ScheduledState.RUNNING);
+    }
+
+    private static RemoteGroupPort remotePort(final String identifier, final ScheduledState scheduledState) {
+        final RemoteGroupPort port = mock(RemoteGroupPort.class);
+        when(port.getIdentifier()).thenReturn(identifier);
+        when(port.getScheduledState()).thenReturn(scheduledState);
+        return port;
+    }
+
+    private static Connection connectionFrom(final Connectable source) {
+        final Connection connection = mock(Connection.class);
+        when(connection.getSource()).thenReturn(source);
+        return connection;
     }
 
     private Asset createAsset(final String assetId, final String ownerId) {

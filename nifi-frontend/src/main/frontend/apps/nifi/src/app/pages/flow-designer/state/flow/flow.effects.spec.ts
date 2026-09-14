@@ -834,7 +834,8 @@ describe('FlowEffects', () => {
                         createConnection: vi.fn(),
                         createLabel: vi.fn(),
                         clearBulletinsForProcessGroup: vi.fn(),
-                        submitProcessorBacklogRequest: vi.fn()
+                        submitProcessorBacklogRequest: vi.fn(),
+                        stopSources: vi.fn()
                     }
                 },
                 {
@@ -1124,6 +1125,107 @@ describe('FlowEffects', () => {
                 ...REQUEST,
                 zIndex: MAX_Z_INDEX + 1
             });
+        });
+    });
+
+    describe('stopSources$', () => {
+        beforeEach(() => {
+            effects = TestBed.inject(FlowEffects);
+        });
+
+        it('should call flowService.stopSources and dispatch stopSourcesSuccess', async () => {
+            vi.spyOn(flowService, 'stopSources').mockReturnValue(
+                of({ id: 'test-group-id', state: 'STOPPED', components: {} })
+            );
+
+            action$.next(FlowActions.stopSources({ request: { id: 'test-group-id' } }));
+
+            const result = await new Promise((resolve) => effects.stopSources$.pipe(take(1)).subscribe(resolve));
+
+            expect(result).toEqual(
+                FlowActions.stopSourcesSuccess({
+                    response: {
+                        type: ComponentType.ProcessGroup,
+                        component: { id: 'test-group-id', state: 'STOPPED' }
+                    }
+                })
+            );
+            expect(flowService.stopSources).toHaveBeenCalledWith({ id: 'test-group-id' });
+        });
+
+        it('should dispatch flowSnackbarError and not stopSourcesSuccess when stopSources fails', async () => {
+            const errorHelper = TestBed.inject(ErrorHelper);
+            const errorResponse = new HttpErrorResponse({
+                error: 'stop sources failed',
+                status: 409,
+                statusText: 'Conflict'
+            });
+            vi.spyOn(flowService, 'stopSources').mockReturnValue(throwError(() => errorResponse));
+            vi.spyOn(errorHelper, 'getErrorString').mockReturnValue('Formatted error message');
+
+            action$.next(FlowActions.stopSources({ request: { id: 'test-group-id' } }));
+
+            const result = await new Promise((resolve) => effects.stopSources$.pipe(take(1)).subscribe(resolve));
+
+            expect(result).toEqual(FlowActions.flowSnackbarError({ error: 'Formatted error message' }));
+            expect((result as Action).type).not.toBe(FlowActions.stopSourcesSuccess.type);
+            expect(flowService.stopSources).toHaveBeenCalledWith({ id: 'test-group-id' });
+        });
+    });
+
+    describe('stopSourcesCurrentProcessGroupSuccess$', () => {
+        beforeEach(() => {
+            effects = TestBed.inject(FlowEffects);
+        });
+
+        it('should dispatch reloadFlow when sources are stopped in the current process group', async () => {
+            store.overrideSelector(selectCurrentProcessGroupId, 'test-group-id');
+            store.refreshState();
+
+            action$.next(
+                FlowActions.stopSourcesSuccess({
+                    response: {
+                        type: ComponentType.ProcessGroup,
+                        component: { id: 'test-group-id', state: 'STOPPED' }
+                    }
+                })
+            );
+
+            const result = await new Promise((resolve) =>
+                effects.stopSourcesCurrentProcessGroupSuccess$.pipe(take(1)).subscribe(resolve)
+            );
+
+            expect(result).toEqual(FlowActions.reloadFlow());
+        });
+    });
+
+    describe('stopSourcesSuccess$', () => {
+        beforeEach(() => {
+            effects = TestBed.inject(FlowEffects);
+        });
+
+        it('should dispatch loadChildProcessGroup when sources are stopped in a child process group', async () => {
+            store.overrideSelector(selectCurrentProcessGroupId, 'current-pg');
+            store.refreshState();
+
+            action$.next(
+                FlowActions.stopSourcesSuccess({
+                    response: {
+                        type: ComponentType.ProcessGroup,
+                        component: { id: 'pg-child', state: 'STOPPED' }
+                    }
+                })
+            );
+
+            const result = await new Promise((resolve) => effects.stopSourcesSuccess$.pipe(take(1)).subscribe(resolve));
+
+            expect(result).toEqual(
+                FlowActions.loadChildProcessGroup({
+                    request: {
+                        id: 'pg-child'
+                    }
+                })
+            );
         });
     });
 
