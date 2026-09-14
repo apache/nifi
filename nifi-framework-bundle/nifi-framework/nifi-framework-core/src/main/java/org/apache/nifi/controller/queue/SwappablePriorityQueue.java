@@ -1014,11 +1014,9 @@ public class SwappablePriorityQueue {
                 final String newSwapLocation = result.newSwapLocation();
 
                 swapLocationUpdates.put(oldSwapLocation, newSwapLocation);
-                swapLocations.remove(oldSwapLocation);
 
                 if (newSwapLocation != null) {
                     // Some FlowFiles remain in new swap file
-                    swapLocations.add(newSwapLocation);
                     incrementSwapQueueSize(-result.droppedFlowFiles().size(), -result.droppedBytes(), 0);
 
                     // Update metrics for the new swap location
@@ -1039,6 +1037,21 @@ public class SwappablePriorityQueue {
 
                 droppedFlowFiles.addAll(result.droppedFlowFiles());
             }
+
+            // Replace rewritten swap files in place so that retained FlowFiles remain ahead of later swap files.
+            final List<String> updatedSwapLocations = new ArrayList<>(swapLocations.size());
+            for (final String swapLocation : swapLocations) {
+                if (swapLocationUpdates.containsKey(swapLocation)) {
+                    final String newSwapLocation = swapLocationUpdates.get(swapLocation);
+                    if (newSwapLocation != null) {
+                        updatedSwapLocations.add(newSwapLocation);
+                    }
+                } else {
+                    updatedSwapLocations.add(swapLocation);
+                }
+            }
+            swapLocations.clear();
+            swapLocations.addAll(updatedSwapLocations);
 
             // Filter the active queue
             final Queue<FlowFileRecord> newActiveQueue = new PriorityQueue<>(Math.max(20, activeQueue.size()), new QueuePrioritizer(getPriorities()));
