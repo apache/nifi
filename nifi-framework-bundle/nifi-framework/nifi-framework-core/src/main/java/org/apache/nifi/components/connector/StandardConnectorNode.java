@@ -790,7 +790,6 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         try {
             stateTransition.setDesiredState(ConnectorState.RUNNING);
             activeFlowContext.getConfigurationContext().resolvePropertyValues();
-
             verifyCanStart();
 
             boolean startScheduled = false;
@@ -1061,6 +1060,9 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             }
 
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
+                initializationContext.getSecretsManager().invalidateCache();
+                activeFlowContext.getConfigurationContext().resolvePropertyValues();
+                verifyCanStart();
                 connectorDetails.getConnector().start(activeFlowContext);
             } catch (final Exception e) {
                 if (getCurrentState() == ConnectorState.STOPPING) {
