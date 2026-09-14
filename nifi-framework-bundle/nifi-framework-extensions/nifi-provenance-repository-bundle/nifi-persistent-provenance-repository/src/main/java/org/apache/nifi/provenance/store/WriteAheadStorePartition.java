@@ -666,8 +666,8 @@ public class WriteAheadStorePartition implements EventStorePartition {
                 } finally {
                     final int filesCompleted = filesReindexed.incrementAndGet();
                     if (filesCompleted == 1 || filesCompleted == totalFilesToReindex || filesCompleted % REINDEX_FILE_PROGRESS_LOG_INTERVAL == 0) {
-                        logger.info("Re-indexed {} of {} Files for Partition [{}] including {} of {} Events",
-                                filesCompleted, totalFilesToReindex, partitionName, reindexedCount.get(), eventsToReindex);
+                        logger.info("Re-indexed {} of {} Files for Partition [{}] including {} Events",
+                                filesCompleted, totalFilesToReindex, partitionName, reindexedCount.get());
                     }
                 }
             };
