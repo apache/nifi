@@ -105,10 +105,10 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     private final ExtensionManager extensionManager;
     private final StateManagerProvider stateManagerProvider;
     private final Authorizable parentAuthorizable;
-    private final ConnectorDetails connectorDetails;
-    private final String componentType;
+    private volatile ConnectorDetails connectorDetails;
+    private volatile String componentType;
     private final String componentCanonicalClass;
-    private final BundleCoordinate bundleCoordinate;
+    private volatile BundleCoordinate bundleCoordinate;
     private final ConnectorStateTransition stateTransition;
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final FlowContextFactory flowContextFactory;
@@ -116,7 +116,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
     private final AtomicReference<ValidationState> validationState = new AtomicReference<>(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
     private final ConnectorValidationTrigger validationTrigger;
-    private final boolean extensionMissing;
+    private volatile boolean extensionMissing;
     private volatile boolean triggerValidation = true;
     private final AtomicReference<CompletableFuture<Void>> drainFutureRef = new AtomicReference<>();
     private volatile ValidationResult unresolvedBundleValidationResult = null;
@@ -485,11 +485,15 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             initial.put(versionedConfigStep.getName(), new StepConfiguration(toValueReferenceMap(versionedConfigStep)));
         }
 
+        return migrateProperties(getConnector(), initial);
+    }
+
+    private Map<String, StepConfiguration> migrateProperties(final Connector connector, final Map<String, StepConfiguration> initial) {
         final Set<String> persistedStepNames = new LinkedHashSet<>(initial.keySet());
         final StandardConnectorPropertyConfiguration propertyConfiguration = new StandardConnectorPropertyConfiguration(initial, this.toString());
-        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
-            getConnector().migrateProperties(propertyConfiguration);
-            return applyMissingRequiredPropertyDefaults(propertyConfiguration.getMutatedProperties(), persistedStepNames, getConnector().getConfigurationSteps());
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(connector.getClass().getClassLoader())) {
+            connector.migrateProperties(propertyConfiguration);
+            return applyMissingRequiredPropertyDefaults(propertyConfiguration.getMutatedProperties(), persistedStepNames, connector.getConfigurationSteps());
         }
     }
 
@@ -733,7 +737,11 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
     private void notifyStepConfigured(final String stepName, final FrameworkFlowContext workingContext) throws FlowUpdateException {
         final Connector connector = connectorDetails.getConnector();
-        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connector.getClass(), getIdentifier())) {
+        notifyStepConfigured(connector, stepName, workingContext);
+    }
+
+    private void notifyStepConfigured(final Connector connector, final String stepName, final FrameworkFlowContext workingContext) throws FlowUpdateException {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(connector.getClass().getClassLoader())) {
             logger.debug("Notifying {} of configuration change for configuration step {}", this, stepName);
             connector.onConfigurationStepConfigured(stepName, workingContext);
 
@@ -1308,6 +1316,126 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     @Override
     public Connector getConnector() {
         return connectorDetails.getConnector();
+    }
+
+    @Override
+    public void verifyCanReload() {
+        if (!isStopped()) {
+            throw new IllegalStateException("Cannot reload " + this + " because its state is " + getCurrentState());
+        }
+    }
+
+    @Override
+    public void verifyCanUpdateBundle(final BundleCoordinate incomingCoordinate) {
+        final BundleCoordinate currentCoordinate = getBundleCoordinate();
+        if (!currentCoordinate.getGroup().equals(incomingCoordinate.getGroup()) || !currentCoordinate.getId().equals(incomingCoordinate.getId())) {
+            throw new IllegalArgumentException("Cannot update " + this + " from " + currentCoordinate.getCoordinate() + " to "
+                + incomingCoordinate.getCoordinate() + " because the bundle group and artifact must be unchanged");
+        }
+    }
+
+    @Override
+    public void replaceConnector(final Connector replacement, final BundleCoordinate replacementCoordinate, final ComponentLog replacementLog) throws FlowUpdateException {
+        verifyCanReload();
+
+        final FrameworkConnectorInitializationContext replacementInitializationContext = new StandardConnectorInitializationContext.Builder()
+            .identifier(identifier)
+            .name(name)
+            .componentLog(replacementLog)
+            .secretsManager(initializationContext.getSecretsManager())
+            .assetManager(initializationContext.getAssetManager())
+            .componentBundleLookup(initializationContext.getComponentBundleLookup())
+            .build();
+
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(replacement.getClass().getClassLoader())) {
+            replacement.initialize(replacementInitializationContext);
+        }
+
+        final WorkingFlowContextState workingContextState = acquireWorkingFlowContext();
+        final FrameworkFlowContext workingContext = workingContextState.getContext();
+        boolean workingContextReleased = false;
+        try {
+            final Map<String, StepConfiguration> originalActiveConfiguration = toConfigurationMap(activeFlowContext.getConfigurationContext().toConnectorConfiguration());
+            final Map<String, StepConfiguration> originalWorkingConfiguration = workingContext == null ? originalActiveConfiguration
+                : toConfigurationMap(workingContext.getConfigurationContext().toConnectorConfiguration());
+
+            final Map<String, StepConfiguration> activeConfiguration = migrateProperties(replacement, originalActiveConfiguration);
+            final Map<String, StepConfiguration> workingConfiguration = migrateProperties(replacement, originalWorkingConfiguration);
+            final Bundle bundle = new Bundle(replacementCoordinate.getGroup(), replacementCoordinate.getId(), replacementCoordinate.getVersion());
+
+            replaceConfiguration(activeFlowContext.getConfigurationContext(), activeConfiguration);
+            if (workingContext != null) {
+                replaceConfiguration(workingContext.getConfigurationContext(), workingConfiguration);
+                workingContext.reload(bundle, replacementLog);
+
+                try {
+                    for (final String stepName : workingConfiguration.keySet()) {
+                        notifyStepConfigured(replacement, stepName, workingContext);
+                    }
+                } catch (final FlowUpdateException | RuntimeException e) {
+                    replaceConfiguration(activeFlowContext.getConfigurationContext(), originalActiveConfiguration);
+                    final Bundle originalBundle = new Bundle(bundleCoordinate.getGroup(), bundleCoordinate.getId(), bundleCoordinate.getVersion());
+                    releaseWorkingFlowContext(workingContextState);
+                    workingContextReleased = true;
+
+                    final MutableConnectorConfigurationContext restoredConfiguration = createConfigurationContext(originalWorkingConfiguration);
+                    final WorkingFlowContextState restoredContextState = installReplacementWorkingFlowContext(restoredConfiguration, originalBundle, true);
+                    final FrameworkFlowContext restoredContext = restoredContextState.getContext();
+
+                    try {
+                        for (final String stepName : originalWorkingConfiguration.keySet()) {
+                            try {
+                                notifyStepConfigured(stepName, restoredContext);
+                            } catch (final Exception refreshException) {
+                                logger.warn("Failed to restore configuration for step [{}] of {}", stepName, this, refreshException);
+                            }
+                        }
+                    } finally {
+                        releaseWorkingFlowContext(restoredContextState);
+                    }
+                    throw e;
+                }
+            }
+
+            connectorDetails = new ConnectorDetails(replacement, replacementCoordinate, replacementLog);
+            bundleCoordinate = replacementCoordinate;
+            extensionMissing = replacement instanceof GhostConnector;
+            componentType = extensionMissing ? "(Missing) " + getSimpleClassName(componentCanonicalClass) : replacement.getClass().getSimpleName();
+            initializationContext = replacementInitializationContext;
+
+            activeFlowContext.reload(bundle, replacementLog);
+        } finally {
+            if (!workingContextReleased) {
+                releaseWorkingFlowContext(workingContextState);
+            }
+        }
+
+        rebuildLoggingAttributes();
+    }
+
+    private Map<String, StepConfiguration> toConfigurationMap(final ConnectorConfiguration configuration) {
+        final Map<String, StepConfiguration> configurations = new LinkedHashMap<>();
+        for (final NamedStepConfiguration namedConfiguration : configuration.getNamedStepConfigurations()) {
+            configurations.put(namedConfiguration.stepName(), namedConfiguration.configuration());
+        }
+        return configurations;
+    }
+
+    private void replaceConfiguration(final MutableConnectorConfigurationContext context, final Map<String, StepConfiguration> replacement) {
+        final Set<String> existingStepNames = new HashSet<>();
+        for (final NamedStepConfiguration namedConfiguration : context.toConnectorConfiguration().getNamedStepConfigurations()) {
+            existingStepNames.add(namedConfiguration.stepName());
+        }
+
+        for (final Map.Entry<String, StepConfiguration> entry : replacement.entrySet()) {
+            context.replaceProperties(entry.getKey(), entry.getValue());
+        }
+
+        for (final String existingStepName : existingStepNames) {
+            if (!replacement.containsKey(existingStepName)) {
+                context.removeStep(existingStepName);
+            }
+        }
     }
 
     @Override
@@ -2480,7 +2608,8 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         }
     }
 
-    private void resetValidationState() {
+    @Override
+    public void resetValidationState() {
         validationState.set(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
         validationTrigger.triggerAsync(this);
         logger.debug("Validation state has been reset for {}", this);

@@ -52,6 +52,7 @@ export function getConnectorStateVariant(state: string): StatusVariant {
             return 'success';
         case ConnectorState.STOPPED:
         case ConnectorState.DISABLED:
+        case ConnectorState.UPDATED:
             return 'neutral';
         case ConnectorState.STARTING:
         case ConnectorState.UPDATING:

@@ -526,7 +526,7 @@ public class ConnectorResource extends ApplicationResource {
             )
             @PathParam("id") final String id,
             @Parameter(
-                    description = "The connector configuration details.",
+                    description = "The connector configuration details. The bundle may be specified to change the NAR version.",
                     required = true
             ) final ConnectorEntity requestConnectorEntity) {
 

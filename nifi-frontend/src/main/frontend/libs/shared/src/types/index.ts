@@ -253,7 +253,8 @@ export enum ConnectorState {
     DISABLED = 'DISABLED',
     PREPARING_FOR_UPDATE = 'PREPARING_FOR_UPDATE',
     UPDATING = 'UPDATING',
-    UPDATE_FAILED = 'UPDATE_FAILED'
+    UPDATE_FAILED = 'UPDATE_FAILED',
+    UPDATED = 'UPDATED'
 }
 
 export interface ConnectorComponent {

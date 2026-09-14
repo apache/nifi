@@ -77,6 +77,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -708,6 +710,60 @@ public class TestStandardConnectorNode {
         final ConnectorConfiguration workingConfiguration = connectorNode.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
         final NamedStepConfiguration namedStep = workingConfiguration.getNamedStepConfigurations().iterator().next();
         assertEquals(Map.of("propA", new StringLiteralValue("newA")), namedStep.configuration().getPropertyValues());
+    }
+
+    @Test
+    public void testReplaceConnectorRemovesMigratedConfigurationStep() throws FlowUpdateException {
+        final StandardConnectorNode connectorNode = createConnectorNode(new TrackingConnector());
+        connectorNode.setConfiguration("legacy", createStepConfiguration());
+        final FrameworkFlowContext workingFlowContext = connectorNode.getWorkingFlowContext();
+        final Connector replacement = new LegacyStepRemovingConnector();
+        final BundleCoordinate replacementCoordinate = new BundleCoordinate("org.apache.nifi", "test-standard-connector-node", "2.0.0");
+
+        connectorNode.replaceConnector(replacement, replacementCoordinate, new MockComponentLog("ReplacementConnector", replacement));
+
+        assertSame(replacement, connectorNode.getConnector());
+        assertSame(workingFlowContext, connectorNode.getWorkingFlowContext());
+        assertTrue(connectorNode.getWorkingFlowContext().getConfigurationContext().getPropertyNames("legacy").isEmpty());
+    }
+
+    @Test
+    public void testReplaceConnectorWithGhostMarksExtensionMissing() throws FlowUpdateException {
+        final StandardConnectorNode connectorNode = createConnectorNode(new TrackingConnector());
+        final GhostConnector ghostConnector = new GhostConnector(connectorNode.getIdentifier(), connectorNode.getCanonicalClassName(), new Exception("Instantiation failed"));
+        final BundleCoordinate replacementCoordinate = new BundleCoordinate("org.apache.nifi", "test-standard-connector-node", "2.0.0");
+
+        connectorNode.replaceConnector(ghostConnector, replacementCoordinate, new MockComponentLog("GhostConnector", ghostConnector));
+
+        assertSame(ghostConnector, connectorNode.getConnector());
+        assertTrue(connectorNode.isExtensionMissing());
+        assertEquals("(Missing) TrackingConnector", connectorNode.getComponentType());
+    }
+
+    @Test
+    public void testReplaceConnectorRestoresConfigurationWhenCallbackFails() throws FlowUpdateException {
+        final TrackingConnector original = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(original);
+        seedActiveConfiguration(connectorNode, "active-step", Map.of("active-property", new StringLiteralValue("active-value")));
+        connectorNode.setConfiguration("step", createStepConfiguration());
+        final FrameworkFlowContext originalWorkingFlowContext = connectorNode.getWorkingFlowContext();
+        final FailingStepConnector replacement = new FailingStepConnector("step") {
+            @Override
+            public void migrateProperties(final ConnectorPropertyConfiguration configuration) {
+                configuration.removeStep("active-step");
+            }
+        };
+        replacement.setFailOnStep(true);
+        final BundleCoordinate replacementCoordinate = new BundleCoordinate("org.apache.nifi", "test-standard-connector-node", "2.0.0");
+
+        assertThrows(FlowUpdateException.class,
+            () -> connectorNode.replaceConnector(replacement, replacementCoordinate, new MockComponentLog("ReplacementConnector", replacement)));
+
+        assertSame(original, connectorNode.getConnector());
+        assertNotSame(originalWorkingFlowContext, connectorNode.getWorkingFlowContext());
+        assertEquals("active-value", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("active-step", "active-property").getValue());
+        assertEquals("testValue", connectorNode.getWorkingFlowContext().getConfigurationContext().getProperty("step", "testProperty").getValue());
+        assertEquals("1.0.0", connectorNode.getWorkingFlowContext().getBundle().getVersion());
     }
 
     @Test
