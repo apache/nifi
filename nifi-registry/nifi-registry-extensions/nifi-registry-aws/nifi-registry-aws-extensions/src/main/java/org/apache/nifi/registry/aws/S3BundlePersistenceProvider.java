@@ -331,7 +331,12 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
     }
 
     private static String sanitize(final String input) {
-        return FileUtils.sanitizeFilename(input).trim().toLowerCase();
+        final String sanitized = FileUtils.sanitizeFilename(input).trim().toLowerCase();
+        if (".".equals(sanitized) || "..".equals(sanitized)) {
+            throw new IllegalArgumentException("Coordinate component is not a valid path name");
+        }
+
+        return sanitized;
     }
 
     static String getBundleFileExtension(final BundleVersionType bundleType) {

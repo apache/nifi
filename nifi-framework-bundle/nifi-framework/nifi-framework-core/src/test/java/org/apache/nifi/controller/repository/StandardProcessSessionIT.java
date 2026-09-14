@@ -92,6 +92,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -127,6 +128,10 @@ import static org.mockito.Mockito.when;
 
 public class StandardProcessSessionIT {
     private static final Relationship FAKE_RELATIONSHIP = new Relationship.Builder().name("FAKE").build();
+
+    private static final String CONNECTABLE_ID = "connectable-1";
+
+    private static final String CONNECTOR_ID = "connector-1";
 
     private StandardProcessSession session;
     private MockContentRepository contentRepo;
@@ -193,12 +198,13 @@ public class StandardProcessSessionIT {
         final ProcessGroup procGroup = mock(ProcessGroup.class);
         when(procGroup.getIdentifier()).thenReturn("proc-group-identifier-1");
         when(procGroup.getLoggingAttributes()).thenReturn(Map.of());
+        when(procGroup.findOwningConnectorIdentifier()).thenReturn(Optional.of(CONNECTOR_ID));
 
         connectable = mock(Connectable.class);
         when(connectable.hasIncomingConnection()).thenReturn(true);
         when(connectable.getIncomingConnections()).thenReturn(connList);
         when(connectable.getProcessGroup()).thenReturn(procGroup);
-        when(connectable.getIdentifier()).thenReturn("connectable-1");
+        when(connectable.getIdentifier()).thenReturn(CONNECTABLE_ID);
         when(connectable.getConnectableType()).thenReturn(ConnectableType.INPUT_PORT);
         when(connectable.getComponentType()).thenReturn("Unit Test Component");
         when(connectable.getBackoffMechanism()).thenReturn(BackoffMechanism.PENALIZE_FLOWFILE);
@@ -227,7 +233,7 @@ public class StandardProcessSessionIT {
         stateManager.setIgnoreAnnotations(true);
 
         context = new StandardRepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepository,
-            counterRepository, componentMetricReporter, provenanceRepo, stateManager, 50_000L);
+            counterRepository, componentMetricReporter, provenanceRepo, stateManager);
         session = new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
     }
 
@@ -2357,6 +2363,80 @@ public class StandardProcessSessionIT {
     }
 
     @Test
+    public void testContentClaimCreationContextIdentifiesComponentAndConnector() {
+        FlowFile flowFile = session.create();
+        flowFile = session.importFrom(new ByteArrayInputStream("imported".getBytes(StandardCharsets.UTF_8)), flowFile);
+        flowFile = session.write(flowFile, out -> out.write("written".getBytes(StandardCharsets.UTF_8)));
+
+        session.transfer(flowFile, new Relationship.Builder().name("success").build());
+        session.commit();
+
+        // The first claim is created directly by the import; the second is obtained from the session's write cache.
+        final List<ContentClaimCreationContext> creationContexts = contentRepo.getCreationContexts();
+        assertEquals(2, creationContexts.size());
+
+        for (final ContentClaimCreationContext creationContext : creationContexts) {
+            assertEquals(CONNECTABLE_ID, creationContext.getComponentIdentifier());
+            assertEquals(CONNECTOR_ID, creationContext.getConnectorIdentifier());
+            assertEquals(LossTolerance.LOSS_INTOLERANT, creationContext.getLossTolerance());
+        }
+    }
+
+    @Test
+    public void testContentClaimCreationContextLossToleranceMatchesComponent() {
+        when(connectable.isLossTolerant()).thenReturn(true);
+
+        final StandardRepositoryContext lossTolerantContext = new StandardRepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo,
+            flowFileEventRepository, counterRepository, componentMetricReporter, provenanceRepo, stateManager);
+        final StandardProcessSession lossTolerantSession = new StandardProcessSession(lossTolerantContext, () -> false, new NopPerformanceTracker());
+
+        try {
+            FlowFile flowFile = lossTolerantSession.create();
+            flowFile = lossTolerantSession.importFrom(new ByteArrayInputStream("imported".getBytes(StandardCharsets.UTF_8)), flowFile);
+            lossTolerantSession.write(flowFile, out -> out.write("written".getBytes(StandardCharsets.UTF_8)));
+        } finally {
+            lossTolerantSession.rollback();
+        }
+
+        final List<ContentClaimCreationContext> creationContexts = contentRepo.getCreationContexts();
+        assertEquals(2, creationContexts.size());
+
+        for (final ContentClaimCreationContext creationContext : creationContexts) {
+            assertEquals(LossTolerance.LOSS_TOLERANT, creationContext.getLossTolerance());
+        }
+    }
+
+    @Test
+    public void testFlowFileUpdateContextIdentifiesComponentAndConnectorOnCommit() {
+        flowFileQueue.put(new MockFlowFileRecord(1L));
+
+        final FlowFile flowFile = session.get();
+        session.transfer(flowFile, new Relationship.Builder().name("success").build());
+        session.commit();
+
+        final List<FlowFileUpdateContext> updateContexts = flowFileRepo.getUpdateContexts();
+        assertEquals(1, updateContexts.size());
+        assertEquals(CONNECTABLE_ID, updateContexts.getFirst().getComponentIdentifier());
+        assertEquals(CONNECTOR_ID, updateContexts.getFirst().getConnectorIdentifier());
+    }
+
+    @Test
+    public void testFlowFileUpdateContextIdentifiesComponentAndConnectorOnRollback() {
+        flowFileQueue.put(new MockFlowFileRecord(1L));
+
+        FlowFile flowFile = session.get();
+        flowFile = session.write(flowFile, out -> out.write("content".getBytes(StandardCharsets.UTF_8)));
+        assertNotNull(flowFile);
+
+        session.rollback();
+
+        final List<FlowFileUpdateContext> updateContexts = flowFileRepo.getUpdateContexts();
+        assertEquals(1, updateContexts.size());
+        assertEquals(CONNECTABLE_ID, updateContexts.getFirst().getComponentIdentifier());
+        assertEquals(CONNECTOR_ID, updateContexts.getFirst().getConnectorIdentifier());
+    }
+
+    @Test
     public void testMultipleReadCounts() throws IOException {
         final ContentClaim contentClaim = contentRepo.create("Hello there".getBytes(StandardCharsets.UTF_8));
 
@@ -3107,8 +3187,7 @@ public class StandardProcessSessionIT {
                 counterRepository,
                 componentMetricReporter,
                 provenanceRepo,
-                stateManager,
-                50_000L);
+                stateManager);
         return new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
 
     }
@@ -3118,6 +3197,7 @@ public class StandardProcessSessionIT {
         private boolean failOnUpdate = false;
         private final AtomicLong idGenerator = new AtomicLong(0L);
         private final List<RepositoryRecord> updates = new ArrayList<>();
+        private final List<FlowFileUpdateContext> updateContexts = new ArrayList<>();
         private final ContentRepository contentRepo;
 
         public MockFlowFileRepository(final ContentRepository contentRepo) {
@@ -3164,8 +3244,18 @@ public class StandardProcessSessionIT {
             }
         }
 
+        @Override
+        public void updateRepository(final Collection<RepositoryRecord> records, final FlowFileUpdateContext context) throws IOException {
+            updateContexts.add(context);
+            FlowFileRepository.super.updateRepository(records, context);
+        }
+
         public List<RepositoryRecord> getUpdates() {
             return updates;
+        }
+
+        public List<FlowFileUpdateContext> getUpdateContexts() {
+            return updateContexts;
         }
 
         @Override
@@ -3220,6 +3310,7 @@ public class StandardProcessSessionIT {
 
         private final AtomicLong idGenerator = new AtomicLong(0L);
         private final AtomicLong claimsRemoved = new AtomicLong(0L);
+        private final List<ContentClaimCreationContext> creationContexts = Collections.synchronizedList(new ArrayList<>());
         private ResourceClaimManager claimManager;
         private boolean disableRead = false;
 
@@ -3254,6 +3345,16 @@ public class StandardProcessSessionIT {
             }
             Files.createFile(getPath(contentClaim));
             return contentClaim;
+        }
+
+        @Override
+        public ContentClaim create(final ContentClaimCreationContext context) throws IOException {
+            creationContexts.add(context);
+            return ContentRepository.super.create(context);
+        }
+
+        public List<ContentClaimCreationContext> getCreationContexts() {
+            return creationContexts;
         }
 
         public ContentClaim create(byte[] content) throws IOException {

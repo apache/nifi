@@ -21,13 +21,13 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -80,7 +80,7 @@ public class StandardVersionedReportingTaskImporter implements VersionedReportin
         taskNode.setAnnotationData(reportingTask.getAnnotationData());
 
         final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(taskNode, reportingTask);
-        final Map<String, String> decryptedProperties = decryptProperties(reportingTask.getProperties(), flowController.getEncryptor());
+        final Map<String, String> decryptedProperties = decryptProperties(reportingTask, reportingTask.getProperties(), flowController.getPropertyEncryptionProvider());
         taskNode.setProperties(decryptedProperties, false, sensitiveDynamicPropertyNames);
         return taskNode;
     }
@@ -98,7 +98,7 @@ public class StandardVersionedReportingTaskImporter implements VersionedReportin
         for (final VersionedControllerService versionedControllerService : controllerServices) {
             final ControllerServiceNode serviceNode = flowController.getFlowManager().getRootControllerService(versionedControllerService.getInstanceIdentifier());
             if (controllerServicesAdded.contains(serviceNode)) {
-                updateRootControllerService(serviceNode, versionedControllerService, flowController.getEncryptor());
+                updateRootControllerService(serviceNode, versionedControllerService, flowController.getPropertyEncryptionProvider());
             }
         }
 
@@ -119,7 +119,7 @@ public class StandardVersionedReportingTaskImporter implements VersionedReportin
     }
 
     private void updateRootControllerService(final ControllerServiceNode serviceNode, final VersionedControllerService controllerService,
-                                             final PropertyEncryptor encryptor) {
+                                             final PropertyEncryptionProvider propertyEncryptionProvider) {
         serviceNode.pauseValidationTrigger();
         try {
             serviceNode.setName(controllerService.getName());
@@ -135,7 +135,7 @@ public class StandardVersionedReportingTaskImporter implements VersionedReportin
             }
 
             final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(serviceNode, controllerService);
-            final Map<String, String> decryptedProperties = decryptProperties(controllerService.getProperties(), encryptor);
+            final Map<String, String> decryptedProperties = decryptProperties(controllerService, controllerService.getProperties(), propertyEncryptionProvider);
             serviceNode.setProperties(decryptedProperties, false, sensitiveDynamicPropertyNames);
         } finally {
             serviceNode.resumeValidationTrigger();

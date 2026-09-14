@@ -17,22 +17,29 @@
 
 package org.apache.nifi.controller.repository.claim;
 
+import org.apache.nifi.controller.repository.ContentClaimCreationContext;
 import org.apache.nifi.controller.repository.FileSystemRepository;
+import org.apache.nifi.controller.repository.LossTolerance;
+import org.apache.nifi.controller.repository.StandardContentClaimCreationContext;
 import org.apache.nifi.controller.repository.StandardContentRepositoryContext;
-import org.apache.nifi.controller.repository.TestFileSystemRepository;
 import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
-import org.apache.nifi.controller.repository.util.DiskUtils;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -41,31 +48,51 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestStandardContentClaimWriteCache {
+    private static final ContentClaimCreationContext CREATION_CONTEXT = new StandardContentClaimCreationContext("component-1", "connector-1", LossTolerance.LOSS_INTOLERANT);
+
+    private static final int BUFFER_SIZE = 4;
+
+    private static final Path NIFI_PROPERTIES_FILE = Paths.get("src/test/resources/conf/nifi.properties");
+
+    @TempDir
+    private Path tempDir;
+
+    private final List<FileSystemRepository> repositories = new ArrayList<>();
 
     private FileSystemRepository repository = null;
     private StandardResourceClaimManager claimManager = null;
-    private final File rootFile = new File("target/testContentClaimWriteCache");
 
     @BeforeEach
     public void setup() throws IOException {
-        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
-        if (rootFile.exists()) {
-            DiskUtils.deleteRecursively(rootFile);
-        }
-        repository = new FileSystemRepository(nifiProperties);
         claimManager = new StandardResourceClaimManager();
-        repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
-        repository.purge();
+        repository = createRepository(Map.of());
     }
 
     @AfterEach
     public void shutdown() throws IOException {
-        repository.shutdown();
+        for (final FileSystemRepository createdRepository : repositories) {
+            createdRepository.shutdown();
+        }
+    }
+
+    private FileSystemRepository createRepository(final Map<String, String> additionalProperties) throws IOException {
+        final Path repositoryDirectory = tempDir.resolve("content-repository-" + repositories.size());
+
+        final Map<String, String> properties = new HashMap<>(additionalProperties);
+        properties.put(NiFiProperties.REPOSITORY_CONTENT_PREFIX.concat("default"), repositoryDirectory.toString());
+
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(NIFI_PROPERTIES_FILE.toString(), properties);
+        final FileSystemRepository createdRepository = new FileSystemRepository(nifiProperties);
+        createdRepository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
+        createdRepository.purge();
+
+        repositories.add(createdRepository);
+        return createdRepository;
     }
 
     @Test
     public void testFlushWriteCorrectData() throws IOException {
-        final ContentClaimWriteCache cache = new StandardContentClaimWriteCache(repository, new NopPerformanceTracker(), 50_000L, 4);
+        final ContentClaimWriteCache cache = new StandardContentClaimWriteCache(repository, new NopPerformanceTracker(), CREATION_CONTEXT, BUFFER_SIZE);
 
         final ContentClaim claim1 = cache.getContentClaim();
         assertNotNull(claim1);
@@ -78,10 +105,11 @@ public class TestStandardContentClaimWriteCache {
         cache.flush();
 
         assertEquals(13L, claim1.getLength());
-        final InputStream in = repository.read(claim1);
-        final byte[] buff = new byte[(int) claim1.getLength()];
-        StreamUtils.fillBuffer(in, buff);
-        assertArrayEquals("hellogood-bye".getBytes(), buff);
+        try (final InputStream in = repository.read(claim1)) {
+            final byte[] buff = new byte[(int) claim1.getLength()];
+            StreamUtils.fillBuffer(in, buff);
+            assertArrayEquals("hellogood-bye".getBytes(), buff);
+        }
 
         final ContentClaim claim2 = cache.getContentClaim();
         final OutputStream out2 = cache.write(claim2);
@@ -92,15 +120,18 @@ public class TestStandardContentClaimWriteCache {
         cache.flush();
 
         assertEquals(13L, claim2.getLength());
-        final InputStream in2 = repository.read(claim2);
-        final byte[] buff2 = new byte[(int) claim2.getLength()];
-        StreamUtils.fillBuffer(in2, buff2);
-        assertArrayEquals("good-dayhello".getBytes(), buff2);
+        try (final InputStream in = repository.read(claim2)) {
+            final byte[] buff = new byte[(int) claim2.getLength()];
+            StreamUtils.fillBuffer(in, buff);
+            assertArrayEquals("good-dayhello".getBytes(), buff);
+        }
+
+        cache.reset();
     }
 
     @Test
     public void testWriteLargeRollsOverToNewFileOnNext() throws IOException {
-        final ContentClaimWriteCache cache = new StandardContentClaimWriteCache(repository, new NopPerformanceTracker(), 50_000L, 4);
+        final ContentClaimWriteCache cache = new StandardContentClaimWriteCache(repository, new NopPerformanceTracker(), CREATION_CONTEXT, BUFFER_SIZE);
 
         final ContentClaim claim1 = cache.getContentClaim();
         assertNotNull(claim1);
@@ -142,4 +173,29 @@ public class TestStandardContentClaimWriteCache {
         assertEquals(1, claimManager.getClaimantCount(claim4.getResourceClaim()));
     }
 
+    @Test
+    public void testRolloverBoundaryDeterminedByContentRepository() throws IOException {
+        final FileSystemRepository smallClaimRepository = createRepository(Map.of(NiFiProperties.MAX_APPENDABLE_CLAIM_SIZE, "1 KB"));
+        assertEquals(1024L, smallClaimRepository.getMaxAppendableClaimBytes());
+
+        final ContentClaimWriteCache cache = new StandardContentClaimWriteCache(smallClaimRepository, new NopPerformanceTracker(), CREATION_CONTEXT, BUFFER_SIZE);
+        final byte[] content = new byte[600];
+
+        final ContentClaim claim1 = cache.getContentClaim();
+        try (final OutputStream out = cache.write(claim1)) {
+            out.write(content);
+        }
+
+        // 600 bytes have been written to the Resource Claim, which is below the 1 KB limit, so it remains appendable.
+        final ContentClaim claim2 = cache.getContentClaim();
+        assertEquals(claim1.getResourceClaim(), claim2.getResourceClaim());
+
+        try (final OutputStream out = cache.write(claim2)) {
+            out.write(content);
+        }
+
+        // 1,200 bytes have now been written to the Resource Claim, which exceeds the 1 KB limit.
+        final ContentClaim claim3 = cache.getContentClaim();
+        assertNotEquals(claim1.getResourceClaim(), claim3.getResourceClaim());
+    }
 }

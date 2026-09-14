@@ -136,7 +136,10 @@ public interface ConnectorTestRunner extends Closeable {
     AssetReference addAsset(String assetName, InputStream contents);
 
     /**
-     * Starts the Connector, beginning processing of data through its managed flow.
+     * Starts the Connector, beginning processing of data through its managed flow. Failures detected while
+     * initiating startup are propagated to the caller; lifecycle startup continues asynchronously.
+     *
+     * @throws IllegalStateException if the Connector cannot begin startup
      */
     void startConnector();
 

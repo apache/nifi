@@ -39,8 +39,6 @@ import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -55,8 +53,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class StandardFlowComparator implements FlowComparator {
-    private static final Logger logger = LoggerFactory.getLogger(StandardFlowComparator.class);
-
     private static final String ENCRYPTED_VALUE_PREFIX = "enc{";
     private static final String ENCRYPTED_VALUE_SUFFIX = "}";
     private static final String FLOW_VERSION = "Flow Version";
@@ -72,12 +68,29 @@ public class StandardFlowComparator implements FlowComparator {
     private final ComparableDataFlow flowA;
     private final ComparableDataFlow flowB;
     private final DifferenceDescriptor differenceDescriptor;
-    private final Function<String, String> propertyDecryptor;
+    private final SensitiveValueDecryptor propertyDecryptor;
     private final Function<VersionedComponent, String> idLookup;
     private final FlowComparatorVersionedStrategy flowComparatorVersionedStrategy;
 
+    /**
+     * Create a comparator with a decryptor that does not require the location of a sensitive value
+     *
+     * @param propertyDecryptor Decryptor that receives only the encrypted value
+     */
     public StandardFlowComparator(final ComparableDataFlow flowA, final ComparableDataFlow flowB,
                                   final DifferenceDescriptor differenceDescriptor, final Function<String, String> propertyDecryptor,
+                                  final Function<VersionedComponent, String> idLookup, final FlowComparatorVersionedStrategy flowComparatorVersionedStrategy) {
+        this(flowA, flowB, differenceDescriptor, (owner, valueName, encryptedValue) -> propertyDecryptor.apply(encryptedValue),
+            idLookup, flowComparatorVersionedStrategy);
+    }
+
+    /**
+     * Create a comparator with a decryptor that receives the component and value name that locate each sensitive value
+     *
+     * @param propertyDecryptor Decryptor that receives the owning component and the name of the value
+     */
+    public StandardFlowComparator(final ComparableDataFlow flowA, final ComparableDataFlow flowB,
+                                  final DifferenceDescriptor differenceDescriptor, final SensitiveValueDecryptor propertyDecryptor,
                                   final Function<VersionedComponent, String> idLookup, final FlowComparatorVersionedStrategy flowComparatorVersionedStrategy) {
         this.flowA = flowA;
         this.flowB = flowB;
@@ -267,8 +280,8 @@ public class StandardFlowComparator implements FlowComparator {
                 continue;
             }
 
-            final String decryptedValueA = decryptValue(parameterA);
-            final String decryptedValueB = decryptValue(parameterB);
+            final String decryptedValueA = decryptValue(contextA, parameterA);
+            final String decryptedValueB = decryptValue(contextB, parameterB);
             if (!Objects.equals(decryptedValueA, decryptedValueB)) {
                 final String valueA = parameterA.isSensitive() ? "<Sensitive Value A>" : parameterA.getValue();
                 final String valueB = parameterB.isSensitive() ? "<Sensitive Value B>" : parameterB.getValue();
@@ -354,32 +367,50 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.BULLETIN_LEVEL_CHANGED, serviceA, serviceB, VersionedControllerService::getBulletinLevel, true, "WARN");
     }
 
-    private String decrypt(final String value, final VersionedPropertyDescriptor descriptor) {
-        if (value == null) {
-            return null;
+    private String decrypt(final String value, final VersionedComponent component, final String propertyName) {
+        final String decrypted;
+
+        if (isEncrypted(value)) {
+            decrypted = propertyDecryptor.decrypt(component, propertyName, getDecoded(value));
+        } else {
+            decrypted = value;
         }
 
-        final boolean sensitive = (descriptor == null || descriptor.isSensitive()) && value.startsWith(ENCRYPTED_VALUE_PREFIX) && value.endsWith(ENCRYPTED_VALUE_SUFFIX);
-        if (!sensitive) {
-            return value;
-        }
-
-        return propertyDecryptor.apply(value.substring(ENCRYPTED_VALUE_PREFIX.length(), value.length() - ENCRYPTED_VALUE_SUFFIX.length()));
+        return decrypted;
     }
 
-    private String decryptValue(final VersionedParameter parameter) {
+    private String decryptValue(final VersionedParameterContext parameterContext, final VersionedParameter parameter) {
+        final String decrypted;
+
         final String rawValue = parameter.getValue();
-        if (rawValue == null) {
-            return null;
+        if (isEncrypted(rawValue)) {
+            decrypted = propertyDecryptor.decrypt(parameterContext, parameter.getName(), getDecoded(rawValue));
+        } else {
+            decrypted = rawValue;
         }
 
-        final boolean sensitive = parameter.isSensitive() && rawValue.startsWith(ENCRYPTED_VALUE_PREFIX) && rawValue.endsWith(ENCRYPTED_VALUE_SUFFIX);
-        if (!sensitive) {
-            logger.debug("Will not decrypt value for parameter {} because it is not encrypted", parameter.getName());
-            return rawValue;
-        }
+        return decrypted;
+    }
 
-        return propertyDecryptor.apply(rawValue.substring(ENCRYPTED_VALUE_PREFIX.length(), rawValue.length() - ENCRYPTED_VALUE_SUFFIX.length()));
+    /**
+     * Determine whether a value is wrapped with the prefix and suffix that a serialized flow uses to mark an encrypted
+     * value. The wrapper distinguishes an encrypted value from a value stored as plaintext, such as a Parameter reference.
+     *
+     * @param value Value to be evaluated, which may be null
+     * @return Whether the value is wrapped with the encrypted value prefix and suffix
+     */
+    private static boolean isEncrypted(final String value) {
+        return value != null && value.startsWith(ENCRYPTED_VALUE_PREFIX) && value.endsWith(ENCRYPTED_VALUE_SUFFIX);
+    }
+
+    /**
+     * Get an encrypted value with the encrypted value prefix and suffix removed
+     *
+     * @param encodedValue Encrypted value wrapped with the prefix and suffix
+     * @return Encrypted value without the prefix and suffix
+     */
+    private static String getDecoded(final String encodedValue) {
+        return encodedValue.substring(ENCRYPTED_VALUE_PREFIX.length(), encodedValue.length() - ENCRYPTED_VALUE_SUFFIX.length());
     }
 
     private void compareProperties(final VersionedComponent componentA, final VersionedComponent componentB,
@@ -389,8 +420,8 @@ public class StandardFlowComparator implements FlowComparator {
 
         propertiesA.forEach((key, rawValueA) -> {
             final String rawValueB = propertiesB.get(key);
-            final String valueB = decrypt(rawValueB, descriptorsB.get(key));
-            final String valueA = decrypt(rawValueA, descriptorsA.get(key));
+            final String valueB = decrypt(rawValueB, componentB, key);
+            final String valueA = decrypt(rawValueA, componentA, key);
 
             final VersionedPropertyDescriptor descriptorA = descriptorsA.get(key);
             final VersionedPropertyDescriptor descriptorB = descriptorsB.get(key);

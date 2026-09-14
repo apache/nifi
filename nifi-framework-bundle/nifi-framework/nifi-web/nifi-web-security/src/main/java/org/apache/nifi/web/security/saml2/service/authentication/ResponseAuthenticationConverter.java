@@ -26,7 +26,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.saml2.provider.service.authentication.OpenSaml5AuthenticationProvider;
 import org.springframework.security.saml2.provider.service.authentication.OpenSaml5AuthenticationProvider.ResponseToken;
-import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticatedPrincipal;
+import org.springframework.security.saml2.provider.service.authentication.Saml2AssertionAuthentication;
 import org.springframework.security.saml2.provider.service.authentication.Saml2Authentication;
 
 import java.util.Collection;
@@ -53,7 +53,9 @@ public class ResponseAuthenticationConverter implements Converter<ResponseToken,
     }
 
     /**
-     * Convert SAML 2 Response Token using default Converter and process authorities based on Group Attribute Name
+     * Convert SAML 2 Response Token using default Converter and process authorities based on Group Attribute Name.
+     * The Response Assertion and Relying Party Registration from the default Converter are retained so that
+     * downstream handlers can read attributes from the Response Assertion.
      *
      * @param responseToken SAML 2 Response Token
      * @return SAML 2 Authentication
@@ -63,8 +65,14 @@ public class ResponseAuthenticationConverter implements Converter<ResponseToken,
         Objects.requireNonNull(responseToken, "Response Token required");
         final List<Assertion> assertions = responseToken.getResponse().getAssertions();
         final Saml2Authentication authentication = Objects.requireNonNull(defaultConverter.convert(responseToken), "Authentication required");
-        final Saml2AuthenticatedPrincipal principal = (Saml2AuthenticatedPrincipal) authentication.getPrincipal();
-        return new Saml2Authentication(principal, authentication.getSaml2Response(), getAuthorities(assertions));
+        final Collection<? extends GrantedAuthority> authorities = getAuthorities(assertions);
+
+        if (authentication instanceof final Saml2AssertionAuthentication assertionAuthentication) {
+            final String registrationId = assertionAuthentication.getRelyingPartyRegistrationId();
+            return new Saml2AssertionAuthentication(assertionAuthentication.getPrincipal(), assertionAuthentication.getCredentials(), authorities, registrationId);
+        }
+
+        return new Saml2Authentication(authentication.getPrincipal(), authentication.getSaml2Response(), authorities);
     }
 
     private Collection<? extends GrantedAuthority> getAuthorities(final List<Assertion> assertions) {

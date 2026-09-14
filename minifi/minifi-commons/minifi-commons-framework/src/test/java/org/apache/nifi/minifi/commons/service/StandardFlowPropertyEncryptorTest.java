@@ -25,7 +25,6 @@ import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
 import org.apache.nifi.c2.protocol.component.api.PropertyDescriptor;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.controller.flow.VersionedDataflow;
-import org.apache.nifi.controller.serialization.FlowSerializer;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -34,6 +33,7 @@ import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -126,9 +126,9 @@ public class StandardFlowPropertyEncryptorTest {
             .flatMap(context -> context.getParameters().stream())
             .forEach(parameter -> {
                 if (parameter.isSensitive()) {
-                    assertTrue(parameter.getValue().startsWith(FlowSerializer.ENC_PREFIX));
+                    assertTrue(PropertyEncryptionEncoder.isEncrypted(parameter.getValue()));
                 } else {
-                    assertFalse(parameter.getValue().startsWith(FlowSerializer.ENC_PREFIX));
+                    assertFalse(PropertyEncryptionEncoder.isEncrypted(parameter.getValue()));
                 }
             });
     }
@@ -310,9 +310,9 @@ public class StandardFlowPropertyEncryptorTest {
             .flatMap(properties -> properties.entrySet().stream())
             .forEach(propertyEntry -> {
                 if (propertyEntry.getKey().startsWith(SENSITIVE_PROPERTY_NAME_PREFIX)) {
-                    assertTrue(propertyEntry.getValue().startsWith(FlowSerializer.ENC_PREFIX));
+                    assertTrue(PropertyEncryptionEncoder.isEncrypted(propertyEntry.getValue()));
                 } else {
-                    assertFalse(propertyEntry.getValue().startsWith(FlowSerializer.ENC_PREFIX));
+                    assertFalse(PropertyEncryptionEncoder.isEncrypted(propertyEntry.getValue()));
                 }
             });
     }

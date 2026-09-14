@@ -165,8 +165,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private final String connectableDescription;
     private final PerformanceTracker performanceTracker;
 
-    private Map<String, Long> countersOnCommit;
-    private Map<String, Long> immediateCounters;
+    private Map<CounterKey, Long> countersOnCommit;
+    private Map<CounterKey, Long> immediateCounters;
     private List<GaugeRecord> gaugeRecordsSessionCommitted;
 
     private final Set<String> removedFlowFiles = new HashSet<>();
@@ -616,7 +616,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             try {
                 final Collection<StandardRepositoryRecord> repoRecords = checkpoint.records.values();
                 if (!repoRecords.isEmpty()) {
-                    context.getFlowFileRepository().updateRepository((Collection) repoRecords);
+                    context.getFlowFileRepository().updateRepository((Collection) repoRecords, context.getFlowFileUpdateContext());
                     context.getConnectable().getFlowFileActivity().updateLatestActivityTime();
                 }
             } catch (final IOException ioe) {
@@ -692,8 +692,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 }
             }
 
-            for (final Map.Entry<String, Long> entry : checkpoint.countersOnCommit.entrySet()) {
-                context.adjustCounter(entry.getKey(), entry.getValue());
+            for (final Map.Entry<CounterKey, Long> entry : checkpoint.countersOnCommit.entrySet()) {
+                final CounterKey counterKey = entry.getKey();
+                context.adjustCounter(counterKey.name(), entry.getValue(), counterKey.attributes());
             }
 
             for (final GaugeRecord gaugeRecord : checkpoint.gaugeRecordsSessionCommitted) {
@@ -889,24 +890,36 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         return loadBalanceStatus;
     }
 
-    private Map<String, Long> combineCounters(final Map<String, Long> first, final Map<String, Long> second) {
-        final boolean firstEmpty = first == null || first.isEmpty();
-        final boolean secondEmpty = second == null || second.isEmpty();
+    private Map<String, Long> combineCounters(final Map<CounterKey, Long> first, final Map<CounterKey, Long> second) {
+        final Map<String, Long> firstValues = getCounterValues(first);
+        final Map<String, Long> secondValues = getCounterValues(second);
 
-        if (firstEmpty && secondEmpty) {
+        if (firstValues == null) {
+            return secondValues;
+        }
+        if (secondValues == null) {
+            return firstValues;
+        }
+
+        secondValues.forEach((name, value) -> firstValues.merge(name, value, Long::sum));
+        return firstValues;
+    }
+
+    /**
+     * Reduce Counter measurements to values keyed by Counter name, summing the measurements recorded for a name with
+     * differing attributes, since FlowFile Events track Counter values by name alone.
+     *
+     * @param counters Counter measurements which may be null or empty
+     * @return Counter values keyed by Counter name, or null when no measurements were recorded
+     */
+    private Map<String, Long> getCounterValues(final Map<CounterKey, Long> counters) {
+        if (counters == null || counters.isEmpty()) {
             return null;
         }
-        if (firstEmpty) {
-            return second;
-        }
-        if (secondEmpty) {
-            return first;
-        }
 
-        final Map<String, Long> combined = new HashMap<>();
-        combined.putAll(first);
-        second.forEach((key, value) -> combined.merge(key, value, Long::sum));
-        return combined;
+        final Map<String, Long> counterValues = new HashMap<>();
+        counters.forEach((counterKey, value) -> counterValues.merge(counterKey.name(), value, Long::sum));
+        return counterValues;
     }
 
     private void addEventType(final Map<String, BitSet> map, final String id, final ProvenanceEventType eventType) {
@@ -1388,7 +1401,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         if (!abortedRecords.isEmpty()) {
             try {
-                context.getFlowFileRepository().updateRepository(abortedRecords);
+                context.getFlowFileRepository().updateRepository(abortedRecords, context.getFlowFileUpdateContext());
             } catch (final IOException ioe) {
                 LOG.error("Unable to update FlowFile repository for aborted records", ioe);
             }
@@ -1402,7 +1415,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         if (!transientClaims.isEmpty()) {
             final RepositoryRecord repoRecord = new TransientClaimRepositoryRecord(transientClaims);
             try {
-                context.getFlowFileRepository().updateRepository(Collections.singletonList(repoRecord));
+                context.getFlowFileRepository().updateRepository(Collections.singletonList(repoRecord), context.getFlowFileUpdateContext());
             } catch (final IOException ioe) {
                 LOG.error("Unable to update FlowFile repository to cleanup transient claims", ioe);
             }
@@ -1411,7 +1424,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final ProcessSessionEvent flowFileEvent = ProcessSessionEventBuilder.forComponent(context.getComponentMetricContext())
                 .bytesRead(bytesRead)
                 .bytesWritten(bytesWritten)
-                .counters(immediateCounters)
+                .counters(getCounterValues(immediateCounters))
                 .build();
 
         // update event repository
@@ -2010,11 +2023,17 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public void recordGauge(final String name, final double value, final CommitTiming commitTiming) {
+        recordGauge(name, value, Map.of(), commitTiming);
+    }
+
+    @Override
+    public void recordGauge(final String name, final double value, final Map<String, String> attributes, final CommitTiming commitTiming) {
         Objects.requireNonNull(name, "Gauge Name required");
+        Objects.requireNonNull(attributes, "Gauge Attributes required");
         Objects.requireNonNull(commitTiming, "Commit Timing required");
 
         final Instant recorded = Instant.now();
-        final GaugeRecord gaugeRecord = new GaugeRecord(name, value, recorded, context.getComponentMetricContext());
+        final GaugeRecord gaugeRecord = new GaugeRecord(name, value, Map.copyOf(attributes), recorded, context.getComponentMetricContext());
 
         if (CommitTiming.NOW == commitTiming) {
             context.recordGauge(gaugeRecord);
@@ -2028,6 +2047,17 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public void adjustCounter(final String name, final long delta, final boolean immediate) {
+        adjustCounter(name, delta, Map.of(), immediate ? CommitTiming.NOW : CommitTiming.SESSION_COMMITTED);
+    }
+
+    @Override
+    public void adjustCounter(final String name, final long delta, final Map<String, String> attributes, final CommitTiming commitTiming) {
+        Objects.requireNonNull(name, "Counter Name required");
+        Objects.requireNonNull(attributes, "Counter Attributes required");
+        Objects.requireNonNull(commitTiming, "Commit Timing required");
+
+        final boolean immediate = CommitTiming.NOW == commitTiming;
+
         // If we are adjusting the counter immediately, allow it even if the task is terminated. The contract states:
         // "the counter will be updated immediately, without regard to whether the session is committed or rolled back"
         // so we need to ensure that we allow adjusting the counter even after the task is terminated.
@@ -2035,7 +2065,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             verifyTaskActive();
         }
 
-        final Map<String, Long> counters;
+        final Map<CounterKey, Long> counters;
         if (immediate) {
             if (immediateCounters == null) {
                 immediateCounters = new HashMap<>();
@@ -2048,13 +2078,17 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             counters = countersOnCommit;
         }
 
+        // Measurements are aggregated for each distinct combination of Counter name and attributes
+        final Map<String, String> counterAttributes = Map.copyOf(attributes);
+        final CounterKey counterKey = new CounterKey(name, counterAttributes);
+
         // Set current value or adjust when found
-        counters.compute(name, (currentName, currentValue) ->
+        counters.compute(counterKey, (currentKey, currentValue) ->
             currentValue == null ? delta : currentValue + delta
         );
 
         if (immediate) {
-            context.adjustCounter(name, delta);
+            context.adjustCounter(name, delta, counterAttributes);
         }
     }
 
@@ -2753,7 +2787,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             };
 
             context.getProvenanceRepository().registerEvents(iterable);
-            context.getFlowFileRepository().updateRepository(expiredRecords);
+            context.getFlowFileRepository().updateRepository(expiredRecords, context.getFlowFileUpdateContext());
         } catch (final IOException e) {
             LOG.error("Failed to update FlowFile Repository to record expired records", e);
         }
@@ -3056,7 +3090,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final ContentRepository contentRepo = context.getContentRepository();
         final ContentClaim newClaim;
         try {
-            newClaim = contentRepo.create(context.getConnectable().isLossTolerant());
+            newClaim = contentRepo.create(context.getContentClaimCreationContext());
             claimLog.debug("Creating ContentClaim {} for 'merge' for {}", newClaim, destinationRecord.getCurrent());
         } catch (final IOException e) {
             throw new FlowFileAccessException("Unable to create ContentClaim due to " + e, e);
@@ -3370,7 +3404,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 claimCache.flush(oldClaim);
 
                 try (final InputStream oldClaimIn = read(source)) {
-                    newClaim = context.getContentRepository().create(context.getConnectable().isLossTolerant());
+                    newClaim = context.getContentRepository().create(context.getContentClaimCreationContext());
                     claimLog.debug("Creating ContentClaim {} for 'append' for {}", newClaim, source);
 
                     final OutputStream rawOutStream = context.getContentRepository().write(newClaim);
@@ -3680,7 +3714,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final long claimOffset;
 
         try {
-            newClaim = context.getContentRepository().create(context.getConnectable().isLossTolerant());
+            newClaim = context.getContentRepository().create(context.getContentClaimCreationContext());
             claimLog.debug("Creating ContentClaim {} for 'importFrom' for {}", newClaim, destination);
         } catch (final IOException e) {
             throw new FlowFileAccessException("Unable to create ContentClaim due to " + e, e);
@@ -3742,7 +3776,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final long newSize;
         try {
             try {
-                newClaim = context.getContentRepository().create(context.getConnectable().isLossTolerant());
+                newClaim = context.getContentRepository().create(context.getContentClaimCreationContext());
                 claimLog.debug("Creating ContentClaim {} for 'importFrom' for {}", newClaim, destination);
 
                 newSize = context.getContentRepository().importFrom(createTaskTerminationStream(source), newClaim);
@@ -4072,6 +4106,15 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         List<FlowFileRecord> poll(Connection connection, Set<FlowFileRecord> expiredRecords);
     }
 
+    /**
+     * Key for aggregating Counter measurements recorded under the same Counter name with the same attributes
+     *
+     * @param name Counter name
+     * @param attributes Immutable Map of keys and values associated with the Counter measurement
+     */
+    private record CounterKey(String name, Map<String, String> attributes) {
+    }
+
     protected static class Checkpoint {
 
         private long processingTime = 0L;
@@ -4086,8 +4129,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         private Map<String, Connection> processedConnections;
         private Map<String, ComponentMetricContext> connectionMetricContexts;
 
-        private Map<String, Long> countersOnCommit;
-        private Map<String, Long> immediateCounters;
+        private Map<CounterKey, Long> countersOnCommit;
+        private Map<CounterKey, Long> immediateCounters;
 
         private List<GaugeRecord> gaugeRecordsSessionCommitted;
 

@@ -42,6 +42,9 @@ import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestGitFlowPersistenceProvider {
@@ -286,6 +289,32 @@ public class TestGitFlowPersistenceProvider {
             } catch (FlowPersistenceException e) {
                 assertEquals("Bucket ID bucket-id-A was not found.", e.getMessage());
             }
+        }, true);
+    }
+
+    @Test
+    public void testSaveRejectsParentDirectoryBucketName() throws GitAPIException, IOException {
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(GitFlowPersistenceProvider.FLOW_STORAGE_DIR_PROP, "target/git-parent-dir-bucket");
+
+        assertProvider(properties, g -> { }, p -> {
+            final StandardFlowSnapshotContext context = new StandardFlowSnapshotContext.Builder()
+                    .bucketId("bucket-id-A")
+                    .bucketName("..")
+                    .flowId("flow-id-1")
+                    .flowName("flow")
+                    .author("unit-test-user")
+                    .comments("Initial commit.")
+                    .snapshotTimestamp(new Date().getTime())
+                    .version(1)
+                    .build();
+
+            assertThrows(FlowPersistenceException.class, () -> p.saveFlowContent(context, "content".getBytes(StandardCharsets.UTF_8)));
+
+            final File gitDir = new File("target/git-parent-dir-bucket");
+            assertTrue(gitDir.exists());
+            final File escapedSnapshot = new File(gitDir.getParentFile(), "flow.snapshot");
+            assertFalse(escapedSnapshot.exists());
         }, true);
     }
 

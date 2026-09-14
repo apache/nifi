@@ -26,9 +26,6 @@ import java.io.OutputStream;
  */
 public interface FlowSerializer<T> {
 
-    String ENC_PREFIX = "enc{";
-    String ENC_SUFFIX = "}";
-
     /**
      * Transforms the flow configuration of a controller instance into something that can serialized
      *

@@ -176,7 +176,8 @@ public class StandardUploadRequestReplicator implements UploadRequestReplicator 
      *   <li>Start with any forwarded inbound servlet headers.</li>
      *   <li>Strip all {@link RequestReplicationHeader} names (prevent spoofing).</li>
      *   <li>Strip hop-by-hop / transport-framing headers.</li>
-     *   <li>Apply explicit builder headers (filename, content-type, seed) so upload metadata wins.</li>
+     *   <li>Apply explicit builder headers (filename, content-type, seed) case-insensitively so upload
+     *       metadata wins without leaving a differently-cased inbound duplicate.</li>
      *   <li>Apply user proxy headers and strip credentials (Authorization, auth cookies, Host).</li>
      *   <li>Force-set {@code request-replicated} and {@code execution-continue}.</li>
      * </ol>
@@ -187,7 +188,16 @@ public class StandardUploadRequestReplicator implements UploadRequestReplicator 
         ReplicationHeaderUtils.stripRequestReplicationHeaders(headers);
         ReplicationHeaderUtils.stripHopByHopHeaders(headers);
 
-        headers.putAll(uploadRequest.getHeaders());
+        // Apply explicit builder headers case-insensitively. Inbound header names can arrive in a variety of lower-
+        // and upper-case variations, which we only have limited control over.
+        // So a plain putAll into the case-sensitive header map would risk keeping duplicated headers that only differ
+        // in the capitalization.
+        // In the case of "Content-Type" this can create actual issues, because requests with a duplicate default header
+        // have to be considered malformed and are rejected with http  400.
+        for (final Map.Entry<String, String> builderHeader : uploadRequest.getHeaders().entrySet()) {
+            headers.keySet().removeIf(builderHeader.getKey()::equalsIgnoreCase);
+            headers.put(builderHeader.getKey(), builderHeader.getValue());
+        }
 
         ReplicationHeaderUtils.applyUserProxyAndStripCredentials(headers, uploadRequest.getUser());
 

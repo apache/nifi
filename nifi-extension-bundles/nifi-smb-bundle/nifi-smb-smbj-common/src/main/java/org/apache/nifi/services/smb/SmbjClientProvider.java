@@ -18,20 +18,33 @@ package org.apache.nifi.services.smb;
 
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.auth.GSSAuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.Share;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.security.krb.KerberosAction;
+import org.apache.nifi.security.krb.KerberosUser;
+import org.ietf.jgss.GSSCredential;
+import org.ietf.jgss.GSSManager;
+import org.ietf.jgss.GSSName;
+import org.ietf.jgss.Oid;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
+import javax.security.auth.Subject;
+import javax.security.auth.kerberos.KerberosPrincipal;
 
+import static org.apache.nifi.smb.common.SmbProperties.AUTHENTICATION_TYPE;
+import static org.apache.nifi.smb.common.SmbProperties.AuthenticationType;
 import static org.apache.nifi.smb.common.SmbProperties.DOMAIN;
 import static org.apache.nifi.smb.common.SmbProperties.HOSTNAME;
+import static org.apache.nifi.smb.common.SmbProperties.KERBEROS_USER_SERVICE;
 import static org.apache.nifi.smb.common.SmbProperties.PASSWORD;
 import static org.apache.nifi.smb.common.SmbProperties.PORT;
 import static org.apache.nifi.smb.common.SmbProperties.SHARE;
@@ -40,19 +53,21 @@ import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
 
 public class SmbjClientProvider implements SmbClientProvider, Closeable {
 
+    private static final String SPNEGO_OID = "1.3.6.1.5.5.2";
+
     private final PropertyContext context;
 
     private final ComponentLog logger;
 
     private final SMBClient smbClient;
 
-    private AuthenticationContext authenticationContext;
+    private final KerberosUser kerberosUser;
 
     public SmbjClientProvider(final PropertyContext context, final ComponentLog logger) {
         this.context = context;
         this.logger = logger;
         this.smbClient = buildSmbClient(context);
-        createAuthenticationContext(context);
+        this.kerberosUser = initKerberosUser();
     }
 
     @Override
@@ -86,7 +101,7 @@ public class SmbjClientProvider implements SmbClientProvider, Closeable {
         final Share share;
 
         try {
-            session = connection.authenticate(authenticationContext);
+            session = connection.authenticate(createAuthenticationContext(logger));
         } catch (Exception e) {
             throw new IOException("Could not create session for share " + serviceLocation, e);
         }
@@ -117,16 +132,62 @@ public class SmbjClientProvider implements SmbClientProvider, Closeable {
         }
     }
 
-    private void createAuthenticationContext(final PropertyContext context) {
-        if (context.getProperty(USERNAME).isSet()) {
-            final String userName = context.getProperty(USERNAME).getValue();
-            final String password =
-                    context.getProperty(PASSWORD).isSet() ? context.getProperty(PASSWORD).getValue() : "";
-            final String domainOrNull =
-                    context.getProperty(DOMAIN).isSet() ? context.getProperty(DOMAIN).getValue() : null;
-            authenticationContext = new AuthenticationContext(userName, password.toCharArray(), domainOrNull);
+    private KerberosUser initKerberosUser() {
+        if (getAuthenticationType() == AuthenticationType.KERBEROS) {
+            final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+
+            final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
+            kerberosUser.login();
+
+            return kerberosUser;
         } else {
-            authenticationContext = AuthenticationContext.anonymous();
+            return null;
         }
+    }
+
+    private AuthenticationType getAuthenticationType() {
+        if (context.getProperty(AUTHENTICATION_TYPE).isSet()) {
+            return context.getProperty(AUTHENTICATION_TYPE).asAllowableValue(AuthenticationType.class);
+        } else {
+            return AuthenticationType.PASSWORD;
+        }
+    }
+
+    private AuthenticationContext createAuthenticationContext(final ComponentLog logger) {
+        return switch (getAuthenticationType()) {
+            case PASSWORD -> createPasswordAuthenticationContext();
+            case KERBEROS ->  createKerberosAuthenticationContext(logger);
+        };
+    }
+
+    private AuthenticationContext createPasswordAuthenticationContext() {
+        if (context.getProperty(USERNAME).isSet()) {
+            final String username = context.getProperty(USERNAME).getValue();
+            final String password = context.getProperty(PASSWORD).isSet() ? context.getProperty(PASSWORD).getValue() : "";
+            final String domain = context.getProperty(DOMAIN).isSet() ? context.getProperty(DOMAIN).getValue() : null;
+
+            return new AuthenticationContext(username, password.toCharArray(), domain);
+        } else {
+            return AuthenticationContext.anonymous();
+        }
+    }
+
+    private AuthenticationContext createKerberosAuthenticationContext(final ComponentLog logger) {
+        return new KerberosAction<AuthenticationContext>(kerberosUser,
+                () -> {
+                    final Subject subject = Subject.current();
+
+                    final KerberosPrincipal krbPrincipal = subject.getPrincipals(KerberosPrincipal.class)
+                            .iterator()
+                            .next();
+
+                    final GSSManager gssManager = GSSManager.getInstance();
+                    final GSSName gssName = gssManager.createName(krbPrincipal.getName(), GSSName.NT_USER_NAME);
+                    final GSSCredential gssCredential = gssManager.createCredential(gssName, GSSCredential.DEFAULT_LIFETIME, new Oid(SPNEGO_OID), GSSCredential.INITIATE_ONLY);
+
+                    return new GSSAuthenticationContext(krbPrincipal.getName(), krbPrincipal.getRealm(), subject, gssCredential);
+                },
+                logger)
+                .execute();
     }
 }

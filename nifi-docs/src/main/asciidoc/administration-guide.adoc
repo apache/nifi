@@ -342,11 +342,11 @@ Automatic refreshing of NiFi's web SSL context factory can be enabled using the 
 [options="header,footer"]
 |==================================================================================================================================================
 | Property Name | Description
-|`nifi.security.autoreload.enabled`|Specifies whether the SSL context factory should be automatically reloaded if updates to the keystore and truststore are detected. By default, it is set to `false`.
-|`nifi.security.autoreload.interval`|Specifies the interval at which the keystore and truststore are checked for updates. Only applies if `nifi.security.autoreload.enabled` is set to `true`. The default value is `10 secs`.
+|`nifi.security.autoreload.enabled`|Specifies whether the SSL context factory should be automatically reloaded if updates to the keystore and truststore are detected. NiFi polls the configured store paths and compares content digests, resolving symbolic links at read time so Kubernetes Secret and projected-volume mounts are detected. By default, it is set to `false`.
+|`nifi.security.autoreload.interval`|Specifies the interval at which the configured keystore and truststore paths are digested and compared for updates. Only applies if `nifi.security.autoreload.enabled` is set to `true`. The default value is `10 secs`.
 |==================================================================================================================================================
 
-Once the `nifi.security.autoreload.enabled` property is set to `true`, any valid changes to the configured keystore and truststore will cause NiFi's SSL context factory to be reloaded, allowing clients to pick up the changes.  This is intended to allow expired certificates to be updated in the keystore and new trusted certificates to be added in the truststore, all without having to restart the NiFi server.
+Once the `nifi.security.autoreload.enabled` property is set to `true`, NiFi polls the configured keystore and truststore paths at the configured interval and reloads the SSL context factory when a content digest changes. Symbolic links are resolved when the files are read, so updates delivered through Kubernetes Secret or projected-volume mounts are detected. This is intended to allow expired certificates to be updated in the keystore and new trusted certificates to be added in the truststore, all without having to restart the NiFi server.
 
 NOTE: Changes to any of the `nifi.security.keystore*` or `nifi.security.truststore*` properties will not be picked up by the auto-refreshing logic, which assumes the passwords and store paths will remain the same.
 
@@ -1923,6 +1923,55 @@ empty. NiFi writes the generated value to `nifi.properties` and logs a warning.
 
 Clustered installations of NiFi require the same value to be configured on all nodes.
 
+[[property-encryption-providers]]
+=== Property Encryption Providers
+
+A Property Encryption Provider is a framework extension, packaged in a NiFi Archive, for protecting sensitive values.
+NiFi loads and initializes the provider during startup using the class name configured in
+`nifi.security.property.encryption.provider.implementation`. When the property is empty or missing, NiFi loads the
+standard password-based implementation to support existing configurations.
+
+The standard distribution includes `org.apache.nifi.security.encryption.password.PasswordBasedPropertyEncryptionProvider`,
+which derives a secret key from `nifi.sensitive.props.key` using the Key Derivation Function selected in
+`nifi.sensitive.props.algorithm`. This provider reads and writes the encrypted representation described in
+<<property-encryption-algorithms>>.
+
+The configured provider protects the following values:
+
+* Sensitive component properties written to and read from the persisted flow configuration
+* Sensitive Parameter values written to and read from the persisted flow configuration
+* OpenID Connect authorized client tokens stored on behalf of authenticated users
+
+Because the standard password-based provider produces the representation described in
+<<property-encryption-algorithms>>, a flow configuration written by an earlier version of NiFi continues to load
+without additional migration.
+
+==== Sensitive Property Context
+
+NiFi supplies a Sensitive Property Context with every encryption and decryption operation. The context carries a
+category describing the kind of value being protected, together with attributes describing where the value is located.
+Component properties supply the component identifier, the component type, and the property name. Parameters supply the
+Parameter Context name and the Parameter name. Authorization tokens carry no attributes, because nothing describing the
+authenticated user is known before the stored token is decrypted.
+
+An implementation can supply the context to an external Key Management Service as encryption context, which binds the
+encrypted value to its location in the flow and records the location for auditing. NiFi supplies the same context when
+decrypting a value as it supplied when the value was encrypted. An implementation that binds the context to the
+encrypted value must therefore be prepared for a value to become unreadable if the component or the Parameter that owns
+it is renamed or recreated with a different identifier.
+
+==== Provider Configuration
+
+A provider can read additional configuration from properties that begin with
+`nifi.security.property.encryption.provider.properties.`. NiFi removes the prefix before supplying the properties to the
+provider, so `nifi.security.property.encryption.provider.properties.endpoint` is supplied to the provider as `endpoint`.
+Providers that call remote services, such as implementations backed by an external Key Management Service, can also
+use the TLS configuration that NiFi supplies during initialization.
+
+Changing the configured provider, or changing the key material that a provider uses, makes existing encrypted values
+unreadable. Sensitive values must be reentered after such a change unless the new configuration resolves to the same
+key material.
+
 [[admin-toolkit]]
 == NiFi Toolkit Administrative Tools
 The NiFi Toolkit also contains command line utilities for administrators to support NiFi maintenance in standalone and clustered environments.
@@ -2898,7 +2947,7 @@ This cleanup mechanism takes into account only automatically created archived _f
 |`nifi.flow.configuration.archive.max.storage`*|The total data size allowed for the archived _flow.json_ files. NiFi will delete the oldest archive files until the total archived file size becomes less than this configuration value, if this property is specified. If no archive limitation is specified in _nifi.properties_, NiFi uses `500 MB` for this.
 |`nifi.flow.configuration.archive.max.count`*|The number of archive files allowed. NiFi will delete the oldest archive files so that only N latest archives can be kept, if this property is specified.
 |`nifi.flowcontroller.autoResumeState`|Indicates whether -upon restart- the components on the NiFi graph, including Processors, Controller Services, and other schedulable components, should return to their last state. When running in cluster, all nodes should have the same value. The default value is `true`.
-|`nifi.flowcontroller.graceful.shutdown.period`|Indicates the shutdown period. The default value is `10 secs`.
+|`nifi.flowcontroller.graceful.shutdown.period`|Indicates the maximum amount of time to wait for components to stop during graceful shutdown and before forced processor termination during node offload. Configuring a large value can delay forced termination and extend the time a node remains in the `Offloading` state when processors do not stop promptly. The default value is `10 secs`.
 |`nifi.flowcontroller.registry.sync.interval`|Specifies the default recurring interval at which NiFi synchronizes the flow configuration with Flow Registry Clients. The default value is `30 min`. This value is used for any Flow Registry Client that does not configure its own `Synchronization Interval` property; a Flow Registry Client that sets that property is synchronized at its own interval instead.
 |`nifi.flowservice.writedelay.interval`|When many changes are made to the _flow.json_, this property specifies how long to wait before writing out the changes, so as to batch the changes into a single write. The default value is `500 ms`.
 |`nifi.administrative.yield.duration`|If a component allows an unexpected exception to escape, it is considered a bug. As a result, the framework will pause (or administratively yield) the component for this amount of time. This is done so that the component does not use up massive amounts of system resources, since it is known to have problems in the existing state. The default value is `30 secs`.
@@ -3037,7 +3086,9 @@ FlowFile Repository, if also on that disk, could become corrupt. To avoid this s
 individual FlowFile as a separate file in the content repository. Doing so would be very detrimental to performance, if each 120 byte FlowFile, for instance, was written to its own file. Instead,
 we continue writing to the same file until it reaches some threshold. This property configures that threshold. Setting the value too small can result in poor performance due to reading from and
 writing to too many files. However, a file can only be deleted from the content repository once there are no longer any FlowFiles pointing to it. Therefore, setting the value too large can result
-in data remaining in the content repository for much longer, potentially leading to the content repository running out of disk space. The default value is `50 KB`.
+in data remaining in the content repository for much longer, potentially leading to the content repository running out of disk space. The default value is `50 KB`. Each Content Repository
+implementation reports the threshold that it wants the framework to use, so this property is honored only by the File System Content Repository. An alternate implementation may report a different
+threshold and ignore this property.
 |`nifi.content.repository.directory.default`*|The location of the Content Repository. The default value is `./content_repository`. +
 +
 *NOTE*: Multiple content repositories can be specified by using the `nifi.content.repository.directory.` prefix with unique suffixes and separate paths as values. +
@@ -3598,8 +3649,10 @@ These properties pertain to various security features in NiFi. Many of these pro
 |*Property*|*Description*
 |`nifi.sensitive.props.key`|This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
 |`nifi.sensitive.props.algorithm`|The algorithm used to encrypt sensitive properties. The default value is `NIFI_PBKDF2_AES_GCM_256`.
-|`nifi.security.autoreload.enabled`|Specifies whether the SSL context factory should be automatically reloaded if updates to the keystore and truststore are detected. By default, it is set to `false`.
-|`nifi.security.autoreload.interval`|Specifies the interval at which the keystore and truststore are checked for updates. Only applies if `nifi.security.autoreload.enabled` is set to `true`. The default value is `10 secs`.
+|`nifi.security.property.encryption.provider.implementation`|The class name of the Property Encryption Provider loaded and initialized during application startup. The provider protects sensitive component properties, sensitive Parameter values, and OpenID Connect authorized client tokens. The default value is `org.apache.nifi.security.encryption.password.PasswordBasedPropertyEncryptionProvider`, which derives a secret key from `nifi.sensitive.props.key`. NiFi loads the default implementation when the value is blank. See <<property-encryption-providers>> for additional information.
+|`nifi.security.property.encryption.provider.properties.`|The prefix for properties supplied to the configured Property Encryption Provider. NiFi removes the prefix from the property name before supplying the property to the provider. No properties are configured by default.
+|`nifi.security.autoreload.enabled`|Specifies whether the SSL context factory should be automatically reloaded if updates to the keystore and truststore are detected. NiFi polls the configured store paths and compares content digests, resolving symbolic links at read time so Kubernetes Secret and projected-volume mounts are detected. By default, it is set to `false`.
+|`nifi.security.autoreload.interval`|Specifies the interval at which the configured keystore and truststore paths are digested and compared for updates. Only applies if `nifi.security.autoreload.enabled` is set to `true`. The default value is `10 secs`.
 |`nifi.security.keystore`*|The full path and name of the keystore. The default value is `./conf/keystore.p12`.
 |`nifi.security.keystoreType`|The keystore type. The default value is `PKCS12`.
 |`nifi.security.keystorePasswd`|The keystore password. It is blank by default.

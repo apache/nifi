@@ -77,6 +77,14 @@ public interface FlowFileRepository extends Closeable {
     void updateRepository(Collection<RepositoryRecord> records) throws IOException;
 
     /**
+     * Updates the repository with the given records for the given context. The default implementation delegates to
+     * {@link #updateRepository(Collection)}.
+     */
+    default void updateRepository(final Collection<RepositoryRecord> records, final FlowFileUpdateContext context) throws IOException {
+        updateRepository(records);
+    }
+
+    /**
      * Loads all FlowFiles found within the repository, establishes the content
      * claims and their reference count
      *

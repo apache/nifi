@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.bundle.model;
 
-import static org.apache.nifi.registry.bundle.util.BundleUtils.validateNotBlank;
+import org.apache.nifi.registry.bundle.util.BundleUtils;
 
 /**
  * The identifier of an extension bundle (i.e group + artifact + version).
@@ -33,9 +33,9 @@ public class BundleIdentifier {
         this.groupId = groupId;
         this.artifactId = artifactId;
         this.version = version;
-        validateNotBlank("Group Id", this.groupId);
-        validateNotBlank("Artifact Id", this.artifactId);
-        validateNotBlank("Version", this.version);
+        BundleUtils.validateCoordinateField("Group Id", this.groupId);
+        BundleUtils.validateCoordinateField("Artifact Id", this.artifactId);
+        BundleUtils.validateCoordinateField("Version", this.version);
 
         this.identifier = this.groupId + ":" + this.artifactId + ":" + this.version;
     }

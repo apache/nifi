@@ -27,6 +27,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.components.validation.VerifiableComponentFactory;
+import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ExtensionBuilder;
@@ -95,13 +96,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -110,7 +114,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -469,13 +475,7 @@ public class TestStandardProcessScheduler {
     }
 
     /**
-     * Validates that service that is infinitely blocking in @OnEnabled can
-     * still have DISABLE operation initiated. The service itself will be set to
-     * DISABLING state at which point UI and all will know that such service can
-     * not be transitioned any more into any other state until it finishes
-     * enabling (which will never happen in our case thus should be addressed by
-     * user). However, regardless of user's mistake NiFi will remain
-     * functioning.
+     * Validates that a service blocking indefinitely in @OnEnabled can be interrupted and disabled.
      */
     @Test
     public void validateNeverEnablingServiceCanStillBeDisabled() throws Exception {
@@ -484,23 +484,54 @@ public class TestStandardProcessScheduler {
         final ControllerServiceNode serviceNode = flowManager.createControllerService(LongEnablingService.class.getName(),
                 "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true, null);
 
-        final LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
-        ts.setLimit(Long.MAX_VALUE);
+        final LongEnablingService service = (LongEnablingService) serviceNode.getControllerServiceImplementation();
+        service.setLimit(Long.MAX_VALUE);
 
         serviceNode.performValidation();
         scheduler.enableControllerService(serviceNode);
 
         assertTrue(serviceNode.isActive());
         final long maxTime = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-        while (ts.enableInvocationCount() != 1 && System.nanoTime() <= maxTime) {
+        while (service.enableInvocationCount() != 1 && System.nanoTime() <= maxTime) {
             Thread.sleep(1L);
         }
-        assertEquals(1, ts.enableInvocationCount());
+        assertEquals(1, service.enableInvocationCount());
 
-        scheduler.disableControllerService(serviceNode);
+        final CompletableFuture<Void> disableFuture = scheduler.disableControllerService(serviceNode);
+        disableFuture.get(5, TimeUnit.SECONDS);
         assertFalse(serviceNode.isActive());
-        assertEquals(ControllerServiceState.DISABLING, serviceNode.getState());
-        assertEquals(0, ts.disableInvocationCount());
+        assertEquals(1, service.disableInvocationCount());
+        assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
+    }
+
+    @Test
+    @Timeout(10)
+    public void testRepeatedDisableWhileEnablingCompletesFutures() throws Exception {
+        final StandardProcessScheduler scheduler = createScheduler();
+        final ControllerServiceNode serviceNode = flowManager.createControllerService(LongEnablingService.class.getName(),
+                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true, null);
+        final LongEnablingService service = (LongEnablingService) serviceNode.getControllerServiceImplementation();
+        service.setLimit(TimeUnit.SECONDS.toMillis(1));
+
+        serviceNode.performValidation();
+        final CompletableFuture<Void> enableFuture = scheduler.enableControllerService(serviceNode);
+
+        final long enableInvocationDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (service.enableInvocationCount() == 0 && System.nanoTime() < enableInvocationDeadline) {
+            Thread.sleep(1L);
+        }
+
+        assertEquals(1, service.enableInvocationCount());
+        assertEquals(ControllerServiceState.ENABLING, serviceNode.getState());
+
+        final CompletableFuture<Void> firstDisableFuture = scheduler.disableControllerService(serviceNode);
+        final CompletableFuture<Void> secondDisableFuture = scheduler.disableControllerService(serviceNode);
+
+        final ExecutionException enableFailure = assertThrows(ExecutionException.class, () -> enableFuture.get(5, TimeUnit.SECONDS));
+        assertInstanceOf(CancellationException.class, enableFailure.getCause());
+        firstDisableFuture.get(5, TimeUnit.SECONDS);
+        secondDisableFuture.get(5, TimeUnit.SECONDS);
+        assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
     }
 
     @Test
@@ -546,6 +577,61 @@ public class TestStandardProcessScheduler {
         assertEquals(1, service.enableInvocationCount());
         assertEquals("override-value", service.getEnabledPropertyValue());
         assertEquals(ControllerServiceState.ENABLED, serviceNode.getState());
+    }
+
+    @Test
+    public void testProcessorStopWaitsForSchedulingAgentUnschedule() throws Exception {
+        final CountDownLatch schedulingStarted = new CountDownLatch(1);
+        final Semaphore schedulingRelease = new Semaphore(0);
+        final CountDownLatch unschedulingStarted = new CountDownLatch(1);
+        final Semaphore unschedulingRelease = new Semaphore(0);
+        final SchedulingAgent schedulingAgent = mock(SchedulingAgent.class);
+
+        doAnswer(invocation -> scheduleAgent(true, invocation.getArgument(1), schedulingStarted, schedulingRelease)).when(schedulingAgent)
+            .schedule(any(Connectable.class), any(LifecycleState.class));
+        doAnswer(invocation -> scheduleAgent(false, invocation.getArgument(1), unschedulingStarted, unschedulingRelease)).when(schedulingAgent)
+            .unschedule(any(Connectable.class), any(LifecycleState.class));
+        scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, schedulingAgent);
+
+        final String identifier = UUID.randomUUID().toString();
+        final Processor processor = new NoOpProcessor();
+        processor.initialize(new StandardProcessorInitializationContext(identifier, null, null, null, KerberosConfig.NOT_CONFIGURED));
+        final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), null);
+        final ProcessorNode processorNode = new StandardProcessorNode(loggableComponent, identifier, new StandardValidationContextFactory(serviceProvider), scheduler,
+            serviceProvider, mock(ReloadComponent.class), mock(VerifiableComponentFactory.class), extensionManager, new SynchronousValidationTrigger());
+        rootGroup.addProcessor(processorNode);
+        processorNode.performValidation();
+
+        // Hold the startup task inside SchedulingAgent.schedule() after the Processor transitions to RUNNING.
+        scheduler.startProcessor(processorNode, true);
+        assertTrue(schedulingStarted.await(5, TimeUnit.SECONDS));
+
+        // Start the stop sequence while the startup task is still returning from the scheduling callback.
+        final CompletableFuture<Void> stopFuture = scheduler.stopProcessor(processorNode, ProcessorStopLifecycleMethods.TRIGGER_ALL);
+
+        try {
+            // Allow startup to return, then hold the stop task inside SchedulingAgent.unschedule().
+            schedulingRelease.release();
+            assertTrue(unschedulingStarted.await(5, TimeUnit.SECONDS));
+
+            // The Processor cannot report that it is stopped while unscheduling is still running.
+            assertFalse(stopFuture.isDone());
+        } finally {
+            schedulingRelease.release();
+            unschedulingRelease.release();
+        }
+
+        // Releasing the unschedule callback allows the normal stop sequence to finish.
+        stopFuture.get(5, TimeUnit.SECONDS);
+        assertEquals(ScheduledState.STOPPED, processorNode.getPhysicalScheduledState());
+    }
+
+    private Void scheduleAgent(final boolean scheduled, final LifecycleState lifecycleState,
+            final CountDownLatch callbackStarted, final Semaphore callbackRelease) {
+        lifecycleState.setScheduled(scheduled);
+        callbackStarted.countDown();
+        callbackRelease.acquireUninterruptibly();
+        return null;
     }
 
     // Test that if processor throws Exception in @OnScheduled, it keeps getting scheduled

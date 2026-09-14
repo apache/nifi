@@ -34,7 +34,6 @@ import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedConnector;
@@ -48,6 +47,7 @@ import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterGroup;
 import org.apache.nifi.parameter.ParameterProvider;
@@ -57,6 +57,8 @@ import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.persistence.FlowConfigurationArchiveManager;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
+import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,7 +84,6 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -109,9 +110,11 @@ class VersionedFlowSynchronizerTest {
 
     private static final String SENSITIVE_PROPERTY_NAME = "Protected";
 
-    private static final String ENCRYPTED_PROPERTY_VALUE = "enc{encoded}";
+    private static final String ENCRYPTED_PROPERTY_VALUE = PropertyEncryptionEncoder.getEncoded("656e636f646564");
 
     private static final String DECRYPTED_PROPERTY_VALUE = "decoded";
+
+    private static final byte[] DECRYPTED_PROPERTY_BYTES = DECRYPTED_PROPERTY_VALUE.getBytes(StandardCharsets.UTF_8);
 
     private static final String REPORTING_TASK_INSTANCE_ID = "reporting-task-instance-id";
 
@@ -145,7 +148,7 @@ class VersionedFlowSynchronizerTest {
     private SnippetManager snippetManager;
 
     @Mock
-    private PropertyEncryptor encryptor;
+    private PropertyEncryptionProvider propertyEncryptionProvider;
 
     @Mock
     private VersionedComponentStateLookup stateLookup;
@@ -197,7 +200,7 @@ class VersionedFlowSynchronizerTest {
         // Mock Property Descriptor for sensitive Property with decrypted value
         final PropertyDescriptor sensitivePropertyDescriptor = mock(PropertyDescriptor.class);
         when(controllerServiceNode.getPropertyDescriptor(eq(SENSITIVE_PROPERTY_NAME))).thenReturn(sensitivePropertyDescriptor);
-        when(encryptor.decrypt(any())).thenReturn(DECRYPTED_PROPERTY_VALUE);
+        when(propertyEncryptionProvider.decrypt(any(), any())).thenReturn(DECRYPTED_PROPERTY_BYTES);
 
         // Return created Controller Service Node as a result of null returned for initial lookup method
         when(flowManager.createControllerService(any(), any(), any(), any(), eq(true), eq(true), any())).thenReturn(controllerServiceNode);
@@ -232,7 +235,7 @@ class VersionedFlowSynchronizerTest {
         // Mock Property Descriptor for sensitive Property with decrypted value
         final PropertyDescriptor sensitivePropertyDescriptor = mock(PropertyDescriptor.class);
         when(reportingTaskNode.getPropertyDescriptor(eq(SENSITIVE_PROPERTY_NAME))).thenReturn(sensitivePropertyDescriptor);
-        when(encryptor.decrypt(any())).thenReturn(DECRYPTED_PROPERTY_VALUE);
+        when(propertyEncryptionProvider.decrypt(any(), any())).thenReturn(DECRYPTED_PROPERTY_BYTES);
 
         // Return created Reporting Task Node
         when(flowController.createReportingTask(any(), eq(REPORTING_TASK_INSTANCE_ID), any(), eq(false))).thenReturn(reportingTaskNode);
@@ -370,34 +373,96 @@ class VersionedFlowSynchronizerTest {
     }
 
     @Test
-    void testSyncRejectsInvalidParameterName() {
+    void testSyncLoadsInvalidParameterName() {
         setRootGroup();
         setFlowController();
 
         final String invalidParameterName = "PARAMETER_{{ ENVIRONMENT }}";
+        final String parameterValue = "parameter-value";
+        final String contextId = "parameter-context-id";
+        final String contextName = "parameter-context";
 
         final StandardParameterContextManager contextManager = new StandardParameterContextManager();
+        stubParameterContextResolution(contextManager);
+        when(flowManager.createParameterContext(any(), any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+            final StandardParameterContext created = new StandardParameterContext.Builder()
+                    .id(invocation.getArgument(0))
+                    .name(invocation.getArgument(1))
+                    .parameterReferenceManager(ParameterReferenceManager.EMPTY)
+                    .build();
+            created.setParameters(invocation.getArgument(3));
+            contextManager.addParameterContext(created);
+            return created;
+        });
+
+        stubInvalidVersionedParameterContext(invalidParameterName, parameterValue, contextId, contextName);
+
+        assertDoesNotThrow(() ->
+                versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST));
+
+        final ParameterContext loadedContext = contextManager.getParameterContext(contextId);
+        assertLoadedInvalidParameter(loadedContext, invalidParameterName, parameterValue);
+    }
+
+    @Test
+    void testSyncReconcilesExistingInvalidParameterName() {
+        setRootGroup();
+        setFlowController();
+
+        final String invalidParameterName = "PARAMETER_{{ ENVIRONMENT }}";
+        final String parameterValue = "parameter-value";
+        final String contextId = "parameter-context-id";
+        final String contextName = "parameter-context";
+
+        final StandardParameterContext existingContext = new StandardParameterContext.Builder()
+                .id(contextId)
+                .name(contextName)
+                .parameterReferenceManager(ParameterReferenceManager.EMPTY)
+                .build();
+        existingContext.setParameters(Collections.singletonMap(invalidParameterName,
+                new Parameter.Builder()
+                        .name(invalidParameterName)
+                        .value("previous-value")
+                        .sensitive(true)
+                        .build()));
+
+        final StandardParameterContextManager contextManager = new StandardParameterContextManager();
+        contextManager.addParameterContext(existingContext);
+        stubParameterContextResolution(contextManager);
+        stubInvalidVersionedParameterContext(invalidParameterName, parameterValue, contextId, contextName);
+
+        assertDoesNotThrow(() ->
+                versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST));
+
+        assertLoadedInvalidParameter(existingContext, invalidParameterName, parameterValue);
+    }
+
+    private void stubParameterContextResolution(final StandardParameterContextManager contextManager) {
         when(flowManager.getParameterContextManager()).thenReturn(contextManager);
         doAnswer(invocation -> {
             invocation.getArgument(0, Runnable.class).run();
             return null;
         }).when(flowManager).withParameterContextResolution(any());
+    }
 
+    private void stubInvalidVersionedParameterContext(final String invalidParameterName, final String parameterValue,
+            final String contextId, final String contextName) {
         final VersionedParameter versionedParameter = new VersionedParameter();
         versionedParameter.setName(invalidParameterName);
         versionedParameter.setSensitive(true);
-        versionedParameter.setValue("parameter-value");
+        versionedParameter.setValue(parameterValue);
 
         final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
-        versionedParameterContext.setInstanceIdentifier("parameter-context-id");
-        versionedParameterContext.setName("parameter-context");
+        versionedParameterContext.setInstanceIdentifier(contextId);
+        versionedParameterContext.setName(contextName);
         versionedParameterContext.setParameters(Collections.singleton(versionedParameter));
         when(versionedDataflow.getParameterContexts()).thenReturn(List.of(versionedParameterContext));
+    }
 
-        final FlowSynchronizationException exception = assertThrows(FlowSynchronizationException.class, () ->
-                versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST));
-        final IllegalArgumentException cause = assertInstanceOf(IllegalArgumentException.class, exception.getCause());
-        assertTrue(cause.getMessage().contains(invalidParameterName));
+    private void assertLoadedInvalidParameter(final ParameterContext context, final String invalidParameterName, final String parameterValue) {
+        final Optional<Parameter> loaded = context.getParameter(invalidParameterName);
+        assertTrue(loaded.isPresent(), "Illegal Parameter already present in the flow must be loaded so it can be removed");
+        assertEquals(parameterValue, loaded.get().getValue());
     }
 
     private void setRootGroup() {
@@ -416,7 +481,7 @@ class VersionedFlowSynchronizerTest {
         when(dataFlow.getVersionedDataflow()).thenReturn(versionedDataflow);
         when(dataFlow.getFlow()).thenReturn("{}".getBytes(StandardCharsets.UTF_8));
         when(versionedDataflow.getRootGroup()).thenReturn(versionedRootGroup);
-        when(flowController.getEncryptor()).thenReturn(encryptor);
+        when(flowController.getPropertyEncryptionProvider()).thenReturn(propertyEncryptionProvider);
         when(flowController.createVersionedComponentStateLookup(any())).thenReturn(stateLookup);
         when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
 

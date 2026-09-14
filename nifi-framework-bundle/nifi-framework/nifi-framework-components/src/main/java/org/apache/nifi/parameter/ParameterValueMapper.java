@@ -23,9 +23,10 @@ public interface ParameterValueMapper {
     /**
      * Get mapped Parameter value based on properties
      *
+     * @param parameterContextName Name of the Parameter Context that contains the Parameter
      * @param parameter Parameter with descriptor of attributes for mapping
      * @param value Parameter value to be mapped
      * @return Mapped Parameter value
      */
-    String getMapped(Parameter parameter, String value);
+    String getMapped(String parameterContextName, Parameter parameter, String value);
 }

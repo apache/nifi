@@ -19,12 +19,18 @@ package org.apache.nifi.controller.serialization;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ComponentNode;
-import org.apache.nifi.encrypt.EncryptionException;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConfigurableExtension;
+import org.apache.nifi.flow.VersionedExtensionComponent;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
+import org.apache.nifi.security.encryption.PropertyEncryptionException;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.SensitivePropertyCodec;
+import org.apache.nifi.security.encryption.SensitivePropertyContext;
+import org.apache.nifi.security.encryption.SensitivePropertyContextFactory;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.slf4j.Logger;
@@ -62,7 +68,7 @@ public class FlowSynchronizationUtils {
         extension.getProperties()
                 .entrySet()
                 .stream()
-                .filter(entry -> isValueSensitive(entry.getValue()))
+                .filter(entry -> PropertyEncryptionEncoder.isEncrypted(entry.getValue()))
                 .map(Map.Entry::getKey)
                 .forEach(versionedSensitivePropertyNames::add);
 
@@ -82,25 +88,42 @@ public class FlowSynchronizationUtils {
                 .collect(Collectors.toSet());
     }
 
-    static boolean isValueSensitive(final String value) {
-        return value != null && value.startsWith(FlowSerializer.ENC_PREFIX) && value.endsWith(FlowSerializer.ENC_SUFFIX);
-    }
-
-    static Map<String, String> decryptProperties(final Map<String, String> encrypted, final PropertyEncryptor encryptor) {
+    /**
+     * Decrypt the properties of a versioned component. The context supplied for each value is built from the instance identifier
+     * and type of the component, matching the context supplied when the flow was serialized.
+     *
+     * @param component Versioned component that owns the properties
+     * @param encrypted Properties of the component, which may contain encrypted values
+     * @param propertyEncryptionProvider Provider used to decrypt sensitive values
+     * @return Properties with sensitive values decrypted
+     */
+    static Map<String, String> decryptProperties(final VersionedComponent component, final Map<String, String> encrypted,
+                                                 final PropertyEncryptionProvider propertyEncryptionProvider) {
         final Map<String, String> decrypted = new HashMap<>(encrypted.size());
-        encrypted.forEach((key, value) -> decrypted.put(key, decrypt(value, encryptor)));
+        encrypted.forEach((key, value) -> decrypted.put(key, decrypt(value, getSensitivePropertyContext(component, key), propertyEncryptionProvider)));
         return decrypted;
     }
 
-    static String decrypt(final String value, final PropertyEncryptor encryptor) {
-        if (isValueSensitive(value)) {
+    /**
+     * Get the context describing a sensitive property of a versioned component. The instance identifier is used rather than the
+     * identifier, because the identifier of a mapped component is a generated versioned identifier while the context supplied when
+     * the value was encrypted described the component instance.
+     */
+    static SensitivePropertyContext getSensitivePropertyContext(final VersionedComponent component, final String propertyName) {
+        final String componentType = component instanceof final VersionedExtensionComponent extension ? extension.getType() : null;
+        return SensitivePropertyContextFactory.forComponent(component.getInstanceIdentifier(), componentType, propertyName);
+    }
+
+    static String decrypt(final String value, final SensitivePropertyContext context, final PropertyEncryptionProvider propertyEncryptionProvider) {
+        if (PropertyEncryptionEncoder.isEncrypted(value)) {
+            final String encryptedValue = PropertyEncryptionEncoder.getDecoded(value);
             try {
-                return encryptor.decrypt(value.substring(FlowSerializer.ENC_PREFIX.length(), value.length() - FlowSerializer.ENC_SUFFIX.length()));
-            } catch (EncryptionException e) {
+                return SensitivePropertyCodec.decrypt(propertyEncryptionProvider, encryptedValue, context);
+            } catch (final PropertyEncryptionException e) {
                 final String moreDescriptiveMessage = "There was a problem decrypting a sensitive flow configuration value. " +
-                        "Check that the nifi.sensitive.props.key value in nifi.properties matches the value used to encrypt the flow.json.gz file";
+                        "Check that the Property Encryption Provider configuration matches the configuration used to encrypt the flow.json.gz file";
                 logger.error(moreDescriptiveMessage, e);
-                throw new EncryptionException(moreDescriptiveMessage, e);
+                throw new PropertyEncryptionException(moreDescriptiveMessage, e);
             }
         } else {
             return value;

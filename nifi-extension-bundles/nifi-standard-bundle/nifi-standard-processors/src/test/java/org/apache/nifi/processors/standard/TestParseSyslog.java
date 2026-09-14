@@ -94,4 +94,25 @@ public class TestParseSyslog {
 
         runner.assertAllFlowFilesTransferred(ParseSyslog.REL_FAILURE, 1);
     }
+
+    @Test
+    public void testConcurrentTasksShareScheduledParser() {
+        final TestRunner runner = TestRunners.newTestRunner(new ParseSyslog());
+        final int numThreads = 8;
+        final int flowFiles = 32;
+        runner.setThreadCount(numThreads);
+
+        for (int i = 0; i < flowFiles; i++) {
+            runner.enqueue(VALID_MESSAGE_RFC3164_0.getBytes());
+        }
+
+        runner.run(flowFiles);
+
+        runner.assertAllFlowFilesTransferred(ParseSyslog.REL_SUCCESS, flowFiles);
+        for (final MockFlowFile mff : runner.getFlowFilesForRelationship(ParseSyslog.REL_SUCCESS)) {
+            mff.assertAttributeEquals(SyslogAttributes.SYSLOG_BODY.key(), BODY);
+            mff.assertAttributeEquals(SyslogAttributes.SYSLOG_HOSTNAME.key(), HOST);
+            mff.assertAttributeEquals(SyslogAttributes.SYSLOG_PRIORITY.key(), PRI);
+        }
+    }
 }

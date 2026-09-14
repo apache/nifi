@@ -47,6 +47,8 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -75,6 +77,24 @@ class ParquetIcebergWriterTest {
     private static final LocalDateTime CREATED_FIELD_VALUE = LocalDateTime.of(
             LocalDate.ofEpochDay(1), LocalTime.ofSecondOfDay(0)
     );
+
+    private static final String ID_FIELD_NAME = "id";
+
+    private static final String TAGS_FIELD_NAME = "tags";
+
+    private static final String ADDRESS_FIELD_NAME = "address";
+
+    private static final String CITY_FIELD_NAME = "city";
+
+    private static final String ATTRIBUTES_FIELD_NAME = "attributes";
+
+    private static final String ID_FIELD_VALUE = "row-1";
+
+    private static final String CITY_FIELD_VALUE = "Berlin";
+
+    private static final List<String> TAGS_FIELD_VALUE = List.of("a", "b");
+
+    private static final Map<String, String> ATTRIBUTES_FIELD_VALUE = Map.of("k", "v");
 
     private ParquetIcebergWriter parquetIcebergWriter;
 
@@ -192,6 +212,43 @@ class ParquetIcebergWriterTest {
 
         final long microsecondsExpected = DateTimeUtil.microsFromTimestamp(CREATED_FIELD_VALUE);
         assertEquals(microsecondsExpected, partitionField);
+    }
+
+    @Test
+    void testWriteDataFilesComplexTypes() throws IOException {
+        runner.enableControllerService(parquetIcebergWriter);
+
+        final Types.StructType nestedStruct = Types.StructType.of(
+                Types.NestedField.optional(10, CITY_FIELD_NAME, Types.StringType.get())
+        );
+        final Schema schema = new Schema(
+                Types.NestedField.required(1, ID_FIELD_NAME, Types.StringType.get()),
+                Types.NestedField.optional(2, TAGS_FIELD_NAME,
+                        Types.ListType.ofOptional(3, Types.StringType.get())),
+                Types.NestedField.optional(4, ADDRESS_FIELD_NAME, nestedStruct),
+                Types.NestedField.optional(5, ATTRIBUTES_FIELD_NAME,
+                        Types.MapType.ofOptional(6, 7, Types.StringType.get(), Types.StringType.get()))
+        );
+        final InMemoryOutputFile outputFile = new InMemoryOutputFile();
+        final PartitionSpec partitionSpec = PartitionSpec.unpartitioned();
+        setTable(schema, partitionSpec, outputFile);
+        when(locationProvider.newDataLocation(anyString())).thenReturn(LOCATION);
+
+        final IcebergRowWriter rowWriter = parquetIcebergWriter.getRowWriter(table);
+
+        final GenericRecord address = GenericRecord.create(nestedStruct);
+        address.setField(CITY_FIELD_NAME, CITY_FIELD_VALUE);
+
+        final GenericRecord row = GenericRecord.create(schema);
+        row.setField(ID_FIELD_NAME, ID_FIELD_VALUE);
+        row.setField(TAGS_FIELD_NAME, TAGS_FIELD_VALUE);
+        row.setField(ADDRESS_FIELD_NAME, address);
+        row.setField(ATTRIBUTES_FIELD_NAME, ATTRIBUTES_FIELD_VALUE);
+        rowWriter.write(row);
+
+        final DataFile[] dataFiles = rowWriter.dataFiles();
+        final byte[] serialized = outputFile.toByteArray();
+        assertDataFilesFound(dataFiles, serialized);
     }
 
     private void writeRow(final Schema schema, final IcebergRowWriter rowWriter) throws IOException {

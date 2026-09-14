@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework-bundle</artifactId>
-        <version>2.12.0-SNAPSHOT</version>
+        <version>2.13.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-framework-extensions</artifactId>
     <packaging>pom</packaging>
@@ -27,6 +27,7 @@
         <module>nifi-framework-zookeeper-bundle</module>
         <module>nifi-kerberos-iaa-providers-bundle</module>
         <module>nifi-ldap-iaa-providers-bundle</module>
+        <module>nifi-password-based-property-encryption-bundle</module>
         <module>nifi-provenance-repository-bundle</module>
         <module>nifi-py4j-framework-bundle</module>
         <module>nifi-questdb-bundle</module>

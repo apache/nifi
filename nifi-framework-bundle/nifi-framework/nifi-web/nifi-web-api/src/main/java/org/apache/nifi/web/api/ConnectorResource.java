@@ -49,6 +49,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.authorization.AuthorizeConnectorConfigReferences;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
@@ -174,11 +175,11 @@ public class ConnectorResource extends ApplicationResource {
     private UploadRequestReplicator uploadRequestReplicator;
 
     private final RequestManager<VerifyConnectorConfigStepRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
-            new AsyncRequestManager<>(100, 1L, "Connector Configuration Step Verification");
+            new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Connector Configuration Step Verification");
     private final RequestManager<MigrationRequestEntity, ConnectorEntity> migrationRequestManager =
             new AsyncRequestManager<>(100, MIGRATION_REQUEST_TTL_MILLIS, "Connector Migration");
 
-    private final RequestManager<ConnectorEntity, Void> purgeRequestManager = new AsyncRequestManager<>(100, 1L, "Connector FlowFile Purge");
+    private final RequestManager<ConnectorEntity, Void> purgeRequestManager = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Connector FlowFile Purge");
 
     /**
      * Uploaded migration payloads keyed by their server-assigned identifier. Each entry's age is tracked alongside
@@ -2429,7 +2430,8 @@ public class ConnectorResource extends ApplicationResource {
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Read - /connectors/{uuid}")
+                    @SecurityRequirement(name = "Read - /connectors/{uuid}"),
+                    @SecurityRequirement(name = "Read - /process-groups/{uuid} - For each Process Group returned")
             }
     )
     public Response getMigrationSources(@PathParam("id") final String connectorId) {
@@ -2528,7 +2530,8 @@ public class ConnectorResource extends ApplicationResource {
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Write - /connectors/{uuid}")
+                    @SecurityRequirement(name = "Write - /connectors/{uuid}"),
+                    @SecurityRequirement(name = "Write - /process-groups/{uuid} - For a migration from a local Process Group")
             }
     )
     public Response createMigrationRequest(@PathParam("id") final String connectorId, final MigrationRequestEntity requestEntity) {
@@ -2573,6 +2576,10 @@ public class ConnectorResource extends ApplicationResource {
                 lookup -> {
                     final Authorizable connector = lookup.getConnector(connectorId);
                     connector.authorize(authorizer, RequestAction.WRITE, user);
+                    if (hasLocalSource) {
+                        final ProcessGroupAuthorizable sourceGroupAuthorizable = lookup.getProcessGroup(request.getLocalSource().getProcessGroupId());
+                        authorizeProcessGroup(sourceGroupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, false, false, false, true);
+                    }
                 },
                 () -> {
                     // Verify the target Connector is ready (stopped and unmodified from its initial flow) for every

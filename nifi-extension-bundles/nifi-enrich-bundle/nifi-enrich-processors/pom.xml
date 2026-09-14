@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-enrich-bundle</artifactId>
-        <version>2.12.0-SNAPSHOT</version>
+        <version>2.13.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-enrich-processors</artifactId>
     <dependencies>
@@ -39,13 +39,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
-            <version>2.12.0-SNAPSHOT</version>
+            <version>2.13.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.maxmind.db</groupId>
             <artifactId>maxmind-db</artifactId>
-            <version>4.1.0</version>
+            <version>4.2.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.avro</groupId>
@@ -84,7 +84,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-path</artifactId>
-            <version>2.12.0-SNAPSHOT</version>
+            <version>2.13.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -100,7 +100,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services</artifactId>
-            <version>2.12.0-SNAPSHOT</version>
+            <version>2.13.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>

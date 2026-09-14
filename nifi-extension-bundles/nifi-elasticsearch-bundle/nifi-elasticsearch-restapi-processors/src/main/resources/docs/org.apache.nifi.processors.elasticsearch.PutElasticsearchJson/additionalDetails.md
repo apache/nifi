@@ -86,6 +86,36 @@ value is extracted. For a nested path, any parent object that is left empty by t
 extracting and removing `@metadata/id` from `{"@metadata": {"id": "abc"}, "message": "Hello, world"}` leaves
 `{"message": "Hello, world"}`, with the now-empty `@metadata` object removed.
 
+### Ingest Pipeline
+
+Documents can be routed through an [Elasticsearch ingest pipeline](https://www.elastic.co/guide/en/elasticsearch/reference/current/ingest.html)
+at index time. This applies to **Index** and **Create** operations only. The pipeline is added to the bulk action
+header for each document (`{"index": {"_index": "...", "pipeline": "..."}}`) and can be set two ways:
+
+* **Pipeline** — a static pipeline name applied to every document (supports Expression Language).
+* **Pipeline Field** — the name of a field within each document whose value is the pipeline, resolved per document.
+  Like the Index Field, this honors the **Field Path Mode** property, so it can be read from a top-level field or a
+  nested `/`-delimited path. When *Pipeline Field* is blank or absent from a document, the static *Pipeline* property
+  is used as the fallback.
+
+**Retain Pipeline Field** controls whether the field is left in the document body or removed before indexing (with
+empty parent objects pruned, as described above).
+
+For example, with *Pipeline Field* set to `@metadata/pipeline` (in Nested Field Path mode) and *Retain Pipeline Field*
+set to `false`, the document:
+
+```json
+{
+  "@metadata": {
+    "pipeline": "my-ingest-pipeline"
+  },
+  "message": "Hello, world"
+}
+```
+
+is indexed as `{"message": "Hello, world"}` with the bulk action header `"pipeline": "my-ingest-pipeline"`, so
+different documents in the same FlowFile can be routed through different ingest pipelines based on their own content.
+
 ### Dynamic Templates
 
 Index and Create operations can use Dynamic Templates. The Dynamic Templates property must be parsable as a JSON object.

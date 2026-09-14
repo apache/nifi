@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
@@ -56,6 +57,8 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     private final AtomicLong connectionIndex;
     private final StateManager stateManager;
     private final ComponentMetricContext componentMetricContext;
+    private final ContentClaimCreationContext contentClaimCreationContext;
+    private final FlowFileUpdateContext flowFileUpdateContext;
 
     private final String componentNameCounterContext;
     private final String componentTypeCounterContext;
@@ -89,6 +92,11 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
 
         this.componentNameCounterContext = connectable.getName() + " (" + connectable.getIdentifier() + ")";
         this.componentTypeCounterContext = "All " + connectable.getComponentType() + "'s";
+
+        final String connectorIdentifier = connectable.getProcessGroup().findOwningConnectorIdentifier().orElse(null);
+        final LossTolerance lossTolerance = connectable.isLossTolerant() ? LossTolerance.LOSS_TOLERANT : LossTolerance.LOSS_INTOLERANT;
+        this.contentClaimCreationContext = new StandardContentClaimCreationContext(connectable.getIdentifier(), connectorIdentifier, lossTolerance);
+        this.flowFileUpdateContext = new StandardFlowFileUpdateContext(connectable.getIdentifier(), connectorIdentifier);
     }
 
     @Override
@@ -165,11 +173,11 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     }
 
     @Override
-    public void adjustCounter(final String name, final long delta) {
+    public void adjustCounter(final String name, final long delta, final Map<String, String> attributes) {
         counterRepo.adjustCounter(componentNameCounterContext, name, delta);
         counterRepo.adjustCounter(componentTypeCounterContext, name, delta);
 
-        final CounterRecord counterRecord = new CounterRecord(name, delta, Instant.now(), componentMetricContext);
+        final CounterRecord counterRecord = new CounterRecord(name, delta, attributes, Instant.now(), componentMetricContext);
         componentMetricReporter.recordCounter(counterRecord);
     }
 
@@ -199,8 +207,18 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     }
 
     @Override
+    public ContentClaimCreationContext getContentClaimCreationContext() {
+        return contentClaimCreationContext;
+    }
+
+    @Override
     public FlowFileRepository getFlowFileRepository() {
         return flowFileRepo;
+    }
+
+    @Override
+    public FlowFileUpdateContext getFlowFileUpdateContext() {
+        return flowFileUpdateContext;
     }
 
     @Override

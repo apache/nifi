@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -146,10 +147,10 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
 
         flow.putVersion(context.getVersion(), flowPointer);
 
-        final File bucketDir = new File(flowStorageDir, bucketDirName);
-        final File flowSnippetFile = new File(bucketDir, flowSnapshotFilename);
+        final File bucketDir = getChildFile(flowStorageDir, bucketDirName);
+        final File flowSnippetFile = getChildFile(bucketDir, flowSnapshotFilename);
 
-        final File currentBucketDir = isEmpty(currentBucketDirName) ? null : new File(flowStorageDir, currentBucketDirName);
+        final File currentBucketDir = isEmpty(currentBucketDirName) ? null : getChildFile(flowStorageDir, currentBucketDirName);
         if (currentBucketDir != null && currentBucketDir.isDirectory()) {
             if (isBucketNameChanged) {
                 logger.debug("Detected bucket name change from {} to {}, moving it.", currentBucketDirName, bucketDirName);
@@ -166,7 +167,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
         try {
             if (currentFlowSnapshotFilename.isPresent() && !flowSnapshotFilename.equals(currentFlowSnapshotFilename.get())) {
                 // Delete old file if flow name has been changed.
-                final File latestFlowSnapshotFile = new File(bucketDir, currentFlowSnapshotFilename.get());
+                final File latestFlowSnapshotFile = getChildFile(bucketDir, currentFlowSnapshotFilename.get());
                 logger.debug("Detected flow name change from {} to {}, deleting the old snapshot file.",
                         currentFlowSnapshotFilename.get(), flowSnapshotFilename);
                 latestFlowSnapshotFile.delete();
@@ -231,8 +232,8 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
         final Flow.FlowPointer flowPointer = flow.getFlowVersion(latestVersion);
 
         // Delete the flow snapshot.
-        final File bucketDir = new File(flowStorageDir, bucket.getBucketDirName());
-        final File flowSnapshotFile = new File(bucketDir, flowPointer.getFileName());
+        final File bucketDir = getChildFile(flowStorageDir, bucket.getBucketDirName());
+        final File flowSnapshotFile = getChildFile(bucketDir, flowPointer.getFileName());
         if (flowSnapshotFile.exists()) {
             if (!flowSnapshotFile.delete()) {
                 throw new FlowPersistenceException(format("Failed to delete flow content for %s:%s in bucket %s:%s",
@@ -262,6 +263,14 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
                     flowPointer.getFileName(), flowId, bucket.getBucketDirName(), bucketId, e), e);
         }
 
+    }
+
+    private File getChildFile(final File parentDir, final String childName) {
+        try {
+            return FileUtils.getChildLocation(parentDir, Paths.get(childName));
+        } catch (final IllegalArgumentException e) {
+            throw new FlowPersistenceException(e.getMessage(), e);
+        }
     }
 
     private Bucket getBucketOrFail(String bucketId) throws FlowPersistenceException {

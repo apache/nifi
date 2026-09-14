@@ -16,7 +16,11 @@
  */
 package org.apache.nifi.parameter;
 
-import org.apache.nifi.registry.flow.mapping.SensitiveValueEncryptor;
+import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.SensitivePropertyCodec;
+import org.apache.nifi.security.encryption.SensitivePropertyContext;
+import org.apache.nifi.security.encryption.SensitivePropertyContextFactory;
 
 import java.util.Objects;
 
@@ -26,23 +30,27 @@ import java.util.Objects;
 public class StandardParameterValueMapper implements ParameterValueMapper {
     static final String PROVIDED_MAPPING = "provided:parameter";
 
-    private static final String ENCRYPTED_FORMAT = "enc{%s}";
+    private final PropertyEncryptionProvider propertyEncryptionProvider;
 
-    private final SensitiveValueEncryptor sensitiveValueEncryptor;
-
-    public StandardParameterValueMapper(final SensitiveValueEncryptor sensitiveValueEncryptor) {
-        this.sensitiveValueEncryptor = sensitiveValueEncryptor;
+    /**
+     * Standard Parameter Value Mapper with the Property Encryption Provider
+     *
+     * @param propertyEncryptionProvider Provider applied to sensitive Parameter values, which may be null
+     */
+    public StandardParameterValueMapper(final PropertyEncryptionProvider propertyEncryptionProvider) {
+        this.propertyEncryptionProvider = propertyEncryptionProvider;
     }
 
     /**
      * Get mapped Parameter value based on properties
      *
+     * @param parameterContextName Name of the Parameter Context that contains the Parameter
      * @param parameter Parameter with descriptor of attributes for mapping
      * @param value Parameter value to be mapped
      * @return Mapped Parameter value
      */
     @Override
-    public String getMapped(final Parameter parameter, final String value) {
+    public String getMapped(final String parameterContextName, final Parameter parameter, final String value) {
         Objects.requireNonNull(parameter, "Parameter required");
 
         final ParameterDescriptor descriptor = parameter.getDescriptor();
@@ -53,16 +61,25 @@ public class StandardParameterValueMapper implements ParameterValueMapper {
         } else if (parameter.isProvided()) {
             mapped = PROVIDED_MAPPING;
         } else if (descriptor.isSensitive()) {
-            if (sensitiveValueEncryptor == null) {
-                mapped = value;
-            } else {
-                final String encrypted = sensitiveValueEncryptor.encrypt(value);
-                mapped = ENCRYPTED_FORMAT.formatted(encrypted);
-            }
+            mapped = getEncrypted(parameterContextName, descriptor.getName(), value);
         } else {
             mapped = value;
         }
 
         return mapped;
+    }
+
+    private String getEncrypted(final String parameterContextName, final String parameterName, final String value) {
+        final String processed;
+
+        if (propertyEncryptionProvider == null) {
+            processed = value;
+        } else {
+            final SensitivePropertyContext context = SensitivePropertyContextFactory.forParameter(parameterContextName, parameterName);
+            final String encrypted = SensitivePropertyCodec.encrypt(propertyEncryptionProvider, value, context);
+            processed = PropertyEncryptionEncoder.getEncoded(encrypted);
+        }
+
+        return processed;
     }
 }

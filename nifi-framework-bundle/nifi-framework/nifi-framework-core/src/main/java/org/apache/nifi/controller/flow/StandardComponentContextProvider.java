@@ -65,7 +65,7 @@ public class StandardComponentContextProvider implements ComponentContextProvide
     }
 
     private Map<String, String> resolveServiceReferences(final ComponentNode processorNode, final ProcessGroup processGroup, final Map<String, String> propertiesOverride) {
-        final Map<String, String> versionedToInstanceIds = processGroup.findAllControllerServices().stream()
+        final Map<String, String> versionedToInstanceIds = processGroup.getControllerServices(true).stream()
             .filter(cs -> cs.getVersionedComponentId().isPresent())
             .collect(Collectors.toMap(cs -> cs.getVersionedComponentId().get(), ComponentNode::getIdentifier));
 

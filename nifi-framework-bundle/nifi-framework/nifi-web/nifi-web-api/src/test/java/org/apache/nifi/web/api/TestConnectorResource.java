@@ -26,6 +26,7 @@ import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -60,6 +61,7 @@ import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
+import org.apache.nifi.web.api.entity.MigrationPayloadEntity;
 import org.apache.nifi.web.api.entity.MigrationRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
@@ -80,10 +82,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
@@ -259,6 +263,77 @@ public class TestConnectorResource {
         // Readiness is checked first, so an unready Connector aborts before the source-specific verification.
         verify(serviceFacade).verifyConnectorReadyForMigration(CONNECTOR_ID);
         verify(serviceFacade, never()).verifyCanMigrateConnector(anyString(), anyString());
+    }
+
+    @Test
+    public void testCreateMigrationRequestDeniedWhenLocalSourceProcessGroupNotAuthorized() {
+        authenticate();
+        final ConnectorResource spyResource = spy(connectorResource);
+        doReturn(false).when(spyResource).isReplicateRequest();
+
+        final AuthorizableLookup lookup = wireMigrationAuthorization();
+        final ProcessGroupAuthorizable sourceGroup = mock(ProcessGroupAuthorizable.class);
+        final Authorizable sourceGroupAuthorizable = mock(Authorizable.class);
+        when(sourceGroup.getAuthorizable()).thenReturn(sourceGroupAuthorizable);
+        when(lookup.getProcessGroup(PROCESS_GROUP_ID)).thenReturn(sourceGroup);
+        doThrow(new AccessDeniedException("Not authorized to write the source Process Group"))
+                .when(sourceGroupAuthorizable).authorize(any(), eq(RequestAction.WRITE), any());
+
+        final MigrationRequestDTO requestDto = new MigrationRequestDTO();
+        requestDto.setConnectorId(CONNECTOR_ID);
+        requestDto.setLocalSource(createLocalMigrationSource(PROCESS_GROUP_ID));
+
+        final MigrationRequestEntity requestEntity = new MigrationRequestEntity();
+        requestEntity.setRequest(requestDto);
+
+        assertThrows(AccessDeniedException.class, () -> spyResource.createMigrationRequest(CONNECTOR_ID, requestEntity));
+
+        verify(lookup).getProcessGroup(PROCESS_GROUP_ID);
+        verify(serviceFacade, never()).verifyConnectorReadyForMigration(anyString());
+        verify(serviceFacade, never()).verifyCanMigrateConnector(anyString(), anyString());
+    }
+
+    @Test
+    public void testCreateMigrationRequestFromUploadedPayloadDoesNotAuthorizeProcessGroup() throws IOException {
+        authenticate();
+        final ConnectorResource spyResource = spy(connectorResource);
+        doReturn(false).when(spyResource).isReplicateRequest();
+
+        final AuthorizableLookup lookup = wireMigrationAuthorization();
+
+        final String payloadId;
+        try (Response payloadResponse = spyResource.createMigrationPayload(CONNECTOR_ID, new ByteArrayInputStream("{}".getBytes(StandardCharsets.UTF_8)))) {
+            payloadId = ((MigrationPayloadEntity) payloadResponse.getEntity()).getPayload().getPayloadId();
+        }
+
+        final MigrationRequestDTO requestDto = new MigrationRequestDTO();
+        requestDto.setConnectorId(CONNECTOR_ID);
+        requestDto.setPayloadId(payloadId);
+
+        final MigrationRequestEntity requestEntity = new MigrationRequestEntity();
+        requestEntity.setRequest(requestDto);
+
+        // Stopping at the readiness check keeps the migration from being submitted asynchronously while still
+        // exercising the authorization callback, which runs before verification.
+        doThrow(new IllegalStateException("Connector must be stopped before it can be migrated"))
+                .when(serviceFacade).verifyConnectorReadyForMigration(CONNECTOR_ID);
+
+        assertThrows(IllegalStateException.class, () -> spyResource.createMigrationRequest(CONNECTOR_ID, requestEntity));
+
+        verify(lookup, never()).getProcessGroup(anyString());
+    }
+
+    private AuthorizableLookup wireMigrationAuthorization() {
+        final AuthorizableLookup lookup = mock(AuthorizableLookup.class);
+        when(lookup.getConnector(CONNECTOR_ID)).thenReturn(mock(Authorizable.class));
+
+        doAnswer(invocation -> {
+            final AuthorizeAccess authorizeAccess = invocation.getArgument(0);
+            authorizeAccess.authorize(lookup);
+            return null;
+        }).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        return lookup;
     }
 
     @Test

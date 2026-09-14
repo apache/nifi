@@ -23,9 +23,11 @@ import org.apache.nifi.provenance.ProvenanceReporter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -36,8 +38,8 @@ public class SharedSessionState {
     @SuppressWarnings("unused")
     private final Processor processor;
     private final AtomicLong flowFileIdGenerator;
-    private final ConcurrentMap<String, AtomicLong> counterMap = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, List<Double>> namedGaugeValues = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MetricKey, AtomicLong> counterMap = new ConcurrentHashMap<>();
+    private final Queue<GaugeMeasurement> gaugeMeasurements = new ConcurrentLinkedQueue<>();
     // list of provenance events as they were in the provenance repository (events emitted with force=true or committed with the session)
     private final List<ProvenanceEventRecord> events = new ArrayList<>();
 
@@ -73,10 +75,14 @@ public class SharedSessionState {
     }
 
     public void adjustCounter(final String name, final long delta) {
-        AtomicLong counter = counterMap.get(name);
+        adjustCounter(new MetricKey(name, Map.of()), delta);
+    }
+
+    void adjustCounter(final MetricKey counterKey, final long delta) {
+        AtomicLong counter = counterMap.get(counterKey);
         if (counter == null) {
             counter = new AtomicLong(0L);
-            final AtomicLong existingCounter = counterMap.putIfAbsent(name, counter);
+            final AtomicLong existingCounter = counterMap.putIfAbsent(counterKey, counter);
             if (existingCounter != null) {
                 counter = existingCounter;
             }
@@ -85,20 +91,80 @@ public class SharedSessionState {
         counter.addAndGet(delta);
     }
 
+    /**
+     * Get the value recorded for the named Counter, summing the measurements recorded with differing attributes
+     *
+     * @param name Counter Name
+     * @return Counter value, or null when the named Counter was not used
+     */
     public Long getCounterValue(final String name) {
-        final AtomicLong counterValue = counterMap.get(name);
+        Long counterValue = null;
+
+        for (final Map.Entry<MetricKey, AtomicLong> counterEntry : counterMap.entrySet()) {
+            if (counterEntry.getKey().name().equals(name)) {
+                final long recorded = counterEntry.getValue().get();
+                counterValue = counterValue == null ? recorded : counterValue + recorded;
+            }
+        }
+
+        return counterValue;
+    }
+
+    /**
+     * Get the value recorded for the named Counter with the specified attributes
+     *
+     * @param name Counter Name
+     * @param attributes Map of keys and values associated with the Counter
+     * @return Counter value, or null when the named Counter was not used with the specified attributes
+     */
+    public Long getCounterValue(final String name, final Map<String, String> attributes) {
+        final AtomicLong counterValue = counterMap.get(new MetricKey(name, Map.copyOf(attributes)));
         return counterValue == null ? null : counterValue.get();
     }
 
     public void recordGauge(final String name, final double value) {
-        namedGaugeValues.compute(name, (gaugeName, values) -> {
-            final List<Double> gaugeValues = Objects.requireNonNullElseGet(values, ArrayList::new);
-            gaugeValues.add(value);
-            return gaugeValues;
-        });
+        recordGauge(new MetricKey(name, Map.of()), value);
     }
 
+    void recordGauge(final MetricKey gaugeKey, final double value) {
+        gaugeMeasurements.add(new GaugeMeasurement(gaugeKey, value));
+    }
+
+    /**
+     * Get list of values recorded for the named Gauge, including the measurements recorded with differing attributes
+     *
+     * @param name Gauge Name
+     * @return List of recorded values, or empty when the named Gauge was not used
+     */
     public List<Double> getGaugeValues(final String name) {
-        return namedGaugeValues.getOrDefault(name, List.of());
+        final List<Double> gaugeValues = new ArrayList<>();
+
+        for (final GaugeMeasurement gaugeMeasurement : gaugeMeasurements) {
+            if (gaugeMeasurement.key().name().equals(name)) {
+                gaugeValues.add(gaugeMeasurement.value());
+            }
+        }
+
+        return gaugeValues;
+    }
+
+    /**
+     * Get list of values recorded for the named Gauge with the specified attributes
+     *
+     * @param name Gauge Name
+     * @param attributes Map of keys and values associated with the Gauge
+     * @return List of recorded values, or empty when the named Gauge was not used with the specified attributes
+     */
+    public List<Double> getGaugeValues(final String name, final Map<String, String> attributes) {
+        final MetricKey gaugeKey = new MetricKey(name, Map.copyOf(attributes));
+        final List<Double> gaugeValues = new ArrayList<>();
+
+        for (final GaugeMeasurement gaugeMeasurement : gaugeMeasurements) {
+            if (gaugeMeasurement.key().equals(gaugeKey)) {
+                gaugeValues.add(gaugeMeasurement.value());
+            }
+        }
+
+        return List.copyOf(gaugeValues);
     }
 }

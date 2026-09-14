@@ -21,7 +21,10 @@ import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.BacklogDTO;
+import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,22 +93,41 @@ public class ClusteredConnectorBacklogIT extends NiFiSystemIT {
                 "Record Backlog", "0",
                 "Load Balance Strategy", loadBalanceStrategy));
 
-        getClientUtil().startConnector(connector.getId());
-        waitForConnectorMinQueueCount(connector.getId(), 40);
-        getClientUtil().stopConnector(connector.getId());
+        try {
+            getClientUtil().startConnector(connector.getId());
+            waitForConnectorMinQueueCount(connector.getId(), 40);
+            getClientUtil().stopConnector(connector.getId());
 
-        final int totalQueued = getConnectorQueuedFlowFileCount(connector.getId());
-        logger.info("Load Balance Strategy {}: cluster has {} queued FlowFiles before reading backlog", loadBalanceStrategy, totalQueued);
-        assertTrue(totalQueued > 0);
+            final int totalQueued = getConnectorQueuedFlowFileCount(connector.getId());
+            logger.info("Load Balance Strategy {}: cluster has {} queued FlowFiles before reading backlog", loadBalanceStrategy, totalQueued);
+            assertTrue(totalQueued > 0);
 
-        final BacklogDTO backlog = getClientUtil().getConnectorBacklog(connector.getId());
-        assertNotNull(backlog);
+            final BacklogDTO backlog = getClientUtil().getConnectorBacklog(connector.getId());
+            assertNotNull(backlog);
 
-        final long flowFiles = backlog.getFlowFileCount();
-        assertTrue(flowFiles >= 0);
-        assertTrue(flowFiles <= totalQueued,
-                "Cluster aggregate FlowFile count from queue snapshot (" + flowFiles + ") must not exceed total queued count (" + totalQueued + ")");
-        assertEquals(Long.valueOf(flowFiles), backlog.getRecordCount());
-        assertTrue(backlog.getByteCount() >= 0L);
+            final long flowFiles = backlog.getFlowFileCount();
+            assertTrue(flowFiles >= 0);
+            assertTrue(flowFiles <= totalQueued,
+                    "Cluster aggregate FlowFile count from queue snapshot (" + flowFiles + ") must not exceed total queued count (" + totalQueued + ")");
+            assertEquals(Long.valueOf(flowFiles), backlog.getRecordCount());
+            assertTrue(backlog.getByteCount() >= 0L);
+        } finally {
+            // Load Balancing keeps redistributing already-queued FlowFiles between nodes even after the Connector is
+            // stopped. A FlowFile can be in flight - removed from the sending node's queue but not yet enqueued on the
+            // receiving node - a window in which the teardown's Connector purge won't see it. Wait for Load Balancing to
+            // settle here, regardless of whether start/stop or the assertions above passed, so teardown does not fail
+            // trying to delete a Connector that still has FlowFiles queued.
+            waitForLoadBalancingComplete(connector.getId());
+        }
+    }
+
+    private void waitForLoadBalancingComplete(final String connectorId) throws InterruptedException {
+        waitFor(() -> {
+            final ProcessGroupFlowEntity flowEntity = getNifiClient().getConnectorClient().getFlow(connectorId);
+            return flowEntity.getProcessGroupFlow().getFlow().getConnections().stream()
+                    .map(ConnectionEntity::getComponent)
+                    .map(ConnectionDTO::getLoadBalanceStatus)
+                    .noneMatch(ConnectionDTO.LOAD_BALANCE_ACTIVE::equals);
+        }, 100L, "Load Balancing to complete for Connector " + connectorId);
     }
 }

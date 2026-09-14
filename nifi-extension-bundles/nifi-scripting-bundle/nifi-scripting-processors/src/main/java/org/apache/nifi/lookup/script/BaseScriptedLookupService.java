@@ -86,8 +86,7 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
             }
         }
         List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>();
-        List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.addAll(scriptingComponentHelper.getDescriptors());
+        List<PropertyDescriptor> descriptors = new ArrayList<>(scriptingComponentHelper.getDescriptors());
         descriptors.remove(scriptingComponentHelper.scriptEngine);
 
         PropertyDescriptor.Builder engineProp = new PropertyDescriptor

@@ -24,8 +24,12 @@ public final class ParameterNameValidator {
     private ParameterNameValidator() {
     }
 
+    public static boolean isValid(final String parameterName) {
+        return parameterName != null && VALID_PARAMETER_NAME_PATTERN.matcher(parameterName).matches();
+    }
+
     public static void validate(final String parameterName) {
-        if (parameterName == null || !VALID_PARAMETER_NAME_PATTERN.matcher(parameterName).matches()) {
+        if (!isValid(parameterName)) {
             throw new IllegalArgumentException("Request contains an illegal Parameter Name (" + parameterName
                     + "). Parameter names may only include letters, numbers, spaces, and the special characters .-_");
         }

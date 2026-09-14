@@ -414,4 +414,31 @@ public class FileUtils {
         }
         return cleanName.toString();
     }
+
+    /**
+     * Resolves {@code childLocation} against {@code parentDir} and returns the resulting file only when
+     * the normalized absolute path remains a strict child of the parent. Relative parent segments,
+     * absolute child locations, and paths that resolve to the parent itself are rejected.
+     *
+     * @param parentDir the directory that must contain the result
+     * @param childLocation a relative path to resolve under the parent
+     * @return the resolved child file
+     */
+    public static File getChildLocation(final File parentDir, final Path childLocation) {
+        if (parentDir == null) {
+            throw new IllegalArgumentException("Parent directory is required");
+        }
+
+        if (childLocation == null || childLocation.isAbsolute()) {
+            throw new IllegalArgumentException(String.format("Child location not valid [%s]", childLocation));
+        }
+
+        final Path parentPath = parentDir.toPath().toAbsolutePath().normalize();
+        final Path childPath = parentPath.resolve(childLocation).normalize();
+        if (!childPath.startsWith(parentPath) || childPath.equals(parentPath)) {
+            throw new IllegalArgumentException(String.format("Child location not valid [%s]", childLocation));
+        }
+
+        return childPath.toFile();
+    }
 }

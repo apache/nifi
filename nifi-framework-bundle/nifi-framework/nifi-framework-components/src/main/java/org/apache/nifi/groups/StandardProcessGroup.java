@@ -66,7 +66,6 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -115,6 +114,9 @@ import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.ProviderSensitiveValueDecryptor;
 import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -182,6 +184,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final AtomicReference<StandardVersionControlInformation> versionControlInfo = new AtomicReference<>();
     private static final SecureRandom randomGenerator = new SecureRandom();
     private final String connectorId;
+    private volatile Optional<String> owningConnectorIdentifier;
 
     private final ProcessScheduler scheduler;
     private final ControllerServiceProvider controllerServiceProvider;
@@ -199,7 +202,12 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final Map<String, ProcessorNode> processors = new HashMap<>();
     private final Map<String, Funnel> funnels = new HashMap<>();
     private final Map<String, ControllerServiceNode> controllerServices = new ConcurrentHashMap<>();
-    private final PropertyEncryptor encryptor;
+    /**
+     * Provider that protects sensitive values when a flow is persisted and restored, and that recovers them for flow
+     * comparison. Null in the Stateless runtime, which neither restores a persisted flow nor places a group under
+     * version control, so no sensitive value passes through this group.
+     */
+    private final PropertyEncryptionProvider propertyEncryptionProvider;
     private final VersionControlFields versionControlFields = new VersionControlFields();
     private volatile ParameterContext parameterContext;
     private final NodeTypeProvider nodeTypeProvider;
@@ -243,7 +251,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     private volatile String logFileSuffix;
 
     public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler,
-                                final PropertyEncryptor encryptor, final ExtensionManager extensionManager,
+                                final PropertyEncryptionProvider propertyEncryptionProvider,
+                                final ExtensionManager extensionManager,
                                 final StateManagerProvider stateManagerProvider, final FlowManager flowManager,
                                 final ReloadComponent reloadComponent, final NodeTypeProvider nodeTypeProvider,
                                 final ClusterTopologyProvider clusterTopologyProvider,
@@ -255,7 +264,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         this.parent = new AtomicReference<>();
         this.scheduler = scheduler;
         this.comments = new AtomicReference<>("");
-        this.encryptor = encryptor;
+        this.propertyEncryptionProvider = propertyEncryptionProvider;
         this.extensionManager = extensionManager;
         this.stateManagerProvider = stateManagerProvider;
         this.flowManager = flowManager;
@@ -316,6 +325,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void setParent(final ProcessGroup newParent) {
         parent.set(newParent);
+        // Forget a value resolved before this group was attached to its parent.
+        owningConnectorIdentifier = null;
         // Inherit connector-supplied MDC attributes from the parent so descendants of a connector's managed
         // flow carry the same connector metadata (attributing their logs and status metrics to the connector).
         // Runs on every re-parent (including initial attach), so PGs added later inherit automatically.
@@ -371,19 +382,22 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Optional<ConnectorNode> findOwningConnector() {
-        ProcessGroup group = this;
-        while (group != null) {
-            final Optional<String> owningConnectorId = group.getConnectorIdentifier();
-            if (owningConnectorId.isPresent()) {
-                final ConnectorNode connectorNode = flowManager.getConnector(owningConnectorId.get());
-                return Optional.ofNullable(connectorNode);
-            }
-
-            group = group.getParent();
+    public Optional<String> findOwningConnectorIdentifier() {
+        Optional<String> identifier = owningConnectorIdentifier;
+        // Check-then-modify, but safe. The parent cannot change from one Connector to another; during initialization
+        // it may go from no Connector to some Connector. The only incorrect cached value is null (unresolved), and
+        // the next call looks it up again.
+        if (identifier == null) {
+            identifier = ProcessGroup.super.findOwningConnectorIdentifier();
+            owningConnectorIdentifier = identifier;
         }
 
-        return Optional.empty();
+        return identifier;
+    }
+
+    @Override
+    public Optional<ConnectorNode> findOwningConnector() {
+        return findOwningConnectorIdentifier().map(flowManager::getConnector);
     }
 
     @Override
@@ -1667,6 +1681,23 @@ public final class StandardProcessGroup implements ProcessGroup {
         aggregateDropFlowFileStatus.setOriginalSize(aggregateOriginalSize);
         aggregateDropFlowFileStatus.setDroppedSize(aggregateDroppedSize);
         aggregateDropFlowFileStatus.setCurrentSize(aggregateCurrentSize);
+
+        // Merging never moves the aggregate request into a COMPLETE state; only handleDropAllFlowFiles does that. The
+        // lifecycle is:
+        //   1. handleDropAllFlowFiles creates the aggregate request and merges each connection's drop request into it
+        //      by calling this method once per connection.
+        //   2. A drop request against an empty queue is already COMPLETE when it is created. Copying that state onto
+        //      the aggregate request would make DropFlowFileRequest.setState complete the aggregate's Future, which
+        //      callers treat as "every connection has been drained", even though the connections merged later may
+        //      still be dropping. The aggregate request is therefore held at DROPPING_FLOWFILES while merging.
+        //   3. Once every connection has been merged, handleDropAllFlowFiles sets the aggregate request to COMPLETE,
+        //      or to FAILURE, when the Futures of all of those connections finish. Those Futures are already finished
+        //      when each connection's queue was empty, in which case the aggregate request becomes COMPLETE without
+        //      ever waiting.
+        if (aggregateState == DropFlowFileState.COMPLETE) {
+            aggregateState = DropFlowFileState.DROPPING_FLOWFILES;
+        }
+
         aggregateDropFlowFileStatus.setState(aggregateState);
     }
 
@@ -2915,8 +2946,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public Set<Positionable> findAllPositionables() {
-        final Set<Positionable> positionables = new HashSet<>();
-        positionables.addAll(findAllConnectables(this, true));
+        final Set<Positionable> positionables = new HashSet<>(findAllConnectables(this, true));
         List<ProcessGroup> allProcessGroups = findAllProcessGroups();
         positionables.addAll(allProcessGroups);
         positionables.addAll(findAllRemoteProcessGroups());
@@ -3934,7 +3964,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .componentIdGenerator(idGenerator)
                 .componentComparisonIdLookup(VersionedComponent::getIdentifier)
                 .componentScheduler(ComponentScheduler.NOP_SCHEDULER)
-                .propertyDecryptor(value -> null)
+                .dropEncryptedValues(true)
                 .build();
 
         writeLock.lock();
@@ -3971,10 +4001,11 @@ public final class StandardProcessGroup implements ProcessGroup {
             // survive a version-control update rather than being reverted to the name stored in the registry.
             .preservePublicPortNames(true);
         // Connectors should not have encrypted values copied from versioned flow. However we do need to decrypt parameter references.
+        // A Connector flow is mapped in memory using the Pass Through Provider, so the same Provider recovers the original values.
         if (getConnectorIdentifier().isPresent()) {
-            flowSynchronizationBuilder.propertyDecryptor(value -> value);
+            flowSynchronizationBuilder.propertyEncryptionProvider(new InternalPassThroughPropertyEncryptionProvider());
         } else {
-            flowSynchronizationBuilder.propertyDecryptor(value -> null);
+            flowSynchronizationBuilder.dropEncryptedValues(true);
         }
 
         final FlowSynchronizationOptions synchronizationOptions = flowSynchronizationBuilder.build();
@@ -3983,7 +4014,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             .mapSensitiveConfiguration(false)
             .mapPropertyDescriptors(true)
             .stateLookup(stateLookup)
-            .sensitiveValueEncryptor(null)
+            .propertyEncryptionProvider(null)
             .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
             .mapInstanceIdentifiers(false)
             .mapControllerServiceReferencesToVersionedId(true)
@@ -4018,25 +4049,24 @@ public final class StandardProcessGroup implements ProcessGroup {
             .updateDescendantVersionedFlows(true)
             .updateGroupSettings(true)
             .updateRpgUrls(false)
-            .propertyDecryptor(encryptor::decrypt)
+            .propertyEncryptionProvider(propertyEncryptionProvider)
             .build();
 
-        // Sensitive property values in the proposed snapshot were encrypted using the same PropertyEncryptor when the snapshot
-        // was persisted (for example, when a Connector-managed flow is persisted in Troubleshooting mode). The currently loaded
-        // flow therefore must also be mapped with an equivalent SensitiveValueEncryptor so the comparison between "current" and
-        // "proposed" sensitive values operates on matching ciphertext; otherwise every sensitive property appears to differ and
-        // the decrypted value written back to the live component is the encrypted payload rather than the plaintext (or parameter
-        // reference) that was originally captured.
+        // Sensitive property values in the proposed snapshot were encrypted when the snapshot was persisted (for example, when a
+        // Connector-managed flow is persisted in Troubleshooting mode). The currently loaded flow therefore must also be mapped
+        // with encryption enabled so the comparison between "current" and "proposed" sensitive values operates on values that are
+        // decrypted the same way on both sides; otherwise every sensitive property appears to differ and the value written back to
+        // the live component is the encrypted payload rather than the plaintext (or parameter reference) originally captured.
         final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
             .mapSensitiveConfiguration(true)
             .mapPropertyDescriptors(true)
             .stateLookup(stateLookup)
-            .sensitiveValueEncryptor(encryptor::encrypt)
             .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
             .mapInstanceIdentifiers(true)
             .mapControllerServiceReferencesToVersionedId(true)
             .mapFlowRegistryClientId(false)
             .mapAssetReferences(false)
+            .propertyEncryptionProvider(propertyEncryptionProvider)
             .build();
 
         synchronizeFlow(proposedSnapshot, synchronizationOptions, flowMappingOptions);
@@ -4130,7 +4160,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ComparableDataFlow snapshotFlow = new StandardComparableDataFlow("Versioned Flow", vci.getFlowSnapshot());
 
             final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow,
-                new EvolvingDifferenceDescriptor(), encryptor::decrypt, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
+                new EvolvingDifferenceDescriptor(), new ProviderSensitiveValueDecryptor(propertyEncryptionProvider),
+                VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
             final FlowComparison comparison = flowComparator.compare();
             final Collection<FlowDifference> comparisonDifferences = comparison.getDifferences();
             final FlowDifferenceFilters.EnvironmentalChangeContext environmentalContext =

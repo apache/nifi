@@ -87,6 +87,7 @@ public class PutCouchbaseIT extends AbstractCouchbaseIT {
                 CONTAINER.getPassword()
         )) {
             final Bucket bucket = cluster.bucket(TEST_BUCKET_NAME);
+            bucket.waitUntilReady(CLIENT_READY_TIMEOUT);
             final Collection collection = bucket.defaultCollection();
 
             final GetResult result = collection.get(TEST_DOCUMENT_ID);

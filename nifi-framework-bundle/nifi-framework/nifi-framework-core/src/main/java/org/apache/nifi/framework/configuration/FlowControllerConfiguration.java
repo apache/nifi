@@ -47,8 +47,6 @@ import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.controller.status.history.VolatileComponentStatusRepository;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.diagnostics.bootstrap.BootstrapDiagnosticsFactory;
-import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParser;
 import org.apache.nifi.manifest.RuntimeManifestService;
@@ -64,6 +62,8 @@ import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.nar.StandardNarComponentManager;
 import org.apache.nifi.nar.StandardNarManager;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.PropertyEncryptionProviderFactory;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -213,7 +213,7 @@ public class FlowControllerConfiguration {
                     authorizer,
                     auditService,
                     componentMetricReporter(),
-                    propertyEncryptor(),
+                    propertyEncryptionProvider(),
                     bulletinRepository,
                     extensionManager,
                     statusHistoryRepository(),
@@ -229,7 +229,7 @@ public class FlowControllerConfiguration {
                     authorizer,
                     auditService,
                     componentMetricReporter(),
-                    propertyEncryptor(),
+                    propertyEncryptionProvider(),
                     nodeProtocolSender,
                     bulletinRepository,
                     clusterCoordinator,
@@ -302,16 +302,6 @@ public class FlowControllerConfiguration {
     @Bean
     public RuleViolationsManager ruleViolationsManager() {
         return new StandardRuleViolationsManager();
-    }
-
-    /**
-     * Property Encryptor configured using Application Properties
-     *
-     * @return Property Encryptor
-     */
-    @Bean
-    public PropertyEncryptor propertyEncryptor() {
-        return PropertyEncryptorFactory.getPropertyEncryptor(properties);
     }
 
     /**
@@ -547,5 +537,16 @@ public class FlowControllerConfiguration {
         }
 
         return componentMetricReporter;
+    }
+
+    /**
+     * Property Encryption Provider configured from NiFi Application Properties. Installations that do not configure an
+     * implementation class use the password-based provider, which derives a secret key from the sensitive properties key.
+     *
+     * @return Property Encryption Provider
+     */
+    @Bean
+    public PropertyEncryptionProvider propertyEncryptionProvider() {
+        return PropertyEncryptionProviderFactory.getPropertyEncryptionProvider(extensionManager, properties, sslContext, trustManager);
     }
 }

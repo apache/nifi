@@ -18,6 +18,7 @@ package org.apache.nifi.processors.gcp.credentials.service;
 
 import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -55,6 +56,7 @@ import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPrope
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.TARGET_SERVICE_ACCOUNT;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_AUDIENCE;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SCOPE;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SUBJECT_TOKEN_PROVIDER;
@@ -84,6 +86,7 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
             WORKLOAD_IDENTITY_TOKEN_ENDPOINT,
             WORKLOAD_IDENTITY_SUBJECT_TOKEN_PROVIDER,
             WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE,
+            TARGET_SERVICE_ACCOUNT,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS),
             DELEGATION_STRATEGY,
             DELEGATION_USER
@@ -106,6 +109,20 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
         ProxyConfiguration.validateProxySpec(validationContext, results, ProxyAwareTransportFactory.PROXY_SPECS);
+
+        final String targetServiceAccount = validationContext.getProperty(TARGET_SERVICE_ACCOUNT).getValue();
+        final AuthenticationStrategy authenticationStrategy = validationContext.getProperty(AUTHENTICATION_STRATEGY)
+                .asAllowableValue(AuthenticationStrategy.class);
+        if (StringUtils.isNotBlank(targetServiceAccount)
+                && authenticationStrategy != AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION) {
+            results.add(new ValidationResult.Builder()
+                    .subject(TARGET_SERVICE_ACCOUNT.getDisplayName())
+                    .input(targetServiceAccount)
+                    .valid(false)
+                    .explanation("Target Service Account requires Workload Identity Federation")
+                    .build());
+        }
+
         return results;
     }
 
@@ -117,7 +134,7 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
             result = new ConfigVerificationResult.Builder()
                     .verificationStepName("Provide Google Credentials")
                     .outcome(Outcome.SUCCESSFUL)
-                    .explanation(String.format("Successfully provided [%s] as Google Credentials", credentials.getClass().getSimpleName()))
+                    .explanation("Successfully provided [%s] as Google Credentials".formatted(credentials.getClass().getSimpleName()))
                     .build();
         } catch (final IOException e) {
             result = new ConfigVerificationResult.Builder()

@@ -17,6 +17,7 @@
 package org.apache.nifi.registry.provider.extension;
 
 import org.apache.commons.lang3.Validate;
+import org.apache.nifi.registry.bundle.util.BundleUtils;
 import org.apache.nifi.registry.extension.BundleCoordinate;
 
 import java.util.Objects;
@@ -34,6 +35,9 @@ public class StandardBundleCoordinate implements BundleCoordinate {
         Validate.notBlank(this.bucketId, "Bucket Id is required");
         Validate.notBlank(this.groupId, "Group Id is required");
         Validate.notBlank(this.artifactId, "Artifact Id is required");
+        BundleUtils.validateCoordinateField("Bucket Id", this.bucketId);
+        BundleUtils.validateCoordinateField("Group Id", this.groupId);
+        BundleUtils.validateCoordinateField("Artifact Id", this.artifactId);
     }
 
     @Override

@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.web.security.oidc.client.web.converter;
 
-import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.PropertyEncryptionProviderInitializationContext;
+import org.apache.nifi.security.encryption.SensitivePropertyContext;
 import org.apache.nifi.web.security.jwt.provider.SupportedClaim;
 import org.apache.nifi.web.security.logout.LogoutRequest;
 import org.apache.nifi.web.security.oidc.client.web.OidcAuthorizedClient;
@@ -68,7 +70,7 @@ class StandardAuthorizedClientConverterTest {
 
     @BeforeEach
     void setConverter() {
-        converter = new StandardAuthorizedClientConverter(new StringPropertyEncryptor(), clientRegistrationRepository);
+        converter = new StandardAuthorizedClientConverter(new PassThroughPropertyEncryptionProvider(), clientRegistrationRepository);
     }
 
     @Test
@@ -168,15 +170,19 @@ class StandardAuthorizedClientConverterTest {
                 .build();
     }
 
-    private static class StringPropertyEncryptor implements PropertyEncryptor {
+    private static class PassThroughPropertyEncryptionProvider implements PropertyEncryptionProvider {
 
         @Override
-        public String encrypt(String property) {
+        public void initialize(final PropertyEncryptionProviderInitializationContext context) {
+        }
+
+        @Override
+        public byte[] encrypt(final byte[] property, final SensitivePropertyContext context) {
             return property;
         }
 
         @Override
-        public String decrypt(String encryptedProperty) {
+        public byte[] decrypt(final byte[] encryptedProperty, final SensitivePropertyContext context) {
             return encryptedProperty;
         }
     }

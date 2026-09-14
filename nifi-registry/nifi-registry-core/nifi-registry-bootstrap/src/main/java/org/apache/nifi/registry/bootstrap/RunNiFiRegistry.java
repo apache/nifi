@@ -796,8 +796,7 @@ public class RunNiFiRegistry {
             properties.load(fis);
         }
 
-        final Map<String, String> props = new HashMap<>();
-        props.putAll((Map) properties);
+        final Map<String, String> props = new HashMap<>((Map) properties);
 
         // Determine the working dir for launching the NiFi Registry process
         // The order of precedence is:

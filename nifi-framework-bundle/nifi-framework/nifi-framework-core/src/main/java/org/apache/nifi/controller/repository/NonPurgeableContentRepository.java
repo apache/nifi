@@ -69,6 +69,16 @@ public class NonPurgeableContentRepository implements ContentRepository {
     }
 
     @Override
+    public ContentClaim create(final ContentClaimCreationContext context) throws IOException {
+        return delegate.create(context);
+    }
+
+    @Override
+    public long getMaxAppendableClaimBytes() {
+        return delegate.getMaxAppendableClaimBytes();
+    }
+
+    @Override
     public int incrementClaimaintCount(final ContentClaim claim) {
         return delegate.incrementClaimaintCount(claim);
     }

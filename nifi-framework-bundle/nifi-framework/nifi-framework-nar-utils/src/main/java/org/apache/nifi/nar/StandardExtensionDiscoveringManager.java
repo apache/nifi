@@ -54,6 +54,7 @@ import org.apache.nifi.python.PythonProcessorDetails;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,6 +138,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(AssetManager.class, new HashSet<>());
         definitionMap.put(FlowActionReporter.class, new HashSet<>());
         definitionMap.put(ComponentMetricReporter.class, new HashSet<>());
+        definitionMap.put(PropertyEncryptionProvider.class, new HashSet<>());
         definitionMap.put(Connector.class, new HashSet<>());
 
         additionalExtensionTypes.forEach(type -> definitionMap.putIfAbsent(type, new HashSet<>()));

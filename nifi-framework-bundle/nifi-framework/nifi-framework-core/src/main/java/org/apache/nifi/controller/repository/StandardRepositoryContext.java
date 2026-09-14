@@ -28,8 +28,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class StandardRepositoryContext extends AbstractRepositoryContext implements RepositoryContext {
 
-    private final long maxAppendableClaimBytes;
-
     public StandardRepositoryContext(
             final Connectable connectable,
             final AtomicLong connectionIndex,
@@ -39,15 +37,13 @@ public class StandardRepositoryContext extends AbstractRepositoryContext impleme
             final CounterRepository counterRepository,
             final ComponentMetricReporter componentMetricReporter,
             final ProvenanceEventRepository provenanceRepository,
-            final StateManager stateManager,
-            final long maxAppendableClaimBytes
+            final StateManager stateManager
     ) {
         super(connectable, connectionIndex, contentRepository, flowFileRepository, flowFileEventRepository, counterRepository, componentMetricReporter, provenanceRepository, stateManager);
-        this.maxAppendableClaimBytes = maxAppendableClaimBytes;
     }
 
     @Override
     public ContentClaimWriteCache createContentClaimWriteCache(final PerformanceTracker performanceTracker) {
-        return new StandardContentClaimWriteCache(getContentRepository(), performanceTracker, maxAppendableClaimBytes, 8192);
+        return new StandardContentClaimWriteCache(getContentRepository(), performanceTracker, getContentClaimCreationContext(), 8192);
     }
 }

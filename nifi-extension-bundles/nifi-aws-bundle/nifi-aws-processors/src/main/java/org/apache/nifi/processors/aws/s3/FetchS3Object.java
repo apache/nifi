@@ -280,6 +280,7 @@ public class FetchS3Object extends AbstractS3Processor {
         VERSION_ID,
         SSL_CONTEXT_SERVICE,
         ENDPOINT_OVERRIDE,
+        USE_PATH_STYLE_ACCESS,
         ENCRYPTION_SERVICE,
         PROXY_CONFIGURATION_SERVICE,
         REQUESTER_PAYS,

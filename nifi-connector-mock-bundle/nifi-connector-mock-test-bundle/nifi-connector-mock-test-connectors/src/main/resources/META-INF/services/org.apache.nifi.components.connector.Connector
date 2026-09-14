@@ -17,3 +17,4 @@ org.apache.nifi.mock.connectors.AllowableValuesConnector
 org.apache.nifi.mock.connectors.GenerateAndLog
 org.apache.nifi.mock.connectors.MissingBundleConnector
 org.apache.nifi.mock.connectors.CronScheduleConnector
+org.apache.nifi.mock.connectors.FlowSnapshotConnector

@@ -97,7 +97,15 @@ public class TestNarBundleExtractor {
     @Test
     public void testExtractFromNarMissingRequiredManifestEntries() throws IOException {
         try (final InputStream in = new FileInputStream("src/test/resources/nars/nifi-missing-manifest-entries.nar")) {
-            assertThrows(BundleException.class, () -> extractor.extract(in));
+            assertThrows(IllegalArgumentException.class, () -> extractor.extract(in));
+        }
+    }
+
+    @Test
+    public void testExtractFromNarWithParentDirectoryCoordinates(@TempDir final Path tempDir) throws IOException {
+        final Path narPath = writeNar(tempDir, "..", "..", "1.0.0");
+        try (final InputStream in = Files.newInputStream(narPath)) {
+            assertThrows(IllegalArgumentException.class, () -> extractor.extract(in));
         }
     }
 
@@ -198,6 +206,24 @@ public class TestNarBundleExtractor {
             assertEquals("1.0.0", bundleIdentifier.getVersion());
             assertEquals("1.0.0", bundleDetails.getSystemApiVersion());
         }
+    }
+
+    private Path writeNar(final Path tempDir, final String groupId, final String artifactId, final String version) throws IOException {
+        final Path narPath = tempDir.resolve("testing.nar");
+        try (final JarOutputStream jarOutputStream = new JarOutputStream(Files.newOutputStream(narPath))) {
+            final JarEntry manifestEntry = new JarEntry("META-INF/MANIFEST.MF");
+            jarOutputStream.putNextEntry(manifestEntry);
+            jarOutputStream.write((
+                    "Manifest-Version: 1.0\n" +
+                    "Nar-Group: " + groupId + "\n" +
+                    "Nar-Id: " + artifactId + "\n" +
+                    "Nar-Version: " + version + "\n" +
+                    "Build-Timestamp: 2024-01-01T00:00:00Z\n\n"
+            ).getBytes(StandardCharsets.UTF_8));
+            jarOutputStream.closeEntry();
+        }
+
+        return narPath;
     }
 
 }

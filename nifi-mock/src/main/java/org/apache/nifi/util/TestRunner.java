@@ -563,12 +563,30 @@ public interface TestRunner {
     Long getCounterValue(String name);
 
     /**
+     * Get the value recorded for the named Counter with the specified attributes
+     *
+     * @param name Counter Name
+     * @param attributes Map of keys and values associated with the Counter
+     * @return Counter value, or null when the named Counter was not used with the specified attributes
+     */
+    Long getCounterValue(String name, Map<String, String> attributes);
+
+    /**
      * Get list of values recorded for the named Gauge
      *
      * @param name Gauge Name
      * @return List of recorded values or empty when the named Gauge was not used
      */
     List<Double> getGaugeValues(String name);
+
+    /**
+     * Get list of values recorded for the named Gauge with the specified attributes
+     *
+     * @param name Gauge Name
+     * @param attributes Map of keys and values associated with the Gauge
+     * @return List of recorded values, or empty when the named Gauge was not used with the specified attributes
+     */
+    List<Double> getGaugeValues(String name, Map<String, String> attributes);
 
     /**
      * @return the number of FlowFiles that have been removed from the system

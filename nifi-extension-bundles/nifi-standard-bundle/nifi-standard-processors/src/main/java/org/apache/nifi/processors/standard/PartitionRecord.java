@@ -87,7 +87,7 @@ import java.util.stream.Stream;
             + "generated UUID added for this attribute"),
     @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the partitioned FlowFiles that were created from a single parent FlowFile"),
     @WritesAttribute(attribute = "fragment.count", description = "The number of partitioned FlowFiles generated from the parent FlowFile"),
-    @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile"),
+    @WritesAttribute(attribute = "segment.original.filename", description = "The filename of the parent FlowFile"),
     @WritesAttribute(attribute = "<dynamic property name>",
         description = "For each dynamic property that is added, an attribute may be added to the FlowFile. See the description for Dynamic Properties for more information.")
 })

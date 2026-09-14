@@ -261,19 +261,31 @@ public class RegistryService {
         }
 
         // for each bundle in the bucket, delete all versions from the bundle persistence provider
-        for (final BundleEntity bundleEntity : metadataService.getBundlesByBucket(existingBucket.getId())) {
-            final BundleCoordinate bundleCoordinate = new StandardBundleCoordinate.Builder()
-                    .bucketId(bundleEntity.getBucketId())
-                    .groupId(bundleEntity.getGroupId())
-                    .artifactId(bundleEntity.getArtifactId())
-                    .build();
-            bundlePersistenceProvider.deleteAllBundleVersions(bundleCoordinate);
+        final List<BundleEntity> bundleEntities = metadataService.getBundlesByBucket(existingBucket.getId());
+        if (bundleEntities != null) {
+            for (final BundleEntity bundleEntity : bundleEntities) {
+                deletePersistedBundleVersions(bundleEntity);
+            }
         }
 
         // now delete the bucket from the metadata provider, which deletes all flows referencing it
         metadataService.deleteBucket(existingBucket);
 
         return BucketMappings.map(existingBucket);
+    }
+
+    private void deletePersistedBundleVersions(final BundleEntity bundleEntity) {
+        try {
+            final BundleCoordinate bundleCoordinate = new StandardBundleCoordinate.Builder()
+                    .bucketId(bundleEntity.getBucketId())
+                    .groupId(bundleEntity.getGroupId())
+                    .artifactId(bundleEntity.getArtifactId())
+                    .build();
+            bundlePersistenceProvider.deleteAllBundleVersions(bundleCoordinate);
+        } catch (final IllegalArgumentException e) {
+            LOGGER.error("Unable to delete persisted content for bundle [{}] because the stored coordinates are not a valid path",
+                    bundleEntity.getId(), e);
+        }
     }
 
     // ---------------------- BucketItem methods ---------------------------------------------

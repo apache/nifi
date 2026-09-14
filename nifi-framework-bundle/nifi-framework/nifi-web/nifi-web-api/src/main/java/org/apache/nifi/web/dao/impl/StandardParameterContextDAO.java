@@ -222,8 +222,6 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         final String dtoValue = dto.getValue();
         final List<AssetReferenceDTO> referencedAssets = dto.getReferencedAssets();
         final boolean referencesAsset = referencedAssets != null && !referencedAssets.isEmpty();
-        final String parameterContextId = dto.getParameterContext() == null ? null : dto.getParameterContext().getId();
-
         final String value;
         List<Asset> assets = null;
         if (dtoValue == null && !referencesAsset && Boolean.TRUE.equals(dto.getValueRemoved())) {
@@ -245,7 +243,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
             .name(dto.getName())
             .description(dto.getDescription())
             .sensitive(Boolean.TRUE.equals(dto.getSensitive()))
-            .parameterContextId(parameterContextId)
+            .parameterContextId(null)
             .value(value)
             .referencedAssets(assets)
             .provided(dto.getProvided())

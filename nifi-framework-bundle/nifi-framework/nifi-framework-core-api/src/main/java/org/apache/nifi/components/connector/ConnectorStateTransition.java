@@ -64,7 +64,7 @@ public interface ConnectorStateTransition {
     void setCurrentState(ConnectorState newState);
 
     /**
-     * Registers a future to be completed when the connector transitions to the RUNNING state.
+     * Completes a future immediately when the connector is running, or registers it to be completed when the connector transitions to the RUNNING state.
      * This method is thread-safe and handles internal synchronization.
      *
      * @param future the CompletableFuture to complete when the connector starts

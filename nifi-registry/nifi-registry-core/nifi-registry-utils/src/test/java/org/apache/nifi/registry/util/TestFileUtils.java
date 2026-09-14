@@ -18,8 +18,15 @@
 package org.apache.nifi.registry.util;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestFileUtils {
     @Test
@@ -27,5 +34,28 @@ public class TestFileUtils {
         String filename = "This / is / a test";
         final String sanitizedFilename = FileUtils.sanitizeFilename(filename);
         assertEquals("This___is___a_test", sanitizedFilename);
+    }
+
+    @Test
+    public void testGetChildLocationAcceptsContainedPath(@TempDir final Path tempDir) {
+        final File parentDir = tempDir.toFile();
+        final File child = FileUtils.getChildLocation(parentDir, Paths.get("bucket", "group", "artifact"));
+        final Path parentPath = parentDir.toPath().toAbsolutePath().normalize();
+        final Path childPath = child.toPath().toAbsolutePath().normalize();
+        assertTrue(childPath.startsWith(parentPath));
+        assertEquals(parentPath.resolve(Paths.get("bucket", "group", "artifact")), childPath);
+    }
+
+    @Test
+    public void testGetChildLocationRejectsEscapeAndIdentity(@TempDir final Path tempDir) {
+        final File parentDir = tempDir.toFile();
+        assertThrows(IllegalArgumentException.class, () -> FileUtils.getChildLocation(parentDir, Paths.get("..")));
+        assertThrows(IllegalArgumentException.class, () -> FileUtils.getChildLocation(parentDir, Paths.get("..", "1.0.0")));
+        assertThrows(IllegalArgumentException.class, () -> FileUtils.getChildLocation(parentDir, Paths.get("..", "..")));
+        assertThrows(IllegalArgumentException.class, () -> FileUtils.getChildLocation(parentDir, Paths.get(".")));
+        assertThrows(IllegalArgumentException.class, () -> FileUtils.getChildLocation(parentDir, Paths.get("")));
+        assertThrows(IllegalArgumentException.class, () -> FileUtils.getChildLocation(parentDir, tempDir.resolve("other")));
+        assertThrows(IllegalArgumentException.class, () -> FileUtils.getChildLocation(null, Paths.get("child")));
+        assertThrows(IllegalArgumentException.class, () -> FileUtils.getChildLocation(parentDir, null));
     }
 }

@@ -222,8 +222,7 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
         }
 
         final Boolean usePathStyleAccess = context.getProperty(USE_PATH_STYLE_ACCESS).asBoolean();
-        final boolean endpointOverrideSet = StringUtils.isNotBlank(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue());
-        if (usePathStyleAccess == Boolean.TRUE || endpointOverrideSet) {
+        if (usePathStyleAccess == Boolean.TRUE) {
             configurationBuilder.pathStyleAccessEnabled(true);
         }
 

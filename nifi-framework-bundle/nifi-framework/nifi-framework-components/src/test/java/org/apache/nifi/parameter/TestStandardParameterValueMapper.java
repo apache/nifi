@@ -16,16 +16,28 @@
  */
 package org.apache.nifi.parameter;
 
-import org.apache.nifi.registry.flow.mapping.SensitiveValueEncryptor;
+import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.SensitivePropertyAttribute;
+import org.apache.nifi.security.encryption.SensitivePropertyCategory;
+import org.apache.nifi.security.encryption.SensitivePropertyContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TestStandardParameterValueMapper {
@@ -33,21 +45,33 @@ class TestStandardParameterValueMapper {
 
     private static final String VALUE = "ParameterValue";
 
+    private static final String CONTEXT_NAME = "NamedParameterContext";
+
+    private static final byte[] PROVIDER_VALUE = {1, 2, 3, 4};
+
+    private static final String PROVIDER_MAPPED_VALUE = PropertyEncryptionEncoder.getEncoded("01020304");
+
     @Mock
-    private SensitiveValueEncryptor sensitiveValueEncryptor;
+    private PropertyEncryptionProvider propertyEncryptionProvider;
+
+    @Captor
+    private ArgumentCaptor<SensitivePropertyContext> contextCaptor;
+
+    @Captor
+    private ArgumentCaptor<byte[]> propertyCaptor;
 
     private StandardParameterValueMapper mapper;
 
     @BeforeEach
     void setMapper() {
-        mapper = new StandardParameterValueMapper(sensitiveValueEncryptor);
+        mapper = new StandardParameterValueMapper(propertyEncryptionProvider);
     }
 
     @Test
     void testGetMappedNotSensitiveNotProvided() {
         final Parameter parameter = getParameter(false, false);
 
-        final String mapped = mapper.getMapped(parameter, VALUE);
+        final String mapped = mapper.getMapped(CONTEXT_NAME, parameter, VALUE);
 
         assertEquals(VALUE, mapped);
     }
@@ -56,7 +80,7 @@ class TestStandardParameterValueMapper {
     void testGetMappedNotSensitiveProvided() {
         final Parameter parameter = getParameter(false, true);
 
-        final String mapped = mapper.getMapped(parameter, VALUE);
+        final String mapped = mapper.getMapped(CONTEXT_NAME, parameter, VALUE);
 
         assertEquals(StandardParameterValueMapper.PROVIDED_MAPPING, mapped);
     }
@@ -65,28 +89,38 @@ class TestStandardParameterValueMapper {
     void testGetMappedSensitiveProvided() {
         final Parameter parameter = getParameter(true, true);
 
-        final String mapped = mapper.getMapped(parameter, VALUE);
+        final String mapped = mapper.getMapped(CONTEXT_NAME, parameter, VALUE);
 
         assertEquals(StandardParameterValueMapper.PROVIDED_MAPPING, mapped);
-    }
-
-    @Test
-    void testGetMappedSensitiveNotProvided() {
-        final Parameter parameter = getParameter(true, false);
-
-        final String mapped = mapper.getMapped(parameter, VALUE);
-
-        assertNotEquals(VALUE, mapped);
-        assertNotEquals(StandardParameterValueMapper.PROVIDED_MAPPING, mapped);
     }
 
     @Test
     void testGetMappedSensitiveNotProvidedNullValue() {
         final Parameter parameter = getParameter(true, false);
 
-        final String mapped = mapper.getMapped(parameter, null);
+        final String mapped = mapper.getMapped(CONTEXT_NAME, parameter, null);
 
         assertNull(mapped);
+    }
+
+    @Test
+    void testGetMappedPropertyEncryptionProvider() {
+        final Parameter parameter = getParameter(true, false);
+        when(propertyEncryptionProvider.encrypt(any(), any())).thenReturn(PROVIDER_VALUE);
+
+        final String mapped = mapper.getMapped(CONTEXT_NAME, parameter, VALUE);
+
+        assertEquals(PROVIDER_MAPPED_VALUE, mapped);
+
+        verify(propertyEncryptionProvider).encrypt(propertyCaptor.capture(), contextCaptor.capture());
+        assertArrayEquals(VALUE.getBytes(StandardCharsets.UTF_8), propertyCaptor.getValue());
+
+        final SensitivePropertyContext context = contextCaptor.getValue();
+        assertEquals(SensitivePropertyCategory.PARAMETER, context.category());
+
+        final Map<String, String> attributes = context.attributes();
+        assertEquals(CONTEXT_NAME, attributes.get(SensitivePropertyAttribute.PARAMETER_CONTEXT_NAME.getKey()));
+        assertEquals(NAME, attributes.get(SensitivePropertyAttribute.PARAMETER_NAME.getKey()));
     }
 
     private Parameter getParameter(final boolean sensitive, final boolean provided) {

@@ -17,19 +17,49 @@
 package org.apache.nifi.controller.metrics;
 
 import java.time.Instant;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * Single measurement for a named Gauge recorded during processing
  *
  * @param name Gauge Name
  * @param value Gauge Value
+ * @param attributes Map of keys and values associated with the Gauge measurement, which may be empty but not null
  * @param recorded Timestamp when the Processor recorded the Gauge value
  * @param componentMetricContext Context for Component Metric record
  */
 public record GaugeRecord(
         String name,
         double value,
+        Map<String, String> attributes,
         Instant recorded,
         ComponentMetricContext componentMetricContext
 ) {
+    public GaugeRecord {
+        attributes = Map.copyOf(Objects.requireNonNull(attributes, "Attributes required"));
+    }
+
+    /**
+     * Gauge Record constructor for compatibility with earlier versions
+     *
+     * @param name Gauge Name
+     * @param value Gauge Value
+     * @param recorded Timestamp when the Processor recorded the Gauge value
+     * @param componentMetricContext Context for Component Metric record
+     */
+    public GaugeRecord(
+            final String name,
+            final double value,
+            final Instant recorded,
+            final ComponentMetricContext componentMetricContext
+    ) {
+        this(
+                name,
+                value,
+                Map.of(),
+                recorded,
+                componentMetricContext
+        );
+    }
 }

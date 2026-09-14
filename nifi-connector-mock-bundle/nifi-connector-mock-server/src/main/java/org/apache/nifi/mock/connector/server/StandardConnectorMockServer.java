@@ -57,18 +57,15 @@ import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.controller.status.history.VolatileComponentStatusRepository;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.flow.VersionedExternalFlow;
-import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.mock.connector.server.secrets.ConnectorTestRunnerSecretProvider;
 import org.apache.nifi.mock.connector.server.secrets.ConnectorTestRunnerSecretsManager;
 import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
@@ -97,11 +94,13 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
@@ -137,7 +136,6 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
         final FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
         final Authorizer authorizer = new PermitAllAuthorizer();
         final AuditService auditService = new MockAuditService();
-        final PropertyEncryptor propertyEncryptor = new NopPropertyEncryptor();
         final BulletinRepository bulletinRepository = new VolatileBulletinRepository();
         final StatusHistoryRepository statusHistoryRepository = new VolatileComponentStatusRepository(nifiProperties);
         final RuleViolationsManager ruleViolationManager = new MockRuleViolationsManager();
@@ -150,7 +148,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
             authorizer,
             auditService,
             new DefaultComponentMetricReporter(),
-            propertyEncryptor,
+            new MockPropertyEncryptionProvider(),
             bulletinRepository,
             extensionManager,
             statusHistoryRepository,
@@ -328,7 +326,9 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
 
     @Override
     public SecretReference createSecretReference(final String secretName) {
-        return new SecretReference(ConnectorTestRunnerSecretProvider.SECRET_PROVIDER_ID, ConnectorTestRunnerSecretProvider.SECRET_PROVIDER_NAME, secretName, secretName);
+        final String fullyQualifiedName = ConnectorTestRunnerSecretProvider.SECRET_PROVIDER_NAME + "."
+            + ConnectorTestRunnerSecretProvider.GROUP_NAME + "." + secretName;
+        return new SecretReference(ConnectorTestRunnerSecretProvider.SECRET_PROVIDER_ID, ConnectorTestRunnerSecretProvider.SECRET_PROVIDER_NAME, secretName, fullyQualifiedName);
     }
 
     @Override
@@ -359,7 +359,33 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     public void startConnector() {
         initialFlowFileTransferCounts = connectorNode.getFlowFileTransferCounts();
 
-        connectorNode.start(flowEngine);
+        final Future<Void> startFuture = connectorNode.start(flowEngine);
+        // Property resolution and validation failures complete the Future before ConnectorNode.start() returns.
+        // Lifecycle startup is asynchronous and can remain pending while the node retries, so do not wait for it here.
+        if (!startFuture.isDone()) {
+            return;
+        }
+
+        final IllegalStateException startupFailure;
+        try {
+            startFuture.get();
+            return;
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            startupFailure = new IllegalStateException("Interrupted while checking Connector startup", e);
+        } catch (final ExecutionException e) {
+            startupFailure = new IllegalStateException("Failed to start Connector", e.getCause());
+        } catch (final CancellationException e) {
+            startupFailure = new IllegalStateException("Connector startup was cancelled", e);
+        }
+
+        try {
+            connectorNode.stop(flowEngine);
+        } catch (final RuntimeException stopFailure) {
+            startupFailure.addSuppressed(stopFailure);
+        }
+
+        throw startupFailure;
     }
 
     @Override
@@ -487,7 +513,6 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
             .mapSensitiveConfiguration(false)
             .mapPropertyDescriptors(true)
             .stateLookup(VersionedComponentStateLookup.ENABLED_OR_DISABLED)
-            .sensitiveValueEncryptor(value -> value)
             .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
             .mapInstanceIdentifiers(true)
             .mapControllerServiceReferencesToVersionedId(true)
@@ -505,35 +530,12 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
         final ParameterContext parameterContext = processGroup.getParameterContext();
         if (parameterContext != null) {
             final Map<String, VersionedParameterContext> parameterContexts = new HashMap<>();
-            final VersionedParameterContext versionedParameterContext = createVersionedParameterContext(parameterContext);
+            final VersionedParameterContext versionedParameterContext = flowMapper.mapParameterContext(parameterContext);
             parameterContexts.put(versionedParameterContext.getName(), versionedParameterContext);
             externalFlow.setParameterContexts(parameterContexts);
         }
 
         return externalFlow;
-    }
-
-    private VersionedParameterContext createVersionedParameterContext(final ParameterContext parameterContext) {
-        final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
-        versionedParameterContext.setName(parameterContext.getName());
-        versionedParameterContext.setDescription(parameterContext.getDescription());
-        versionedParameterContext.setIdentifier(parameterContext.getIdentifier());
-
-        final Set<VersionedParameter> versionedParameters = new LinkedHashSet<>();
-        for (final Parameter parameter : parameterContext.getParameters().values()) {
-            final VersionedParameter versionedParameter = new VersionedParameter();
-            versionedParameter.setName(parameter.getDescriptor().getName());
-            versionedParameter.setDescription(parameter.getDescriptor().getDescription());
-            versionedParameter.setSensitive(parameter.getDescriptor().isSensitive());
-            versionedParameter.setProvided(parameter.getDescriptor().isSensitive());
-            if (!parameter.getDescriptor().isSensitive()) {
-                versionedParameter.setValue(parameter.getValue());
-            }
-            versionedParameters.add(versionedParameter);
-        }
-        versionedParameterContext.setParameters(versionedParameters);
-
-        return versionedParameterContext;
     }
 
     @Override

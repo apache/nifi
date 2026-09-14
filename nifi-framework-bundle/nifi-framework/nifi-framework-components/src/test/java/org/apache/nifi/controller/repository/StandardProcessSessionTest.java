@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -91,6 +92,12 @@ class StandardProcessSessionTest {
     private static final String GAUGE_NAME = "freeMemory";
 
     private static final double GAUGE_VALUE = 64.5;
+
+    private static final String COUNTER_NAME = "onTrigger";
+
+    private static final long COUNTER_DELTA = 5;
+
+    private static final Map<String, String> METRIC_ATTRIBUTES = Map.of("service.name", "Processing", "deployment.environment", "production");
 
     private static final String INPUT_CONNECTION_ID = "input-connection-id";
     private static final String OUTPUT_CONNECTION_ID = "output-connection-id";
@@ -366,26 +373,52 @@ class StandardProcessSessionTest {
     @Test
     void testRecordGaugeNow() {
         session.recordGauge(GAUGE_NAME, GAUGE_VALUE, CommitTiming.NOW);
+        session.recordGauge(GAUGE_NAME, GAUGE_VALUE, METRIC_ATTRIBUTES, CommitTiming.NOW);
 
-        verify(repositoryContext).recordGauge(gaugeRecordCaptor.capture());
-        final GaugeRecord gaugeRecord = gaugeRecordCaptor.getValue();
-
-        assertEquals(GAUGE_NAME, gaugeRecord.name());
-        assertEquals(GAUGE_VALUE, gaugeRecord.value());
+        assertGaugeRecordsMatched();
     }
 
     @Test
     void testRecordGaugeSessionCommitted() {
         session.recordGauge(GAUGE_NAME, GAUGE_VALUE, CommitTiming.SESSION_COMMITTED);
+        session.recordGauge(GAUGE_NAME, GAUGE_VALUE, METRIC_ATTRIBUTES, CommitTiming.SESSION_COMMITTED);
+
+        verify(repositoryContext, never()).recordGauge(any());
 
         setRepositoryContext();
         session.commit();
 
-        verify(repositoryContext).recordGauge(gaugeRecordCaptor.capture());
-        final GaugeRecord gaugeRecord = gaugeRecordCaptor.getValue();
+        assertGaugeRecordsMatched();
+    }
 
-        assertEquals(GAUGE_NAME, gaugeRecord.name());
-        assertEquals(GAUGE_VALUE, gaugeRecord.value());
+    @Test
+    void testAdjustCounterNow() {
+        session.adjustCounter(COUNTER_NAME, COUNTER_DELTA, true);
+        verify(repositoryContext).adjustCounter(eq(COUNTER_NAME), eq(COUNTER_DELTA), eq(Map.of()));
+
+        session.adjustCounter(COUNTER_NAME, COUNTER_DELTA, METRIC_ATTRIBUTES, CommitTiming.NOW);
+        verify(repositoryContext).adjustCounter(eq(COUNTER_NAME), eq(COUNTER_DELTA), eq(METRIC_ATTRIBUTES));
+    }
+
+    @Test
+    void testAdjustCounterSessionCommitted() throws IOException {
+        session.adjustCounter(COUNTER_NAME, COUNTER_DELTA, false);
+        session.adjustCounter(COUNTER_NAME, COUNTER_DELTA, METRIC_ATTRIBUTES, CommitTiming.SESSION_COMMITTED);
+        session.adjustCounter(COUNTER_NAME, COUNTER_DELTA, METRIC_ATTRIBUTES, CommitTiming.SESSION_COMMITTED);
+
+        verify(repositoryContext, never()).adjustCounter(any(), anyLong(), any());
+
+        setRepositoryContext();
+        session.commit();
+
+        // Measurements recorded for the same Counter name with differing attributes are aggregated separately
+        verify(repositoryContext).adjustCounter(eq(COUNTER_NAME), eq(COUNTER_DELTA), eq(Map.of()));
+        verify(repositoryContext).adjustCounter(eq(COUNTER_NAME), eq(COUNTER_DELTA * 2), eq(METRIC_ATTRIBUTES));
+
+        // FlowFile Events track Counter values by name alone, summing measurements recorded with differing attributes
+        verify(flowFileEventRepository).updateRepository(flowFileEventCaptor.capture());
+        final ProcessSessionEvent flowFileEvent = flowFileEventCaptor.getValue();
+        assertEquals(Map.of(COUNTER_NAME, COUNTER_DELTA * 3), flowFileEvent.getCounters());
     }
 
     @Test
@@ -406,6 +439,21 @@ class StandardProcessSessionTest {
         assertNotNull(secondFlowFile);
         assertEquals(secondFlowFileId, secondFlowFile.getId());
         assertEquals(secondFlowFileId, secondFlowFile.getLineageStartIndex());
+    }
+
+    private void assertGaugeRecordsMatched() {
+        verify(repositoryContext, times(2)).recordGauge(gaugeRecordCaptor.capture());
+        final List<GaugeRecord> gaugeRecords = gaugeRecordCaptor.getAllValues();
+
+        final GaugeRecord firstGaugeRecord = gaugeRecords.getFirst();
+        assertEquals(GAUGE_NAME, firstGaugeRecord.name());
+        assertEquals(GAUGE_VALUE, firstGaugeRecord.value());
+        assertEquals(Map.of(), firstGaugeRecord.attributes());
+
+        final GaugeRecord secondGaugeRecord = gaugeRecords.getLast();
+        assertEquals(GAUGE_NAME, secondGaugeRecord.name());
+        assertEquals(GAUGE_VALUE, secondGaugeRecord.value());
+        assertEquals(METRIC_ATTRIBUTES, secondGaugeRecord.attributes());
     }
 
     private void assertFlowFileEventMatched(final long bytesRead, final long bytesWritten) throws IOException {

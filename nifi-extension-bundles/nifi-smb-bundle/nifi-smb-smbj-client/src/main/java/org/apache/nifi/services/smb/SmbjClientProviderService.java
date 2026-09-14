@@ -31,9 +31,11 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.nifi.smb.common.SmbProperties.AUTHENTICATION_TYPE;
 import static org.apache.nifi.smb.common.SmbProperties.DOMAIN;
 import static org.apache.nifi.smb.common.SmbProperties.ENABLE_DFS;
 import static org.apache.nifi.smb.common.SmbProperties.HOSTNAME;
+import static org.apache.nifi.smb.common.SmbProperties.KERBEROS_USER_SERVICE;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_DOMAIN_PROPERTY_NAME;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_ENABLE_DFS_PROPERTY_NAME;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_HOSTNAME_PROPERTY_NAME;
@@ -60,9 +62,11 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             HOSTNAME,
             PORT,
             SHARE,
+            AUTHENTICATION_TYPE,
             USERNAME,
             PASSWORD,
             DOMAIN,
+            KERBEROS_USER_SERVICE,
             SMB_DIALECT,
             USE_ENCRYPTION,
             ENABLE_DFS,

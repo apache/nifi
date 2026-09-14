@@ -40,7 +40,6 @@ public class RepositoryContextFactory {
     private final ComponentMetricReporter componentMetricReporter;
     private final ProvenanceRepository provenanceRepo;
     private final StateManagerProvider stateManagerProvider;
-    private final long maxAppendableClaimBytes;
 
     public RepositoryContextFactory(
             final ContentRepository contentRepository,
@@ -49,8 +48,7 @@ public class RepositoryContextFactory {
             final CounterRepository counterRepository,
             final ComponentMetricReporter componentMetricReporter,
             final ProvenanceRepository provenanceRepository,
-            final StateManagerProvider stateManagerProvider,
-            final long maxAppendableClaimBytes
+            final StateManagerProvider stateManagerProvider
     ) {
         this.contentRepo = contentRepository;
         this.flowFileRepo = flowFileRepository;
@@ -59,7 +57,6 @@ public class RepositoryContextFactory {
         this.componentMetricReporter = componentMetricReporter;
         this.provenanceRepo = provenanceRepository;
         this.stateManagerProvider = stateManagerProvider;
-        this.maxAppendableClaimBytes = maxAppendableClaimBytes;
     }
 
     public RepositoryContext newProcessContext(final Connectable connectable, final AtomicLong connectionIndex) {
@@ -76,8 +73,7 @@ public class RepositoryContextFactory {
                 counterRepo,
                 componentMetricReporter,
                 provenanceRepo,
-                stateManager,
-                maxAppendableClaimBytes
+                stateManager
         );
     }
 

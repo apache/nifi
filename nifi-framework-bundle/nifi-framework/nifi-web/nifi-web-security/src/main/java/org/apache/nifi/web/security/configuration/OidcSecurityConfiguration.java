@@ -21,7 +21,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
-import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.StandardAuthenticationEntryPoint;
@@ -99,7 +99,7 @@ public class OidcSecurityConfiguration {
 
     private final StateManagerProvider stateManagerProvider;
 
-    private final PropertyEncryptor propertyEncryptor;
+    private final PropertyEncryptionProvider propertyEncryptionProvider;
 
     private final BearerTokenProvider bearerTokenProvider;
 
@@ -122,7 +122,7 @@ public class OidcSecurityConfiguration {
             final NiFiProperties properties,
             final TaskScheduler taskScheduler,
             final StateManagerProvider stateManagerProvider,
-            final PropertyEncryptor propertyEncryptor,
+            final PropertyEncryptionProvider propertyEncryptionProvider,
             final BearerTokenProvider bearerTokenProvider,
             final BearerTokenResolver bearerTokenResolver,
             final ClientRegistrationRepository clientRegistrationRepository,
@@ -137,7 +137,7 @@ public class OidcSecurityConfiguration {
         this.properties = Objects.requireNonNull(properties, "Properties required");
         this.taskScheduler = Objects.requireNonNull(taskScheduler, "Task Scheduler required");
         this.stateManagerProvider = Objects.requireNonNull(stateManagerProvider, "State Manager Provider required");
-        this.propertyEncryptor = Objects.requireNonNull(propertyEncryptor, "Property Encryptor required");
+        this.propertyEncryptionProvider = Objects.requireNonNull(propertyEncryptionProvider, "Property Encryption Provider required");
         this.bearerTokenProvider = Objects.requireNonNull(bearerTokenProvider, "Bearer Token Provider required");
         this.bearerTokenResolver = Objects.requireNonNull(bearerTokenResolver, "Bearer Token Resolver required");
         this.clientRegistrationRepository = Objects.requireNonNull(clientRegistrationRepository, "Registration Repository required");
@@ -328,7 +328,7 @@ public class OidcSecurityConfiguration {
      */
     @Bean
     public AuthorizedClientConverter authorizedClientConverter() {
-        return new StandardAuthorizedClientConverter(propertyEncryptor, clientRegistrationRepository);
+        return new StandardAuthorizedClientConverter(propertyEncryptionProvider, clientRegistrationRepository);
     }
 
     /**

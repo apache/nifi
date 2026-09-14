@@ -34,6 +34,11 @@ import java.util.Set;
 public interface ContentRepository {
 
     /**
+     * Default for {@link #getMaxAppendableClaimBytes()}, matching {@code nifi.content.claim.max.appendable.size}.
+     */
+    long DEFAULT_MAX_APPENDABLE_CLAIM_BYTES = 51_200L;
+
+    /**
      * Initializes the Content Repository, providing to it the
      * ContentRepositoryContext.
      *
@@ -93,6 +98,21 @@ public interface ContentRepository {
      * @throws IOException if unable to create claim
      */
     ContentClaim create(boolean lossTolerant) throws IOException;
+
+    /**
+     * Creates a new content claim for the given context. The default implementation delegates to {@link #create(boolean)}.
+     */
+    default ContentClaim create(final ContentClaimCreationContext context) throws IOException {
+        return create(context.getLossTolerance().isLossTolerant());
+    }
+
+    /**
+     * Returns how many bytes may be written to one Content Claim before the framework creates a new one.
+     * Implementations must return an in-memory value; I/O is not allowed. The value may change at runtime.
+     */
+    default long getMaxAppendableClaimBytes() {
+        return DEFAULT_MAX_APPENDABLE_CLAIM_BYTES;
+    }
 
     /**
      * Increments the number of claimants for the given claim

@@ -16,3 +16,5 @@
 org.apache.nifi.controller.flow.NopConnector
 org.apache.nifi.components.connector.DynamicFlowConnector
 org.apache.nifi.components.connector.DynamicAllowableValuesConnector
+org.apache.nifi.components.connector.ControllerServiceEnablingConnector
+org.apache.nifi.components.connector.ProcessorStartFailureConnector

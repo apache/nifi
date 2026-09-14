@@ -25,12 +25,13 @@ public class FilterSensitiveParameterValueMapper implements ParameterValueMapper
     /**
      * Get mapped Parameter value based on properties
      *
+     * @param parameterContextName Name of the Parameter Context that contains the Parameter
      * @param parameter Parameter with descriptor of attributes for mapping
      * @param value Parameter value to be mapped
      * @return Mapped Parameter value
      */
     @Override
-    public String getMapped(final Parameter parameter, final String value) {
+    public String getMapped(final String parameterContextName, final Parameter parameter, final String value) {
         Objects.requireNonNull(parameter, "Parameter required");
 
         final ParameterDescriptor descriptor = parameter.getDescriptor();

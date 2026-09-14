@@ -88,6 +88,7 @@ public class GetCouchbaseIT extends AbstractCouchbaseIT {
                 CONTAINER.getPassword()
         )) {
             final Bucket bucket = cluster.bucket(TEST_BUCKET_NAME);
+            bucket.waitUntilReady(CLIENT_READY_TIMEOUT);
             final Collection collection = bucket.defaultCollection();
 
             collection.upsert(TEST_DOCUMENT_ID, JsonObject.fromJson(TEST_DATA));

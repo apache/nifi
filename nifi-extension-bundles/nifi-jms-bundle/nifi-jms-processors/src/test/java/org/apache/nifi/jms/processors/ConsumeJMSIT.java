@@ -26,6 +26,7 @@ import jakarta.jms.ConnectionFactory;
 import jakarta.jms.JMSException;
 import jakarta.jms.MapMessage;
 import jakarta.jms.Message;
+import jakarta.jms.MessageConsumer;
 import jakarta.jms.MessageProducer;
 import jakarta.jms.ObjectMessage;
 import jakarta.jms.Session;
@@ -51,8 +52,11 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.MockProcessSession;
+import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
@@ -63,13 +67,24 @@ import org.springframework.jms.core.MessageCreator;
 import org.springframework.jms.support.JmsHeaders;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import javax.net.SocketFactory;
 
 import static java.util.Arrays.asList;
@@ -78,7 +93,9 @@ import static org.apache.nifi.jms.processors.helpers.JMSTestUtil.createJsonRecor
 import static org.apache.nifi.jms.processors.helpers.JMSTestUtil.createJsonRecordSetWriterService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -690,6 +707,97 @@ public class ConsumeJMSIT {
         }
     }
 
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+    public void activeReceiveShouldBeInterruptedOnUnscheduledWithoutFlowFileOrReplacementConnection() throws Exception {
+        final BrokerService broker = new BrokerService();
+        final ExecutorService executorService = Executors.newSingleThreadExecutor();
+        try {
+            broker.setPersistent(false);
+            broker.setBrokerName("blocked-receive-broker");
+            broker.start();
+
+            final ActiveMQConnectionFactory innerConnectionFactory = new ActiveMQConnectionFactory("vm://blocked-receive-broker");
+            final BlockingReceiveConnectionFactory controlledConnectionFactory = new BlockingReceiveConnectionFactory(innerConnectionFactory);
+            final CountingConsumeJMS processor = new CountingConsumeJMS();
+            final TestRunner runner = initializeTestRunner(processor, controlledConnectionFactory.getConnectionFactory(), "blocked-receive-destination");
+            runner.setProperty(ConsumeJMS.TIMEOUT, "30 sec");
+
+            final ProcessContext processContext = runner.getProcessContext();
+            processor.onSchedule(processContext);
+            processor.setup(processContext);
+
+            final MockProcessSession processSession = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+            final Future<Throwable> future = executorService.submit(() -> {
+                try {
+                    processor.onTrigger(processContext, processSession);
+                    return null;
+                } catch (final Throwable throwable) {
+                    return throwable;
+                }
+            });
+
+            assertTrue(controlledConnectionFactory.awaitReceiveEntered(5, TimeUnit.SECONDS));
+
+            processor.shutdownConnectionFactoryProvider(processContext);
+
+            final Throwable thrown = future.get(5, TimeUnit.SECONDS);
+            assertTrue(thrown == null || thrown instanceof ProcessException || thrown instanceof JMSException
+                            || thrown instanceof org.springframework.jms.IllegalStateException,
+                    "Unexpected exception type returned from blocked receive shutdown path: " + thrown);
+            assertTrue(controlledConnectionFactory.awaitConnectionClosed(5, TimeUnit.SECONDS));
+            assertEquals(0, broker.getCurrentConnections());
+            assertEquals(1, controlledConnectionFactory.getOpenedConnections());
+            assertEquals(1, processor.getBuildCount());
+            assertTrue(processSession.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS).isEmpty());
+            assertTrue(processSession.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE).isEmpty());
+        } finally {
+            executorService.shutdownNow();
+            broker.stop();
+        }
+    }
+
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+    public void delayedCommitCallbackShouldFailAcknowledgeAfterShutdownAndAllowRedelivery() throws Exception {
+        final BrokerService broker = new BrokerService();
+        try {
+            broker.setPersistent(false);
+            broker.setBrokerName("delayed-commit-broker");
+            broker.start();
+
+            final String destinationName = "delayed-commit-destination";
+            final ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("vm://delayed-commit-broker");
+            publishQueueMessage(connectionFactory, destinationName, "delayed-ack-message");
+
+            final ConsumeJMS processor = new ConsumeJMS();
+            final TestRunner runner = initializeTestRunner(processor, connectionFactory, destinationName);
+            final ProcessContext processContext = runner.getProcessContext();
+            processor.onSchedule(processContext);
+            processor.setup(processContext);
+
+            final DelayedCommitProcessSession processSession = new DelayedCommitProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+
+            processor.onTrigger(processContext, processSession);
+
+            assertEquals(1, processSession.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS).size());
+            assertNotNull(processSession.getDelayedSuccessCallback());
+
+            processor.shutdownConnectionFactoryProvider(processContext);
+
+            final ProcessException exception = assertThrows(ProcessException.class, processSession::runDelayedSuccessCallback);
+            assertNotNull(exception.getCause());
+
+            final JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
+            jmsTemplate.setReceiveTimeout(5000L);
+            final Message redelivered = jmsTemplate.receive(destinationName);
+            assertInstanceOf(TextMessage.class, redelivered);
+            assertEquals("delayed-ack-message", ((TextMessage) redelivered).getText());
+        } finally {
+            broker.stop();
+        }
+    }
+
     private static ArrayNode createTestJsonInput() {
         final ObjectMapper mapper = new ObjectMapper();
 
@@ -764,6 +872,145 @@ public class ConsumeJMSIT {
         c1Consumer.setProperty(ConsumeJMS.SHARED_SUBSCRIBER, "false");
         c1Consumer.setProperty(ConsumeJMS.CLIENT_ID, "client1");
         return c1Consumer;
+    }
+
+    private static void publishQueueMessage(final ConnectionFactory connectionFactory, final String destinationName, final String messageText) {
+        final JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
+        jmsTemplate.send(destinationName, session -> session.createTextMessage(messageText));
+    }
+
+    private static Object invokeTarget(final Object target, final Method method, final Object[] args) throws Throwable {
+        try {
+            return method.invoke(target, args);
+        } catch (final InvocationTargetException exception) {
+            throw exception.getCause();
+        }
+    }
+
+    private static final class CountingConsumeJMS extends ConsumeJMS {
+
+        private final AtomicInteger buildCount = new AtomicInteger();
+
+        @Override
+        protected JMSConsumer finishBuildingJmsWorker(final CachingConnectionFactory connectionFactory, final JmsTemplate jmsTemplate,
+                                                      final ProcessContext processContext) {
+            buildCount.incrementAndGet();
+            return super.finishBuildingJmsWorker(connectionFactory, jmsTemplate, processContext);
+        }
+
+        private int getBuildCount() {
+            return buildCount.get();
+        }
+    }
+
+    private static final class DelayedCommitProcessSession extends MockProcessSession {
+
+        private Runnable delayedSuccessCallback;
+
+        private DelayedCommitProcessSession(final SharedSessionState sharedState, final ConsumeJMS processor) {
+            super(sharedState, processor, new MockStateManager(processor));
+        }
+
+        @Override
+        public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
+            delayedSuccessCallback = onSuccess;
+            super.commitAsync(null, onFailure);
+        }
+
+        private Runnable getDelayedSuccessCallback() {
+            return delayedSuccessCallback;
+        }
+
+        private void runDelayedSuccessCallback() {
+            delayedSuccessCallback.run();
+        }
+    }
+
+    private static final class BlockingReceiveConnectionFactory {
+
+        private final ConnectionFactory connectionFactory;
+        private final CountDownLatch receiveEntered = new CountDownLatch(1);
+        private final CountDownLatch connectionClosed = new CountDownLatch(1);
+        private final AtomicInteger openedConnections = new AtomicInteger();
+
+        private BlockingReceiveConnectionFactory(final ConnectionFactory targetConnectionFactory) {
+            Objects.requireNonNull(targetConnectionFactory);
+            connectionFactory = (ConnectionFactory) Proxy.newProxyInstance(
+                    ConnectionFactory.class.getClassLoader(),
+                    new Class[] {ConnectionFactory.class},
+                    (proxy, method, args) -> {
+                        final Object result = invokeTarget(targetConnectionFactory, method, args);
+                        if ("createConnection".equals(method.getName())) {
+                            openedConnections.incrementAndGet();
+                            return createConnectionProxy((Connection) result);
+                        }
+                        return result;
+                    });
+        }
+
+        private ConnectionFactory getConnectionFactory() {
+            return connectionFactory;
+        }
+
+        private boolean awaitReceiveEntered(final long timeout, final TimeUnit timeUnit) throws InterruptedException {
+            return receiveEntered.await(timeout, timeUnit);
+        }
+
+        private boolean awaitConnectionClosed(final long timeout, final TimeUnit timeUnit) throws InterruptedException {
+            return connectionClosed.await(timeout, timeUnit);
+        }
+
+        private int getOpenedConnections() {
+            return openedConnections.get();
+        }
+
+        private Connection createConnectionProxy(final Connection targetConnection) {
+            return (Connection) Proxy.newProxyInstance(
+                    Connection.class.getClassLoader(),
+                    new Class[] {Connection.class},
+                    (proxy, method, args) -> {
+                        final Object result = invokeTarget(targetConnection, method, args);
+                        if ("createSession".equals(method.getName())) {
+                            return createSessionProxy((Session) result);
+                        }
+                        if ("close".equals(method.getName())) {
+                            connectionClosed.countDown();
+                        }
+                        return result;
+                    });
+        }
+
+        private Session createSessionProxy(final Session targetSession) {
+            return (Session) Proxy.newProxyInstance(
+                    Session.class.getClassLoader(),
+                    new Class[] {Session.class},
+                    (proxy, method, args) -> {
+                        final Object result = invokeTarget(targetSession, method, args);
+                        if (isConsumerFactoryMethod(method.getName())) {
+                            return createMessageConsumerProxy((MessageConsumer) result);
+                        }
+                        return result;
+                    });
+        }
+
+        private MessageConsumer createMessageConsumerProxy(final MessageConsumer targetConsumer) {
+            return (MessageConsumer) Proxy.newProxyInstance(
+                    MessageConsumer.class.getClassLoader(),
+                    new Class[] {MessageConsumer.class},
+                    (proxy, method, args) -> {
+                        if ("receive".equals(method.getName())) {
+                            receiveEntered.countDown();
+                        }
+                        return invokeTarget(targetConsumer, method, args);
+                    });
+        }
+
+        private boolean isConsumerFactoryMethod(final String methodName) {
+            return "createConsumer".equals(methodName)
+                    || "createDurableConsumer".equals(methodName)
+                    || "createSharedConsumer".equals(methodName)
+                    || "createSharedDurableConsumer".equals(methodName);
+        }
     }
 
 }

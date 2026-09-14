@@ -18,12 +18,17 @@ package org.apache.nifi.reporting;
 
 import org.apache.nifi.action.Action;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
 import org.apache.nifi.controller.repository.StandardRepositoryStatusReport;
+import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
@@ -40,6 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 
@@ -60,6 +66,8 @@ class AbstractEventAccessTest {
     private static final String PROCESSOR_NAME = "Event Processor";
 
     private static final String PROCESSOR_ID = UUID.randomUUID().toString();
+
+    private static final String CONNECTION_ID = UUID.randomUUID().toString();
 
     private static final int ZERO_DEPTH = 0;
 
@@ -82,6 +90,18 @@ class AbstractEventAccessTest {
 
     @Mock
     private ProcessorNode processorNode;
+
+    @Mock
+    private Connection connection;
+
+    @Mock
+    private Connectable source;
+
+    @Mock
+    private Connectable destination;
+
+    @Mock
+    private FlowFileQueue flowFileQueue;
 
     private AbstractEventAccess eventAccess;
 
@@ -190,6 +210,39 @@ class AbstractEventAccessTest {
         assertEquals(PROCESSOR_ID, processorStatus.getId());
 
         assertEquals(2, authorizables.size());
+    }
+
+    @Test
+    void testGetGroupStatusConnectionWithoutNameOrRelationships() {
+        final RepositoryStatusReport repositoryStatusReport = new StandardRepositoryStatusReport();
+        final Predicate<Authorizable> checkAuthorization = authorizable -> true;
+
+        // The state under test: a connection without a name and without relationships, as
+        // produced by flow synchronization applying an empty selectedRelationships list to
+        // a port- or funnel-sourced connection
+        when(connection.getIdentifier()).thenReturn(CONNECTION_ID);
+        when(connection.getName()).thenReturn(null);
+        when(connection.getRelationships()).thenReturn(List.of());
+        // Needed to run the test, tested conditions are set above
+        when(connection.getProcessGroup()).thenReturn(processGroup);
+        when(connection.getSource()).thenReturn(source);
+        when(connection.getDestination()).thenReturn(destination);
+        when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
+        when(flowFileQueue.size()).thenReturn(new QueueSize(0, 0));
+        when(flowFileQueue.getBackPressureDataSizeThreshold()).thenReturn("1 GB");
+
+        when(processGroup.getConnections()).thenReturn(Set.of(connection));
+        when(processGroup.getName()).thenReturn(PROCESS_GROUP_NAME);
+        when(processGroup.getIdentifier()).thenReturn(PROCESS_GROUP_ID);
+
+        final ProcessGroupStatus groupStatus = eventAccess.getGroupStatus(processGroup, repositoryStatusReport, checkAuthorization, SINGLE_DEPTH, SINGLE_DEPTH, INCLUDE_CONNECTION_DETAILS);
+
+        assertNotNull(groupStatus);
+        final Optional<ConnectionStatus> connectionStatusFound = groupStatus.getConnectionStatus().stream().findFirst();
+        assertTrue(connectionStatusFound.isPresent());
+        // The status name must never be null: an unnamed connection without relationships
+        // falls back to the connection identifier
+        assertEquals(CONNECTION_ID, connectionStatusFound.get().getName());
     }
 
     private static class ConcreteEventAccess extends AbstractEventAccess {

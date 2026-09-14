@@ -273,12 +273,11 @@ public class NarThreadContextClassLoader extends URLClassLoader {
             return bundleClassLoader;
         }
 
-        final Set<URL> instanceUrls = new LinkedHashSet<>();
         final Set<File> narNativeLibDirs = new LinkedHashSet<>();
 
         final NarClassLoader narBundleClassLoader = (NarClassLoader) bundleClassLoader;
         narNativeLibDirs.add(narBundleClassLoader.getNARNativeLibDir());
-        instanceUrls.addAll(Arrays.asList(narBundleClassLoader.getURLs()));
+        final Set<URL> instanceUrls = new LinkedHashSet<>(Arrays.asList(narBundleClassLoader.getURLs()));
 
         ClassLoader ancestorClassLoader = narBundleClassLoader.getParent();
 

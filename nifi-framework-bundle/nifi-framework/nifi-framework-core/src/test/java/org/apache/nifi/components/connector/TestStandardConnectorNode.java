@@ -54,6 +54,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -65,9 +66,13 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -80,12 +85,17 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestStandardConnectorNode {
 
     private static final long STOP_NOT_EXPECTED_MILLIS = 250L;
+    private static final String REQUIRED_STEP = "requiredStep";
+    private static final String REQUIRED_SECRET = "RequiredSecret";
+    private static final String FIRST_SECRET_VALUE = "first";
+    private static final String SECOND_SECRET_VALUE = "second";
 
     private FlowEngine scheduler;
 
@@ -180,6 +190,52 @@ public class TestStandardConnectorNode {
     }
 
     @Test
+    public void testRestartRefreshesSecretBeforeStartingConnector() throws Exception {
+        final SecretReference secretReference = new SecretReference("provider-id", "Provider", "password", "Provider.group.password");
+        final Secret firstSecret = mock(Secret.class);
+        when(firstSecret.getValue()).thenReturn(FIRST_SECRET_VALUE);
+        final Secret secondSecret = mock(Secret.class);
+        when(secondSecret.getValue()).thenReturn(SECOND_SECRET_VALUE);
+        final AtomicReference<Secret> currentSecret = new AtomicReference<>(firstSecret);
+
+        when(secretsManager.getSecrets(anySet())).thenAnswer(invocation -> Map.of(secretReference, currentSecret.get()));
+
+        final StartRecordingSecretConnector connector = new StartRecordingSecretConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector, secretsManager);
+        seedActiveConfiguration(connectorNode, REQUIRED_STEP, Map.of(REQUIRED_SECRET, secretReference));
+
+        connectorNode.start(scheduler).get(5, TimeUnit.SECONDS);
+        connectorNode.stop(scheduler).get(5, TimeUnit.SECONDS);
+        currentSecret.set(secondSecret);
+        connectorNode.start(scheduler).get(5, TimeUnit.SECONDS);
+        connectorNode.start(scheduler).get(5, TimeUnit.SECONDS);
+
+        assertEquals(List.of(FIRST_SECRET_VALUE, SECOND_SECRET_VALUE), connector.getStartedSecrets());
+        verify(secretsManager, times(2)).invalidateCache();
+    }
+
+    @Test
+    public void testStartResolvesPropertyBeforeValidation() throws Exception {
+        final SecretReference secretReference = new SecretReference("provider-id", "Provider", "password", "Provider.group.password");
+        final AtomicReference<Secret> currentSecret = new AtomicReference<>();
+        when(secretsManager.getSecrets(anySet())).thenAnswer(invocation -> {
+            final Secret secret = currentSecret.get();
+            return secret == null ? Map.of() : Map.of(secretReference, secret);
+        });
+
+        final Secret secret = mock(Secret.class);
+        when(secret.getValue()).thenReturn(FIRST_SECRET_VALUE);
+
+        final StandardConnectorNode connectorNode = createConnectorNode(new StartRecordingSecretConnector(), secretsManager);
+        seedActiveConfiguration(connectorNode, REQUIRED_STEP, Map.of(REQUIRED_SECRET, secretReference));
+        currentSecret.set(secret);
+
+        connectorNode.start(scheduler).get(5, TimeUnit.SECONDS);
+
+        assertEquals(ConnectorState.RUNNING, connectorNode.getCurrentState());
+    }
+
+    @Test
     public void testStartFutureCompletedOnlyWhenRunning() throws Exception {
         final StandardConnectorNode connectorNode = createConnectorNode();
         final Future<Void> startFuture = connectorNode.start(scheduler);
@@ -229,6 +285,32 @@ public class TestStandardConnectorNode {
 
         assertTrue(startFuture1.isDone());
         assertTrue(startFuture2.isDone());
+    }
+
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    public void testConcurrentStartRequestsInvokeConnectorStartOnce() throws Exception {
+        final ConcurrentStartConnector connector = new ConcurrentStartConnector();
+        final CoordinatedConnectorStateTransition stateTransition = new CoordinatedConnectorStateTransition();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector, stateTransition);
+        connector.blockValidation();
+
+        try (final ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            final CompletableFuture<Future<Void>> firstRequest = CompletableFuture.supplyAsync(() -> connectorNode.start(scheduler), executor);
+            final CompletableFuture<Future<Void>> secondRequest = CompletableFuture.supplyAsync(() -> connectorNode.start(scheduler), executor);
+
+            assertTrue(connector.awaitValidationRequests(5, TimeUnit.SECONDS));
+            stateTransition.coordinateNextStateReads(2);
+            connector.releaseValidation();
+
+            final Future<Void> firstStart = firstRequest.get(5, TimeUnit.SECONDS);
+            final Future<Void> secondStart = secondRequest.get(5, TimeUnit.SECONDS);
+            firstStart.get(5, TimeUnit.SECONDS);
+            secondStart.get(5, TimeUnit.SECONDS);
+        }
+
+        assertEquals(1, connector.getStartInvocations());
+        assertEquals(ConnectorState.RUNNING, connectorNode.getCurrentState());
     }
 
     @Test
@@ -468,19 +550,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testSetConfigurationCallsOnConfigured() throws FlowUpdateException {
-        final TrackingConnector trackingConnector = new TrackingConnector();
-        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
-        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
-
-        connectorNode.transitionStateForUpdating();
-        connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("testGroup", createStepConfiguration());
-        connectorNode.applyUpdate();
-    }
-
-    @Test
-    public void testSetConfigurationCallsOnPropertyGroupConfiguredForChangedConfigurationSteps() throws FlowUpdateException, ExecutionException, InterruptedException, TimeoutException {
+    public void testSetConfigurationCallsOnStepConfiguredWhenChanged() throws FlowUpdateException {
         final TrackingConnector trackingConnector = new TrackingConnector();
         final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
@@ -494,26 +564,8 @@ public class TestStandardConnectorNode {
         connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.setConfiguration("configurationStep1", createStepConfiguration(Map.of("prop1", "value2")));
-        connectorNode.applyUpdate();
 
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("configurationStep1"));
-    }
-
-    @Test
-    public void testDiscardWorkingConfigurationCallsOnStepConfigured() throws FlowUpdateException {
-        final TrackingConnector trackingConnector = new TrackingConnector();
-        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
-
-        connectorNode.transitionStateForUpdating();
-        connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("prop1", "value1")));
-        connectorNode.applyUpdate();
-
-        trackingConnector.reset();
-
-        connectorNode.discardWorkingConfiguration();
-
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("configurationStep1"));
     }
 
     @Test
@@ -534,12 +586,12 @@ public class TestStandardConnectorNode {
         connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("prop1", "value2")));
         connectorNode.applyUpdate();
 
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step2"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("step1"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("step2"));
     }
 
     @Test
-    public void testDiscardWorkingConfigurationCallsOnStepConfiguredForMultipleSteps() throws FlowUpdateException {
+    public void testDiscardWorkingConfigurationCallsOnStepConfiguredForEveryStep() throws FlowUpdateException {
         final TrackingConnector trackingConnector = new TrackingConnector();
         final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
 
@@ -553,8 +605,8 @@ public class TestStandardConnectorNode {
 
         connectorNode.discardWorkingConfiguration();
 
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step2"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("step1"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("step2"));
     }
 
     @Test
@@ -573,7 +625,7 @@ public class TestStandardConnectorNode {
         connectorNode.prepareForUpdate();
         connectorNode.applyUpdate();
 
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("step1"));
     }
 
     @Test
@@ -590,7 +642,7 @@ public class TestStandardConnectorNode {
 
         connectorNode.replaceWorkingConfiguration("step1", createStepConfiguration(Map.of("propA", "newA")));
 
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+        assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("step1"));
         final ConnectorConfiguration workingConfig = connectorNode.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
         final NamedStepConfiguration namedStep = workingConfig.getNamedStepConfigurations().iterator().next();
         assertEquals("step1", namedStep.stepName());
@@ -611,29 +663,145 @@ public class TestStandardConnectorNode {
 
         connectorNode.replaceWorkingConfiguration("step1", createStepConfiguration(Map.of("propA", "valueA")));
 
-        assertFalse(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
+        assertFalse(trackingConnector.wasOnConfigurationStepConfiguredCalled("step1"));
     }
 
     @Test
-    public void testDiscardWorkingConfigurationFiresOnConfiguredForEveryWorkingStep() throws FlowUpdateException {
-        final TrackingConnector trackingConnector = new TrackingConnector();
-        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+    @Timeout(10)
+    public void testReplaceWorkingConfigurationWaitsForWorkingContextRecreation() throws Exception {
+        final BlockingWorkingFlowContextFactory blockingFlowContextFactory = new BlockingWorkingFlowContextFactory(flowContextFactory);
+        flowContextFactory = blockingFlowContextFactory;
 
+        final StandardConnectorNode connectorNode = createConnectorNode(new TrackingConnector());
         connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("propA", "valueA")));
-        connectorNode.setConfiguration("step2", createStepConfiguration(Map.of("propB", "valueB")));
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("propA", "oldA")));
         connectorNode.applyUpdate();
+        blockingFlowContextFactory.blockNextWorkingContextCreation();
 
-        trackingConnector.reset();
+        final ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            final Future<?> recreationFuture = executor.submit(connectorNode::recreateWorkingFlowContext);
+            assertTrue(blockingFlowContextFactory.awaitWorkingContextCreation(5, TimeUnit.SECONDS));
 
-        // Recreating the working flow context from the active flow must fire onConfigurationStepConfigured
-        // for every working configuration step so that flow parameters derived from the configuration
-        // (resolved asset paths, secrets, etc.) are refreshed.
-        connectorNode.discardWorkingConfiguration();
+            final CountDownLatch replaceStarted = new CountDownLatch(1);
+            final Future<?> replacementFuture = executor.submit(() -> {
+                replaceStarted.countDown();
+                connectorNode.replaceWorkingConfiguration("step1", createStepConfiguration(Map.of("propA", "newA")));
+                return null;
+            });
+            assertTrue(replaceStarted.await(5, TimeUnit.SECONDS));
 
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step1"));
-        assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("step2"));
+            try {
+                assertThrows(TimeoutException.class, () -> replacementFuture.get(STOP_NOT_EXPECTED_MILLIS, TimeUnit.MILLISECONDS));
+            } finally {
+                blockingFlowContextFactory.releaseWorkingContextCreation();
+            }
+
+            recreationFuture.get(5, TimeUnit.SECONDS);
+            replacementFuture.get(5, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
+
+        final ConnectorConfiguration workingConfiguration = connectorNode.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
+        final NamedStepConfiguration namedStep = workingConfiguration.getNamedStepConfigurations().iterator().next();
+        assertEquals(Map.of("propA", new StringLiteralValue("newA")), namedStep.configuration().getPropertyValues());
+    }
+
+    @Test
+    @Timeout(10)
+    public void testRecreationRefreshDoesNotOverwriteConcurrentReplace() throws Exception {
+        final CountDownLatch refreshStarted = new CountDownLatch(1);
+        final CountDownLatch permitRefresh = new CountDownLatch(1);
+        final AtomicBoolean blockNextRefresh = new AtomicBoolean();
+        final AtomicReference<String> refreshingStepName = new AtomicReference<>();
+        final TrackingConnector trackingConnector = new TrackingConnector() {
+            @Override
+            protected void onStepConfigured(final String stepName, final FlowContext workingContext) throws FlowUpdateException {
+                if (!blockNextRefresh.compareAndSet(true, false)) {
+                    return;
+                }
+
+                refreshingStepName.set(stepName);
+                refreshStarted.countDown();
+                try {
+                    permitRefresh.await();
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new FlowUpdateException("Interrupted while waiting to refresh the working flow context", e);
+                }
+            }
+        };
+
+        final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("propA", "oldA")));
+        connectorNode.setConfiguration("step2", createStepConfiguration(Map.of("propA", "oldB")));
+        connectorNode.applyUpdate();
+        blockNextRefresh.set(true);
+
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            final Future<?> recreationFuture = executor.submit(connectorNode::recreateWorkingFlowContext);
+            final String replacedStepName;
+            try {
+                assertTrue(refreshStarted.await(5, TimeUnit.SECONDS));
+                replacedStepName = "step1".equals(refreshingStepName.get()) ? "step2" : "step1";
+                connectorNode.replaceWorkingConfiguration(replacedStepName, createStepConfiguration(Map.of("propA", "newA")));
+            } finally {
+                permitRefresh.countDown();
+            }
+
+            recreationFuture.get(5, TimeUnit.SECONDS);
+
+            final ConnectorConfiguration workingConfiguration = connectorNode.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
+            final NamedStepConfiguration namedStep = workingConfiguration.getNamedStepConfiguration(replacedStepName);
+            assertEquals(Map.of("propA", new StringLiteralValue("newA")), namedStep.configuration().getPropertyValues());
+        } finally {
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    @Timeout(10)
+    public void testOnConfigurationStepConfiguredCanWaitForWorkingContextRecreation() throws Exception {
+        final AtomicReference<StandardConnectorNode> nodeReference = new AtomicReference<>();
+        final AtomicBoolean waitForWorkingContextRecreation = new AtomicBoolean();
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            final TrackingConnector trackingConnector = new TrackingConnector() {
+                @Override
+                protected void onStepConfigured(final String stepName, final FlowContext workingContext) throws FlowUpdateException {
+                    if (!waitForWorkingContextRecreation.compareAndSet(true, false)) {
+                        return;
+                    }
+
+                    final StandardConnectorNode connectorNode = nodeReference.get();
+                    try {
+                        executor.submit(connectorNode::recreateWorkingFlowContext).get(5, TimeUnit.SECONDS);
+                    } catch (final InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new FlowUpdateException("Interrupted while waiting to recreate the working flow context", e);
+                    } catch (final ExecutionException | TimeoutException e) {
+                        throw new FlowUpdateException("Failed to recreate the working flow context from onConfigurationStepConfigured", e);
+                    }
+                }
+            };
+
+            final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
+            nodeReference.set(connectorNode);
+            connectorNode.transitionStateForUpdating();
+            connectorNode.prepareForUpdate();
+            waitForWorkingContextRecreation.set(true);
+            connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("propA", "valueA")));
+        } finally {
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
     }
 
     @Test
@@ -721,7 +889,7 @@ public class TestStandardConnectorNode {
 
         connectorNode.discardWorkingConfiguration();
 
-        assertTrue(failingStepConnector.wasOnPropertyGroupConfiguredCalled("successStep"));
+        assertTrue(failingStepConnector.wasOnConfigurationStepConfiguredCalled("successStep"));
     }
 
     @Test
@@ -744,6 +912,28 @@ public class TestStandardConnectorNode {
         assertEquals("Property Validation - Test Property", failedResult.getVerificationStepName());
         assertEquals("Test Property", failedResult.getSubject());
         assertEquals("The property value is invalid", failedResult.getExplanation());
+    }
+
+    @Test
+    public void testVerifyConfigurationStepIncludesApplicableDefaultsAndExplicitOverrides() throws FlowUpdateException {
+        final DefaultValueVerifyingConnector connector = new DefaultValueVerifyingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("settings", new StepConfiguration(Map.of("Greeting", new StringLiteralValue("Hello"))));
+        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep(
+            "settings", new StepConfiguration(Map.of("Greeting", new StringLiteralValue("Welcome"))));
+
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, results.getFirst().getOutcome());
+        assertEquals("Welcome", connector.getVerifiedGreeting());
+        assertEquals("1", connector.getVerifiedRepeatCount());
+
+        connectorNode.setConfiguration("settings", new StepConfiguration(Map.of("Repeat Count", new StringLiteralValue("2"))));
+        connectorNode.verifyConfigurationStep("settings", new StepConfiguration(Map.of("Greeting", new StringLiteralValue("Hello again"))));
+
+        assertEquals("Hello again", connector.getVerifiedGreeting());
+        assertEquals("2", connector.getVerifiedRepeatCount());
     }
 
     @Test
@@ -785,9 +975,9 @@ public class TestStandardConnectorNode {
         // Without the empty-stub filter this would surface as "[null] could not be found"; with it, the connector's
         // required-property validation should produce "<name> is required" instead.
         final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
-        propertyValues.put("RequiredSecret", new SecretReference(null, "My Provider", null, null));
+        propertyValues.put(REQUIRED_SECRET, new SecretReference(null, "My Provider", null, null));
 
-        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep("requiredStep", new StepConfiguration(propertyValues));
+        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep(REQUIRED_STEP, new StepConfiguration(propertyValues));
 
         final List<ConfigVerificationResult> failures = results.stream()
             .filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.FAILED)
@@ -814,8 +1004,8 @@ public class TestStandardConnectorNode {
         connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
-        propertyValues.put("RequiredSecret", new SecretReference(null, "My Provider", null, null));
-        connectorNode.setConfiguration("requiredStep", new StepConfiguration(propertyValues));
+        propertyValues.put(REQUIRED_SECRET, new SecretReference(null, "My Provider", null, null));
+        connectorNode.setConfiguration(REQUIRED_STEP, new StepConfiguration(propertyValues));
         connectorNode.applyUpdate();
 
         final ValidationState state = connectorNode.performValidation();
@@ -1365,8 +1555,20 @@ public class TestStandardConnectorNode {
         return createConnectorNode(connector, defaultSecretsManager);
     }
 
+    private StandardConnectorNode createConnectorNode(final Connector connector, final ConnectorStateTransition stateTransition) throws FlowUpdateException {
+        final SecretsManager defaultSecretsManager = mock(SecretsManager.class);
+        when(defaultSecretsManager.getAllSecrets()).thenReturn(List.of());
+        when(defaultSecretsManager.getSecrets(anySet())).thenReturn(Collections.emptyMap());
+        when(defaultSecretsManager.getSecrets(anySet(), anyBoolean())).thenReturn(Collections.emptyMap());
+        return createConnectorNode(connector, defaultSecretsManager, stateTransition);
+    }
+
     private StandardConnectorNode createConnectorNode(final Connector connector, final SecretsManager initializedSecretsManager) throws FlowUpdateException {
-        final ConnectorStateTransition stateTransition = new StandardConnectorStateTransition("TestConnectorNode");
+        return createConnectorNode(connector, initializedSecretsManager, new StandardConnectorStateTransition("TestConnectorNode"));
+    }
+
+    private StandardConnectorNode createConnectorNode(final Connector connector, final SecretsManager initializedSecretsManager,
+            final ConnectorStateTransition stateTransition) throws FlowUpdateException {
         final ConnectorValidationTrigger validationTrigger = new SynchronousConnectorValidationTrigger();
         final StandardConnectorNode node = new StandardConnectorNode(
             "test-connector-id",
@@ -1392,6 +1594,88 @@ public class TestStandardConnectorNode {
         return node;
     }
 
+    private static class ConcurrentStartConnector extends SleepingConnector {
+        private final CountDownLatch validationRequests = new CountDownLatch(2);
+        private final CountDownLatch validationRelease = new CountDownLatch(1);
+        private final AtomicInteger startInvocations = new AtomicInteger();
+        private volatile boolean validationBlocked;
+
+        private ConcurrentStartConnector() {
+            super(Duration.ZERO);
+        }
+
+        @Override
+        public List<ValidationResult> validate(final FlowContext flowContext, final ConnectorValidationContext connectorValidationContext) {
+            if (validationBlocked) {
+                validationRequests.countDown();
+                try {
+                    validationRelease.await();
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while waiting to release validation", e);
+                }
+            }
+
+            return List.of();
+        }
+
+        @Override
+        public void start(final FlowContext activeContext) {
+            startInvocations.incrementAndGet();
+        }
+
+        private void blockValidation() {
+            validationBlocked = true;
+        }
+
+        private boolean awaitValidationRequests(final long timeout, final TimeUnit timeUnit) throws InterruptedException {
+            return validationRequests.await(timeout, timeUnit);
+        }
+
+        private void releaseValidation() {
+            validationRelease.countDown();
+        }
+
+        private int getStartInvocations() {
+            return startInvocations.get();
+        }
+    }
+
+    private static class CoordinatedConnectorStateTransition extends StandardConnectorStateTransition {
+        private volatile CountDownLatch coordinatedStateReads;
+
+        private CoordinatedConnectorStateTransition() {
+            super("TestConnectorNode");
+        }
+
+        @Override
+        public ConnectorState getCurrentState() {
+            final CountDownLatch stateReads = coordinatedStateReads;
+            final ConnectorState currentState = super.getCurrentState();
+            if (stateReads != null) {
+                stateReads.countDown();
+                try {
+                    if (!stateReads.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("Timed out waiting for coordinated state reads");
+                    }
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while waiting for coordinated state reads", e);
+                } finally {
+                    if (stateReads.getCount() == 0) {
+                        coordinatedStateReads = null;
+                    }
+                }
+            }
+
+            return currentState;
+        }
+
+        private void coordinateNextStateReads(final int count) {
+            coordinatedStateReads = new CountDownLatch(count);
+        }
+    }
+
     private static class SynchronousConnectorValidationTrigger implements ConnectorValidationTrigger {
         @Override
         public void triggerAsync(final ConnectorNode connector) {
@@ -1401,6 +1685,56 @@ public class TestStandardConnectorNode {
         @Override
         public void trigger(final ConnectorNode connector) {
             connector.performValidation();
+        }
+    }
+
+    /**
+     * Blocks the calling thread inside {@link #createWorkingFlowContext} while
+     * {@link StandardConnectorNode#recreateWorkingFlowContext()} is in progress, until
+     * {@link #releaseWorkingContextCreation()} is invoked.
+     */
+    private static class BlockingWorkingFlowContextFactory implements FlowContextFactory {
+        private final FlowContextFactory delegate;
+        private final CountDownLatch workingContextCreationStarted = new CountDownLatch(1);
+        private final CountDownLatch permitWorkingContextCreation = new CountDownLatch(1);
+        private volatile boolean blockWorkingContextCreation;
+
+        private BlockingWorkingFlowContextFactory(final FlowContextFactory delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public FrameworkFlowContext createActiveFlowContext(final String connectorId, final ComponentLog connectorLogger, final Bundle bundle) {
+            return delegate.createActiveFlowContext(connectorId, connectorLogger, bundle);
+        }
+
+        @Override
+        public FrameworkFlowContext createWorkingFlowContext(final String connectorId, final ComponentLog connectorLogger,
+                final MutableConnectorConfigurationContext currentConfiguration, final Bundle bundle) {
+
+            if (blockWorkingContextCreation) {
+                workingContextCreationStarted.countDown();
+                try {
+                    permitWorkingContextCreation.await();
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while waiting to create the working flow context", e);
+                }
+            }
+
+            return delegate.createWorkingFlowContext(connectorId, connectorLogger, currentConfiguration, bundle);
+        }
+
+        private void blockNextWorkingContextCreation() {
+            blockWorkingContextCreation = true;
+        }
+
+        private boolean awaitWorkingContextCreation(final long timeout, final TimeUnit timeUnit) throws InterruptedException {
+            return workingContextCreationStarted.await(timeout, timeUnit);
+        }
+
+        private void releaseWorkingContextCreation() {
+            permitWorkingContextCreation.countDown();
         }
     }
 
@@ -1481,7 +1815,7 @@ public class TestStandardConnectorNode {
             return List.of();
         }
 
-        public boolean wasOnPropertyGroupConfiguredCalled(final String stepName) {
+        public boolean wasOnConfigurationStepConfiguredCalled(final String stepName) {
             return onConfigurationStepConfiguredCalls.contains(stepName);
         }
 
@@ -1667,7 +2001,7 @@ public class TestStandardConnectorNode {
         @Override
         public List<ConfigurationStep> getConfigurationSteps() {
             final ConnectorPropertyDescriptor secretProperty = new ConnectorPropertyDescriptor.Builder()
-                .name("RequiredSecret")
+                .name(REQUIRED_SECRET)
                 .description("A required secret with no dependencies")
                 .type(PropertyType.SECRET)
                 .required(true)
@@ -1680,7 +2014,7 @@ public class TestStandardConnectorNode {
                 .build();
 
             final ConfigurationStep step = new ConfigurationStep.Builder()
-                .name("requiredStep")
+                .name(REQUIRED_STEP)
                 .propertyGroups(List.of(propertyGroup))
                 .build();
 
@@ -1698,6 +2032,23 @@ public class TestStandardConnectorNode {
         @Override
         public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
             return List.of();
+        }
+    }
+
+    private static class StartRecordingSecretConnector extends RequiredSecretConnector {
+        private final List<String> startedSecrets = new ArrayList<>();
+
+        @Override
+        public void start(final FlowContext activeContext) {
+            startedSecrets.add(activeContext.getConfigurationContext().getProperty(REQUIRED_STEP, REQUIRED_SECRET).getValue());
+        }
+
+        @Override
+        public void stop(final FlowContext activeContext) {
+        }
+
+        private List<String> getStartedSecrets() {
+            return startedSecrets;
         }
     }
 
@@ -1757,6 +2108,27 @@ public class TestStandardConnectorNode {
         @Override
         public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
             return List.of();
+        }
+    }
+
+    private static class DefaultValueVerifyingConnector extends DefaultValueConnector {
+        private String verifiedGreeting;
+        private String verifiedRepeatCount;
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            final ConnectorConfigurationContext configurationContext = flowContext.getConfigurationContext().createWithOverrides(stepName, overrides);
+            verifiedGreeting = configurationContext.getProperty(stepName, "Greeting").getValue();
+            verifiedRepeatCount = configurationContext.getProperty(stepName, "Repeat Count").getValue();
+            return List.of();
+        }
+
+        public String getVerifiedGreeting() {
+            return verifiedGreeting;
+        }
+
+        public String getVerifiedRepeatCount() {
+            return verifiedRepeatCount;
         }
     }
 

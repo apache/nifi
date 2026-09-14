@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.repository.claim;
 
+import org.apache.nifi.controller.repository.ContentClaimCreationContext;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.io.ContentClaimOutputStream;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
@@ -35,13 +36,13 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
     private final Map<ResourceClaim, MappedOutputStream> streamMap = new ConcurrentHashMap<>();
     private final Queue<ContentClaim> queue = new LinkedList<>();
     private final PerformanceTracker performanceTracker;
-    private final long maxAppendableClaimBytes;
+    private final ContentClaimCreationContext creationContext;
     private final int bufferSize;
 
-    public StandardContentClaimWriteCache(final ContentRepository contentRepo, final PerformanceTracker performanceTracker, final long maxAppendableClaimBytes, final int bufferSize) {
+    public StandardContentClaimWriteCache(final ContentRepository contentRepo, final PerformanceTracker performanceTracker, final ContentClaimCreationContext creationContext, final int bufferSize) {
         this.contentRepo = contentRepo;
         this.performanceTracker = performanceTracker;
-        this.maxAppendableClaimBytes = maxAppendableClaimBytes;
+        this.creationContext = creationContext;
         this.bufferSize = bufferSize;
     }
 
@@ -70,7 +71,7 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
             }
         }
 
-        final ContentClaim claim = contentRepo.create(false);
+        final ContentClaim claim = contentRepo.create(creationContext);
         registerStream(claim);
         return claim;
     }
@@ -152,7 +153,7 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
                 }
 
                 // Add the claim back to the queue if it is still writable
-                if ((scc.getOffset() + scc.getLength()) < maxAppendableClaimBytes) {
+                if ((scc.getOffset() + scc.getLength()) < contentRepo.getMaxAppendableClaimBytes()) {
                     queue.offer(claim);
                 }
             }

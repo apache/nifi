@@ -136,8 +136,7 @@ public class StandardFlowSnippet implements FlowSnippet {
             prioritizerClasses.add(name);
         }
 
-        final Set<ConnectionDTO> allConns = new HashSet<>();
-        allConns.addAll(dto.getConnections());
+        final Set<ConnectionDTO> allConns = new HashSet<>(dto.getConnections());
         for (final ProcessGroupDTO childGroup : dto.getProcessGroups()) {
             allConns.addAll(findAllConnections(childGroup));
         }
@@ -166,8 +165,7 @@ public class StandardFlowSnippet implements FlowSnippet {
      * @return connection dtos
      */
     private Set<ConnectionDTO> findAllConnections(final ProcessGroupDTO group) {
-        final Set<ConnectionDTO> conns = new HashSet<>();
-        conns.addAll(group.getContents().getConnections());
+        final Set<ConnectionDTO> conns = new HashSet<>(group.getContents().getConnections());
 
         for (final ProcessGroupDTO childGroup : group.getContents().getProcessGroups()) {
             conns.addAll(findAllConnections(childGroup));

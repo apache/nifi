@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -91,7 +92,7 @@ public class ParseSyslog extends AbstractProcessor {
             REL_SUCCESS
     );
 
-    private SyslogParser parser;
+    private volatile SyslogParser parser;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -103,18 +104,16 @@ public class ParseSyslog extends AbstractProcessor {
         return RELATIONSHIPS;
     }
 
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        parser = new SyslogParser(Charset.forName(context.getProperty(CHARSET).getValue()));
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
-        }
-
-        final String charsetName = context.getProperty(CHARSET).getValue();
-
-        // If the parser already exists and uses the same charset, it does not need to be re-initialized
-        if (parser == null || !parser.getCharsetName().equals(charsetName)) {
-            parser = new SyslogParser(Charset.forName(charsetName));
         }
 
         final byte[] buffer = new byte[(int) flowFile.getSize()];

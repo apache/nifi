@@ -47,8 +47,6 @@ import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.diagnostics.ThreadDumpTask;
 import org.apache.nifi.diagnostics.bootstrap.BootstrapDiagnosticsFactory;
-import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.framework.ssl.FrameworkSslContextProvider;
 import org.apache.nifi.nar.ExtensionManager;
@@ -63,6 +61,8 @@ import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardNarLoader;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.PropertyEncryptionProviderFactory;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FlowParser;
 import org.apache.nifi.util.NiFiProperties;
@@ -129,15 +129,14 @@ public class HeadlessNiFiServer implements NiFiServer {
                 }
             };
 
-            final String propertiesKey = props.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
-            final String propertiesAlgorithm = props.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
-            final PropertyEncryptor encryptor = new PropertyEncryptorBuilder(propertiesKey).setAlgorithm(propertiesAlgorithm).build();
             final BulletinRepository bulletinRepository = new VolatileBulletinRepository();
             final StatusHistoryRepository statusHistoryRepository = getStatusHistoryRepository(extensionManager);
 
             final FrameworkSslContextProvider sslContextProvider = new FrameworkSslContextProvider(props);
             final SSLContext sslContext = sslContextProvider.loadSslContext().orElse(null);
             final StateManagerProvider stateManagerProvider = StandardStateManagerProvider.create(props, sslContext, extensionManager, ParameterLookup.EMPTY);
+            final PropertyEncryptionProvider propertyEncryptionProvider =
+                    PropertyEncryptionProviderFactory.getPropertyEncryptionProvider(extensionManager, props, sslContext, null);
 
             flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
@@ -146,7 +145,7 @@ public class HeadlessNiFiServer implements NiFiServer {
                     authorizer,
                     auditService,
                     componentMetricReporter,
-                    encryptor,
+                    propertyEncryptionProvider,
                     bulletinRepository,
                     extensionManager,
                     statusHistoryRepository,
