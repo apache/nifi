@@ -126,11 +126,11 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
         final ProcessGroupEntity stoppedGroup = getClientUtil().setStatelessFlowFileContentInMemoryMax(statelessGroup, TINY_BUDGET);
         assertEquals(TINY_BUDGET, stoppedGroup.getComponent().getStatelessFlowFileContentInMemoryMax());
 
+        final long contentBytesBeforeRestart = contentBytesOnDisk();
         getClientUtil().startProcessGroupComponents(groupId);
         waitFor(() -> getProcessorFlowFilesIn(terminate.getId()) >= 2);
+        assertTrue(contentBytesOnDisk() > contentBytesBeforeRestart);
         getClientUtil().stopProcessGroupComponents(groupId);
-
-        assertTrue(contentBytesOnDisk() > 0L, "The updated in-memory maximum must be applied when the Stateless group restarts");
     }
 
     /**

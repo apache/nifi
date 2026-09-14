@@ -230,14 +230,14 @@ public class DeferredStatelessContentRepository implements ContentRepository {
     }
 
     private ContentRepository getDelegate() {
-        long memoryThresholdBytes = processGroup.resolveStatelessFlowFileContentInMemoryMaxBytes();
+        long memoryThresholdBytes = processGroup.resolveStatelessContentMaxHeap();
         ContentRepository resolved = delegate;
         if (resolved != null && resolvedMemoryThresholdBytes == memoryThresholdBytes) {
             return resolved;
         }
 
         synchronized (this) {
-            memoryThresholdBytes = processGroup.resolveStatelessFlowFileContentInMemoryMaxBytes();
+            memoryThresholdBytes = processGroup.resolveStatelessContentMaxHeap();
             resolved = delegate;
             if (resolved == null || resolvedMemoryThresholdBytes != memoryThresholdBytes) {
                 if (resolved != null) {

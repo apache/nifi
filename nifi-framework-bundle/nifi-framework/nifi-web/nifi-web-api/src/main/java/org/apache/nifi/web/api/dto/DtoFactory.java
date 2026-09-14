@@ -2824,7 +2824,9 @@ public final class DtoFactory {
         dto.setExecutionEngine(group.getExecutionEngine().name());
         dto.setMaxConcurrentTasks(group.getMaxConcurrentTasks());
         dto.setStatelessFlowTimeout(group.getStatelessFlowTimeout());
-        dto.setStatelessFlowFileContentInMemoryMax(group.getStatelessFlowFileContentInMemoryMax());
+        dto.setStatelessFlowFileContentInMemoryMax(group.getStatelessContentMaxHeap());
+        final Integer heapPercentage = group.getStatelessContentMaxHeapPercentage();
+        dto.setStatelessFlowFileContentInMemoryHeapPercentage(heapPercentage == null ? "" : Integer.toString(heapPercentage));
 
         final ParameterContext parameterContext = group.getParameterContext();
         if (parameterContext != null) {
@@ -4817,6 +4819,7 @@ public final class DtoFactory {
         copy.setMaxConcurrentTasks(original.getMaxConcurrentTasks());
         copy.setStatelessFlowTimeout(original.getStatelessFlowTimeout());
         copy.setStatelessFlowFileContentInMemoryMax(original.getStatelessFlowFileContentInMemoryMax());
+        copy.setStatelessFlowFileContentInMemoryHeapPercentage(original.getStatelessFlowFileContentInMemoryHeapPercentage());
 
         copy.setRunningCount(original.getRunningCount());
         copy.setStoppedCount(original.getStoppedCount());

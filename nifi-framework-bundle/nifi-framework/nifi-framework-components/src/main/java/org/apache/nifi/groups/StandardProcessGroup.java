@@ -127,6 +127,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -208,7 +209,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     private volatile ExecutionEngine executionEngine = ExecutionEngine.INHERITED;
     private volatile int maxConcurrentTasks = 1;
     private volatile String statelessFlowTimeout = "1 min";
-    private volatile String statelessFlowFileContentInMemoryMax = DEFAULT_STATELESS_FLOWFILE_CONTENT_IN_MEMORY_MAX;
+    private volatile String statelessFlowFileContentInMemoryMax;
+    private volatile Integer statelessFlowFileContentInMemoryHeapPercentage = 0;
     private volatile Authorizable explicitParentAuthorizable;
     private final FlowFileActivity flowFileActivity = new ProcessGroupFlowFileActivity(this);
 
@@ -229,7 +231,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final String DEFAULT_FLOWFILE_EXPIRATION = "0 sec";
     private static final long DEFAULT_BACKPRESSURE_OBJECT = 10_000L;
     private static final String DEFAULT_BACKPRESSURE_DATA_SIZE = "1 GB";
-    private static final String DEFAULT_STATELESS_FLOWFILE_CONTENT_IN_MEMORY_MAX = "0 B";
+    private static final int MAX_HEAP_PERCENTAGE = 90;
     private static final Pattern INVALID_DIRECTORY_NAME_CHARACTERS = Pattern.compile("[\\s\\<\\>:\\'\\\"\\/\\\\\\|\\?\\*]");
     private static final String PATH_SEPARATOR = "/";
     private static final String VERSION_SEPARATOR = ":";
@@ -3736,6 +3738,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         copy.setExecutionEngine(processGroup.getExecutionEngine());
         copy.setMaxConcurrentTasks(processGroup.getMaxConcurrentTasks());
         copy.setStatelessFlowTimeout(processGroup.getStatelessFlowTimeout());
+        copy.setStatelessFlowFileContentInMemoryMax(processGroup.getStatelessFlowFileContentInMemoryMax());
+        copy.setStatelessFlowFileContentInMemoryHeapPercentage(processGroup.getStatelessFlowFileContentInMemoryHeapPercentage());
 
         final Set<VersionedProcessGroup> copyChildren = new HashSet<>();
 
@@ -3760,6 +3764,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 childCopy.setExecutionEngine(childGroup.getExecutionEngine());
                 childCopy.setMaxConcurrentTasks(childGroup.getMaxConcurrentTasks());
                 childCopy.setStatelessFlowTimeout(childGroup.getStatelessFlowTimeout());
+                childCopy.setStatelessFlowFileContentInMemoryMax(childGroup.getStatelessFlowFileContentInMemoryMax());
+                childCopy.setStatelessFlowFileContentInMemoryHeapPercentage(childGroup.getStatelessFlowFileContentInMemoryHeapPercentage());
 
                 copyChildren.add(childCopy);
             }
@@ -4753,53 +4759,105 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public String getStatelessFlowFileContentInMemoryMax() {
+    public String getStatelessContentMaxHeap() {
         return statelessFlowFileContentInMemoryMax;
     }
 
     @Override
-    public void setStatelessFlowFileContentInMemoryMax(final String maxSize) {
+    public void setStatelessContentMaxHeap(final String maxSize) {
         writeLock.lock();
         try {
-            verifyCanSetStatelessFlowFileContentInMemoryMax(maxSize);
-            this.statelessFlowFileContentInMemoryMax = normalizeStatelessFlowFileContentInMemoryMax(maxSize);
+            verifyCanSetStatelessContentMaxHeap(maxSize);
+            this.statelessFlowFileContentInMemoryMax = normalizeStatelessContentMaxHeap(maxSize);
         } finally {
             writeLock.unlock();
         }
     }
 
     @Override
-    public long resolveStatelessFlowFileContentInMemoryMaxBytes() {
-        return parseStatelessFlowFileContentInMemoryMaxBytes(getStatelessFlowFileContentInMemoryMax());
+    public Integer getStatelessContentMaxHeapPercentage() {
+        return statelessFlowFileContentInMemoryHeapPercentage;
     }
 
     @Override
-    public void verifyCanSetStatelessFlowFileContentInMemoryMax(final String maxSize) {
-        // Validate that the value is a parseable data size. A blank value is treated as the default of "0 B".
-        final long proposedMaxSizeBytes = parseStatelessFlowFileContentInMemoryMaxBytes(maxSize);
+    public void setStatelessContentMaxHeapPercentage(final Integer heapPercentage) {
+        writeLock.lock();
+        try {
+            verifyCanSetStatelessContentMaxHeapPercentage(heapPercentage);
+            this.statelessFlowFileContentInMemoryHeapPercentage = heapPercentage;
+        } finally {
+            writeLock.unlock();
+        }
+    }
 
+    @Override
+    public long resolveStatelessContentMaxHeap() {
+        return resolveStatelessContentMaxHeap(getStatelessContentMaxHeap(), getStatelessContentMaxHeapPercentage());
+    }
+
+    @Override
+    public void verifyCanSetStatelessContentMaxHeap(final String maxSize) {
+        final long proposedMaxSizeBytes = resolveStatelessContentMaxHeap(maxSize, getStatelessContentMaxHeapPercentage());
+        verifyCanSetStatelessContentMaxHeap(proposedMaxSizeBytes);
+    }
+
+    @Override
+    public void verifyCanSetStatelessContentMaxHeapPercentage(final Integer heapPercentage) {
+        final long proposedMaxSizeBytes = resolveStatelessContentMaxHeap(getStatelessContentMaxHeap(), heapPercentage);
+        verifyCanSetStatelessContentMaxHeap(proposedMaxSizeBytes);
+    }
+
+    private void verifyCanSetStatelessContentMaxHeap(final long proposedMaxSizeBytes) {
         // The Content Repository is selected when the Stateless flow starts, so the setting cannot change while the flow is running.
         final ProcessGroup statelessGroup = getStatelessGroup(this);
         if (statelessGroup != null && statelessGroup.getStatelessScheduledState() != StatelessGroupScheduledState.STOPPED
-            && proposedMaxSizeBytes != resolveStatelessFlowFileContentInMemoryMaxBytes()) {
+            && proposedMaxSizeBytes != resolveStatelessContentMaxHeap()) {
             throw new IllegalStateException("Cannot change the maximum in-memory FlowFile content for " + this
                 + " while the Stateless flow is running. Stop the Process Group before changing this setting.");
         }
     }
 
-    private static String normalizeStatelessFlowFileContentInMemoryMax(final String maxSize) {
+    private static String normalizeStatelessContentMaxHeap(final String maxSize) {
         if (maxSize == null || maxSize.isBlank()) {
-            return DEFAULT_STATELESS_FLOWFILE_CONTENT_IN_MEMORY_MAX;
+            return null;
         }
 
         return maxSize.trim();
     }
 
-    private static long parseStatelessFlowFileContentInMemoryMaxBytes(final String maxSize) {
-        if (maxSize == null || maxSize.isBlank()) {
+    private static long resolveStatelessContentMaxHeap(final String maxSize, final Integer heapPercentage) {
+        validateHeapPercentage(heapPercentage);
+
+        final boolean sizeConfigured = maxSize != null && !maxSize.isBlank();
+        final boolean heapPercentageConfigured = heapPercentage != null;
+        if (!sizeConfigured && !heapPercentageConfigured) {
             return 0L;
         }
 
+        if (sizeConfigured && !heapPercentageConfigured) {
+            return parseStatelessContentMaxHeap(maxSize);
+        }
+        if (!sizeConfigured) {
+            return toHeapPercentageBytes(heapPercentage);
+        }
+
+        return Math.min(parseStatelessContentMaxHeap(maxSize), toHeapPercentageBytes(heapPercentage));
+    }
+
+    private static void validateHeapPercentage(final Integer heapPercentage) {
+        if (heapPercentage != null && (heapPercentage < 0 || heapPercentage > MAX_HEAP_PERCENTAGE)) {
+            throw new IllegalArgumentException("Heap percentage must be between 0 and " + MAX_HEAP_PERCENTAGE + ": " + heapPercentage);
+        }
+    }
+
+    private static long toHeapPercentageBytes(final Integer heapPercentage) {
+        return BigDecimal.valueOf(heapPercentage)
+            .multiply(BigDecimal.valueOf(Runtime.getRuntime().maxMemory()))
+            .divide(BigDecimal.valueOf(100), 0, RoundingMode.DOWN)
+            .longValue();
+    }
+
+    private static long parseStatelessContentMaxHeap(final String maxSize) {
         final String normalizedMaxSize = maxSize.trim().toUpperCase(Locale.ROOT);
         final Matcher matcher = DataUnit.DATA_SIZE_PATTERN.matcher(normalizedMaxSize);
         if (!matcher.matches()) {

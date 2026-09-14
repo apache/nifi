@@ -256,7 +256,7 @@ public class TestStatelessFlowTask {
         final ByteArrayContentRepository backingRepository = new ByteArrayContentRepository();
         backingRepository.initialize(new StandardContentRepositoryContext(resourceClaimManager, EventReporter.NO_OP));
         final ProcessGroup processGroup = mock(ProcessGroup.class);
-        when(processGroup.resolveStatelessFlowFileContentInMemoryMaxBytes()).thenReturn(1024L);
+        when(processGroup.resolveStatelessContentMaxHeap()).thenReturn(1024L);
         final DeferredStatelessContentRepository deferredRepository = new DeferredStatelessContentRepository(
             processGroup, backingRepository, flowFileRepository, resourceClaimManager, EventReporter.NO_OP);
 
@@ -301,7 +301,7 @@ public class TestStatelessFlowTask {
         final ByteArrayContentRepository backingRepository = new ByteArrayContentRepository();
         backingRepository.initialize(new StandardContentRepositoryContext(resourceClaimManager, EventReporter.NO_OP));
         final ProcessGroup processGroup = mock(ProcessGroup.class);
-        when(processGroup.resolveStatelessFlowFileContentInMemoryMaxBytes()).thenReturn(1024L);
+        when(processGroup.resolveStatelessContentMaxHeap()).thenReturn(1024L);
         final DeferredStatelessContentRepository deferredRepository = new DeferredStatelessContentRepository(
             processGroup, backingRepository, flowFileRepository, resourceClaimManager, EventReporter.NO_OP);
 

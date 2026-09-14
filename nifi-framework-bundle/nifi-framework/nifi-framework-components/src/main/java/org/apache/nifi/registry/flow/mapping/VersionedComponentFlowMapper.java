@@ -272,7 +272,8 @@ public class VersionedComponentFlowMapper {
         versionedGroup.setScheduledState(flowMappingOptions.getStateLookup().getState(group));
         versionedGroup.setMaxConcurrentTasks(group.getMaxConcurrentTasks());
         versionedGroup.setStatelessFlowTimeout(group.getStatelessFlowTimeout());
-        versionedGroup.setStatelessFlowFileContentInMemoryMax(group.getStatelessFlowFileContentInMemoryMax());
+        versionedGroup.setStatelessFlowFileContentInMemoryMax(group.getStatelessContentMaxHeap());
+        versionedGroup.setStatelessFlowFileContentInMemoryHeapPercentage(group.getStatelessContentMaxHeapPercentage());
 
         final ParameterContext parameterContext = group.getParameterContext();
         versionedGroup.setParameterContextName(parameterContext == null ? null : parameterContext.getName());
