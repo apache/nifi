@@ -197,8 +197,8 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         for (final ParameterEntity parameterEntity : parameterEntities) {
             final ParameterDTO parameterDto = parameterEntity.getParameter();
 
-            // Inherited parameters are only included for referencing components, but we should not save them as direct parameters
-            if (parameterDto.getInherited() != null && parameterDto.getInherited()) {
+            // Inherited parameters are included for referencing-component analysis and must not be saved locally
+            if (isInheritedParameterUpdate(parameterDto, context)) {
                 continue;
             }
 
@@ -216,6 +216,29 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         }
 
         return parameterMap;
+    }
+
+    /**
+     * Returns whether the Parameter should be omitted from local persistence.
+     * Effective inherited values may be present on an update DTO so that referencing components can be identified.
+     * Those values must not become local Parameters, or later inheritance changes would be shadowed.
+     * The {@code inherited} flag is authoritative when set. When it is absent, a source Parameter Context other than
+     * the context being updated is treated as inherited. An explicit {@code inherited=false} remains a local override.
+     *
+     * @param parameterDto the Parameter from the update request
+     * @param context the Parameter Context being updated, or {@code null} when creating Parameters without a current context
+     * @return true when the Parameter is inherited and should not be stored on the current context
+     */
+    private boolean isInheritedParameterUpdate(final ParameterDTO parameterDto, final ParameterContext context) {
+        if (Boolean.TRUE.equals(parameterDto.getInherited())) {
+            return true;
+        }
+        if (Boolean.FALSE.equals(parameterDto.getInherited()) || context == null || parameterDto.getParameterContext() == null) {
+            return false;
+        }
+
+        final String sourceContextId = parameterDto.getParameterContext().getId();
+        return sourceContextId != null && !sourceContextId.equals(context.getIdentifier());
     }
 
     private Parameter createParameter(final ParameterDTO dto, final ParameterContext context) {
