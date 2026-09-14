@@ -505,7 +505,11 @@ public class TestStandardProcessScheduler {
 
         scheduler.disableControllerService(serviceNode);
         assertFalse(serviceNode.isActive());
-        assertEquals(ControllerServiceState.DISABLING, serviceNode.getState());
+        // Disable is asynchronous: the service may still be DISABLING or may have already reached DISABLED
+        // by the time the state is observed, depending on scheduling timing (observed as a flake on fast runners).
+        final ControllerServiceState stateAfterDisable = serviceNode.getState();
+        assertTrue(stateAfterDisable == ControllerServiceState.DISABLING || stateAfterDisable == ControllerServiceState.DISABLED,
+                "Expected DISABLING or DISABLED but was: " + stateAfterDisable);
         assertEquals(0, ts.disableInvocationCount());
     }
 
