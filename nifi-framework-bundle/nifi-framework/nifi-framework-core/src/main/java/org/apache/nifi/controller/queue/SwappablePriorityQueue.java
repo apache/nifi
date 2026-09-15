@@ -1039,7 +1039,7 @@ public class SwappablePriorityQueue {
             }
 
             // Replace rewritten swap files in place so that retained FlowFiles remain ahead of later swap files.
-            final List<String> updatedSwapLocations = new ArrayList<>(swapLocations.size());
+            final List<String> rewrittenSwapLocations = new ArrayList<>(swapLocations.size());
             for (final String swapLocation : swapLocations) {
                 if (swapLocationUpdates.containsKey(swapLocation)) {
                     final String newSwapLocation = swapLocationUpdates.get(swapLocation);
