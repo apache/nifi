@@ -19,6 +19,7 @@ package org.apache.nifi.web;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.util.ComponentLifecycle;
@@ -711,7 +712,7 @@ class RemovedConnectionDrainCoordinatorTest {
         public Set<AffectedComponentEntity> activateControllerServices(final URI exampleUri, final String groupId,
                                                                        final Set<AffectedComponentEntity> servicesToUpdate,
                                                                        final Set<AffectedComponentEntity> servicesRequiringDesiredState,
-                                                                       final org.apache.nifi.controller.service.ControllerServiceState desiredState,
+                                                                       final ControllerServiceState desiredState,
                                                                        final Pause pause,
                                                                        final InvalidComponentAction invalidComponentAction) {
             throw new UnsupportedOperationException();
