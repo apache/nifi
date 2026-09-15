@@ -234,6 +234,7 @@ import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
@@ -242,6 +243,7 @@ import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.reporting.VerifiableReportingTask;
 import org.apache.nifi.util.BundleUtils;
+import org.apache.nifi.util.Connectables;
 import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
@@ -593,6 +595,65 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
         final Set<String> componentIds = getComponents.apply(group);
         return componentIds.stream().map(id -> revisionManager.getRevision(id)).collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<String> findSourceComponentIds(final ProcessGroup group) {
+        final Set<String> sourceIds = new LinkedHashSet<>();
+
+        for (final ProcessorNode processor : group.findAllProcessors()) {
+            if (processor.getProcessGroup().resolveExecutionEngine() == ExecutionEngine.STANDARD
+                    && ProcessGroup.STOP_PROCESSORS_FILTER.test(processor)
+                    && !Connectables.hasNonLoopConnection(processor)) {
+                sourceIds.add(processor.getIdentifier());
+            }
+        }
+
+        for (final RemoteProcessGroup remoteProcessGroup : group.findAllRemoteProcessGroups()) {
+            if (remoteProcessGroup.getProcessGroup().resolveExecutionEngine() == ExecutionEngine.STATELESS) {
+                continue;
+            }
+
+            for (final RemoteGroupPort remotePort : remoteProcessGroup.getOutputPorts()) {
+                if (ProcessGroup.STOP_PORTS_FILTER.test(remotePort)) {
+                    sourceIds.add(remotePort.getIdentifier());
+                }
+            }
+        }
+
+        for (final Port port : group.findAllInputPorts()) {
+            if (port.getProcessGroup().resolveExecutionEngine() == ExecutionEngine.STANDARD
+                    && port instanceof PublicPort
+                    && ProcessGroup.STOP_PORTS_FILTER.test(port)
+                    && !Connectables.hasNonLoopConnection(port)) {
+                sourceIds.add(port.getIdentifier());
+            }
+        }
+
+        return sourceIds;
+    }
+
+    @Override
+    public void verifyStopSources(final String groupId) {
+        final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
+        verifyStopSources(group);
+    }
+
+    @Override
+    public void verifyStopSources(final String groupId, final Set<String> componentIds) {
+        final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
+        verifyStopSources(group);
+
+        final Set<String> sourceComponentIds = findSourceComponentIds(group);
+        if (!sourceComponentIds.equals(componentIds)) {
+            throw new IllegalStateException("Source components changed while processing the request; refresh and retry");
+        }
+    }
+
+    private static void verifyStopSources(final ProcessGroup group) {
+        if (group.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
+            throw new IllegalStateException("Cannot stop sources in a Process Group that resolves to the Stateless Execution Engine");
+        }
     }
 
     @Override

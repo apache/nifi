@@ -26,6 +26,7 @@ import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
@@ -33,7 +34,13 @@ import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ProcessGroupCounts;
+import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarManifest;
@@ -51,6 +58,7 @@ import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.revision.RevisionManager;
@@ -1060,6 +1068,104 @@ public class DtoFactoryTest {
         when(context.getIdentifier()).thenReturn(id);
         when(context.getName()).thenReturn(name);
         when(context.getParameterReferenceManager()).thenReturn(ParameterReferenceManager.EMPTY);
+    }
+
+    @Test
+    void testCreateProcessGroupDtoSetsResolvedExecutionEngineForInheritedUnderStatelessParent() {
+        final ProcessGroup group = stubProcessGroup(ExecutionEngine.INHERITED, ExecutionEngine.STATELESS);
+
+        final ProcessGroupDTO dto = newDtoFactoryForParameters().createProcessGroupDto(group, false);
+
+        assertEquals("INHERITED", dto.getExecutionEngine());
+        assertEquals("STATELESS", dto.getResolvedExecutionEngine());
+    }
+
+    @Test
+    void testCreateProcessGroupDtoSetsResolvedExecutionEngineStandardForRootInherited() {
+        final ProcessGroup group = stubProcessGroup(ExecutionEngine.INHERITED, ExecutionEngine.STANDARD);
+
+        final ProcessGroupDTO dto = newDtoFactoryForParameters().createProcessGroupDto(group, false);
+
+        assertEquals("INHERITED", dto.getExecutionEngine());
+        assertEquals("STANDARD", dto.getResolvedExecutionEngine());
+    }
+
+    @Test
+    void testCreateProcessGroupDtoSetsResolvedExecutionEngineForConfiguredStateless() {
+        final ProcessGroup group = stubProcessGroup(ExecutionEngine.STATELESS, ExecutionEngine.STATELESS);
+
+        final ProcessGroupDTO dto = newDtoFactoryForParameters().createProcessGroupDto(group, false);
+
+        assertEquals("STATELESS", dto.getExecutionEngine());
+        assertEquals("STATELESS", dto.getResolvedExecutionEngine());
+    }
+
+    @Test
+    void testCreateProcessGroupFlowDtoSetsResolvedExecutionEngine() {
+        final ProcessGroup group = stubProcessGroup(ExecutionEngine.INHERITED, ExecutionEngine.STATELESS);
+        final ProcessGroupStatus groupStatus = mock(ProcessGroupStatus.class);
+        when(groupStatus.getProcessorStatus()).thenReturn(Collections.emptyList());
+        when(groupStatus.getConnectionStatus()).thenReturn(Collections.emptyList());
+        when(groupStatus.getProcessGroupStatus()).thenReturn(Collections.emptyList());
+        when(groupStatus.getRemoteProcessGroupStatus()).thenReturn(Collections.emptyList());
+        when(groupStatus.getInputPortStatus()).thenReturn(Collections.emptyList());
+        when(groupStatus.getOutputPortStatus()).thenReturn(Collections.emptyList());
+
+        final ProcessGroupFlowDTO dto = newDtoFactoryForParameters().createProcessGroupFlowDto(
+                group,
+                groupStatus,
+                mock(RevisionManager.class),
+                ignored -> Collections.emptyList(),
+                false
+        );
+
+        assertEquals("STATELESS", dto.getResolvedExecutionEngine());
+    }
+
+    @Test
+    void testCopyProcessGroupDtoCopiesResolvedExecutionEngine() {
+        final ProcessGroupDTO original = new ProcessGroupDTO();
+        original.setContents(new FlowSnippetDTO());
+        original.setExecutionEngine("INHERITED");
+        original.setResolvedExecutionEngine("STATELESS");
+
+        final ProcessGroupDTO copy = newDtoFactoryForParameters().copy(original, false);
+
+        assertEquals("INHERITED", copy.getExecutionEngine());
+        assertEquals("STATELESS", copy.getResolvedExecutionEngine());
+    }
+
+    private static ProcessGroup stubProcessGroup(final ExecutionEngine configured, final ExecutionEngine resolved) {
+        final ProcessGroup group = mock(ProcessGroup.class);
+        when(group.getIdentifier()).thenReturn("pg-1");
+        when(group.getPosition()).thenReturn(new Position(0, 0));
+        when(group.getComments()).thenReturn("");
+        when(group.getName()).thenReturn("group");
+        when(group.getVersionedComponentId()).thenReturn(Optional.empty());
+        when(group.getVersionControlInformation()).thenReturn(null);
+        when(group.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
+        when(group.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE);
+        when(group.getDefaultFlowFileExpiration()).thenReturn("0 sec");
+        when(group.getDefaultBackPressureObjectThreshold()).thenReturn(10000L);
+        when(group.getDefaultBackPressureDataSizeThreshold()).thenReturn("1 GB");
+        when(group.getLogFileSuffix()).thenReturn(null);
+        when(group.getStatelessScheduledState()).thenReturn(StatelessGroupScheduledState.STOPPED);
+        when(group.getExecutionEngine()).thenReturn(configured);
+        when(group.resolveExecutionEngine()).thenReturn(resolved);
+        when(group.getMaxConcurrentTasks()).thenReturn(1);
+        when(group.getStatelessFlowTimeout()).thenReturn("1 min");
+        when(group.getParameterContext()).thenReturn(null);
+        when(group.getParent()).thenReturn(null);
+        when(group.getCounts()).thenReturn(new ProcessGroupCounts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+        when(group.getProcessors()).thenReturn(Collections.emptySet());
+        when(group.getConnections()).thenReturn(Collections.emptySet());
+        when(group.getLabels()).thenReturn(Collections.emptySet());
+        when(group.getFunnels()).thenReturn(Collections.emptySet());
+        when(group.getProcessGroups()).thenReturn(Collections.emptySet());
+        when(group.getRemoteProcessGroups()).thenReturn(Collections.emptySet());
+        when(group.getInputPorts()).thenReturn(Collections.emptySet());
+        when(group.getOutputPorts()).thenReturn(Collections.emptySet());
+        return group;
     }
 
 }

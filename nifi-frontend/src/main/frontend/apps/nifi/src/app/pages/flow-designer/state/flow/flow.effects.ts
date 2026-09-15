@@ -3656,6 +3656,64 @@ export class FlowEffects {
         )
     );
 
+    stopSources$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopSources),
+            map((action) => action.request),
+            mergeMap((request) =>
+                from(this.flowService.stopSources(request)).pipe(
+                    map((response) =>
+                        FlowActions.stopSourcesSuccess({
+                            response: {
+                                type: ComponentType.ProcessGroup,
+                                component: {
+                                    id: response.id,
+                                    state: response.state
+                                }
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
+                )
+            )
+        )
+    );
+
+    /**
+     * If sources were stopped in the current process group, reload the flow
+     */
+    stopSourcesCurrentProcessGroupSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopSourcesSuccess),
+            map((action) => action.response),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            filter(([response, currentPg]) => response.component.id === currentPg),
+            switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
+
+    /**
+     * If sources were stopped in a child ProcessGroup, reload that row; the
+     * schedule response does not contain all the displayed info
+     */
+    stopSourcesSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopSourcesSuccess),
+            map((action) => action.response),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            filter(([response, currentPg]) => response.component.id !== currentPg),
+            switchMap(([response]) =>
+                of(
+                    FlowActions.loadChildProcessGroup({
+                        request: {
+                            id: response.component.id
+                        }
+                    })
+                )
+            )
+        )
+    );
+
     enableControllerServicesInCurrentProcessGroup$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.enableControllerServicesInCurrentProcessGroup),

@@ -86,6 +86,16 @@ public interface FlowClient {
             String processGroupId, ScheduleComponentsEntity scheduleComponentsEntity) throws NiFiClientException, IOException;
 
     /**
+     * Stops source components in a process group.
+     *
+     * @param processGroupId the id of a process group
+     * @param scheduleComponentsEntity the scheduled state to update to
+     * @return the entity representing the stopped source components
+     */
+    ScheduleComponentsEntity stopProcessGroupSources(
+            String processGroupId, ScheduleComponentsEntity scheduleComponentsEntity) throws NiFiClientException, IOException;
+
+    /**
      * Gets the possible versions for the given flow in the given bucket in the
      * given registry.
      *

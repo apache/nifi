@@ -320,6 +320,7 @@ public final class EntityFactory {
             entity.setStaleCount(dto.getStaleCount());
             entity.setLocallyModifiedAndStaleCount(dto.getLocallyModifiedAndStaleCount());
             entity.setSyncFailureCount(dto.getSyncFailureCount());
+            entity.setResolvedExecutionEngine(dto.getResolvedExecutionEngine());
 
             final ParameterContextReferenceEntity parameterContextReference = dto.getParameterContext();
             if (parameterContextReference != null) {

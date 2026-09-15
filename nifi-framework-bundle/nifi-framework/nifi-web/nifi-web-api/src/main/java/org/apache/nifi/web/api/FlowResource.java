@@ -1217,6 +1217,125 @@ public class FlowResource extends ApplicationResource {
         );
     }
 
+    /**
+     * Stops source components in the specified process group and its Standard-engine descendants. Sources are
+     * processors with no non-loop incoming connection, Remote Process Group output ports, and public input ports
+     * with no non-loop incoming connection. The operation is rejected when the specified group resolves to the
+     * Stateless Execution Engine.
+     *
+     * @param id The id of the process group.
+     * @param requestScheduleComponentsEntity A scheduleComponentsEntity with state STOPPED.
+     * @return A scheduleComponentsEntity identifying the components that were stopped.
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-groups/{id}/sources")
+    @Operation(
+            summary = "Stop source components in the specified Process Group.",
+            description = "All source components included in the operation must be authorized. If any source is unauthorized, no components are stopped.",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ScheduleComponentsEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /flow"),
+                    @SecurityRequirement(name = "Write - /{component-type}/{uuid} or /operation/{component-type}/{uuid} - For every source component being stopped")
+            }
+    )
+    public Response stopSources(
+            @Parameter(
+                    description = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @Parameter(
+                    description = "The request to stop sources. If the components in the request are not specified, all source components are identified.",
+                    required = true
+            ) final ScheduleComponentsEntity requestScheduleComponentsEntity) {
+
+        if (requestScheduleComponentsEntity == null) {
+            throw new IllegalArgumentException("Schedule Component must be specified.");
+        }
+
+        if (!id.equals(requestScheduleComponentsEntity.getId())) {
+            throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
+                    + "not equal the process group id of the requested resource (%s).", requestScheduleComponentsEntity.getId(), id));
+        }
+
+        if (!ScheduledState.STOPPED.name().equals(requestScheduleComponentsEntity.getState())) {
+            throw new IllegalArgumentException("The scheduled state must be STOPPED.");
+        }
+
+        authorizeFlow();
+        serviceFacade.verifyStopSources(id);
+
+        if (requestScheduleComponentsEntity.getComponents() == null) {
+            final Set<Revision> revisions = serviceFacade.getRevisionsFromGroup(id, serviceFacade::findSourceComponentIds);
+            final Map<String, RevisionDTO> componentsToStop = new HashMap<>();
+            for (final Revision revision : revisions) {
+                final RevisionDTO dto = new RevisionDTO();
+                dto.setClientId(revision.getClientId());
+                dto.setVersion(revision.getVersion());
+                componentsToStop.put(revision.getComponentId(), dto);
+            }
+
+            requestScheduleComponentsEntity.setComponents(componentsToStop);
+        }
+
+        final Map<String, RevisionDTO> requestComponentsToStop = requestScheduleComponentsEntity.getComponents();
+        final Set<String> requestComponentIds = Set.copyOf(requestComponentsToStop.keySet());
+
+        serviceFacade.authorizeAccess(lookup -> {
+            for (final String componentId : requestComponentIds) {
+                final Authorizable connectable = lookup.getLocalConnectable(componentId);
+                OperationAuthorizable.authorizeOperation(connectable, authorizer, NiFiUserUtils.getNiFiUser());
+            }
+        });
+
+        serviceFacade.verifyStopSources(id, requestComponentIds);
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestScheduleComponentsEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestScheduleComponentsEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        final Map<String, Revision> requestComponentRevisions =
+                requestComponentsToStop.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
+        final Set<Revision> requestRevisions = new HashSet<>(requestComponentRevisions.values());
+
+        return withWriteLock(
+                serviceFacade,
+                requestScheduleComponentsEntity,
+                requestRevisions,
+                lookup -> {
+                    authorizeFlow();
+
+                    requestComponentsToStop.keySet().forEach(componentId -> {
+                        final Authorizable connectable = lookup.getLocalConnectable(componentId);
+                        OperationAuthorizable.authorizeOperation(connectable, authorizer, NiFiUserUtils.getNiFiUser());
+                    });
+                },
+                () -> {
+                    serviceFacade.verifyStopSources(id, requestComponentIds);
+                    serviceFacade.verifyScheduleComponents(id, ScheduledState.STOPPED, requestComponentIds);
+                },
+                (revisions, scheduleComponentsEntity) -> {
+                    final Map<String, RevisionDTO> componentsToStop = scheduleComponentsEntity.getComponents();
+                    final Map<String, Revision> componentRevisions =
+                            componentsToStop.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
+                    final ScheduleComponentsEntity entity = serviceFacade.scheduleComponents(id, ScheduledState.STOPPED, componentRevisions);
+                    entity.setComponents(componentsToStop);
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)

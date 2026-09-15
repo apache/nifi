@@ -43,6 +43,8 @@ import {
     SaveToVersionControlRequest,
     StartProcessGroupRequest,
     StopProcessGroupRequest,
+    StopSourcesRequest,
+    StopSourcesResponse,
     StopVersionControlRequest,
     TerminateThreadsRequest,
     UploadProcessGroupRequest,
@@ -401,6 +403,18 @@ export class FlowService implements PropertyDescriptorRetriever {
             state: 'STOPPED'
         };
         return this.httpClient.put(`${FlowService.API}/flow/process-groups/${request.id}`, stopRequest);
+    }
+
+    stopSources(request: StopSourcesRequest): Observable<StopSourcesResponse> {
+        const stopRequest: ProcessGroupRunStatusRequest = {
+            id: request.id,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+            state: 'STOPPED'
+        };
+        return this.httpClient.put<StopSourcesResponse>(
+            `${FlowService.API}/flow/process-groups/${request.id}/sources`,
+            stopRequest
+        );
     }
 
     stopRemoteProcessGroupsInProcessGroup(request: StopProcessGroupRequest): Observable<any> {

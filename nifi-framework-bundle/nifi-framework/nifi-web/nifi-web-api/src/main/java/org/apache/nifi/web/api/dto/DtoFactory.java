@@ -2568,6 +2568,8 @@ public final class DtoFactory {
             dto.setParentGroupId(parent.getIdentifier());
         }
 
+        dto.setResolvedExecutionEngine(group.resolveExecutionEngine().name());
+
         final ParameterContext parameterContext = group.getParameterContext();
         if (parameterContext != null) {
             dto.setParameterContext(entityFactory.createParameterReferenceEntity(createParameterContextReference(parameterContext), createPermissionsDto(parameterContext)));
@@ -2834,6 +2836,7 @@ public final class DtoFactory {
         dto.setLogFileSuffix(group.getLogFileSuffix());
         dto.setStatelessGroupScheduledState(group.getStatelessScheduledState().name());
         dto.setExecutionEngine(group.getExecutionEngine().name());
+        dto.setResolvedExecutionEngine(group.resolveExecutionEngine().name());
         dto.setMaxConcurrentTasks(group.getMaxConcurrentTasks());
         dto.setStatelessFlowTimeout(group.getStatelessFlowTimeout());
 
@@ -4825,6 +4828,7 @@ public final class DtoFactory {
         copy.setDefaultBackPressureDataSizeThreshold(original.getDefaultBackPressureDataSizeThreshold());
         copy.setLogFileSuffix(original.getLogFileSuffix());
         copy.setExecutionEngine(original.getExecutionEngine());
+        copy.setResolvedExecutionEngine(original.getResolvedExecutionEngine());
         copy.setMaxConcurrentTasks(original.getMaxConcurrentTasks());
         copy.setStatelessFlowTimeout(original.getStatelessFlowTimeout());
 

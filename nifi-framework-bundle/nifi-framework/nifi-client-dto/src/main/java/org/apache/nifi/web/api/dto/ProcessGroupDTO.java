@@ -38,6 +38,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     private String defaultBackPressureDataSizeThreshold;
     private String logFileSuffix;
     private String executionEngine;
+    private String resolvedExecutionEngine;
     private Integer maxConcurrentTasks;
     private String statelessFlowTimeout;
 
@@ -393,6 +394,17 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     public void setExecutionEngine(final String executionEngine) {
         this.executionEngine = executionEngine;
+    }
+
+    @Schema(description = "The Execution Engine that will actually run this Process Group after resolving INHERITED. Never INHERITED; a root group configured as INHERITED resolves to STANDARD.",
+        allowableValues = {"STATELESS", "STANDARD"},
+        accessMode = Schema.AccessMode.READ_ONLY)
+    public String getResolvedExecutionEngine() {
+        return resolvedExecutionEngine;
+    }
+
+    public void setResolvedExecutionEngine(final String resolvedExecutionEngine) {
+        this.resolvedExecutionEngine = resolvedExecutionEngine;
     }
 
     @Schema(description = "If the Process Group is configured to run in using the Stateless Engine, represents the current state. Otherwise, will be STOPPED.",
