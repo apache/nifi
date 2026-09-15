@@ -39,10 +39,11 @@ public class ReportingTaskWrapper implements Runnable {
     }
 
     @Override
-    public synchronized void run() {
+    public void run() {
         if (!lifecycleState.tryIncrementActiveThreadCount(null)) {
             return;
         }
+
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
             taskNode.getReportingTask().onTrigger(taskNode.getReportingContext());
         } catch (final Throwable t) {
