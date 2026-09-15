@@ -68,6 +68,7 @@ class VirtualThreadSchedulingAgentTest {
 
     private static final int MAX_THREADS = 10;
     private static final String COMPONENT_ID = UUID.randomUUID().toString();
+    private static final String CRON_SCHEDULE = "* * * * * ?";
 
     @Mock
     private FlowController flowController;
@@ -472,8 +473,8 @@ class VirtualThreadSchedulingAgentTest {
         final AtomicInteger invocationCount = new AtomicInteger(0);
         final CountDownLatch atLeastOneInvocation = new CountDownLatch(1);
         final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.CRON_DRIVEN, invocationCount, atLeastOneInvocation);
-        when(connectable.getSchedulingPeriod()).thenReturn("* * * * * ?");
-        when(connectable.evaluateParameters(eq("* * * * * ?"))).thenReturn("* * * * * ?");
+        when(connectable.getSchedulingPeriod()).thenReturn(CRON_SCHEDULE);
+        when(connectable.evaluateParameters(eq(CRON_SCHEDULE))).thenReturn(CRON_SCHEDULE);
 
         final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
         scheduleConnectable(connectable, lifecycleState);
@@ -496,7 +497,7 @@ class VirtualThreadSchedulingAgentTest {
 
         final ReportingTaskNode taskNode = mock(ReportingTaskNode.class);
         when(taskNode.getSchedulingStrategy()).thenReturn(SchedulingStrategy.CRON_DRIVEN);
-        when(taskNode.getSchedulingPeriod()).thenReturn("* * * * * ?");
+        when(taskNode.getSchedulingPeriod()).thenReturn(CRON_SCHEDULE);
         when(taskNode.getSchedulingPeriod(TimeUnit.NANOSECONDS))
                 .thenThrow(new IllegalArgumentException("CRON expression cannot be parsed as a time duration"));
         when(taskNode.getReportingTask()).thenReturn(reportingTask);

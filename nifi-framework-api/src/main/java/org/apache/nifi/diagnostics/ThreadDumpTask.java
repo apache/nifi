@@ -47,8 +47,8 @@ public class ThreadDumpTask implements DiagnosticTask {
         final String threadDump = captureThreadDump(threadMXBean);
 
         final StringBuilder dumpBuilder = new StringBuilder(threadDump);
-        appendDeadlockedThreadIds(dumpBuilder, "DEADLOCK DETECTED!", threadMXBean.findDeadlockedThreads());
-        appendDeadlockedThreadIds(dumpBuilder, "MONITOR DEADLOCK DETECTED!", threadMXBean.findMonitorDeadlockedThreads());
+        appendDeadlockedThreadIds(dumpBuilder, "DEADLOCK DETECTED", threadMXBean.findDeadlockedThreads());
+        appendDeadlockedThreadIds(dumpBuilder, "MONITOR DEADLOCK DETECTED", threadMXBean.findMonitorDeadlockedThreads());
 
         return new StandardDiagnosticsDumpElement("Thread Dump", Collections.singletonList(dumpBuilder.toString()));
     }

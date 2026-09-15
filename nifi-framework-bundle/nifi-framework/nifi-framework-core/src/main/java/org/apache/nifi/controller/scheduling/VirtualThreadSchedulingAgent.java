@@ -556,8 +556,8 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     }
 
     private static String buildThreadName(final Connectable connectable, final int taskIndex) {
-        return connectable.getName() + "[type=" + connectable.getComponentType() + ", id=" + connectable.getIdentifier()
-                + ", group=" + connectable.getProcessGroup().getName() + "] task " + taskIndex;
+        return "%s[type=%s, id=%s, group=%s] task %d".formatted(connectable.getName(), connectable.getComponentType(), connectable.getIdentifier(),
+                connectable.getProcessGroup().getName(), taskIndex);
     }
 
     private void submitTask(final String threadName, final SchedulingGeneration generation, final Runnable task) {

@@ -908,7 +908,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 : Optional.empty();
     }
 
-    static boolean isVirtualThreadSchedulingEnabled(final String schedulingStrategy, final int javaFeatureVersion) {
+    private static boolean isVirtualThreadSchedulingEnabled(final String schedulingStrategy, final int javaFeatureVersion) {
         if (NiFiProperties.AUTO_SCHEDULING_STRATEGY.equals(schedulingStrategy)) {
             return javaFeatureVersion >= MINIMUM_JAVA_VERSION_FOR_AUTOMATIC_VIRTUAL_THREAD_SCHEDULING;
         }

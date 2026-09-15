@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Verifies that repeated start and stop cycles neither leak scheduling loops nor miss invocations.
  */
-public class VirtualThreadStartStopCycleIT extends NiFiSystemIT {
+class VirtualThreadStartStopCycleIT extends NiFiSystemIT {
 
     private static final int START_STOP_CYCLES = 25;
 
@@ -45,7 +45,7 @@ public class VirtualThreadStartStopCycleIT extends NiFiSystemIT {
 
     @Test
     @Timeout(value = 5, unit = TimeUnit.MINUTES)
-    public void testRepeatedStartStopProducesExpectedQueueCount() throws NiFiClientException, IOException, InterruptedException {
+    void testRepeatedStartStopProducesExpectedQueueCount() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
         final ConnectionEntity generateToTerminate = getClientUtil().createConnection(generate, terminate, "success");
