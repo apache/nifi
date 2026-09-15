@@ -92,10 +92,6 @@
                 </exclusion>
                 <exclusion>
                     <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-property-encryptor</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-framework-nar-utils</artifactId>
                 </exclusion>
                 <exclusion>
