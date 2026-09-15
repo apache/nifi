@@ -785,7 +785,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     return resolved === 'STANDARD';
                 },
                 clazz: 'fa fa-stop-circle-o',
-                text: 'Stop sources',
+                text: 'Stop Sources',
                 action: (selection: any) => {
                     let processGroupId: string;
                     if (selection.empty()) {

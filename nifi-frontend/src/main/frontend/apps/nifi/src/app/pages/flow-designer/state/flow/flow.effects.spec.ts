@@ -17,7 +17,7 @@
 
 import { FlowService } from '../../service/flow.service';
 import * as FlowActions from './flow.actions';
-import { of, ReplaySubject, take, throwError } from 'rxjs';
+import { firstValueFrom, of, ReplaySubject, Subject, take, throwError, toArray } from 'rxjs';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ComponentHistoryEntity } from '../../../../state/shared';
 import { EditProcessor } from '../../../../ui/common/component-dialogs/edit-processor/edit-processor.component';
@@ -35,7 +35,8 @@ import {
     CreateComponentResponse,
     CreateConnection,
     flowFeatureKey,
-    MoveToFrontRequest
+    MoveToFrontRequest,
+    StopSourcesResponse
 } from './index';
 import {
     BacklogRequestEntity,
@@ -81,7 +82,6 @@ import * as fromParameter from '../parameter/parameter.reducer';
 import { flowAnalysisFeatureKey } from '../flow-analysis';
 import * as fromFlowAnalysis from '../flow-analysis/flow-analysis.reducer';
 import * as EmptyQueueActions from '../../../../state/empty-queue/empty-queue.actions';
-import { firstValueFrom } from 'rxjs';
 
 describe('FlowEffects', () => {
     let action$: ReplaySubject<Action>;
@@ -1151,6 +1151,38 @@ describe('FlowEffects', () => {
                 })
             );
             expect(flowService.stopSources).toHaveBeenCalledWith({ id: 'test-group-id' });
+        });
+
+        it('should keep overlapping stop sources requests active', async () => {
+            const firstResponse$ = new Subject<StopSourcesResponse>();
+            const secondResponse$ = new Subject<StopSourcesResponse>();
+            vi.spyOn(flowService, 'stopSources').mockImplementation((request) =>
+                request.id === 'first-group-id' ? firstResponse$ : secondResponse$
+            );
+            const resultsPromise = firstValueFrom(effects.stopSources$.pipe(take(2), toArray()));
+
+            action$.next(FlowActions.stopSources({ request: { id: 'first-group-id' } }));
+            action$.next(FlowActions.stopSources({ request: { id: 'second-group-id' } }));
+            secondResponse$.next({ id: 'second-group-id', state: 'STOPPED', components: {} });
+            secondResponse$.complete();
+            firstResponse$.next({ id: 'first-group-id', state: 'STOPPED', components: {} });
+            firstResponse$.complete();
+
+            expect(await resultsPromise).toEqual([
+                FlowActions.stopSourcesSuccess({
+                    response: {
+                        type: ComponentType.ProcessGroup,
+                        component: { id: 'second-group-id', state: 'STOPPED' }
+                    }
+                }),
+                FlowActions.stopSourcesSuccess({
+                    response: {
+                        type: ComponentType.ProcessGroup,
+                        component: { id: 'first-group-id', state: 'STOPPED' }
+                    }
+                })
+            ]);
+            expect(flowService.stopSources).toHaveBeenCalledTimes(2);
         });
 
         it('should dispatch flowSnackbarError and not stopSourcesSuccess when stopSources fails', async () => {

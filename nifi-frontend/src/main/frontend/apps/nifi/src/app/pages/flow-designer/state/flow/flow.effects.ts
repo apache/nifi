@@ -3660,7 +3660,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.stopSources),
             map((action) => action.request),
-            switchMap((request) =>
+            mergeMap((request) =>
                 from(this.flowService.stopSources(request)).pipe(
                     map((response) =>
                         FlowActions.stopSourcesSuccess({

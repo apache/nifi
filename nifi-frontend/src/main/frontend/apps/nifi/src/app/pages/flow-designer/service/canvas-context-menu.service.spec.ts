@@ -77,13 +77,13 @@ async function setup(options: SetupOptions = {}) {
 }
 
 describe('CanvasContextMenu', () => {
-    describe('Stop sources', () => {
+    describe('Stop Sources', () => {
         it('is immediately after Stop in the root menu', async () => {
             const { service } = await setup();
             const menuItems = service.getMenu('root')!.menuItems;
             const texts = menuItems.map((item) => item.text);
             const stopIndex = texts.indexOf('Stop');
-            const stopSourcesIndex = texts.indexOf('Stop sources');
+            const stopSourcesIndex = texts.indexOf('Stop Sources');
 
             expect(stopIndex).toBeGreaterThan(-1);
             expect(stopSourcesIndex).toBe(stopIndex + 1);
@@ -91,7 +91,7 @@ describe('CanvasContextMenu', () => {
 
         it('is visible on an empty canvas and dispatches stopSources for the current group', async () => {
             const { service, canvasUtils, dispatchSpy } = await setup({ currentProcessGroupId: 'current-pg' });
-            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop sources');
+            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop Sources');
             const selection = { empty: () => true };
 
             expect(stopSources.condition!(selection as never)).toBe(true);
@@ -103,7 +103,7 @@ describe('CanvasContextMenu', () => {
 
         it('is visible for a selected process group and dispatches stopSources for that group', async () => {
             const { service, dispatchSpy } = await setup({ isProcessGroup: true });
-            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop sources');
+            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop Sources');
             const selection = {
                 empty: () => false,
                 datum: () => ({ id: 'pg-child', resolvedExecutionEngine: 'STANDARD' })
@@ -117,7 +117,7 @@ describe('CanvasContextMenu', () => {
 
         it('is hidden when the selection is not a process group', async () => {
             const { service } = await setup({ isProcessGroup: false });
-            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop sources');
+            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop Sources');
             const selection = { empty: () => false };
 
             expect(stopSources.condition!(selection as never)).toBe(false);
@@ -125,7 +125,7 @@ describe('CanvasContextMenu', () => {
 
         it('is hidden on an empty canvas when the current group resolves to STATELESS', async () => {
             const { service } = await setup({ resolvedExecutionEngine: 'STATELESS' });
-            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop sources');
+            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop Sources');
             const selection = { empty: () => true };
 
             expect(stopSources.condition!(selection as never)).toBe(false);
@@ -133,7 +133,7 @@ describe('CanvasContextMenu', () => {
 
         it('is hidden for a selected process group when the resolved engine is missing', async () => {
             const { service } = await setup({ isProcessGroup: true });
-            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop sources');
+            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop Sources');
             const selection = {
                 empty: () => false,
                 datum: () => ({ id: 'pg-child' })
@@ -144,7 +144,7 @@ describe('CanvasContextMenu', () => {
 
         it('is visible on an empty canvas when the current group is configured INHERITED but resolves to STANDARD', async () => {
             const { service } = await setup({ resolvedExecutionEngine: 'STANDARD' });
-            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop sources');
+            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop Sources');
             const selection = { empty: () => true };
 
             expect(stopSources.condition!(selection as never)).toBe(true);
@@ -152,7 +152,7 @@ describe('CanvasContextMenu', () => {
 
         it('is visible for a selected process group with no component when the entity resolves to STANDARD', async () => {
             const { service } = await setup({ isProcessGroup: true });
-            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop sources');
+            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop Sources');
             const selection = {
                 empty: () => false,
                 datum: () => ({ id: 'pg-child', resolvedExecutionEngine: 'STANDARD' })
@@ -163,7 +163,7 @@ describe('CanvasContextMenu', () => {
 
         it('is hidden for a selected process group with no component when the entity resolves to STATELESS', async () => {
             const { service } = await setup({ isProcessGroup: true });
-            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop sources');
+            const stopSources = menuItem(service.getMenu('root')!.menuItems, 'Stop Sources');
             const selection = {
                 empty: () => false,
                 datum: () => ({ id: 'pg-child', resolvedExecutionEngine: 'STATELESS' })
