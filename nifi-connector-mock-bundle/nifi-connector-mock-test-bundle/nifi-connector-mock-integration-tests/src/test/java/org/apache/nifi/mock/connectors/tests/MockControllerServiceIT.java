@@ -26,9 +26,11 @@ import org.apache.nifi.mock.connector.StandardConnectorTestRunner;
 import org.apache.nifi.mock.connector.server.ConnectorTestRunner;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -38,6 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MockControllerServiceIT {
 
+    @TempDir
+    private Path temporaryDirectory;
+
     @Test
     @Timeout(10)
     public void testMockControllerService() throws IOException {
@@ -45,6 +50,7 @@ public class MockControllerServiceIT {
                 .narLibraryDirectory(new File("target/libDir"))
                 .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
                 .mockControllerService("org.apache.nifi.lookup.SimpleKeyValueLookupService", MockStringLookupService.class)
+                .instanceDirectory(temporaryDirectory)
                 .build()) {
 
             runner.startConnector();
