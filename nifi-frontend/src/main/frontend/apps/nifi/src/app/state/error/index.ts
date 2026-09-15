@@ -46,6 +46,7 @@ export enum ErrorContextKey {
     REGISTRY_IMPORT = 'registry-import',
     LABEL = 'label',
     FLOW_VERSION = 'flow-version',
+    FLOW_BRANCH = 'flow-branch',
     FUNNEL = 'funnel',
     LOCAL_EXTENSIONS = 'local-extensions',
     LINEAGE = 'lineage',

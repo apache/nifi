@@ -24,7 +24,12 @@ import * as fromFlow from '../state/flow/flow.reducer';
 import { transformFeatureKey } from '../state/transform';
 import * as fromTransform from '../state/transform/transform.reducer';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
-import { selectConnections, selectCurrentProcessGroupId, selectFlowState } from '../state/flow/flow.selectors';
+import {
+    selectConnections,
+    selectCurrentProcessGroupId,
+    selectFlowState,
+    selectRegistryClients
+} from '../state/flow/flow.selectors';
 import { controllerServicesFeatureKey } from '../state/controller-services';
 import * as fromControllerServices from '../state/controller-services/controller-services.reducer';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
@@ -128,6 +133,91 @@ describe('CanvasUtils', () => {
             };
             const selection = d3.select(document.createElement('div')).classed('process-group', true).datum(pgDatum);
             expect(service.getFlowVersionControlInformation(selection)).toBe(versionControlInformation);
+        });
+    });
+
+    describe('supportsCreateFlowBranch', () => {
+        const registryId = '324e0ab1-0197-1000-ffff-ffffb3123c5c';
+
+        function createProcessGroupSelection(versionControlInformation: any): d3.Selection<any, any, any, any> {
+            const pgDatum = {
+                id: '1',
+                type: ComponentType.ProcessGroup,
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    id: '1',
+                    name: 'Test Process Group',
+                    versionControlInformation
+                }
+            };
+            return d3.select(document.createElement('div')).classed('process-group', true).datum(pgDatum);
+        }
+
+        function configure(canVersionFlows: boolean, supportsBranching: boolean): void {
+            const store = TestBed.inject(MockStore);
+            store.overrideSelector(selectCurrentUser, { ...fromUser.initialState.user, canVersionFlows });
+            store.overrideSelector(selectRegistryClients, [
+                { id: registryId, component: { supportsBranching } }
+            ] as any);
+            store.refreshState();
+        }
+
+        it('should return false when the user cannot version flows', () => {
+            configure(false, true);
+            const selection = createProcessGroupSelection({ groupId: '1', registryId, state: 'UP_TO_DATE' });
+            expect(service.supportsCreateFlowBranch(selection)).toBe(false);
+        });
+
+        it('should return false when there is no version control information', () => {
+            configure(true, true);
+            const selection = createProcessGroupSelection(null);
+            expect(service.supportsCreateFlowBranch(selection)).toBe(false);
+        });
+
+        it('should return false when the registry id is missing', () => {
+            configure(true, true);
+            const selection = createProcessGroupSelection({ groupId: '1', state: 'UP_TO_DATE' });
+            expect(service.supportsCreateFlowBranch(selection)).toBe(false);
+        });
+
+        it('should return false when the flow is in a sync failure state', () => {
+            configure(true, true);
+            const selection = createProcessGroupSelection({ groupId: '1', registryId, state: 'SYNC_FAILURE' });
+            expect(service.supportsCreateFlowBranch(selection)).toBe(false);
+        });
+
+        it('should return false when the registry client does not support branching', () => {
+            configure(true, false);
+            const selection = createProcessGroupSelection({ groupId: '1', registryId, state: 'UP_TO_DATE' });
+            expect(service.supportsCreateFlowBranch(selection)).toBe(false);
+        });
+
+        it('should return true when version controlled and the registry client supports branching', () => {
+            configure(true, true);
+            const selection = createProcessGroupSelection({ groupId: '1', registryId, state: 'UP_TO_DATE' });
+            expect(service.supportsCreateFlowBranch(selection)).toBe(true);
+        });
+
+        it('should return true when the flow is locally modified', () => {
+            configure(true, true);
+            const selection = createProcessGroupSelection({ groupId: '1', registryId, state: 'LOCALLY_MODIFIED' });
+            expect(service.supportsCreateFlowBranch(selection)).toBe(true);
+        });
+
+        it('should return true when the flow is locally modified and stale', () => {
+            configure(true, true);
+            const selection = createProcessGroupSelection({
+                groupId: '1',
+                registryId,
+                state: 'LOCALLY_MODIFIED_AND_STALE'
+            });
+            expect(service.supportsCreateFlowBranch(selection)).toBe(true);
+        });
+
+        it('should return true when the flow is stale', () => {
+            configure(true, true);
+            const selection = createProcessGroupSelection({ groupId: '1', registryId, state: 'STALE' });
+            expect(service.supportsCreateFlowBranch(selection)).toBe(true);
         });
     });
 
