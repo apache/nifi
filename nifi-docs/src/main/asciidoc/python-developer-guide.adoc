@@ -122,7 +122,7 @@ Processors such as ExecuteScript) tend to be around data manipulation and/or com
     - Calls from Python to Java (and vice versa) are far more expensive than native method calls. Having APIs that are more tailored toward
 specific use cases allows for fewer interactions between the two processes, which greatly improves performance.
 
-As a result, the Python API consists of three different Processor classes that can be implemented: `FlowFileTransform`, `RecordTransform` and `FlowFileSource`.
+As a result, the Python API consists of five different Processor classes that can be implemented: `FlowFileTransform`, `FlowFileTransformMultipleOutput`, `RecordTransform`, `FlowFileSource`, and `MultipleFlowFileSource`.
 Others may emerge in the future.
 
 
@@ -168,6 +168,51 @@ the updated contents of the FlowFile, and any attributes that should be added to
 the `contents` should be unspecified or should be specified as `None`. The original FlowFile contents should not be returned,
 as it will have the same effect as passing `None` but will be more expensive, as the contents will be written out to the FlowFile.
 Likewise, it is more efficient to omit the `attributes` unless there is any attribute to add.
+
+
+[[flowfile-transform-multiple-output]]
+=== FlowFileTransformMultipleOutput
+
+The `FlowFileTransformMultipleOutput` API provides a mechanism for routing and transforming a singl FlowFile based on its attributes as well as its
+textual or binary contents into multiple FlowFiles, each with its own relationship and content. Contrast this with the `RecordTransform` API, which provides a mechanism for routing and transforming
+individual Records (such as JSON, Avro or CSV Records, for example).
+
+In order to implement the `FlowFileTransformMultipleOutput` API, a Python class must extend from the `nifiapi.FlowFileTransformMultipleOutput` class
+and implement the `transform(ProcessContext, InputFlowFile)` method, which returns an iterable of `FlowFileTransformResult` objects.
+
+Additionally, the Processor class must provide two pieces of information as subclasses: the Java interface that it implements
+(which will always be `org.apache.nifi.python.processor.FlowFileTransformMultipleOutput`) and any details about the Processor, such as the
+version, a description, keywords/tags that might be associated with the Processor, etc.
+These will be discussed in more details below, in the <<inner-classes>> section.
+
+As such, a simple implementation may look like this:
+----
+from nifiapi.flowfiletransform import FlowFileTransformMultipleOutput, FlowFileTransformResult
+
+class WriteHelloWorld(FlowFileTransform):
+    class Java:
+        implements = ['org.apache.nifi.python.processor.FlowFileTransform']
+    class ProcessorDetails:
+        version = '0.0.1-SNAPSHOT'
+
+    def __init__(self, **kwargs):
+        pass
+
+    def transform(self, context, flowfile):
+        results = []
+        results.append(FlowFileTransformResult(relationship = "success", contents = "Hello from Flowfile 1!", attributes = {"greeting": "hello"}))
+        results.append(FlowFileTransformResult(relationship = "success", contents = "Goodbye from Flowfile 2!", attributes = {"greeting": "goodbye"}))
+
+        return results
+----
+
+The `transform` method is expected to take two arguments: the context (of type `nifiapi.properties.ProcessContext`) and
+the flowfile (of type `InputFlowFile`).
+
+The return type is an iterable of `FlowFileTransformResult` objects, each of which indicates the Relationship the FlowFile should be transferred to,
+the contents of the FlowFile, and any attributes that should be added to the FlowFile (or overwritten). The
+`relationship` is a required argument. If the contents of the FlowFile are not to be written,
+the `contents` should be unspecified or should be specified as `None`. Also it is more efficient to omit the `attributes` unless there is any attribute to add.
 
 
 [[process-context]]
@@ -347,6 +392,56 @@ As mentioned above, the `create` method only takes one argument: the context (of
 The return type is a `FlowFileSourceResult` that indicates which Relationship the FlowFile should be transferred to,
 any attributes that should be added to the FlowFile and the contents of the FlowFile. The `relationship` is a required argument.
 Each processor based on the `FlowFileSource` API has a `success` relationship and additional relationships can be
+created in the Processor's Python code. `attributes` and `contents` are both optional. If `attributes` is not provided,
+the FlowFile will still have the usual `filename`, `path` and `uuid` attributes, but no additional ones.
+If `contents` is not provided, a FlowFile with no contents (only attributes) will be created.
+In case there is no useful information to return from the `create` method, `return None` can be used instead of returning an
+empty `FlowFileSourceResult`. When `create()` returns with `None`, the processor does not produce any output.
+When there is nothing to return, it might be useful to yield the processor's resources and not schedule the processor
+to run for the period of time defined by the processor's Yield Duration. This can be achieved by calling
+`context.yield_resources()` from the processor's `create` method right before returning `None`.
+
+[[flowfile-source]]
+=== MultipleFlowFileSource
+
+The `FlowFileSource` API provides a mechanism for creating FlowFiles and routing them based on their textual or binary contents.
+
+In order to implement the `MultipleFlowFileSource` API, a Python class must extend from the `nifiapi.MultipleFlowFileSource` class
+and implement the `create(ProcessContext)` method, which returns an iterable of `FlowFileSourceResult` objects. Notice, that the difference between
+`MultipleFlowFileSource's create(ProcessContext)` and other transform methods is
+that the former does not expect an InputFlowFile object. That is because processors based on the `MultipleFlowFileSource` API
+are "source" processors that do not accept incoming connections but are capable of creating FlowFiles themselves.
+
+Implementing a Processor based on `MultipleFlowFileSource` is very similar to implementing one based on `FlowFileTransformMultipleOutput`.
+A simple implementation looks like this:
+
+----
+from nifiapi.flowfilesource import MultipleFlowFileSource, FlowFileSourceResult
+
+class CreateFlowFiles(MultipleFlowFileSource):
+    class Java:
+        implements = ['org.apache.nifi.python.processor.FlowFileSource']
+
+    class ProcessorDetails:
+        version = '0.0.1-SNAPSHOT'
+        description = '''A Python processor that creates FlowFiles.'''
+
+    def __init__(self, **kwargs):
+        pass
+
+    def create(self, context):
+        results = []
+        results.append(FlowFileTransformResult(relationship = "success", contents = "Hello from Flowfile 1!", attributes = {"greeting": "hello"}))
+        results.append(FlowFileTransformResult(relationship = "success", contents = "Goodbye from Flowfile 2!", attributes = {"greeting": "goodbye"}))
+
+        return results
+----
+
+As mentioned above, the `create` method only takes one argument: the context (of type `nifiapi.properties.ProcessContext`).
+
+The return type is an iterable of `FlowFileSourceResult` objects, each of which indicates the Relationship the FlowFile should be transferred to,
+any attributes that should be added to the FlowFile and the contents of the FlowFile. The `relationship` is a required argument.
+Each processor based on the `MultipleFlowFileSource` API has a `success` relationship and additional relationships can be
 created in the Processor's Python code. `attributes` and `contents` are both optional. If `attributes` is not provided,
 the FlowFile will still have the usual `filename`, `path` and `uuid` attributes, but no additional ones.
 If `contents` is not provided, a FlowFile with no contents (only attributes) will be created.

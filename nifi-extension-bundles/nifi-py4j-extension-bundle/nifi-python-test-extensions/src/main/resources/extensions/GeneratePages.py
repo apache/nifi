@@ -13,26 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC, abstractmethod
-from nifiapi.__jvm__ import JvmHolder
-from nifiapi.properties import ProcessContext
-from nifiapi.flowfilesourceresult import FlowFileSourceResult
+from nifiapi.multipleflowfilesource import MultipleFlowFileSource, FlowFileSourceResult
 
-class FlowFileSource(ABC):
-    # These will be set by the PythonProcessorAdapter when the component is created
-    identifier = None
-    logger = None
 
-    def __init__(self):
-        self.arrayList = JvmHolder.jvm.java.util.ArrayList
+class GeneratePages(MultipleFlowFileSource):
+    class Java:
+        implements = ['org.apache.nifi.python.processor.MultipleFlowFileSource']
 
-    def setContext(self, context):
-        self.process_context = ProcessContext(context)
+    class ProcessorDetails:
+        version = '0.0.1-SNAPSHOT'
+        description = 'Emits a FlowFile for each page encountered when paging through results.'
+        tags = ['pagination', 'test', 'python']
 
-    def createFlowFile(self):
-        return self.create(self.process_context)
+    def __init__(self, **kwargs):
+        super().__init__()
 
-    @abstractmethod
     def create(self, context):
-        pass
-
+        results = []
+        for index in range(3):
+            attributes = {'page.index': str(index)}
+            contents = f'page-{index}'
+            results.append(FlowFileSourceResult(relationship='success', attributes=attributes, contents=contents))
+        return results

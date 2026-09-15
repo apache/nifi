@@ -13,26 +13,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC, abstractmethod
 from nifiapi.__jvm__ import JvmHolder
-from nifiapi.properties import ProcessContext
-from nifiapi.flowfilesourceresult import FlowFileSourceResult
 
-class FlowFileSource(ABC):
-    # These will be set by the PythonProcessorAdapter when the component is created
-    identifier = None
-    logger = None
+class FlowFileTransformResult:
+    class Java:
+        implements = ['org.apache.nifi.python.processor.FlowFileTransformResult']
 
-    def __init__(self):
-        self.arrayList = JvmHolder.jvm.java.util.ArrayList
+    def __init__(self, relationship, attributes = None, contents = None):
+        self.relationship = relationship
+        self.attributes = attributes
+        if contents is not None and isinstance(contents, str):
+            self.contents = str.encode(contents)
+        else:
+            self.contents = contents
 
-    def setContext(self, context):
-        self.process_context = ProcessContext(context)
+    def getRelationship(self):
+        return self.relationship
 
-    def createFlowFile(self):
-        return self.create(self.process_context)
+    def getContents(self):
+        return self.contents
 
-    @abstractmethod
-    def create(self, context):
-        pass
+    def getAttributes(self):
+        if self.attributes is None:
+            return None
 
+        map = JvmHolder.jvm.java.util.HashMap()
+        for key, value in self.attributes.items():
+            map.put(key, value)
+
+        return map

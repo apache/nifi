@@ -16,7 +16,7 @@
 from abc import ABC, abstractmethod
 from nifiapi.__jvm__ import JvmHolder
 from nifiapi.properties import ProcessContext
-
+from nifiapi.flowfiletransformresult import FlowFileTransformResult
 
 class FlowFileTransform(ABC):
     # These will be set by the PythonProcessorAdapter when the component is created
@@ -37,30 +37,3 @@ class FlowFileTransform(ABC):
         pass
 
 
-class FlowFileTransformResult:
-    class Java:
-        implements = ['org.apache.nifi.python.processor.FlowFileTransformResult']
-
-    def __init__(self, relationship, attributes = None, contents = None):
-        self.relationship = relationship
-        self.attributes = attributes
-        if contents is not None and isinstance(contents, str):
-            self.contents = str.encode(contents)
-        else:
-            self.contents = contents
-
-    def getRelationship(self):
-        return self.relationship
-
-    def getContents(self):
-        return self.contents
-
-    def getAttributes(self):
-        if self.attributes is None:
-            return None
-
-        map = JvmHolder.jvm.java.util.HashMap()
-        for key, value in self.attributes.items():
-            map.put(key, value)
-
-        return map

@@ -30,7 +30,11 @@ import org.apache.nifi.python.PythonProcessorDetails;
 import org.apache.nifi.python.processor.FlowFileSource;
 import org.apache.nifi.python.processor.FlowFileSourceProxy;
 import org.apache.nifi.python.processor.FlowFileTransform;
+import org.apache.nifi.python.processor.FlowFileTransformMultipleOutput;
+import org.apache.nifi.python.processor.FlowFileTransformMultipleOutputProxy;
 import org.apache.nifi.python.processor.FlowFileTransformProxy;
+import org.apache.nifi.python.processor.MultipleFlowFileSource;
+import org.apache.nifi.python.processor.MultipleFlowFileSourceProxy;
 import org.apache.nifi.python.processor.PythonProcessorBridge;
 import org.apache.nifi.python.processor.RecordTransform;
 import org.apache.nifi.python.processor.RecordTransformProxy;
@@ -162,8 +166,14 @@ public class StandardPythonBridge implements PythonBridge {
         if (FlowFileTransform.class.getName().equals(implementedInterface)) {
             return new FlowFileTransformProxy(type, processorBridgeFactory, initialize);
         }
+        if (FlowFileTransformMultipleOutput.class.getName().equals(implementedInterface)) {
+            return new FlowFileTransformMultipleOutputProxy(type, processorBridgeFactory, initialize);
+        }
         if (RecordTransform.class.getName().equals(implementedInterface)) {
             return new RecordTransformProxy(type, processorBridgeFactory, initialize);
+        }
+        if (MultipleFlowFileSource.class.getName().equals(implementedInterface)) {
+            return new MultipleFlowFileSourceProxy(type, processorBridgeFactory, initialize);
         }
         if (FlowFileSource.class.getName().equals(implementedInterface)) {
             return new FlowFileSourceProxy(type, processorBridgeFactory, initialize);
