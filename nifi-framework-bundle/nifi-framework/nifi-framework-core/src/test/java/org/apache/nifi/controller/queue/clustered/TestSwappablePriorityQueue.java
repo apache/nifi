@@ -735,6 +735,34 @@ public class TestSwappablePriorityQueue {
     }
 
     @Test
+    public void testSelectiveDropPreservesSwapFileOrdering() throws IOException {
+        queue = new SwappablePriorityQueue(swapManager, 10, eventReporter, flowFileQueue, dropAction, "local");
+
+        for (int i = 0; i < 30; i++) {
+            queue.put(new MockFlowFileRecord(Map.of("index", Integer.toString(i)), 1L));
+        }
+
+        assertEquals(2, swapManager.swappedOut.size());
+
+        final SelectiveDropResult result = queue.dropFlowFiles(flowFile -> "10".equals(flowFile.getAttribute("index")));
+
+        assertEquals(1, result.getDroppedCount());
+        assertEquals(1, result.getSwapLocationUpdates().size());
+
+        final Set<FlowFileRecord> expired = new HashSet<>();
+        for (int expectedIndex = 0; expectedIndex < 30; expectedIndex++) {
+            if (expectedIndex == 10) {
+                continue;
+            }
+
+            final FlowFileRecord flowFile = queue.poll(expired, 0L);
+            assertNotNull(flowFile);
+            assertEquals(Integer.toString(expectedIndex), flowFile.getAttribute("index"));
+        }
+        assertNull(queue.poll(expired, 0L));
+    }
+
+    @Test
     @Timeout(120)
     public void testSelectiveDropRemovesEntireSwapFileWhenAllMatch() throws IOException {
         final Predicate<FlowFile> allMatch = flowFile -> true;
