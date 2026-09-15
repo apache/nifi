@@ -2456,14 +2456,16 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             return;
         }
 
+        // NIFI-16318: Never overwrite existing local parameter values or materialize local overrides for inherited parameters.
+        // Description-only updates apply to locally defined parameters and must be built from the local raw parameter
+        // so that parameter references (e.g. #{other}) are preserved and not flattened to literal resolved values.
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
-            final Optional<Parameter> parameterOption = currentParameterContext.getParameter(versionedParameter.getName());
-            if (parameterOption.isPresent()) {
-                final Parameter existingParameter = parameterOption.get();
-                if (!Objects.equals(existingParameter.getDescriptor().getDescription(), versionedParameter.getDescription())) {
+            final Parameter localParameter = currentParameterContext.getParameters().get(parameterDescriptor(versionedParameter.getName()));
+            if (localParameter != null) {
+                if (!Objects.equals(localParameter.getDescriptor().getDescription(), versionedParameter.getDescription())) {
                     final Parameter updatedParameter = new Parameter.Builder()
-                        .fromParameter(existingParameter)
+                        .fromParameter(localParameter)
                         .description(versionedParameter.getDescription())
                         .build();
                     parameters.put(versionedParameter.getName(), updatedParameter);
@@ -2471,11 +2473,20 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 continue;
             }
 
+            final Parameter inheritedParameter = currentParameterContext.getRawEffectiveParameters().get(parameterDescriptor(versionedParameter.getName()));
+            if (inheritedParameter != null) {
+                // The parameter is provided by inheritance. Do not materialize a local override from the snapshot,
+                // which would shadow the inherited value with the registry value.
+                continue;
+            }
+
             final Parameter parameter = createParameter(currentParameterContext.getIdentifier(), versionedParameter, versionedParameterContext.getParameterProvider() != null);
             parameters.put(versionedParameter.getName(), parameter);
         }
 
-        currentParameterContext.setParameters(parameters);
+        if (!parameters.isEmpty()) {
+            currentParameterContext.setParameters(parameters);
+        }
 
         if (!Objects.equals(currentParameterContext.getDescription(), versionedParameterContext.getDescription())) {
             currentParameterContext.setDescription(versionedParameterContext.getDescription());
@@ -2519,6 +2530,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             createMissingParameterProvider(versionedParameterContext, versionedParameterContext.getParameterProvider(), parameterProviderReferences, componentIdGenerator);
             currentParameterContext.configureParameterProvider(getParameterProviderConfiguration(versionedParameterContext));
         }
+    }
+
+    private static ParameterDescriptor parameterDescriptor(final String name) {
+        return new ParameterDescriptor.Builder().name(name).build();
     }
 
     private Parameter createParameter(final String contextId, final VersionedParameter versionedParameter, final boolean providerBacked) {
