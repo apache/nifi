@@ -156,6 +156,18 @@ export class ComponentConnectionsDialog extends CloseOnEscapeDialog {
     }
 
     /**
+     * Determines whether the endpoint is a port inside a Remote Process Group. Remote ports
+     * are not rendered as separate selectable elements on the current graph, so they should
+     * not be linked from the connections table.
+     *
+     * @param endpoint the source or destination endpoint to check
+     * @returns whether the endpoint is a remote port in a Remote Process Group
+     */
+    isRemoteProcessGroupPort(endpoint: ConnectionEndpoint): boolean {
+        return endpoint.type === ComponentType.RemoteProcessGroup;
+    }
+
+    /**
      * Resolves the flowfont icon class that represents the given component type, matching the icons
      * used for the same components on the canvas.
      *

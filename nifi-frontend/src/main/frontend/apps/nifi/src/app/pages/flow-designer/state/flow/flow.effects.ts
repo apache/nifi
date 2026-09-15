@@ -3220,7 +3220,8 @@ export class FlowEffects {
                                 groupId: request.groupId,
                                 direction: request.direction,
                                 connections: flowEntity.processGroupFlow.flow.connections.filter(attachedTo),
-                                groupIdToName: this.buildProcessGroupIdToNameMap(flowEntity)
+                                groupIdToName: this.buildProcessGroupIdToNameMap(flowEntity),
+                                remoteProcessGroupIds: this.buildRemoteProcessGroupIdSet(flowEntity),
                             }
                         })
                     ),
@@ -3266,6 +3267,10 @@ export class FlowEffects {
         );
 
         return idToName;
+    }
+
+    private buildRemoteProcessGroupIdSet(flowEntity: ProcessGroupFlowEntity): Set<string> {
+        return new Set((flowEntity.processGroupFlow.flow.remoteProcessGroups ?? []).map((group) => group.id));
     }
 
     showOkDialog$ = createEffect(

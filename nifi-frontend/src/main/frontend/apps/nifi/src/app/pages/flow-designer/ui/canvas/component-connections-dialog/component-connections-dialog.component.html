@@ -49,7 +49,6 @@
                             </td>
                         </ng-container>
 
-                        <!-- TODO if the component is a Port inside a remote process group, do not provide a clickable link -->
                         <ng-container matColumnDef="sourceComponent">
                             <th mat-header-cell *matHeaderCellDef>Source <br>Component</th>
                             <td mat-cell *matCellDef="let row">
@@ -57,6 +56,11 @@
                                 <span class="component-connection-cell unset neutral-color" [matTooltip]="row.source.id">
                                     <i class="icon component-type-icon" [class]="componentIcon(row.source.type)"></i>
                                     Unauthorized
+                                </span>
+                            } @else if (isRemoteProcessGroupPort(row.source)) {
+                                <span class="component-connection-cell unset neutral-color" [matTooltip]="row.source.name">
+                                    <i class="icon component-type-icon" [class]="componentIcon(row.source.type)"></i>
+                                    {{ row.source.name }}
                                 </span>
                             } @else {
                                 <a
@@ -107,7 +111,6 @@
                             </td>
                         </ng-container>
 
-                        <!-- TODO if the component is a Port inside a remote process group, do not provide a clickable link -->
                         <ng-container matColumnDef="destinationComponent">
                             <th mat-header-cell *matHeaderCellDef>Destination <br>Component</th>
                             <td mat-cell *matCellDef="let row">
@@ -116,6 +119,11 @@
                                     <i class="icon component-type-icon" [class]="componentIcon(row.destination.type)"></i>
                                     Unauthorized
                             </span>
+                            } @else if (isRemoteProcessGroupPort(row.destination)) {
+                                <span class="component-connection-cell unset neutral-color" [matTooltip]="row.destination.name">
+                                    <i class="icon component-type-icon" [class]="componentIcon(row.destination.type)"></i>
+                                    {{ row.destination.name }}
+                                </span>
                             } @else {
                                 <a
                                     class="component-connection-cell unset neutral-color"
