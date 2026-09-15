@@ -502,9 +502,9 @@ public class StandardNiFiServiceFacadeTest {
 
         final ProcessorNode removedSource = createLocalConnectableProcessor(
                 "removed-source-instance", "removed-source-versioned", ConnectableType.PROCESSOR, rootGroupMetadata);
-        final org.apache.nifi.connectable.Port removedDestination = createLocalConnectablePort(
+        final Port removedDestination = createLocalConnectablePort(
                 "removed-destination-instance", "removed-destination-versioned", ConnectableType.OUTPUT_PORT, rootGroupMetadata);
-        final org.apache.nifi.connectable.Port changedSource = createLocalConnectablePort(
+        final Port changedSource = createLocalConnectablePort(
                 "changed-source-instance", "changed-source-versioned", ConnectableType.INPUT_PORT, rootGroupMetadata);
         final ProcessorNode changedDestination = createLocalConnectableProcessor(
                 "changed-destination-instance", "changed-destination-versioned", ConnectableType.PROCESSOR, rootGroupMetadata);
@@ -631,9 +631,9 @@ public class StandardNiFiServiceFacadeTest {
         return connectable;
     }
 
-    private org.apache.nifi.connectable.Port createLocalConnectablePort(final String instanceId, final String versionedId,
+    private Port createLocalConnectablePort(final String instanceId, final String versionedId,
                                                                         final ConnectableType connectableType, final ProcessGroup processGroup) {
-        final org.apache.nifi.connectable.Port connectable = mock(org.apache.nifi.connectable.Port.class);
+        final Port connectable = mock(Port.class);
         stubLocalConnectable(connectable, instanceId, versionedId, connectableType, processGroup);
         return connectable;
     }
@@ -646,7 +646,7 @@ public class StandardNiFiServiceFacadeTest {
         when(connectable.getConnectableType()).thenReturn(connectableType);
         when(connectable.getProcessGroup()).thenReturn(processGroup);
         when(connectable.getProcessGroupIdentifier()).thenReturn(processGroupId);
-        when(connectable.getScheduledState()).thenReturn(org.apache.nifi.controller.ScheduledState.RUNNING);
+        when(connectable.getScheduledState()).thenReturn(ScheduledState.RUNNING);
         when(connectable.getName()).thenReturn(instanceId);
     }
 
