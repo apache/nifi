@@ -1087,7 +1087,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
             // Step 4: Replace parameter contexts if necessary
             if (ParameterContextHandlingStrategy.REPLACE.equals(parameterContextHandlingStrategy)) {
-                parameterContextReplacer.replaceParameterContexts(flowSnapshot, serviceFacade.getParameterContexts());
+                parameterContextReplacer.replaceParameterContexts(flowSnapshot, serviceFacade.getParameterContexts(false));
             }
 
             // Step 5: Resolve Bundle info

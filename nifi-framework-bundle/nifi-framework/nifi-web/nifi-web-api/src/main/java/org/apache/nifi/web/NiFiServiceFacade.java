@@ -294,11 +294,12 @@ public interface NiFiServiceFacade {
      * Returns the parameter context bound to the specified process group within the connector's hierarchy. Sensitive parameter values are masked
      * by the underlying DTO factory.
      *
-     * @param connectorId the connector id
-     * @param processGroupId the process group id within the connector's hierarchy
+     * @param connectorId       the connector id
+     * @param processGroupId    the process group id within the connector's hierarchy
+     * @param includeReferences whether to include parameters' referencing components
      * @return the parameter context entity with effective parameters (inherited included), or {@code null} if the process group has no bound parameter context
      */
-    ParameterContextEntity getConnectorParameterContext(String connectorId, String processGroupId);
+    ParameterContextEntity getConnectorParameterContext(String connectorId, String processGroupId, boolean includeReferences);
 
     void verifyCanVerifyConnectorConfigurationStep(String connectorId, String configurationStepName);
 
@@ -1407,9 +1408,10 @@ public interface NiFiServiceFacade {
 
     /**
      * Returns the Set of all Parameter Context Entities for the current user
+     * @param includeReferences whether to include parameters' referencing components
      * @return the Set of all Parameter Context Entities for the current user
      */
-    Set<ParameterContextEntity> getParameterContexts();
+    Set<ParameterContextEntity> getParameterContexts(boolean includeReferences);
 
     /**
      * Returns the Parameter Context with the given name
@@ -1425,33 +1427,39 @@ public interface NiFiServiceFacade {
      * @param parameterContextId the ID of the Parameter Context
      * @param includeInheritedParameters Whether to include inherited parameters (and thus overridden values)
      * @param user the user on whose behalf the Parameter Context is being retrieved
+     * @param includeReferences whether to include parameters' referencing components
      * @return the ParameterContextEntity
      */
-    ParameterContextEntity getParameterContext(String parameterContextId, boolean includeInheritedParameters, NiFiUser user);
+    ParameterContextEntity getParameterContext(String parameterContextId, boolean includeInheritedParameters, NiFiUser user, boolean includeReferences);
 
     /**
      * Creates a new Parameter Context
-     * @param revision the revision for the newly created Parameter Context
-     * @param parameterContext the Parameter Context
+     *
+     * @param revision          the revision for the newly created Parameter Context
+     * @param parameterContext  the Parameter Context
+     * @param includeReferences whether to include parameters' referencing components
      * @return a ParameterContextEntity representing the newly created ParameterContext
      */
-    ParameterContextEntity createParameterContext(Revision revision, ParameterContextDTO parameterContext);
+    ParameterContextEntity createParameterContext(Revision revision, ParameterContextDTO parameterContext, boolean includeReferences);
 
     /**
      * Updates the Parameter Context
      * @param revision the current revision of the Parameter Context
      * @param parameterContext the updated version of the ParameterContext
+     * @param includeReferences whether to include parameters' referencing components
      * @return the updated Parameter Context Entity
      */
-    ParameterContextEntity updateParameterContext(Revision revision, ParameterContextDTO parameterContext);
+    ParameterContextEntity updateParameterContext(Revision revision, ParameterContextDTO parameterContext, boolean includeReferences);
 
     /**
      * Deletes the Parameter Context
-     * @param revision the revision of the Parameter Context
+     *
+     * @param revision           the revision of the Parameter Context
      * @param parameterContextId the ID of the Parameter Context
+     * @param includeReferences  whether to include parameters' referencing components
      * @return a Parameter Context Entity that represents the Parameter Context that was deleted
      */
-    ParameterContextEntity deleteParameterContext(Revision revision, String parameterContextId);
+    ParameterContextEntity deleteParameterContext(Revision revision, String parameterContextId, boolean includeReferences);
 
     /**
      * Performs validation of all components that make use of the Parameter Context with the same ID as the given DTO, but validating against the Parameters
@@ -2736,12 +2744,16 @@ public interface NiFiServiceFacade {
     /**
      * Returns a list of ParameterContext entities representing updates needed in order to apply the fetched
      * parameters from the parameter provider to the referencing parameter contexts
-     * @param parameterProviderId parameter provider id
+     *
+     * @param parameterProviderId          parameter provider id
      * @param parameterGroupConfigurations Configuration for each fetched Parameter Group.  Any parameters not found in this set will not be included in the update.
+     * @param includeReferences            whether to include parameters' referencing components
      * @return The list of ParameterContextEntity objects representing required updates to referencing
      * parameter contexts
      */
-    List<ParameterContextEntity> getParameterContextUpdatesForAppliedParameters(String parameterProviderId, Collection<ParameterGroupConfiguration> parameterGroupConfigurations);
+    List<ParameterContextEntity> getParameterContextUpdatesForAppliedParameters(String parameterProviderId,
+                                                                                Collection<ParameterGroupConfiguration> parameterGroupConfigurations,
+                                                                                boolean includeReferences);
 
     /**
      * Gets the references for specified parameter provider.

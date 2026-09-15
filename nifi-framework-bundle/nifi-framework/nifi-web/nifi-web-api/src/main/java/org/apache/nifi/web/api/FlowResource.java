@@ -648,7 +648,7 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getControllerServicesFromController(
             @Parameter(description = "Whether or not to include services' referencing components in the response")
-            @QueryParam("includeReferencingComponents") @DefaultValue("true")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true")
             boolean includeReferences,
             @QueryParam("uiOnly") @DefaultValue("false")
             final boolean uiOnly) {
@@ -711,7 +711,7 @@ public class FlowResource extends ApplicationResource {
             @QueryParam("includeDescendantGroups")
             @DefaultValue("false") final boolean includeDescendantGroups,
             @Parameter(description = "Whether or not to include services' referencing components in the response")
-            @QueryParam("includeReferencingComponents")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS)
             @DefaultValue("true") final boolean includeReferences,
             @QueryParam("uiOnly")
             @DefaultValue("false") final boolean uiOnly) {
@@ -3839,14 +3839,16 @@ public class FlowResource extends ApplicationResource {
                     @SecurityRequirement(name = "Read - /parameter-contexts/{id} for each Parameter Context")
             }
     )
-    public Response getParameterContexts() {
+    public Response getParameterContexts(
+            @Parameter(description = "Whether or not to include parameters' referencing components in the response")
+            @QueryParam(INCLUDE_REFERENCING_COMPONENTS) @DefaultValue("true") final boolean includeReferences) {
         authorizeFlow();
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
         }
 
-        final Set<ParameterContextEntity> parameterContexts = serviceFacade.getParameterContexts();
+        final Set<ParameterContextEntity> parameterContexts = serviceFacade.getParameterContexts(includeReferences);
         parameterContexts.forEach(entity -> entity.setUri(generateResourceUri("parameter-contexts", entity.getId())));
 
         final ParameterContextsEntity entity = new ParameterContextsEntity();

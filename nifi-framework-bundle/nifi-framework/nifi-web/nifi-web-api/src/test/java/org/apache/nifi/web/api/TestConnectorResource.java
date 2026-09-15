@@ -771,27 +771,27 @@ public class TestConnectorResource {
     @Test
     public void testGetParameterContextForConnectorProcessGroup() {
         final ParameterContextEntity responseEntity = createParameterContextEntity();
-        when(serviceFacade.getConnectorParameterContext(CONNECTOR_ID, PROCESS_GROUP_ID)).thenReturn(responseEntity);
+        when(serviceFacade.getConnectorParameterContext(CONNECTOR_ID, PROCESS_GROUP_ID, true)).thenReturn(responseEntity);
 
-        try (Response response = connectorResource.getParameterContextForConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID)) {
+        try (Response response = connectorResource.getParameterContextForConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID, true)) {
             assertEquals(200, response.getStatus());
             assertEquals(responseEntity, response.getEntity());
         }
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
-        verify(serviceFacade).getConnectorParameterContext(CONNECTOR_ID, PROCESS_GROUP_ID);
+        verify(serviceFacade).getConnectorParameterContext(CONNECTOR_ID, PROCESS_GROUP_ID, true);
     }
 
     @Test
     public void testGetParameterContextForConnectorProcessGroupReturnsNoContentWhenUnbound() {
-        when(serviceFacade.getConnectorParameterContext(CONNECTOR_ID, PROCESS_GROUP_ID)).thenReturn(null);
+        when(serviceFacade.getConnectorParameterContext(CONNECTOR_ID, PROCESS_GROUP_ID, true)).thenReturn(null);
 
-        try (Response response = connectorResource.getParameterContextForConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID)) {
+        try (Response response = connectorResource.getParameterContextForConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID, true)) {
             assertEquals(204, response.getStatus());
         }
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
-        verify(serviceFacade).getConnectorParameterContext(CONNECTOR_ID, PROCESS_GROUP_ID);
+        verify(serviceFacade).getConnectorParameterContext(CONNECTOR_ID, PROCESS_GROUP_ID, true);
     }
 
     @Test
@@ -799,10 +799,10 @@ public class TestConnectorResource {
         doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
 
         assertThrows(AccessDeniedException.class, () ->
-            connectorResource.getParameterContextForConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID));
+            connectorResource.getParameterContextForConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID, true));
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
-        verify(serviceFacade, never()).getConnectorParameterContext(anyString(), anyString());
+        verify(serviceFacade, never()).getConnectorParameterContext(anyString(), anyString(), eq(true));
     }
 
     @Test

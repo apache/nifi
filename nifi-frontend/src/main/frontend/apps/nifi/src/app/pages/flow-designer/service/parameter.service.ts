@@ -28,31 +28,50 @@ export class ParameterService {
 
     private static readonly API: string = '../nifi-api';
 
-    getParameterContext(id: string, includeInheritedParameters: boolean): Observable<any> {
+    getParameterContext(
+        id: string,
+        includeInheritedParameters: boolean,
+        includeReferencingComponents: boolean
+    ): Observable<any> {
         return this.httpClient.get(`${ParameterService.API}/parameter-contexts/${id}`, {
             params: {
-                includeInheritedParameters
+                includeInheritedParameters,
+                includeReferencingComponents
             }
         });
     }
 
-    submitParameterContextUpdate(configureParameterContext: SubmitParameterContextUpdate): Observable<any> {
+    submitParameterContextUpdate(
+        configureParameterContext: SubmitParameterContextUpdate,
+        includeReferencingComponents: boolean
+    ): Observable<any> {
         return this.httpClient.post(
             `${ParameterService.API}/parameter-contexts/${configureParameterContext.id}/update-requests`,
-            configureParameterContext.payload
+            configureParameterContext.payload,
+            { params: { includeReferencingComponents } }
         );
     }
 
-    pollParameterContextUpdate(parameterContextId: string, requestId: string): Observable<any> {
+    pollParameterContextUpdate(
+        parameterContextId: string,
+        requestId: string,
+        includeReferencingComponents: boolean
+    ): Observable<any> {
         return this.httpClient.get(
-            `${ParameterService.API}/parameter-contexts/${parameterContextId}/update-requests/${requestId}`
+            `${ParameterService.API}/parameter-contexts/${parameterContextId}/update-requests/${requestId}`,
+            { params: { includeReferencingComponents } }
         );
     }
 
-    deleteParameterContextUpdate(parameterContextId: string, requestId: string): Observable<any> {
+    deleteParameterContextUpdate(
+        parameterContextId: string,
+        requestId: string,
+        includeReferencingComponents: boolean
+    ): Observable<any> {
         const params = new HttpParams({
             fromObject: {
-                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                includeReferencingComponents
             }
         });
         return this.httpClient.delete(

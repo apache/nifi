@@ -264,21 +264,23 @@ export class ConnectorCanvasEffects {
         this.actions$.pipe(
             ofType(ConnectorCanvasActions.loadConnectorParameterContext),
             switchMap((action) =>
-                this.connectorService.getConnectorParameterContext(action.connectorId, action.processGroupId).pipe(
-                    map((parameterContext) =>
-                        ConnectorCanvasActions.loadConnectorParameterContextSuccess({ parameterContext })
-                    ),
-                    catchError((error) =>
-                        of(
-                            ConnectorCanvasActions.loadConnectorParameterContextFailure({
-                                errorContext: {
-                                    errors: [this.errorHelper.getErrorString(error)],
-                                    context: action.errorContext
-                                }
-                            })
+                this.connectorService
+                    .getConnectorParameterContext(action.connectorId, action.processGroupId, false)
+                    .pipe(
+                        map((parameterContext) =>
+                            ConnectorCanvasActions.loadConnectorParameterContextSuccess({ parameterContext })
+                        ),
+                        catchError((error) =>
+                            of(
+                                ConnectorCanvasActions.loadConnectorParameterContextFailure({
+                                    errorContext: {
+                                        errors: [this.errorHelper.getErrorString(error)],
+                                        context: action.errorContext
+                                    }
+                                })
+                            )
                         )
                     )
-                )
             )
         )
     );

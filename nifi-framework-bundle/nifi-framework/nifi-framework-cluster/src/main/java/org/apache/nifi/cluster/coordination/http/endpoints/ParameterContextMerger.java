@@ -62,6 +62,8 @@ public class ParameterContextMerger {
     public static void merge(final ParameterContextDTO target, final Map<NodeIdentifier, ParameterContextDTO> entityMap) {
         final Map<String, ProcessGroupEntity> mergedBoundGroups = new HashMap<>();
         final Map<String, Map<String, AffectedComponentEntity>> affectedComponentsByParameterName = new HashMap<>();
+        final Set<String> parameterNamesWithReferencingComponents = new HashSet<>();
+        final Set<String> parameterNamesWithNullReferencingComponents = new HashSet<>();
 
         final Set<String> unwritableParameters = new HashSet<>();
         for (final Map.Entry<NodeIdentifier, ParameterContextDTO> entry : entityMap.entrySet()) {
@@ -94,14 +96,19 @@ public class ParameterContextMerger {
 
                     final Map<String, AffectedComponentEntity> affectedComponentsById = affectedComponentsByParameterName.computeIfAbsent(parameterDto.getName(), key -> new HashMap<>());
 
-                    for (final AffectedComponentEntity referencingComponent : parameterDto.getReferencingComponents()) {
-                        AffectedComponentEntity mergedAffectedComponent = affectedComponentsById.get(referencingComponent.getId());
-                        if (mergedAffectedComponent == null) {
-                            affectedComponentsById.put(referencingComponent.getId(), referencingComponent);
-                            continue;
-                        }
+                    if (parameterDto.getReferencingComponents() != null) {
+                        parameterNamesWithReferencingComponents.add(parameterDto.getName());
+                        for (final AffectedComponentEntity referencingComponent : parameterDto.getReferencingComponents()) {
+                            AffectedComponentEntity mergedAffectedComponent = affectedComponentsById.get(referencingComponent.getId());
+                            if (mergedAffectedComponent == null) {
+                                affectedComponentsById.put(referencingComponent.getId(), referencingComponent);
+                                continue;
+                            }
 
-                        merge(mergedAffectedComponent, referencingComponent);
+                            merge(mergedAffectedComponent, referencingComponent);
+                        }
+                    } else {
+                        parameterNamesWithNullReferencingComponents.add(parameterDto.getName());
                     }
                 }
             }
@@ -117,8 +124,15 @@ public class ParameterContextMerger {
                 parameterEntity.setCanWrite(false);
             }
 
-            final Map<String, AffectedComponentEntity> componentMap = affectedComponentsByParameterName.get(parameterDto.getName());
-            parameterDto.setReferencingComponents(new HashSet<>(componentMap.values()));
+            // Only overwrite referencing components when every node that reported on this parameter agreed it should be
+            // included. If nodes disagree (e.g. version skew during a rolling upgrade, where an older node ignores the
+            // includeReferencingComponents parameter and always returns a populated set while newer nodes return null),
+            // leave the DTO's existing value (null) as-is rather than expose a misleading, single-node-derived partial set.
+            if (parameterNamesWithReferencingComponents.contains(parameterDto.getName())
+                    && !parameterNamesWithNullReferencingComponents.contains(parameterDto.getName())) {
+                final Map<String, AffectedComponentEntity> componentMap = affectedComponentsByParameterName.get(parameterDto.getName());
+                parameterDto.setReferencingComponents(new HashSet<>(componentMap.values()));
+            }
         }
     }
 
