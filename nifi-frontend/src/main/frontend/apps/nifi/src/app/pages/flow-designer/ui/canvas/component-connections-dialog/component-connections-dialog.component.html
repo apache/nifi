@@ -30,7 +30,7 @@
                 <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
                     <table mat-table [dataSource]="rows">
                         <ng-container matColumnDef="sourceProcessGroup">
-                            <th mat-header-cell *matHeaderCellDef>Source<br>Process Group</th>
+                            <th mat-header-cell *matHeaderCellDef>Source <br>Process Group</th>
                             <td mat-cell *matCellDef="let row">
                             @if (isCurrentProcessGroup(row.source.groupId)) {
                                 <span class="component-connection-cell unset neutral-color" [matTooltip]="resolveGroupName(row.source.groupId)">
@@ -51,7 +51,7 @@
 
                         <!-- TODO if the component is a Port inside a remote process group, do not provide a clickable link -->
                         <ng-container matColumnDef="sourceComponent">
-                            <th mat-header-cell *matHeaderCellDef>Source<br>Component</th>
+                            <th mat-header-cell *matHeaderCellDef>Source <br>Component</th>
                             <td mat-cell *matCellDef="let row">
                             @if (row.source.name === null) {
                                 <span class="component-connection-cell unset neutral-color" [matTooltip]="row.source.id">
@@ -88,7 +88,7 @@
                         </ng-container>
 
                         <ng-container matColumnDef="destinationProcessGroup">
-                            <th mat-header-cell *matHeaderCellDef>Destination<br>Process Group</th>
+                            <th mat-header-cell *matHeaderCellDef>Destination <br>Process Group</th>
                             <td mat-cell *matCellDef="let row">
                             @if (isCurrentProcessGroup(row.destination.groupId)) {
                                 <span class="component-connection-cell unset neutral-color" [matTooltip]="resolveGroupName(row.destination.groupId)">
@@ -109,7 +109,7 @@
 
                         <!-- TODO if the component is a Port inside a remote process group, do not provide a clickable link -->
                         <ng-container matColumnDef="destinationComponent">
-                            <th mat-header-cell *matHeaderCellDef>Destination<br>Component</th>
+                            <th mat-header-cell *matHeaderCellDef>Destination <br>Component</th>
                             <td mat-cell *matCellDef="let row">
                             @if (row.destination.name === null) {
                                 <span class="component-connection-cell unset neutral-color" [matTooltip]="row.destination.id">

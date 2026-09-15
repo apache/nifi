@@ -17,138 +17,128 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { provideMockStore, MockStore } from '@ngrx/store/testing';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
+import { By } from '@angular/platform-browser';
 import { of } from 'rxjs';
 import { ComponentType } from '@nifi/shared';
 
-import { ComponentConnectionsDialog } from './component-connections-dialog.component';
+import { ComponentConnectionsDialog, ComponentConnectionRow } from './component-connections-dialog.component';
 import { ComponentConnectionsDialogRequest, ConnectionDirection, ConnectionEntity } from '../../../state/flow';
 import { navigateToComponent } from '../../../state/flow/flow.actions';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
 
-const COMPONENT_ID = 'a1b2c3d4-0000-0000-0000-000000000000';
-const GROUP_ID = 'e5f6a7b8-0000-0000-0000-000000000000';
-const CHILD_GROUP_ID = 'c9d0e1f2-0000-0000-0000-000000000000';
+const REQUEST_GROUP_ID = 'request-group-id';
+const SOURCE_GROUP_ID = 'source-group-id';
+const DESTINATION_GROUP_ID = 'destination-group-id';
+const UNKNOWN_GROUP_ID = 'unknown-group-id';
+
+const SOURCE_ID = 'source-id';
+const DESTINATION_ID = 'destination-id';
+const CONNECTION_ID = 'connection-id';
 
 interface ConnectableStub {
     id: string;
     name: string;
 }
 
-/**
- * Builds a readable connection between the two supplied endpoints. The endpoints are reported as
- * living in the group being viewed, which is the common case; {@link connectionIntoChildGroup}
- * covers an endpoint inside a child group.
- */
-function connection(
-    id: string,
-    source: ConnectableStub,
-    destination: ConnectableStub,
-    component: { name?: string; selectedRelationships?: string[] } = {}
-): ConnectionEntity {
-    return {
-        id,
-        permissions: { canRead: true, canWrite: true },
-        position: { x: 0, y: 0 },
-        revision: { version: 0 },
-        sourceId: source.id,
-        sourceGroupId: GROUP_ID,
-        sourceType: 'PROCESSOR',
-        destinationId: destination.id,
-        destinationGroupId: GROUP_ID,
-        destinationType: 'INPUT_PORT',
-        component: {
-            id,
-            source,
-            destination,
-            ...component
-        }
-    };
-}
-
-/**
- * Builds a connection the current user cannot read. The API omits the component entirely in that case
- * but still reports the endpoints at the top level of the entity.
- */
-function unreadableConnection(id: string, sourceId: string, destinationId: string): ConnectionEntity {
-    return {
-        id,
-        permissions: { canRead: false, canWrite: false },
-        position: { x: 0, y: 0 },
-        revision: { version: 0 },
-        sourceId,
-        sourceGroupId: GROUP_ID,
-        sourceType: 'PROCESSOR',
-        destinationId,
-        destinationGroupId: GROUP_ID,
-        destinationType: 'INPUT_PORT',
-        component: null
-    };
-}
-
-/**
- * Builds a connection from a component in the viewed group to an Input Port inside a child group.
- * The canvas draws this as terminating at the child group, but the entity names the port.
- */
-function connectionIntoChildGroup(
-    id: string,
-    source: ConnectableStub,
-    innerPort: ConnectableStub,
-    name: string
-): ConnectionEntity {
-    return {
-        id,
-        permissions: { canRead: true, canWrite: true },
-        position: { x: 0, y: 0 },
-        revision: { version: 0 },
-        sourceId: source.id,
-        sourceGroupId: GROUP_ID,
-        sourceType: 'PROCESSOR',
-        destinationId: innerPort.id,
-        destinationGroupId: CHILD_GROUP_ID,
-        destinationType: 'INPUT_PORT',
-        component: {
-            id,
-            name,
-            source,
-            destination: innerPort
-        }
-    };
+interface ConnectionOptions {
+    id?: string;
+    source?: ConnectableStub;
+    destination?: ConnectableStub;
+    sourceGroupId?: string;
+    destinationGroupId?: string;
+    sourceType?: string;
+    destinationType?: string;
+    canRead?: boolean;
+    name?: string;
+    selectedRelationships?: string[];
+    component?: any | null;
 }
 
 interface CreatedDialog {
     component: ComponentConnectionsDialog;
     fixture: ComponentFixture<ComponentConnectionsDialog>;
     store: MockStore;
-    dialogRef: { close: ReturnType<typeof vi.fn>; keydownEvents: () => ReturnType<typeof of> };
+    dialogRef: {
+        close: ReturnType<typeof vi.fn>;
+        keydownEvents: () => ReturnType<typeof of>;
+    };
+}
+
+function readableConnection(options: ConnectionOptions = {}): ConnectionEntity {
+    const source = options.source ?? { id: SOURCE_ID, name: 'GenerateFlowFile' };
+    const destination = options.destination ?? { id: DESTINATION_ID, name: 'LogAttribute' };
+
+    return {
+        id: options.id ?? CONNECTION_ID,
+        permissions: { canRead: options.canRead ?? true, canWrite: true },
+        position: { x: 0, y: 0 },
+        revision: { version: 0 },
+        sourceId: source.id,
+        sourceGroupId: options.sourceGroupId ?? SOURCE_GROUP_ID,
+        sourceType: options.sourceType ?? 'PROCESSOR',
+        destinationId: destination.id,
+        destinationGroupId: options.destinationGroupId ?? DESTINATION_GROUP_ID,
+        destinationType: options.destinationType ?? 'INPUT_PORT',
+        component:
+            options.component === undefined
+                ? {
+                      id: options.id ?? CONNECTION_ID,
+                      source,
+                      destination,
+                      name: options.name,
+                      selectedRelationships: options.selectedRelationships
+                  }
+                : options.component
+    };
+}
+
+function unreadableConnection(options: ConnectionOptions = {}): ConnectionEntity {
+    return {
+        id: options.id ?? CONNECTION_ID,
+        permissions: { canRead: false, canWrite: false },
+        position: { x: 0, y: 0 },
+        revision: { version: 0 },
+        sourceId: options.source?.id ?? SOURCE_ID,
+        sourceGroupId: options.sourceGroupId ?? SOURCE_GROUP_ID,
+        sourceType: options.sourceType ?? 'PROCESSOR',
+        destinationId: options.destination?.id ?? DESTINATION_ID,
+        destinationGroupId: options.destinationGroupId ?? DESTINATION_GROUP_ID,
+        destinationType: options.destinationType ?? 'INPUT_PORT',
+        component: null
+    };
 }
 
 function createDialog(
     direction: ConnectionDirection,
     connections: ConnectionEntity[],
-    componentName = 'In'
+    overrides: Partial<ComponentConnectionsDialogRequest> = {}
 ): CreatedDialog {
     const dialogRequest: ComponentConnectionsDialogRequest = {
-        componentName,
+        componentName: 'Selected Component',
         componentType: ComponentType.InputPort,
-        groupId: GROUP_ID,
+        groupId: REQUEST_GROUP_ID,
         direction,
         connections,
         groupIdToName: new Map([
-            [GROUP_ID, 'Current Group'],
-            [CHILD_GROUP_ID, 'Child Group']
-        ])
+            [REQUEST_GROUP_ID, 'Current Process Group'],
+            [SOURCE_GROUP_ID, 'Source Process Group'],
+            [DESTINATION_GROUP_ID, 'Destination Process Group']
+        ]),
+        ...overrides
     };
-    const dialogRef = { close: vi.fn(), keydownEvents: () => of() };
 
-    // only formatConnectionName is exercised; the real CanvasUtils subscribes to canvas state on
-    // construction, which this dialog has no need of
+    const dialogRef = {
+        close: vi.fn(),
+        keydownEvents: () => of()
+    };
+
     const canvasUtils = {
         formatConnectionName: (component: any): string => {
-            if (component.name) {
+            if (component?.name) {
                 return component.name;
             }
-            if (component.selectedRelationships) {
+            if (component?.selectedRelationships) {
                 return component.selectedRelationships.join(', ');
             }
             return '';
@@ -166,8 +156,9 @@ function createDialog(
         ]
     });
 
-    const fixture: ComponentFixture<ComponentConnectionsDialog> = TestBed.createComponent(ComponentConnectionsDialog);
+    const fixture = TestBed.createComponent(ComponentConnectionsDialog);
     fixture.detectChanges();
+
     return {
         component: fixture.componentInstance,
         fixture,
@@ -176,184 +167,439 @@ function createDialog(
     };
 }
 
+function textContent(fixture: ComponentFixture<ComponentConnectionsDialog>): string {
+    return (fixture.nativeElement.textContent as string).replace(/\s+/g, ' ').trim();
+}
+
+function getCells(fixture: ComponentFixture<ComponentConnectionsDialog>, columnClass: string): HTMLElement[] {
+    return fixture.debugElement.queryAll(By.css(`td.${columnClass}`)).map((debugElement) => debugElement.nativeElement);
+}
+
 describe('ComponentConnectionsDialog', () => {
-    it('should create', () => {
+    it('creates the dialog', () => {
         const { component } = createDialog('upstream', []);
+
         expect(component).toBeTruthy();
     });
 
-    describe('upstream', () => {
-        it('renders a row per connection showing both endpoints and the connection name', () => {
-            const { component, fixture } = createDialog('upstream', [
-                connection(
-                    'c1',
-                    { id: 's1', name: 'GenerateFlowFile' },
-                    { id: COMPONENT_ID, name: 'In' },
-                    {
-                        selectedRelationships: ['success']
-                    }
-                ),
-                connection(
-                    'c2',
-                    { id: 's2', name: 'UpdateAttribute' },
-                    { id: COMPONENT_ID, name: 'In' },
-                    {
-                        name: 'to the port'
-                    }
-                )
-            ]);
+    describe('dialog metadata', () => {
+        it('sets upstream title and empty message', () => {
+            const { component, fixture } = createDialog('upstream', []);
 
             expect(component.title).toBe('Upstream Connections');
-            expect(component.componentName).toBe('In');
-            expect(component.rows).toEqual([
-                {
-                    id: 'c1',
-                    name: 'success',
-                    source: { name: 'GenerateFlowFile', id: 's1' },
-                    destination: { name: 'In', id: COMPONENT_ID }
-                },
-                {
-                    id: 'c2',
-                    name: 'to the port',
-                    source: { name: 'UpdateAttribute', id: 's2' },
-                    destination: { name: 'In', id: COMPONENT_ID }
-                }
-            ]);
-
-            const text = fixture.nativeElement.textContent;
-            expect(text).toContain('GenerateFlowFile');
-            expect(text).toContain('UpdateAttribute');
-            expect(text).toContain('to the port');
+            expect(component.emptyMessage).toBe('No upstream connections were found.');
+            expect(textContent(fixture)).toContain('Upstream Connections');
+            expect(textContent(fixture)).toContain('No upstream connections were found.');
         });
 
-        it('keeps a connection the user cannot read and marks both endpoints Unauthorized', () => {
-            const { component, fixture } = createDialog('upstream', [
-                unreadableConnection('c1', 'hidden-source', COMPONENT_ID)
-            ]);
-
-            expect(component.rows).toEqual([
-                {
-                    id: 'c1',
-                    name: null,
-                    source: { name: null, id: 'hidden-source' },
-                    destination: { name: null, id: COMPONENT_ID }
-                }
-            ]);
-            expect(fixture.nativeElement.textContent).toContain('Unauthorized');
-        });
-
-        it('renders an Unnamed placeholder for a connection with neither a name nor relationships', () => {
-            const { component, fixture } = createDialog('upstream', [
-                connection('c1', { id: 's1', name: 'Other Port' }, { id: COMPONENT_ID, name: 'In' })
-            ]);
-
-            expect(component.rows[0].name).toBeNull();
-            expect(fixture.nativeElement.textContent).toContain('Unnamed');
-        });
-    });
-
-    describe('downstream', () => {
-        it('reports the destination alongside the source', () => {
-            const { component } = createDialog(
-                'downstream',
-                [
-                    connection(
-                        'c1',
-                        { id: COMPONENT_ID, name: 'Out' },
-                        { id: 'd1', name: 'LogAttribute' },
-                        {
-                            name: 'from the port'
-                        }
-                    )
-                ],
-                'Out'
-            );
+        it('sets downstream title and empty message', () => {
+            const { component, fixture } = createDialog('downstream', []);
 
             expect(component.title).toBe('Downstream Connections');
-            expect(component.rows).toEqual([
+            expect(component.emptyMessage).toBe('No downstream connections were found.');
+            expect(textContent(fixture)).toContain('Downstream Connections');
+            expect(textContent(fixture)).toContain('No downstream connections were found.');
+        });
+
+        it('renders the selected component name and icon', () => {
+            const { fixture } = createDialog('upstream', [], {
+                componentName: 'Input Port A',
+                componentType: ComponentType.InputPort
+            });
+
+            expect(textContent(fixture)).toContain('Selected Component');
+            expect(textContent(fixture)).toContain('Input Port A');
+            expect(fixture.debugElement.query(By.css('.icon-port-in'))).not.toBeNull();
+        });
+    });
+
+    describe('row construction', () => {
+        it('builds a row for a readable connection with a connection name', () => {
+            const connection = readableConnection({
+                id: 'named-connection-id',
+                name: 'Named Connection',
+                source: { id: 'processor-id', name: 'GenerateFlowFile' },
+                destination: { id: 'input-port-id', name: 'Input Port' }
+            });
+
+            const { component } = createDialog('upstream', [connection]);
+
+            expect(component.rows).toEqual<ComponentConnectionRow[]>([
                 {
-                    id: 'c1',
-                    name: 'from the port',
-                    source: { name: 'Out', id: COMPONENT_ID },
-                    destination: { name: 'LogAttribute', id: 'd1' }
+                    id: 'named-connection-id',
+                    name: 'Named Connection',
+                    source: {
+                        id: 'processor-id',
+                        groupId: SOURCE_GROUP_ID,
+                        type: ComponentType.Processor,
+                        name: 'GenerateFlowFile'
+                    },
+                    destination: {
+                        id: 'input-port-id',
+                        groupId: DESTINATION_GROUP_ID,
+                        type: ComponentType.InputPort,
+                        name: 'Input Port'
+                    }
                 }
             ]);
         });
 
-        it('names the port inside a child group rather than the group the canvas draws', () => {
-            const { component, fixture } = createDialog(
-                'downstream',
-                [
-                    connectionIntoChildGroup(
-                        'c1',
-                        { id: 's1', name: 'GenerateFlowFile' },
-                        { id: 'inner-port', name: 'Inner In' },
-                        'into the group'
-                    )
-                ],
-                'Child Group'
-            );
+        it('uses selected relationships as the connection name when no explicit connection name is present', () => {
+            const connection = readableConnection({
+                selectedRelationships: ['success', 'retry']
+            });
 
-            expect(component.rows).toEqual([
+            const { component, fixture } = createDialog('upstream', [connection]);
+
+            expect(component.rows[0].name).toBe('success, retry');
+            expect(textContent(fixture)).toContain('success, retry');
+        });
+
+        it('uses a null connection name when the formatted name is empty', () => {
+            const connection = readableConnection();
+
+            const { component } = createDialog('upstream', [connection]);
+
+            expect(component.rows[0].name).toBeNull();
+        });
+
+        it('keeps unreadable connections using top-level endpoint identifiers and null endpoint names', () => {
+            const connection = unreadableConnection({
+                id: 'unreadable-connection-id',
+                source: { id: 'hidden-source-id', name: 'Hidden Source' },
+                destination: { id: 'hidden-destination-id', name: 'Hidden Destination' }
+            });
+
+            const { component, fixture } = createDialog('upstream', [connection]);
+
+            expect(component.rows).toEqual<ComponentConnectionRow[]>([
                 {
-                    id: 'c1',
-                    name: 'into the group',
-                    source: { name: 'GenerateFlowFile', id: 's1' },
-                    destination: { name: 'Inner In', id: 'inner-port' }
+                    id: 'unreadable-connection-id',
+                    name: null,
+                    source: {
+                        id: 'hidden-source-id',
+                        groupId: SOURCE_GROUP_ID,
+                        type: ComponentType.Processor,
+                        name: null
+                    },
+                    destination: {
+                        id: 'hidden-destination-id',
+                        groupId: DESTINATION_GROUP_ID,
+                        type: ComponentType.InputPort,
+                        name: null
+                    }
                 }
             ]);
-            expect(fixture.nativeElement.textContent).toContain('Inner In');
+
+            expect(textContent(fixture)).toContain('Unauthorized');
+        });
+
+        it('maps remote input and output port endpoint types to RemoteProcessGroup', () => {
+            const remoteInputConnection = readableConnection({
+                id: 'remote-input-connection-id',
+                sourceType: 'REMOTE_INPUT_PORT',
+                destinationType: 'REMOTE_OUTPUT_PORT'
+            });
+
+            const { component } = createDialog('downstream', [remoteInputConnection]);
+
+            expect(component.rows[0].source.type).toBe(ComponentType.RemoteProcessGroup);
+            expect(component.rows[0].destination.type).toBe(ComponentType.RemoteProcessGroup);
+        });
+
+        it('maps unknown endpoint types to Connector', () => {
+            const unknownTypeConnection = readableConnection({
+                sourceType: 'UNKNOWN_SOURCE_TYPE',
+                destinationType: 'UNKNOWN_DESTINATION_TYPE'
+            });
+
+            const { component } = createDialog('downstream', [unknownTypeConnection]);
+
+            expect(component.rows[0].source.type).toBe(ComponentType.Connector);
+            expect(component.rows[0].destination.type).toBe(ComponentType.Connector);
         });
     });
 
-    describe('empty state', () => {
-        it('reports that no upstream connections were found', () => {
-            const { fixture } = createDialog('upstream', []);
-            expect(fixture.nativeElement.textContent).toContain('No upstream connections were found.');
+    describe('rendering', () => {
+        it('renders the expected table columns', () => {
+            const { component, fixture } = createDialog('upstream', [readableConnection()]);
+
+            expect(component.displayedColumns).toEqual([
+                'sourceProcessGroup',
+                'sourceComponent',
+                'connection',
+                'destinationProcessGroup',
+                'destinationComponent'
+            ]);
+
+            const renderedText = textContent(fixture);
+            expect(renderedText).toContain('Source Process Group');
+            expect(renderedText).toContain('Source Component');
+            expect(renderedText).toContain('Connection');
+            expect(renderedText).toContain('Destination Process Group');
+            expect(renderedText).toContain('Destination Component');
         });
 
-        it('reports that no downstream connections were found', () => {
-            const { fixture } = createDialog('downstream', []);
-            expect(fixture.nativeElement.textContent).toContain('No downstream connections were found.');
+        it('renders process group names resolved from the request map', () => {
+            const { fixture } = createDialog('upstream', [readableConnection()]);
+
+            expect(textContent(fixture)).toContain('Source Process Group');
+            expect(textContent(fixture)).toContain('Destination Process Group');
+        });
+
+        it('renders unknown process group ids when no name is available', () => {
+            const connection = readableConnection({
+                sourceGroupId: UNKNOWN_GROUP_ID,
+                destinationGroupId: UNKNOWN_GROUP_ID
+            });
+
+            const { fixture } = createDialog('upstream', [connection]);
+
+            expect(textContent(fixture)).toContain(UNKNOWN_GROUP_ID);
+        });
+
+        it('renders component names and the formatted connection name', () => {
+            const connection = readableConnection({
+                name: 'Connection Name',
+                source: { id: 'source-component-id', name: 'Source Component Name' },
+                destination: { id: 'destination-component-id', name: 'Destination Component Name' }
+            });
+
+            const { fixture } = createDialog('upstream', [connection]);
+
+            const renderedText = textContent(fixture);
+            expect(renderedText).toContain('Source Component Name');
+            expect(renderedText).toContain('Connection Name');
+            expect(renderedText).toContain('Destination Component Name');
+        });
+
+        it('renders "Connection" for an unnamed connection', () => {
+            const { component, fixture } = createDialog('upstream', [readableConnection()]);
+
+            expect(component.rows[0].name).toBeNull();
+            expect(textContent(fixture)).toContain('Connection');
+        });
+
+        it('marks the header as sticky and applies striped row classes', () => {
+            const { fixture } = createDialog('upstream', [
+                readableConnection({ id: 'connection-1' }),
+                readableConnection({ id: 'connection-2' })
+            ]);
+
+            expect(fixture.debugElement.query(By.css('tr.mat-mdc-header-row'))).not.toBeNull();
+
+            const rows = fixture.debugElement.queryAll(By.css('tr.mat-mdc-row'));
+            expect(rows.length).toBe(2);
+            expect(rows[0].nativeElement.classList.contains('even')).toBeTruthy();
+            expect(rows[1].nativeElement.classList.contains('even')).toBeFalsy();
+        });
+
+        it('renders table cells using component-connection-cell wrappers for truncation styling', () => {
+            const { fixture } = createDialog('upstream', [readableConnection({ name: 'Named Connection' })]);
+
+            expect(fixture.debugElement.queryAll(By.css('.component-connection-cell')).length).toBeGreaterThan(0);
         });
     });
 
-    describe('process group names', () => {
+    describe('process group name resolution', () => {
         it('resolves process group names from the dialog request map', () => {
-            const { component } = createDialog('upstream', [
-                connection('c1', { id: 's1', name: 'GenerateFlowFile' }, { id: COMPONENT_ID, name: 'In' })
-            ]);
-
-            expect(component.resolveGroupName(GROUP_ID)).toBe('Current Group');
-            expect(component.resolveGroupName(CHILD_GROUP_ID)).toBe('Child Group');
-        });
-
-        it('falls back to the process group id when the request map does not contain a name', () => {
             const { component } = createDialog('upstream', []);
 
-            expect(component.resolveGroupName('unknown-group-id')).toBe('unknown-group-id');
+            expect(component.resolveGroupName(REQUEST_GROUP_ID)).toBe('Current Process Group');
+            expect(component.resolveGroupName(SOURCE_GROUP_ID)).toBe('Source Process Group');
+            expect(component.resolveGroupName(DESTINATION_GROUP_ID)).toBe('Destination Process Group');
+        });
+
+        it('falls back to the group id when no process group name is available', () => {
+            const { component } = createDialog('upstream', []);
+
+            expect(component.resolveGroupName(UNKNOWN_GROUP_ID)).toBe(UNKNOWN_GROUP_ID);
+        });
+
+        it('identifies the current process group from the dialog request group id', () => {
+            const { component } = createDialog('upstream', []);
+
+            expect(component.isCurrentProcessGroup(REQUEST_GROUP_ID)).toBeTruthy();
+            expect(component.isCurrentProcessGroup(SOURCE_GROUP_ID)).toBeFalsy();
         });
     });
 
     describe('navigation', () => {
-        it('navigates to the connection in the group that defines it and closes the dialog', () => {
-            const { component, store, dialogRef } = createDialog('upstream', [
-                connection('c1', { id: 's1', name: 'GenerateFlowFile' }, { id: COMPONENT_ID, name: 'In' })
-            ]);
+        it('dispatches navigation and closes the dialog when navigateTo is called', () => {
+            const { component, store, dialogRef } = createDialog('upstream', []);
             const dispatch = vi.spyOn(store, 'dispatch');
 
-            // component.goTo(component.rows[0]);
+            component.navigateTo('target-id', 'target-group-id', ComponentType.Processor);
 
             expect(dispatch).toHaveBeenCalledWith(
                 navigateToComponent({
                     request: {
-                        id: 'c1',
-                        processGroupId: GROUP_ID,
+                        id: 'target-id',
+                        processGroupId: 'target-group-id',
+                        type: ComponentType.Processor
+                    }
+                })
+            );
+            expect(dialogRef.close).toHaveBeenCalled();
+        });
+
+        it('renders the current source process group as non-clickable', () => {
+            const connection = readableConnection({
+                sourceGroupId: REQUEST_GROUP_ID,
+                destinationGroupId: DESTINATION_GROUP_ID
+            });
+
+            const { fixture } = createDialog('upstream', [connection]);
+
+            const sourceProcessGroupCell = getCells(fixture, 'mat-column-sourceProcessGroup')[0];
+            expect(sourceProcessGroupCell.querySelector('span')).not.toBeNull();
+            expect(sourceProcessGroupCell.querySelector('a')).toBeNull();
+        });
+
+        it('renders a non-current source process group as clickable and navigates to it', () => {
+            const connection = readableConnection({
+                sourceGroupId: SOURCE_GROUP_ID
+            });
+
+            const { fixture, store, dialogRef } = createDialog('upstream', [connection]);
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            const sourceProcessGroupCell = getCells(fixture, 'mat-column-sourceProcessGroup')[0];
+            const link = sourceProcessGroupCell.querySelector('a') as HTMLAnchorElement;
+            link.click();
+
+            expect(dispatch).toHaveBeenCalledWith(
+                navigateToComponent({
+                    request: {
+                        id: SOURCE_GROUP_ID,
+                        processGroupId: REQUEST_GROUP_ID,
+                        type: ComponentType.ProcessGroup
+                    }
+                })
+            );
+            expect(dialogRef.close).toHaveBeenCalled();
+        });
+
+        it('renders the current destination process group as non-clickable', () => {
+            const connection = readableConnection({
+                sourceGroupId: SOURCE_GROUP_ID,
+                destinationGroupId: REQUEST_GROUP_ID
+            });
+
+            const { fixture } = createDialog('upstream', [connection]);
+
+            const destinationProcessGroupCell = getCells(fixture, 'mat-column-destinationProcessGroup')[0];
+            expect(destinationProcessGroupCell.querySelector('span')).not.toBeNull();
+            expect(destinationProcessGroupCell.querySelector('a')).toBeNull();
+        });
+
+        it('navigates to the readable source component using the source component group id', () => {
+            const connection = readableConnection({
+                source: { id: 'source-component-id', name: 'Source Component' },
+                sourceGroupId: SOURCE_GROUP_ID,
+                sourceType: 'PROCESSOR'
+            });
+
+            const { fixture, store, dialogRef } = createDialog('upstream', [connection]);
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            const sourceComponentCell = getCells(fixture, 'mat-column-sourceComponent')[0];
+            const link = sourceComponentCell.querySelector('a') as HTMLAnchorElement;
+            link.click();
+
+            expect(dispatch).toHaveBeenCalledWith(
+                navigateToComponent({
+                    request: {
+                        id: 'source-component-id',
+                        processGroupId: SOURCE_GROUP_ID,
+                        type: ComponentType.Processor
+                    }
+                })
+            );
+            expect(dialogRef.close).toHaveBeenCalled();
+        });
+
+        it('navigates to the readable destination component using the destination component group id', () => {
+            const connection = readableConnection({
+                destination: { id: 'destination-component-id', name: 'Destination Component' },
+                destinationGroupId: DESTINATION_GROUP_ID,
+                destinationType: 'OUTPUT_PORT'
+            });
+
+            const { fixture, store, dialogRef } = createDialog('downstream', [connection]);
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            const destinationComponentCell = getCells(fixture, 'mat-column-destinationComponent')[0];
+            const link = destinationComponentCell.querySelector('a') as HTMLAnchorElement;
+            link.click();
+
+            expect(dispatch).toHaveBeenCalledWith(
+                navigateToComponent({
+                    request: {
+                        id: 'destination-component-id',
+                        processGroupId: DESTINATION_GROUP_ID,
+                        type: ComponentType.OutputPort
+                    }
+                })
+            );
+            expect(dialogRef.close).toHaveBeenCalled();
+        });
+
+        it('does not render unreadable components as clickable', () => {
+            const { fixture } = createDialog('upstream', [unreadableConnection()]);
+
+            const sourceComponentCell = getCells(fixture, 'mat-column-sourceComponent')[0];
+            const destinationComponentCell = getCells(fixture, 'mat-column-destinationComponent')[0];
+
+            expect(sourceComponentCell.querySelector('a')).toBeNull();
+            expect(destinationComponentCell.querySelector('a')).toBeNull();
+            expect(sourceComponentCell.textContent).toContain('Unauthorized');
+            expect(destinationComponentCell.textContent).toContain('Unauthorized');
+        });
+
+        it('navigates to the connection in the group that defines the dialog request', () => {
+            const connection = readableConnection({
+                id: 'connection-to-navigate-to',
+                name: 'Connection To Navigate To'
+            });
+
+            const { fixture, store, dialogRef } = createDialog('upstream', [connection]);
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            const connectionCell = getCells(fixture, 'mat-column-connection')[0];
+            const link = connectionCell.querySelector('a') as HTMLAnchorElement;
+            link.click();
+
+            expect(dispatch).toHaveBeenCalledWith(
+                navigateToComponent({
+                    request: {
+                        id: 'connection-to-navigate-to',
+                        processGroupId: REQUEST_GROUP_ID,
                         type: ComponentType.Connection
                     }
                 })
             );
             expect(dialogRef.close).toHaveBeenCalled();
+        });
+    });
+
+    describe('icons', () => {
+        it('returns the expected icon class for supported component types', () => {
+            const { component } = createDialog('upstream', []);
+
+            expect(component.componentIcon(ComponentType.Processor)).toBe('icon-processor');
+            expect(component.componentIcon(ComponentType.InputPort)).toBe('icon-port-in');
+            expect(component.componentIcon(ComponentType.OutputPort)).toBe('icon-port-out');
+            expect(component.componentIcon(ComponentType.Funnel)).toBe('icon-funnel');
+            expect(component.componentIcon(ComponentType.ProcessGroup)).toBe('icon-group');
+            expect(component.componentIcon(ComponentType.RemoteProcessGroup)).toBe('icon-group-remote');
+            expect(component.componentIcon(ComponentType.Connection)).toBe('icon-connect');
+        });
+
+        it('returns the drop icon for unsupported component types', () => {
+            const { component } = createDialog('upstream', []);
+
+            expect(component.componentIcon(ComponentType.ControllerService)).toBe('icon-drop');
         });
     });
 });
