@@ -346,7 +346,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         }
 
         final List<Range> elRanges = Query.extractExpressionRanges(getProperty(property).getValue());
-        return (elRanges != null && !elRanges.isEmpty());
+        return !elRanges.isEmpty();
     }
 
     @Override

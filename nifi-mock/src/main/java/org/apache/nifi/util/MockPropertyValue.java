@@ -355,6 +355,6 @@ public class MockPropertyValue implements PropertyValue {
         }
 
         final List<Range> elRanges = Query.extractExpressionRanges(rawValue);
-        return (elRanges != null && !elRanges.isEmpty());
+        return !elRanges.isEmpty();
     }
 }

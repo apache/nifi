@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -72,9 +73,7 @@ public class AbstractNativeLibHandlingClassLoaderTest {
         createTempFile("dylib");
         createTempFile("lib", "dylib");
 
-        String expected = null;
-
-        testFindLibrary(expected);
+        testFindLibrary(null);
     }
 
     @Test
@@ -98,9 +97,7 @@ public class AbstractNativeLibHandlingClassLoaderTest {
 
         createTempFile("dll");
 
-        String expected = null;
-
-        testFindLibrary(expected);
+        testFindLibrary(null);
     }
 
     @Test
@@ -165,9 +162,7 @@ public class AbstractNativeLibHandlingClassLoaderTest {
         createTempFile("dylib");
         createTempFile("lib", "dylib");
 
-        String expected = null;
-
-        testFindLibrary(expected);
+        testFindLibrary(null);
     }
 
     @Test
@@ -300,11 +295,10 @@ public class AbstractNativeLibHandlingClassLoaderTest {
         nativeLibDirs = new ArrayList<>();
 
         AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
-        String expected = null;
 
         String actual = testSubject.findLibrary("libName");
 
-        assertEquals(expected, actual);
+        assertNull(actual);
         verifyNoMoreInteractions(testSubjectHelper);
     }
 
@@ -317,22 +311,18 @@ public class AbstractNativeLibHandlingClassLoaderTest {
         when(testSubjectHelper.findLibrary("libName", nativeLibDir)).thenReturn(null);
 
         AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
-        String expected = null;
 
         String actual = testSubject.findLibrary("libName");
 
-        assertEquals(expected, actual);
+        assertNull(actual);
         verify(testSubjectHelper).findLibrary("libName", nativeLibDir);
         verifyNoMoreInteractions(testSubjectHelper);
     }
 
     @Test
     public void testToDirShouldReturnNullForNullInput() {
-        File expected = null;
-
         File actual = createTestSubject().toDir(null);
-
-        assertEquals(expected, actual);
+        assertNull(actual);
     }
 
     @Test

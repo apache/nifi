@@ -455,10 +455,6 @@ public class RunNiFiRegistry {
             return new Status(null, null, false, false);
         }
 
-        if (props == null) {
-            return new Status(null, null, false, false);
-        }
-
         final String portValue = props.getProperty("port");
         final String pid = props.getProperty(PID_KEY);
         final String secretKey = props.getProperty("secret.key");

@@ -72,10 +72,8 @@ final class CompositeExternalResourceProviderService implements ExternalResource
     public synchronized void stop() {
         started = false;
 
-        if (workers != null) {
-            workers.forEach(ExternalResourceProviderWorker::stop);
-            workers.clear();
-        }
+        workers.forEach(ExternalResourceProviderWorker::stop);
+        workers.clear();
 
         LOGGER.info("External Resource Provider Service is stopped");
     }

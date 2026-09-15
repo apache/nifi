@@ -88,11 +88,10 @@ public class NaiveRevisionManager implements RevisionManager {
         revisionList.sort(new RevisionComparator());
 
         // Verify the provided revisions.
-        String failedId = null;
         for (final Revision revision : revisionList) {
             final Revision curRevision = getRevision(revision.getEntityId());
             if (!curRevision.equals(revision)) {
-                throw new ExpiredRevisionClaimException("Invalid Revision was given for entity with ID '" + failedId + "'");
+                throw new ExpiredRevisionClaimException("Invalid Revision was given for entity with ID '" + revision.getEntityId() + "'");
             }
         }
 

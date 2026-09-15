@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.aws.s3.util;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.RequestPayer;
@@ -51,14 +53,13 @@ public class S3UtilTest {
         assertNull(S3Util.nullIfBlank(null));
     }
 
-    @Test
-    void testRequestPayerWithFalse() {
-        assertNull(S3Util.getRequestPayer(false));
-    }
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testRequestPayer(boolean requesterPays) {
+        final RequestPayer expected = requesterPays ? RequestPayer.REQUESTER : null;
+        final RequestPayer actual = S3Util.getRequestPayer(requesterPays);
 
-    @Test
-    void testRequestPayerWithTrue() {
-        assertEquals(RequestPayer.REQUESTER, S3Util.getRequestPayer(true));
+        assertEquals(expected, actual);
     }
 
     @Test

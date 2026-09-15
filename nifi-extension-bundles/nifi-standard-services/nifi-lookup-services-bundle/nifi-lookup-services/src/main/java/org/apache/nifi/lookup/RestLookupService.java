@@ -360,12 +360,8 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
             if (!response.isSuccessful()
                     && responseHandlingStrategy.equals(ResponseHandlingStrategy.EVALUATED)) {
-                final String responseText = responseBody == null ? "[No Message Received]" : responseBody.string();
+                final String responseText = responseBody.string();
                 throw new IOException("Request failed with HTTP %d for [%s]: %s".formatted(response.code(), request.url(), responseText));
-            }
-
-            if (responseBody == null) {
-                return Optional.empty();
             }
 
             final Record record;

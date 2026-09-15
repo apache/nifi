@@ -525,9 +525,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
                 }
             }
 
-            if (!attributes.isEmpty()) {
-                flowFile = session.putAllAttributes(flowFile, attributes);
-            }
+            flowFile = session.putAllAttributes(flowFile, attributes);
             session.transfer(flowFile, REL_SUCCESS);
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
 
