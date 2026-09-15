@@ -29,6 +29,8 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 public class TestMetricsFactory {
 
     private ProcessGroupStatus status;
@@ -71,6 +73,6 @@ public class TestMetricsFactory {
     public void  testToJsonWithLongValue() {
         Metric metric = new Metric("instanceId", "groupId", "groupName");
         metric.setCount(0x7ff8000000000000L);
-        gson.toJson(metric);
+        assertDoesNotThrow(() -> gson.toJson(metric));
     }
 }
