@@ -64,7 +64,13 @@ public abstract class AbstractKafkaBaseIT {
 
     private static Map<String, String> getEnvironmentIntegration() {
         return Map.of(
-                "KAFKA_MESSAGE_MAX_BYTES", Integer.toString(MESSAGE_MAX_BYTES)
+                "KAFKA_MESSAGE_MAX_BYTES", Integer.toString(MESSAGE_MAX_BYTES),
+                "KAFKA_GROUP_COORDINATOR_REBALANCE_PROTOCOLS", "classic,consumer,share",
+                "KAFKA_GROUP_SHARE_ENABLE", "true",
+                "KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR", "1",
+                "KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR", "1",
+                "KAFKA_GROUP_SHARE_MIN_RECORD_LOCK_DURATION_MS", "5000",
+                "KAFKA_GROUP_SHARE_RECORD_LOCK_DURATION_MS", "5000"
         );
     }
 
