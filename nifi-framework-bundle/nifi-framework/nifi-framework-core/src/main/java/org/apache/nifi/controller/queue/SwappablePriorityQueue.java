@@ -1044,14 +1044,14 @@ public class SwappablePriorityQueue {
                 if (swapLocationUpdates.containsKey(swapLocation)) {
                     final String newSwapLocation = swapLocationUpdates.get(swapLocation);
                     if (newSwapLocation != null) {
-                        updatedSwapLocations.add(newSwapLocation);
+                        rewrittenSwapLocations.add(newSwapLocation);
                     }
                 } else {
-                    updatedSwapLocations.add(swapLocation);
+                    rewrittenSwapLocations.add(swapLocation);
                 }
             }
             swapLocations.clear();
-            swapLocations.addAll(updatedSwapLocations);
+            swapLocations.addAll(rewrittenSwapLocations);
 
             // Filter the active queue
             final Queue<FlowFileRecord> newActiveQueue = new PriorityQueue<>(Math.max(20, activeQueue.size()), new QueuePrioritizer(getPriorities()));
