@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.mqtt.common;
 
+import java.util.List;
+
 public interface MqttClient {
 
     /**
@@ -50,14 +52,14 @@ public interface MqttClient {
     void publish(String topic, StandardMqttMessage message);
 
     /**
-     * Subscribe to a topic.
+     * Subscribe to one or more topic filters with a single SUBSCRIBE request.
      *
-     * @param topicFilter the topic to subscribe to, which can include wildcards.
-     * @param qos the maximum quality of service at which to subscribe. Messages
-     *            published at a lower quality of service will be received at the published
-     *            QoS. Messages published at a higher quality of service will be received using
-     *            the QoS specified on the subscribe.
+     * @param subscriptions the list of (Topic Filter, QoS) pairs to subscribe to. A topic filter can include
+     *                      wildcards. The QoS is the maximum quality of service at which to subscribe. Messages
+     *                      published at a lower quality of service will be received at the published QoS. Messages
+     *                      published at a higher quality of service will be received using the QoS specified on
+     *                      the subscribe.
      * @param handler that further processes the message received by the client
      */
-    void subscribe(String topicFilter, int qos, ReceivedMqttMessageHandler handler);
+    void subscribe(List<MqttTopicSubscription> subscriptions, ReceivedMqttMessageHandler handler);
 }

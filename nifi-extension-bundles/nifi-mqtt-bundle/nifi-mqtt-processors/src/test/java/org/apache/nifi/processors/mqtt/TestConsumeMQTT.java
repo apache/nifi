@@ -21,7 +21,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
+import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.MqttTestClient;
+import org.apache.nifi.processors.mqtt.common.MqttTopicSubscription;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -44,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.function.Consumer;
 
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.BROKER_ATTRIBUTE_KEY;
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.IS_DUPLICATE_ATTRIBUTE_KEY;
@@ -107,6 +110,166 @@ public class TestConsumeMQTT {
 
         testRunner.removeProperty(ConsumeMQTT.PROP_CLIENTID);
         testRunner.assertValid();
+    }
+
+    @Test
+    public void testSingleTopicFilterSubscription() throws Exception {
+        final List<MqttTopicSubscription> subscriptions = subscribeAndGetSubscriptions(runner -> { });
+
+        assertEquals(List.of(new MqttTopicSubscription(TOPIC_NAME, AT_MOST_ONCE)), subscriptions);
+    }
+
+    @Test
+    public void testSingleTopicFilterSubscriptionIsUsedVerbatim() throws Exception {
+        // Leading and trailing whitespace is significant in an MQTT topic filter, so a value without a comma must not
+        // be altered, otherwise upgrading would silently change the subscription of an existing configuration.
+        final List<MqttTopicSubscription> subscriptions = subscribeAndGetSubscriptions(
+                runner -> runner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, " testTopic/one "));
+
+        assertEquals(List.of(new MqttTopicSubscription(" testTopic/one ", AT_MOST_ONCE)), subscriptions);
+    }
+
+    @Test
+    public void testMultipleTopicFilterSubscription() throws Exception {
+        final List<MqttTopicSubscription> subscriptions = subscribeAndGetSubscriptions(
+                runner -> runner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, "testTopic/one,testTopic/two,testTopic/three"));
+
+        assertEquals(List.of(
+                new MqttTopicSubscription("testTopic/one", AT_MOST_ONCE),
+                new MqttTopicSubscription("testTopic/two", AT_MOST_ONCE),
+                new MqttTopicSubscription("testTopic/three", AT_MOST_ONCE)), subscriptions);
+    }
+
+    @Test
+    public void testMultipleTopicFilterSubscriptionTrimsWhitespaceAndIgnoresEmptyEntries() throws Exception {
+        final List<MqttTopicSubscription> subscriptions = subscribeAndGetSubscriptions(
+                runner -> runner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, "  testTopic/one ,, testTopic/two  ,"));
+
+        assertEquals(List.of(
+                new MqttTopicSubscription("testTopic/one", AT_MOST_ONCE),
+                new MqttTopicSubscription("testTopic/two", AT_MOST_ONCE)), subscriptions);
+    }
+
+    @Test
+    public void testMultipleTopicFilterSubscriptionUsesConfiguredQos() throws Exception {
+        final List<MqttTopicSubscription> subscriptions = subscribeAndGetSubscriptions(runner -> {
+            runner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, "testTopic/one,testTopic/two");
+            runner.setProperty(ConsumeMQTT.PROP_QOS, String.valueOf(EXACTLY_ONCE));
+        });
+
+        assertEquals(List.of(
+                new MqttTopicSubscription("testTopic/one", EXACTLY_ONCE),
+                new MqttTopicSubscription("testTopic/two", EXACTLY_ONCE)), subscriptions);
+    }
+
+    @Test
+    public void testMultipleTopicFilterSubscriptionAppliesSharedSubscriptionPrefixPerFilter() throws Exception {
+        final List<MqttTopicSubscription> subscriptions = subscribeAndGetSubscriptions(runner -> {
+            runner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, "testTopic/one,testTopic/two");
+            runner.setProperty(ConsumeMQTT.PROP_GROUPID, "testGroup");
+            runner.setProperty(ConsumeMQTT.PROP_CLIENTID, "${hostname()}");
+        });
+
+        assertEquals(List.of(
+                new MqttTopicSubscription("$share/testGroup/testTopic/one", AT_MOST_ONCE),
+                new MqttTopicSubscription("$share/testGroup/testTopic/two", AT_MOST_ONCE)), subscriptions);
+    }
+
+    @Test
+    public void testTopicFilterWithExpressionLanguageIsValid() {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, "${literal('testTopic/one,testTopic/two')}");
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testDuplicateTopicFiltersNotValid() {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, "testTopic/one,testTopic/two");
+        testRunner.assertValid();
+
+        testRunner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, "testTopic/one, testTopic/two , testTopic/one");
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testBlankTopicFiltersNotValid() {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, " , , ");
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testClientIsDisconnectedAndClosedWhenSubscribeFails() throws Exception {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
+        mqttTestClient.subscribeException = new MqttException("Broker rejected subscription for the following topic filter(s): [testTopic/two]");
+        testRunner = initializeTestRunner(mqttTestClient);
+        testRunner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, "testTopic/one,testTopic/two");
+
+        final ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
+        consumeMQTT.onScheduled(testRunner.getProcessContext());
+        reconnect(consumeMQTT, testRunner.getProcessContext());
+
+        // A SUBSCRIBE listing several topic filters can be granted partially, leaving the client connected and
+        // subscribed. Dereferencing it without disconnecting would leak the broker connection and let the orphaned
+        // client keep feeding the internal queue while retries create further clients.
+        assertFalse(mqttTestClient.connected.get());
+        assertTrue(mqttTestClient.closed.get());
+    }
+
+    @Test
+    public void testMultipleTopicFilterProvenanceTransitUriForAggregatedFlowFile() throws Exception {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, "testTopic/one,testTopic/two");
+        testRunner.setProperty(ConsumeMQTT.PROP_GROUPID, "testGroup");
+        testRunner.setProperty(ConsumeMQTT.PROP_CLIENTID, "${hostname()}");
+        testRunner.setProperty(ConsumeMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(ConsumeMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+
+        testRunner.assertValid();
+
+        final ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
+        consumeMQTT.onScheduled(testRunner.getProcessContext());
+        reconnect(consumeMQTT, testRunner.getProcessContext());
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+        assertTrue(isConnected(consumeMQTT));
+
+        mqttTestClient.publish("testTopic/one", new StandardMqttMessage(JSON_PAYLOAD.getBytes(StandardCharsets.UTF_8), AT_MOST_ONCE, false));
+        mqttTestClient.publish("testTopic/two", new StandardMqttMessage(JSON_PAYLOAD.getBytes(StandardCharsets.UTF_8), AT_MOST_ONCE, false));
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+
+        testRunner.run(1, false, false);
+
+        // A single FlowFile aggregates messages of both topics, so the transit URI has to list every subscribed topic
+        // filter, each carrying the shared subscription prefix.
+        final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        assertEquals(BROKER_URI + "/$share/testGroup/testTopic/one,$share/testGroup/testTopic/two",
+                provenanceEvents.getFirst().getTransitUri());
+    }
+
+    private List<MqttTopicSubscription> subscribeAndGetSubscriptions(final Consumer<TestRunner> configurer) throws Exception {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        configurer.accept(testRunner);
+        testRunner.assertValid();
+
+        final ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
+        consumeMQTT.onScheduled(testRunner.getProcessContext());
+        reconnect(consumeMQTT, testRunner.getProcessContext());
+
+        return mqttTestClient.subscriptions;
     }
 
     @Test
