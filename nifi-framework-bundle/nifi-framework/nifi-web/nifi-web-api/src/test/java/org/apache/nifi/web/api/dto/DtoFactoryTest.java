@@ -22,6 +22,10 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
+import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
@@ -1049,6 +1053,52 @@ public class DtoFactoryTest {
 
         assertTrue(dto.getSensitive());
         assertEquals(DtoFactory.SENSITIVE_VALUE_MASK, dto.getValue());
+    }
+
+    @Test
+    void testConnectorMultipleVersionsAvailable() {
+        final List<Bundle> oneCompatibleBundle = Collections.singletonList(createBundle("com.example", "test-connector", "1.1.0"));
+        assertTrue(createConnectorDto(true, oneCompatibleBundle).getMultipleVersionsAvailable());
+        assertFalse(createConnectorDto(false, oneCompatibleBundle).getMultipleVersionsAvailable());
+
+        final List<Bundle> twoCompatibleBundles = Arrays.asList(
+                createBundle("com.example", "test-connector", "1.0.0"),
+                createBundle("com.example", "test-connector", "2.0.0"));
+        assertTrue(createConnectorDto(false, twoCompatibleBundles).getMultipleVersionsAvailable());
+    }
+
+    private ConnectorDTO createConnectorDto(final boolean extensionMissing, final List<Bundle> compatibleBundles) {
+        final String group = "com.example";
+        final String id = "test-connector";
+        final BundleCoordinate currentCoordinate = new BundleCoordinate(group, id, "1.0.0");
+        final String canonicalClassName = "com.example.TestConnector";
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(extensionManager.getBundles(canonicalClassName)).thenReturn(compatibleBundles);
+
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+        when(managedProcessGroup.getIdentifier()).thenReturn("pg-1");
+
+        final FrameworkFlowContext activeFlowContext = mock(FrameworkFlowContext.class);
+        when(activeFlowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(activeFlowContext.getConfigurationContext()).thenReturn(null);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        when(connectorNode.getIdentifier()).thenReturn("connector-1");
+        when(connectorNode.getName()).thenReturn("Connector");
+        when(connectorNode.getCanonicalClassName()).thenReturn(canonicalClassName);
+        when(connectorNode.getBundleCoordinate()).thenReturn(currentCoordinate);
+        when(connectorNode.isExtensionMissing()).thenReturn(extensionMissing);
+        when(connectorNode.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connectorNode.getValidationState()).thenReturn(new ValidationState(ValidationStatus.VALID, Collections.emptyList()));
+        when(connectorNode.getActiveFlowContext()).thenReturn(activeFlowContext);
+        when(connectorNode.getWorkingFlowContext()).thenReturn(null);
+        when(connectorNode.getConfigurationSteps()).thenReturn(Collections.emptyList());
+        when(connectorNode.getAvailableActions()).thenReturn(Collections.emptyList());
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setExtensionManager(extensionManager);
+        return dtoFactory.createConnectorDto(connectorNode);
     }
 
     private static DtoFactory newDtoFactoryForParameters() {

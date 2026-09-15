@@ -21,7 +21,7 @@ import { map } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
-import { ConnectorsResponse, CreateConnectorRequest } from '../state';
+import { ChangeConnectorVersionRequest, ConnectorsResponse, CreateConnectorRequest } from '../state';
 import { ConnectorEntity } from '@nifi/shared';
 import { ControllerServiceEntity, ParameterContextEntity, SearchResultsEntity } from '../../../state/shared';
 import { DropRequestEntity } from '../../../state/empty-queue';
@@ -59,6 +59,15 @@ export class ConnectorService {
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: connector.component,
             id: connector.id
+        });
+    }
+
+    changeConnectorVersion(request: ChangeConnectorVersionRequest): Observable<ConnectorEntity> {
+        return this.httpClient.put<ConnectorEntity>(`${ConnectorService.API}/connectors/${request.id}`, {
+            revision: this.client.getRevision({ revision: request.payload.revision }),
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+            component: request.payload.component,
+            id: request.id
         });
     }
 
