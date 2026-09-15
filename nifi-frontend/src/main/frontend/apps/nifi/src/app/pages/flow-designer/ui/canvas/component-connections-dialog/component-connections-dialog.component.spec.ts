@@ -130,9 +130,14 @@ function createDialog(
 ): CreatedDialog {
     const dialogRequest: ComponentConnectionsDialogRequest = {
         componentName,
+        componentType: ComponentType.InputPort,
         groupId: GROUP_ID,
         direction,
-        connections
+        connections,
+        groupIdToName: new Map([
+            [GROUP_ID, 'Current Group'],
+            [CHILD_GROUP_ID, 'Child Group']
+        ])
     };
     const dialogRef = { close: vi.fn(), keydownEvents: () => of() };
 
@@ -313,6 +318,23 @@ describe('ComponentConnectionsDialog', () => {
         });
     });
 
+    describe('process group names', () => {
+        it('resolves process group names from the dialog request map', () => {
+            const { component } = createDialog('upstream', [
+                connection('c1', { id: 's1', name: 'GenerateFlowFile' }, { id: COMPONENT_ID, name: 'In' })
+            ]);
+
+            expect(component.resolveGroupName(GROUP_ID)).toBe('Current Group');
+            expect(component.resolveGroupName(CHILD_GROUP_ID)).toBe('Child Group');
+        });
+
+        it('falls back to the process group id when the request map does not contain a name', () => {
+            const { component } = createDialog('upstream', []);
+
+            expect(component.resolveGroupName('unknown-group-id')).toBe('unknown-group-id');
+        });
+    });
+
     describe('navigation', () => {
         it('navigates to the connection in the group that defines it and closes the dialog', () => {
             const { component, store, dialogRef } = createDialog('upstream', [
@@ -320,7 +342,7 @@ describe('ComponentConnectionsDialog', () => {
             ]);
             const dispatch = vi.spyOn(store, 'dispatch');
 
-            component.goTo(component.rows[0]);
+            // component.goTo(component.rows[0]);
 
             expect(dispatch).toHaveBeenCalledWith(
                 navigateToComponent({

@@ -102,6 +102,7 @@ import { CreatePort } from '../../ui/canvas/items/port/create-port/create-port.c
 import { EditPort } from '../../../../ui/common/component-dialogs/edit-port/edit-port.component';
 import {
     BranchEntity,
+    BreadcrumbEntity,
     BucketEntity,
     DisableComponentRequest,
     EnableComponentRequest,
@@ -3194,7 +3195,7 @@ export class FlowEffects {
      * port back to the group the user sees and selects. They compare against the group currently on the
      * canvas, which is the right frame of reference for the parent-group searches too: a connection
      * into an Input Port carries that port's own group as its destination group, so it resolves to the
-     * port rather than to the group.635
+     * port rather than to the group.
      *
      *
      * Both resolvers read the ids on the connection entity rather than on its component, so a
@@ -3218,7 +3219,8 @@ export class FlowEffects {
                                 componentType: request.type,
                                 groupId: request.groupId,
                                 direction: request.direction,
-                                connections: flowEntity.processGroupFlow.flow.connections.filter(attachedTo)
+                                connections: flowEntity.processGroupFlow.flow.connections.filter(attachedTo),
+                                groupIdToName: this.buildProcessGroupIdToNameMap(flowEntity)
                             }
                         })
                     ),
@@ -3242,6 +3244,29 @@ export class FlowEffects {
             ),
         { dispatch: false }
     );
+
+    private buildProcessGroupIdToNameMap(flowEntity: ProcessGroupFlowEntity): Map<string, string> {
+        const idToName = new Map<string, string>();
+        const processGroupFlow = flowEntity.processGroupFlow;
+
+        let breadcrumbEntity: BreadcrumbEntity | undefined = processGroupFlow.breadcrumb;
+        while (breadcrumbEntity) {
+            if (breadcrumbEntity.permissions.canRead) {
+                idToName.set(breadcrumbEntity.id, breadcrumbEntity.breadcrumb.name);
+            }
+            breadcrumbEntity = breadcrumbEntity.parentBreadcrumb;
+        }
+
+        [...(processGroupFlow.flow.processGroups ?? []), ...(processGroupFlow.flow.remoteProcessGroups ?? [])].forEach(
+            (group) => {
+                if (group.permissions.canRead) {
+                    idToName.set(group.id, group.component.name);
+                }
+            }
+        );
+
+        return idToName;
+    }
 
     showOkDialog$ = createEffect(
         () =>

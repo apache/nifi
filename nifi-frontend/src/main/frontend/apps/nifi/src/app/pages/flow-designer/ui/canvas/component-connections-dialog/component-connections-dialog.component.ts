@@ -26,7 +26,6 @@ import { CanvasState } from '../../../state';
 import { ComponentConnectionsDialogRequest, ConnectionEntity } from '../../../state/flow';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
 import { navigateToComponent } from '../../../state/flow/flow.actions';
-import { selectProcessGroupIdToNameMap } from '../../../state/flow/flow.selectors';
 
 /**
  * One end of a connection, with enough information to render a cell and navigate to it.
@@ -79,8 +78,6 @@ export class ComponentConnectionsDialog extends CloseOnEscapeDialog {
     private componentConnectionsDialogRef = inject<MatDialogRef<ComponentConnectionsDialog>>(MatDialogRef);
     private store = inject<Store<CanvasState>>(Store);
     private canvasUtils = inject(CanvasUtils);
-    // Signal-based snapshot — reads current value synchronously, no manual subscribe/unsubscribe.
-    private groupIdToName = this.store.selectSignal(selectProcessGroupIdToNameMap);
 
     // Maps the string type returned by the NiFi API to the ComponentType enum used for navigation.
     private static readonly TYPE_MAP: Record<string, ComponentType> = {
@@ -155,7 +152,7 @@ export class ComponentConnectionsDialog extends CloseOnEscapeDialog {
      * @returns string name of the process group
      */
     resolveGroupName(groupId: string): string {
-        return this.groupIdToName().get(groupId) ?? groupId; // note the () — calling the signal
+        return this.dialogRequest.groupIdToName.get(groupId) ?? groupId;
     }
 
     /**
