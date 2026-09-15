@@ -425,6 +425,7 @@ export interface ComponentConnectionsDialogRequest {
     connections: ConnectionEntity[];
     // names resolved from the same flow entity that supplied the connections
     groupIdToName: Map<string, string>;
+    remoteProcessGroupIds: Set<string>;
 }
 
 /*

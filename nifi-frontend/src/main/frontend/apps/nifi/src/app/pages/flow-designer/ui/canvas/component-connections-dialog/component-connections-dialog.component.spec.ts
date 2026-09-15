@@ -125,6 +125,7 @@ function createDialog(
             [SOURCE_GROUP_ID, 'Source Process Group'],
             [DESTINATION_GROUP_ID, 'Destination Process Group']
         ]),
+        remoteProcessGroupIds: new Set(),
         ...overrides
     };
 
@@ -555,6 +556,144 @@ describe('ComponentConnectionsDialog', () => {
             expect(destinationComponentCell.querySelector('a')).toBeNull();
             expect(sourceComponentCell.textContent).toContain('Unauthorized');
             expect(destinationComponentCell.textContent).toContain('Unauthorized');
+        });
+
+        it('renders a remote input port source component as non-clickable', () => {
+            const connection = readableConnection({
+                source: { id: 'remote-input-port-id', name: 'Remote Input Port' },
+                sourceGroupId: 'remote-process-group-id',
+                sourceType: 'REMOTE_INPUT_PORT',
+                destination: { id: 'processor-id', name: 'Processor' },
+                destinationType: 'PROCESSOR'
+            });
+
+            const { fixture, store, dialogRef } = createDialog('downstream', [connection], {
+                remoteProcessGroupIds: new Set(['remote-process-group-id'])
+            });
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            const sourceComponentCell = getCells(fixture, 'mat-column-sourceComponent')[0];
+
+            expect(sourceComponentCell.textContent).toContain('Remote Input Port');
+            expect(sourceComponentCell.querySelector('span')).not.toBeNull();
+            expect(sourceComponentCell.querySelector('a')).toBeNull();
+            expect(dispatch).not.toHaveBeenCalled();
+            expect(dialogRef.close).not.toHaveBeenCalled();
+        });
+
+        it('renders a remote output port source component as non-clickable', () => {
+            const connection = readableConnection({
+                source: { id: 'remote-output-port-id', name: 'Remote Output Port' },
+                sourceGroupId: 'remote-process-group-id',
+                sourceType: 'REMOTE_OUTPUT_PORT',
+                destination: { id: 'processor-id', name: 'Processor' },
+                destinationType: 'PROCESSOR'
+            });
+
+            const { fixture, store, dialogRef } = createDialog('downstream', [connection], {
+                remoteProcessGroupIds: new Set(['remote-process-group-id'])
+            });
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            const sourceComponentCell = getCells(fixture, 'mat-column-sourceComponent')[0];
+
+            expect(sourceComponentCell.textContent).toContain('Remote Output Port');
+            expect(sourceComponentCell.querySelector('span')).not.toBeNull();
+            expect(sourceComponentCell.querySelector('a')).toBeNull();
+            expect(dispatch).not.toHaveBeenCalled();
+            expect(dialogRef.close).not.toHaveBeenCalled();
+        });
+
+        it('renders a remote input port destination component as non-clickable', () => {
+            const connection = readableConnection({
+                source: { id: 'processor-id', name: 'Processor' },
+                sourceType: 'PROCESSOR',
+                destination: { id: 'remote-input-port-id', name: 'Remote Input Port' },
+                destinationGroupId: 'remote-process-group-id',
+                destinationType: 'REMOTE_INPUT_PORT'
+            });
+
+            const { fixture, store, dialogRef } = createDialog('upstream', [connection], {
+                remoteProcessGroupIds: new Set(['remote-process-group-id'])
+            });
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            const destinationComponentCell = getCells(fixture, 'mat-column-destinationComponent')[0];
+
+            expect(destinationComponentCell.textContent).toContain('Remote Input Port');
+            expect(destinationComponentCell.querySelector('span')).not.toBeNull();
+            expect(destinationComponentCell.querySelector('a')).toBeNull();
+            expect(dispatch).not.toHaveBeenCalled();
+            expect(dialogRef.close).not.toHaveBeenCalled();
+        });
+
+        it('renders a remote output port destination component as non-clickable', () => {
+            const connection = readableConnection({
+                source: { id: 'processor-id', name: 'Processor' },
+                sourceType: 'PROCESSOR',
+                destination: { id: 'remote-output-port-id', name: 'Remote Output Port' },
+                destinationGroupId: 'remote-process-group-id',
+                destinationType: 'REMOTE_OUTPUT_PORT'
+            });
+
+            const { fixture, store, dialogRef } = createDialog('upstream', [connection], {
+                remoteProcessGroupIds: new Set(['remote-process-group-id'])
+            });
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            const destinationComponentCell = getCells(fixture, 'mat-column-destinationComponent')[0];
+
+            expect(destinationComponentCell.textContent).toContain('Remote Output Port');
+            expect(destinationComponentCell.querySelector('span')).not.toBeNull();
+            expect(destinationComponentCell.querySelector('a')).toBeNull();
+            expect(dispatch).not.toHaveBeenCalled();
+            expect(dialogRef.close).not.toHaveBeenCalled();
+        });
+
+        it('continues rendering standard input and output port components as clickable', () => {
+            const connection = readableConnection({
+                source: { id: 'output-port-id', name: 'Output Port' },
+                sourceGroupId: SOURCE_GROUP_ID,
+                sourceType: 'OUTPUT_PORT',
+                destination: { id: 'input-port-id', name: 'Input Port' },
+                destinationGroupId: DESTINATION_GROUP_ID,
+                destinationType: 'INPUT_PORT'
+            });
+
+            const { fixture } = createDialog('downstream', [connection]);
+
+            const sourceComponentCell = getCells(fixture, 'mat-column-sourceComponent')[0];
+            const destinationComponentCell = getCells(fixture, 'mat-column-destinationComponent')[0];
+
+            expect(sourceComponentCell.querySelector('a')).not.toBeNull();
+            expect(sourceComponentCell.querySelector('span')).toBeNull();
+            expect(destinationComponentCell.querySelector('a')).not.toBeNull();
+            expect(destinationComponentCell.querySelector('span')).toBeNull();
+        });
+
+        it('navigates to the connection in the group that defines the dialog request', () => {
+            const connection = readableConnection({
+                id: 'connection-to-navigate-to',
+                name: 'Connection To Navigate To'
+            });
+
+            const { fixture, store, dialogRef } = createDialog('upstream', [connection]);
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            const connectionCell = getCells(fixture, 'mat-column-connection')[0];
+            const link = connectionCell.querySelector('a') as HTMLAnchorElement;
+            link.click();
+
+            expect(dispatch).toHaveBeenCalledWith(
+                navigateToComponent({
+                    request: {
+                        id: 'connection-to-navigate-to',
+                        processGroupId: REQUEST_GROUP_ID,
+                        type: ComponentType.Connection
+                    }
+                })
+            );
+            expect(dialogRef.close).toHaveBeenCalled();
         });
 
         it('navigates to the connection in the group that defines the dialog request', () => {
