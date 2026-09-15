@@ -423,6 +423,8 @@ export interface ComponentConnectionsDialogRequest {
     groupId: string;
     direction: ConnectionDirection;
     connections: ConnectionEntity[];
+    // names resolved from the same flow entity that supplied the connections
+    groupIdToName: Map<string, string>;
 }
 
 /*

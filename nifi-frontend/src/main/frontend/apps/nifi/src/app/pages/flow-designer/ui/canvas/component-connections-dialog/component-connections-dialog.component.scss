@@ -23,30 +23,27 @@
         width: 100%;
     }
 
-    // flexible columns: truncate instead of pushing siblings out
-    .mat-column-source,
-    .mat-column-destination,
-    .mat-column-name {
+    .mat-column-sourceProcessGroup,
+    .mat-column-sourceComponent,
+    .mat-column-connection,
+    .mat-column-destinationProcessGroup,
+    .mat-column-destinationComponent {
+        max-width: 0;
+    }
+
+    .component-connection-cell {
+        display: block;
+        width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        max-width: 0; // works with table-layout: fixed to force shrinking
     }
 
-    // component type icons; sized relative to the cell text so they never grow the row height
     .component-type-icon {
+        display: inline-block;
         font-size: 1.15em;
         line-height: 1;
         vertical-align: baseline;
+        margin-right: 0.25rem;
     }
-
-    //.cell-text {
-    //.link-cell {
-    //    display: inline-block;
-    //    max-width: 100%;
-    //    overflow: hidden;
-    //    text-overflow: ellipsis;
-    //    white-space: nowrap;
-    //    vertical-align: bottom;
-    //}
 }
