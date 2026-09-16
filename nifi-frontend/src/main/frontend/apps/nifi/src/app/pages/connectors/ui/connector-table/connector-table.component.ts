@@ -74,6 +74,7 @@ export class ConnectorTable {
     @Input() selectedConnectorId!: string;
     @Input() flowConfiguration!: FlowConfiguration;
     @Input() currentUser!: CurrentUser;
+    @Input() saving = false;
 
     @Output() selectConnector = new EventEmitter<ConnectorEntity>();
     @Output() viewConnector = new EventEmitter<ConnectorEntity>();
@@ -165,10 +166,14 @@ export class ConnectorTable {
             ConnectorState.UPDATED,
             ConnectorState.UPDATE_FAILED
         ];
+        const state = entity.component.state as ConnectorState;
+        const noActiveThreads = entity.status?.aggregateSnapshot?.activeThreadCount === 0;
         return (
             this.canRead(entity) &&
             this.canModify(entity) &&
-            versionChangeEligibleStates.includes(entity.component.state as ConnectorState) &&
+            !this.saving &&
+            versionChangeEligibleStates.includes(state) &&
+            (state === ConnectorState.STOPPED || noActiveThreads) &&
             entity.component.multipleVersionsAvailable === true
         );
     }

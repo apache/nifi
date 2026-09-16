@@ -41,6 +41,7 @@
                         [selectedConnectorId]="(selectedConnectorId$ | async)!"
                         [flowConfiguration]="(flowConfiguration$ | async)!"
                         [currentUser]="currentUser"
+                        [saving]="connectorsListingState.saving"
                         (viewConnector)="viewConnector($event)"
                         (viewDetails)="viewDetails($event)"
                         (configureConnector)="configureConnector($event)"

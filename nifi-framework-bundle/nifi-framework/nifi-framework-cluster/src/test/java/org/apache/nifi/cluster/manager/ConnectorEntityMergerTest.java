@@ -77,6 +77,31 @@ class ConnectorEntityMergerTest {
     }
 
     @Test
+    void testMergeMultipleVersionsAvailable() {
+        final ConnectorEntity clientEntity = createConnectorEntity("connector1", "STOPPED");
+        final ConnectorEntity nodeEntity = createConnectorEntity("connector1", "STOPPED");
+        clientEntity.getComponent().setMultipleVersionsAvailable(true);
+
+        final Map<NodeIdentifier, ConnectorEntity> entityMap = new HashMap<>();
+        entityMap.put(getNodeIdentifier("client", 8000), clientEntity);
+        entityMap.put(getNodeIdentifier("node", 8001), nodeEntity);
+
+        nodeEntity.getComponent().setMultipleVersionsAvailable(false);
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+        assertFalse(clientEntity.getComponent().getMultipleVersionsAvailable());
+
+        clientEntity.getComponent().setMultipleVersionsAvailable(true);
+        nodeEntity.getComponent().setMultipleVersionsAvailable(null);
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+        assertFalse(clientEntity.getComponent().getMultipleVersionsAvailable());
+
+        clientEntity.getComponent().setMultipleVersionsAvailable(true);
+        nodeEntity.getComponent().setMultipleVersionsAvailable(true);
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+        assertTrue(clientEntity.getComponent().getMultipleVersionsAvailable());
+    }
+
+    @Test
     void testMergeConfigurationStepsWithDifferentAllowableValues() {
         final ConnectorEntity clientEntity = createConnectorEntityWithConfig(
             "connector1", "STOPPED",

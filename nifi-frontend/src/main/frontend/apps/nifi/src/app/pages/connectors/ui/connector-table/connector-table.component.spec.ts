@@ -57,6 +57,7 @@ describe('ConnectorTable', () => {
             validationStatus?: string;
             availableActions?: ConnectorAction[];
             multipleVersionsAvailable?: boolean;
+            activeThreadCount?: number;
         } = {}
     ): ConnectorEntity {
         const defaultActions: ConnectorAction[] = options.availableActions ?? [
@@ -92,7 +93,10 @@ describe('ConnectorTable', () => {
                 multipleVersionsAvailable: options.multipleVersionsAvailable
             },
             status: {
-                runStatus: options.state || 'STOPPED'
+                runStatus: options.state || 'STOPPED',
+                aggregateSnapshot: {
+                    activeThreadCount: options.activeThreadCount ?? 0
+                }
             } as ConnectorStatus
         };
 
@@ -355,21 +359,25 @@ describe('ConnectorTable', () => {
         });
 
         it.each([
-            [true, true, true, ConnectorState.STOPPED, true],
-            [false, true, true, ConnectorState.STOPPED, false],
-            [true, false, true, ConnectorState.STOPPED, false],
-            [true, true, false, ConnectorState.STOPPED, false],
-            [true, true, true, ConnectorState.RUNNING, false],
-            [true, true, true, ConnectorState.UPDATING, false],
-            [true, true, true, ConnectorState.UPDATED, true],
-            [true, true, true, ConnectorState.UPDATE_FAILED, true]
+            [true, true, true, ConnectorState.STOPPED, 1, false, true],
+            [false, true, true, ConnectorState.STOPPED, 0, false, false],
+            [true, false, true, ConnectorState.STOPPED, 0, false, false],
+            [true, true, false, ConnectorState.STOPPED, 0, false, false],
+            [true, true, true, ConnectorState.STOPPED, 0, true, false],
+            [true, true, true, ConnectorState.RUNNING, 0, false, false],
+            [true, true, true, ConnectorState.UPDATING, 0, false, false],
+            [true, true, true, ConnectorState.UPDATED, 0, false, true],
+            [true, true, true, ConnectorState.UPDATED, 1, false, false],
+            [true, true, true, ConnectorState.UPDATE_FAILED, 0, false, true],
+            [true, true, true, ConnectorState.UPDATE_FAILED, 1, false, false]
         ])(
             'should evaluate version change eligibility',
-            async (canRead, canWrite, multipleVersionsAvailable, state, expected) => {
+            async (canRead, canWrite, multipleVersionsAvailable, state, activeThreadCount, saving, expected) => {
                 const { component } = await setup();
+                component.saving = saving;
                 expect(
                     component.canChangeVersion(
-                        createMockConnector({ canRead, canWrite, multipleVersionsAvailable, state })
+                        createMockConnector({ canRead, canWrite, multipleVersionsAvailable, state, activeThreadCount })
                     )
                 ).toBe(expected);
             }
