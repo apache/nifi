@@ -21,16 +21,20 @@ import org.apache.nifi.c2.protocol.component.api.DefinedType;
 import org.apache.nifi.c2.protocol.component.api.PropertyDescriptor;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.controller.flow.VersionedDataflow;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
+import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
+import org.apache.nifi.security.encryption.SensitivePropertyCodec;
+import org.apache.nifi.security.encryption.SensitivePropertyContext;
+import org.apache.nifi.security.encryption.SensitivePropertyContextFactory;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -44,36 +48,39 @@ import static java.util.stream.Stream.concat;
 
 public class StandardFlowPropertyEncryptor implements FlowPropertyEncryptor {
 
-    private final PropertyEncryptor propertyEncryptor;
+    private final PropertyEncryptionProvider propertyEncryptionProvider;
     private final RuntimeManifest runTimeManifest;
 
-    public StandardFlowPropertyEncryptor(PropertyEncryptor propertyEncryptor, RuntimeManifest runTimeManifest) {
-        this.propertyEncryptor = propertyEncryptor;
+    public StandardFlowPropertyEncryptor(final PropertyEncryptionProvider propertyEncryptionProvider, final RuntimeManifest runTimeManifest) {
+        this.propertyEncryptionProvider = Objects.requireNonNull(propertyEncryptionProvider, "Property Encryption Provider required");
         this.runTimeManifest = runTimeManifest;
     }
 
     @Override
-    public void encryptSensitiveProperties(VersionedDataflow flow) {
+    public void encryptSensitiveProperties(final VersionedDataflow flow) {
         encryptParameterContextsProperties(flow);
 
-        Map<String, Set<String>> sensitivePropertiesByComponentType = Optional.of(flowProvidedSensitiveProperties(flow))
+        final Map<String, Set<String>> sensitivePropertiesByComponentType = Optional.of(flowProvidedSensitiveProperties(flow))
             .filter(not(Map::isEmpty))
             .orElseGet(this::runtimeManifestSensitiveProperties);
 
         encryptFlowComponentsProperties(flow, sensitivePropertiesByComponentType);
     }
 
-    private void encryptParameterContextsProperties(VersionedDataflow flow) {
+    private void encryptParameterContextsProperties(final VersionedDataflow flow) {
         ofNullable(flow.getParameterContexts())
             .orElse(List.of())
             .forEach(parameterContext -> ofNullable(parameterContext.getParameters()).orElse(Set.of())
                 .stream()
                 .filter(VersionedParameter::isSensitive)
                 .filter(not(parameter -> PropertyEncryptionEncoder.isEncrypted(parameter.getValue())))
-                .forEach(parameter -> parameter.setValue(encrypt(parameter.getValue()))));
+                .forEach(parameter -> {
+                    final SensitivePropertyContext context = SensitivePropertyContextFactory.forParameter(parameterContext.getName(), parameter.getName());
+                    parameter.setValue(encrypt(parameter.getValue(), context));
+                }));
     }
 
-    private Map<String, Set<String>> flowProvidedSensitiveProperties(VersionedDataflow flow) {
+    private Map<String, Set<String>> flowProvidedSensitiveProperties(final VersionedDataflow flow) {
         return fetchFlowComponents(flow)
             .map(extension -> Map.entry(
                 extension.getType(),
@@ -110,26 +117,26 @@ public class StandardFlowPropertyEncryptor implements FlowPropertyEncryptor {
             ));
     }
 
-    private void encryptFlowComponentsProperties(VersionedDataflow flow, Map<String, Set<String>> sensitivePropertiesByComponentType) {
+    private void encryptFlowComponentsProperties(final VersionedDataflow flow, final Map<String, Set<String>> sensitivePropertiesByComponentType) {
         fetchFlowComponents(flow)
             .forEach(extension -> {
-                Set<String> sensitivePropertyNames = sensitivePropertiesByComponentType.getOrDefault(extension.getType(), Set.of());
-                Map<String, String> encryptedProperties = ofNullable(extension.getProperties()).orElse(Map.of())
+                final Set<String> sensitivePropertyNames = sensitivePropertiesByComponentType.getOrDefault(extension.getType(), Set.of());
+                final Map<String, String> encryptedProperties = ofNullable(extension.getProperties()).orElse(Map.of())
                     .entrySet()
                     .stream()
-                    .collect(toMap(Entry::getKey, encryptPropertyIfNeeded(sensitivePropertyNames)));
+                    .collect(toMap(Entry::getKey, encryptPropertyIfNeeded(extension, sensitivePropertyNames)));
                 extension.setProperties(encryptedProperties);
             });
     }
 
-    private Stream<? extends VersionedConfigurableExtension> fetchFlowComponents(VersionedDataflow flow) {
+    private Stream<? extends VersionedConfigurableExtension> fetchFlowComponents(final VersionedDataflow flow) {
         return concat(
             ofNullable(flow.getControllerServices()).orElse(List.of()).stream(),
             fetchComponentsRecursively(flow.getRootGroup())
         );
     }
 
-    private Stream<? extends VersionedConfigurableExtension> fetchComponentsRecursively(VersionedProcessGroup processGroup) {
+    private Stream<? extends VersionedConfigurableExtension> fetchComponentsRecursively(final VersionedProcessGroup processGroup) {
         return concat(
             Stream.of(
                     ofNullable(processGroup.getProcessors()).orElse(Set.of()),
@@ -140,20 +147,21 @@ public class StandardFlowPropertyEncryptor implements FlowPropertyEncryptor {
         );
     }
 
-    private Set<String> mergeSets(Set<String> first, Set<String> second) {
+    private Set<String> mergeSets(final Set<String> first, final Set<String> second) {
         first.addAll(second);
         return first;
     }
 
-    private Function<Entry<String, String>, String> encryptPropertyIfNeeded(Set<String> sensitivePropertyNames) {
+    private Function<Entry<String, String>, String> encryptPropertyIfNeeded(final VersionedConfigurableExtension extension, final Set<String> sensitivePropertyNames) {
         return entry ->
             sensitivePropertyNames.contains(entry.getKey()) && !PropertyEncryptionEncoder.isEncrypted(entry.getValue())
-                ? encrypt(entry.getValue())
+                ? encrypt(entry.getValue(), SensitivePropertyContextFactory.forComponent(extension.getInstanceIdentifier(), extension.getType(), entry.getKey()))
                 : entry.getValue();
     }
 
-    private String encrypt(String parameter) {
-        return PropertyEncryptionEncoder.getEncoded(propertyEncryptor.encrypt(parameter));
+    private String encrypt(final String value, final SensitivePropertyContext context) {
+        final String encrypted = SensitivePropertyCodec.encrypt(propertyEncryptionProvider, value, context);
+        return PropertyEncryptionEncoder.getEncoded(encrypted);
     }
 
 }

@@ -17,7 +17,6 @@
 
 package org.apache.nifi.minifi.commons.service;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.nifi.c2.protocol.component.api.Bundle;
 import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
@@ -25,7 +24,6 @@ import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
 import org.apache.nifi.c2.protocol.component.api.PropertyDescriptor;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.controller.flow.VersionedDataflow;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedParameter;
@@ -33,6 +31,7 @@ import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
 import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +39,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,9 +50,9 @@ import java.util.stream.Stream;
 import static java.util.Map.entry;
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toMap;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -97,8 +97,6 @@ public class StandardFlowPropertyEncryptorTest {
     );
 
     @Mock
-    private PropertyEncryptor mockPropertyEncryptor;
-    @Mock
     private RuntimeManifest mockRunTimeManifest;
 
     private FlowPropertyEncryptor testEncryptor;
@@ -112,8 +110,7 @@ public class StandardFlowPropertyEncryptorTest {
 
     @BeforeEach
     public void setup() {
-        when(mockPropertyEncryptor.encrypt(anyString())).thenReturn(RandomStringUtils.secure().nextAlphabetic(5));
-        testEncryptor = new StandardFlowPropertyEncryptor(mockPropertyEncryptor, mockRunTimeManifest);
+        testEncryptor = new StandardFlowPropertyEncryptor(new InternalPassThroughPropertyEncryptionProvider(), mockRunTimeManifest);
     }
 
     @Test
@@ -141,6 +138,23 @@ public class StandardFlowPropertyEncryptorTest {
 
         verify(mockRunTimeManifest, never()).getBundles();
         assertSensitiveFlowComponentPropertiesAreEncoded(testFlow);
+    }
+
+    @Test
+    public void shouldRetainAlreadyEncodedSensitiveProperties() {
+        final VersionedDataflow testFlow = flowWithPropertyDescriptors();
+        final VersionedProcessor processor = testFlow.getRootGroup().getProcessors().stream()
+            .filter(candidate -> PROCESSOR_TYPE_1.equals(candidate.getType()))
+            .findFirst()
+            .orElseThrow();
+        final String alreadyEncrypted = PropertyEncryptionEncoder.getEncoded("already-encrypted");
+        final Map<String, String> properties = new HashMap<>(processor.getProperties());
+        properties.put(SENSITIVE_1, alreadyEncrypted);
+        processor.setProperties(properties);
+
+        testEncryptor.encryptSensitiveProperties(testFlow);
+
+        assertEquals(alreadyEncrypted, processor.getProperties().get(SENSITIVE_1));
     }
 
     @Test
