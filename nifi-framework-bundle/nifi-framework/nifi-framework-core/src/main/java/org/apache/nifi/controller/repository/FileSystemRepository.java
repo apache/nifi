@@ -84,8 +84,7 @@ import java.util.regex.Pattern;
  * Is thread safe
  */
 public class FileSystemRepository implements ContentRepository {
-
-    public static final int SECTIONS_PER_CONTAINER = 1024;
+    public static final int DEFAULT_SECTIONS_PER_CONTAINER = 1024;
     public static final long MIN_CLEANUP_INTERVAL_MILLIS = TimeUnit.SECONDS.toMillis(1L);
     public static final long DEFAULT_CLEANUP_INTERVAL_MILLIS = TimeUnit.MINUTES.toMillis(1L);
     public static final String ARCHIVE_DIR_NAME = "archive";
@@ -138,9 +137,17 @@ public class FileSystemRepository implements ContentRepository {
     private final Map<String, BlockingQueue<ArchiveInfo>> archivedFiles = new HashMap<>();
 
     private final NiFiProperties nifiProperties;
+    private final AtomicLong claimTruncationRuns = new AtomicLong(0L);
+    private final int sectionsPerContainer;
 
     public FileSystemRepository(final NiFiProperties nifiProperties) throws IOException {
+        this(nifiProperties, DEFAULT_SECTIONS_PER_CONTAINER);
+    }
+
+    FileSystemRepository(final NiFiProperties nifiProperties, final int sectionsPerContainer) throws IOException {
         this.nifiProperties = nifiProperties;
+        this.sectionsPerContainer = sectionsPerContainer;
+
         // determine the file repository paths and ensure they exist
         final Map<String, Path> fileRepositoryPaths = nifiProperties.getContentRepositoryPaths();
         for (final Path path : fileRepositoryPaths.values()) {
@@ -256,7 +263,7 @@ public class FileSystemRepository implements ContentRepository {
             executor.scheduleWithFixedDelay(new ArchiveOrDestroyDestructableClaims(), 1, 1, TimeUnit.SECONDS);
         }
 
-        final long cleanupMillis = this.determineCleanupInterval(nifiProperties);
+        final long cleanupMillis = determineCleanupInterval(nifiProperties);
         if (truncationEnabled) {
             executor.scheduleWithFixedDelay(new TruncateClaims(), cleanupMillis, cleanupMillis, TimeUnit.MILLISECONDS);
         }
@@ -317,7 +324,7 @@ public class FileSystemRepository implements ContentRepository {
             }
 
             // Ensure that the directory exists for the section, including the archive directory, if configured to archive data.
-            for (int i = 0; i < SECTIONS_PER_CONTAINER; i++) {
+            for (int i = 0; i < sectionsPerContainer; i++) {
                 final Path sectionPath = realPath.resolve(String.valueOf(i));
                 final Path toCreate = archiveData ? sectionPath.resolve(ARCHIVE_DIR_NAME) : sectionPath;
                 Files.createDirectories(toCreate);
@@ -352,7 +359,7 @@ public class FileSystemRepository implements ContentRepository {
 
     private void scanArchiveDirectories(final String containerName, final File containerDir, final ContainerState containerState) {
         long archivedFilesFound = 0L;
-        for (int i = 0; i < SECTIONS_PER_CONTAINER; i++) {
+        for (int i = 0; i < sectionsPerContainer; i++) {
             final File sectionDir = new File(containerDir, String.valueOf(i));
             final File archiveDir = new File(sectionDir, ARCHIVE_DIR_NAME);
             if (!archiveDir.exists()) {
@@ -368,12 +375,12 @@ public class FileSystemRepository implements ContentRepository {
             archivedFilesFound += filenames.length;
 
             final int sectionsScanned = i + 1;
-            if (sectionsScanned % ARCHIVE_SCAN_SECTION_LOG_INTERVAL == 0 && sectionsScanned < SECTIONS_PER_CONTAINER) {
+            if (sectionsScanned % ARCHIVE_SCAN_SECTION_LOG_INTERVAL == 0 && sectionsScanned < sectionsPerContainer) {
                 LOG.info("Scanned {} Sections for [{}] found {} Archived Files", sectionsScanned, containerName, archivedFilesFound);
             }
         }
 
-        LOG.info("Finished scanning {} Sections for [{}] found {} Archived Files", SECTIONS_PER_CONTAINER, containerName, archivedFilesFound);
+        LOG.info("Finished scanning {} Sections for [{}] found {} Archived Files", sectionsPerContainer, containerName, archivedFilesFound);
     }
 
     // Visible for testing
@@ -551,7 +558,7 @@ public class FileSystemRepository implements ContentRepository {
     public Set<ResourceClaim> getActiveResourceClaims(final File containerDir, final String containerName) {
         final Set<ResourceClaim> activeResourceClaims = new HashSet<>();
 
-        for (int i = 0; i < SECTIONS_PER_CONTAINER; i++) {
+        for (int i = 0; i < sectionsPerContainer; i++) {
             final String sectionName = String.valueOf(i);
             final File sectionDir = new File(containerDir, sectionName);
             if (!sectionDir.exists()) {
@@ -681,7 +688,7 @@ public class FileSystemRepository implements ContentRepository {
                 containerState.waitForArchiveExpiration();
             }
 
-            final long modulatedSectionIndex = currentIndex % SECTIONS_PER_CONTAINER;
+            final long modulatedSectionIndex = currentIndex % sectionsPerContainer;
             final String section = String.valueOf(modulatedSectionIndex).intern();
             final String claimId = System.currentTimeMillis() + "-" + currentIndex;
 
@@ -1065,6 +1072,10 @@ public class FileSystemRepository implements ContentRepository {
         resourceClaimManager.purge();
     }
 
+    long getClaimTruncationRuns() {
+        return claimTruncationRuns.get();
+    }
+
     private class TruncateClaims implements Runnable {
 
         @Override
@@ -1094,11 +1105,13 @@ public class FileSystemRepository implements ContentRepository {
                 final List<ContentClaim> toTruncate = new ArrayList<>();
                 resourceClaimManager.drainTruncatableClaims(toTruncate, 10_000);
                 if (toTruncate.isEmpty()) {
-                    return;
+                    break;
                 }
 
                 truncateClaims(toTruncate, truncationActivationCache);
             }
+
+            claimTruncationRuns.incrementAndGet();
         }
 
         private void truncateClaims(final List<ContentClaim> toTruncate, final Map<String, Boolean> truncationActivationCache) {
@@ -1460,7 +1473,7 @@ public class FileSystemRepository implements ContentRepository {
         final StopWatch stopWatch = new StopWatch(true);
         final AtomicLong expiredFilesDeleted = new AtomicLong(0L);
         final AtomicLong expiredBytesDeleted = new AtomicLong(0L);
-        for (int i = 0; i < SECTIONS_PER_CONTAINER; i++) {
+        for (int i = 0; i < sectionsPerContainer; i++) {
             final Path sectionContainer = container.resolve(String.valueOf(i));
             final Path archive = sectionContainer.resolve("archive");
             if (!Files.exists(archive)) {

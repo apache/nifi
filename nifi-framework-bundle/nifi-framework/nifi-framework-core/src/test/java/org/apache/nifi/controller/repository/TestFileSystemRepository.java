@@ -71,13 +71,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestFileSystemRepository {
-
+    public static final int SECTIONS_PER_CONTAINER = 12;
     public static final File helloWorldFile = new File("src/test/resources/hello.txt");
     private static final Logger logger = LoggerFactory.getLogger(TestFileSystemRepository.class);
-
-    // The tests configure CONTENT_ARCHIVE_CLEANUP_FREQUENCY to "1 sec", which is the minimum allowed interval for
-    // the background TruncateClaims task. Waiting twice that interval ensures at least one cycle has executed.
-    private static final long BACKGROUND_TASK_WAIT_MILLIS = 2_000L;
 
     @TempDir
     private Path tempDir;
@@ -100,7 +96,7 @@ public class TestFileSystemRepository {
         );
         nifiProperties = NiFiProperties.createBasicNiFiProperties(originalNifiPropertiesFile.toString(), additionalProperties);
         maxClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
-        repository = new FileSystemRepository(nifiProperties);
+        repository = new FileSystemRepository(nifiProperties, SECTIONS_PER_CONTAINER);
         claimManager = new StandardResourceClaimManager();
         repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
         repository.purge();
@@ -160,7 +156,7 @@ public class TestFileSystemRepository {
         // the freshly archived claim before this test observes it, leaving the archive count oscillating at 0.
         shutdown();
 
-        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties) {
+        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties, SECTIONS_PER_CONTAINER) {
             @Override
             public long getContainerUsableSpace(final String containerName) {
                 return Long.MAX_VALUE;
@@ -215,8 +211,8 @@ public class TestFileSystemRepository {
     public void testArchivedClaimRemovedDueToAge() throws IOException, InterruptedException {
         // Recreate Repository with specific properties
         final Map<String, String> propertyOverrides = new HashMap<>();
-        propertyOverrides.put(NiFiProperties.CONTENT_ARCHIVE_MAX_RETENTION_PERIOD, "2 sec");
-        propertyOverrides.put(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, "1 sec");
+        propertyOverrides.put(NiFiProperties.CONTENT_ARCHIVE_MAX_RETENTION_PERIOD, "20 millis");
+        propertyOverrides.put(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, "10 millis");
         propertyOverrides.put(NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE, "99%");
         recreateRepositoryWithPropertyOverrides(propertyOverrides);
 
@@ -272,7 +268,7 @@ public class TestFileSystemRepository {
         repository.shutdown();
         nifiProperties = NiFiProperties.createBasicNiFiProperties(TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile(), propertyOverrides);
 
-        repository = new FileSystemRepository(nifiProperties);
+        repository = new FileSystemRepository(nifiProperties, SECTIONS_PER_CONTAINER);
         claimManager = new StandardResourceClaimManager();
         repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
         repository.purge();
@@ -319,7 +315,7 @@ public class TestFileSystemRepository {
             }
         }
 
-        repository = new FileSystemRepository(nifiProperties);
+        repository = new FileSystemRepository(nifiProperties, SECTIONS_PER_CONTAINER);
 
         for (final String containerName : containerPaths.keySet()) {
             assertEquals(3, repository.getArchiveCount(containerName));
@@ -378,7 +374,7 @@ public class TestFileSystemRepository {
             Files.createDirectories(bogus);
             bogus.toFile().setReadable(false);
 
-            repository = new FileSystemRepository(nifiProperties);
+            repository = new FileSystemRepository(nifiProperties, SECTIONS_PER_CONTAINER);
             repository.initialize(new StandardContentRepositoryContext(new StandardResourceClaimManager(), EventReporter.NO_OP));
         } finally {
             bogus.toFile().setReadable(true);
@@ -464,7 +460,7 @@ public class TestFileSystemRepository {
         repository.shutdown();
         Thread.sleep(1000L);
 
-        repository = new FileSystemRepository(nifiProperties);
+        repository = new FileSystemRepository(nifiProperties, SECTIONS_PER_CONTAINER);
         repository.initialize(new StandardContentRepositoryContext(new StandardResourceClaimManager(), EventReporter.NO_OP));
         repository.purge();
 
@@ -760,7 +756,7 @@ public class TestFileSystemRepository {
             // We are creating our own 'local' repository in this test so shut down the one created in the setup() method
             shutdown();
 
-            repository = new FileSystemRepository(nifiProperties) {
+            repository = new FileSystemRepository(nifiProperties, SECTIONS_PER_CONTAINER) {
                 @Override
                 protected boolean archive(Path curPath) {
                     archivedPaths.add(curPath);
@@ -811,7 +807,7 @@ public class TestFileSystemRepository {
             // We are creating our own 'local' repository in this test so shut down the one created in the setup() method
             shutdown();
 
-            repository = new FileSystemRepository(nifiProperties) {
+            repository = new FileSystemRepository(nifiProperties, SECTIONS_PER_CONTAINER) {
                 @Override
                 protected boolean archive(Path curPath) {
                     if (getOpenStreamCount() > 0) {
@@ -889,7 +885,7 @@ public class TestFileSystemRepository {
             // We are creating our own 'local' repository in this test so shut down the one created in the setup() method
             shutdown();
 
-            repository = new FileSystemRepository(nifiProperties) {
+            repository = new FileSystemRepository(nifiProperties, SECTIONS_PER_CONTAINER) {
                 @Override
                 protected boolean archive(Path curPath) {
                     if (getOpenStreamCount() > 0) {
@@ -1012,7 +1008,7 @@ public class TestFileSystemRepository {
         // We need to create our own repository that overrides getContainerUsableSpace to simulate disk pressure
         shutdown();
 
-        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties) {
+        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties, SECTIONS_PER_CONTAINER) {
             @Override
             public long getContainerUsableSpace(final String containerName) {
                 return 0; // Extreme disk pressure
@@ -1081,7 +1077,7 @@ public class TestFileSystemRepository {
     public void testTruncateNotActiveWhenDiskNotPressured() throws IOException, InterruptedException {
         shutdown();
 
-        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties) {
+        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties, SECTIONS_PER_CONTAINER) {
             @Override
             public long getContainerUsableSpace(final String containerName) {
                 return Long.MAX_VALUE;
@@ -1116,7 +1112,11 @@ public class TestFileSystemRepository {
             localClaimManager.decrementClaimantCount(largeClaim.getResourceClaim());
             localClaimManager.markTruncatable(largeClaim);
 
-            Thread.sleep(BACKGROUND_TASK_WAIT_MILLIS);
+            final long initialRunCount = localRepository.getClaimTruncationRuns();
+            while (localRepository.getClaimTruncationRuns() == initialRunCount) {
+                Thread.sleep(50L);
+            }
+
             assertEquals(originalSize, Files.size(filePath));
         } finally {
             localRepository.shutdown();
@@ -1129,7 +1129,7 @@ public class TestFileSystemRepository {
         shutdown();
 
         final AtomicLong usableSpace = new AtomicLong(Long.MAX_VALUE);
-        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties) {
+        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties, SECTIONS_PER_CONTAINER) {
             @Override
             public long getContainerUsableSpace(final String containerName) {
                 return usableSpace.get();
@@ -1167,7 +1167,11 @@ public class TestFileSystemRepository {
             localClaimManager.markTruncatable(largeClaim);
 
             // Wait for at least one run of the background task with no disk pressure. File should not be truncated.
-            Thread.sleep(BACKGROUND_TASK_WAIT_MILLIS);
+            final long initialRunCount = localRepository.getClaimTruncationRuns();
+            while (localRepository.getClaimTruncationRuns() == initialRunCount) {
+                Thread.sleep(50L);
+            }
+
             assertEquals(originalSize, Files.size(filePath));
 
             // Now turn on disk pressure
@@ -1204,7 +1208,7 @@ public class TestFileSystemRepository {
     public void testTruncateClaimsSkipsClaimWithPositiveTruncationReferenceCount() throws IOException, InterruptedException {
         shutdown();
 
-        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties) {
+        final FileSystemRepository localRepository = new FileSystemRepository(nifiProperties, SECTIONS_PER_CONTAINER) {
             @Override
             public long getContainerUsableSpace(final String containerName) {
                 return 0;
@@ -1260,8 +1264,11 @@ public class TestFileSystemRepository {
             localClaimManager.markTruncatable(largeClaim);
             localClaimManager.incrementTruncationReferenceCount(largeClaim);
 
+            final long initialRunCount = repository.getClaimTruncationRuns();
             // Wait long enough for the TruncateClaims background task to have executed at least once
-            Thread.sleep(BACKGROUND_TASK_WAIT_MILLIS);
+            while (localRepository.getClaimTruncationRuns() == initialRunCount) {
+                Thread.sleep(50L);
+            }
 
             assertEquals(originalSize, Files.size(filePath),
                     "File should not be truncated because TruncateClaims should skip claims with positive truncation reference count");
