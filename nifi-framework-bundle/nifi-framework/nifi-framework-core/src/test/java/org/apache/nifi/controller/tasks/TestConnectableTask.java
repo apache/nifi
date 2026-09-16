@@ -68,10 +68,11 @@ public class TestConnectableTask {
         final RepositoryContextFactory contextFactory = mock(RepositoryContextFactory.class);
         when(contextFactory.newProcessContext(any(Connectable.class), any(AtomicLong.class))).thenReturn(repoContext);
 
-        final LifecycleState scheduleState = new LifecycleState(connectable.getIdentifier());
+        final LifecycleState lifecycleState = new LifecycleState(connectable.getIdentifier());
+        lifecycleState.setScheduled(true);
 
         return new ConnectableTask(mock(SchedulingAgent.class), connectable,
-                flowController, contextFactory, scheduleState);
+                flowController, contextFactory, lifecycleState);
     }
 
     @Test

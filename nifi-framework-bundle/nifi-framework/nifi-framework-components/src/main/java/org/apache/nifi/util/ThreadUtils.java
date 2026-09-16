@@ -24,6 +24,19 @@ import java.util.Objects;
 
 public class ThreadUtils {
 
+    public static String createStackTrace(final Thread thread) {
+        final StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append('"').append(thread.getName()).append("\" Id=")
+                .append(thread.threadId()).append(' ')
+                .append(thread.getState());
+
+        for (final StackTraceElement stackTraceElement : thread.getStackTrace()) {
+            stringBuilder.append(System.lineSeparator()).append("\tat ").append(stackTraceElement);
+        }
+
+        return stringBuilder.append(System.lineSeparator()).toString();
+    }
+
     public static String createStackTrace(final ThreadInfo threadInfo, final long[] deadlockedThreadIds, final long[] monitorDeadlockThreadIds) {
         final StringBuilder sb = new StringBuilder();
         sb.append("\"").append(threadInfo.getThreadName()).append("\" Id=");

@@ -371,6 +371,33 @@ class VirtualThreadSchedulingAgentTest {
     }
 
     @Test
+    void testUnscheduleAfterPermitAcquiredPreventsInvocation() throws InterruptedException {
+        final AtomicInteger invocationCount = new AtomicInteger();
+        final CountDownLatch invocationCheckStarted = new CountDownLatch(1);
+        final CountDownLatch releaseInvocationCheck = new CountDownLatch(1);
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.TIMER_DRIVEN, invocationCount, new CountDownLatch(0));
+        when(connectable.getYieldExpiration()).thenAnswer(invocation -> {
+            invocationCheckStarted.countDown();
+            releaseInvocationCheck.await();
+            return 0L;
+        });
+
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+        scheduleConnectable(connectable, lifecycleState);
+
+        try {
+            assertTrue(invocationCheckStarted.await(2, TimeUnit.SECONDS));
+            unscheduleConnectable(connectable, lifecycleState);
+        } finally {
+            releaseInvocationCheck.countDown();
+        }
+
+        waitForRunningThreadCount(0, 2, TimeUnit.SECONDS);
+
+        assertEquals(0, invocationCount.get());
+    }
+
+    @Test
     void testConcurrentIncrementMaxThreadCountIsThreadSafe() throws InterruptedException {
         agent.setMaxThreadCount(100);
 

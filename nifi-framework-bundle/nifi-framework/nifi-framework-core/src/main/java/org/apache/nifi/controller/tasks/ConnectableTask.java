@@ -220,7 +220,10 @@ public class ConnectableTask {
         }
 
         final ActiveProcessSessionFactory activeSessionFactory = new WeakHashMapProcessSessionFactory(sessionFactory);
-        lifecycleState.incrementActiveThreadCount(activeSessionFactory);
+        if (!lifecycleState.tryIncrementActiveThreadCount(activeSessionFactory)) {
+            logger.debug("Will not trigger {} because it is no longer scheduled", connectable);
+            return InvocationResult.DO_NOT_YIELD;
+        }
 
         final long startNanos = System.nanoTime();
         final long finishIfBackpressureEngaged = startNanos + (batchNanos / 25L);

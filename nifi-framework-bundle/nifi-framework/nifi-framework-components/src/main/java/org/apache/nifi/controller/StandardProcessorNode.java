@@ -1584,7 +1584,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final long activeMillis = now - timestamp;
             final ThreadInfo threadInfo = threadInfoMap.get(thread.threadId());
 
-            final String stackTrace = ThreadUtils.createStackTrace(threadInfo, threadDetails.getDeadlockedThreadIds(), threadDetails.getMonitorDeadlockThreadIds());
+            final String stackTrace = threadInfo == null
+                    ? ThreadUtils.createStackTrace(thread)
+                    : ThreadUtils.createStackTrace(threadInfo, threadDetails.getDeadlockedThreadIds(), threadDetails.getMonitorDeadlockThreadIds());
 
             final ActiveThreadInfo activeThreadInfo = new ActiveThreadInfo(thread.getName(), stackTrace, activeMillis, activeTask.isTerminated());
             threadList.add(activeThreadInfo);

@@ -40,6 +40,8 @@ import java.util.Objects;
 public class ThreadDumpTask implements DiagnosticTask {
 
     private static final Logger logger = LoggerFactory.getLogger(ThreadDumpTask.class);
+    private static final String TEMPORARY_DIRECTORY_PREFIX = ThreadDumpTask.class.getSimpleName();
+    private static final String TEMPORARY_FILE_NAME = ThreadDumpTask.class.getSimpleName() + ".txt";
 
     @Override
     public DiagnosticsDumpElement captureDump(final boolean verbose) {
@@ -68,8 +70,8 @@ public class ThreadDumpTask implements DiagnosticTask {
             throw new UnsupportedOperationException("HotSpot diagnostic interface is not available");
         }
 
-        final Path tempDirectory = Files.createTempDirectory("nifi-thread-dump-");
-        final Path tempFile = tempDirectory.resolve("thread-dump.txt");
+        final Path tempDirectory = Files.createTempDirectory(TEMPORARY_DIRECTORY_PREFIX);
+        final Path tempFile = tempDirectory.resolve(TEMPORARY_FILE_NAME);
         try {
             diagnosticMXBean.dumpThreads(tempFile.toString(), HotSpotDiagnosticMXBean.ThreadDumpFormat.TEXT_PLAIN);
             return Files.readString(tempFile);
