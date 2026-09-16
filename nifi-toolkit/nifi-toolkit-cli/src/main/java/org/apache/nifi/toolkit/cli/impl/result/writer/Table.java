@@ -28,8 +28,7 @@ public class Table {
     private final List<String[]> rows = new ArrayList<>();
 
     private Table(final Builder builder) {
-        this.columns = Collections.unmodifiableList(
-                builder.columns.isEmpty() ? Collections.emptyList() : new ArrayList<>(builder.columns));
+        this.columns = Collections.unmodifiableList(new ArrayList<>(builder.columns));
 
         if (this.columns.isEmpty()) {
             throw new IllegalStateException("Cannot create a table with no columns");

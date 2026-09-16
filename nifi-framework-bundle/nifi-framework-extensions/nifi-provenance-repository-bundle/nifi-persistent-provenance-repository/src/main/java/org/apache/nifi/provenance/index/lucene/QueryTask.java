@@ -155,19 +155,12 @@ public class QueryTask implements Runnable {
             }
 
             final Tuple<List<ProvenanceEventRecord>, Long> eventsAndTotalHits = readDocuments(topDocs, storedFields);
+            queryResult.update(eventsAndTotalHits.getKey(), eventsAndTotalHits.getValue());
 
-            if (eventsAndTotalHits.getKey().isEmpty() && eventsAndTotalHits.getValue() == 0L) {
-                queryResult.update(Collections.emptyList(), 0L);
-                logger.info("Will not update query results for queried index {} for query {} because the maximum number of results have been reached already",
-                    indexDir, query);
-            } else {
-                queryResult.update(eventsAndTotalHits.getKey(), eventsAndTotalHits.getValue());
-
-                final long searchNanos = System.nanoTime() - startNanos;
-                final long millis = TimeUnit.NANOSECONDS.toMillis(searchNanos);
-                logger.info("Successfully queried index {} for query {}; retrieved {} events with a total of {} hits in {} millis",
-                    indexDir, query, eventsAndTotalHits.getKey().size(), eventsAndTotalHits.getValue(), millis);
-            }
+            final long searchNanos = System.nanoTime() - startNanos;
+            final long millis = TimeUnit.NANOSECONDS.toMillis(searchNanos);
+            logger.info("Successfully queried index {} for query {}; retrieved {} events with a total of {} hits in {} millis",
+                indexDir, query, eventsAndTotalHits.getKey().size(), eventsAndTotalHits.getValue(), millis);
         } catch (final Exception e) {
             logger.error("Failed to query events against index {}", indexDir, e);
             queryResult.setError("Failed to complete query due to " + e);
