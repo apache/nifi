@@ -1327,6 +1327,53 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     String getStatelessFlowTimeout();
 
     /**
+     * @return the configured maximum amount of FlowFile content to buffer in memory when this Process Group is run using the Stateless Execution Engine,
+     * specified as a data size such as "4 GB". A value of "0 B" means zero bytes. A null or blank value means this limit is not configured.
+     */
+    String getStatelessContentMaxHeap();
+
+    /**
+     * Sets the maximum amount of FlowFile content to buffer in memory when this Process Group is run using the Stateless Execution Engine
+     * @param maxSize the maximum amount of FlowFile content to buffer in memory, as a data size such as "4 GB". A blank value means this limit is not configured.
+     */
+    void setStatelessContentMaxHeap(String maxSize);
+
+    /**
+     * @return the configured maximum percentage of the Java heap to use for buffering FlowFile content when this Process Group is run using the Stateless
+     * Execution Engine, from 0 to 90. A value of 0 means zero percent of the heap. A null value means this limit is not configured. The default is 0.
+     */
+    Integer getStatelessContentMaxHeapPercentage();
+
+    /**
+     * Sets the maximum percentage of the Java heap to use for buffering FlowFile content when this Process Group is run using the Stateless Execution Engine
+     * @param heapPercentage the maximum heap percentage, from 0 to 90. A null value means this limit is not configured.
+     */
+    void setStatelessContentMaxHeapPercentage(Integer heapPercentage);
+
+    /**
+     * @return the amount of FlowFile content that may be buffered in memory, in bytes, when this Process Group is run using the Stateless Execution Engine.
+     * If only the data size is configured, that size is used. If only the heap percentage is configured, that percentage of the JVM's maximum heap is used.
+     * If both are configured, the smaller of the two limits is used. If neither is configured, the result is 0, so all FlowFile content is written to the Content Repository.
+     */
+    long resolveStatelessContentMaxHeap();
+
+    /**
+     * Verifies that the maximum in-memory FlowFile content data size can be set to the given value.
+     * @param maxSize the maximum amount of FlowFile content to buffer in memory, as a data size such as "4 GB". A blank value means this limit is not configured.
+     * @throws IllegalArgumentException if the value is not a valid data size
+     * @throws IllegalStateException if the value cannot be set because the Stateless flow is running
+     */
+    void verifyCanSetStatelessContentMaxHeap(String maxSize);
+
+    /**
+     * Verifies that the maximum in-memory FlowFile content heap percentage can be set to the given value.
+     * @param heapPercentage the maximum heap percentage, from 0 to 90. A null value means this limit is not configured.
+     * @throws IllegalArgumentException if the value is outside the allowed range
+     * @throws IllegalStateException if the value cannot be set because the Stateless flow is running
+     */
+    void verifyCanSetStatelessContentMaxHeapPercentage(Integer heapPercentage);
+
+    /**
      * @return the FlowFileActivity for this Process Group
      */
     FlowFileActivity getFlowFileActivity();

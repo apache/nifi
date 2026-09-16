@@ -27,11 +27,13 @@ import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.DeferredStatelessContentRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.RepositoryRecordType;
+import org.apache.nifi.controller.repository.StandardContentRepositoryContext;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
@@ -41,6 +43,7 @@ import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.controller.tasks.StatelessFlowTask.Invocation;
 import org.apache.nifi.controller.tasks.StatelessFlowTask.PolledFlowFile;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -53,11 +56,15 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TriggerResult;
+import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -68,16 +75,22 @@ import java.util.Map;
 import java.util.OptionalLong;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestStatelessFlowTask {
@@ -94,6 +107,11 @@ public class TestStatelessFlowTask {
     private ProvenanceEventRepository statelessProvRepo;
     private FlowFileActivity groupNodeFlowFileActivity;
     private StatelessDataflow statelessFlow;
+    private StatelessGroupNode statelessGroupNode;
+    private FlowFileRepository flowFileRepository;
+    private FlowFileEventRepository flowFileEventRepository;
+    private ProvenanceEventRepository provenanceRepository;
+    private ComponentLog logger;
 
     @BeforeEach
     public void setup() throws IOException {
@@ -130,12 +148,12 @@ public class TestStatelessFlowTask {
         statelessFlow = mock(StatelessDataflow.class);
         when(statelessFlow.getLatestActivityTime()).thenReturn(OptionalLong.empty());
 
-        final StatelessGroupNode statelessGroupNode = mock(StatelessGroupNode.class);
+        statelessGroupNode = mock(StatelessGroupNode.class);
         when(statelessGroupNode.getProcessGroup()).thenReturn(rootGroup);
         groupNodeFlowFileActivity = new ConnectableFlowFileActivity();
         when(statelessGroupNode.getFlowFileActivity()).thenReturn(groupNodeFlowFileActivity);
 
-        final FlowFileRepository flowFileRepo = mock(FlowFileRepository.class);
+        flowFileRepository = mock(FlowFileRepository.class);
 
         resourceClaimManager = new StandardResourceClaimManager();
         final ContentRepository contentRepo = mock(ContentRepository.class);
@@ -158,32 +176,23 @@ public class TestStatelessFlowTask {
         }).when(contentRepo).decrementClaimantCount(any(ContentClaim.class));
 
         flowFileEventsByComponentId = new HashMap<>();
-        final FlowFileEventRepository eventRepository = mock(FlowFileEventRepository.class);
+        flowFileEventRepository = mock(FlowFileEventRepository.class);
         doAnswer(invocation -> {
             final ProcessSessionEvent event = invocation.getArgument(0, ProcessSessionEvent.class);
             flowFileEventsByComponentId.put(event.getComponentMetricContext().id(), event);
             return null;
-        }).when(eventRepository).updateRepository(any(ProcessSessionEvent.class));
-        final ComponentLog logger = new MockComponentLogger();
+        }).when(flowFileEventRepository).updateRepository(any(ProcessSessionEvent.class));
+        logger = new MockComponentLogger();
 
         registeredProvenanceEvents = new ArrayList<>();
-        final ProvenanceEventRepository provenanceRepo = mock(ProvenanceEventRepository.class);
+        provenanceRepository = mock(ProvenanceEventRepository.class);
         doAnswer(invocation -> {
             final Iterable<ProvenanceEventRecord> events = invocation.getArgument(0, Iterable.class);
             events.forEach(registeredProvenanceEvents::add);
             return null;
-        }).when(provenanceRepo).registerEvents(any(Iterable.class));
+        }).when(provenanceRepository).registerEvents(any(Iterable.class));
 
-        task = new StatelessFlowTask.Builder()
-            .statelessFlow(statelessFlow)
-            .statelessGroupNode(statelessGroupNode)
-            .nifiFlowFileRepository(flowFileRepo)
-            .nifiContentRepository(contentRepo)
-            .nifiProvenanceRepository(provenanceRepo)
-            .flowFileEventRepository(eventRepository)
-            .logger(logger)
-            .build();
-
+        task = createTask(contentRepo);
         task.resetState();
     }
 
@@ -216,7 +225,7 @@ public class TestStatelessFlowTask {
     }
 
     @Test
-    public void testCreateOutputRecordsOnSuccessWithOneOutput() {
+    public void testCreateOutputRecordsOnSuccessWithOneOutput() throws IOException {
         final Connection conn1 = mockConnection();
         final Set<Connection> singleConnectionSet = Collections.singleton(conn1);
 
@@ -242,7 +251,100 @@ public class TestStatelessFlowTask {
     }
 
     @Test
-    public void testCreateOutputRecordsOnSuccessWithOnePortTwoConnections() {
+    public void testCreateOutputRecordsExportsSharedInMemoryClaimOnce() throws IOException {
+        final byte[] content = "shared content".getBytes(StandardCharsets.UTF_8);
+        final ByteArrayContentRepository backingRepository = new ByteArrayContentRepository();
+        backingRepository.initialize(new StandardContentRepositoryContext(resourceClaimManager, EventReporter.NO_OP));
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.resolveStatelessContentMaxHeap()).thenReturn(1024L);
+        final DeferredStatelessContentRepository deferredRepository = new DeferredStatelessContentRepository(
+            processGroup, backingRepository, flowFileRepository, resourceClaimManager, EventReporter.NO_OP);
+
+        final ContentClaim inMemoryClaim = deferredRepository.create(false);
+        try (final OutputStream out = deferredRepository.write(inMemoryClaim)) {
+            out.write(content);
+        }
+
+        final int firstFlowFileOffset = 5;
+        final FlowFileRecord firstFlowFile = new MockFlowFileRecord(Map.of(), content.length - firstFlowFileOffset, inMemoryClaim) {
+            @Override
+            public long getContentClaimOffset() {
+                return firstFlowFileOffset;
+            }
+        };
+        final FlowFileRecord secondFlowFile = new MockFlowFileRecord(Map.of(), content.length, inMemoryClaim);
+        deferredRepository.incrementClaimaintCount(inMemoryClaim);
+
+        final Connection connection = mockConnection();
+        when(successPort.getConnections()).thenReturn(Set.of(connection));
+        final StatelessFlowTask boundaryTask = createTask(deferredRepository);
+        boundaryTask.resetState();
+        boundaryTask.createOutputRecords(Map.of("success", List.of(firstFlowFile, secondFlowFile)));
+
+        final List<RepositoryRecord> outputRecords = boundaryTask.getOutputRepositoryRecords();
+        final ContentClaim firstBackingClaim = outputRecords.get(0).getCurrentClaim();
+        final ContentClaim secondBackingClaim = outputRecords.get(1).getCurrentClaim();
+        assertSame(firstBackingClaim, secondBackingClaim);
+        final FlowFileRecord firstOutputFlowFile = outputRecords.get(0).getCurrent();
+        assertEquals(firstFlowFileOffset, firstOutputFlowFile.getContentClaimOffset());
+        try (final InputStream in = deferredRepository.read(firstBackingClaim)) {
+            in.skipNBytes(firstOutputFlowFile.getContentClaimOffset());
+            assertArrayEquals(Arrays.copyOfRange(content, firstFlowFileOffset, content.length), in.readNBytes((int) firstOutputFlowFile.getSize()));
+        }
+        try (final InputStream in = deferredRepository.read(secondBackingClaim)) {
+            assertArrayEquals(content, in.readAllBytes());
+        }
+    }
+
+    @Test
+    public void testCompleteInvocationsRollsBackPreparedExportsWhenRepositoryUpdateFails() throws IOException {
+        final ByteArrayContentRepository backingRepository = new ByteArrayContentRepository();
+        backingRepository.initialize(new StandardContentRepositoryContext(resourceClaimManager, EventReporter.NO_OP));
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.resolveStatelessContentMaxHeap()).thenReturn(1024L);
+        final DeferredStatelessContentRepository deferredRepository = new DeferredStatelessContentRepository(
+            processGroup, backingRepository, flowFileRepository, resourceClaimManager, EventReporter.NO_OP);
+
+        final ContentClaim firstClaim = deferredRepository.create(false);
+        final ContentClaim secondClaim = deferredRepository.create(false);
+        try (final OutputStream out = deferredRepository.write(firstClaim)) {
+            out.write("first".getBytes(StandardCharsets.UTF_8));
+        }
+        try (final OutputStream out = deferredRepository.write(secondClaim)) {
+            out.write("second".getBytes(StandardCharsets.UTF_8));
+        }
+
+        final FlowFileRecord firstFlowFile = new MockFlowFileRecord(Map.of(), 5, firstClaim);
+        final FlowFileRecord secondFlowFile = new MockFlowFileRecord(Map.of(), 6, secondClaim);
+        final TriggerResult triggerResult = mock(TriggerResult.class);
+        when(triggerResult.getOutputFlowFiles()).thenReturn(Map.of("success", List.of(firstFlowFile, secondFlowFile)));
+        final Invocation invocation = new Invocation();
+        invocation.setTriggerResult(triggerResult);
+
+        final Connection connection = mockConnection();
+        when(successPort.getConnections()).thenReturn(Set.of(connection));
+        doThrow(new IOException("Repository update failed")).doNothing().when(flowFileRepository).updateRepository(any());
+        final StatelessFlowTask boundaryTask = createTask(deferredRepository);
+
+        assertThrows(IOException.class, () -> boundaryTask.completeInvocations(List.of(invocation), statelessProvRepo));
+
+        final List<RepositoryRecord> outputRecords = boundaryTask.getOutputRepositoryRecords();
+        final ContentClaim firstBackingClaim = outputRecords.get(0).getCurrentClaim();
+        final ContentClaim secondBackingClaim = outputRecords.get(1).getCurrentClaim();
+        assertEquals(1, resourceClaimManager.getClaimantCount(firstBackingClaim.getResourceClaim()));
+        assertEquals(1, resourceClaimManager.getClaimantCount(secondBackingClaim.getResourceClaim()));
+
+        deferredRepository.decrementClaimantCount(firstClaim);
+        deferredRepository.decrementClaimantCount(secondClaim);
+        deferredRepository.purge();
+
+        assertEquals(0, resourceClaimManager.getClaimantCount(firstBackingClaim.getResourceClaim()));
+        assertEquals(0, resourceClaimManager.getClaimantCount(secondBackingClaim.getResourceClaim()));
+        verify(flowFileRepository, times(2)).updateRepository(any());
+    }
+
+    @Test
+    public void testCreateOutputRecordsOnSuccessWithOnePortTwoConnections() throws IOException {
         final FlowFileQueue queue1 = mock(FlowFileQueue.class);
         final Connection conn1 = mock(Connection.class);
         when(conn1.getFlowFileQueue()).thenReturn(queue1);
@@ -286,7 +388,7 @@ public class TestStatelessFlowTask {
     }
 
     @Test
-    public void testCreateOutputRecordsOnSuccessWithTwoPorts() {
+    public void testCreateOutputRecordsOnSuccessWithTwoPorts() throws IOException {
         final Connection successConnection = mockConnection();
         when(successPort.getConnections()).thenReturn(Collections.singleton(successConnection));
 
@@ -352,7 +454,7 @@ public class TestStatelessFlowTask {
     }
 
     @Test
-    public void testUpdateClaimantCountSingleOutput() {
+    public void testUpdateClaimantCountSingleOutput() throws IOException {
         final Connection conn1 = mockConnection();
         final Set<Connection> singleConnectionSet = Collections.singleton(conn1);
 
@@ -368,7 +470,7 @@ public class TestStatelessFlowTask {
     }
 
     @Test
-    public void testUpdateClaimantCountWithClone() {
+    public void testUpdateClaimantCountWithClone() throws IOException {
         final Connection conn1 = mockConnection();
         final Connection conn2 = mockConnection();
 
@@ -389,7 +491,7 @@ public class TestStatelessFlowTask {
     }
 
     @Test
-    public void testContentClaimCountWhenMultipleFlowFilesTransferredToPort() {
+    public void testContentClaimCountWhenMultipleFlowFilesTransferredToPort() throws IOException {
         final Connection conn1 = mockConnection();
         final Set<Connection> singleConnectionSet = Collections.singleton(conn1);
 
@@ -410,6 +512,18 @@ public class TestStatelessFlowTask {
         final Connection connection = mock(Connection.class);
         when(connection.getFlowFileQueue()).thenReturn(queue);
         return connection;
+    }
+
+    private StatelessFlowTask createTask(final ContentRepository contentRepository) {
+        return new StatelessFlowTask.Builder()
+            .statelessFlow(statelessFlow)
+            .statelessGroupNode(statelessGroupNode)
+            .nifiFlowFileRepository(flowFileRepository)
+            .nifiContentRepository(contentRepository)
+            .nifiProvenanceRepository(provenanceRepository)
+            .flowFileEventRepository(flowFileEventRepository)
+            .logger(logger)
+            .build();
     }
 
     @Test
