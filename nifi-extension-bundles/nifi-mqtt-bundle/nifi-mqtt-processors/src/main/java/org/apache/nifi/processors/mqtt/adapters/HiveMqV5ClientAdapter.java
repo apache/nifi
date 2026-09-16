@@ -49,6 +49,7 @@ import static org.apache.nifi.processors.mqtt.common.MqttProtocolScheme.SSL;
 import static org.apache.nifi.processors.mqtt.common.MqttProtocolScheme.WS;
 import static org.apache.nifi.processors.mqtt.common.MqttProtocolScheme.WSS;
 
+@SuppressWarnings("PMD.UnusedReturnValue")
 public class HiveMqV5ClientAdapter implements MqttClient {
 
     private final Mqtt5BlockingClient mqtt5BlockingClient;

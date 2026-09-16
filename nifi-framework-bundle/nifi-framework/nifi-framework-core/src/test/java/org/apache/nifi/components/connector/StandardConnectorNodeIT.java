@@ -667,7 +667,7 @@ public class StandardConnectorNodeIT {
         final Throwable cause = assertThrows(FlowUpdateException.class, () -> configure(connectorNode, removeLogConfiguration));
         connectorNode.abortUpdate(cause);
 
-        rootGroup.findAllConnections().contains(connection);
+        assertTrue(rootGroup.findAllConnections().contains(connection));
         assertFalse(connection.getFlowFileQueue().isEmpty());
     }
 

@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -252,7 +253,7 @@ public class TestContentClaimInputStream {
         byte[] buff = new byte[bigReadSize];
         // Force the buffer to read from the delegate stream by reading all the data and therefore
         // going over the default buffer size.
-        in.read(buff);
+        assertNotEquals(-1, in.read(buff));
         in.reset();
 
         Mockito.verify(repo, Mockito.times(2)).read(contentClaim);

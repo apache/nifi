@@ -89,7 +89,6 @@ under the License.
     <rule ref="category/java/errorprone.xml/AvoidMultipleUnaryOperators" />
     <rule ref="category/java/errorprone.xml/AvoidUsingOctalValues" />
     <rule ref="category/java/errorprone.xml/BrokenNullCheck" />
-    <rule ref="category/java/errorprone.xml/CheckSkipResult" />
     <rule ref="category/java/errorprone.xml/ClassCastExceptionWithToArray" />
     <rule ref="category/java/errorprone.xml/DontUseFloatTypeForLoopIndices" />
     <rule ref="category/java/errorprone.xml/EmptyCatchBlock" />
@@ -98,7 +97,16 @@ under the License.
     <rule ref="category/java/errorprone.xml/ReturnFromFinallyBlock" />
     <rule ref="category/java/errorprone.xml/UnconditionalIfStatement" />
     <rule ref="category/java/errorprone.xml/UnnecessaryConversionTemporary" />
-
+    <rule ref="category/java/errorprone.xml/UnusedReturnValue">
+        <properties>
+            <!--
+          Suppresses UnusedReturnValue if the flagged method call contains
+          a Mockito 'doReturn', 'doThrow', or 'verify' method calls inside its invocation or qualifier tree.
+        -->
+            <property name="violationSuppressXPath"
+                      value=".[descendant::MethodCall[@MethodName=('doReturn', 'doThrow', 'verify')]]" />
+        </properties>
+    </rule>
     <rule ref="category/java/multithreading.xml/AvoidThreadGroup" />
     <rule ref="category/java/multithreading.xml/DontCallThreadRun" />
     <rule ref="category/java/multithreading.xml/DoubleCheckedLocking" />

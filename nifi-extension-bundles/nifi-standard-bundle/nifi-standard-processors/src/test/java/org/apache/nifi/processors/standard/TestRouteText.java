@@ -205,7 +205,7 @@ public class TestRouteText {
 
         runner.getFlowFilesForRelationship("t").get(0).assertContentEquals(originalText);
         runner.getFlowFilesForRelationship("e").get(0).assertContentEquals("start middle end\n");
-        runner.getFlowFilesForRelationship("z").isEmpty();
+        assertTrue(runner.getFlowFilesForRelationship("z").isEmpty());
         runner.getFlowFilesForRelationship("original").get(0).assertContentEquals(originalText);
     }
 

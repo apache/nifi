@@ -46,6 +46,7 @@ import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPrope
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SUBJECT_TOKEN_PROVIDER;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_TOKEN_ENDPOINT;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -60,10 +61,10 @@ public class GCPCredentialsServiceTest {
     private static final String TARGET_SERVICE_ACCOUNT_VALUE = "target-account@test-project.iam.gserviceaccount.com";
 
     @Test
-    public void testToString() throws Exception {
+    public void testToString() {
         // toString method shouldn't cause an exception
         final GCPCredentialsControllerService service = new GCPCredentialsControllerService();
-        service.toString();
+        assertDoesNotThrow(service::toString);
     }
 
     @Test
