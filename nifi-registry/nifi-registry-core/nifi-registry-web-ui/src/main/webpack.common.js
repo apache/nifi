@@ -38,10 +38,9 @@ module.exports = {
 
     // Output bundles
     output: {
-        // add the content hash for auto cache-busting
-        filename: '[name].[contenthash].js',
+        filename: '[name].js',
         path: path.resolve(__dirname, './'),
-        // Pin the hashing algorithm so bundle names do not depend on the Node/OpenSSL default
+        // Pin the hashing algorithm so hashed module ids do not depend on the Node/OpenSSL default
         hashFunction: 'sha256'
     },
 

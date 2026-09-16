@@ -27,6 +27,8 @@ const path = require('path');
 const commonConfig = require('./webpack.common');
 const loaders = require('./webpack.loader');
 
+const version = process.env.PROJECT_VERSION || 'SNAPSHOT';
+
 module.exports = merge(commonConfig, {
     // Tells webpack to use its built-in optimizations accordingly
     mode: 'production',
@@ -42,8 +44,7 @@ module.exports = merge(commonConfig, {
     devtool: 'source-map',
 
     output: {
-        // add the content hash for auto cache-busting
-        filename: '[name].[contenthash].js'
+        filename: `[name].${version}.js`
     },
 
     module: {
@@ -54,8 +55,7 @@ module.exports = merge(commonConfig, {
     },
 
     optimization: {
-        // Deterministic module and chunk identifiers so repeated builds emit byte-identical
-        // bundles, keeping the [contenthash] in the output file names stable across builds
+        // Deterministic module and chunk identifiers so repeated builds emit byte-identical bundles
         moduleIds: 'hashed',
         chunkIds: 'named',
         minimizer: [
@@ -70,8 +70,8 @@ module.exports = merge(commonConfig, {
     plugins: [
         // Create CSS files separately
         new MiniCssExtractPlugin({
-            filename: '[name].[contenthash].css',
-            chunkFilename: '[name].[contenthash].css'
+            filename: `[name].${version}.css`,
+            chunkFilename: `[name].${version}.css`
         }),
 
         // Create HTML files to serve your webpack bundles
@@ -83,7 +83,8 @@ module.exports = merge(commonConfig, {
 
         // Gzip
         new CompressionPlugin({
-            test: /\.min\..+\.js$|\.min\..+\.css$/
+            test: /\.(js|css)$/,
+            exclude: /\.map$/
         })
     ]
 });
