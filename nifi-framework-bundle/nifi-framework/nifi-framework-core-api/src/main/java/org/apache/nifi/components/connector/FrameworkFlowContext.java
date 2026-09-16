@@ -57,6 +57,10 @@ public interface FrameworkFlowContext extends FlowContext {
     void restoreTroubleshootingFlow(VersionedProcessGroup troubleshootingProcessGroup);
 
     default void reload(final Bundle bundle, final ComponentLog connectorLog) {
+        reload(bundle, connectorLog, getConfigurationContext());
+    }
+
+    default void reload(final Bundle bundle, final ComponentLog connectorLog, final MutableConnectorConfigurationContext configurationContext) {
         throw new UnsupportedOperationException();
     }
 }

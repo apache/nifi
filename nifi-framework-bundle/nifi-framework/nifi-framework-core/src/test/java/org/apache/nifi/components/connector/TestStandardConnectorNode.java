@@ -86,7 +86,9 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -764,6 +766,114 @@ public class TestStandardConnectorNode {
         assertEquals("active-value", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("active-step", "active-property").getValue());
         assertEquals("testValue", connectorNode.getWorkingFlowContext().getConfigurationContext().getProperty("step", "testProperty").getValue());
         assertEquals("1.0.0", connectorNode.getWorkingFlowContext().getBundle().getVersion());
+    }
+
+    @Test
+    public void testReplaceConnectorRetainsOriginalConfigurationWhenResolutionFails() throws FlowUpdateException {
+        final SecretReference originalFirstReference = new SecretReference("provider", "Provider", "first", "Provider.first");
+        final SecretReference originalSecondReference = new SecretReference("provider", "Provider", "second", "Provider.second");
+        final SecretReference replacementFirstReference = new SecretReference("provider", "Provider", "replacement-first", "Provider.replacement-first");
+        final SecretReference replacementSecondReference = new SecretReference("provider", "Provider", "replacement-second", "Provider.replacement-second");
+        final Secret resolvedSecret = mock(Secret.class);
+        final AtomicBoolean failResolution = new AtomicBoolean();
+        final AtomicInteger replacementFirstResolutionCount = new AtomicInteger();
+        when(secretsManager.getSecrets(anySet())).thenAnswer(invocation -> {
+            final Map<SecretReference, Secret> resolvedSecrets = new HashMap<>();
+            final Set<SecretReference> references = invocation.getArgument(0);
+            for (final SecretReference reference : references) {
+                if (failResolution.get() && replacementFirstReference.equals(reference) && replacementFirstResolutionCount.incrementAndGet() == 2) {
+                    throw new IllegalStateException("Secret resolution failed");
+                }
+                resolvedSecrets.put(reference, resolvedSecret);
+            }
+            return resolvedSecrets;
+        });
+
+        final TrackingConnector original = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(original, secretsManager);
+        seedActiveConfiguration(connectorNode, "first", Map.of("secret", originalFirstReference));
+        seedActiveConfiguration(connectorNode, "second", Map.of("secret", originalSecondReference));
+        final TrackingConnector replacement = new TrackingConnector() {
+            @Override
+            public void migrateProperties(final ConnectorPropertyConfiguration configuration) {
+                configuration.forStep("first").setValueReference("secret", replacementFirstReference);
+                configuration.forStep("second").setValueReference("secret", replacementSecondReference);
+            }
+        };
+        failResolution.set(true);
+        final BundleCoordinate replacementCoordinate = new BundleCoordinate("org.apache.nifi", "test-standard-connector-node", "2.0.0");
+
+        assertThrows(IllegalStateException.class,
+            () -> connectorNode.replaceConnector(replacement, replacementCoordinate, new MockComponentLog("ReplacementConnector", replacement)));
+
+        final ConnectorConfiguration activeConfiguration = connectorNode.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration();
+        final ConnectorConfiguration workingConfiguration = connectorNode.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
+        assertSame(original, connectorNode.getConnector());
+        assertEquals("1.0.0", connectorNode.getBundleCoordinate().getVersion());
+        assertEquals("1.0.0", connectorNode.getActiveFlowContext().getBundle().getVersion());
+        assertEquals("1.0.0", connectorNode.getWorkingFlowContext().getBundle().getVersion());
+        assertEquals(originalFirstReference, activeConfiguration.getNamedStepConfiguration("first").configuration().getPropertyValues().get("secret"));
+        assertEquals(originalSecondReference, activeConfiguration.getNamedStepConfiguration("second").configuration().getPropertyValues().get("secret"));
+        assertEquals(originalFirstReference, workingConfiguration.getNamedStepConfiguration("first").configuration().getPropertyValues().get("secret"));
+        assertEquals(originalSecondReference, workingConfiguration.getNamedStepConfiguration("second").configuration().getPropertyValues().get("secret"));
+    }
+
+    @Test
+    public void testReplaceConnectorRetainsOriginalStateWhenWorkingContextReloadFails() throws FlowUpdateException {
+        final ReloadFailingFlowContextFactory reloadFailingFlowContextFactory = new ReloadFailingFlowContextFactory(flowContextFactory);
+        flowContextFactory = reloadFailingFlowContextFactory;
+        final TrackingConnector original = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(original);
+        seedActiveConfiguration(connectorNode, "active-step", Map.of("property", new StringLiteralValue("active-value")));
+        connectorNode.setConfiguration("working-step", createStepConfiguration(Map.of("property", "working-value")));
+        final TrackingConnector replacement = new TrackingConnector() {
+            @Override
+            public void migrateProperties(final ConnectorPropertyConfiguration configuration) {
+                configuration.removeStep("active-step");
+                configuration.removeStep("working-step");
+            }
+        };
+        reloadFailingFlowContextFactory.failWorkingContextReload();
+        final BundleCoordinate replacementCoordinate = new BundleCoordinate("org.apache.nifi", "test-standard-connector-node", "2.0.0");
+
+        assertThrows(IllegalStateException.class,
+            () -> connectorNode.replaceConnector(replacement, replacementCoordinate, new MockComponentLog("ReplacementConnector", replacement)));
+
+        assertSame(original, connectorNode.getConnector());
+        assertEquals("1.0.0", connectorNode.getBundleCoordinate().getVersion());
+        assertEquals("1.0.0", connectorNode.getActiveFlowContext().getBundle().getVersion());
+        assertEquals("1.0.0", connectorNode.getWorkingFlowContext().getBundle().getVersion());
+        assertEquals("active-value", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("active-step", "property").getValue());
+        assertEquals("working-value", connectorNode.getWorkingFlowContext().getConfigurationContext().getProperty("working-step", "property").getValue());
+    }
+
+    @Test
+    public void testReplaceConnectorRetainsOriginalStateWhenActiveContextReloadFails() throws FlowUpdateException {
+        final ReloadFailingFlowContextFactory reloadFailingFlowContextFactory = new ReloadFailingFlowContextFactory(flowContextFactory);
+        flowContextFactory = reloadFailingFlowContextFactory;
+        final TrackingConnector original = new TrackingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(original);
+        seedActiveConfiguration(connectorNode, "active-step", Map.of("property", new StringLiteralValue("active-value")));
+        connectorNode.setConfiguration("working-step", createStepConfiguration(Map.of("property", "working-value")));
+        final TrackingConnector replacement = new TrackingConnector() {
+            @Override
+            public void migrateProperties(final ConnectorPropertyConfiguration configuration) {
+                configuration.removeStep("active-step");
+                configuration.removeStep("working-step");
+            }
+        };
+        reloadFailingFlowContextFactory.failActiveContextReload();
+        final BundleCoordinate replacementCoordinate = new BundleCoordinate("org.apache.nifi", "test-standard-connector-node", "2.0.0");
+
+        assertThrows(IllegalStateException.class,
+            () -> connectorNode.replaceConnector(replacement, replacementCoordinate, new MockComponentLog("ReplacementConnector", replacement)));
+
+        assertSame(original, connectorNode.getConnector());
+        assertEquals("1.0.0", connectorNode.getBundleCoordinate().getVersion());
+        assertEquals("1.0.0", connectorNode.getActiveFlowContext().getBundle().getVersion());
+        assertEquals("1.0.0", connectorNode.getWorkingFlowContext().getBundle().getVersion());
+        assertEquals("active-value", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("active-step", "property").getValue());
+        assertEquals("working-value", connectorNode.getWorkingFlowContext().getConfigurationContext().getProperty("working-step", "property").getValue());
     }
 
     @Test
@@ -1741,6 +1851,39 @@ public class TestStandardConnectorNode {
         @Override
         public void trigger(final ConnectorNode connector) {
             connector.performValidation();
+        }
+    }
+
+    private static class ReloadFailingFlowContextFactory implements FlowContextFactory {
+        private final FlowContextFactory delegate;
+        private FrameworkFlowContext activeFlowContext;
+        private FrameworkFlowContext workingFlowContext;
+
+        private ReloadFailingFlowContextFactory(final FlowContextFactory delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public FrameworkFlowContext createActiveFlowContext(final String connectorId, final ComponentLog connectorLogger, final Bundle bundle) {
+            activeFlowContext = spy(delegate.createActiveFlowContext(connectorId, connectorLogger, bundle));
+            return activeFlowContext;
+        }
+
+        @Override
+        public FrameworkFlowContext createWorkingFlowContext(final String connectorId, final ComponentLog connectorLogger,
+                final MutableConnectorConfigurationContext currentConfiguration, final Bundle bundle) {
+            workingFlowContext = spy(delegate.createWorkingFlowContext(connectorId, connectorLogger, currentConfiguration, bundle));
+            return workingFlowContext;
+        }
+
+        private void failActiveContextReload() {
+            doThrow(new IllegalStateException("Active context reload failed")).when(activeFlowContext)
+                .reload(any(Bundle.class), any(ComponentLog.class), any(MutableConnectorConfigurationContext.class));
+        }
+
+        private void failWorkingContextReload() {
+            doThrow(new IllegalStateException("Working context reload failed")).when(workingFlowContext)
+                .reload(any(Bundle.class), any(ComponentLog.class), any(MutableConnectorConfigurationContext.class));
         }
     }
 

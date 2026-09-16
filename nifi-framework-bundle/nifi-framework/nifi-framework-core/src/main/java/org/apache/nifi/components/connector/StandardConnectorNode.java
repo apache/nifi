@@ -1353,57 +1353,55 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
         final WorkingFlowContextState workingContextState = acquireWorkingFlowContext();
         final FrameworkFlowContext workingContext = workingContextState.getContext();
+        final MutableConnectorConfigurationContext originalWorkingConfigurationContext = workingContext == null ? null : workingContext.getConfigurationContext();
+        final Map<String, StepConfiguration> originalActiveConfiguration = toConfigurationMap(activeFlowContext.getConfigurationContext().toConnectorConfiguration());
+        final Map<String, StepConfiguration> originalWorkingConfiguration = originalWorkingConfigurationContext == null ? originalActiveConfiguration
+            : toConfigurationMap(originalWorkingConfigurationContext.toConnectorConfiguration());
         boolean workingContextReleased = false;
+        boolean workingContextModified = false;
         try {
-            final Map<String, StepConfiguration> originalActiveConfiguration = toConfigurationMap(activeFlowContext.getConfigurationContext().toConnectorConfiguration());
-            final Map<String, StepConfiguration> originalWorkingConfiguration = workingContext == null ? originalActiveConfiguration
-                : toConfigurationMap(workingContext.getConfigurationContext().toConnectorConfiguration());
-
             final Map<String, StepConfiguration> activeConfiguration = migrateProperties(replacement, originalActiveConfiguration);
             final Map<String, StepConfiguration> workingConfiguration = migrateProperties(replacement, originalWorkingConfiguration);
+            final MutableConnectorConfigurationContext replacementActiveConfiguration = createConfigurationContext(activeConfiguration);
+            final MutableConnectorConfigurationContext replacementWorkingConfiguration = workingContext == null ? null : createConfigurationContext(workingConfiguration);
             final Bundle bundle = new Bundle(replacementCoordinate.getGroup(), replacementCoordinate.getId(), replacementCoordinate.getVersion());
 
-            replaceConfiguration(activeFlowContext.getConfigurationContext(), activeConfiguration);
             if (workingContext != null) {
-                replaceConfiguration(workingContext.getConfigurationContext(), workingConfiguration);
-                workingContext.reload(bundle, replacementLog);
-
-                try {
-                    for (final String stepName : workingConfiguration.keySet()) {
-                        notifyStepConfigured(replacement, stepName, workingContext);
-                    }
-                } catch (final FlowUpdateException | RuntimeException e) {
-                    replaceConfiguration(activeFlowContext.getConfigurationContext(), originalActiveConfiguration);
-                    final Bundle originalBundle = new Bundle(bundleCoordinate.getGroup(), bundleCoordinate.getId(), bundleCoordinate.getVersion());
-                    releaseWorkingFlowContext(workingContextState);
-                    workingContextReleased = true;
-
-                    final MutableConnectorConfigurationContext restoredConfiguration = createConfigurationContext(originalWorkingConfiguration);
-                    final WorkingFlowContextState restoredContextState = installReplacementWorkingFlowContext(restoredConfiguration, originalBundle, true);
-                    final FrameworkFlowContext restoredContext = restoredContextState.getContext();
-
-                    try {
-                        for (final String stepName : originalWorkingConfiguration.keySet()) {
-                            try {
-                                notifyStepConfigured(stepName, restoredContext);
-                            } catch (final Exception refreshException) {
-                                logger.warn("Failed to restore configuration for step [{}] of {}", stepName, this, refreshException);
-                            }
-                        }
-                    } finally {
-                        releaseWorkingFlowContext(restoredContextState);
-                    }
-                    throw e;
+                workingContext.reload(bundle, replacementLog, replacementWorkingConfiguration);
+                workingContextModified = true;
+                for (final String stepName : workingConfiguration.keySet()) {
+                    notifyStepConfigured(replacement, stepName, workingContext);
                 }
             }
+
+            activeFlowContext.reload(bundle, replacementLog, replacementActiveConfiguration);
 
             connectorDetails = new ConnectorDetails(replacement, replacementCoordinate, replacementLog);
             bundleCoordinate = replacementCoordinate;
             extensionMissing = replacement instanceof GhostConnector;
             componentType = extensionMissing ? "(Missing) " + getSimpleClassName(componentCanonicalClass) : replacement.getClass().getSimpleName();
             initializationContext = replacementInitializationContext;
+        } catch (final Throwable failure) {
+            if (workingContextModified) {
+                releaseWorkingFlowContext(workingContextState);
+                workingContextReleased = true;
+                final Bundle originalBundle = new Bundle(bundleCoordinate.getGroup(), bundleCoordinate.getId(), bundleCoordinate.getVersion());
+                restoreWorkingFlowContext(originalWorkingConfigurationContext, originalWorkingConfiguration, originalBundle, failure);
+            }
 
-            activeFlowContext.reload(bundle, replacementLog);
+            if (failure instanceof final FlowUpdateException flowUpdateException) {
+                throw flowUpdateException;
+            }
+
+            if (failure instanceof final RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+
+            if (failure instanceof final Error error) {
+                throw error;
+            }
+
+            throw new FlowUpdateException("Failed to replace " + this, failure);
         } finally {
             if (!workingContextReleased) {
                 releaseWorkingFlowContext(workingContextState);
@@ -1421,20 +1419,24 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         return configurations;
     }
 
-    private void replaceConfiguration(final MutableConnectorConfigurationContext context, final Map<String, StepConfiguration> replacement) {
-        final Set<String> existingStepNames = new HashSet<>();
-        for (final NamedStepConfiguration namedConfiguration : context.toConnectorConfiguration().getNamedStepConfigurations()) {
-            existingStepNames.add(namedConfiguration.stepName());
-        }
-
-        for (final Map.Entry<String, StepConfiguration> entry : replacement.entrySet()) {
-            context.replaceProperties(entry.getKey(), entry.getValue());
-        }
-
-        for (final String existingStepName : existingStepNames) {
-            if (!replacement.containsKey(existingStepName)) {
-                context.removeStep(existingStepName);
+    private void restoreWorkingFlowContext(final MutableConnectorConfigurationContext originalConfiguration,
+            final Map<String, StepConfiguration> originalConfigurationSteps, final Bundle originalBundle, final Throwable replacementFailure) {
+        try {
+            final WorkingFlowContextState restoredContextState = installReplacementWorkingFlowContext(originalConfiguration, originalBundle, true);
+            final FrameworkFlowContext restoredContext = restoredContextState.getContext();
+            try {
+                for (final String stepName : originalConfigurationSteps.keySet()) {
+                    try {
+                        notifyStepConfigured(stepName, restoredContext);
+                    } catch (final Exception refreshException) {
+                        logger.warn("Failed to restore configuration for step [{}] of {}", stepName, this, refreshException);
+                    }
+                }
+            } finally {
+                releaseWorkingFlowContext(restoredContextState);
             }
+        } catch (final Throwable restorationFailure) {
+            replacementFailure.addSuppressed(restorationFailure);
         }
     }
 
