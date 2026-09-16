@@ -88,7 +88,7 @@ class ConsumeKafkaBacklogIT extends AbstractConsumeKafkaIT {
         final Backlog backlog = requireBacklog();
         assertEquals(Backlog.Precision.EXACT, backlog.getPrecision());
         assertTrue(backlog.getRecordCount().isPresent());
-        assertEquals((long) (seedCount - delivered), backlog.getRecordCount().getAsLong());
+        assertEquals(seedCount - delivered, backlog.getRecordCount().getAsLong());
         assertFalse(backlog.getLastCaughtUp().isPresent());
     }
 
@@ -149,7 +149,7 @@ class ConsumeKafkaBacklogIT extends AbstractConsumeKafkaIT {
         final Backlog reLagBacklog = requireBacklog();
         assertEquals(Backlog.Precision.EXACT, reLagBacklog.getPrecision());
         assertTrue(reLagBacklog.getRecordCount().isPresent());
-        assertEquals((long) (reSeed - redelivered), reLagBacklog.getRecordCount().getAsLong());
+        assertEquals(reSeed - redelivered, reLagBacklog.getRecordCount().getAsLong());
         assertTrue(reLagBacklog.getLastCaughtUp().isPresent());
         assertSame(priorCaughtUp, reLagBacklog.getLastCaughtUp().get());
     }
@@ -168,7 +168,7 @@ class ConsumeKafkaBacklogIT extends AbstractConsumeKafkaIT {
         final Backlog backlog = requireBacklog();
         assertEquals(Backlog.Precision.EXACT, backlog.getPrecision());
         assertTrue(backlog.getRecordCount().isPresent());
-        assertEquals((long) seedCount, backlog.getRecordCount().getAsLong());
+        assertEquals(seedCount, backlog.getRecordCount().getAsLong());
         assertFalse(backlog.getLastCaughtUp().isPresent());
     }
 
