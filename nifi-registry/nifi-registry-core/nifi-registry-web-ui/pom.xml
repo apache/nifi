@@ -263,6 +263,9 @@
                         <configuration>
                             <arguments>run ${npm.bundle.script}</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
+                            <environmentVariables>
+                                <PROJECT_VERSION>${project.version}</PROJECT_VERSION>
+                            </environmentVariables>
                         </configuration>
                     </execution>
                 </executions>
