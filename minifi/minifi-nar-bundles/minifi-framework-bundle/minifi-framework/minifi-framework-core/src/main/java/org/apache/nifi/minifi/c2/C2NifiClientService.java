@@ -57,7 +57,6 @@ import org.apache.nifi.c2.serializer.C2Serializer;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
-import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
 import org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParser;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -141,8 +140,6 @@ import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TR
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_TYPE;
 import static org.apache.nifi.util.FormatUtils.getPreciseTimeDuration;
 import static org.apache.nifi.util.NiFiProperties.FLOW_CONFIGURATION_FILE;
-import static org.apache.nifi.util.NiFiProperties.SENSITIVE_PROPS_ALGORITHM;
-import static org.apache.nifi.util.NiFiProperties.SENSITIVE_PROPS_KEY;
 
 public class C2NifiClientService {
 
@@ -259,8 +256,7 @@ public class C2NifiClientService {
         FlowPropertyAssetReferenceResolver flowPropertyAssetReferenceResolver = new StandardFlowPropertyAssetReferenceResolverService(resourceRepository::getAbsolutePath);
 
         FlowPropertyEncryptor flowPropertyEncryptor = new StandardFlowPropertyEncryptor(
-            new PropertyEncryptorBuilder(niFiProperties.getProperty(SENSITIVE_PROPS_KEY))
-                .setAlgorithm(niFiProperties.getProperty(SENSITIVE_PROPS_ALGORITHM)).build(),
+            flowController.getPropertyEncryptionProvider(),
             runtimeManifestService.getManifest());
         UpdateConfigurationStrategy updateConfigurationStrategy = new DefaultUpdateConfigurationStrategy(
                 flowController,
