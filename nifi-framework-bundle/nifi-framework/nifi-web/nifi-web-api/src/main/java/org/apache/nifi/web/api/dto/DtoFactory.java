@@ -67,6 +67,7 @@ import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.AssetReference;
+import org.apache.nifi.components.connector.BacklogReportingConnector;
 import org.apache.nifi.components.connector.ConfigurationStep;
 import org.apache.nifi.components.connector.ConfigurationStepDependency;
 import org.apache.nifi.components.connector.ConnectorAction;
@@ -5412,6 +5413,7 @@ public final class DtoFactory {
         dto.setValidationErrors(convertValidationErrors(validationState.getValidationErrors()));
         dto.setType(connector.getCanonicalClassName());
         dto.setExtensionMissing(connector.isExtensionMissing());
+        dto.setSupportsBacklogReporting(connector.getConnector() instanceof BacklogReportingConnector);
 
         dto.setBundle(createBundleDto(connector.getBundleCoordinate()));
         dto.setState(connector.getCurrentState().name());
