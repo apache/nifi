@@ -23,6 +23,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -34,6 +35,7 @@ import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.stateless.flow.CanceledTriggerResult;
 import org.apache.nifi.stateless.flow.DataflowTriggerContext;
 import org.apache.nifi.stateless.flow.ExceptionalTriggerResult;
+import org.apache.nifi.stateless.flow.FailingComponent;
 import org.apache.nifi.stateless.flow.FailurePortEncounteredException;
 import org.apache.nifi.stateless.flow.TriggerResult;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
@@ -41,6 +43,8 @@ import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.session.AsynchronousCommitTracker;
 import org.apache.nifi.stateless.session.StatelessProcessSession;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,6 +61,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public class StandardExecutionProgress implements ExecutionProgress {
+    private static final Logger logger = LoggerFactory.getLogger(StandardExecutionProgress.class);
+
     private final ProcessGroup rootGroup;
     private final List<FlowFileQueue> internalFlowFileQueues;
     private final ContentRepository contentRepository;
@@ -67,6 +73,10 @@ public class StandardExecutionProgress implements ExecutionProgress {
     private final DataflowTriggerContext triggerContext;
     private final FlowPurgeAction purgeAction;
     private final List<StatelessProcessSession> createdSessions = new ArrayList<>();
+
+    // The first component to fail while being triggered, and the Exception it threw
+    private Throwable componentFailure;
+    private FailingComponent failingComponent;
 
     private final BlockingQueue<CompletionAction> completionActionQueue;
     private volatile boolean canceled = false;
@@ -108,6 +118,87 @@ public class StandardExecutionProgress implements ExecutionProgress {
             return false;
         }
         return connectable.getProcessGroup() == rootGroup;
+    }
+
+    /**
+     * Records the first component to fail. An Exception thrown by a component that was triggered from within another
+     * component's synchronous commit propagates through the triggering component as well, so the first report comes from
+     * the component that threw. Exceptions the framework raises to end an execution do not mean a component failed.
+     */
+    @Override
+    public void notifyComponentTriggerFailed(final Connectable connectable, final Throwable failure) {
+        if (failure == null || isFrameworkSignal(failure)) {
+            return;
+        }
+
+        // The component is described before this object's monitor is held, because doing so calls back into the
+        // component and the framework locks that those calls may acquire must not be ordered beneath this monitor.
+        final FailingComponent described;
+        try {
+            described = describe(connectable);
+        } catch (final RuntimeException e) {
+            // Identifying the component must never change how the failure itself is handled
+            logger.warn("Failed to describe {}, which failed while being triggered", connectable, e);
+            return;
+        }
+
+        recordComponentFailure(described, failure);
+    }
+
+    private synchronized void recordComponentFailure(final FailingComponent component, final Throwable failure) {
+        if (componentFailure != null) {
+            return;
+        }
+
+        failingComponent = component;
+        componentFailure = failure;
+    }
+
+    private synchronized FailingComponent getFailingComponent(final Throwable cause) {
+        if (componentFailure == null) {
+            return null;
+        }
+
+        for (Throwable current = cause; current != null; current = nextCause(current)) {
+            if (current == componentFailure) {
+                return failingComponent;
+            }
+        }
+
+        return null;
+    }
+
+    private static FailingComponent describe(final Connectable connectable) {
+        final String type = connectable instanceof final ProcessorNode processorNode
+            ? processorNode.getCanonicalClassName()
+            : connectable.getComponentType();
+
+        final ProcessGroup group = connectable.getProcessGroup();
+
+        return new FailingComponent(
+            connectable.getIdentifier(),
+            connectable.getVersionedComponentId(),
+            connectable.getName(),
+            type,
+            group == null ? null : group.getIdentifier(),
+            group == null ? null : group.getName());
+    }
+
+    private static boolean isFrameworkSignal(final Throwable failure) {
+        for (Throwable current = failure; current != null; current = nextCause(current)) {
+            if (current instanceof FailurePortEncounteredException
+                || current instanceof DataflowAbortedException
+                || current instanceof TerminatedTaskException) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static Throwable nextCause(final Throwable throwable) {
+        final Throwable cause = throwable.getCause();
+        return cause == throwable ? null : cause;
     }
 
     @Override
@@ -347,7 +438,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
 
         rollbackActiveSessions();
         purgeAction.purge();
-        resultQueue.offer(new ExceptionalTriggerResult(cause));
+        resultQueue.offer(new ExceptionalTriggerResult(cause, getFailingComponent(cause)));
     }
 
     public Map<String, List<FlowFile>> drainOutputQueues() {

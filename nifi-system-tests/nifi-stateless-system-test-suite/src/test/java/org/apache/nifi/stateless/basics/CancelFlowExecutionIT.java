@@ -63,6 +63,7 @@ public class CancelFlowExecutionIT extends StatelessSystemIT {
 
         assertFalse(result.isSuccessful());
         assertTrue(result.isCanceled());
+        assertTrue(result.getFailingComponent().isEmpty());
         assertTrue(result.getOutputFlowFiles().isEmpty());
         assertFalse(dataflow.isFlowFileQueued());
     }
