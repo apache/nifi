@@ -138,7 +138,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         }
 
         try {
-            final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, lifecycleState);
+            final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, lifecycleState, generation::isRunning);
             final int taskCount = connectable.getMaxConcurrentTasks();
 
             for (int i = 0; i < taskCount; i++) {
@@ -168,7 +168,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         }
 
         try {
-            final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, lifecycleState);
+            final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, lifecycleState, generation::isRunning);
             final String threadName = buildThreadName(connectable, 0);
 
             submitTask(threadName, generation, () -> {
@@ -224,7 +224,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         }
 
         try {
-            final Runnable reportingTaskWrapper = new ReportingTaskWrapper(taskNode, lifecycleState, flowController.getExtensionManager());
+            final Runnable reportingTaskWrapper = new ReportingTaskWrapper(taskNode, lifecycleState, flowController.getExtensionManager(), generation::isRunning);
             final String threadName = "Reporting Task: " + taskNode.getName();
 
             submitTask(threadName, generation,
@@ -618,6 +618,10 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
 
         boolean isStopped() {
             return stopSignal.getCount() == 0L;
+        }
+
+        boolean isRunning() {
+            return !isStopped();
         }
 
         void awaitStop(final long timeout, final TimeUnit timeUnit) throws InterruptedException {

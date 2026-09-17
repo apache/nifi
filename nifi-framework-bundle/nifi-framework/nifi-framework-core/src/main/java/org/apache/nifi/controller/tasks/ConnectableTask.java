@@ -56,6 +56,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 
 /**
  * Continually runs a <code>{@link Connectable}</code> component as long as the component has work to do.
@@ -64,6 +65,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ConnectableTask {
 
     private static final Logger logger = LoggerFactory.getLogger(ConnectableTask.class);
+    private static final BooleanSupplier SCHEDULING_GENERATION_ALWAYS_ACTIVE = () -> true;
     private static final InvocationResult NOT_PRIMARY_NODE_YIELD_RESULT = InvocationResult.yield("This node is not the primary node");
     private static final InvocationResult NO_WORK_YIELD_RESULT = InvocationResult.yield("No work to do");
     private static final InvocationResult BACKPRESSURE_YIELD_RESULT = InvocationResult.yield("Backpressure Applied");
@@ -76,13 +78,20 @@ public class ConnectableTask {
     private final FlowController flowController;
     private final int numRelationships;
     private final StatsTracker statsTracker;
+    private final BooleanSupplier schedulingGenerationActive;
 
-    public ConnectableTask(final SchedulingAgent schedulingAgent, final Connectable connectable,
-                           final FlowController flowController, final RepositoryContextFactory contextFactory, final LifecycleState lifecycleState) {
+    public ConnectableTask(final SchedulingAgent schedulingAgent, final Connectable connectable, final FlowController flowController,
+                           final RepositoryContextFactory contextFactory, final LifecycleState lifecycleState) {
+        this(schedulingAgent, connectable, flowController, contextFactory, lifecycleState, SCHEDULING_GENERATION_ALWAYS_ACTIVE);
+    }
+
+    public ConnectableTask(final SchedulingAgent schedulingAgent, final Connectable connectable, final FlowController flowController,
+                           final RepositoryContextFactory contextFactory, final LifecycleState lifecycleState, final BooleanSupplier schedulingGenerationActive) {
 
         this.schedulingAgent = schedulingAgent;
         this.connectable = connectable;
         this.lifecycleState = lifecycleState;
+        this.schedulingGenerationActive = schedulingGenerationActive;
         this.numRelationships = connectable.getRelationships().size();
         this.flowController = flowController;
 
@@ -220,7 +229,11 @@ public class ConnectableTask {
         }
 
         final ActiveProcessSessionFactory activeSessionFactory = new WeakHashMapProcessSessionFactory(sessionFactory);
-        if (!lifecycleState.tryIncrementActiveThreadCount(activeSessionFactory)) {
+        final boolean activeThreadCountIncremented;
+        synchronized (lifecycleState) {
+            activeThreadCountIncremented = schedulingGenerationActive.getAsBoolean() && lifecycleState.tryIncrementActiveThreadCount(activeSessionFactory);
+        }
+        if (!activeThreadCountIncremented) {
             logger.debug("Will not trigger {} because it is no longer scheduled", connectable);
             return InvocationResult.DO_NOT_YIELD;
         }

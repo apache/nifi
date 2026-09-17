@@ -26,21 +26,36 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.StandardComponentLog;
 import org.apache.nifi.util.ReflectionUtils;
 
+import java.util.function.BooleanSupplier;
+
 public class ReportingTaskWrapper implements Runnable {
+
+    private static final BooleanSupplier SCHEDULING_GENERATION_ALWAYS_ACTIVE = () -> true;
 
     private final ReportingTaskNode taskNode;
     private final LifecycleState lifecycleState;
     private final ExtensionManager extensionManager;
+    private final BooleanSupplier schedulingGenerationActive;
 
     public ReportingTaskWrapper(final ReportingTaskNode taskNode, final LifecycleState lifecycleState, final ExtensionManager extensionManager) {
+        this(taskNode, lifecycleState, extensionManager, SCHEDULING_GENERATION_ALWAYS_ACTIVE);
+    }
+
+    public ReportingTaskWrapper(final ReportingTaskNode taskNode, final LifecycleState lifecycleState, final ExtensionManager extensionManager,
+                                final BooleanSupplier schedulingGenerationActive) {
         this.taskNode = taskNode;
         this.lifecycleState = lifecycleState;
         this.extensionManager = extensionManager;
+        this.schedulingGenerationActive = schedulingGenerationActive;
     }
 
     @Override
     public void run() {
-        if (!lifecycleState.tryIncrementActiveThreadCount(null)) {
+        final boolean activeThreadCountIncremented;
+        synchronized (lifecycleState) {
+            activeThreadCountIncremented = schedulingGenerationActive.getAsBoolean() && lifecycleState.tryIncrementActiveThreadCount(null);
+        }
+        if (!activeThreadCountIncremented) {
             return;
         }
 
