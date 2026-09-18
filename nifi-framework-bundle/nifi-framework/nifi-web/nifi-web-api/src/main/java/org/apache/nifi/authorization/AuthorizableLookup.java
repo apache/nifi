@@ -22,6 +22,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
+import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -212,6 +213,15 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     Authorizable getControllerServiceReferencingComponent(String controllerServiceId, String id);
+
+    /**
+     * Get the authorizables for components of the requested type that reference the specified Controller Service
+     *
+     * @param controllerServiceId controller service id
+     * @param componentType type of referencing component to be returned
+     * @return referencing component authorizables
+     */
+    List<Authorizable> getControllerServiceReferencingComponents(String controllerServiceId, Class<? extends Authorizable> componentType);
 
     /**
      * Get the authorizable ReportingTask.

@@ -532,6 +532,12 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
+    public List<Authorizable> getControllerServiceReferencingComponents(final String controllerServiceId, final Class<? extends Authorizable> componentType) {
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
+        return List.copyOf(controllerService.getReferences().findRecursiveReferences(componentType));
+    }
+
+    @Override
     public ComponentAuthorizable getReportingTask(final String id) {
         final ReportingTaskNode reportingTaskNode = reportingTaskDAO.getReportingTask(id);
         return new ReportingTaskComponentAuthorizable(reportingTaskNode, controllerFacade.getExtensionManager());
