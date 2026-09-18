@@ -558,6 +558,10 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         return propertiesWithDefaults;
     }
 
+    /**
+     * Drops stored configuration that the current Connector version no longer declares, so a version change that removes
+     * a property or configuration step does not leave leftover values that fail validation.
+     */
     private Map<String, StepConfiguration> retainDeclaredProperties(final Map<String, StepConfiguration> migratedProperties,
             final List<ConfigurationStep> configurationSteps) {
         if (configurationSteps == null || configurationSteps.isEmpty()) {
