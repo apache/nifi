@@ -103,6 +103,7 @@ export class ComponentConnectionsDialog extends CloseOnEscapeDialog {
     readonly rows: ComponentConnectionRow[];
     readonly dialogRequestGroupId: string = this.dialogRequest.groupId;
     readonly processGroupType = ComponentType.ProcessGroup;
+    readonly remoteProcessGroupType = ComponentType.RemoteProcessGroup;
     readonly connectionType = ComponentType.Connection;
 
     constructor() {

@@ -3221,7 +3221,7 @@ export class FlowEffects {
                                 direction: request.direction,
                                 connections: flowEntity.processGroupFlow.flow.connections.filter(attachedTo),
                                 groupIdToName: this.buildProcessGroupIdToNameMap(flowEntity),
-                                remoteProcessGroupIds: this.buildRemoteProcessGroupIdSet(flowEntity),
+                                remoteProcessGroupIds: this.buildRemoteProcessGroupIdSet(flowEntity)
                             }
                         })
                     ),

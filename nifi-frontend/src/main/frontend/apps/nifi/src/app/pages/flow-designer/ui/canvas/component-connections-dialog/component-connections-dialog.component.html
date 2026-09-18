@@ -37,6 +37,14 @@
                                     <i class="icon component-type-icon" [class]="componentIcon(processGroupType)"></i>
                                     {{ resolveGroupName(row.source.groupId) }}
                                 </span>
+                            } @else if (isRemoteProcessGroupPort(row.source)) {
+                                <a
+                                    class="component-connection-cell neutral-contrast"
+                                    [matTooltip]="resolveGroupName(row.source.groupId)"
+                                    (click)="navigateTo(row.source.groupId, dialogRequestGroupId, remoteProcessGroupType)"> <!-- TODO: add click test confirming remoteProcessGroup, not processGroup; same for destination PG -->
+                                    <i class="icon component-type-icon flex-none" [class]="componentIcon(remoteProcessGroupType)"></i>
+                                    {{ resolveGroupName(row.source.groupId) }}
+                                </a>
                             } @else {
                                 <a
                                     class="component-connection-cell neutral-contrast"
@@ -99,6 +107,14 @@
                                     <i class="icon component-type-icon flex-none" [class]="componentIcon(processGroupType)"></i>
                                     {{ resolveGroupName(row.destination.groupId) }}
                                 </span>
+                            } @else if (isRemoteProcessGroupPort(row.destination)) {
+                                <a
+                                    class="component-connection-cell neutral-contrast"
+                                    [matTooltip]="resolveGroupName(row.destination.groupId)"
+                                    (click)="navigateTo(row.destination.groupId, dialogRequestGroupId, remoteProcessGroupType)">
+                                    <i class="icon component-type-icon flex-none" [class]="componentIcon(remoteProcessGroupType)"></i>
+                                    {{ resolveGroupName(row.destination.groupId) }}
+                                </a>
                             } @else {
                                 <a
                                     class="component-connection-cell neutral-contrast"
