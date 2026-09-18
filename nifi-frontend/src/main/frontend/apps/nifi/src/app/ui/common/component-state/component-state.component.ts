@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, DestroyRef, inject, Input, Signal } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, effect, inject, Input, Signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -48,7 +48,6 @@ import { MatInputModule } from '@angular/material/input';
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
 import { ErrorContextKey } from '../../../state/error';
 import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
-import { concatLatestFrom } from '@ngrx/operators';
 import { MatTableModule } from '@angular/material/table';
 
 @Component({
@@ -80,8 +79,10 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
 
     componentName$: Observable<string> = this.store.select(selectComponentName).pipe(isDefinedAndNotNull());
-    dropStateKeySupported$: Observable<boolean> = this.store.select(selectDropStateKeySupported);
+    dropStateKeySupported: Signal<boolean> = this.store.selectSignal(selectDropStateKeySupported);
+    canClear = this.store.selectSignal(selectCanClear);
     clearing: Signal<boolean> = this.store.selectSignal(selectClearing);
+    private readonly clusterSummary = this.store.selectSignal(selectClusterSummary);
 
     displayedColumns: string[] = ['key', 'value'];
     dataSource: StateItem[] = [];
@@ -100,7 +101,6 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
     totalEntries = 0;
     filteredEntries = 0;
     partialResults = false;
-    canClear = false;
     private destroyRef: DestroyRef = inject(DestroyRef);
 
     constructor() {
@@ -111,6 +111,7 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
             .select(selectComponentState)
             .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
             .subscribe((componentState) => {
+                this.partialResults = false;
                 this.totalEntries = 0;
                 this.stateDescription = componentState.stateDescription;
 
@@ -142,48 +143,25 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
                 if (filterTerm?.length > 0) {
                     this.applyFilter(filterTerm);
                 }
+
+                this.syncDisplayedColumns();
             });
 
-        this.store
-            .select(selectClusterSummary)
-            .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
-            .subscribe((clusterSummary) => {
-                if (clusterSummary.connectedToCluster) {
-                    // if we're connected to the cluster add a scope column if it's not already present
-                    if (!this.displayedColumns.includes('scope')) {
-                        this.displayedColumns.splice(this.displayedColumns.length, 0, 'scope');
-                    }
-                } else {
-                    // if we're not connected to the cluster remove the scope column if it is present
-                    const nodeIndex = this.displayedColumns.indexOf('scope');
-                    if (nodeIndex > -1) {
-                        this.displayedColumns.splice(nodeIndex, 1);
-                    }
-                }
-            });
+        effect(() => this.syncDisplayedColumns());
+    }
 
-        // Subscribe to dropStateKeySupported to conditionally show actions column
-        this.dropStateKeySupported$
-            .pipe(
-                concatLatestFrom(() => this.store.select(selectCanClear).pipe(isDefinedAndNotNull())),
-                takeUntilDestroyed()
-            )
-            .subscribe(([dropStateKeySupported, canClear]) => {
-                this.canClear = canClear;
+    private syncDisplayedColumns(): void {
+        const columns = ['key', 'value'];
 
-                if (canClear && dropStateKeySupported) {
-                    // Add actions column if it's not already present
-                    if (!this.displayedColumns.includes('actions')) {
-                        this.displayedColumns.push('actions');
-                    }
-                } else {
-                    // Remove actions column if it is present
-                    const actionsIndex = this.displayedColumns.indexOf('actions');
-                    if (actionsIndex > -1) {
-                        this.displayedColumns.splice(actionsIndex, 1);
-                    }
-                }
-            });
+        if (this.clusterSummary()?.connectedToCluster) {
+            columns.push('scope');
+        }
+
+        if (this.canClear() && this.dropStateKeySupported() && !this.partialResults) {
+            columns.push('actions');
+        }
+
+        this.displayedColumns = columns;
     }
 
     ngAfterViewInit(): void {
@@ -290,6 +268,10 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
     }
 
     clearComponentStateEntry(item: StateItem): void {
+        if (this.partialResults) {
+            return;
+        }
+
         // Determine the scope based on the item's scope property
         // If scope is 'Cluster', it's cluster state
         // Otherwise, it's local state (could be node address or empty)
