@@ -1154,7 +1154,10 @@ public class NiFiClientUtil {
 
     public ProcessGroupEntity setParameterContext(final String groupId, final ParameterContextEntity parameterContext) throws NiFiClientException, IOException {
         final ProcessGroupEntity processGroup = nifiClient.getProcessGroupClient().getProcessGroup(groupId);
-        processGroup.getComponent().setParameterContext(createReferenceEntity(parameterContext.getId()));
+        ProcessGroupDTO component = new ProcessGroupDTO();
+        component.setId(processGroup.getId());
+        component.setParameterContext(createReferenceEntity(parameterContext.getId()));
+        processGroup.setComponent(component);
         return nifiClient.getProcessGroupClient().updateProcessGroup(processGroup);
     }
 
