@@ -30,6 +30,8 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManager;
@@ -39,6 +41,7 @@ import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.ConnectionDAO;
 import org.apache.nifi.web.dao.ConnectorDAO;
 import org.apache.nifi.web.dao.ConnectorManagedComponentLookup;
+import org.apache.nifi.web.dao.ControllerServiceDAO;
 import org.apache.nifi.web.dao.FlowAnalysisRuleDAO;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
 import org.apache.nifi.web.dao.ParameterProviderDAO;
@@ -46,6 +49,7 @@ import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -93,6 +97,25 @@ public class StandardAuthorizableLookupTest {
         authorizable = lookup.getAuthorizableFromResource("/operation/processors/id");
         assertInstanceOf(OperationAuthorizable.class, authorizable);
         assertInstanceOf(ProcessorNode.class, ((OperationAuthorizable) authorizable).getBaseAuthorizable());
+    }
+
+    @Test
+    void testGetControllerServiceReferencingComponentsResolvesRecursiveReferencesForRequestedType() {
+        final StandardAuthorizableLookup lookup = getLookup();
+        final ControllerServiceDAO controllerServiceDAO = mock(ControllerServiceDAO.class);
+        final ControllerServiceNode controllerService = mock(ControllerServiceNode.class);
+        final ControllerServiceReference references = mock(ControllerServiceReference.class);
+        final ControllerServiceNode referencingService = mock(ControllerServiceNode.class);
+        final ProcessorNode referencingProcessor = mock(ProcessorNode.class);
+
+        when(controllerServiceDAO.getControllerService(eq(COMPONENT_ID))).thenReturn(controllerService);
+        when(controllerService.getReferences()).thenReturn(references);
+        when(references.findRecursiveReferences(eq(ControllerServiceNode.class))).thenReturn(List.of(referencingService));
+        when(references.findRecursiveReferences(eq(ProcessorNode.class))).thenReturn(List.of(referencingProcessor));
+        lookup.setControllerServiceDAO(controllerServiceDAO);
+
+        assertEquals(List.of(referencingService), lookup.getControllerServiceReferencingComponents(COMPONENT_ID, ControllerServiceNode.class));
+        assertEquals(List.of(referencingProcessor), lookup.getControllerServiceReferencingComponents(COMPONENT_ID, ProcessorNode.class));
     }
 
     @Test

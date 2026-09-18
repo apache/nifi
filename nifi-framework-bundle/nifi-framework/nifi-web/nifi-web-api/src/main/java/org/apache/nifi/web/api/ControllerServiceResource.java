@@ -43,6 +43,7 @@ import org.apache.nifi.authorization.AuthorizeComponentAnalysis;
 import org.apache.nifi.authorization.AuthorizeComponentReference;
 import org.apache.nifi.authorization.AuthorizeConfigVerification;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.AuthorizeControllerServiceReferencingComponents;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
@@ -569,6 +570,10 @@ public class ControllerServiceResource extends ApplicationResource {
             throw new IllegalArgumentException("The controller service identifier must be specified.");
         }
 
+        if (!id.equals(requestUpdateReferenceRequest.getId())) {
+            throw new IllegalArgumentException("The controller service identifier in the request must match the identifier provided in the URL");
+        }
+
         if (requestUpdateReferenceRequest.getReferencingComponentRevisions() == null) {
             throw new IllegalArgumentException("The controller service referencing components revisions must be specified.");
         }
@@ -623,13 +628,9 @@ public class ControllerServiceResource extends ApplicationResource {
                 serviceFacade,
                 requestUpdateReferenceRequest,
                 requestRevisions,
-                lookup -> {
-                    requestReferencingRevisions.entrySet().stream().forEach(e -> {
-                        final Authorizable controllerService = lookup.getControllerServiceReferencingComponent(id, e.getKey());
-                        OperationAuthorizable.authorizeOperation(controllerService, authorizer, NiFiUserUtils.getNiFiUser());
-                    });
-                },
-                () -> serviceFacade.verifyUpdateControllerServiceReferencingComponents(requestUpdateReferenceRequest.getId(), verifyScheduledState, verifyControllerServiceState),
+                lookup -> AuthorizeControllerServiceReferencingComponents.authorize(
+                        authorizer, lookup, id, verifyControllerServiceState, verifyScheduledState, NiFiUserUtils.getNiFiUser()),
+                () -> serviceFacade.verifyUpdateControllerServiceReferencingComponents(id, verifyScheduledState, verifyControllerServiceState),
                 (revisions, updateReferenceRequest) -> {
                     ScheduledState scheduledState = null;
                     try {
@@ -651,7 +652,7 @@ public class ControllerServiceResource extends ApplicationResource {
 
                     // update the controller service references
                     final ControllerServiceReferencingComponentsEntity entity = serviceFacade.updateControllerServiceReferencingComponents(
-                            referencingRevisions, updateReferenceRequest.getId(), scheduledState, controllerServiceState);
+                            referencingRevisions, id, scheduledState, controllerServiceState);
 
                     if (updateReferenceRequest.getUiOnly() == Boolean.TRUE) {
                         entity.getControllerServiceReferencingComponents().forEach(this::stripNonUiRelevantFields);
