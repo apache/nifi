@@ -355,19 +355,13 @@ public class ParameterContextResource extends AbstractParameterResource {
     public Response updateParameterContext(
             @PathParam("id") String contextId,
             @Parameter(description = "The updated Parameter Context", required = true) final ParameterContextEntity requestEntity) {
-
-        // Validate request
-        if (requestEntity.getId() == null) {
-            throw new IllegalArgumentException("The ID of the Parameter Context must be specified");
-        }
-        if (!requestEntity.getId().equals(contextId)) {
-            throw new IllegalArgumentException("The ID of the Parameter Context must match the ID specified in the URL's path");
-        }
+        verifyParameterContextId(contextId, requestEntity.getId());
 
         final ParameterContextDTO updateDto = requestEntity.getComponent();
         if (updateDto == null) {
             throw new IllegalArgumentException("The Parameter Context must be supplied");
         }
+        verifyParameterContextId(contextId, updateDto.getId());
 
         final RevisionDTO revisionDto = requestEntity.getRevision();
         if (revisionDto == null) {
@@ -387,7 +381,7 @@ public class ParameterContextResource extends AbstractParameterResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByParameterContextUpdate(Collections.singletonList(updateDto));
 
-        final Revision requestRevision = getRevision(requestEntity.getRevision(), updateDto.getId());
+        final Revision requestRevision = getRevision(requestEntity.getRevision(), contextId);
         return withWriteLock(
                 serviceFacade,
                 requestEntity,
@@ -397,7 +391,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                 (rev, entity) -> {
                     final ParameterContextEntity updatedEntity = serviceFacade.updateParameterContext(rev, entity.getComponent());
 
-                    updatedEntity.setUri(generateResourceUri("parameter-contexts", entity.getId()));
+                    updatedEntity.setUri(generateResourceUri("parameter-contexts", contextId));
                     return generateOkResponse(updatedEntity).build();
                 }
         );
@@ -728,13 +722,7 @@ public class ParameterContextResource extends AbstractParameterResource {
             throw new IllegalArgumentException("Parameter Context must be specified");
         }
 
-        if (contextDto.getId() == null) {
-            throw new IllegalArgumentException("Parameter Context's ID must be specified");
-        }
-        if (!contextDto.getId().equals(contextId)) {
-            throw new IllegalArgumentException("ID of Parameter Context in message body does not match Parameter Context ID supplied in URI");
-        }
-
+        verifyParameterContextId(contextId, contextDto.getId());
         validateParameterNames(contextDto);
         validateAssetReferences(contextDto);
 
@@ -868,6 +856,15 @@ public class ParameterContextResource extends AbstractParameterResource {
                             .formatted(entity.getParameter().getName()));
                 }
             }
+        }
+    }
+
+    private void verifyParameterContextId(final String pathId, final String requestId) {
+        if (requestId == null) {
+            throw new IllegalArgumentException("The ID of the Parameter Context must be specified");
+        }
+        if (!requestId.equals(pathId)) {
+            throw new IllegalArgumentException("The ID of the Parameter Context must match the ID specified in the URL path");
         }
     }
 
@@ -1071,9 +1068,7 @@ public class ParameterContextResource extends AbstractParameterResource {
         if (requestDto.getParameterContext() == null) {
             throw new IllegalArgumentException("Parameter Context must be specified");
         }
-        if (requestDto.getParameterContext().getId() == null) {
-            throw new IllegalArgumentException("Parameter Context's ID must be specified");
-        }
+        verifyParameterContextId(contextId, requestDto.getParameterContext().getId());
 
         if (isReplicateRequest()) {
             return replicate("POST", requestEntity);
@@ -1086,7 +1081,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                 requestEntity,
                 lookup -> {
                     authorizeReadWriteParameterContext(contextId);
-                    authorizeReferencingComponents(requestEntity.getRequest().getParameterContext().getId(), lookup, NiFiUserUtils.getNiFiUser());
+                    authorizeReferencingComponents(contextId, lookup, NiFiUserUtils.getNiFiUser());
                 },
                 () -> {
                 },
