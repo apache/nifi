@@ -722,13 +722,7 @@ public class ParameterContextResource extends AbstractParameterResource {
             throw new IllegalArgumentException("Parameter Context must be specified");
         }
 
-        if (contextDto.getId() == null) {
-            throw new IllegalArgumentException("Parameter Context's ID must be specified");
-        }
-        if (!contextDto.getId().equals(contextId)) {
-            throw new IllegalArgumentException("ID of Parameter Context in message body does not match Parameter Context ID supplied in URI");
-        }
-
+        verifyParameterContextId(contextId, contextDto.getId());
         validateParameterNames(contextDto);
         validateAssetReferences(contextDto);
 
