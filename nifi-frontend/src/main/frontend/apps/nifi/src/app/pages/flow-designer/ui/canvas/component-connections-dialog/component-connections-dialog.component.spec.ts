@@ -40,6 +40,7 @@ const PARENT_GROUP_ID = 'parent-group-id';
 const CURRENT_GROUP_ID = 'current-group-id';
 const SIBLING_GROUP_ID = 'sibling-group-id';
 
+const SELECTED_COMPONENT_ID = 'selected-component-id';
 const SOURCE_ID = 'source-id';
 const DESTINATION_ID = 'destination-id';
 const CONNECTION_ID = 'connection-id';
@@ -123,6 +124,7 @@ function createDialog(
     overrides: Partial<ComponentConnectionsDialogRequest> = {}
 ): CreatedDialog {
     const dialogRequest: ComponentConnectionsDialogRequest = {
+        componentId: SELECTED_COMPONENT_ID,
         componentName: 'Selected Component',
         componentType: ComponentType.InputPort,
         groupId: REQUEST_GROUP_ID,
@@ -185,6 +187,7 @@ function createCurrentProcessGroupDialog(
     connections: ConnectionEntity[]
 ): CreatedDialog {
     return createDialog(direction, connections, {
+        componentId: CURRENT_GROUP_ID,
         componentName: 'Current Process Group',
         componentType: ComponentType.ProcessGroup,
         groupId: PARENT_GROUP_ID,
@@ -255,15 +258,49 @@ describe('ComponentConnectionsDialog', () => {
             expect(textContent(fixture)).toContain('No downstream connections were found.');
         });
 
-        it('renders the selected component name and icon', () => {
+        it('reports the selected component through the shared component context', () => {
             const { fixture } = createDialog('upstream', [], {
+                componentId: 'input-port-a-id',
                 componentName: 'Input Port A',
                 componentType: ComponentType.InputPort
             });
 
-            expect(textContent(fixture)).toContain('Selected Component');
-            expect(textContent(fixture)).toContain('Input Port A');
-            expect(fixture.debugElement.query(By.css('.icon-port-in'))).not.toBeNull();
+            const componentContext = fixture.debugElement.query(By.css('component-context'));
+            expect(componentContext).not.toBeNull();
+
+            const contextText = (componentContext.nativeElement.textContent as string).replace(/\s+/g, ' ').trim();
+            expect(contextText).toContain('Input Port A');
+            // the type label and copyable id the widget renders on top of the name
+            expect(contextText).toContain('Input Port');
+            expect(contextText).toContain('input-port-a-id');
+            expect(componentContext.query(By.css('.icon-port-in'))).not.toBeNull();
+        });
+
+        it('reports an unreadable component by the id used in place of its name', () => {
+            const { fixture } = createDialog('upstream', [], {
+                componentId: 'unreadable-component-id',
+                componentName: 'unreadable-component-id',
+                componentType: ComponentType.Processor
+            });
+
+            const componentContext = fixture.debugElement.query(By.css('component-context'));
+            const contextText = (componentContext.nativeElement.textContent as string).replace(/\s+/g, ' ').trim();
+
+            expect(contextText).toContain('unreadable-component-id');
+            expect(contextText).toContain('Processor');
+        });
+
+        it('reports a remote process group with the remote group icon', () => {
+            const { fixture } = createDialog('downstream', [], {
+                componentId: REMOTE_GROUP_ID,
+                componentName: 'Remote Process Group A',
+                componentType: ComponentType.RemoteProcessGroup
+            });
+
+            const componentContext = fixture.debugElement.query(By.css('component-context'));
+
+            expect(componentContext.query(By.css('.icon-group-remote'))).not.toBeNull();
+            expect(componentContext.nativeElement.textContent).toContain('Remote Process Group A');
         });
     });
 
@@ -882,12 +919,15 @@ describe('ComponentConnectionsDialog', () => {
             const { component, fixture } = createCurrentProcessGroupDialog('upstream', [upstreamIntoCurrentGroup()]);
 
             expect(component.componentType).toBe(ComponentType.ProcessGroup);
-            expect(textContent(fixture)).toContain('Current Process Group');
+            expect(component.componentId).toBe(CURRENT_GROUP_ID);
 
-            const selectedComponentIcon = fixture.debugElement.query(
-                By.css('.tertiary-color.font-medium .component-type-icon')
-            );
-            expect(selectedComponentIcon.nativeElement.classList.contains('icon-group')).toBeTruthy();
+            const componentContext = fixture.debugElement.query(By.css('component-context'));
+            const contextText = (componentContext.nativeElement.textContent as string).replace(/\s+/g, ' ').trim();
+
+            expect(contextText).toContain('Current Process Group');
+            expect(contextText).toContain('Process Group');
+            expect(contextText).toContain(CURRENT_GROUP_ID);
+            expect(componentContext.query(By.css('.icon-group'))).not.toBeNull();
         });
 
         it('treats the parent group rather than the current group as the group of the table', () => {

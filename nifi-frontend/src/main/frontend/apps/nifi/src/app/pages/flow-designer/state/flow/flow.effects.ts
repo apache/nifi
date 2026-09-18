@@ -3222,6 +3222,7 @@ export class FlowEffects {
                     map((flowEntity: ProcessGroupFlowEntity) =>
                         FlowActions.openComponentConnectionsDialog({
                             request: {
+                                componentId: request.id,
                                 componentName: request.name,
                                 componentType: request.type,
                                 groupId: request.groupId,

@@ -22,7 +22,7 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Store } from '@ngrx/store';
-import { CloseOnEscapeDialog, ComponentType, NiFiCommon } from '@nifi/shared';
+import { CloseOnEscapeDialog, ComponentContext, ComponentType, NiFiCommon } from '@nifi/shared';
 import { CanvasState } from '../../../state';
 import { ComponentConnectionsDialogRequest, ConnectionEntity } from '../../../state/flow';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
@@ -70,7 +70,7 @@ export interface ComponentConnectionRow {
  */
 @Component({
     selector: 'component-connections-dialog',
-    imports: [MatButtonModule, MatDialogModule, MatSortModule, MatTableModule, MatTooltipModule],
+    imports: [ComponentContext, MatButtonModule, MatDialogModule, MatSortModule, MatTableModule, MatTooltipModule],
     templateUrl: './component-connections-dialog.component.html',
     styleUrls: ['./component-connections-dialog.component.scss']
 })
@@ -102,6 +102,9 @@ export class ComponentConnectionsDialog extends CloseOnEscapeDialog {
         'destinationProcessGroup',
         'destinationComponent'
     ];
+    readonly componentId: string = this.dialogRequest.componentId;
+    // the name the current user can read, or the component id when they cannot; component-context
+    // renders whatever it is given
     readonly componentName: string;
     readonly componentType: ComponentType = this.dialogRequest.componentType;
     readonly title: string;

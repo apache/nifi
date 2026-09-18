@@ -417,6 +417,7 @@ export interface ViewComponentConnectionsRequest {
 }
 
 export interface ComponentConnectionsDialogRequest {
+    componentId: string;
     componentName: string;
     componentType: ComponentType;
     // the group the connections belong to, used when navigating to one of them
