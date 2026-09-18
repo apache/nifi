@@ -29,10 +29,12 @@ import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterContextValidationRequestDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
+import org.apache.nifi.web.api.entity.ParameterContextValidationRequestEntity;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.apache.nifi.web.util.ParameterUpdateManager;
 import org.junit.jupiter.api.AfterEach;
@@ -49,6 +51,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -62,7 +65,7 @@ import static org.mockito.Mockito.when;
 class ParameterContextResourceTest {
 
     private static final String TARGET_CONTEXT_ID = "target-context";
-    private static final String CURRENT_INHERITED_CONTEXT_ID = "current-inherited-context";
+    private static final String OTHER_CONTEXT_ID = "other-context";
     private static final String REQUESTED_INHERITED_CONTEXT_ID = "requested-inherited-context";
 
     @Mock
@@ -145,12 +148,39 @@ class ParameterContextResourceTest {
         verify(requestedInheritedContext).authorize(authorizer, RequestAction.READ, user);
     }
 
+    @Test
+    void testUpdateParameterContextRequiresComponentIdToMatchPath() {
+        final ParameterContextResource resource = new ParameterContextResource();
+        final ParameterContextEntity requestEntity = new ParameterContextEntity();
+        requestEntity.setRevision(new RevisionDTO());
+        requestEntity.setComponent(createParameterContextDto(OTHER_CONTEXT_ID));
+        requestEntity.setId(TARGET_CONTEXT_ID);
+
+        assertThrows(IllegalArgumentException.class, () -> resource.updateParameterContext(TARGET_CONTEXT_ID, requestEntity));
+    }
+
+    @Test
+    void testSubmitValidationRequestRequiresParameterContextIdToMatchPath() {
+        final ParameterContextResource resource = new ParameterContextResource();
+        final ParameterContextValidationRequestDTO requestDto = new ParameterContextValidationRequestDTO();
+        requestDto.setParameterContext(createParameterContextDto(OTHER_CONTEXT_ID));
+
+        final ParameterContextValidationRequestEntity requestEntity = new ParameterContextValidationRequestEntity();
+        requestEntity.setRequest(requestDto);
+
+        assertThrows(IllegalArgumentException.class, () -> resource.submitValidationRequest(TARGET_CONTEXT_ID, requestEntity));
+    }
+
     private static ParameterContextDTO createRequestParameterContextDto() {
+        return createParameterContextDto(TARGET_CONTEXT_ID);
+    }
+
+    private static ParameterContextDTO createParameterContextDto(final String contextId) {
         final ParameterContextReferenceEntity requestedInheritedReference = new ParameterContextReferenceEntity();
         requestedInheritedReference.setId(REQUESTED_INHERITED_CONTEXT_ID);
 
         final ParameterContextDTO dto = new ParameterContextDTO();
-        dto.setId(TARGET_CONTEXT_ID);
+        dto.setId(contextId);
         dto.setParameters(Set.of());
         dto.setInheritedParameterContexts(List.of(requestedInheritedReference));
         return dto;
