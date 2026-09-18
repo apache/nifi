@@ -256,6 +256,14 @@ export class CanvasUtils {
     }
 
     /**
+     * Returns the breadcrumb of the current group, which carries its name and permissions. The current
+     * group is not rendered on its own canvas, so this is the only source for those details.
+     */
+    public getCurrentProcessGroupBreadcrumb(): BreadcrumbEntity | null {
+        return this.breadcrumbs;
+    }
+
+    /**
      * Returns the current parameter context id or null if there is no bound parameter context.
      */
     public getParameterContextId(): string | null {
