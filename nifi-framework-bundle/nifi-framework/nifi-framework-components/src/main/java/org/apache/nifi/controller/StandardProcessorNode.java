@@ -574,7 +574,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void yield(final long period, final TimeUnit timeUnit) {
         final long yieldMillis = TimeUnit.MILLISECONDS.convert(period, timeUnit);
-        yieldExpiration.set(Math.max(yieldExpiration.get(), System.currentTimeMillis() + yieldMillis));
+        yieldExpiration.accumulateAndGet(System.currentTimeMillis() + yieldMillis, Math::max);
 
         processScheduler.yield(this);
     }
@@ -585,7 +585,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      */
     @Override
     public long getYieldExpiration() {
-        return yieldExpiration.get();
+        final long expiration = yieldExpiration.get();
+        if (expiration == 0L) {
+            return 0L;
+        }
+
+        if (expiration > System.currentTimeMillis()) {
+            return expiration;
+        }
+
+        return yieldExpiration.compareAndSet(expiration, 0L) ? 0L : yieldExpiration.get();
     }
 
     @Override
@@ -1575,7 +1584,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final long activeMillis = now - timestamp;
             final ThreadInfo threadInfo = threadInfoMap.get(thread.threadId());
 
-            final String stackTrace = ThreadUtils.createStackTrace(threadInfo, threadDetails.getDeadlockedThreadIds(), threadDetails.getMonitorDeadlockThreadIds());
+            final String stackTrace = threadInfo == null
+                    ? ThreadUtils.createStackTrace(thread)
+                    : ThreadUtils.createStackTrace(threadInfo, threadDetails.getDeadlockedThreadIds(), threadDetails.getMonitorDeadlockThreadIds());
 
             final ActiveThreadInfo activeThreadInfo = new ActiveThreadInfo(thread.getName(), stackTrace, activeMillis, activeTask.isTerminated());
             threadList.add(activeThreadInfo);

@@ -26,6 +26,8 @@ import org.junit.jupiter.api.Test;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,6 +35,23 @@ import static org.mockito.Mockito.when;
 class LifecycleStateTest {
 
     private static final long GARBAGE_COLLECTION_TIMEOUT_MILLIS = 5_000L;
+
+    @Test
+    void testLastStopTimeAdvancesOnEveryStop() {
+        final LifecycleState lifecycleState = new LifecycleState("component-id");
+        lifecycleState.setScheduled(true);
+        final long initialStopTime = lifecycleState.getLastStopTime();
+
+        lifecycleState.setScheduled(false);
+        final long firstStopTime = lifecycleState.getLastStopTime();
+        assertTrue(firstStopTime > initialStopTime);
+
+        lifecycleState.setScheduled(true);
+        assertEquals(firstStopTime, lifecycleState.getLastStopTime());
+
+        lifecycleState.setScheduled(false);
+        assertTrue(lifecycleState.getLastStopTime() > firstStopTime);
+    }
 
     /**
      * Verifies that a Session created by an ActiveProcessSessionFactory is rolled back when the
