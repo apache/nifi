@@ -61,7 +61,7 @@ import {
     OpenChangeVersionDialogRequest,
     OpenLocalChangesDialogRequest
 } from '../state/flow';
-import { UpdateComponentRequest } from '../../../state/shared';
+import { BreadcrumbEntity, UpdateComponentRequest } from '../../../state/shared';
 import {
     ContextMenuDefinition,
     ContextMenuDefinitionProvider,
@@ -290,7 +290,12 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         menuItems: [
             {
                 condition: (selection: d3.Selection<any, any, any, any>) => {
-                    return this.canvasUtils.hasUpstream(selection);
+                    // an empty selection targets the current process group, whose connections are defined in its
+                    // parent, so there is nothing to report from the root process group since it has no parent
+                    return (
+                        this.canvasUtils.hasUpstream(selection) ||
+                        this.canvasUtils.isNotRootGroupAndEmptySelection(selection)
+                    );
                 },
                 clazz: 'fa fa-long-arrow-up fa-rotate-45',
                 text: 'Upstream',
@@ -300,7 +305,10 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: d3.Selection<any, any, any, any>) => {
-                    return this.canvasUtils.hasDownstream(selection);
+                    return (
+                        this.canvasUtils.hasDownstream(selection) ||
+                        this.canvasUtils.isNotRootGroupAndEmptySelection(selection)
+                    );
                 },
                 clazz: 'fa fa-long-arrow-down fa-rotate-45',
                 text: 'Downstream',
@@ -1470,16 +1478,22 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
      * Requests the connections attached to the specified component in the specified direction.
      *
      * A component's connections are defined in the group that encloses it, which is the group currently
-     * on the canvas. The exception is a port whose connections cross that group's own boundary — the
-     * upstream side of an Input Port and the downstream side of an Output Port — which are defined one
-     * level up and are not rendered alongside the port at all. Those are the two cases that
+     * on the canvas. The exception is a component whose connections cross that group's own boundary and
+     * are defined one level up: the upstream side of an Input Port, the downstream side of an Output
+     * Port, and either side of the current group itself. Those are the cases that
      * hasUpstream/hasDownstream gate on the presence of a parent group.
+     *
+     * An empty selection means the user did not select a component, which implicitly targets the current
+     * group.
      */
     private requestComponentConnections(
         selection: d3.Selection<any, any, any, any>,
         direction: ConnectionDirection
     ): void {
+        const currentProcessGroupTargeted: boolean = this.canvasUtils.emptySelection(selection);
+
         const crossesParentBoundary: boolean =
+            currentProcessGroupTargeted ||
             (direction === 'upstream' && this.canvasUtils.isInputPort(selection)) ||
             (direction === 'downstream' && this.canvasUtils.isOutputPort(selection));
 
@@ -1493,7 +1507,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             }
         }
 
-        const selectionData = selection.datum();
+        const selectionData = currentProcessGroupTargeted ? this.currentProcessGroupDatum() : selection.datum();
         this.store.dispatch(
             viewComponentConnections({
                 request: {
@@ -1508,5 +1522,21 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             })
         );
+    }
+
+    /**
+     * Returns the current group shaped like the datum of a component rendered on the canvas, so that it
+     * can be reported the same way a selected component is. The current group draws the canvas itself
+     * rather than a node on it, so there is no selection to read this from.
+     */
+    private currentProcessGroupDatum(): any {
+        const breadcrumb: BreadcrumbEntity | null = this.canvasUtils.getCurrentProcessGroupBreadcrumb();
+
+        return {
+            id: this.canvasUtils.getProcessGroupId(),
+            type: ComponentType.ProcessGroup,
+            permissions: breadcrumb ? breadcrumb.permissions : { canRead: false, canWrite: false },
+            component: { name: breadcrumb?.breadcrumb.name }
+        };
     }
 }

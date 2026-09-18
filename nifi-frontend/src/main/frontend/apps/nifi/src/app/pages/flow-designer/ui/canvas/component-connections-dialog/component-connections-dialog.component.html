@@ -41,7 +41,7 @@
                                 <a
                                     class="component-connection-cell neutral-contrast"
                                     [matTooltip]="resolveGroupName(row.source.groupId)"
-                                    (click)="navigateTo(row.source.groupId, dialogRequestGroupId, remoteProcessGroupType)"> <!-- TODO: add click test confirming remoteProcessGroup, not processGroup; same for destination PG -->
+                                    (click)="navigateTo(row.source.groupId, dialogRequestGroupId, remoteProcessGroupType)">
                                     <i class="icon component-type-icon flex-none" [class]="componentIcon(remoteProcessGroupType)"></i>
                                     {{ resolveGroupName(row.source.groupId) }}
                                 </a>

@@ -3198,6 +3198,11 @@ export class FlowEffects {
      * port rather than to the group.
      *
      *
+     * The group on the canvas is the one id the resolvers never collapse to, so when it is itself the
+     * requested component a connection into or out of it resolves to the port it is attached to instead.
+     * Matching the endpoint group id on the connection covers that case; for every other component the
+     * requested id is not a group id at that endpoint, so it adds nothing.
+     *
      * Both resolvers read the ids on the connection entity rather than on its component, so a
      * connection the current user cannot read — the kind most worth reporting — is still matched.
      */
@@ -3208,8 +3213,10 @@ export class FlowEffects {
             switchMap((request) => {
                 const attachedTo = (connection: ConnectionEntity): boolean =>
                     request.direction === 'upstream'
-                        ? this.canvasUtils.getConnectionDestinationComponentId(connection) === request.id
-                        : this.canvasUtils.getConnectionSourceComponentId(connection) === request.id;
+                        ? this.canvasUtils.getConnectionDestinationComponentId(connection) === request.id ||
+                          connection.destinationGroupId === request.id
+                        : this.canvasUtils.getConnectionSourceComponentId(connection) === request.id ||
+                          connection.sourceGroupId === request.id;
 
                 return from(this.flowService.getFlow(request.groupId)).pipe(
                     map((flowEntity: ProcessGroupFlowEntity) =>

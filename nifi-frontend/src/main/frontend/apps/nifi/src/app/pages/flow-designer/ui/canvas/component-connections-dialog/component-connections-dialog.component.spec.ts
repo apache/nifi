@@ -31,6 +31,13 @@ const REQUEST_GROUP_ID = 'request-group-id';
 const SOURCE_GROUP_ID = 'source-group-id';
 const DESTINATION_GROUP_ID = 'destination-group-id';
 const UNKNOWN_GROUP_ID = 'unknown-group-id';
+const REMOTE_GROUP_ID = 'remote-process-group-id';
+
+// when the user selects nothing on the canvas the current group itself is reported, and its connections
+// are defined in the parent group, so the parent is the group the dialog request is built around
+const PARENT_GROUP_ID = 'parent-group-id';
+const CURRENT_GROUP_ID = 'current-group-id';
+const SIBLING_GROUP_ID = 'sibling-group-id';
 
 const SOURCE_ID = 'source-id';
 const DESTINATION_ID = 'destination-id';
@@ -168,12 +175,46 @@ function createDialog(
     };
 }
 
+/**
+ * Builds the dialog as it is opened when the user selects nothing on the canvas: the current group is
+ * the reported component, and the group of the request is its parent, where its connections are defined.
+ */
+function createCurrentProcessGroupDialog(
+    direction: ConnectionDirection,
+    connections: ConnectionEntity[]
+): CreatedDialog {
+    return createDialog(direction, connections, {
+        componentName: 'Current Process Group',
+        componentType: ComponentType.ProcessGroup,
+        groupId: PARENT_GROUP_ID,
+        groupIdToName: new Map([
+            [PARENT_GROUP_ID, 'Parent Process Group'],
+            [CURRENT_GROUP_ID, 'Current Process Group'],
+            [SIBLING_GROUP_ID, 'Sibling Process Group']
+        ])
+    });
+}
+
 function textContent(fixture: ComponentFixture<ComponentConnectionsDialog>): string {
     return (fixture.nativeElement.textContent as string).replace(/\s+/g, ' ').trim();
 }
 
 function getCells(fixture: ComponentFixture<ComponentConnectionsDialog>, columnClass: string): HTMLElement[] {
     return fixture.debugElement.queryAll(By.css(`td.${columnClass}`)).map((debugElement) => debugElement.nativeElement);
+}
+
+function clickCell(fixture: ComponentFixture<ComponentConnectionsDialog>, columnClass: string): void {
+    const link = getCells(fixture, columnClass)[0].querySelector('a') as HTMLAnchorElement;
+    link.click();
+}
+
+/**
+ * Rebuilds the route the navigateToComponent effect pushes for a dispatched navigation, so that a test
+ * can assert on the url the click produces rather than only on the component type carried by the action.
+ */
+function navigationUrl(dispatch: ReturnType<typeof vi.spyOn>): string {
+    const { request } = dispatch.mock.calls[0][0] as ReturnType<typeof navigateToComponent>;
+    return ['/process-groups', request.processGroupId, request.type, request.id].join('/');
 }
 
 describe('ComponentConnectionsDialog', () => {
@@ -695,30 +736,245 @@ describe('ComponentConnectionsDialog', () => {
             );
             expect(dialogRef.close).toHaveBeenCalled();
         });
+    });
 
-        it('navigates to the connection in the group that defines the dialog request', () => {
+    /**
+     * A remote port's group is a Remote Process Group, which is navigated to as a component of the group
+     * on the canvas rather than as a group that can be entered. The type carried by the navigation is the
+     * ':type' segment of the resulting route, so a Process Group type here produces the wrong url.
+     */
+    describe('remote process group navigation', () => {
+        it('navigates to a remote source process group as a Remote Process Group', () => {
             const connection = readableConnection({
-                id: 'connection-to-navigate-to',
-                name: 'Connection To Navigate To'
+                source: { id: 'remote-output-port-id', name: 'Remote Output Port' },
+                sourceGroupId: REMOTE_GROUP_ID,
+                sourceType: 'REMOTE_OUTPUT_PORT',
+                destination: { id: 'processor-id', name: 'Processor' },
+                destinationGroupId: DESTINATION_GROUP_ID,
+                destinationType: 'PROCESSOR'
             });
 
-            const { fixture, store, dialogRef } = createDialog('upstream', [connection]);
+            const { fixture, store, dialogRef } = createDialog('upstream', [connection], {
+                remoteProcessGroupIds: new Set([REMOTE_GROUP_ID])
+            });
             const dispatch = vi.spyOn(store, 'dispatch');
 
-            const connectionCell = getCells(fixture, 'mat-column-connection')[0];
-            const link = connectionCell.querySelector('a') as HTMLAnchorElement;
-            link.click();
+            const sourceProcessGroupCell = getCells(fixture, 'mat-column-sourceProcessGroup')[0];
+            expect(sourceProcessGroupCell.querySelector('i.icon-group-remote')).not.toBeNull();
+
+            clickCell(fixture, 'mat-column-sourceProcessGroup');
 
             expect(dispatch).toHaveBeenCalledWith(
                 navigateToComponent({
                     request: {
-                        id: 'connection-to-navigate-to',
+                        id: REMOTE_GROUP_ID,
                         processGroupId: REQUEST_GROUP_ID,
-                        type: ComponentType.Connection
+                        type: ComponentType.RemoteProcessGroup
+                    }
+                })
+            );
+            expect(navigationUrl(dispatch)).toBe(
+                `/process-groups/${REQUEST_GROUP_ID}/${ComponentType.RemoteProcessGroup}/${REMOTE_GROUP_ID}`
+            );
+            expect(navigationUrl(dispatch)).not.toContain(`/${ComponentType.ProcessGroup}/`);
+            expect(dialogRef.close).toHaveBeenCalled();
+        });
+
+        it('navigates to a remote destination process group as a Remote Process Group', () => {
+            const connection = readableConnection({
+                source: { id: 'processor-id', name: 'Processor' },
+                sourceGroupId: SOURCE_GROUP_ID,
+                sourceType: 'PROCESSOR',
+                destination: { id: 'remote-input-port-id', name: 'Remote Input Port' },
+                destinationGroupId: REMOTE_GROUP_ID,
+                destinationType: 'REMOTE_INPUT_PORT'
+            });
+
+            const { fixture, store, dialogRef } = createDialog('downstream', [connection], {
+                remoteProcessGroupIds: new Set([REMOTE_GROUP_ID])
+            });
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            const destinationProcessGroupCell = getCells(fixture, 'mat-column-destinationProcessGroup')[0];
+            expect(destinationProcessGroupCell.querySelector('i.icon-group-remote')).not.toBeNull();
+
+            clickCell(fixture, 'mat-column-destinationProcessGroup');
+
+            expect(dispatch).toHaveBeenCalledWith(
+                navigateToComponent({
+                    request: {
+                        id: REMOTE_GROUP_ID,
+                        processGroupId: REQUEST_GROUP_ID,
+                        type: ComponentType.RemoteProcessGroup
+                    }
+                })
+            );
+            expect(navigationUrl(dispatch)).toBe(
+                `/process-groups/${REQUEST_GROUP_ID}/${ComponentType.RemoteProcessGroup}/${REMOTE_GROUP_ID}`
+            );
+            expect(navigationUrl(dispatch)).not.toContain(`/${ComponentType.ProcessGroup}/`);
+            expect(dialogRef.close).toHaveBeenCalled();
+        });
+
+        it('keeps navigating to a local process group as a Process Group', () => {
+            const connection = readableConnection({
+                source: { id: 'output-port-id', name: 'Output Port' },
+                sourceGroupId: SOURCE_GROUP_ID,
+                sourceType: 'OUTPUT_PORT'
+            });
+
+            const { fixture, store } = createDialog('upstream', [connection]);
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            const sourceProcessGroupCell = getCells(fixture, 'mat-column-sourceProcessGroup')[0];
+            expect(sourceProcessGroupCell.querySelector('i.icon-group')).not.toBeNull();
+
+            clickCell(fixture, 'mat-column-sourceProcessGroup');
+
+            expect(navigationUrl(dispatch)).toBe(
+                `/process-groups/${REQUEST_GROUP_ID}/${ComponentType.ProcessGroup}/${SOURCE_GROUP_ID}`
+            );
+        });
+    });
+
+    /**
+     * Right-clicking empty canvas selects no component, which implicitly reports the current process
+     * group. Its connections are defined one level up, so the dialog is built around the parent group:
+     * the parent is the group treated as current by the table, and the group the user is in is itself a
+     * navigable component within it.
+     */
+    describe('current process group selection', () => {
+        function upstreamIntoCurrentGroup(): ConnectionEntity {
+            return readableConnection({
+                source: { id: 'parent-processor-id', name: 'Parent Processor' },
+                sourceGroupId: PARENT_GROUP_ID,
+                sourceType: 'PROCESSOR',
+                destination: { id: 'input-port-id', name: 'Input Port' },
+                destinationGroupId: CURRENT_GROUP_ID,
+                destinationType: 'INPUT_PORT'
+            });
+        }
+
+        function downstreamOutOfCurrentGroup(): ConnectionEntity {
+            return readableConnection({
+                source: { id: 'output-port-id', name: 'Output Port' },
+                sourceGroupId: CURRENT_GROUP_ID,
+                sourceType: 'OUTPUT_PORT',
+                destination: { id: 'parent-processor-id', name: 'Parent Processor' },
+                destinationGroupId: PARENT_GROUP_ID,
+                destinationType: 'PROCESSOR'
+            });
+        }
+
+        it('reports the current process group as the selected component', () => {
+            const { component, fixture } = createCurrentProcessGroupDialog('upstream', [upstreamIntoCurrentGroup()]);
+
+            expect(component.componentType).toBe(ComponentType.ProcessGroup);
+            expect(textContent(fixture)).toContain('Current Process Group');
+
+            const selectedComponentIcon = fixture.debugElement.query(
+                By.css('.tertiary-color.font-medium .component-type-icon')
+            );
+            expect(selectedComponentIcon.nativeElement.classList.contains('icon-group')).toBeTruthy();
+        });
+
+        it('treats the parent group rather than the current group as the group of the table', () => {
+            const { component } = createCurrentProcessGroupDialog('upstream', [upstreamIntoCurrentGroup()]);
+
+            expect(component.isCurrentProcessGroup(PARENT_GROUP_ID)).toBeTruthy();
+            expect(component.isCurrentProcessGroup(CURRENT_GROUP_ID)).toBeFalsy();
+        });
+
+        it('renders a component in the parent group as belonging to the group of the table', () => {
+            const { fixture } = createCurrentProcessGroupDialog('upstream', [upstreamIntoCurrentGroup()]);
+
+            const sourceProcessGroupCell = getCells(fixture, 'mat-column-sourceProcessGroup')[0];
+            expect(sourceProcessGroupCell.textContent).toContain('Parent Process Group');
+            expect(sourceProcessGroupCell.querySelector('span')).not.toBeNull();
+            expect(sourceProcessGroupCell.querySelector('a')).toBeNull();
+        });
+
+        it('navigates into the current process group from the upstream destination group cell', () => {
+            const { fixture, store, dialogRef } = createCurrentProcessGroupDialog('upstream', [
+                upstreamIntoCurrentGroup()
+            ]);
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            const destinationProcessGroupCell = getCells(fixture, 'mat-column-destinationProcessGroup')[0];
+            expect(destinationProcessGroupCell.textContent).toContain('Current Process Group');
+
+            clickCell(fixture, 'mat-column-destinationProcessGroup');
+
+            expect(dispatch).toHaveBeenCalledWith(
+                navigateToComponent({
+                    request: {
+                        id: CURRENT_GROUP_ID,
+                        processGroupId: PARENT_GROUP_ID,
+                        type: ComponentType.ProcessGroup
                     }
                 })
             );
             expect(dialogRef.close).toHaveBeenCalled();
+        });
+
+        it('navigates into the current process group from the downstream source group cell', () => {
+            const { fixture, store, dialogRef } = createCurrentProcessGroupDialog('downstream', [
+                downstreamOutOfCurrentGroup()
+            ]);
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            clickCell(fixture, 'mat-column-sourceProcessGroup');
+
+            expect(dispatch).toHaveBeenCalledWith(
+                navigateToComponent({
+                    request: {
+                        id: CURRENT_GROUP_ID,
+                        processGroupId: PARENT_GROUP_ID,
+                        type: ComponentType.ProcessGroup
+                    }
+                })
+            );
+            expect(dialogRef.close).toHaveBeenCalled();
+
+            const destinationProcessGroupCell = getCells(fixture, 'mat-column-destinationProcessGroup')[0];
+            expect(destinationProcessGroupCell.querySelector('a')).toBeNull();
+        });
+
+        it('navigates to the port of a sibling group feeding the current process group', () => {
+            const siblingConnection = readableConnection({
+                source: { id: 'sibling-output-port-id', name: 'Sibling Output Port' },
+                sourceGroupId: SIBLING_GROUP_ID,
+                sourceType: 'OUTPUT_PORT',
+                destination: { id: 'input-port-id', name: 'Input Port' },
+                destinationGroupId: CURRENT_GROUP_ID,
+                destinationType: 'INPUT_PORT'
+            });
+
+            const { fixture, store } = createCurrentProcessGroupDialog('upstream', [siblingConnection]);
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            const sourceProcessGroupCell = getCells(fixture, 'mat-column-sourceProcessGroup')[0];
+            expect(sourceProcessGroupCell.textContent).toContain('Sibling Process Group');
+
+            clickCell(fixture, 'mat-column-sourceComponent');
+
+            expect(dispatch).toHaveBeenCalledWith(
+                navigateToComponent({
+                    request: {
+                        id: 'sibling-output-port-id',
+                        processGroupId: SIBLING_GROUP_ID,
+                        type: ComponentType.OutputPort
+                    }
+                })
+            );
+        });
+
+        it('reports that the current process group has no connections in the requested direction', () => {
+            const { fixture } = createCurrentProcessGroupDialog('upstream', []);
+
+            const renderedText = textContent(fixture);
+            expect(renderedText).toContain('Current Process Group');
+            expect(renderedText).toContain('No upstream connections were found.');
         });
     });
 
