@@ -77,6 +77,9 @@ public class TestStandardParameterContextDAO {
     private static final String CONTEXT_ID = "id";
     private static final String CONTEXT_NAME = "Context";
     private static final String INHERITED_CONTEXT_ID = "inherited-id";
+    private static final String TEST_PARAMETER = "test.parameter";
+    private static final String VALUE_A = "VALUE_A";
+    private static final String VALUE_B = "VALUE_B";
 
     private StandardParameterContextDAO dao;
 
@@ -259,6 +262,123 @@ public class TestStandardParameterContextDAO {
         assertEquals(Collections.singletonList(asset), parameter.getReferencedAssets());
         assertDoesNotThrow(() -> dao.verifyAssets(parameterContextDto, parameters));
         verify(assetManager).getAsset(eq("asset-1"));
+    }
+
+    @Test
+    public void testSubsequentInheritanceReorderUpdatesEffectiveParameterValue() {
+        final ParameterContext contextA = createNamedContext("context-a", "Context A");
+        final ParameterContext contextB = createNamedContext("context-b", "Context B");
+        final ParameterContext contextC = dao.getParameterContext(CONTEXT_ID);
+
+        setParameter(contextA, TEST_PARAMETER, VALUE_A);
+        setParameter(contextB, TEST_PARAMETER, VALUE_B);
+
+        dao.updateParameterContext(createInheritanceUpdateDto(contextC, List.of(contextA, contextB), Set.of()));
+        assertEquals(VALUE_A, contextC.getParameter(TEST_PARAMETER).orElseThrow().getValue());
+
+        dao.updateParameterContext(createInheritanceUpdateDto(contextC, List.of(contextB, contextA), Set.of()));
+        assertEquals(VALUE_B, contextC.getParameter(TEST_PARAMETER).orElseThrow().getValue());
+        assertTrue(contextC.getParameters().isEmpty());
+
+        dao.updateParameterContext(createInheritanceUpdateDto(contextC, List.of(contextA, contextB), Set.of()));
+        assertEquals(VALUE_A, contextC.getParameter(TEST_PARAMETER).orElseThrow().getValue());
+        assertTrue(contextC.getParameters().isEmpty());
+    }
+
+    @Test
+    public void testSubsequentInheritanceReorderIgnoresInjectedEffectiveInheritedParameters() {
+        final ParameterContext contextA = createNamedContext("context-a", "Context A");
+        final ParameterContext contextB = createNamedContext("context-b", "Context B");
+        final ParameterContext contextC = dao.getParameterContext(CONTEXT_ID);
+
+        setParameter(contextA, TEST_PARAMETER, VALUE_A);
+        setParameter(contextB, TEST_PARAMETER, VALUE_B);
+
+        dao.updateParameterContext(createInheritanceUpdateDto(contextC, List.of(contextA, contextB), Set.of()));
+        assertEquals(VALUE_A, contextC.getParameter(TEST_PARAMETER).orElseThrow().getValue());
+
+        final ParameterEntity firstEffectiveUpdate = createInheritedParameterEntity(TEST_PARAMETER, VALUE_B, contextB.getIdentifier(), true);
+        dao.updateParameterContext(createInheritanceUpdateDto(contextC, List.of(contextB, contextA), Set.of(firstEffectiveUpdate)));
+        assertEquals(VALUE_B, contextC.getParameter(TEST_PARAMETER).orElseThrow().getValue());
+        assertTrue(contextC.getParameters().isEmpty());
+
+        final ParameterEntity secondEffectiveUpdate = createInheritedParameterEntity(TEST_PARAMETER, VALUE_A, contextA.getIdentifier(), true);
+        dao.updateParameterContext(createInheritanceUpdateDto(contextC, List.of(contextA, contextB), Set.of(secondEffectiveUpdate)));
+        assertEquals(VALUE_A, contextC.getParameter(TEST_PARAMETER).orElseThrow().getValue());
+        assertTrue(contextC.getParameters().isEmpty());
+    }
+
+    @Test
+    public void testSubsequentInheritanceReorderDoesNotPersistEffectiveValueWhenInheritedFlagMissing() {
+        final ParameterContext contextA = createNamedContext("context-a", "Context A");
+        final ParameterContext contextB = createNamedContext("context-b", "Context B");
+        final ParameterContext contextC = dao.getParameterContext(CONTEXT_ID);
+
+        setParameter(contextA, TEST_PARAMETER, VALUE_A);
+        setParameter(contextB, TEST_PARAMETER, VALUE_B);
+
+        dao.updateParameterContext(createInheritanceUpdateDto(contextC, List.of(contextA, contextB), Set.of()));
+        assertEquals(VALUE_A, contextC.getParameter(TEST_PARAMETER).orElseThrow().getValue());
+
+        // Simulate an update DTO that includes the new effective value without inherited=true
+        final ParameterEntity firstEffectiveUpdate = createInheritedParameterEntity(TEST_PARAMETER, VALUE_B, contextB.getIdentifier(), null);
+        dao.updateParameterContext(createInheritanceUpdateDto(contextC, List.of(contextB, contextA), Set.of(firstEffectiveUpdate)));
+        assertEquals(VALUE_B, contextC.getParameter(TEST_PARAMETER).orElseThrow().getValue());
+
+        dao.updateParameterContext(createInheritanceUpdateDto(contextC, List.of(contextA, contextB), Set.of()));
+        assertEquals(VALUE_A, contextC.getParameter(TEST_PARAMETER).orElseThrow().getValue());
+        assertTrue(contextC.getParameters().isEmpty());
+    }
+
+    @Test
+    public void testGetParametersAcceptsExplicitLocalOverrideWithForeignSource() {
+        final ParameterEntity parameterEntity = createInheritedParameterEntity(TEST_PARAMETER, VALUE_B, "foreign-context", false);
+
+        final Map<String, Parameter> parameters = dao.getParameters(createParameterContextDto(parameterEntity), dao.getParameterContext(CONTEXT_ID));
+
+        final Parameter parameter = parameters.get(TEST_PARAMETER);
+        assertEquals(VALUE_B, parameter.getValue());
+        assertNull(parameter.getParameterContextId());
+    }
+
+    private ParameterContext createNamedContext(final String id, final String name) {
+        final ParameterContext parameterContext = new StandardParameterContext.Builder()
+                .id(id)
+                .name(name)
+                .parameterReferenceManager(ParameterReferenceManager.EMPTY)
+                .build();
+        flowController.getFlowManager().getParameterContextManager().addParameterContext(parameterContext);
+        return parameterContext;
+    }
+
+    private void setParameter(final ParameterContext context, final String name, final String value) {
+        context.setParameters(Map.of(name, new Parameter.Builder().name(name).value(value).build()));
+    }
+
+    private ParameterEntity createInheritedParameterEntity(final String name, final String value, final String sourceContextId, final Boolean inherited) {
+        final ParameterEntity parameterEntity = createParameterEntity(name, value, false, null, false, sourceContextId, null);
+        parameterEntity.getParameter().setInherited(inherited);
+        return parameterEntity;
+    }
+
+    private ParameterContextDTO createInheritanceUpdateDto(final ParameterContext context, final List<ParameterContext> inheritedContexts,
+                                                           final Set<ParameterEntity> parameters) {
+        final ParameterContextDTO dto = new ParameterContextDTO();
+        dto.setId(context.getIdentifier());
+        dto.setName(context.getName());
+        dto.setParameters(parameters);
+        dto.setInheritedParameterContexts(inheritedContexts.stream()
+                .map(inherited -> {
+                    final ParameterContextReferenceEntity ref = new ParameterContextReferenceEntity();
+                    ref.setId(inherited.getIdentifier());
+                    final ParameterContextReferenceDTO refDto = new ParameterContextReferenceDTO();
+                    refDto.setId(inherited.getIdentifier());
+                    refDto.setName(inherited.getName());
+                    ref.setComponent(refDto);
+                    return ref;
+                })
+                .toList());
+        return dto;
     }
 
     private ParameterContextDTO createParameterContextDto(final ParameterEntity... parameterEntities) {
