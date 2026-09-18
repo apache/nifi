@@ -39,6 +39,7 @@ public class ConnectorDTO extends ComponentDTO {
     private String validationStatus;
     private Boolean multipleVersionsAvailable;
     private Boolean extensionMissing;
+    private Boolean supportsBacklogReporting;
 
     private String configurationUrl;
     private String detailsUrl;
@@ -159,6 +160,18 @@ public class ConnectorDTO extends ComponentDTO {
 
     public void setExtensionMissing(final Boolean extensionMissing) {
         this.extensionMissing = extensionMissing;
+    }
+
+    /**
+     * @return whether the Connector implements {@code BacklogReportingConnector} and can report a backlog
+     */
+    @Schema(description = "Whether the Connector implements BacklogReportingConnector and can report a backlog.")
+    public Boolean getSupportsBacklogReporting() {
+        return supportsBacklogReporting;
+    }
+
+    public void setSupportsBacklogReporting(final Boolean supportsBacklogReporting) {
+        this.supportsBacklogReporting = supportsBacklogReporting;
     }
 
     @Schema(description = "The available actions that can be performed on this Connector.")
