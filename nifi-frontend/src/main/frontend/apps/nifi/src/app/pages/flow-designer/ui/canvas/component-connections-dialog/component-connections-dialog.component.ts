@@ -18,10 +18,11 @@
 import { Component, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatTableModule } from '@angular/material/table';
+import { MatSortModule, Sort } from '@angular/material/sort';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Store } from '@ngrx/store';
-import { CloseOnEscapeDialog, ComponentType } from '@nifi/shared';
+import { CloseOnEscapeDialog, ComponentType, NiFiCommon } from '@nifi/shared';
 import { CanvasState } from '../../../state';
 import { ComponentConnectionsDialogRequest, ConnectionEntity } from '../../../state/flow';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
@@ -69,7 +70,7 @@ export interface ComponentConnectionRow {
  */
 @Component({
     selector: 'component-connections-dialog',
-    imports: [MatButtonModule, MatDialogModule, MatTableModule, MatTooltipModule],
+    imports: [MatButtonModule, MatDialogModule, MatSortModule, MatTableModule, MatTooltipModule],
     templateUrl: './component-connections-dialog.component.html',
     styleUrls: ['./component-connections-dialog.component.scss']
 })
@@ -78,6 +79,7 @@ export class ComponentConnectionsDialog extends CloseOnEscapeDialog {
     private componentConnectionsDialogRef = inject<MatDialogRef<ComponentConnectionsDialog>>(MatDialogRef);
     private store = inject<Store<CanvasState>>(Store);
     private canvasUtils = inject(CanvasUtils);
+    private nifiCommon = inject(NiFiCommon);
 
     // Maps the string type returned by the NiFi API to the ComponentType enum used for navigation.
     private static readonly TYPE_MAP: Record<string, ComponentType> = {
@@ -88,6 +90,10 @@ export class ComponentConnectionsDialog extends CloseOnEscapeDialog {
         REMOTE_OUTPUT_PORT: ComponentType.RemoteProcessGroup,
         FUNNEL: ComponentType.Funnel
     };
+
+    // rendered in place of a name the current user cannot read, or that the component does not have
+    private static readonly UNAUTHORIZED_LABEL = 'Unauthorized';
+    private static readonly UNNAMED_CONNECTION_LABEL = 'Connection';
 
     readonly displayedColumns: string[] = [
         'sourceProcessGroup',
@@ -106,6 +112,14 @@ export class ComponentConnectionsDialog extends CloseOnEscapeDialog {
     readonly remoteProcessGroupType = ComponentType.RemoteProcessGroup;
     readonly connectionType = ComponentType.Connection;
 
+    readonly initialSortColumn = 'connection';
+    readonly initialSortDirection: 'asc' | 'desc' = 'asc';
+    activeSort: Sort = {
+        active: this.initialSortColumn,
+        direction: this.initialSortDirection
+    };
+    readonly dataSource: MatTableDataSource<ComponentConnectionRow> = new MatTableDataSource<ComponentConnectionRow>();
+
     constructor() {
         super();
 
@@ -114,6 +128,84 @@ export class ComponentConnectionsDialog extends CloseOnEscapeDialog {
         this.title = upstream ? 'Upstream Connections' : 'Downstream Connections';
         this.emptyMessage = upstream ? 'No upstream connections were found.' : 'No downstream connections were found.';
         this.rows = this.dialogRequest.connections.map((connection: ConnectionEntity) => this.buildRow(connection));
+        this.dataSource.data = this.sortRows(this.rows, this.activeSort);
+    }
+
+    sortData(sort: Sort): void {
+        this.activeSort = sort;
+        this.dataSource.data = this.sortRows(this.dataSource.data, sort);
+    }
+
+    /**
+     * Orders the rows by the text each column actually renders, so that a row whose name is unreadable
+     * or absent sorts under the placeholder the user sees rather than under an empty key.
+     *
+     * @param data the rows to sort
+     * @param sort the active column and direction
+     * @returns the sorted rows
+     */
+    sortRows(data: ComponentConnectionRow[], sort: Sort): ComponentConnectionRow[] {
+        if (!data) {
+            return [];
+        }
+        return data.slice().sort((a, b) => {
+            const isAsc = sort.direction === 'asc';
+            let retVal: number;
+            switch (sort.active) {
+                case 'sourceProcessGroup':
+                    retVal = this.nifiCommon.compareString(
+                        this.resolveGroupName(a.source.groupId),
+                        this.resolveGroupName(b.source.groupId)
+                    );
+                    break;
+                case 'sourceComponent':
+                    retVal = this.nifiCommon.compareString(
+                        this.formatComponentName(a.source),
+                        this.formatComponentName(b.source)
+                    );
+                    break;
+                case 'connection':
+                    retVal = this.nifiCommon.compareString(this.formatConnectionName(a), this.formatConnectionName(b));
+                    break;
+                case 'destinationProcessGroup':
+                    retVal = this.nifiCommon.compareString(
+                        this.resolveGroupName(a.destination.groupId),
+                        this.resolveGroupName(b.destination.groupId)
+                    );
+                    break;
+                case 'destinationComponent':
+                    retVal = this.nifiCommon.compareString(
+                        this.formatComponentName(a.destination),
+                        this.formatComponentName(b.destination)
+                    );
+                    break;
+                default:
+                    return 0;
+            }
+            return retVal * (isAsc ? 1 : -1);
+        });
+    }
+
+    /**
+     * Returns the name rendered for an endpoint, which is a placeholder when the connection cannot be
+     * read and the endpoint has no name to show.
+     *
+     * @param endpoint the source or destination endpoint
+     * @returns the endpoint name to render and sort on
+     */
+    formatComponentName(endpoint: ConnectionEndpoint): string {
+        return endpoint.name ?? ComponentConnectionsDialog.UNAUTHORIZED_LABEL;
+    }
+
+    /**
+     * Returns the name rendered for a connection, which is a placeholder when the connection has
+     * neither a name nor relationships to name it by.
+     *
+     * @param row the row of the connection
+     * @returns the connection name to render and sort on
+     */
+    formatConnectionName(row: ComponentConnectionRow): string {
+        return row.name ?? ComponentConnectionsDialog.UNNAMED_CONNECTION_LABEL;
     }
 
     /**

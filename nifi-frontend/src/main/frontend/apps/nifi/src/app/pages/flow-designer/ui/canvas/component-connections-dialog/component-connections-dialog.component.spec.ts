@@ -19,6 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { By } from '@angular/platform-browser';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { ComponentType } from '@nifi/shared';
 
@@ -155,7 +156,7 @@ function createDialog(
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-        imports: [ComponentConnectionsDialog],
+        imports: [ComponentConnectionsDialog, NoopAnimationsModule],
         providers: [
             { provide: MAT_DIALOG_DATA, useValue: dialogRequest },
             { provide: MatDialogRef, useValue: dialogRef },
@@ -206,6 +207,17 @@ function getCells(fixture: ComponentFixture<ComponentConnectionsDialog>, columnC
 function clickCell(fixture: ComponentFixture<ComponentConnectionsDialog>, columnClass: string): void {
     const link = getCells(fixture, columnClass)[0].querySelector('a') as HTMLAnchorElement;
     link.click();
+}
+
+function clickHeader(fixture: ComponentFixture<ComponentConnectionsDialog>, columnClass: string): void {
+    const header = fixture.debugElement.query(By.css(`th.${columnClass}`)).nativeElement as HTMLElement;
+    const sortButton = header.querySelector('button');
+    (sortButton ?? header).click();
+    fixture.detectChanges();
+}
+
+function renderedIds(component: ComponentConnectionsDialog): string[] {
+    return component.dataSource.data.map((row) => row.id);
 }
 
 /**
@@ -975,6 +987,210 @@ describe('ComponentConnectionsDialog', () => {
             const renderedText = textContent(fixture);
             expect(renderedText).toContain('Current Process Group');
             expect(renderedText).toContain('No upstream connections were found.');
+        });
+    });
+
+    /**
+     * Every column sorts on the text it renders, so a row is ordered by what the user reads in that
+     * column rather than by the identifier behind it.
+     */
+    describe('sorting', () => {
+        // resolved labels, by column: source group / source component / connection / destination group /
+        // destination component
+        const CURRENT_ROW_ID = 'current-source-group-connection-id'; // Current / Zeta / Beta / Destination / Alpha
+        const SOURCE_ROW_ID = 'source-source-group-connection-id'; // Source / Alpha / Alpha / Current / Zeta
+        const DESTINATION_ROW_ID = 'destination-source-group-connection-id'; // Destination / Gamma / Gamma / Source / Gamma
+
+        function connectionsToSort(): ConnectionEntity[] {
+            return [
+                readableConnection({
+                    id: CURRENT_ROW_ID,
+                    name: 'Beta Connection',
+                    source: { id: 'zeta-processor-id', name: 'Zeta Processor' },
+                    sourceGroupId: REQUEST_GROUP_ID,
+                    destination: { id: 'alpha-port-id', name: 'Alpha Port' },
+                    destinationGroupId: DESTINATION_GROUP_ID
+                }),
+                readableConnection({
+                    id: SOURCE_ROW_ID,
+                    name: 'Alpha Connection',
+                    source: { id: 'alpha-processor-id', name: 'Alpha Processor' },
+                    sourceGroupId: SOURCE_GROUP_ID,
+                    destination: { id: 'zeta-port-id', name: 'Zeta Port' },
+                    destinationGroupId: REQUEST_GROUP_ID
+                }),
+                readableConnection({
+                    id: DESTINATION_ROW_ID,
+                    name: 'Gamma Connection',
+                    source: { id: 'gamma-processor-id', name: 'Gamma Processor' },
+                    sourceGroupId: DESTINATION_GROUP_ID,
+                    destination: { id: 'gamma-port-id', name: 'Gamma Port' },
+                    destinationGroupId: SOURCE_GROUP_ID
+                })
+            ];
+        }
+
+        it('sorts by the connection column ascending by default', () => {
+            const { component } = createDialog('upstream', connectionsToSort());
+
+            expect(component.initialSortColumn).toBe('connection');
+            expect(component.initialSortDirection).toBe('asc');
+            expect(component.activeSort).toEqual({ active: 'connection', direction: 'asc' });
+            expect(renderedIds(component)).toEqual([SOURCE_ROW_ID, CURRENT_ROW_ID, DESTINATION_ROW_ID]);
+        });
+
+        it('leaves the rows built from the request in their original order', () => {
+            const { component } = createDialog('upstream', connectionsToSort());
+
+            expect(component.rows.map((row) => row.id)).toEqual([CURRENT_ROW_ID, SOURCE_ROW_ID, DESTINATION_ROW_ID]);
+        });
+
+        it('renders every column as sortable', () => {
+            const { component, fixture } = createDialog('upstream', connectionsToSort());
+
+            const sortableHeaders = fixture.debugElement.queryAll(By.css('th.mat-sort-header'));
+            expect(sortableHeaders.length).toBe(component.displayedColumns.length);
+        });
+
+        it('sorts by the source process group name', () => {
+            const { component } = createDialog('upstream', connectionsToSort());
+
+            component.sortData({ active: 'sourceProcessGroup', direction: 'asc' });
+            expect(renderedIds(component)).toEqual([CURRENT_ROW_ID, DESTINATION_ROW_ID, SOURCE_ROW_ID]);
+
+            component.sortData({ active: 'sourceProcessGroup', direction: 'desc' });
+            expect(renderedIds(component)).toEqual([SOURCE_ROW_ID, DESTINATION_ROW_ID, CURRENT_ROW_ID]);
+        });
+
+        it('sorts by the source component name', () => {
+            const { component } = createDialog('upstream', connectionsToSort());
+
+            component.sortData({ active: 'sourceComponent', direction: 'asc' });
+            expect(renderedIds(component)).toEqual([SOURCE_ROW_ID, DESTINATION_ROW_ID, CURRENT_ROW_ID]);
+
+            component.sortData({ active: 'sourceComponent', direction: 'desc' });
+            expect(renderedIds(component)).toEqual([CURRENT_ROW_ID, DESTINATION_ROW_ID, SOURCE_ROW_ID]);
+        });
+
+        it('sorts by the connection name', () => {
+            const { component } = createDialog('upstream', connectionsToSort());
+
+            component.sortData({ active: 'connection', direction: 'desc' });
+            expect(renderedIds(component)).toEqual([DESTINATION_ROW_ID, CURRENT_ROW_ID, SOURCE_ROW_ID]);
+
+            component.sortData({ active: 'connection', direction: 'asc' });
+            expect(renderedIds(component)).toEqual([SOURCE_ROW_ID, CURRENT_ROW_ID, DESTINATION_ROW_ID]);
+        });
+
+        it('sorts by the destination process group name', () => {
+            const { component } = createDialog('upstream', connectionsToSort());
+
+            component.sortData({ active: 'destinationProcessGroup', direction: 'asc' });
+            expect(renderedIds(component)).toEqual([SOURCE_ROW_ID, CURRENT_ROW_ID, DESTINATION_ROW_ID]);
+
+            component.sortData({ active: 'destinationProcessGroup', direction: 'desc' });
+            expect(renderedIds(component)).toEqual([DESTINATION_ROW_ID, CURRENT_ROW_ID, SOURCE_ROW_ID]);
+        });
+
+        it('sorts by the destination component name', () => {
+            const { component } = createDialog('upstream', connectionsToSort());
+
+            component.sortData({ active: 'destinationComponent', direction: 'asc' });
+            expect(renderedIds(component)).toEqual([CURRENT_ROW_ID, DESTINATION_ROW_ID, SOURCE_ROW_ID]);
+
+            component.sortData({ active: 'destinationComponent', direction: 'desc' });
+            expect(renderedIds(component)).toEqual([SOURCE_ROW_ID, DESTINATION_ROW_ID, CURRENT_ROW_ID]);
+        });
+
+        it('sorts a group with no resolved name by the id it renders', () => {
+            const connections = [
+                readableConnection({ id: 'named-group-connection-id', sourceGroupId: SOURCE_GROUP_ID }),
+                readableConnection({ id: 'unnamed-group-connection-id', sourceGroupId: UNKNOWN_GROUP_ID })
+            ];
+
+            const { component } = createDialog('upstream', connections);
+
+            // 'Source Process Group' sorts ahead of the raw 'unknown-group-id' shown in place of a name
+            component.sortData({ active: 'sourceProcessGroup', direction: 'asc' });
+            expect(renderedIds(component)).toEqual(['named-group-connection-id', 'unnamed-group-connection-id']);
+        });
+
+        it('sorts unreadable components under the placeholder rendered for them', () => {
+            const connections = [
+                readableConnection({
+                    id: 'zeta-connection-id',
+                    source: { id: 'zeta-processor-id', name: 'Zeta Processor' }
+                }),
+                unreadableConnection({ id: 'first-unreadable-connection-id' }),
+                readableConnection({
+                    id: 'alpha-connection-id',
+                    source: { id: 'alpha-processor-id', name: 'Alpha Processor' }
+                }),
+                unreadableConnection({ id: 'second-unreadable-connection-id' })
+            ];
+
+            const { component } = createDialog('upstream', connections);
+
+            // 'Alpha Processor' < 'Unauthorized' < 'Zeta Processor', and rows sharing the placeholder keep
+            // the order they were listed in
+            component.sortData({ active: 'sourceComponent', direction: 'asc' });
+            expect(renderedIds(component)).toEqual([
+                'alpha-connection-id',
+                'first-unreadable-connection-id',
+                'second-unreadable-connection-id',
+                'zeta-connection-id'
+            ]);
+        });
+
+        it('sorts unnamed connections under the placeholder rendered for them', () => {
+            const connections = [
+                readableConnection({ id: 'delta-connection-id', name: 'Delta Connection' }),
+                readableConnection({ id: 'unnamed-connection-id' }),
+                readableConnection({ id: 'alpha-connection-id', name: 'Alpha Connection' })
+            ];
+
+            const { component } = createDialog('upstream', connections);
+
+            // an unnamed connection renders 'Connection', which sorts between 'Alpha' and 'Delta'
+            expect(component.rows[1].name).toBeNull();
+            component.sortData({ active: 'connection', direction: 'asc' });
+            expect(renderedIds(component)).toEqual([
+                'alpha-connection-id',
+                'unnamed-connection-id',
+                'delta-connection-id'
+            ]);
+        });
+
+        it('leaves the order unchanged for a column it does not sort on', () => {
+            const { component } = createDialog('upstream', connectionsToSort());
+            const orderBeforeSort = renderedIds(component);
+
+            component.sortData({ active: 'unsortable-column', direction: 'asc' });
+
+            expect(renderedIds(component)).toEqual(orderBeforeSort);
+        });
+
+        it('re-sorts the table when a column header is clicked', () => {
+            const { component, fixture } = createDialog('upstream', connectionsToSort());
+
+            clickHeader(fixture, 'mat-column-sourceComponent');
+
+            expect(component.activeSort.active).toBe('sourceComponent');
+            expect(component.activeSort.direction).toBe('asc');
+            expect(renderedIds(component)).toEqual([SOURCE_ROW_ID, DESTINATION_ROW_ID, CURRENT_ROW_ID]);
+
+            const sourceComponentCells = getCells(fixture, 'mat-column-sourceComponent');
+            expect(sourceComponentCells[0].textContent).toContain('Alpha Processor');
+            expect(sourceComponentCells[2].textContent).toContain('Zeta Processor');
+        });
+
+        it('reverses the order when the active column header is clicked again', () => {
+            const { component, fixture } = createDialog('upstream', connectionsToSort());
+
+            clickHeader(fixture, 'mat-column-connection');
+
+            expect(component.activeSort).toEqual({ active: 'connection', direction: 'desc' });
+            expect(renderedIds(component)).toEqual([DESTINATION_ROW_ID, CURRENT_ROW_ID, SOURCE_ROW_ID]);
         });
     });
 
