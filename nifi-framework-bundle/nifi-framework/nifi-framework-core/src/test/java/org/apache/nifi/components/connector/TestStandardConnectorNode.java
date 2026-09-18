@@ -84,10 +84,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -715,9 +717,17 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testReplaceConnectorRemovesMigratedConfigurationStep() throws FlowUpdateException {
+    public void testReplaceConnectorRemovesConfigurationNotDeclaredByReplacement() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode(new TrackingConnector());
         connectorNode.setConfiguration("legacy", createStepConfiguration());
+
+        // "Obsolete Property" is a value stored by the previous version that the replacement does not declare, and it
+        // holds an Asset reference. Reverting to a version that no longer declares a property must discard the stored
+        // value, because the replacement would otherwise report the Connector invalid for a property it does not know.
+        connectorNode.setConfiguration("settings", new StepConfiguration(Map.of(
+            "Greeting", new StringLiteralValue("Welcome"),
+            "Obsolete Property", new AssetReference(Set.of("asset-1")))));
+
         final FrameworkFlowContext workingFlowContext = connectorNode.getWorkingFlowContext();
         final Connector replacement = new LegacyStepRemovingConnector();
         final BundleCoordinate replacementCoordinate = new BundleCoordinate("org.apache.nifi", "test-standard-connector-node", "2.0.0");
@@ -726,7 +736,15 @@ public class TestStandardConnectorNode {
 
         assertSame(replacement, connectorNode.getConnector());
         assertSame(workingFlowContext, connectorNode.getWorkingFlowContext());
-        assertTrue(connectorNode.getWorkingFlowContext().getConfigurationContext().getPropertyNames("legacy").isEmpty());
+
+        final MutableConnectorConfigurationContext configurationContext = connectorNode.getWorkingFlowContext().getConfigurationContext();
+        assertTrue(configurationContext.getPropertyNames("legacy").isEmpty());
+        assertEquals("Welcome", configurationContext.getProperty("settings", "Greeting").getValue());
+        assertFalse(configurationContext.getPropertyNames("settings").contains("Obsolete Property"));
+
+        // Discarding the stored value does not reclaim the Asset it referenced. Assets are reclaimed only when the user
+        // applies a configuration, so an Asset remains available until then.
+        verify(assetManager, never()).deleteAsset(anyString());
     }
 
     @Test
@@ -1541,17 +1559,29 @@ public class TestStandardConnectorNode {
         greetingReference.setValueType("STRING_LITERAL");
         greetingReference.setValue("Welcome");
 
+        final VersionedConnectorValueReference extraProperty = new VersionedConnectorValueReference();
+        extraProperty.setValueType("STRING_LITERAL");
+        extraProperty.setValue("version-two-default");
+
         final VersionedConfigurationStep persistedStep = new VersionedConfigurationStep();
         persistedStep.setName("settings");
-        persistedStep.setProperties(Map.of("Greeting", greetingReference));
+        persistedStep.setProperties(Map.of(
+            "Greeting", greetingReference,
+            "New Property", extraProperty));
+
+        final VersionedConfigurationStep extraStep = new VersionedConfigurationStep();
+        extraStep.setName("Advanced");
+        extraStep.setProperties(Map.of("New Property", extraProperty));
 
         connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
-        connectorNode.inheritConfiguration(List.of(persistedStep), List.of(persistedStep), createConnectorBundle());
+        connectorNode.inheritConfiguration(List.of(persistedStep, extraStep), List.of(persistedStep, extraStep), createConnectorBundle());
 
         connectorNode.verifyCanStart();
         assertEquals("Welcome", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("settings", "Greeting").getValue());
         assertEquals("1", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("settings", "Repeat Count").getValue());
+        assertFalse(connectorNode.getActiveFlowContext().getConfigurationContext().getPropertyNames("settings").contains("New Property"));
+        assertTrue(connectorNode.getActiveFlowContext().getConfigurationContext().getPropertyNames("Advanced").isEmpty());
     }
 
     @Test

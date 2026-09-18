@@ -493,7 +493,10 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         final StandardConnectorPropertyConfiguration propertyConfiguration = new StandardConnectorPropertyConfiguration(initial, this.toString());
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(connector.getClass().getClassLoader())) {
             connector.migrateProperties(propertyConfiguration);
-            return applyMissingRequiredPropertyDefaults(propertyConfiguration.getMutatedProperties(), persistedStepNames, connector.getConfigurationSteps());
+            final List<ConfigurationStep> configurationSteps = connector.getConfigurationSteps();
+            final Map<String, StepConfiguration> propertiesWithDefaults = applyMissingRequiredPropertyDefaults(
+                propertyConfiguration.getMutatedProperties(), persistedStepNames, configurationSteps);
+            return retainDeclaredProperties(propertiesWithDefaults, configurationSteps);
         }
     }
 
@@ -539,6 +542,62 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         }
 
         return propertiesWithDefaults;
+    }
+
+    /**
+     * Drops stored configuration that the current Connector version no longer declares, so a NAR downgrade that removes
+     * a property or configuration step does not leave leftover values that fail validation.
+     */
+    private Map<String, StepConfiguration> retainDeclaredProperties(final Map<String, StepConfiguration> migratedProperties, final List<ConfigurationStep> configurationSteps) {
+        if (configurationSteps == null || configurationSteps.isEmpty()) {
+            return migratedProperties;
+        }
+
+        final Map<String, Set<String>> declaredPropertyNamesByStep = new LinkedHashMap<>();
+        for (final ConfigurationStep configurationStep : configurationSteps) {
+            final Set<String> declaredPropertyNames = new HashSet<>();
+            for (final ConnectorPropertyGroup propertyGroup : configurationStep.getPropertyGroups()) {
+                for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
+                    declaredPropertyNames.add(descriptor.getName());
+                }
+            }
+            declaredPropertyNamesByStep.put(configurationStep.getName(), declaredPropertyNames);
+        }
+
+        final Map<String, StepConfiguration> retainedProperties = new LinkedHashMap<>();
+        for (final Map.Entry<String, StepConfiguration> entry : migratedProperties.entrySet()) {
+            final String stepName = entry.getKey();
+            final Set<String> declaredPropertyNames = declaredPropertyNamesByStep.get(stepName);
+            if (declaredPropertyNames == null) {
+                logger.debug("Dropped configuration step [{}] from {} because it is not declared by the current Connector version", stepName, this);
+                continue;
+            }
+
+            final StepConfiguration stepConfiguration = entry.getValue();
+            final Map<String, ConnectorValueReference> existingValues = stepConfiguration.getPropertyValues();
+            if (existingValues == null || existingValues.isEmpty()) {
+                retainedProperties.put(stepName, stepConfiguration);
+                continue;
+            }
+
+            final Map<String, ConnectorValueReference> retainedValues = new LinkedHashMap<>();
+            for (final Map.Entry<String, ConnectorValueReference> propertyEntry : existingValues.entrySet()) {
+                if (declaredPropertyNames.contains(propertyEntry.getKey())) {
+                    retainedValues.put(propertyEntry.getKey(), propertyEntry.getValue());
+                } else {
+                    logger.debug("Dropped property [{}] of configuration step [{}] from {} because it is not declared by the current Connector version",
+                        propertyEntry.getKey(), stepName, this);
+                }
+            }
+
+            if (retainedValues.size() == existingValues.size()) {
+                retainedProperties.put(stepName, stepConfiguration);
+            } else {
+                retainedProperties.put(stepName, new StepConfiguration(retainedValues));
+            }
+        }
+
+        return retainedProperties;
     }
 
     private Map<String, ConnectorValueReference> toValueReferenceMap(final VersionedConfigurationStep step) {

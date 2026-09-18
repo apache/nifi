@@ -29,13 +29,16 @@ import org.apache.nifi.web.api.dto.NarSummaryDTO;
 import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -101,6 +104,45 @@ public class ConnectorChangeVersionIT extends NiFiSystemIT {
         assertEquals(VERSION_TWO_DEFAULT, getPropertyValue(connector.getComponent().getActiveConfiguration(), NEW_PROPERTY));
 
         getClientUtil().waitForValidConnector(connector.getId());
+
+        changeConnectorVersion(VERSION_TWO, VERSION_ONE);
+
+        getClientUtil().waitForConnectorState(connector.getId(), ConnectorState.RUNNING);
+        connector = getNifiClient().getConnectorClient().getConnector(connector.getId());
+        assertEquals(VERSION_ONE, connector.getComponent().getBundle().getVersion());
+        assertEquals(ConnectorState.RUNNING.name(), connector.getComponent().getState());
+        assertEquals(Boolean.FALSE, connector.getComponent().getExtensionMissing());
+        assertEquals(managedProcessGroupId, connector.getComponent().getManagedProcessGroupId());
+        assertEquals(VERSION_ONE_FLOW_NAME, getManagedProcessGroupName(connector));
+        assertEquals(CUSTOM_SHARED_VALUE, getPropertyValue(connector.getComponent().getActiveConfiguration(), SHARED_PROPERTY));
+        assertFalse(hasProperty(connector.getComponent().getActiveConfiguration(), NEW_PROPERTY));
+
+        getClientUtil().waitForValidConnector(connector.getId());
+
+        getClientUtil().enterTroubleshooting(connector.getId());
+        connector = getNifiClient().getConnectorClient().getConnector(connector.getId());
+        assertEquals(ConnectorState.TROUBLESHOOTING.name(), connector.getComponent().getState());
+        assertEquals(VERSION_ONE, connector.getComponent().getBundle().getVersion());
+        assertEquals(managedProcessGroupId, connector.getComponent().getManagedProcessGroupId());
+        assertEquals(VERSION_ONE_FLOW_NAME, getManagedProcessGroupName(connector));
+
+        final ProcessorEntity troubleshootingProcessor = getClientUtil().createProcessor("Sleep", managedProcessGroupId);
+        assertTrue(containsProcessorId(connector.getId(), troubleshootingProcessor.getId()));
+
+        getClientUtil().endTroubleshooting(connector.getId());
+        connector = getNifiClient().getConnectorClient().getConnector(connector.getId());
+        assertEquals(ConnectorState.STOPPED.name(), connector.getComponent().getState());
+        assertEquals(VERSION_ONE, connector.getComponent().getBundle().getVersion());
+        assertEquals(managedProcessGroupId, connector.getComponent().getManagedProcessGroupId());
+        assertEquals(VERSION_ONE_FLOW_NAME, getManagedProcessGroupName(connector));
+        assertEquals(CUSTOM_SHARED_VALUE, getPropertyValue(connector.getComponent().getActiveConfiguration(), SHARED_PROPERTY));
+        assertFalse(hasProperty(connector.getComponent().getActiveConfiguration(), NEW_PROPERTY));
+        assertFalse(containsProcessorId(connector.getId(), troubleshootingProcessor.getId()));
+
+        getClientUtil().waitForValidConnector(connector.getId());
+        getClientUtil().startConnector(connector.getId());
+        connector = getNifiClient().getConnectorClient().getConnector(connector.getId());
+        assertEquals(ConnectorState.RUNNING.name(), connector.getComponent().getState());
     }
 
     private NarSummaryDTO uploadNar(final NarUploadUtil narUploadUtil, final String narIdentifier) throws Exception {
@@ -131,6 +173,19 @@ public class ConnectorChangeVersionIT extends NiFiSystemIT {
     }
 
     private String getPropertyValue(final ConnectorConfigurationDTO configuration, final String propertyName) {
+        final ConnectorValueReferenceDTO valueReference = findProperty(configuration, propertyName);
+        if (valueReference == null) {
+            throw new AssertionError("Property " + propertyName + " was not found");
+        }
+
+        return valueReference.getValue();
+    }
+
+    private boolean hasProperty(final ConnectorConfigurationDTO configuration, final String propertyName) {
+        return findProperty(configuration, propertyName) != null;
+    }
+
+    private ConnectorValueReferenceDTO findProperty(final ConnectorConfigurationDTO configuration, final String propertyName) {
         assertNotNull(configuration);
         assertNotNull(configuration.getConfigurationStepConfigurations());
         for (final ConfigurationStepConfigurationDTO stepConfiguration : configuration.getConfigurationStepConfigurations()) {
@@ -141,11 +196,27 @@ public class ConnectorChangeVersionIT extends NiFiSystemIT {
             for (final PropertyGroupConfigurationDTO propertyGroup : stepConfiguration.getPropertyGroupConfigurations()) {
                 final Map<String, ConnectorValueReferenceDTO> propertyValues = propertyGroup.getPropertyValues();
                 if (propertyValues != null && propertyValues.containsKey(propertyName)) {
-                    return propertyValues.get(propertyName).getValue();
+                    return propertyValues.get(propertyName);
                 }
             }
         }
 
-        throw new AssertionError("Property " + propertyName + " was not found");
+        return null;
+    }
+
+    private boolean containsProcessorId(final String connectorId, final String processorId) throws Exception {
+        final ProcessGroupFlowEntity flowEntity = getNifiClient().getConnectorClient().getFlow(connectorId);
+        final Set<ProcessorEntity> processors = flowEntity.getProcessGroupFlow().getFlow().getProcessors();
+        if (processors == null) {
+            return false;
+        }
+
+        for (final ProcessorEntity processor : processors) {
+            if (processorId.equals(processor.getId())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
