@@ -53,6 +53,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public class StandardExecutionProgress implements ExecutionProgress {
@@ -210,6 +211,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
         for (final String failurePortName : failurePortNames) {
             final List<FlowFile> flowFilesForPort = outputFlowFiles.get(failurePortName);
             if (flowFilesForPort != null && !flowFilesForPort.isEmpty()) {
+                decrementOutputClaimantCounts(outputFlowFiles);
                 throw new FailurePortEncounteredException("FlowFile was transferred to Port " + failurePortName + ", which is marked as a Failure Port", failurePortName);
             }
         }
@@ -218,6 +220,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
 
         return new TriggerResult() {
             private volatile Throwable abortCause = null;
+            private final AtomicBoolean outputClaimantsReleased = new AtomicBoolean(false);
 
             @Override
             public boolean isSuccessful() {
@@ -286,8 +289,8 @@ public class StandardExecutionProgress implements ExecutionProgress {
             public void acknowledge() {
                 commitTracker.triggerCallbacks();
                 stateManagerProvider.commitUpdates();
+                releaseOutputClaimants();
                 completionActionQueue.offer(CompletionAction.COMPLETE);
-                contentRepository.purge();
 
                 if (onAcknowledge != null) {
                     onAcknowledge.run();
@@ -297,10 +300,18 @@ public class StandardExecutionProgress implements ExecutionProgress {
             @Override
             public void abort(final Throwable cause) {
                 abortCause = new DataflowAbortedException("Dataflow was aborted", cause);
+                releaseOutputClaimants();
                 notifyExecutionFailed(abortCause);
 
                 if (onFailure != null) {
                     onFailure.accept(cause);
+                }
+            }
+
+            private void releaseOutputClaimants() {
+                if (outputClaimantsReleased.compareAndSet(false, true)) {
+                    decrementOutputClaimantCounts(outputFlowFiles);
+                    contentRepository.purge();
                 }
             }
         };
@@ -367,12 +378,17 @@ public class StandardExecutionProgress implements ExecutionProgress {
             final List<FlowFileRecord> flowFileRecords = new ArrayList<>(drainableQueue.size().getObjectCount());
             drainableQueue.drainTo(flowFileRecords);
             portFlowFiles.addAll(flowFileRecords);
-
-            for (final FlowFileRecord flowFileRecord : flowFileRecords) {
-                contentRepository.decrementClaimantCount(flowFileRecord.getContentClaim());
-            }
         }
 
         return portFlowFiles;
+    }
+
+    private void decrementOutputClaimantCounts(final Map<String, List<FlowFile>> outputFlowFiles) {
+        for (final List<FlowFile> flowFiles : outputFlowFiles.values()) {
+            for (final FlowFile flowFile : flowFiles) {
+                final FlowFileRecord flowFileRecord = (FlowFileRecord) flowFile;
+                contentRepository.decrementClaimantCount(flowFileRecord.getContentClaim());
+            }
+        }
     }
 }

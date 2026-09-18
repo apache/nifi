@@ -1781,6 +1781,13 @@ Stateless Engine is not a safe choice if data must be persisted by NiFi. However
 it can be a great choice. Additionally, for protocols such as HTTP, NiFi offers processors that are capable of receiving data, performing some processing, and then sending an acknowledgment.
 As such, it is safe even when NiFi is responsible for accepting incoming connections. The key here is the application-level acknowledgment message that is sent from NiFi.
 
+A Process Group using the Stateless Engine can also be configured with a maximum amount of FlowFile content to keep in memory. This is controlled by two settings: a data size such as `4 GB`,
+and a heap percentage from `0` to `90`. A value of `0 B` or `0` percent means zero -- it does not mean unlimited. If only one setting is configured, that setting is used. If both are
+configured, the smaller of the two limits is used, so `80` percent with a `4 GB` maximum means 80% of the heap, up to 4 GB. If neither is configured, or if the effective limit is zero,
+all content is written to the Content Repository. The default is `0` percent and no data size, which uses no in-memory content. The configured maximum applies to the Stateless Process Group
+as a whole, including all Concurrent Tasks. In-memory content is dropped on restart, just like other data inside a Stateless group. Content that has already spilled to the Content Repository,
+or that has left the group through an Output Port, remains on disk.
+
 
 ==== Data Ordering
 
@@ -1802,7 +1809,8 @@ the data is would still be queued up outside of the Stateless Engine, and this w
 As such, the Provenance Events are not stored into the Provenance Repository until the transaction completes for a Stateless flow. If a FlowFile is routed to a Failure Port,
 or if the invocation times out, the Provenance Events are discard. There are, however, two exceptions to this rule: `SEND` and `REMOTE_INVOCATION` events. Even if the transaction is
 rolled back, the fact that data was sent, or that some remote invocation occurred cannot be rolled back. Therefore, the Provenance Repository is still updated to note the fact that
-these events occurred.
+these events occurred. When FlowFile content is buffered in memory, those Provenance events still refer to that in-memory content, so the content cannot be downloaded or replayed from
+the events after the transaction completes.
 
 
 ==== Site-to-Site
