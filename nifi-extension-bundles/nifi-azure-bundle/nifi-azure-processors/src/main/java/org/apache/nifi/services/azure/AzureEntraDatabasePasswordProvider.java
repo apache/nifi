@@ -35,7 +35,7 @@ import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 
-import java.time.OffsetDateTime;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -51,11 +51,13 @@ public class AzureEntraDatabasePasswordProvider extends AbstractControllerServic
         implements DatabasePasswordProvider, VerifiableControllerService {
 
     static final String OSS_RDBMS_SCOPE = "https://ossrdbms-aad.database.windows.net/.default";
-    static final String FAILED_PASSWORD_MESSAGE = "Failed to acquire Microsoft Entra database password.";
+    static final String FAILED_CREDENTIAL_RESOLUTION_MESSAGE = "Failed to resolve Azure credentials for Microsoft Entra database password.";
+    static final String FAILED_TOKEN_ACQUISITION_MESSAGE = "Failed to acquire a valid Microsoft Entra database access token.";
     static final String VERIFY_CREDENTIALS_STEP = "Resolve Azure credentials";
     static final String VERIFY_TOKEN_STEP = "Acquire Microsoft Entra database access token";
     static final String VERIFY_CREDENTIALS_UNAVAILABLE = "Configured Azure Credentials Service did not return Azure credentials.";
     static final String VERIFY_TOKEN_ACQUISITION_FAILED = "Failed to acquire a valid Microsoft Entra database access token.";
+    static final Duration DEFAULT_TOKEN_ACQUISITION_TIMEOUT = Duration.ofMinutes(2);
 
     static final PropertyDescriptor AZURE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("Azure Credentials Service")
@@ -68,7 +70,16 @@ public class AzureEntraDatabasePasswordProvider extends AbstractControllerServic
             AZURE_CREDENTIALS_SERVICE
     );
 
+    private final Duration tokenAcquisitionTimeout;
     private volatile AzureCredentialsService azureCredentialsService;
+
+    public AzureEntraDatabasePasswordProvider() {
+        this(DEFAULT_TOKEN_ACQUISITION_TIMEOUT);
+    }
+
+    AzureEntraDatabasePasswordProvider(final Duration tokenAcquisitionTimeout) {
+        this.tokenAcquisitionTimeout = requirePositiveDuration(tokenAcquisitionTimeout);
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -91,29 +102,29 @@ public class AzureEntraDatabasePasswordProvider extends AbstractControllerServic
 
         final AzureCredentialsService configuredCredentialsService = azureCredentialsService;
         if (configuredCredentialsService == null) {
-            throw new ProcessException(FAILED_PASSWORD_MESSAGE);
+            throw new ProcessException(FAILED_CREDENTIAL_RESOLUTION_MESSAGE);
         }
 
         final TokenCredential credential;
         try {
             credential = configuredCredentialsService.getCredentials();
         } catch (final RuntimeException e) {
-            throw new ProcessException(FAILED_PASSWORD_MESSAGE);
+            throw new ProcessException(FAILED_CREDENTIAL_RESOLUTION_MESSAGE);
         }
 
         if (credential == null) {
-            throw new ProcessException(FAILED_PASSWORD_MESSAGE);
+            throw new ProcessException(FAILED_CREDENTIAL_RESOLUTION_MESSAGE);
         }
 
         final AccessToken accessToken;
         try {
-            accessToken = credential.getToken(createTokenRequestContext()).block();
+            accessToken = credential.getToken(createTokenRequestContext()).block(tokenAcquisitionTimeout);
         } catch (final RuntimeException e) {
-            throw new ProcessException(FAILED_PASSWORD_MESSAGE);
+            throw new ProcessException(FAILED_TOKEN_ACQUISITION_MESSAGE);
         }
 
         if (!isValidAccessToken(accessToken)) {
-            throw new ProcessException(FAILED_PASSWORD_MESSAGE);
+            throw new ProcessException(FAILED_TOKEN_ACQUISITION_MESSAGE);
         }
 
         return accessToken.getToken().toCharArray();
@@ -156,7 +167,7 @@ public class AzureEntraDatabasePasswordProvider extends AbstractControllerServic
     private ConfigVerificationResult verifyAccessToken(final TokenCredential credential, final ComponentLog verificationLogger) {
         final AccessToken accessToken;
         try {
-            accessToken = credential.getToken(createTokenRequestContext()).block();
+            accessToken = credential.getToken(createTokenRequestContext()).block(tokenAcquisitionTimeout);
         } catch (final RuntimeException e) {
             verificationLogger.error(VERIFY_TOKEN_ACQUISITION_FAILED);
             return buildVerificationResult(VERIFY_TOKEN_STEP, Outcome.FAILED, VERIFY_TOKEN_ACQUISITION_FAILED);
@@ -182,13 +193,16 @@ public class AzureEntraDatabasePasswordProvider extends AbstractControllerServic
         return new TokenRequestContext().addScopes(OSS_RDBMS_SCOPE);
     }
 
-    private boolean isValidAccessToken(final AccessToken accessToken) {
-        if (accessToken == null || StringUtils.isBlank(accessToken.getToken())) {
-            return false;
+    private Duration requirePositiveDuration(final Duration tokenAcquisitionTimeout) {
+        final Duration configuredTimeout = Objects.requireNonNull(tokenAcquisitionTimeout, "Token acquisition timeout required");
+        if (configuredTimeout.isZero() || configuredTimeout.isNegative()) {
+            throw new IllegalArgumentException("Token acquisition timeout must be positive");
         }
+        return configuredTimeout;
+    }
 
-        final OffsetDateTime expiresAt = accessToken.getExpiresAt();
-        return expiresAt != null && expiresAt.isAfter(OffsetDateTime.now());
+    private boolean isValidAccessToken(final AccessToken accessToken) {
+        return accessToken != null && StringUtils.isNotBlank(accessToken.getToken());
     }
 
     private ConfigVerificationResult buildVerificationResult(final String stepName, final Outcome outcome, final String explanation) {

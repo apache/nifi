@@ -41,6 +41,7 @@ import reactor.core.publisher.Mono;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,6 +66,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AzureEntraDatabasePasswordProviderTest {
@@ -77,6 +79,7 @@ class AzureEntraDatabasePasswordProviderTest {
     private static final String TOKEN_VALUE = "entra-database-token";
     private static final String REFRESHED_TOKEN_VALUE = "refreshed-entra-database-token";
     private static final String LEAK_SENTINEL = "sentinel-entra-secret-value";
+    private static final Duration SHORT_TOKEN_ACQUISITION_TIMEOUT = Duration.ofMillis(50);
 
     private ExecutorService executorService;
 
@@ -146,7 +149,7 @@ class AzureEntraDatabasePasswordProviderTest {
                 "DBCP Verify");
 
         final ProcessException exception = assertThrows(ProcessException.class, () -> provider.getPassword(requestContext()));
-        assertEquals(AzureEntraDatabasePasswordProvider.FAILED_PASSWORD_MESSAGE, exception.getMessage());
+        assertEquals(AzureEntraDatabasePasswordProvider.FAILED_CREDENTIAL_RESOLUTION_MESSAGE, exception.getMessage());
         assertNull(exception.getCause());
     }
 
@@ -205,6 +208,34 @@ class AzureEntraDatabasePasswordProviderTest {
                 AzureEntraDatabasePasswordProvider.VERIFY_TOKEN_ACQUISITION_FAILED);
     }
 
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("acceptedAccessTokens")
+    void testVerifyAcceptsAccessTokensWithoutFutureExpiration(final String testName, final AccessToken accessToken,
+                                                              final String expectedPassword) throws Exception {
+        final TestRunner runner = configureRunner(new TestAzureCredentialsService(new StaticTokenCredential(accessToken)), false);
+
+        final List<ConfigVerificationResult> results = runner.verify(getProviderImplementation(runner), Map.of());
+
+        assertEquals(2, results.size());
+        assertVerificationResult(results.get(1), AzureEntraDatabasePasswordProvider.VERIFY_TOKEN_STEP, SUCCESSFUL,
+                "DBCP Verify");
+    }
+
+    @Test
+    void testVerifyTokenAcquisitionTimeoutFailsTokenStep() throws Exception {
+        final AzureEntraDatabasePasswordProvider provider = new AzureEntraDatabasePasswordProvider(SHORT_TOKEN_ACQUISITION_TIMEOUT);
+        final TestRunner runner = configureRunner(provider,
+                new TestAzureCredentialsService(new RecordingTokenCredential(Mono.never())), false);
+
+        assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
+            final List<ConfigVerificationResult> results = runner.verify(provider, Map.of());
+
+            assertEquals(2, results.size());
+            assertVerificationResult(results.get(1), AzureEntraDatabasePasswordProvider.VERIFY_TOKEN_STEP, FAILED,
+                    AzureEntraDatabasePasswordProvider.VERIFY_TOKEN_ACQUISITION_FAILED);
+        });
+    }
+
     @Test
     void testVerifyTokenAcquisitionFailureIsSanitized() throws Exception {
         final TestRunner runner = configureRunner(
@@ -238,7 +269,7 @@ class AzureEntraDatabasePasswordProviderTest {
 
         final ProcessException exception = assertThrows(ProcessException.class, () -> provider.getPassword(requestContext()));
 
-        assertEquals(AzureEntraDatabasePasswordProvider.FAILED_PASSWORD_MESSAGE, exception.getMessage());
+        assertEquals(AzureEntraDatabasePasswordProvider.FAILED_CREDENTIAL_RESOLUTION_MESSAGE, exception.getMessage());
         assertNull(exception.getCause());
     }
 
@@ -250,7 +281,7 @@ class AzureEntraDatabasePasswordProviderTest {
         runner.disableControllerService(provider);
 
         final ProcessException exception = assertThrows(ProcessException.class, () -> provider.getPassword(requestContext()));
-        assertEquals(AzureEntraDatabasePasswordProvider.FAILED_PASSWORD_MESSAGE, exception.getMessage());
+        assertEquals(AzureEntraDatabasePasswordProvider.FAILED_CREDENTIAL_RESOLUTION_MESSAGE, exception.getMessage());
         assertNull(exception.getCause());
     }
 
@@ -262,20 +293,47 @@ class AzureEntraDatabasePasswordProviderTest {
 
         final ProcessException exception = assertThrows(ProcessException.class, () -> provider.getPassword(requestContext()));
 
-        assertEquals(AzureEntraDatabasePasswordProvider.FAILED_PASSWORD_MESSAGE, exception.getMessage());
+        assertEquals(AzureEntraDatabasePasswordProvider.FAILED_TOKEN_ACQUISITION_MESSAGE, exception.getMessage());
         assertNull(exception.getCause());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("acceptedAccessTokens")
+    void testGetPasswordPassesThroughAccessTokensWithoutFutureExpiration(final String testName, final AccessToken accessToken,
+                                                                         final String expectedPassword) throws Exception {
+        final DatabasePasswordProvider provider = getProvider(configureRunner(
+                new TestAzureCredentialsService(new StaticTokenCredential(accessToken))));
+
+        final char[] password = provider.getPassword(requestContext());
+
+        assertArrayEquals(expectedPassword.toCharArray(), password);
+    }
+
+    @Test
+    void testGetPasswordTokenAcquisitionTimeoutFailsClosed() throws Exception {
+        final AzureEntraDatabasePasswordProvider provider = new AzureEntraDatabasePasswordProvider(SHORT_TOKEN_ACQUISITION_TIMEOUT);
+        final DatabasePasswordProvider configuredProvider = getProvider(configureRunner(provider,
+                new TestAzureCredentialsService(new RecordingTokenCredential(Mono.never()))));
+
+        assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
+            final ProcessException exception = assertThrows(ProcessException.class, () -> configuredProvider.getPassword(requestContext()));
+
+            assertEquals(AzureEntraDatabasePasswordProvider.FAILED_TOKEN_ACQUISITION_MESSAGE, exception.getMessage());
+            assertNull(exception.getCause());
+        });
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("sanitizedPasswordFailures")
     void testPasswordGenerationFailuresAreSanitized(final String testName,
-                                                    final Supplier<TestAzureCredentialsService> credentialsServiceSupplier) throws Exception {
+                                                    final Supplier<TestAzureCredentialsService> credentialsServiceSupplier,
+                                                    final String expectedMessage) throws Exception {
         final TestRunner runner = configureRunner(credentialsServiceSupplier.get());
         final DatabasePasswordProvider provider = getProvider(runner);
 
         final ProcessException exception = assertThrows(ProcessException.class, () -> provider.getPassword(requestContext()));
 
-        assertEquals(AzureEntraDatabasePasswordProvider.FAILED_PASSWORD_MESSAGE, exception.getMessage());
+        assertEquals(expectedMessage, exception.getMessage());
         assertNull(exception.getCause());
         assertFalse(exception.getMessage().contains(LEAK_SENTINEL));
         assertNoSensitiveLogging(runner.getControllerServiceLogger(PASSWORD_PROVIDER_ID), LEAK_SENTINEL);
@@ -287,7 +345,8 @@ class AzureEntraDatabasePasswordProviderTest {
 
         final ProcessException exception = assertThrows(ProcessException.class, () -> provider.getPassword(requestContext()));
 
-        assertEquals(AzureEntraDatabasePasswordProvider.FAILED_PASSWORD_MESSAGE, exception.getMessage());
+        assertEquals(AzureEntraDatabasePasswordProvider.FAILED_CREDENTIAL_RESOLUTION_MESSAGE, exception.getMessage());
+        assertNull(exception.getCause());
     }
 
     @Test
@@ -331,16 +390,26 @@ class AzureEntraDatabasePasswordProviderTest {
     }
 
     private TestRunner configureRunner(final TestAzureCredentialsService credentialsService) throws Exception {
-        return configureRunner(credentialsService, true);
+        return configureRunner(new AzureEntraDatabasePasswordProvider(), credentialsService, true);
     }
 
     private TestRunner configureRunner(final TestAzureCredentialsService credentialsService, final boolean enableProvider) throws Exception {
+        return configureRunner(new AzureEntraDatabasePasswordProvider(), credentialsService, enableProvider);
+    }
+
+    private TestRunner configureRunner(final AzureEntraDatabasePasswordProvider provider,
+                                       final TestAzureCredentialsService credentialsService) throws Exception {
+        return configureRunner(provider, credentialsService, true);
+    }
+
+    private TestRunner configureRunner(final AzureEntraDatabasePasswordProvider provider,
+                                       final TestAzureCredentialsService credentialsService,
+                                       final boolean enableProvider) throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         runner.addControllerService(CREDENTIALS_SERVICE_ID, credentialsService);
         runner.enableControllerService(credentialsService);
 
-        final AzureEntraDatabasePasswordProvider provider = new AzureEntraDatabasePasswordProvider();
         runner.addControllerService(PASSWORD_PROVIDER_ID, provider);
         runner.setProperty(provider, AzureEntraDatabasePasswordProvider.AZURE_CREDENTIALS_SERVICE, CREDENTIALS_SERVICE_ID);
         if (enableProvider) {
@@ -379,19 +448,26 @@ class AzureEntraDatabasePasswordProviderTest {
         return Stream.of(
                 Arguments.of("null access token", null),
                 Arguments.of("null token string", token(null, OffsetDateTime.now().plusMinutes(15))),
-                Arguments.of("blank token string", validToken("  ")),
-                Arguments.of("expired token", expiredToken(TOKEN_VALUE)),
-                Arguments.of("null expiration", token(TOKEN_VALUE, null))
+                Arguments.of("blank token string", validToken("  "))
+        );
+    }
+
+    private static Stream<Arguments> acceptedAccessTokens() {
+        return Stream.of(
+                Arguments.of("expired token", expiredToken(TOKEN_VALUE), TOKEN_VALUE),
+                Arguments.of("null expiration", token(REFRESHED_TOKEN_VALUE, null), REFRESHED_TOKEN_VALUE)
         );
     }
 
     private static Stream<Arguments> sanitizedPasswordFailures() {
         return Stream.of(
                 Arguments.of("credentials resolution failure",
-                        (Supplier<TestAzureCredentialsService>) () -> new TestAzureCredentialsService(new IllegalStateException(LEAK_SENTINEL))),
+                        (Supplier<TestAzureCredentialsService>) () -> new TestAzureCredentialsService(new IllegalStateException(LEAK_SENTINEL)),
+                        AzureEntraDatabasePasswordProvider.FAILED_CREDENTIAL_RESOLUTION_MESSAGE),
                 Arguments.of("token acquisition failure",
                         (Supplier<TestAzureCredentialsService>) () -> new TestAzureCredentialsService(
-                                new RecordingTokenCredential(Mono.error(new IllegalStateException(LEAK_SENTINEL)))))
+                                new RecordingTokenCredential(Mono.error(new IllegalStateException(LEAK_SENTINEL)))),
+                        AzureEntraDatabasePasswordProvider.FAILED_TOKEN_ACQUISITION_MESSAGE)
         );
     }
 

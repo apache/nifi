@@ -50,12 +50,12 @@ Configure Microsoft Entra authentication on Azure Database for PostgreSQL Flexib
 role that corresponds to the Entra principal. Set the DBCP **Database User** to that mapped role name.
 
 The token is sent using PostgreSQL cleartext-password authentication and must be protected by TLS. Use direct port
-5432 as the baseline and set `sslmode=require` or a stronger certificate-verifying mode such as `verify-full`.
+5432 as the baseline and set `sslmode=verify-full`, with the client configured to trust the server certificate chain.
 
 | Setting | Value |
 |---|---|
 | Driver Class Name | `org.postgresql.Driver` |
-| JDBC URL | `jdbc:postgresql://<SERVER>.postgres.database.azure.com:5432/<DATABASE>?sslmode=require` |
+| JDBC URL | `jdbc:postgresql://<SERVER>.postgres.database.azure.com:5432/<DATABASE>?sslmode=verify-full` |
 | Database User | Microsoft Entra principal's mapped PostgreSQL role name |
 
 Azure's built-in PgBouncer on port 6432 must be validated separately. Large Entra tokens containing many group claims
@@ -83,7 +83,7 @@ required when this provider supplies the token.
 ## Verify and Troubleshooting
 
 `AzureEntraDatabasePasswordProvider` **Verify** checks that the configured Azure Credentials Service can acquire a
-nonblank, unexpired token for the Azure OSS RDBMS resource. It does not validate the JDBC URL, database server, network
+nonblank token for the Azure OSS RDBMS resource. It does not validate the JDBC URL, database server, network
 path, TLS configuration, driver, principal mapping, or database grants. DBCP **Verify** checks the actual database
 connection using those settings.
 
