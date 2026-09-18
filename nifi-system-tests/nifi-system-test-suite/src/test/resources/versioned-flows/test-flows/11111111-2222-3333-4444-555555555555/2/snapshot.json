@@ -1,0 +1,112 @@
+{
+  "externalControllerServices": {},
+  "flowContents": {
+    "comments": "",
+    "componentType": "PROCESS_GROUP",
+    "connections": [],
+    "controllerServices": [
+      {
+        "bulletinLevel": "WARN",
+        "bundle": {
+          "artifact": "nifi-alternate-config-extensions-nar",
+          "group": "org.apache.nifi",
+          "version": "2.12.0-SNAPSHOT"
+        },
+        "comments": "",
+        "componentType": "CONTROLLER_SERVICE",
+        "controllerServiceApis": [
+          {
+            "bundle": {
+              "artifact": "nifi-alternate-config-extensions-nar",
+              "group": "org.apache.nifi",
+              "version": "2.12.0-SNAPSHOT"
+            },
+            "type": "org.apache.nifi.cs.tests.system.StoreService"
+          }
+        ],
+        "groupIdentifier": "aaaaaaaa-1111-1111-1111-111111111111",
+        "identifier": "99999999-8888-7777-6666-555555555555",
+        "name": "StateBackedStoreService",
+        "properties": {
+          "Store Name": "store"
+        },
+        "propertyDescriptors": {},
+        "scheduledState": "ENABLED",
+        "type": "org.apache.nifi.cs.tests.system.StateBackedStoreService"
+      }
+    ],
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultFlowFileExpiration": "0 sec",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "funnels": [],
+    "identifier": "aaaaaaaa-1111-1111-1111-111111111111",
+    "inputPorts": [],
+    "labels": [],
+    "name": "Store Group",
+    "outputPorts": [],
+    "position": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "processGroups": [],
+    "processors": [
+      {
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "bulletinLevel": "WARN",
+        "bundle": {
+          "artifact": "nifi-alternate-config-extensions-nar",
+          "group": "org.apache.nifi",
+          "version": "2.12.0-SNAPSHOT"
+        },
+        "comments": "",
+        "componentType": "PROCESSOR",
+        "concurrentlySchedulableTaskCount": 1,
+        "executionNode": "ALL",
+        "groupIdentifier": "aaaaaaaa-1111-1111-1111-111111111111",
+        "identifier": "bbbbbbbb-2222-2222-2222-222222222222",
+        "maxBackoffPeriod": "10 mins",
+        "name": "MigrateToControllerService",
+        "penaltyDuration": "30 sec",
+        "position": {
+          "x": 100.0,
+          "y": 100.0
+        },
+        "properties": {
+          "Store Service": "99999999-8888-7777-6666-555555555555"
+        },
+        "propertyDescriptors": {
+          "Store Service": {
+            "displayName": "Store Service",
+            "identifiesControllerService": true,
+            "name": "Store Service",
+            "sensitive": false
+          }
+        },
+        "retriedRelationships": [],
+        "style": {},
+        "retryCount": 0,
+        "runDurationMillis": 0,
+        "scheduledState": "RUNNING",
+        "schedulingPeriod": "100 ms",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "type": "org.apache.nifi.processors.tests.system.MigrateToControllerService",
+        "yieldDuration": "1 sec"
+      }
+    ],
+    "remoteProcessGroups": [],
+    "variables": {}
+  },
+  "flowEncodingVersion": "1.0",
+  "parameterContexts": {},
+  "snapshotMetadata": {
+    "author": "system-test",
+    "comments": "",
+    "timestamp": 1700000000000,
+    "version": 2
+  }
+}

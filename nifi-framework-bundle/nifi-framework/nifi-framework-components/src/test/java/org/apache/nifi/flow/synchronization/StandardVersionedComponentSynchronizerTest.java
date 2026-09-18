@@ -67,6 +67,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ScheduledStateChangeListener;
 import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.migration.StandardControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -92,6 +93,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
 import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
@@ -106,6 +108,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -342,6 +345,7 @@ public class StandardVersionedComponentSynchronizerTest {
         when(service.getState()).thenReturn(ControllerServiceState.DISABLED);
         when(service.getBulletinLevel()).thenReturn(LogLevel.WARN);
         when(service.getControllerServiceImplementation()).thenReturn(new TestControllerService());
+        setReferences(service);
 
         return service;
     }
@@ -374,6 +378,15 @@ public class StandardVersionedComponentSynchronizerTest {
         when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
         when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.BATCH_OUTPUT);
         when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+        when(processGroup.getProcessors()).thenReturn(Collections.emptySet());
+        when(processGroup.getControllerServices(anyBoolean())).thenReturn(Collections.emptySet());
+        when(processGroup.getConnections()).thenReturn(Collections.emptySet());
+        when(processGroup.getInputPorts()).thenReturn(Collections.emptySet());
+        when(processGroup.getOutputPorts()).thenReturn(Collections.emptySet());
+        when(processGroup.getFunnels()).thenReturn(Collections.emptySet());
+        when(processGroup.getLabels()).thenReturn(Collections.emptySet());
+        when(processGroup.getProcessGroups()).thenReturn(Collections.emptySet());
+        when(processGroup.getRemoteProcessGroups()).thenReturn(Collections.emptySet());
 
         return processGroup;
     }
@@ -550,6 +563,284 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(processorNode).migrateConfiguration(propertiesCaptor.capture(), any());
         final Map<String, String> migratedProperties = propertiesCaptor.getValue();
         assertEquals(controllerServiceNode.getIdentifier(), migratedProperties.get("cs"));
+    }
+
+    @Test
+    public void testUserAddedControllerServiceRemovedWhenAbsentFromProposedFlow() {
+        final ProcessGroup processGroup = createMockProcessGroup();
+
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name("abc").build();
+        final ControllerServiceNode serviceNode = createMockControllerService();
+        when(serviceNode.getComments()).thenReturn("Added by a user");
+        when(serviceNode.getName()).thenReturn("name");
+        when(serviceNode.getCanonicalClassName()).thenReturn("ControllerServiceImpl");
+        when(serviceNode.getProperties()).thenReturn(Map.of(descriptor, new PropertyConfiguration("123", null, null, null)));
+        when(serviceNode.getRawPropertyValues()).thenReturn(Map.of(descriptor, "123"));
+        when(serviceNode.getVersionedComponentId()).thenReturn(Optional.empty());
+        when(processGroup.getControllerServices(false)).thenReturn(Set.of(serviceNode));
+
+        final VersionedProcessGroup versionedGroup = new VersionedProcessGroup();
+        versionedGroup.setIdentifier("pg-v2");
+        versionedGroup.setControllerServices(Collections.emptySet());
+        versionedGroup.setProcessors(Collections.emptySet());
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(versionedGroup);
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        verify(controllerServiceProvider).removeControllerService(serviceNode);
+    }
+
+    @Nested
+    class MigrationCreatedControllerService {
+
+        @Test
+        public void doesNotRemoveWhenProposedFlowDeclaresUnrelatedService() {
+            final ProcessGroup processGroup = createMockProcessGroup();
+
+            final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name("abc").build();
+
+            final ControllerServiceNode localOnlyService = createMockControllerService();
+            when(localOnlyService.getComments()).thenReturn(StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT);
+            when(localOnlyService.getName()).thenReturn("ServiceName");
+            when(localOnlyService.getCanonicalClassName()).thenReturn("ServiceType");
+            when(localOnlyService.getBundleCoordinate()).thenReturn(bundleCoordinate);
+            when(localOnlyService.getProperties()).thenReturn(Map.of(descriptor, new PropertyConfiguration("123", null, null, null)));
+            when(localOnlyService.getRawPropertyValues()).thenReturn(Map.of(descriptor, "123"));
+            when(localOnlyService.getState()).thenReturn(ControllerServiceState.DISABLED);
+            trackVersionedComponentId(localOnlyService);
+
+            when(processGroup.getControllerServices(false)).thenReturn(Set.of(localOnlyService));
+
+            synchronizeProposedFlow(processGroup, Set.of(createMinimalVersionedControllerService()), Collections.emptySet());
+
+            verify(controllerServiceProvider, never()).removeControllerService(localOnlyService);
+            assertUnversioned(localOnlyService);
+            verifyControllerServiceAdded(processGroup);
+        }
+
+        @Test
+        public void assignsProposedVersionedIdWithoutCreatingDuplicate() {
+            final MigrationCreatedMatchSetup setup = newMigrationCreatedMatchSetup();
+
+            synchronizeMigrationMatch(setup);
+
+            assertVersionedId(setup.localService(), setup.proposedService().getIdentifier());
+            verify(setup.localService()).setComments(setup.proposedService().getComments());
+            verify(setup.localService()).setName(setup.proposedService().getName());
+            verify(controllerServiceProvider, never()).removeControllerService(setup.localService());
+            verifyNoControllerServiceAdded(setup.processGroup());
+        }
+
+        @Test
+        public void doesNotAssignWhenReferencedByMultipleComponents() {
+            final MigrationCreatedMatchSetup setup = newMigrationCreatedMatchSetup();
+
+            final ProcessorNode additionalReferencer = createMappableProcessor(setup.processGroup());
+            setReferences(setup.localService(), setup.processor(), additionalReferencer);
+
+            synchronizeMigrationMatch(setup);
+
+            assertUnversioned(setup.localService());
+            verify(controllerServiceProvider, never()).removeControllerService(setup.localService());
+            verifyControllerServiceAdded(setup.processGroup());
+        }
+
+        @Test
+        public void doesNotAssignWhenProposedServiceTypeDiffers() {
+            final MigrationCreatedMatchSetup setup = newMigrationCreatedMatchSetup();
+            when(setup.localService().getCanonicalClassName()).thenReturn("org.apache.nifi.cs.DifferentService");
+
+            synchronizeMigrationMatch(setup);
+
+            assertUnversioned(setup.localService());
+            verify(controllerServiceProvider, never()).removeControllerService(setup.localService());
+            verifyControllerServiceAdded(setup.processGroup());
+        }
+
+        @Test
+        public void assignsNestedServicesWhenInnerListedBeforeOuter() {
+            final MigrationCreatedMatchSetup outer = newMigrationCreatedMatchSetup();
+
+            final VersionedControllerService proposedInnerService = createMinimalVersionedControllerService();
+            proposedInnerService.setIdentifier("inner-service-versioned-id");
+
+            final ControllerServiceNode innerService = createMockControllerService();
+            stubMigrationCreatedService(innerService, proposedInnerService);
+            stubControllerServiceReferenceProperty(outer.localService(), storeServicePropertyDescriptor(), innerService.getIdentifier());
+            setReferences(innerService, outer.localService());
+            when(outer.processGroup().findControllerService(eq(innerService.getIdentifier()), anyBoolean(), anyBoolean())).thenReturn(innerService);
+
+            outer.proposedService().setProperties(Map.of("Store Service", proposedInnerService.getIdentifier()));
+            outer.proposedService().setPropertyDescriptors(Map.of("Store Service", storeServiceVersionedDescriptor()));
+
+            final Set<ControllerServiceNode> localServices = new LinkedHashSet<>();
+            localServices.add(innerService);
+            localServices.add(outer.localService());
+
+            synchronizeMigrationMatch(outer, localServices, Set.of(outer.proposedService(), proposedInnerService));
+
+            assertVersionedId(outer.localService(), outer.proposedService().getIdentifier());
+            assertVersionedId(innerService, proposedInnerService.getIdentifier());
+            verify(controllerServiceProvider, never()).removeControllerService(innerService);
+            verify(controllerServiceProvider, never()).removeControllerService(outer.localService());
+            verifyNoControllerServiceAdded(outer.processGroup());
+        }
+
+        @Test
+        public void doesNotAssignWhenProposedVersionedIdAlreadyUsed() {
+            final MigrationCreatedMatchSetup setup = newMigrationCreatedMatchSetup();
+
+            final ControllerServiceNode existingService = createMockControllerService();
+            when(existingService.getVersionedComponentId()).thenReturn(Optional.of(setup.proposedService().getIdentifier()));
+            when(existingService.getComments()).thenReturn("");
+            stubControllerServiceListedInFlow(existingService, setup.proposedService());
+
+            synchronizeMigrationMatch(setup, Set.of(existingService, setup.localService()));
+
+            assertUnversioned(setup.localService());
+            verify(controllerServiceProvider, never()).removeControllerService(setup.localService());
+            verifyNoControllerServiceAdded(setup.processGroup());
+        }
+
+        private MigrationCreatedMatchSetup newMigrationCreatedMatchSetup() {
+            final ProcessGroup processGroup = createMockProcessGroup();
+
+            final VersionedControllerService proposedService = createMinimalVersionedControllerService();
+            proposedService.setIdentifier("declared-service-versioned-id");
+
+            final PropertyDescriptor storeServiceDescriptor = storeServicePropertyDescriptor();
+
+            final ControllerServiceNode localService = createMockControllerService();
+            final String localServiceId = localService.getIdentifier();
+            stubMigrationCreatedService(localService, proposedService);
+
+            final ProcessorNode processor = createMappableProcessor(processGroup);
+            when(processor.getVersionedComponentId()).thenReturn(Optional.of("processor-versioned-id"));
+            stubControllerServiceReferenceProperty(processor, storeServiceDescriptor, localServiceId);
+            setReferences(localService, processor);
+
+            when(processGroup.getControllerServices(false)).thenReturn(Set.of(localService));
+            when(processGroup.getProcessors()).thenReturn(Set.of(processor));
+            when(processGroup.findControllerService(eq(localServiceId), anyBoolean(), anyBoolean())).thenReturn(localService);
+
+            final VersionedProcessor proposedProcessor = createMinimalVersionedProcessor();
+            proposedProcessor.setIdentifier("processor-versioned-id");
+            proposedProcessor.setProperties(Map.of("Store Service", proposedService.getIdentifier()));
+            proposedProcessor.setPropertyDescriptors(Map.of("Store Service", storeServiceVersionedDescriptor()));
+
+            return new MigrationCreatedMatchSetup(processGroup, localService, processor, proposedService, proposedProcessor);
+        }
+
+        private void synchronizeMigrationMatch(final MigrationCreatedMatchSetup setup) {
+            synchronizeMigrationMatch(setup, Set.of(setup.localService()));
+        }
+
+        private void synchronizeMigrationMatch(final MigrationCreatedMatchSetup setup, final Set<ControllerServiceNode> localServices) {
+            synchronizeMigrationMatch(setup, localServices, Set.of(setup.proposedService()));
+        }
+
+        private void synchronizeMigrationMatch(
+                final MigrationCreatedMatchSetup setup,
+                final Set<ControllerServiceNode> localServices,
+                final Set<VersionedControllerService> proposedServices
+        ) {
+            when(setup.processGroup().getControllerServices(false)).thenReturn(localServices);
+            synchronizeProposedFlow(setup.processGroup(), proposedServices, Set.of(setup.proposedProcessor()));
+        }
+
+        private record MigrationCreatedMatchSetup(
+                ProcessGroup processGroup,
+                ControllerServiceNode localService,
+                ProcessorNode processor,
+                VersionedControllerService proposedService,
+                VersionedProcessor proposedProcessor
+        ) {
+        }
+
+        private PropertyDescriptor storeServicePropertyDescriptor() {
+            return new PropertyDescriptor.Builder()
+                    .name("Store Service")
+                    .identifiesControllerService(ControllerService.class)
+                    .build();
+        }
+
+        private VersionedPropertyDescriptor storeServiceVersionedDescriptor() {
+            final VersionedPropertyDescriptor proposedDescriptor = new VersionedPropertyDescriptor();
+            proposedDescriptor.setName("Store Service");
+            proposedDescriptor.setIdentifiesControllerService(true);
+            return proposedDescriptor;
+        }
+
+        private void stubControllerServiceListedInFlow(final ControllerServiceNode localService, final VersionedControllerService proposed) {
+            when(localService.getCanonicalClassName()).thenReturn(proposed.getType());
+            when(localService.getName()).thenReturn(proposed.getName());
+            when(localService.getProperties()).thenReturn(Map.of(new PropertyDescriptor.Builder().name("abc").build(),
+                    new PropertyConfiguration("123", null, null, null)));
+            when(localService.getRawPropertyValues()).thenReturn(Map.of(new PropertyDescriptor.Builder().name("abc").build(), "123"));
+        }
+
+        private void stubMigrationCreatedService(final ControllerServiceNode localService, final VersionedControllerService proposed) {
+            stubControllerServiceListedInFlow(localService, proposed);
+            when(localService.getComments()).thenReturn(StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT);
+            trackVersionedComponentId(localService);
+        }
+
+        private void stubControllerServiceReferenceProperty(final ComponentNode component, final PropertyDescriptor descriptor, final String serviceId) {
+            final PropertyConfiguration configuration = new PropertyConfiguration(serviceId, null, null, null);
+            when(component.getRawPropertyValues()).thenReturn(Map.of(descriptor, serviceId));
+            when(component.getProperties()).thenReturn(Map.of(descriptor, configuration));
+            when(component.getProperty(eq(descriptor))).thenReturn(configuration);
+            when(component.getPropertyDescriptor(eq(descriptor.getName()))).thenReturn(descriptor);
+        }
+
+        /**
+         * Makes the mock report the versioned component id that synchronization assigns to it, so that a test can
+         * assert on the resulting state rather than on the setter alone.
+         */
+        private void trackVersionedComponentId(final ControllerServiceNode service) {
+            final AtomicReference<String> assignedVersionedComponentId = new AtomicReference<>();
+            when(service.getVersionedComponentId()).thenAnswer(invocation -> Optional.ofNullable(assignedVersionedComponentId.get()));
+            doAnswer(invocation -> {
+                assignedVersionedComponentId.set(invocation.getArgument(0));
+                return null;
+            }).when(service).setVersionedComponentId(any());
+        }
+
+        private void assertUnversioned(final ControllerServiceNode service) {
+            assertTrue(service.getVersionedComponentId().isEmpty(), "Expected no versioned component id but found " + service.getVersionedComponentId());
+        }
+
+        private void assertVersionedId(final ControllerServiceNode service, final String expectedVersionedId) {
+            assertEquals(Optional.of(expectedVersionedId), service.getVersionedComponentId());
+        }
+
+        private void verifyControllerServiceAdded(final ProcessGroup processGroup) {
+            verify(flowManager).createControllerService(any(), any(), any(), anySet(), anyBoolean(), anyBoolean(), nullable(String.class));
+            verify(processGroup).addControllerService(any(ControllerServiceNode.class));
+        }
+
+        private void verifyNoControllerServiceAdded(final ProcessGroup processGroup) {
+            verify(flowManager, never()).createControllerService(any(), any(), any(), anySet(), anyBoolean(), anyBoolean(), nullable(String.class));
+            verify(processGroup, never()).addControllerService(any(ControllerServiceNode.class));
+        }
+
+        private void synchronizeProposedFlow(
+                final ProcessGroup processGroup,
+                final Set<VersionedControllerService> proposedServices,
+                final Set<VersionedProcessor> proposedProcessors
+        ) {
+            final VersionedProcessGroup versionedGroup = new VersionedProcessGroup();
+            versionedGroup.setIdentifier("pg-v2");
+            versionedGroup.setControllerServices(proposedServices);
+            versionedGroup.setProcessors(proposedProcessors);
+
+            final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+            externalFlow.setFlowContents(versionedGroup);
+
+            synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+        }
     }
 
     @Test
