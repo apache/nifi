@@ -29,6 +29,7 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.nio.file.StandardOpenOption.WRITE;
-import static org.apache.nifi.services.protobuf.ProtobufSchemaValidator.validateSchemaDefinitionIdentifiers;
+import static org.apache.nifi.services.protobuf.ProtobufSchemaValidator.validateSchemaReferencePaths;
 
 /**
  * Handles Protocol Buffer schema compilation, caching, and temporary directory operations.
@@ -114,8 +115,8 @@ final class ProtobufSchemaCompiler {
     private Schema compileSchemaDefinition(final SchemaDefinition schemaDefinition) throws IOException {
         logger.debug("Starting schema compilation for identifier: {}", schemaDefinition.getIdentifier());
 
-        // Validate that all schema identifiers end with .proto extension
-        validateSchemaDefinitionIdentifiers(schemaDefinition, true);
+        // Validate that every schema reference is keyed by an import path ending in .proto
+        validateSchemaReferencePaths(schemaDefinition);
 
         return executeWithTemporaryDirectory(tempDir -> {
             try {
@@ -182,8 +183,7 @@ final class ProtobufSchemaCompiler {
     }
 
     /**
-     * Writes a schema definition to the temporary directory structure.
-     * If package name is present, creates the appropriate directory structure.
+     * Writes a schema definition to the temporary directory structure using the name of its identifier.
      *
      * @param tempDir          the temporary directory root
      * @param schemaDefinition the schema definition to write
@@ -191,14 +191,32 @@ final class ProtobufSchemaCompiler {
      */
     private void writeSchemaToTempDirectory(final Path tempDir, final SchemaDefinition schemaDefinition) throws IOException {
         logger.debug("Writing schema definition to temporary directory. Identifier: {}", schemaDefinition.getIdentifier());
+        writeSchemaFile(tempDir, generateSchemaFileName(schemaDefinition), schemaDefinition.getText());
+    }
 
-        final String schemaFileName = generateSchemaFileName(schemaDefinition);
-        final Path schemaFile = tempDir.resolve(schemaFileName);
+    /**
+     * Writes schema text to a path relative to the temporary directory, creating any parent directories.
+     * Import paths may contain directories, such as {@code airlines/ph/cdm/shared.proto}, so the enclosing
+     * directory structure has to exist before the file is written.
+     *
+     * @param tempDir      the temporary directory root
+     * @param relativePath the path of the schema file relative to the temporary directory
+     * @param schemaText   the schema text to write
+     * @throws IOException if unable to create directories or write files
+     */
+    private void writeSchemaFile(final Path tempDir, final String relativePath, final String schemaText) throws IOException {
+        final Path schemaFile = tempDir.resolve(relativePath).normalize();
+        if (!schemaFile.startsWith(tempDir)) {
+            throw new IOException("Schema file path is not contained in the schema directory: " + relativePath);
+        }
 
-        // Write schema text to file
-        Files.write(schemaFile, schemaDefinition.getText().getBytes(), CREATE, WRITE, TRUNCATE_EXISTING);
-        logger.debug("Successfully wrote schema to file: {} (string length: {})",
-            schemaFile, schemaDefinition.getText().length());
+        final Path parentDirectory = schemaFile.getParent();
+        if (parentDirectory != null) {
+            Files.createDirectories(parentDirectory);
+        }
+
+        Files.write(schemaFile, schemaText.getBytes(StandardCharsets.UTF_8), CREATE, WRITE, TRUNCATE_EXISTING);
+        logger.debug("Successfully wrote schema to file: {} (string length: {})", schemaFile, schemaText.length());
     }
 
     /**
@@ -230,8 +248,10 @@ final class ProtobufSchemaCompiler {
             logger.debug("Processing schema reference [{}] Identifier [{}]",
                 referenceKey, referencedSchema.getIdentifier());
 
-            // Write referenced schema to appropriate directory
-            writeSchemaToTempDirectory(tempDir, referencedSchema);
+            // The reference key is the path used in the import statement of the referencing schema, so the referenced
+            // schema has to be written to that exact path for the compiler to resolve the import. It is unrelated to
+            // the identifier of the referenced schema, which carries the name it is registered under.
+            writeSchemaFile(tempDir, referenceKey, referencedSchema.getText());
 
             // Process nested references recursively
             if (!referencedSchema.getReferences().isEmpty()) {

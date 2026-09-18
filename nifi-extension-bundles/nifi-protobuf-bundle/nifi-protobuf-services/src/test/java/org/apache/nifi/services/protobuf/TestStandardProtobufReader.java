@@ -44,7 +44,7 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.generateInputDataForProto3;
-import static org.apache.nifi.services.protobuf.ProtobufSchemaValidator.validateSchemaDefinitionIdentifiers;
+import static org.apache.nifi.services.protobuf.ProtobufSchemaValidator.validateSchemaReferencePaths;
 import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME;
 import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME_RESOLUTION_STRATEGY;
 import static org.apache.nifi.services.protobuf.StandardProtobufReader.MESSAGE_NAME_RESOLVER;
@@ -137,7 +137,7 @@ class TestStandardProtobufReader extends StandardProtobufReaderTestBase {
 
         enableAllControllerServices();
 
-        validateSchemaDefinitionIdentifiers(validMainSchema, true);
+        validateSchemaReferencePaths(validMainSchema);
     }
 
     @Test
@@ -147,29 +147,42 @@ class TestStandardProtobufReader extends StandardProtobufReaderTestBase {
 
         enableAllControllerServices();
 
-        validateSchemaDefinitionIdentifiers(validSchema, true);
+        validateSchemaReferencePaths(validSchema);
     }
 
     @Test
-    void testValidMainSchemaWithInvalidReferencedSchema() {
-        final SchemaDefinition invalidReferencedSchema = createSchemaDefinition("user_profile.invalid");
+    void testReferenceKeyedByPathWithoutProtoExtensionIsRejected() {
+        // The key is the import path, and the compiler only discovers files named *.proto.
+        final SchemaDefinition invalidReferencedSchema = createSchemaDefinition("user_profile.proto");
         final SchemaDefinition mixedSchema = createSchemaDefinition("user_settings.proto",
             Map.of("user_profile.invalid", invalidReferencedSchema));
 
         enableAllControllerServices();
 
-        final IllegalArgumentException referencedException = assertThrows(IllegalArgumentException.class, () -> {
-            validateSchemaDefinitionIdentifiers(mixedSchema, true);
-        });
+        final IllegalArgumentException referencedException = assertThrows(IllegalArgumentException.class,
+            () -> validateSchemaReferencePaths(mixedSchema));
 
-        assertTrue(referencedException.getMessage().contains("ends with .proto extension"));
+        assertTrue(referencedException.getMessage().contains(".proto extension"));
+    }
+
+    @Test
+    void testReferencedSubjectWithoutProtoExtensionIsAccepted() {
+        // A registry subject is unrelated to the import path and legitimately has no .proto suffix; under the
+        // Confluent RecordNameStrategy it is a fully qualified record name. Only the key has to look like a path.
+        final SchemaDefinition referencedSchema = createSchemaDefinition("airlines.ph.cdm.shared");
+        final SchemaDefinition mainSchema = createSchemaDefinition("airlines.ph.cdm.reservation.AirlineReservation",
+            Map.of("airlines/ph/cdm/shared.proto", referencedSchema));
+
+        enableAllControllerServices();
+
+        validateSchemaReferencePaths(mainSchema);
     }
 
     @Test
     void testSchemaDefinitionWithMissingName() {
         final SchemaDefinition schemaWithoutName = createSchemaDefinitionWithoutName();
         enableAllControllerServices();
-        validateSchemaDefinitionIdentifiers(schemaWithoutName, true);
+        validateSchemaReferencePaths(schemaWithoutName);
     }
 
     @Nested
