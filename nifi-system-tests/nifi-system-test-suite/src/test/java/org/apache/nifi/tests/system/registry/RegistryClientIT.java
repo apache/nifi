@@ -28,11 +28,14 @@ import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
+import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
+import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
@@ -41,6 +44,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -57,6 +62,153 @@ public class RegistryClientIT extends NiFiSystemIT {
     public static final String TEST_FLOWS_BUCKET = "test-flows";
 
     public static final String FIRST_FLOW_ID = "first-flow";
+
+    @Test
+    public void testChangeVersionDrainsRemovedConnectionBeforeUpdate() throws Exception {
+        final Path gateFile = Path.of(System.getProperty("java.io.tmpdir"), "nifi-removed-connection-drain-" + System.nanoTime());
+        final RemovedConnectionFixture fixture = createRemovedConnectionFixture(gateFile, false, true);
+        final NiFiClientUtil util = getClientUtil();
+
+        final VersionedFlowUpdateRequestEntity initiated = util.initiateFlowVersionChange(fixture.groupId(), "2");
+        final String requestId = initiated.getRequest().getRequestId();
+        waitFor(() -> "Draining Removed Connections".equals(getNifiClient().getVersionsClient().getUpdateRequest(requestId).getRequest().getState()));
+        if (getNumberOfNodes() > 1) {
+            final List<Integer> queuedByNode = getNifiClient().getFlowClient().getConnectionStatus(fixture.connectionId(), true)
+                    .getConnectionStatus().getNodeSnapshots().stream()
+                    .map(node -> node.getStatusSnapshot().getFlowFilesQueued())
+                    .sorted()
+                    .toList();
+            assertEquals(List.of(0, 1), queuedByNode);
+        }
+        assertEquals("1", getNifiClient().getProcessGroupClient().getProcessGroup(fixture.groupId())
+                .getComponent().getVersionControlInformation().getVersion());
+
+        Files.createFile(gateFile);
+        final VersionedFlowUpdateRequestEntity completed = util.waitForVersionFlowUpdateComplete(requestId, true);
+        assertTrue(completed.getRequest().isComplete());
+        assertNull(completed.getRequest().getFailureReason());
+        assertEquals("2", completed.getRequest().getVersionControlInformation().getVersion());
+        util.waitForRunningProcessor(fixture.sourceId());
+        util.waitForRunningProcessor(fixture.destinationId());
+        assertTrue(getConnections(fixture.groupId()).stream().noneMatch(connection -> fixture.connectionId().equals(connection.getId())));
+
+        Files.deleteIfExists(gateFile);
+    }
+
+    @Test
+    public void testCancelledRemovedConnectionDrainRestoresOriginalFlow() throws Exception {
+        final Path gateFile = Path.of(System.getProperty("java.io.tmpdir"), "nifi-removed-connection-cancel-" + System.nanoTime());
+        final RemovedConnectionFixture fixture = createRemovedConnectionFixture(gateFile, false, true);
+        final NiFiClientUtil util = getClientUtil();
+
+        final VersionedFlowUpdateRequestEntity initiated = util.initiateFlowVersionChange(fixture.groupId(), "2");
+        final String requestId = initiated.getRequest().getRequestId();
+        waitFor(() -> "Draining Removed Connections".equals(getNifiClient().getVersionsClient().getUpdateRequest(requestId).getRequest().getState()));
+
+        final VersionedFlowUpdateRequestEntity cancelled = getNifiClient().getVersionsClient().deleteUpdateRequest(requestId);
+        assertEquals("Request cancelled by user", cancelled.getRequest().getFailureReason());
+        assertOriginalFlowRestored(fixture);
+        assertTrue(getConnectionQueueSize(fixture.connectionId()) >= 1);
+    }
+
+    @Test
+    public void testRemovedConnectionDrainTimeoutRestoresOriginalFlow() throws Exception {
+        final Path gateFile = Path.of(System.getProperty("java.io.tmpdir"), "nifi-removed-connection-timeout-" + System.nanoTime());
+        final RemovedConnectionFixture fixture = createRemovedConnectionFixture(gateFile, false, true);
+        final NiFiClientUtil util = getClientUtil();
+
+        final VersionedFlowUpdateRequestEntity initiated = util.initiateFlowVersionChange(fixture.groupId(), "2");
+        final VersionedFlowUpdateRequestEntity completed = util.waitForVersionFlowUpdateComplete(initiated.getRequest().getRequestId(), false);
+
+        assertTrue(completed.getRequest().getFailureReason().contains("Removed connection drain timed out"));
+        assertOriginalFlowRestored(fixture);
+        assertTrue(getConnectionQueueSize(fixture.connectionId()) >= 1);
+    }
+
+    @Test
+    public void testUnsupportedNonEmptyRemovalFailsBeforeRuntimeStateChanges() throws Exception {
+        final Path gateFile = Path.of(System.getProperty("java.io.tmpdir"), "nifi-unsupported-removal-" + System.nanoTime());
+        final RemovedConnectionFixture fixture = createRemovedConnectionFixture(gateFile, true, true);
+
+        final VersionedFlowUpdateRequestEntity completed = getClientUtil().changeFlowVersion(fixture.groupId(), "2", false);
+
+        assertTrue(completed.getRequest().getFailureReason().contains("DESTINATION_COMPONENT_REMOVED"));
+        assertOriginalFlowRestored(fixture);
+        assertEquals(1, getConnectionQueueSize(fixture.connectionId()));
+    }
+
+    @Test
+    public void testUnsupportedEmptyRemovalRetainsSuccessfulUpdateBehavior() throws Exception {
+        final Path gateFile = Path.of(System.getProperty("java.io.tmpdir"), "nifi-empty-unsupported-removal-" + System.nanoTime());
+        final RemovedConnectionFixture fixture = createRemovedConnectionFixture(gateFile, true, false);
+
+        final VersionedFlowUpdateRequestEntity completed = getClientUtil().changeFlowVersion(fixture.groupId(), "2", true);
+
+        assertNull(completed.getRequest().getFailureReason());
+        assertEquals("2", completed.getRequest().getVersionControlInformation().getVersion());
+        assertTrue(getConnections(fixture.groupId()).stream().noneMatch(connection -> fixture.connectionId().equals(connection.getId())));
+        assertTrue(getNifiClient().getFlowClient().getProcessGroup(fixture.groupId()).getProcessGroupFlow().getFlow().getProcessors().stream()
+                .noneMatch(processor -> fixture.destinationId().equals(processor.getId())));
+    }
+
+    @Test
+    public void testRemovedConnectionToInputPortStopsPortBeforeRemoval() throws Exception {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+        final ProcessGroupEntity group = util.createProcessGroup("Removed Port Connection", "root");
+        final ProcessGroupEntity child = util.createProcessGroup("Port Child", group.getId());
+        final ProcessorEntity generate = util.createProcessor("GenerateFlowFile", group.getId());
+        util.updateProcessorProperties(generate, Map.of("Max FlowFiles", "1", "State Scope", "CLUSTER"));
+        final PortEntity inputPort = util.createInputPort("Drain Destination", child.getId());
+        final ProcessorEntity terminate = util.createProcessor("TerminateFlowFile", child.getId());
+        final ConnectionEntity removedConnection = util.createConnection(generate, inputPort, "success");
+        final ConnectionEntity portOutput = util.createConnection(inputPort, terminate);
+        util.updateConnectionBackpressure(portOutput, 1, 1_000_000);
+
+        final VersionControlInformationEntity v1 = util.startVersionControl(group, clientEntity, TEST_FLOWS_BUCKET, "removed-port-" + System.nanoTime());
+        getNifiClient().getConnectionClient().deleteConnection(removedConnection);
+        util.setAutoTerminatedRelationships(generate, "success");
+        inputPort.getComponent().setComments("Updated in version 2");
+        getNifiClient().getInputPortClient().updateInputPort(inputPort);
+        util.saveFlowVersion(group, clientEntity, v1);
+        util.changeFlowVersion(group.getId(), "1");
+
+        final ConnectionEntity restoredConnection = getConnections(group.getId()).stream()
+                .filter(connection -> "Drain Destination".equals(connection.getComponent().getDestination().getName()))
+                .filter(connection -> generate.getId().equals(connection.getComponent().getSource().getId()))
+                .findFirst()
+                .orElseThrow();
+        final PortEntity restoredPort = getNifiClient().getInputPortClient().getInputPort(restoredConnection.getComponent().getDestination().getId());
+        getNifiClient().getInputPortClient().startInputPort(restoredPort);
+        util.waitForValidProcessor(restoredConnection.getComponent().getSource().getId());
+        util.startProcessor(getNifiClient().getProcessorClient().getProcessor(restoredConnection.getComponent().getSource().getId()));
+        final ConnectionEntity restoredPortOutput = getConnections(restoredPort.getComponent().getParentGroupId()).stream()
+                .filter(connection -> restoredPort.getId().equals(connection.getComponent().getSource().getId()))
+                .findFirst()
+                .orElseThrow();
+        waitForQueueCount(restoredPortOutput.getId(), getNumberOfNodes());
+        final ProcessorEntity restoredSource = getNifiClient().getProcessorClient().getProcessor(restoredConnection.getComponent().getSource().getId());
+        util.stopProcessor(restoredSource);
+        util.startProcessor(restoredSource);
+        waitForQueueCount(restoredConnection.getId(), getNumberOfNodes());
+
+        final VersionedFlowUpdateRequestEntity initiated = util.initiateFlowVersionChange(group.getId(), "2");
+        final String requestId = initiated.getRequest().getRequestId();
+        waitFor(() -> "Draining Removed Connections".equals(getNifiClient().getVersionsClient().getUpdateRequest(requestId).getRequest().getState()));
+        util.startProcessor(getNifiClient().getProcessorClient().getProcessor(terminate.getId()));
+        final VersionedFlowUpdateRequestEntity completed = util.waitForVersionFlowUpdateComplete(requestId, false);
+
+        assertNotNull(completed.getRequest().getFailureReason());
+        assertTrue(completed.getRequest().getFailureReason().contains("Input Port"));
+        assertTrue(completed.getRequest().getFailureReason().contains("Port has no incoming connections"));
+        assertEquals("2", completed.getRequest().getVersionControlInformation().getVersion());
+        assertTrue(getConnections(group.getId()).stream().noneMatch(connection -> restoredConnection.getId().equals(connection.getId())));
+        final String updatedPortState = getNifiClient().getInputPortClient().getInputPort(restoredPort.getId()).getComponent().getState();
+        assertEquals("STOPPED", updatedPortState);
+        final ProcessGroupStatusSnapshotDTO groupStatus = getNifiClient().getFlowClient().getProcessGroupStatus(group.getId(), true)
+                .getProcessGroupStatus().getAggregateSnapshot();
+        assertEquals(0, getInputPortActiveThreadCount(groupStatus, restoredPort.getId()));
+    }
 
     /**
      * Test a scenario where we have Parent Process Group with a child process group. The child group is under Version Control.
@@ -738,5 +890,83 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertEquals(vci.getVersionControlInformation().getFlowId(), groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getFlowId());
         assertEquals(vci.getVersionControlInformation().getVersion(), groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getVersion());
         assertEquals("UP_TO_DATE", groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getState());
+    }
+
+    private RemovedConnectionFixture createRemovedConnectionFixture(final Path gateFile, final boolean removeDestination,
+                                                                     final boolean queueFlowFile) throws Exception {
+        Files.deleteIfExists(gateFile);
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+        final ProcessGroupEntity group = util.createProcessGroup("Removed Connection Drain", "root");
+        final ProcessorEntity generate = util.createProcessor("GenerateFlowFile", group.getId());
+        util.updateProcessorProperties(generate, Map.of("Max FlowFiles", "1", "State Scope", "CLUSTER"));
+        if (getNumberOfNodes() > 1) {
+            util.updateProcessorExecutionNode(generate, ExecutionNode.PRIMARY);
+        }
+
+        final ProcessorEntity gated = util.createProcessor("GatedPassThrough", group.getId());
+        util.updateProcessorProperties(gated, Map.of("Gate File", gateFile.toString()));
+        util.setAutoTerminatedRelationships(gated, "success");
+        final ProcessorEntity terminate = util.createProcessor("TerminateFlowFile", group.getId());
+        final ConnectionEntity removedConnection = util.createConnection(generate, gated, "success");
+
+        final VersionControlInformationEntity v1 = util.startVersionControl(group, clientEntity, TEST_FLOWS_BUCKET, "removed-connection-" + System.nanoTime());
+        getNifiClient().getConnectionClient().deleteConnection(removedConnection);
+        util.createConnection(generate, terminate, "success");
+        if (removeDestination) {
+            getNifiClient().getProcessorClient().deleteProcessor(gated);
+        }
+        util.saveFlowVersion(group, clientEntity, v1);
+        util.changeFlowVersion(group.getId(), "1");
+        final ConnectionEntity restoredConnection = getConnections(group.getId()).stream()
+                .filter(connection -> "GenerateFlowFile".equals(connection.getComponent().getSource().getName()))
+                .filter(connection -> "GatedPassThrough".equals(connection.getComponent().getDestination().getName()))
+                .findFirst()
+                .orElseThrow();
+        final String restoredConnectionId = restoredConnection.getId();
+        final String restoredSourceId = restoredConnection.getComponent().getSource().getId();
+        final String restoredDestinationId = restoredConnection.getComponent().getDestination().getId();
+
+        if (queueFlowFile) {
+            util.waitForValidProcessor(restoredDestinationId);
+            util.startProcessor(getNifiClient().getProcessorClient().getProcessor(restoredDestinationId));
+            util.waitForValidProcessor(restoredSourceId);
+            util.startProcessor(getNifiClient().getProcessorClient().getProcessor(restoredSourceId));
+            waitForQueueCount(restoredConnectionId, 1);
+        }
+
+        return new RemovedConnectionFixture(group.getId(), restoredSourceId, restoredDestinationId, restoredConnectionId);
+    }
+
+    private Set<ConnectionEntity> getConnections(final String groupId) throws NiFiClientException, IOException {
+        return getNifiClient().getFlowClient().getProcessGroup(groupId).getProcessGroupFlow().getFlow().getConnections();
+    }
+
+    private int getInputPortActiveThreadCount(final ProcessGroupStatusSnapshotDTO groupStatus, final String portId) {
+        for (final PortStatusSnapshotEntity portStatus : groupStatus.getInputPortStatusSnapshots()) {
+            if (portId.equals(portStatus.getId())) {
+                return portStatus.getPortStatusSnapshot().getActiveThreadCount();
+            }
+        }
+
+        for (final ProcessGroupStatusSnapshotEntity childStatus : groupStatus.getProcessGroupStatusSnapshots()) {
+            final int activeThreadCount = getInputPortActiveThreadCount(childStatus.getProcessGroupStatusSnapshot(), portId);
+            if (activeThreadCount >= 0) {
+                return activeThreadCount;
+            }
+        }
+
+        return -1;
+    }
+
+    private void assertOriginalFlowRestored(final RemovedConnectionFixture fixture) throws Exception {
+        assertEquals("1", getNifiClient().getProcessGroupClient().getProcessGroup(fixture.groupId())
+                .getComponent().getVersionControlInformation().getVersion());
+        assertTrue(getConnections(fixture.groupId()).stream().anyMatch(connection -> fixture.connectionId().equals(connection.getId())));
+        getClientUtil().waitForRunningProcessor(fixture.sourceId());
+        getClientUtil().waitForRunningProcessor(fixture.destinationId());
+    }
+
+    private record RemovedConnectionFixture(String groupId, String sourceId, String destinationId, String connectionId) {
     }
 }
