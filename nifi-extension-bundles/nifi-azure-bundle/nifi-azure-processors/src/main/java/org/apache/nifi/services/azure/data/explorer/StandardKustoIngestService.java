@@ -313,7 +313,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         KustoIngestQueryResponse kustoIngestQueryResponse;
         try {
             // Requires a change in the new SDK version. This will fail with executeQuery v7.0.0 and up of the SDK
-            boolean isMgmtCommand = query != null && query.startsWith(".");
+            boolean isMgmtCommand = query.startsWith(".");
             final KustoOperationResult kustoOperationResult = isMgmtCommand ? this.executionClient.executeMgmt(databaseName, query) : this.executionClient.executeQuery(databaseName, query);
             final KustoResultSetTable kustoResultSetTable = kustoOperationResult.getPrimaryResults();
 

@@ -83,10 +83,6 @@ public class DataAuthorizable implements Authorizable, EnforcePolicyPermissionsT
             }
         } while (chainedUser != null);
 
-        if (result == null) {
-            result = AuthorizationResult.denied();
-        }
-
         return result;
     }
 

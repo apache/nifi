@@ -205,7 +205,7 @@ public class FTPTransfer implements FileTransfer {
             if (remotePath != null) {
                 reldir = Paths.get(remotePath).relativize(reldir);
             }
-            if (reldir != null && !reldir.toString().isEmpty()) {
+            if (!reldir.toString().isEmpty()) {
                 if (!pathPattern.matcher(reldir.toString().replace("\\", "/")).matches()) {
                     pathFilterMatches = false;
                 }

@@ -106,7 +106,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
         }
 
         final Map<String, MetricDescriptor<?>> descriptors = getStandardMetricDescriptors(uri);
-        return descriptors != null && !descriptors.isEmpty();
+        return !descriptors.isEmpty();
     }
 
     @Override

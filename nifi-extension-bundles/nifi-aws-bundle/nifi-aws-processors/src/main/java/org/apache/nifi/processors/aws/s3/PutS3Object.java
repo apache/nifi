@@ -1029,7 +1029,7 @@ public class PutS3Object extends AbstractS3Processor {
             filePosition = Long.parseLong(fields[1]);
             completedParts = new ArrayList<>();
             for (String part : fields[2].split(",")) {
-                if (part != null && !part.isEmpty()) {
+                if (!part.isEmpty()) {
                     String[] partFields = part.split("/");
                     this.completedParts.add(CompletedPart.builder()
                             .partNumber(Integer.parseInt(partFields[0]))

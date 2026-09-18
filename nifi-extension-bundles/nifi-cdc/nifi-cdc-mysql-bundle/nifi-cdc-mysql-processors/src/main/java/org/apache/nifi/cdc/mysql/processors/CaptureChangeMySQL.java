@@ -1341,14 +1341,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         if (locationString != null && locationString.length() > 0) {
             try {
                 final Class<?> clazz = Class.forName(drvName);
-                if (clazz == null) {
-                    throw new InitializationException("Can't load Database Driver " + drvName);
-                }
                 final Driver driver = (Driver) clazz.getDeclaredConstructor().newInstance();
                 DriverManager.registerDriver(new DriverShim(driver));
 
-            } catch (final InitializationException e) {
-                throw e;
             } catch (final Exception e) {
                 throw new InitializationException("Can't load Database Driver", e);
             }

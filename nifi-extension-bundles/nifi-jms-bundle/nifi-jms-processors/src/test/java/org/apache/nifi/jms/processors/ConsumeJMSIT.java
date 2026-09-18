@@ -340,9 +340,7 @@ public class ConsumeJMSIT {
         } catch (Exception e) {
             throw e;
         } finally {
-            if (broker != null) {
-                broker.stop();
-            }
+            broker.stop();
         }
     }
 
@@ -421,9 +419,7 @@ public class ConsumeJMSIT {
 
             assertFalse(tcpTransport.get().isConnected(), "It is expected transport be closed. ");
         } finally {
-            if (broker != null) {
-                broker.stop();
-            }
+            broker.stop();
         }
     }
 
@@ -701,9 +697,7 @@ public class ConsumeJMSIT {
 
             assertEquals(0, broker.getCurrentConnections());
         } finally {
-            if (broker != null) {
-                broker.stop();
-            }
+            broker.stop();
         }
     }
 

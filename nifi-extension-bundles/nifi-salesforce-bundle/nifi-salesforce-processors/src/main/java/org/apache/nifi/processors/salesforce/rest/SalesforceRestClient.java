@@ -83,7 +83,7 @@ public class SalesforceRestClient {
         try {
             response = httpClient.newCall(request).execute();
             if (!response.isSuccessful()) {
-                throw new ProcessException(String.format("Invalid response [%s]: %s", response.code(), response.body() == null ? null : response.body().string()));
+                throw new ProcessException(String.format("Invalid response [%s]: %s", response.code(), response.body().string()));
             }
             return response.body().byteStream();
         } catch (IOException e) {

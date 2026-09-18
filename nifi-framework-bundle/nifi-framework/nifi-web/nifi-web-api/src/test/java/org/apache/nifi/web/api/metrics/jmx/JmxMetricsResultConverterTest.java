@@ -84,15 +84,14 @@ class JmxMetricsResultConverterTest {
     public void testSimpleTypeKeptOriginalType() {
         final String expectedString = "Test String";
         final int expectedInt = 1;
-        final boolean expectedBoolean = Boolean.TRUE;
 
         final Object actualString = metricsResultConverter.convert(expectedString);
         final Object actualInt = metricsResultConverter.convert(expectedInt);
-        final Object actualBoolean = metricsResultConverter.convert(expectedBoolean);
+        final Object actualBoolean = metricsResultConverter.convert(true);
 
         assertEquals(expectedString, actualString);
         assertEquals(expectedInt, actualInt);
-        assertEquals(expectedBoolean, actualBoolean);
+        assertEquals(Boolean.TRUE, actualBoolean);
         assertEquals(SimpleType.STRING.getTypeName(), actualString.getClass().getName());
         assertEquals(SimpleType.INTEGER.getTypeName(), actualInt.getClass().getName());
         assertEquals(SimpleType.BOOLEAN.getTypeName(), actualBoolean.getClass().getName());

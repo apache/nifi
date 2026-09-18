@@ -581,7 +581,7 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         final String rootCauseMessage = ExceptionUtils.getRootCauseMessage(e);
-        if (rootCauseMessage == null || rootCauseMessage.isBlank()) {
+        if (rootCauseMessage.isBlank()) {
             return topLevelMessage;
         }
         return topLevelMessage + " (" + rootCauseMessage + ")";

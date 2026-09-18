@@ -266,17 +266,11 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
 
     @Override
     public void destroy() throws Exception {
-        if (authorizers != null) {
-            authorizers.forEach((key, value) -> value.preDestruction());
-        }
+        authorizers.forEach((key, value) -> value.preDestruction());
 
-        if (accessPolicyProviders != null) {
-            accessPolicyProviders.forEach((key, value) -> value.preDestruction());
-        }
+        accessPolicyProviders.forEach((key, value) -> value.preDestruction());
 
-        if (userGroupProviders != null) {
-            userGroupProviders.forEach((key, value) -> value.preDestruction());
-        }
+        userGroupProviders.forEach((key, value) -> value.preDestruction());
     }
 
     private Authorizers loadAuthorizersConfiguration() throws Exception {
