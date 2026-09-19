@@ -107,7 +107,8 @@ public class SwappablePriorityQueue {
         this.dropAction = dropAction;
         this.swapPartitionName = swapPartitionName;
 
-        final ReentrantReadWriteLock lock = new ReentrantReadWriteLock(true);
+        // FlowFile order is determined by QueuePrioritizer, so this lock does not need fair ordering.
+        final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
         readLock = new TimedLock(lock.readLock(), flowFileQueue.getIdentifier() + " Read Lock", 100);
         writeLock = new TimedLock(lock.writeLock(), flowFileQueue.getIdentifier() + " Write Lock", 100);
     }
