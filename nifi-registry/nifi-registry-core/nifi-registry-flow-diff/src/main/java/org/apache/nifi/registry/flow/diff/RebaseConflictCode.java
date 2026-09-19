@@ -33,6 +33,11 @@ public enum RebaseConflictCode {
     MISSING_FIELD_NAME,
 
     /**
+     * The registered handler does not support the local change's component type.
+     */
+    UNSUPPORTED_COMPONENT_TYPE,
+
+    /**
      * Both the local and upstream flows modified the same property on the same component.
      */
     SAME_PROPERTY,
@@ -46,6 +51,11 @@ public enum RebaseConflictCode {
      * The component targeted by the local change does not exist in the target version.
      */
     COMPONENT_NOT_FOUND,
+
+    /**
+     * The target version already contains a component with the same identifier as the local addition.
+     */
+    COMPONENT_IDENTIFIER_COLLISION,
 
     /**
      * The property descriptor targeted by the local change changed in an incompatible way in the target version.
