@@ -123,7 +123,7 @@ class PasswordBasedPropertyEncryptionProviderTest {
     @Test
     void testDecryptAuthenticationFailed() {
         final byte[] encrypted = provider.encrypt(PROPERTY_BINARY, CONTEXT);
-        encrypted[0] = 0;
+        encrypted[0] ^= 1;
 
         assertThrows(PropertyEncryptionException.class, () -> provider.decrypt(encrypted, CONTEXT));
     }
