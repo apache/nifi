@@ -40,6 +40,9 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.components.Backlog;
 import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -133,6 +136,7 @@ import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.api.dto.BacklogDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
@@ -2372,6 +2376,45 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
+    public void testVerifyUpdateConnectorSkipsReloadVerificationWhenBundleUnchanged() {
+        final String connectorId = "connector-id";
+        final String type = "org.apache.nifi.connectors.TestConnector";
+        final BundleCoordinate coordinate = new BundleCoordinate("org.apache.nifi", "nifi-test-nar", "1.0.0");
+
+        final ConnectorNode connectorNode = configureConnectorForBundleUpdate(connectorId, type, coordinate, coordinate);
+        doThrow(new IllegalStateException("Connector cannot be reloaded in its current state")).when(connectorNode).verifyCanReload();
+
+        final ConnectorDTO connectorDTO = new ConnectorDTO();
+        connectorDTO.setId(connectorId);
+        connectorDTO.setName("Renamed Connector");
+        connectorDTO.setBundle(new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion()));
+
+        serviceFacade.verifyUpdateConnector(connectorDTO);
+
+        verify(connectorNode, never()).verifyCanReload();
+        verify(connectorNode, never()).verifyCanUpdateBundle(any());
+    }
+
+    @Test
+    public void testVerifyUpdateConnectorRequiresReloadVerificationWhenBundleChanges() {
+        final String connectorId = "connector-id";
+        final String type = "org.apache.nifi.connectors.TestConnector";
+        final BundleCoordinate existingCoordinate = new BundleCoordinate("org.apache.nifi", "nifi-test-nar", "1.0.0");
+        final BundleCoordinate incomingCoordinate = new BundleCoordinate("org.apache.nifi", "nifi-test-nar", "2.0.0");
+
+        final ConnectorNode connectorNode = configureConnectorForBundleUpdate(connectorId, type, existingCoordinate, incomingCoordinate);
+
+        final ConnectorDTO connectorDTO = new ConnectorDTO();
+        connectorDTO.setId(connectorId);
+        connectorDTO.setBundle(new BundleDTO(incomingCoordinate.getGroup(), incomingCoordinate.getId(), incomingCoordinate.getVersion()));
+
+        serviceFacade.verifyUpdateConnector(connectorDTO);
+
+        verify(connectorNode).verifyCanUpdateBundle(incomingCoordinate);
+        verify(connectorNode).verifyCanReload();
+    }
+
+    @Test
     public void testGetConnectorClusterNodeRequest() {
         final String connectorId = "connector-id";
         final String managedGroupId = "managed-group-id";
@@ -3574,4 +3617,31 @@ public class StandardNiFiServiceFacadeTest {
         return assetManager;
     }
 
+    private ConnectorNode configureConnectorForBundleUpdate(final String connectorId, final String type,
+                                                            final BundleCoordinate existingCoordinate, final BundleCoordinate incomingCoordinate) {
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorNode.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connectorNode.getCanonicalClassName()).thenReturn(type);
+        when(connectorNode.getBundleCoordinate()).thenReturn(existingCoordinate);
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        final Bundle incomingBundle = createBundle(incomingCoordinate);
+        when(extensionManager.getBundle(incomingCoordinate)).thenReturn(incomingBundle);
+        when(extensionManager.getBundles(type)).thenReturn(List.of(incomingBundle));
+
+        return connectorNode;
+    }
+
+    private Bundle createBundle(final BundleCoordinate coordinate) {
+        final BundleDetails details = new BundleDetails.Builder()
+                .workingDir(new File("."))
+                .coordinate(coordinate)
+                .build();
+        return new Bundle(details, getClass().getClassLoader());
+    }
 }
