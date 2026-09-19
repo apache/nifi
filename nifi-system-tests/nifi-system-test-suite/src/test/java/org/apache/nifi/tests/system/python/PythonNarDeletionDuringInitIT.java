@@ -41,7 +41,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PythonNarDeletionDuringInitIT extends NiFiSystemIT {
@@ -67,7 +66,7 @@ public class PythonNarDeletionDuringInitIT extends NiFiSystemIT {
         final NarSummaryDTO uploadedNarSummary = narUploadUtil.uploadNar(pythonTestExtensionsNar);
         waitFor(narUploadUtil.getWaitForNarStateSupplier(uploadedNarSummary.getIdentifier(), NarState.INSTALLED));
 
-        final DocumentedTypeDTO processorTypeDTO = getDocumentedTypeDTO(PYTHON_WRITE_BECH_32_CHARSET);
+        final DocumentedTypeDTO processorTypeDTO = waitForProcessorType();
         assertNotNull(processorTypeDTO);
         final BundleDTO processorBundle = processorTypeDTO.getBundle();
 
@@ -98,7 +97,7 @@ public class PythonNarDeletionDuringInitIT extends NiFiSystemIT {
 
         narUploadUtil.verifyNarSummaries(0);
 
-        assertNull(getDocumentedTypeDTO(PYTHON_WRITE_BECH_32_CHARSET));
+        waitFor(() -> getProcessorType() == null);
 
         final String pythonProcessorId = pythonProcessor.getId();
         waitFor(() -> {
@@ -118,7 +117,7 @@ public class PythonNarDeletionDuringInitIT extends NiFiSystemIT {
         final NarSummaryDTO uploadedNarSummary = narUploadUtil.uploadNar(pythonTestExtensionsNar);
         waitFor(narUploadUtil.getWaitForNarStateSupplier(uploadedNarSummary.getIdentifier(), NarState.INSTALLED));
 
-        final DocumentedTypeDTO processorTypeDTO = getDocumentedTypeDTO(PYTHON_WRITE_BECH_32_CHARSET);
+        final DocumentedTypeDTO processorTypeDTO = waitForProcessorType();
         final BundleDTO processorBundle = processorTypeDTO.getBundle();
 
         final ProcessorEntity firstProcessor = getClientUtil().createProcessor(
@@ -152,7 +151,7 @@ public class PythonNarDeletionDuringInitIT extends NiFiSystemIT {
         final NarSummaryDTO reuploadedNarSummary = narUploadUtil.uploadNar(pythonTestExtensionsNar);
         waitFor(narUploadUtil.getWaitForNarStateSupplier(reuploadedNarSummary.getIdentifier(), NarState.INSTALLED));
 
-        final DocumentedTypeDTO reloadedProcessorType = getDocumentedTypeDTO(PYTHON_WRITE_BECH_32_CHARSET);
+        final DocumentedTypeDTO reloadedProcessorType = waitForProcessorType();
         assertNotNull(reloadedProcessorType);
 
         final ProcessorEntity secondProcessor = getClientUtil().createProcessor(
@@ -187,7 +186,7 @@ public class PythonNarDeletionDuringInitIT extends NiFiSystemIT {
             final NarSummaryDTO narSummary = narUploadUtil.uploadNar(pythonTestExtensionsNar);
             waitFor(narUploadUtil.getWaitForNarStateSupplier(narSummary.getIdentifier(), NarState.INSTALLED));
 
-            final DocumentedTypeDTO processorType = getDocumentedTypeDTO(PYTHON_WRITE_BECH_32_CHARSET);
+            final DocumentedTypeDTO processorType = waitForProcessorType();
             assertNotNull(processorType);
 
             final ProcessorEntity processor = getClientUtil().createProcessor(
@@ -234,7 +233,7 @@ public class PythonNarDeletionDuringInitIT extends NiFiSystemIT {
         final NarSummaryDTO narSummary = narUploadUtil.uploadNar(pythonTestExtensionsNar);
         waitFor(narUploadUtil.getWaitForNarStateSupplier(narSummary.getIdentifier(), NarState.INSTALLED));
 
-        final DocumentedTypeDTO processorType = getDocumentedTypeDTO(PYTHON_WRITE_BECH_32_CHARSET);
+        final DocumentedTypeDTO processorType = waitForProcessorType();
         final ProcessorEntity processor = getClientUtil().createProcessor(
                 PYTHON_WRITE_BECH_32_CHARSET,
                 processorType.getBundle().getGroup(),
@@ -282,14 +281,19 @@ public class PythonNarDeletionDuringInitIT extends NiFiSystemIT {
         return narFiles[0];
     }
 
-    private DocumentedTypeDTO getDocumentedTypeDTO(final String type) throws NiFiClientException, IOException {
+    private DocumentedTypeDTO waitForProcessorType() throws InterruptedException, NiFiClientException, IOException {
+        waitFor(() -> getProcessorType() != null);
+        return getProcessorType();
+    }
+
+    private DocumentedTypeDTO getProcessorType() throws NiFiClientException, IOException {
         final ProcessorTypesEntity allProcessorTypes = getNifiClient().getFlowClient().getProcessorTypes();
         if (allProcessorTypes == null || allProcessorTypes.getProcessorTypes() == null) {
             return null;
         }
 
         return allProcessorTypes.getProcessorTypes().stream()
-                .filter(processorType -> processorType.getType().equals(type))
+                .filter(processorType -> processorType.getType().equals(PYTHON_WRITE_BECH_32_CHARSET))
                 .findAny()
                 .orElse(null);
     }
