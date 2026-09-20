@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class ComponentAddedRebaseHandlerTest {
 
     private static final String ROOT = "root";
+    private static final String TARGET_ROOT = "target-root";
     private static final String CHILD = "child";
     private static final String PROCESSOR_ID = "processor-a";
     private static final String EXISTING_SERVICE_ID = "service-x";
@@ -71,10 +72,12 @@ class ComponentAddedRebaseHandlerTest {
                 null, addedService, "Referenced controller service added locally");
 
         final VersionedProcessGroup targetSnapshot = createTargetSnapshotWithExistingService(EXISTING_SERVICE_ID, ROOT);
+        targetSnapshot.setIdentifier(TARGET_ROOT);
 
         final RebaseAnalysis.ClassifiedDifference result = handler.classify(localDifference, Collections.emptySet(), targetSnapshot);
 
         assertEquals(RebaseClassification.COMPATIBLE, result.getClassification());
+        assertEquals(ROOT, addedService.getGroupIdentifier());
     }
 
     @Test
@@ -162,7 +165,8 @@ class ComponentAddedRebaseHandlerTest {
                 null, addedService, "Controller service added to root");
 
         final VersionedProcessGroup mergedFlow = new VersionedProcessGroup();
-        mergedFlow.setIdentifier(ROOT);
+        mergedFlow.setIdentifier(TARGET_ROOT);
+        mergedFlow.setInstanceIdentifier(ROOT);
 
         handler.apply(localDifference, mergedFlow);
 
@@ -172,7 +176,7 @@ class ComponentAddedRebaseHandlerTest {
         final VersionedControllerService insertedService = mergedFlow.getControllerServices().iterator().next();
         assertSame(addedService, insertedService);
         assertEquals(ADDED_SERVICE_ID, insertedService.getIdentifier());
-        assertEquals(ROOT, insertedService.getGroupIdentifier());
+        assertEquals(TARGET_ROOT, insertedService.getGroupIdentifier());
         assertEquals(LOCAL_SERVICE_NAME, insertedService.getName());
         assertEquals(LOCAL_SERVICE_TYPE, insertedService.getType());
         assertEquals(BUNDLE_GROUP, insertedService.getBundle().getGroup());
