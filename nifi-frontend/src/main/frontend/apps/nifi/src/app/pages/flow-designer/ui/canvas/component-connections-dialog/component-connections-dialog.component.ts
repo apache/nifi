@@ -26,15 +26,16 @@ import { CloseOnEscapeDialog, ComponentContext, ComponentType, NiFiCommon } from
 import { CanvasState } from '../../../state';
 import { ComponentConnectionsDialogRequest, ConnectionEntity } from '../../../state/flow';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
-import { navigateToComponent } from '../../../state/flow/flow.actions';
+import { enterProcessGroup, navigateToComponent } from '../../../state/flow/flow.actions';
 
 /**
  * One end of a connection, with enough information to render a cell and navigate to it.
  * - {@code id}: the component's own id.
  * - {@code groupId}: the id of the process group that directly contains the component.
  * - {@code type}: the component type, used to tell {@code navigateToComponent} what it's looking at.
- * - {@code name}: the component name, or {@code null} when the current user cannot read the
- *   connection, in which case the cell renders an "Unauthorized" placeholder and is not clickable.
+ * - {@code name}: the component name, or {@code null} when the current user cannot read this end, in
+ *   which case the cell renders an "Unauthorized" placeholder. The cell stays clickable either way,
+ *   the same as an unreadable component the user can select on the canvas.
  */
 export interface ConnectionEndpoint {
     id: string;
@@ -201,6 +202,17 @@ export class ComponentConnectionsDialog extends CloseOnEscapeDialog {
     }
 
     /**
+     * Returns the tooltip of an endpoint, which falls back to the id of a component the current user
+     * cannot read, since the placeholder rendered in its place identifies nothing on its own.
+     *
+     * @param endpoint the source or destination endpoint
+     * @returns the endpoint name, or its id when unreadable
+     */
+    componentTooltip(endpoint: ConnectionEndpoint): string {
+        return endpoint.name ?? endpoint.id;
+    }
+
+    /**
      * Returns the name rendered for a connection, which is a placeholder when the connection has
      * neither a name nor relationships to name it by.
      *
@@ -232,13 +244,52 @@ export class ComponentConnectionsDialog extends CloseOnEscapeDialog {
     }
 
     /**
-     * Determines whether the given process group is the group currently shown on the canvas.
+     * Determines whether there is somewhere to go for the given process group. The only group there is
+     * not is the one that both defines these connections and is already open on the canvas: selecting
+     * it within itself is not a place the canvas can go, and the user is looking at it already.
+     *
+     * The group that defines the connections is the parent group when a port's connections cross its
+     * own group's boundary, and the parent is a group the user can still be taken to.
      *
      * @param groupId the process group id to check
-     * @returns whether the group is the current canvas group
+     * @returns whether the group can be navigated to
      */
-    isCurrentProcessGroup(groupId: string): boolean {
-        return groupId === this.dialogRequestGroupId;
+    isNavigableProcessGroup(groupId: string): boolean {
+        return !(groupId === this.dialogRequestGroupId && groupId === this.canvasUtils.getProcessGroupId());
+    }
+
+    /**
+     * Navigates to the process group at one end of a connection, then closes the dialog. The group that
+     * defines the connections is entered, since it holds no component of its own to select, while any
+     * other group is a component of it and is selected there - as a Remote Process Group when the end is
+     * one of its remote ports.
+     *
+     * @param endpoint the source or destination endpoint whose group should be navigated to
+     */
+    navigateToProcessGroup(endpoint: ConnectionEndpoint): void {
+        if (endpoint.groupId === this.dialogRequestGroupId) {
+            this.store.dispatch(
+                enterProcessGroup({
+                    request: {
+                        id: endpoint.groupId
+                    }
+                })
+            );
+            this.componentConnectionsDialogRef.close();
+            return;
+        }
+
+        this.navigateTo(endpoint.groupId, this.dialogRequestGroupId, this.processGroupTypeOf(endpoint));
+    }
+
+    /**
+     * Returns the type the process group at one end of a connection is navigated to as.
+     *
+     * @param endpoint the source or destination endpoint
+     * @returns Remote Process Group when the end is a remote port, Process Group otherwise
+     */
+    processGroupTypeOf(endpoint: ConnectionEndpoint): ComponentType {
+        return this.isRemoteProcessGroupPort(endpoint) ? this.remoteProcessGroupType : this.processGroupType;
     }
 
     /**
@@ -297,19 +348,50 @@ export class ComponentConnectionsDialog extends CloseOnEscapeDialog {
         return {
             id: connection.id,
             name: name === '' ? null : name,
-            source: {
-                id: connection.sourceId,
-                groupId: connection.sourceGroupId,
-                type: this.mapComponentType(connection.sourceType),
-                name: connection.component?.source?.name ?? null
-            },
-            destination: {
-                id: connection.destinationId,
-                groupId: connection.destinationGroupId,
-                type: this.mapComponentType(connection.destinationType),
-                name: connection.component?.destination?.name ?? null
-            }
+            source: this.buildEndpoint(
+                connection.sourceId,
+                connection.sourceGroupId,
+                connection.sourceType,
+                connection.component?.source?.name
+            ),
+            destination: this.buildEndpoint(
+                connection.destinationId,
+                connection.destinationGroupId,
+                connection.destinationType,
+                connection.component?.destination?.name
+            )
         };
+    }
+
+    private buildEndpoint(id: string, groupId: string, type: string, nameOnConnection?: string): ConnectionEndpoint {
+        return {
+            id,
+            groupId,
+            type: this.mapComponentType(type),
+            name:
+                this.mapComponentType(type) === ComponentType.Funnel
+                    ? 'Funnel'
+                    : this.resolveComponentName(id, nameOnConnection)
+        };
+    }
+
+    /**
+     * Resolves the name of one end of a connection from that component's own read permission, with no
+     * regard for the other end or for the connection between them. A connection is readable only when
+     * the current user can read both of its ends, so the names it carries disappear for both ends as
+     * soon as either one is unreadable; they are only a fallback here.
+     *
+     * The components of every group these connections reach into were listed with their own
+     * permissions, and each readable one is named there. An end that is not is either unreadable or a
+     * port inside a Remote Process Group, whose group lists nothing of its own - the name the
+     * connection carries covers the latter, and is only ever present when both ends are readable.
+     *
+     * @param id the id of the component at this end of the connection
+     * @param nameOnConnection the name the connection reports for this end, when it can be read
+     * @returns the name to render, or null when this end is unreadable
+     */
+    private resolveComponentName(id: string, nameOnConnection?: string): string | null {
+        return this.dialogRequest.componentIdToName.get(id) ?? nameOnConnection ?? null;
     }
 
     private mapComponentType(type: string): ComponentType {

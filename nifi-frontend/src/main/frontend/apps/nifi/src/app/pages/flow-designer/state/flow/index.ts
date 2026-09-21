@@ -426,7 +426,10 @@ export interface ComponentConnectionsDialogRequest {
     connections: ConnectionEntity[];
     // names resolved from the same flow entity that supplied the connections
     groupIdToName: Map<string, string>;
-    remoteProcessGroupIds: Set<string>;
+    // names of the components the current user can read, across every group these connections reach
+    // into. a connection is readable only when both of its ends are, so this is what lets each end be
+    // reported on its own permission rather than through the connection that joins them
+    componentIdToName: Map<string, string>;
 }
 
 /*

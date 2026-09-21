@@ -25,7 +25,7 @@ import { ComponentType } from '@nifi/shared';
 
 import { ComponentConnectionsDialog, ComponentConnectionRow } from './component-connections-dialog.component';
 import { ComponentConnectionsDialogRequest, ConnectionDirection, ConnectionEntity } from '../../../state/flow';
-import { navigateToComponent } from '../../../state/flow/flow.actions';
+import { enterProcessGroup, navigateToComponent } from '../../../state/flow/flow.actions';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
 
 const REQUEST_GROUP_ID = 'request-group-id';
@@ -118,10 +118,15 @@ function unreadableConnection(options: ConnectionOptions = {}): ConnectionEntity
     };
 }
 
+/**
+ * Builds the dialog. The group on the canvas defaults to the group the connections belong to, which is
+ * where every component except a port searched across its own group's boundary is reported from.
+ */
 function createDialog(
     direction: ConnectionDirection,
     connections: ConnectionEntity[],
-    overrides: Partial<ComponentConnectionsDialogRequest> = {}
+    overrides: Partial<ComponentConnectionsDialogRequest> = {},
+    canvasGroupId?: string
 ): CreatedDialog {
     const dialogRequest: ComponentConnectionsDialogRequest = {
         componentId: SELECTED_COMPONENT_ID,
@@ -135,7 +140,7 @@ function createDialog(
             [SOURCE_GROUP_ID, 'Source Process Group'],
             [DESTINATION_GROUP_ID, 'Destination Process Group']
         ]),
-        remoteProcessGroupIds: new Set(),
+        componentIdToName: new Map(),
         ...overrides
     };
 
@@ -153,7 +158,8 @@ function createDialog(
                 return component.selectedRelationships.join(', ');
             }
             return '';
-        }
+        },
+        getProcessGroupId: (): string => canvasGroupId ?? dialogRequest.groupId
     };
 
     TestBed.resetTestingModule();
@@ -184,19 +190,26 @@ function createDialog(
  */
 function createCurrentProcessGroupDialog(
     direction: ConnectionDirection,
-    connections: ConnectionEntity[]
+    connections: ConnectionEntity[],
+    overrides: Partial<ComponentConnectionsDialogRequest> = {}
 ): CreatedDialog {
-    return createDialog(direction, connections, {
-        componentId: CURRENT_GROUP_ID,
-        componentName: 'Current Process Group',
-        componentType: ComponentType.ProcessGroup,
-        groupId: PARENT_GROUP_ID,
-        groupIdToName: new Map([
-            [PARENT_GROUP_ID, 'Parent Process Group'],
-            [CURRENT_GROUP_ID, 'Current Process Group'],
-            [SIBLING_GROUP_ID, 'Sibling Process Group']
-        ])
-    });
+    return createDialog(
+        direction,
+        connections,
+        {
+            componentId: CURRENT_GROUP_ID,
+            componentName: 'Current Process Group',
+            componentType: ComponentType.ProcessGroup,
+            groupId: PARENT_GROUP_ID,
+            groupIdToName: new Map([
+                [PARENT_GROUP_ID, 'Parent Process Group'],
+                [CURRENT_GROUP_ID, 'Current Process Group'],
+                [SIBLING_GROUP_ID, 'Sibling Process Group']
+            ]),
+            ...overrides
+        },
+        CURRENT_GROUP_ID
+    );
 }
 
 function textContent(fixture: ComponentFixture<ComponentConnectionsDialog>): string {
@@ -507,11 +520,19 @@ describe('ComponentConnectionsDialog', () => {
             expect(component.resolveGroupName(UNKNOWN_GROUP_ID)).toBe(UNKNOWN_GROUP_ID);
         });
 
-        it('identifies the current process group from the dialog request group id', () => {
+        it('offers nowhere to go for the group that both defines the connections and is on the canvas', () => {
             const { component } = createDialog('upstream', []);
 
-            expect(component.isCurrentProcessGroup(REQUEST_GROUP_ID)).toBeTruthy();
-            expect(component.isCurrentProcessGroup(SOURCE_GROUP_ID)).toBeFalsy();
+            expect(component.isNavigableProcessGroup(REQUEST_GROUP_ID)).toBeFalsy();
+            expect(component.isNavigableProcessGroup(SOURCE_GROUP_ID)).toBeTruthy();
+        });
+
+        it('offers the group that defines the connections when it is not the group on the canvas', () => {
+            // a port searched across its own group's boundary reports connections defined in the parent
+            const { component } = createDialog('upstream', [], {}, SOURCE_GROUP_ID);
+
+            expect(component.isNavigableProcessGroup(REQUEST_GROUP_ID)).toBeTruthy();
+            expect(component.isNavigableProcessGroup(SOURCE_GROUP_ID)).toBeTruthy();
         });
     });
 
@@ -636,16 +657,43 @@ describe('ComponentConnectionsDialog', () => {
             expect(dialogRef.close).toHaveBeenCalled();
         });
 
-        it('does not render unreadable components as clickable', () => {
-            const { fixture } = createDialog('upstream', [unreadableConnection()]);
+        it('keeps an unreadable component clickable so it can be reached like it can on the canvas', () => {
+            const { fixture, store, dialogRef } = createDialog('upstream', [unreadableConnection()]);
+            const dispatch = vi.spyOn(store, 'dispatch');
 
             const sourceComponentCell = getCells(fixture, 'mat-column-sourceComponent')[0];
             const destinationComponentCell = getCells(fixture, 'mat-column-destinationComponent')[0];
 
-            expect(sourceComponentCell.querySelector('a')).toBeNull();
-            expect(destinationComponentCell.querySelector('a')).toBeNull();
             expect(sourceComponentCell.textContent).toContain('Unauthorized');
             expect(destinationComponentCell.textContent).toContain('Unauthorized');
+            expect(sourceComponentCell.querySelector('a')).not.toBeNull();
+            expect(destinationComponentCell.querySelector('a')).not.toBeNull();
+
+            clickCell(fixture, 'mat-column-sourceComponent');
+
+            expect(dispatch).toHaveBeenCalledWith(
+                navigateToComponent({
+                    request: {
+                        id: SOURCE_ID,
+                        processGroupId: SOURCE_GROUP_ID,
+                        type: ComponentType.Processor
+                    }
+                })
+            );
+            expect(dialogRef.close).toHaveBeenCalled();
+        });
+
+        it('identifies an unreadable component by its id, since the placeholder identifies nothing', () => {
+            const { component } = createDialog('upstream', [
+                readableConnection({
+                    source: { id: 'readable-source-id', name: 'Readable Source' },
+                    destination: { id: 'hidden-destination-id', name: 'Hidden Destination' }
+                }),
+                unreadableConnection({ destination: { id: 'hidden-destination-id', name: 'Hidden Destination' } })
+            ]);
+
+            expect(component.componentTooltip(component.rows[0].source)).toBe('Readable Source');
+            expect(component.componentTooltip(component.rows[1].destination)).toBe('hidden-destination-id');
         });
 
         it('renders a remote input port source component as non-clickable', () => {
@@ -657,9 +705,7 @@ describe('ComponentConnectionsDialog', () => {
                 destinationType: 'PROCESSOR'
             });
 
-            const { fixture, store, dialogRef } = createDialog('downstream', [connection], {
-                remoteProcessGroupIds: new Set(['remote-process-group-id'])
-            });
+            const { fixture, store, dialogRef } = createDialog('downstream', [connection]);
             const dispatch = vi.spyOn(store, 'dispatch');
 
             const sourceComponentCell = getCells(fixture, 'mat-column-sourceComponent')[0];
@@ -680,9 +726,7 @@ describe('ComponentConnectionsDialog', () => {
                 destinationType: 'PROCESSOR'
             });
 
-            const { fixture, store, dialogRef } = createDialog('downstream', [connection], {
-                remoteProcessGroupIds: new Set(['remote-process-group-id'])
-            });
+            const { fixture, store, dialogRef } = createDialog('downstream', [connection]);
             const dispatch = vi.spyOn(store, 'dispatch');
 
             const sourceComponentCell = getCells(fixture, 'mat-column-sourceComponent')[0];
@@ -703,9 +747,7 @@ describe('ComponentConnectionsDialog', () => {
                 destinationType: 'REMOTE_INPUT_PORT'
             });
 
-            const { fixture, store, dialogRef } = createDialog('upstream', [connection], {
-                remoteProcessGroupIds: new Set(['remote-process-group-id'])
-            });
+            const { fixture, store, dialogRef } = createDialog('upstream', [connection]);
             const dispatch = vi.spyOn(store, 'dispatch');
 
             const destinationComponentCell = getCells(fixture, 'mat-column-destinationComponent')[0];
@@ -726,9 +768,7 @@ describe('ComponentConnectionsDialog', () => {
                 destinationType: 'REMOTE_OUTPUT_PORT'
             });
 
-            const { fixture, store, dialogRef } = createDialog('upstream', [connection], {
-                remoteProcessGroupIds: new Set(['remote-process-group-id'])
-            });
+            const { fixture, store, dialogRef } = createDialog('upstream', [connection]);
             const dispatch = vi.spyOn(store, 'dispatch');
 
             const destinationComponentCell = getCells(fixture, 'mat-column-destinationComponent')[0];
@@ -788,6 +828,140 @@ describe('ComponentConnectionsDialog', () => {
     });
 
     /**
+     * A connection can be read only when the current user can read both of its ends, so the names it
+     * carries vanish as soon as either end is unreadable. Each end is therefore reported from what is
+     * known about that component on its own.
+     */
+    describe('per-endpoint authorization', () => {
+        const CHILD_GROUP_ID = 'child-group-id';
+        const SELECTED_PORT_NAME = 'Input Port A';
+
+        // an Input Port searched upstream: the connections are defined in the parent, the port is not
+        // among the components of the parent, and the source processor there cannot be read
+        function unreadableSourceIntoSelectedPort(): ConnectionEntity {
+            return unreadableConnection({
+                id: 'unreadable-connection-id',
+                source: { id: 'hidden-processor-id', name: 'Hidden Processor' },
+                sourceGroupId: REQUEST_GROUP_ID,
+                sourceType: 'PROCESSOR',
+                destination: { id: SELECTED_COMPONENT_ID, name: SELECTED_PORT_NAME },
+                destinationGroupId: CHILD_GROUP_ID,
+                destinationType: 'INPUT_PORT'
+            });
+        }
+
+        /**
+         * The components of the child group holding the port are listed alongside those of the parent
+         * group that defines the connections, each with its own read permission, which is how the port
+         * is named while the processor at the other end is not.
+         */
+        function createPortDialog(
+            connections: ConnectionEntity[],
+            readableComponents: [string, string][] = [[SELECTED_COMPONENT_ID, SELECTED_PORT_NAME]]
+        ): CreatedDialog {
+            return createDialog(
+                'upstream',
+                connections,
+                {
+                    componentId: SELECTED_COMPONENT_ID,
+                    componentName: SELECTED_PORT_NAME,
+                    componentType: ComponentType.InputPort,
+                    componentIdToName: new Map(readableComponents)
+                },
+                CHILD_GROUP_ID
+            );
+        }
+
+        it('names the readable end of a connection the user cannot read', () => {
+            const { component, fixture } = createPortDialog([unreadableSourceIntoSelectedPort()]);
+
+            expect(component.rows[0].source.name).toBeNull();
+            expect(component.rows[0].destination.name).toBe(SELECTED_PORT_NAME);
+
+            const sourceComponentCell = getCells(fixture, 'mat-column-sourceComponent')[0];
+            const destinationComponentCell = getCells(fixture, 'mat-column-destinationComponent')[0];
+            expect(sourceComponentCell.textContent).toContain('Unauthorized');
+            expect(destinationComponentCell.textContent).toContain(SELECTED_PORT_NAME);
+            expect(destinationComponentCell.textContent).not.toContain('Unauthorized');
+        });
+
+        it('navigates to the readable end of a connection the user cannot read', () => {
+            const { fixture, store, dialogRef } = createPortDialog([unreadableSourceIntoSelectedPort()]);
+            const dispatch = vi.spyOn(store, 'dispatch');
+
+            clickCell(fixture, 'mat-column-destinationComponent');
+
+            expect(dispatch).toHaveBeenCalledWith(
+                navigateToComponent({
+                    request: {
+                        id: SELECTED_COMPONENT_ID,
+                        processGroupId: CHILD_GROUP_ID,
+                        type: ComponentType.InputPort
+                    }
+                })
+            );
+            expect(dialogRef.close).toHaveBeenCalled();
+        });
+
+        it('reports an end that no group reported as unauthorized, whichever end it is', () => {
+            // the component the connections were requested for is reported by its own group like any
+            // other component, and is unauthorized when that group did not report it
+            const { component } = createPortDialog([unreadableSourceIntoSelectedPort()], []);
+
+            expect(component.rows[0].source.name).toBeNull();
+            expect(component.rows[0].destination.name).toBeNull();
+            expect(component.formatComponentName(component.rows[0].destination)).toBe('Unauthorized');
+        });
+
+        it('names both ends when each of their groups reported them', () => {
+            const { component } = createPortDialog(
+                [unreadableSourceIntoSelectedPort()],
+                [
+                    ['hidden-processor-id', 'No Longer Hidden Processor'],
+                    [SELECTED_COMPONENT_ID, SELECTED_PORT_NAME]
+                ]
+            );
+
+            expect(component.rows[0].source.name).toBe('No Longer Hidden Processor');
+            expect(component.rows[0].destination.name).toBe(SELECTED_PORT_NAME);
+        });
+
+        it('names a funnel by its type, which is all the canvas shows for one', () => {
+            const funnelConnection = unreadableConnection({
+                source: { id: 'funnel-id', name: '' },
+                sourceGroupId: REQUEST_GROUP_ID,
+                sourceType: 'FUNNEL',
+                destination: { id: SELECTED_COMPONENT_ID, name: SELECTED_PORT_NAME },
+                destinationGroupId: CHILD_GROUP_ID,
+                destinationType: 'INPUT_PORT'
+            });
+
+            const { component } = createPortDialog([funnelConnection]);
+
+            expect(component.rows[0].source.name).toBe('Funnel');
+            expect(component.formatComponentName(component.rows[0].source)).toBe('Funnel');
+        });
+
+        it('falls back to the name the connection carries for an end no group reports', () => {
+            // a port inside a Remote Process Group is listed by no flow of its own, and a readable
+            // connection - which means both of its ends are readable - is what names it
+            const connection = readableConnection({
+                source: { id: 'remote-output-port-id', name: 'Remote Output Port' },
+                sourceGroupId: REMOTE_GROUP_ID,
+                sourceType: 'REMOTE_OUTPUT_PORT',
+                destination: { id: SELECTED_COMPONENT_ID, name: SELECTED_PORT_NAME },
+                destinationGroupId: CHILD_GROUP_ID,
+                destinationType: 'INPUT_PORT'
+            });
+
+            const { component } = createPortDialog([connection], []);
+
+            expect(component.rows[0].source.name).toBe('Remote Output Port');
+            expect(component.rows[0].destination.name).toBe(SELECTED_PORT_NAME);
+        });
+    });
+
+    /**
      * A remote port's group is a Remote Process Group, which is navigated to as a component of the group
      * on the canvas rather than as a group that can be entered. The type carried by the navigation is the
      * ':type' segment of the resulting route, so a Process Group type here produces the wrong url.
@@ -803,9 +977,7 @@ describe('ComponentConnectionsDialog', () => {
                 destinationType: 'PROCESSOR'
             });
 
-            const { fixture, store, dialogRef } = createDialog('upstream', [connection], {
-                remoteProcessGroupIds: new Set([REMOTE_GROUP_ID])
-            });
+            const { fixture, store, dialogRef } = createDialog('upstream', [connection]);
             const dispatch = vi.spyOn(store, 'dispatch');
 
             const sourceProcessGroupCell = getCells(fixture, 'mat-column-sourceProcessGroup')[0];
@@ -839,9 +1011,7 @@ describe('ComponentConnectionsDialog', () => {
                 destinationType: 'REMOTE_INPUT_PORT'
             });
 
-            const { fixture, store, dialogRef } = createDialog('downstream', [connection], {
-                remoteProcessGroupIds: new Set([REMOTE_GROUP_ID])
-            });
+            const { fixture, store, dialogRef } = createDialog('downstream', [connection]);
             const dispatch = vi.spyOn(store, 'dispatch');
 
             const destinationProcessGroupCell = getCells(fixture, 'mat-column-destinationProcessGroup')[0];
@@ -930,20 +1100,27 @@ describe('ComponentConnectionsDialog', () => {
             expect(componentContext.query(By.css('.icon-group'))).not.toBeNull();
         });
 
-        it('treats the parent group rather than the current group as the group of the table', () => {
+        it('offers both the parent group and the group on the canvas as places to go', () => {
             const { component } = createCurrentProcessGroupDialog('upstream', [upstreamIntoCurrentGroup()]);
 
-            expect(component.isCurrentProcessGroup(PARENT_GROUP_ID)).toBeTruthy();
-            expect(component.isCurrentProcessGroup(CURRENT_GROUP_ID)).toBeFalsy();
+            expect(component.isNavigableProcessGroup(PARENT_GROUP_ID)).toBeTruthy();
+            expect(component.isNavigableProcessGroup(CURRENT_GROUP_ID)).toBeTruthy();
         });
 
-        it('renders a component in the parent group as belonging to the group of the table', () => {
-            const { fixture } = createCurrentProcessGroupDialog('upstream', [upstreamIntoCurrentGroup()]);
+        it('enters the parent group from the cell of a component that sits in it', () => {
+            const { fixture, store, dialogRef } = createCurrentProcessGroupDialog('upstream', [
+                upstreamIntoCurrentGroup()
+            ]);
+            const dispatch = vi.spyOn(store, 'dispatch');
 
             const sourceProcessGroupCell = getCells(fixture, 'mat-column-sourceProcessGroup')[0];
             expect(sourceProcessGroupCell.textContent).toContain('Parent Process Group');
-            expect(sourceProcessGroupCell.querySelector('span')).not.toBeNull();
-            expect(sourceProcessGroupCell.querySelector('a')).toBeNull();
+
+            clickCell(fixture, 'mat-column-sourceProcessGroup');
+
+            // the parent holds no component of its own to select, so it is entered instead
+            expect(dispatch).toHaveBeenCalledWith(enterProcessGroup({ request: { id: PARENT_GROUP_ID } }));
+            expect(dialogRef.close).toHaveBeenCalled();
         });
 
         it('navigates into the current process group from the upstream destination group cell', () => {
@@ -987,9 +1164,6 @@ describe('ComponentConnectionsDialog', () => {
                 })
             );
             expect(dialogRef.close).toHaveBeenCalled();
-
-            const destinationProcessGroupCell = getCells(fixture, 'mat-column-destinationProcessGroup')[0];
-            expect(destinationProcessGroupCell.querySelector('a')).toBeNull();
         });
 
         it('navigates to the port of a sibling group feeding the current process group', () => {

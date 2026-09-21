@@ -39,29 +39,20 @@
                         <ng-container matColumnDef="sourceProcessGroup">
                             <th mat-header-cell *matHeaderCellDef mat-sort-header>Source <br>Process Group</th>
                             <td mat-cell *matCellDef="let row">
-                            @if (isCurrentProcessGroup(row.source.groupId)) {
-                                <span class="component-connection-cell neutral-contrast" [matTooltip]="resolveGroupName(row.source.groupId)">
-                                    <i class="icon component-type-icon" [class]="componentIcon(processGroupType)">
-                                    </i>{{ resolveGroupName(row.source.groupId) }}
-                                </span>
-                            } @else if (isRemoteProcessGroupPort(row.source)) {
+                            @if (isNavigableProcessGroup(row.source.groupId)) {
                                 <a
                                     class="component-connection-cell neutral-contrast"
                                     [matTooltip]="resolveGroupName(row.source.groupId)"
-                                    (click)="navigateTo(row.source.groupId, dialogRequestGroupId, remoteProcessGroupType)"><i
+                                    (click)="navigateToProcessGroup(row.source)"><i
                                     class="icon component-type-icon flex-none"
-                                    [class]="componentIcon(remoteProcessGroupType)">
-                                </i>{{ resolveGroupName(row.source.groupId) }}
+                                    [class]="componentIcon(processGroupTypeOf(row.source))">
+                                    </i>{{ resolveGroupName(row.source.groupId) }}
                                 </a>
                             } @else {
-                                <a
-                                    class="component-connection-cell neutral-contrast"
-                                    [matTooltip]="resolveGroupName(row.source.groupId)"
-                                    (click)="navigateTo(row.source.groupId, dialogRequestGroupId, processGroupType)"><i
-                                    class="icon component-type-icon flex-none"
-                                    [class]="componentIcon(processGroupType)">
-                                </i>{{ resolveGroupName(row.source.groupId) }}
-                                </a>
+                                <span class="component-connection-cell neutral-contrast" [matTooltip]="resolveGroupName(row.source.groupId)">
+                                    <i class="icon component-type-icon" [class]="componentIcon(processGroupTypeOf(row.source))">
+                                    </i>{{ resolveGroupName(row.source.groupId) }}
+                                </span>
                             }
                             </td>
                         </ng-container>
@@ -69,23 +60,18 @@
                         <ng-container matColumnDef="sourceComponent">
                             <th mat-header-cell *matHeaderCellDef mat-sort-header>Source <br>Component</th>
                             <td mat-cell *matCellDef="let row">
-                            @if (row.source.name === null) {
-                                <span class="component-connection-cell neutral-contrast" [matTooltip]="row.source.id">
+                            @if (isRemoteProcessGroupPort(row.source)) {
+                                <span class="component-connection-cell neutral-contrast" [matTooltip]="componentTooltip(row.source)">
                                     <i class="icon component-type-icon" [class]="componentIcon(row.source.type)">
                                     </i>{{ formatComponentName(row.source) }}
-                                </span>
-                            } @else if (isRemoteProcessGroupPort(row.source)) {
-                                <span class="component-connection-cell neutral-contrast" [matTooltip]="row.source.name">
-                                    <i class="icon component-type-icon" [class]="componentIcon(row.source.type)">
-                                    </i>{{ row.source.name }}
                                 </span>
                             } @else {
                                 <a
                                     class="component-connection-cell neutral-contrast"
-                                    [matTooltip]="row.source.name"
+                                    [matTooltip]="componentTooltip(row.source)"
                                     (click)="navigateTo(row.source.id, row.source.groupId, row.source.type)"><i
                                     class="icon component-type-icon" [class]="componentIcon(row.source.type)">
-                                </i>{{ row.source.name }}
+                                    </i>{{ formatComponentName(row.source) }}
                                 </a>
                             }
                             </td>
@@ -111,27 +97,19 @@
                         <ng-container matColumnDef="destinationProcessGroup">
                             <th mat-header-cell *matHeaderCellDef mat-sort-header>Destination <br>Process Group</th>
                             <td mat-cell *matCellDef="let row">
-                            @if (isCurrentProcessGroup(row.destination.groupId)) {
-                                <span class="component-connection-cell neutral-contrast" [matTooltip]="resolveGroupName(row.destination.groupId)">
-                                    <i class="icon component-type-icon flex-none" [class]="componentIcon(processGroupType)">
-                                    </i>{{ resolveGroupName(row.destination.groupId) }}
-                                </span>
-                            } @else if (isRemoteProcessGroupPort(row.destination)) {
+                            @if (isNavigableProcessGroup(row.destination.groupId)) {
                                 <a
                                     class="component-connection-cell neutral-contrast"
                                     [matTooltip]="resolveGroupName(row.destination.groupId)"
-                                    (click)="navigateTo(row.destination.groupId, dialogRequestGroupId, remoteProcessGroupType)"><i
-                                    class="icon component-type-icon flex-none" [class]="componentIcon(remoteProcessGroupType)">
-                                </i>{{ resolveGroupName(row.destination.groupId) }}
+                                    (click)="navigateToProcessGroup(row.destination)"><i
+                                    class="icon component-type-icon flex-none" [class]="componentIcon(processGroupTypeOf(row.destination))">
+                                    </i>{{ resolveGroupName(row.destination.groupId) }}
                                 </a>
                             } @else {
-                                <a
-                                    class="component-connection-cell neutral-contrast"
-                                    [matTooltip]="resolveGroupName(row.destination.groupId)"
-                                    (click)="navigateTo(row.destination.groupId, dialogRequestGroupId, processGroupType)"><i
-                                    class="icon component-type-icon flex-none" [class]="componentIcon(processGroupType)">
-                                </i>{{ resolveGroupName(row.destination.groupId) }}
-                                </a>
+                                <span class="component-connection-cell neutral-contrast" [matTooltip]="resolveGroupName(row.destination.groupId)">
+                                    <i class="icon component-type-icon flex-none" [class]="componentIcon(processGroupTypeOf(row.destination))">
+                                    </i>{{ resolveGroupName(row.destination.groupId) }}
+                                </span>
                             }
                             </td>
                         </ng-container>
@@ -139,23 +117,18 @@
                         <ng-container matColumnDef="destinationComponent">
                             <th mat-header-cell *matHeaderCellDef mat-sort-header>Destination <br>Component</th>
                             <td mat-cell *matCellDef="let row">
-                            @if (row.destination.name === null) {
-                                <span class="component-connection-cell neutral-contrast" [matTooltip]="row.destination.id">
+                            @if (isRemoteProcessGroupPort(row.destination)) {
+                                <span class="component-connection-cell neutral-contrast" [matTooltip]="componentTooltip(row.destination)">
                                     <i class="icon component-type-icon" [class]="componentIcon(row.destination.type)">
                                     </i>{{ formatComponentName(row.destination) }}
-                                </span>
-                            } @else if (isRemoteProcessGroupPort(row.destination)) {
-                                <span class="component-connection-cell neutral-contrast" [matTooltip]="row.destination.name">
-                                    <i class="icon component-type-icon" [class]="componentIcon(row.destination.type)">
-                                    </i>{{ row.destination.name }}
                                 </span>
                             } @else {
                                 <a
                                     class="component-connection-cell neutral-contrast"
-                                    [matTooltip]="row.destination.name"
+                                    [matTooltip]="componentTooltip(row.destination)"
                                     (click)="navigateTo(row.destination.id, row.destination.groupId, row.destination.type)"><i
                                     class="icon component-type-icon" [class]="componentIcon(row.destination.type)">
-                                </i>{{ row.destination.name }}
+                                    </i>{{ formatComponentName(row.destination) }}
                                 </a>
                             }
                             </td>

@@ -38,6 +38,7 @@ import {
     combineLatest,
     exhaustMap,
     filter,
+    forkJoin,
     from,
     interval,
     map,
@@ -74,6 +75,7 @@ import {
     StopVersionControlResponse,
     VersionControlInformationEntity
 } from './index';
+import { buildComponentIdToNameMap, collectEndpointGroupIds } from './component-connections.utils';
 import { Position } from '../shared';
 import { Action, Store } from '@ngrx/store';
 import {
@@ -3205,6 +3207,10 @@ export class FlowEffects {
      *
      * Both resolvers read the ids on the connection entity rather than on its component, so a
      * connection the current user cannot read — the kind most worth reporting — is still matched.
+     *
+     * The flow of every other group an end of those connections lives in is loaded as well, since a
+     * connection is readable only when the current user can read both of its ends and carries no name
+     * for either one otherwise. Those flows are what report each end with its own permission.
      */
     viewComponentConnections$ = createEffect(() =>
         this.actions$.pipe(
@@ -3219,20 +3225,26 @@ export class FlowEffects {
                           connection.sourceGroupId === request.id;
 
                 return from(this.flowService.getFlow(request.groupId)).pipe(
-                    map((flowEntity: ProcessGroupFlowEntity) =>
-                        FlowActions.openComponentConnectionsDialog({
-                            request: {
-                                componentId: request.id,
-                                componentName: request.name,
-                                componentType: request.type,
-                                groupId: request.groupId,
-                                direction: request.direction,
-                                connections: flowEntity.processGroupFlow.flow.connections.filter(attachedTo),
-                                groupIdToName: this.buildProcessGroupIdToNameMap(flowEntity),
-                                remoteProcessGroupIds: this.buildRemoteProcessGroupIdSet(flowEntity)
-                            }
-                        })
-                    ),
+                    switchMap((flowEntity: ProcessGroupFlowEntity) => {
+                        const connections = flowEntity.processGroupFlow.flow.connections.filter(attachedTo);
+
+                        return this.loadEndpointGroupFlows(connections, request.groupId).pipe(
+                            map((endpointFlows: ProcessGroupFlowEntity[]) =>
+                                FlowActions.openComponentConnectionsDialog({
+                                    request: {
+                                        componentId: request.id,
+                                        componentName: request.name,
+                                        componentType: request.type,
+                                        groupId: request.groupId,
+                                        direction: request.direction,
+                                        connections,
+                                        groupIdToName: this.buildProcessGroupIdToNameMap(flowEntity),
+                                        componentIdToName: buildComponentIdToNameMap([flowEntity, ...endpointFlows])
+                                    }
+                                })
+                            )
+                        );
+                    }),
                     catchError((errorResponse: HttpErrorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
                 );
             })
@@ -3277,8 +3289,33 @@ export class FlowEffects {
         return idToName;
     }
 
-    private buildRemoteProcessGroupIdSet(flowEntity: ProcessGroupFlowEntity): Set<string> {
-        return new Set((flowEntity.processGroupFlow.flow.remoteProcessGroups ?? []).map((group) => group.id));
+    /**
+     * Loads the flow of every other group holding an end of the given connections, so that each end can
+     * be reported on its own read permission. A group the current user cannot read answers with an
+     * error, which leaves that end reported as unauthorized rather than failing the dialog.
+     *
+     * @param connections the connections being reported
+     * @param definingGroupId the group that defines them, whose flow has already been loaded
+     * @returns the flow of each of the other groups the current user can read
+     */
+    private loadEndpointGroupFlows(
+        connections: ConnectionEntity[],
+        definingGroupId: string
+    ): Observable<ProcessGroupFlowEntity[]> {
+        const groupIds = collectEndpointGroupIds(connections, definingGroupId);
+
+        if (groupIds.length === 0) {
+            return of([]);
+        }
+
+        return forkJoin(
+            groupIds.map((groupId) =>
+                from(this.flowService.getFlow(groupId)).pipe(
+                    map((flowEntity) => flowEntity as ProcessGroupFlowEntity | null),
+                    catchError(() => of(null))
+                )
+            )
+        ).pipe(map((flows) => flows.filter((flowEntity) => flowEntity !== null)));
     }
 
     showOkDialog$ = createEffect(
