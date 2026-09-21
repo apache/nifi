@@ -25,6 +25,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.vault.client.RestTemplateFactory;
+import org.springframework.vault.client.VaultClientCustomizer;
 import org.springframework.vault.config.AbstractVaultConfiguration;
 import org.springframework.vault.config.EnvironmentVaultConfiguration;
 import org.springframework.vault.core.VaultKeyValueOperationsSupport.KeyValueBackend;
@@ -69,6 +70,7 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
     private static final String HTTPS = "https";
 
     private static final String CLIENT_HTTP_REQUEST_FACTORY_WRAPPER_BEAN = "clientHttpRequestFactoryWrapper";
+    private static final String VAULT_CLIENT_CUSTOMIZER_BEAN = "vaultClientCustomizer";
 
     private final SslConfiguration sslConfiguration;
     private final ClientOptions clientOptions;
@@ -128,6 +130,12 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
 
         this.applicationContext = new HashiCorpVaultApplicationContext(env);
         this.setApplicationContext(applicationContext);
+
+        final String namespace = getNamespace();
+        if (namespace != null && !namespace.isEmpty()) {
+            final VaultClientCustomizer vaultClientCustomizer = builder -> builder.defaultNamespace(namespace);
+            applicationContext.getBeanFactory().registerSingleton(VAULT_CLIENT_CUSTOMIZER_BEAN, vaultClientCustomizer);
+        }
 
         sslConfiguration = env.getProperty(VaultConfigurationKey.URI.key).contains(HTTPS)
                 ? super.sslConfiguration() : SslConfiguration.unconfigured();
