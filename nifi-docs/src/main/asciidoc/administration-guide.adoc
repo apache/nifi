@@ -3978,8 +3978,10 @@ After migration, configure the Connector with any missing secret values before s
 
 === Cleanup after a successful migration
 
-After a successful local migration, NiFi disables the source Process Group and renames it with the `(Migrated) ` prefix.
+After a successful local migration, NiFi disables the source Process Group and renames it with the `(Decommissioned) ` prefix.
 This makes it clear that the source flow has already been used as the basis for a Connector migration.
+Process Groups finalized by earlier NiFi versions can retain the legacy `(Migrated) ` prefix.
+NiFi recognizes both prefixes as indicating a finalized migration and does not rename an already-prefixed Process Group.
 
 Uploaded payloads and migration request state are kept only in memory for the lifetime of the request.
 When the request succeeds, fails, or is cancelled, NiFi removes the uploaded payload associated with that request.

@@ -63,7 +63,9 @@ import java.util.function.BooleanSupplier;
 public class StandardConnectorMigrationManager implements ConnectorMigrationManager {
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectorMigrationManager.class);
 
-    private static final String MIGRATED_SOURCE_PREFIX = "(Migrated) ";
+    private static final String DECOMMISSIONED_SOURCE_PREFIX = "(Decommissioned) ";
+    // Earlier versions used this prefix; recognize it to keep migration finalization idempotent.
+    private static final String LEGACY_MIGRATED_SOURCE_PREFIX = "(Migrated) ";
 
     private final FlowController flowController;
     private final ConnectorFlowSnapshotProvider snapshotProvider;
@@ -649,11 +651,11 @@ public class StandardConnectorMigrationManager implements ConnectorMigrationMana
         disableSourcePorts(processGroup);
 
         final String currentName = processGroup.getName();
-        if (currentName != null && currentName.startsWith(MIGRATED_SOURCE_PREFIX)) {
+        if (currentName != null && (currentName.startsWith(DECOMMISSIONED_SOURCE_PREFIX) || currentName.startsWith(LEGACY_MIGRATED_SOURCE_PREFIX))) {
             return;
         }
 
-        processGroup.setName(MIGRATED_SOURCE_PREFIX + currentName);
+        processGroup.setName(DECOMMISSIONED_SOURCE_PREFIX + currentName);
     }
 
     private void disableSourceProcessors(final ProcessGroup processGroup) {
