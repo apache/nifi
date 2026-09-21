@@ -60,7 +60,8 @@ public class TestFetchFile {
         final File sourceFile = new File("notFound");
 
         final TestRunner runner = TestRunners.newTestRunner(new FetchFile());
-        runner.setProperty(FetchFile.FILENAME, sourceFile.getAbsolutePath());
+        runner.setEnvironmentVariableValue("filepath", sourceFile.getAbsolutePath());
+        runner.setProperty(FetchFile.FILENAME, "${filepath}");
         runner.setProperty(FetchFile.COMPLETION_STRATEGY, FetchFile.COMPLETION_NONE.getValue());
 
         runner.enqueue(new byte[0]);
