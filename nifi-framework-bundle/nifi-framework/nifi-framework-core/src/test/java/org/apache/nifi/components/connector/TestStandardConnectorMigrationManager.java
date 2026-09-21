@@ -104,7 +104,7 @@ public class TestStandardConnectorMigrationManager {
         migrationManager.migrateFromVersionedFlow(CONNECTOR_ID, SOURCE_GROUP_ID, sourceFlow);
 
         verify(connectorNode).commitMigratedConfiguration(any(ConnectorConfiguration.class));
-        verify(sourceProcessGroup).setName("(Migrated) " + SOURCE_GROUP_NAME);
+        verify(sourceProcessGroup).setName("(Decommissioned) " + SOURCE_GROUP_NAME);
     }
 
     @Test
@@ -137,36 +137,13 @@ public class TestStandardConnectorMigrationManager {
     }
 
     @Test
-    public void testRenameIsIdempotentWhenSourceAlreadyHasMigratedPrefix() throws Exception {
-        final FlowController flowController = createFlowController(1);
-        final ProcessGroup sourceProcessGroup = wireSourceProcessGroup(flowController, SOURCE_GROUP_ID, "(Migrated) " + SOURCE_GROUP_NAME);
+    public void testRenameIsIdempotentWhenSourceAlreadyHasDecommissionedPrefix() throws Exception {
+        assertRenameIsIdempotent("(Decommissioned) " + SOURCE_GROUP_NAME);
+    }
 
-        final ProcessGroup sourceParent = mock(ProcessGroup.class);
-        final ProcessorNode runningProcessor = mock(ProcessorNode.class);
-        when(runningProcessor.getDesiredState()).thenReturn(ScheduledState.RUNNING);
-        when(runningProcessor.getProcessGroup()).thenReturn(sourceParent);
-        when(sourceProcessGroup.findAllProcessors()).thenReturn(List.of(runningProcessor));
-
-        final ControllerServiceNode enabledService = mock(ControllerServiceNode.class);
-        when(enabledService.getState()).thenReturn(ControllerServiceState.ENABLED);
-        when(sourceProcessGroup.findAllControllerServices()).thenReturn(Set.of(enabledService));
-
-        final ControllerServiceProvider controllerServiceProvider = mock(ControllerServiceProvider.class);
-        when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
-
-        wireFreshConnector(flowController, CONNECTOR_ID);
-
-        final StandardConnectorMigrationManager migrationManager = newMigrationManager(flowController);
-        final VersionedExternalFlow sourceFlow = createSourceFlowWithLocalStateCount(1);
-
-        migrationManager.migrateFromVersionedFlow(CONNECTOR_ID, SOURCE_GROUP_ID, sourceFlow);
-
-        // The source already had the (Migrated) prefix from a previous attempt, so it must not be re-prefixed.
-        verify(sourceProcessGroup, never()).setName(anyString());
-
-        // Disable must still run unconditionally even when the rename was skipped.
-        verify(sourceParent).disableProcessor(runningProcessor);
-        verify(controllerServiceProvider).disableControllerServicesAsync(List.of(enabledService));
+    @Test
+    public void testRenameIsIdempotentWhenSourceAlreadyHasLegacyMigratedPrefix() throws Exception {
+        assertRenameIsIdempotent("(Migrated) " + SOURCE_GROUP_NAME);
     }
 
     @Test
@@ -939,6 +916,38 @@ public class TestStandardConnectorMigrationManager {
         when(connectorNode.getConnector()).thenReturn(connector);
         when(flowController.getConnectorRepository().getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
         return connectorNode;
+    }
+
+    private void assertRenameIsIdempotent(final String alreadyPrefixedName) throws Exception {
+        final FlowController flowController = createFlowController(1);
+        final ProcessGroup sourceProcessGroup = wireSourceProcessGroup(flowController, SOURCE_GROUP_ID, alreadyPrefixedName);
+
+        final ProcessGroup sourceParent = mock(ProcessGroup.class);
+        final ProcessorNode runningProcessor = mock(ProcessorNode.class);
+        when(runningProcessor.getDesiredState()).thenReturn(ScheduledState.RUNNING);
+        when(runningProcessor.getProcessGroup()).thenReturn(sourceParent);
+        when(sourceProcessGroup.findAllProcessors()).thenReturn(List.of(runningProcessor));
+
+        final ControllerServiceNode enabledService = mock(ControllerServiceNode.class);
+        when(enabledService.getState()).thenReturn(ControllerServiceState.ENABLED);
+        when(sourceProcessGroup.findAllControllerServices()).thenReturn(Set.of(enabledService));
+
+        final ControllerServiceProvider controllerServiceProvider = mock(ControllerServiceProvider.class);
+        when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
+
+        wireFreshConnector(flowController, CONNECTOR_ID);
+
+        final StandardConnectorMigrationManager migrationManager = newMigrationManager(flowController);
+        final VersionedExternalFlow sourceFlow = createSourceFlowWithLocalStateCount(1);
+
+        migrationManager.migrateFromVersionedFlow(CONNECTOR_ID, SOURCE_GROUP_ID, sourceFlow);
+
+        // The source already has a decommissioned or legacy migrated prefix, so it must not be re-prefixed.
+        verify(sourceProcessGroup, never()).setName(anyString());
+
+        // Disable must still run unconditionally even when the rename was skipped.
+        verify(sourceParent).disableProcessor(runningProcessor);
+        verify(controllerServiceProvider).disableControllerServicesAsync(List.of(enabledService));
     }
 
     /**

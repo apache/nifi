@@ -253,7 +253,7 @@ public abstract class AbstractConnectorVersionedFlowMigrationIT extends NiFiSyst
 
     protected void assertSourceRenamedAndDisabled(final SourceFixture sourceFixture, final String originalName) throws NiFiClientException, IOException {
         final ProcessGroupEntity migratedSourceGroup = getNifiClient().getProcessGroupClient().getProcessGroup(sourceFixture.processGroup().getId());
-        assertEquals("(Migrated) " + originalName, migratedSourceGroup.getComponent().getName());
+        assertEquals("(Decommissioned) " + originalName, migratedSourceGroup.getComponent().getName());
 
         final ProcessGroupFlowEntity migratedSourceFlow = getNifiClient().getFlowClient().getProcessGroup(sourceFixture.processGroup().getId());
         for (final ProcessorEntity sourceProcessor : migratedSourceFlow.getProcessGroupFlow().getFlow().getProcessors()) {
