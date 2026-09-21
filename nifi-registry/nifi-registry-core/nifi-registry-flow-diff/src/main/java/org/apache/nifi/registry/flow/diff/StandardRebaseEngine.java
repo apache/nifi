@@ -77,7 +77,7 @@ public class StandardRebaseEngine implements RebaseEngine {
             for (final RebaseAnalysis.ClassifiedDifference classified : classifiedChanges) {
                 final RebaseHandler handler = handlerRegistry.get(classified.getDifference().getDifferenceType());
                 if (handler != null) {
-                    handler.apply(classified.getDifference(), mergedSnapshot);
+                    handler.apply(classified, mergedSnapshot);
                 }
             }
         }

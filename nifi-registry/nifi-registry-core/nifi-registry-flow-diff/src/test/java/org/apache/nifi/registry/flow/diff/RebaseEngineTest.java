@@ -232,7 +232,6 @@ class RebaseEngineTest {
 
         final VersionedProcessGroup targetRoot = new VersionedProcessGroup();
         targetRoot.setIdentifier(TARGET_ROOT_ID);
-        targetRoot.setInstanceIdentifier(VERSION_N_ROOT_ID);
         targetRoot.setName("Root");
 
         final RebaseAnalysis analysis = engine.analyze(localDifferences, Collections.emptySet(), targetRoot);

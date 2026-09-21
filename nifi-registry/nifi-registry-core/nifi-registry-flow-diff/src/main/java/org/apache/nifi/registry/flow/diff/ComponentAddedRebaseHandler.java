@@ -49,7 +49,7 @@ public class ComponentAddedRebaseHandler implements RebaseHandler {
                     "Controller Service %s does not specify a parent Process Group".formatted(controllerService.getIdentifier()));
         }
 
-        final VersionedProcessGroup parentGroup = RebaseHandlerUtils.findProcessGroupById(targetSnapshot, parentGroupIdentifier);
+        final VersionedProcessGroup parentGroup = resolveParentGroup(targetSnapshot, parentGroupIdentifier, upstreamDifferences);
         if (parentGroup == null) {
             return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.COMPONENT_NOT_FOUND,
                     "Parent Process Group %s for Controller Service %s not found in target snapshot"
@@ -63,16 +63,30 @@ public class ComponentAddedRebaseHandler implements RebaseHandler {
                             .formatted(collidingComponent.getClass().getSimpleName(), controllerService.getIdentifier()));
         }
 
-        return RebaseAnalysis.ClassifiedDifference.compatible(localDifference);
+        return RebaseAnalysis.ClassifiedDifference.compatible(localDifference, parentGroup.getIdentifier());
     }
 
     @Override
     public void apply(final FlowDifference localDifference, final VersionedProcessGroup mergedFlow) {
         final VersionedControllerService controllerService = (VersionedControllerService) localDifference.getComponentB();
         final VersionedProcessGroup parentGroup = RebaseHandlerUtils.findProcessGroupById(mergedFlow, controllerService.getGroupIdentifier());
+        apply(localDifference, mergedFlow, parentGroup, controllerService.getGroupIdentifier());
+    }
+
+    @Override
+    public void apply(final RebaseAnalysis.ClassifiedDifference classifiedDifference, final VersionedProcessGroup mergedFlow) {
+        final FlowDifference localDifference = classifiedDifference.getDifference();
+        final String parentGroupIdentifier = (String) classifiedDifference.getContext();
+        final VersionedProcessGroup parentGroup = RebaseHandlerUtils.findProcessGroupById(mergedFlow, parentGroupIdentifier);
+        apply(localDifference, mergedFlow, parentGroup, parentGroupIdentifier);
+    }
+
+    private void apply(final FlowDifference localDifference, final VersionedProcessGroup mergedFlow, final VersionedProcessGroup parentGroup,
+                       final String parentGroupIdentifier) {
+        final VersionedControllerService controllerService = (VersionedControllerService) localDifference.getComponentB();
         if (parentGroup == null) {
             throw new IllegalStateException("Parent Process Group %s for Controller Service %s was verified during classification but is absent during apply"
-                    .formatted(controllerService.getGroupIdentifier(), controllerService.getIdentifier()));
+                    .formatted(parentGroupIdentifier, controllerService.getIdentifier()));
         }
 
         controllerService.setGroupIdentifier(parentGroup.getIdentifier());
@@ -88,6 +102,23 @@ public class ComponentAddedRebaseHandler implements RebaseHandler {
             parentGroup.setControllerServices(new HashSet<>());
         }
         parentGroup.getControllerServices().add(controllerService);
+    }
+
+    private VersionedProcessGroup resolveParentGroup(final VersionedProcessGroup targetSnapshot, final String parentGroupIdentifier,
+                                                     final Set<FlowDifference> upstreamDifferences) {
+        final VersionedProcessGroup parentGroup = RebaseHandlerUtils.findProcessGroupById(targetSnapshot, parentGroupIdentifier);
+        if (parentGroup != null) {
+            return parentGroup;
+        }
+
+        final boolean parentRemoved = upstreamDifferences.stream()
+                .filter(difference -> difference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED)
+                .map(FlowDifference::getComponentA)
+                .filter(VersionedProcessGroup.class::isInstance)
+                .map(VersionedComponent::getIdentifier)
+                .anyMatch(parentGroupIdentifier::equals);
+
+        return parentRemoved ? null : targetSnapshot;
     }
 
 }

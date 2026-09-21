@@ -65,17 +65,28 @@ public class RebaseAnalysis {
         private final RebaseClassification classification;
         private final RebaseConflictCode conflictCode;
         private final String conflictDetail;
+        private final Object context;
 
         public ClassifiedDifference(final FlowDifference difference, final RebaseClassification classification,
                                     final RebaseConflictCode conflictCode, final String conflictDetail) {
+            this(difference, classification, conflictCode, conflictDetail, null);
+        }
+
+        public ClassifiedDifference(final FlowDifference difference, final RebaseClassification classification,
+                                    final RebaseConflictCode conflictCode, final String conflictDetail, final Object context) {
             this.difference = Objects.requireNonNull(difference, "Difference is required");
             this.classification = Objects.requireNonNull(classification, "Classification is required");
             this.conflictCode = conflictCode;
             this.conflictDetail = conflictDetail;
+            this.context = context;
         }
 
         public static ClassifiedDifference compatible(final FlowDifference difference) {
             return new ClassifiedDifference(difference, RebaseClassification.COMPATIBLE, null, null);
+        }
+
+        public static ClassifiedDifference compatible(final FlowDifference difference, final Object context) {
+            return new ClassifiedDifference(difference, RebaseClassification.COMPATIBLE, null, null, context);
         }
 
         public static ClassifiedDifference conflicting(final FlowDifference difference, final RebaseConflictCode conflictCode, final String conflictDetail) {
@@ -100,6 +111,10 @@ public class RebaseAnalysis {
 
         public String getConflictDetail() {
             return conflictDetail;
+        }
+
+        public Object getContext() {
+            return context;
         }
     }
 }
