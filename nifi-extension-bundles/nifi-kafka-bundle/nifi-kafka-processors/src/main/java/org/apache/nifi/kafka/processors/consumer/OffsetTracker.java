@@ -24,11 +24,14 @@ import org.apache.nifi.kafka.service.api.record.ByteRecord;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class OffsetTracker {
     private final Map<TopicPartitionSummary, OffsetSummary> offsets = new HashMap<>();
     private final Map<String, Long> recordCounts = new HashMap<>();
+    private final Map<TopicPartitionSummary, Long> partitionRecords = new HashMap<>();
+    private final Map<TopicPartitionSummary, Long> partitionBytes = new HashMap<>();
     private final AtomicLong totalRecordSize = new AtomicLong();
 
     public void update(final ByteRecord consumerRecord) {
@@ -36,13 +39,19 @@ public class OffsetTracker {
         final long offset = consumerRecord.getOffset();
         final OffsetSummary offsetSummary = offsets.computeIfAbsent(topicPartitionSummary, (summary) -> new OffsetSummary(offset));
         offsetSummary.setOffset(offset);
-        recordCounts.merge(consumerRecord.getTopic(), consumerRecord.getBundledCount(), Long::sum);
 
-        // Update Total Record Size with Key and Value length
-        consumerRecord.getKey()
-                .map(key -> key.length)
-                .ifPresent(totalRecordSize::addAndGet);
-        totalRecordSize.addAndGet(consumerRecord.getValue().length);
+        final long bundledCount = consumerRecord.getBundledCount();
+        recordCounts.merge(consumerRecord.getTopic(), bundledCount, Long::sum);
+        partitionRecords.merge(topicPartitionSummary, bundledCount, Long::sum);
+
+        long recordSize = consumerRecord.getValue().length;
+        final Optional<byte[]> key = consumerRecord.getKey();
+        if (key.isPresent()) {
+            recordSize += key.get().length;
+        }
+
+        totalRecordSize.addAndGet(recordSize);
+        partitionBytes.merge(topicPartitionSummary, recordSize, Long::sum);
     }
 
     public long getTotalRecordSize() {
@@ -51,6 +60,14 @@ public class OffsetTracker {
 
     public Map<String, Long> getRecordCounts() {
         return recordCounts;
+    }
+
+    public Map<TopicPartitionSummary, Long> getPartitionRecords() {
+        return partitionRecords;
+    }
+
+    public Map<TopicPartitionSummary, Long> getPartitionBytes() {
+        return partitionBytes;
     }
 
     public PollingSummary getPollingSummary(final PollingContext pollingContext) {
@@ -68,6 +85,8 @@ public class OffsetTracker {
     public void clear() {
         offsets.clear();
         recordCounts.clear();
+        partitionRecords.clear();
+        partitionBytes.clear();
         totalRecordSize.set(0);
     }
 }

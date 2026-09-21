@@ -17,12 +17,16 @@
 package org.apache.nifi.kafka.processors.consumer.convert;
 
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.kafka.processors.consumer.KafkaMetricName;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.metrics.CommitTiming;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -42,6 +46,8 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -49,6 +55,11 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 class RecordStreamKafkaMessageConverterTest {
+
+    private static final String FIRST_TOPIC = "topic1";
+    private static final String SECOND_TOPIC = "topic2";
+    private static final int FIRST_PARTITION = 0;
+    private static final String BROKER_URI = "brokerUri";
 
     private final RecordSetWriterFactory writerFactory = mock(RecordSetWriterFactory.class, withSettings().defaultAnswer(Answers.RETURNS_DEEP_STUBS));
     private final ComponentLog logger = mock(ComponentLog.class);
@@ -78,17 +89,17 @@ class RecordStreamKafkaMessageConverterTest {
                 true,
                 offsetTracker,
                 logger,
-                "brokerUri",
-                new CreateNewFlowFileGrouping(writerFactory, logger, "brokerUri", true)
+                BROKER_URI,
+                new CreateNewFlowFileGrouping(writerFactory, logger, BROKER_URI, true)
         );
 
         // Create ByteRecords
-        final ByteRecord group1Record1 = new ByteRecord("topic1", 0, 0, 1000L, List.of(), null, "value1".getBytes(), 0L);
-        final ByteRecord group1Record2 = new ByteRecord("topic1", 0, 3, 500L, List.of(), null, "value4".getBytes(), 0L);
+        final ByteRecord group1Record1 = new ByteRecord(FIRST_TOPIC, 0, 0, 1000L, List.of(), null, "value1".getBytes(), 0L);
+        final ByteRecord group1Record2 = new ByteRecord(FIRST_TOPIC, 0, 3, 500L, List.of(), null, "value4".getBytes(), 0L);
 
-        final ByteRecord group2 = new ByteRecord("topic1", 1, 1, 2000L, List.of(), null, "value2".getBytes(), 0L);
+        final ByteRecord group2 = new ByteRecord(FIRST_TOPIC, 1, 1, 2000L, List.of(), null, "value2".getBytes(), 0L);
 
-        final ByteRecord group3 = new ByteRecord("topic2", 0, 2, 3000L, List.of(), null, "value3".getBytes(), 0L);
+        final ByteRecord group3 = new ByteRecord(SECOND_TOPIC, 0, 2, 3000L, List.of(), null, "value3".getBytes(), 0L);
 
         final Iterator<ByteRecord> consumerRecords = List.of(group1Record1, group2, group3, group1Record2).iterator();
         // Mock the session.create() and session.write() methods
@@ -109,18 +120,18 @@ class RecordStreamKafkaMessageConverterTest {
         final List<Map<String, String>> capturedAttributes = attributesCaptor.getAllValues();
 
         // check group1 records
-        assertEquals("topic1", capturedAttributes.get(0).get(KafkaFlowFileAttribute.KAFKA_TOPIC));
+        assertEquals(FIRST_TOPIC, capturedAttributes.get(0).get(KafkaFlowFileAttribute.KAFKA_TOPIC));
         assertEquals("0", capturedAttributes.get(0).get(KafkaFlowFileAttribute.KAFKA_PARTITION));
 
-        assertEquals("topic1", capturedAttributes.get(3).get(KafkaFlowFileAttribute.KAFKA_TOPIC));
+        assertEquals(FIRST_TOPIC, capturedAttributes.get(3).get(KafkaFlowFileAttribute.KAFKA_TOPIC));
         assertEquals("0", capturedAttributes.get(3).get(KafkaFlowFileAttribute.KAFKA_PARTITION));
 
         //check group2 records
-        assertEquals("topic1", capturedAttributes.get(1).get(KafkaFlowFileAttribute.KAFKA_TOPIC));
+        assertEquals(FIRST_TOPIC, capturedAttributes.get(1).get(KafkaFlowFileAttribute.KAFKA_TOPIC));
         assertEquals("1", capturedAttributes.get(1).get(KafkaFlowFileAttribute.KAFKA_PARTITION));
 
         //check group3 records
-        assertEquals("topic2", capturedAttributes.get(2).get(KafkaFlowFileAttribute.KAFKA_TOPIC));
+        assertEquals(SECOND_TOPIC, capturedAttributes.get(2).get(KafkaFlowFileAttribute.KAFKA_TOPIC));
         assertEquals("0", capturedAttributes.get(2).get(KafkaFlowFileAttribute.KAFKA_PARTITION));
 
         final List<String> timestamps = capturedAttributes.stream()
@@ -130,5 +141,39 @@ class RecordStreamKafkaMessageConverterTest {
         assertTrue(timestamps.contains("500"), "Expected timestamp from group1Record2");
         assertTrue(timestamps.contains("2000"), "Expected timestamp from group2");
         assertTrue(timestamps.contains("3000"), "Expected timestamp from group3");
+    }
+
+    @Test
+    void testParseFailureIncrementsParseErrorCounterImmediately() throws Exception {
+        final RecordReaderFactory readerFactory = mock(RecordReaderFactory.class);
+        when(readerFactory.createRecordReader(any(), any(), anyLong(), any()))
+                .thenThrow(new MalformedRecordException("invalid record"));
+
+        final FlowFile flowFile = new MockFlowFile(1);
+        when(session.create()).thenReturn(flowFile);
+        when(session.putAllAttributes(any(FlowFile.class), any())).thenReturn(flowFile);
+        when(session.write(any(FlowFile.class))).thenReturn(mock(OutputStream.class));
+
+        final RecordStreamKafkaMessageConverter converter = new RecordStreamKafkaMessageConverter(
+                readerFactory,
+                writerFactory,
+                value -> new String(value, StandardCharsets.UTF_8),
+                Pattern.compile(".*"),
+                KeyEncoding.UTF8,
+                true,
+                offsetTracker,
+                logger,
+                BROKER_URI,
+                new CreateNewFlowFileGrouping(writerFactory, logger, BROKER_URI, true)
+        );
+
+        final ByteRecord consumerRecord = new ByteRecord(FIRST_TOPIC, FIRST_PARTITION, 0, 1000L, List.of(), null, "invalid".getBytes(StandardCharsets.UTF_8), 1L);
+        converter.toFlowFiles(session, List.of(consumerRecord).iterator());
+
+        verify(session).adjustCounter(eq(KafkaMetricName.RECORDS_PARSED_ERRORS.getMetricName()), eq(1L),
+                eq(Map.of(
+                        KafkaFlowFileAttribute.KAFKA_TOPIC, FIRST_TOPIC,
+                        KafkaFlowFileAttribute.KAFKA_PARTITION, Integer.toString(FIRST_PARTITION))),
+                eq(CommitTiming.NOW));
     }
 }
