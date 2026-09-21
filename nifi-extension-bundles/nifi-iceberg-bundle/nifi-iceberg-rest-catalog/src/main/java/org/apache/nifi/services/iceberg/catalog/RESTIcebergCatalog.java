@@ -277,10 +277,12 @@ public class RESTIcebergCatalog extends AbstractControllerService implements Ice
                 final String clientSecret = context.getProperty(CLIENT_SECRET).getValue();
                 final String clientCredentials = CLIENT_CREDENTIALS_FORMAT.formatted(clientId, clientSecret);
                 properties.put(OAuth2Properties.CREDENTIAL, clientCredentials);
+                // Token Exchange disabled to force requests for new Access Token using Client Credentials
+                properties.put(OAuth2Properties.TOKEN_EXCHANGE_ENABLED, Boolean.FALSE.toString());
             }
         }
 
-        final RESTClientProvider restClientProvider = new StandardRESTClientProvider(getLogger());
+        final RESTClientProvider restClientProvider = new StandardRESTClientProvider();
         final IcebergFileIOProvider icebergFileIoProvider = context.getProperty(FILE_IO_PROVIDER).asControllerService(IcebergFileIOProvider.class);
         return getSessionCatalog(restClientProvider::build, icebergFileIoProvider, properties);
     }

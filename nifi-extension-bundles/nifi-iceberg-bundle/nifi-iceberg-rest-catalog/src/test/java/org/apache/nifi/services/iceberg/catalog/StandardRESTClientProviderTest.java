@@ -17,10 +17,9 @@
 package org.apache.nifi.services.iceberg.catalog;
 
 import org.apache.iceberg.CatalogProperties;
+import org.apache.iceberg.rest.HTTPClient;
 import org.apache.iceberg.rest.RESTClient;
 import org.apache.iceberg.rest.auth.OAuth2Properties;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -34,9 +33,7 @@ class StandardRESTClientProviderTest {
 
     private static final String CLIENT_CREDENTIALS = "CLIENT_ID:CLIENT_SECRET";
 
-    private static final ComponentLog COMPONENT_LOG = new MockComponentLog(StandardRESTClientProvider.class.getName(), StandardRESTClientProvider.class);
-
-    private final StandardRESTClientProvider provider = new StandardRESTClientProvider(COMPONENT_LOG);
+    private final StandardRESTClientProvider provider = new StandardRESTClientProvider();
 
     @Test
     void testBuild() {
@@ -45,6 +42,7 @@ class StandardRESTClientProviderTest {
         final RESTClient restClient = provider.build(properties);
 
         assertNotNull(restClient);
+        assertInstanceOf(HTTPClient.class, restClient);
     }
 
     @Test
@@ -57,6 +55,7 @@ class StandardRESTClientProviderTest {
         final RESTClient restClient = provider.build(properties);
 
         assertNotNull(restClient);
+        assertInstanceOf(HTTPClient.class, restClient);
     }
 
     @Test
@@ -68,7 +67,6 @@ class StandardRESTClientProviderTest {
 
         final RESTClient restClient = provider.build(properties);
 
-        assertNotNull(restClient);
-        assertInstanceOf(CredentialsRefreshRESTClient.class, restClient);
+        assertInstanceOf(HTTPClient.class, restClient);
     }
 }
