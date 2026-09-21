@@ -28,4 +28,8 @@ public interface RebaseHandler {
     RebaseAnalysis.ClassifiedDifference classify(FlowDifference localDifference, Set<FlowDifference> upstreamDifferences, VersionedProcessGroup targetSnapshot);
 
     void apply(FlowDifference localDifference, VersionedProcessGroup mergedFlow);
+
+    default void apply(final RebaseAnalysis.ClassifiedDifference classifiedDifference, final VersionedProcessGroup mergedFlow) {
+        apply(classifiedDifference.getDifference(), mergedFlow);
+    }
 }
