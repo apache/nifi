@@ -18,11 +18,13 @@ package org.apache.nifi.controller;
 
 import org.apache.nifi.controller.flow.FlowManager;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,17 +36,20 @@ import static org.mockito.Mockito.verify;
 class FlowControllerRegistrySynchronizationLifecycleTest {
 
     @Test
-    void testScheduleAndSubmitUseSameRegistrySynchronizationTaskInstance() {
+    void testScheduleAndSubmitPostInitializationRegistrySynchronization() {
         final FlowManager flowManager = mock(FlowManager.class);
         final ScheduledExecutorService timerDrivenEngine = mock(ScheduledExecutorService.class);
         final ProcessScheduler processScheduler = mock(ProcessScheduler.class);
 
         final RegistryFlowSynchronizationTask registrySynchronizationTask = FlowController.scheduleRegistrySynchronizationTask(timerDrivenEngine, flowManager, 1800L, 30L);
 
-        assertDoesNotThrow(() -> FlowController.submitPostInitializationRegistrySynchronizationTask(processScheduler, registrySynchronizationTask, () -> false));
+        final Runnable postInitializationSynchronization = registrySynchronizationTask::synchronizeAllProcessGroups;
+        assertDoesNotThrow(() -> FlowController.submitPostInitializationRegistrySynchronizationTask(processScheduler, postInitializationSynchronization, () -> false));
 
         verify(timerDrivenEngine).scheduleWithFixedDelay(same(registrySynchronizationTask), eq(300L), eq(30L), eq(TimeUnit.SECONDS));
-        verify(processScheduler).submitFrameworkTask(same(registrySynchronizationTask));
+        final ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(processScheduler).submitFrameworkTask(runnableCaptor.capture());
+        assertNotSame(registrySynchronizationTask, runnableCaptor.getValue());
     }
 
     @Test
