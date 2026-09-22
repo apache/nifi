@@ -20,6 +20,8 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
@@ -42,8 +44,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,6 +59,9 @@ import java.util.concurrent.atomic.AtomicReference;
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("This processor creates FlowFiles with random data or custom content. GenerateFlowFile is useful" +
         " for load testing, configuration, and simulation." + " Also see DuplicateFlowFile for additional load testing.")
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "When Unique FlowFiles is false and Custom Text is not configured, "
+        + "the generated content is retained in memory while the Processor is scheduled. This intentional tradeoff avoids regenerating identical "
+        + "content for every FlowFile and provides higher throughput for load testing.")
 @DynamicProperty(name = "Generated FlowFile attribute name", value = "Generated FlowFile attribute value",
         expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
         description = "Specifies an attribute on generated FlowFiles defined by the Dynamic Property's key and value." +
@@ -69,9 +72,9 @@ import java.util.concurrent.atomic.AtomicReference;
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class GenerateFlowFile extends AbstractProcessor {
 
-    private static final int BUFFER_SIZE = 8192;
-
-    private final AtomicReference<GeneratedData> generatedData = new AtomicReference<>();
+    // Retaining the full non-unique payload is intentional. GenerateFlowFile is a load-testing processor, and caching avoids
+    // spending CPU to regenerate identical content for every FlowFile. The memory requirement is documented above.
+    private final AtomicReference<byte[]> data = new AtomicReference<>();
 
     public static final String DATA_FORMAT_BINARY = "Binary";
     public static final String DATA_FORMAT_TEXT = "Text";
@@ -100,8 +103,8 @@ public class GenerateFlowFile extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor UNIQUE_FLOWFILES = new PropertyDescriptor.Builder()
             .name("Unique FlowFiles")
-            .description("If true, each FlowFile that is generated will be unique. If false, all generated FlowFiles will have the same content. "
-                    + "When Unique FlowFiles is false, the first FlowFile in a batch is written and additional FlowFiles clone that content.")
+            .description("If true, each FlowFile that is generated will be unique. If false, a random value will be generated and all FlowFiles "
+                    + "will get the same content but this offers much higher throughput")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -173,10 +176,10 @@ public class GenerateFlowFile extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        if (context.getProperty(UNIQUE_FLOWFILES).asBoolean() || context.getProperty(CUSTOM_TEXT).isSet()) {
-            generatedData.set(null);
-        } else {
-            generatedData.set(getGeneratedData(context));
+        if (context.getProperty(UNIQUE_FLOWFILES).asBoolean()) {
+            this.data.set(null);
+        } else if (!context.getProperty(CUSTOM_TEXT).isSet()) {
+            this.data.set(generateData(context));
         }
     }
 
@@ -195,44 +198,45 @@ public class GenerateFlowFile extends AbstractProcessor {
         return results;
     }
 
-    private GeneratedData getGeneratedData(final ProcessContext context) {
-        final long byteCount = context.getProperty(FILE_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).longValue();
-        final boolean binary = context.getProperty(DATA_FORMAT).getValue().equals(DATA_FORMAT_BINARY);
-        return new GeneratedData(byteCount, binary, new Random().nextLong());
+    private byte[] generateData(final ProcessContext context) {
+        final int byteCount = context.getProperty(FILE_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).intValue();
+
+        final Random random = new Random();
+        final byte[] array = new byte[byteCount];
+        if (context.getProperty(DATA_FORMAT).getValue().equals(DATA_FORMAT_BINARY)) {
+            random.nextBytes(array);
+        } else {
+            for (int i = 0; i < array.length; i++) {
+                final int index = random.nextInt(TEXT_CHARS.length);
+                array[i] = (byte) TEXT_CHARS[index];
+            }
+        }
+
+        return array;
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
+        final byte[] data;
         final boolean uniqueData = context.getProperty(UNIQUE_FLOWFILES).asBoolean();
-        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
-        final Map<String, String> generatedAttributes = getGeneratedAttributes(context);
-
         if (uniqueData) {
-            for (int i = 0; i < batchSize; i++) {
-                session.transfer(createGeneratedFlowFile(session, getGeneratedData(context), generatedAttributes), SUCCESS);
-            }
-            return;
-        }
-
-        final FlowFile first;
-        if (context.getProperty(CUSTOM_TEXT).isSet()) {
-            first = createCustomTextFlowFile(context, session, generatedAttributes);
+            data = new byte[0];
         } else {
-            first = createGeneratedFlowFile(session, generatedData.get(), generatedAttributes);
+            if (context.getProperty(CUSTOM_TEXT).isSet()) {
+                final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+                data = context.getProperty(CUSTOM_TEXT).evaluateAttributeExpressions().getValue().getBytes(charset);
+            } else {
+                data = this.data.get();
+            }
         }
 
-        for (int i = 1; i < batchSize; i++) {
-            session.transfer(session.clone(first), SUCCESS);
-        }
-        session.transfer(first, SUCCESS);
-    }
-
-    private Map<String, String> getGeneratedAttributes(final ProcessContext context) {
-        final Map<String, String> generatedAttributes = new HashMap<>();
-        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-            final PropertyDescriptor property = entry.getKey();
+        Map<PropertyDescriptor, String> processorProperties = context.getProperties();
+        Map<String, String> generatedAttributes = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : processorProperties.entrySet()) {
+            PropertyDescriptor property = entry.getKey();
             if (property.isDynamic() && property.isExpressionLanguageSupported()) {
-                generatedAttributes.put(property.getName(), context.getProperty(property).evaluateAttributeExpressions().getValue());
+                String dynamicValue = context.getProperty(property).evaluateAttributeExpressions().getValue();
+                generatedAttributes.put(property.getName(), dynamicValue);
             }
         }
 
@@ -240,53 +244,17 @@ public class GenerateFlowFile extends AbstractProcessor {
             generatedAttributes.put(CoreAttributes.MIME_TYPE.key(), context.getProperty(MIME_TYPE).getValue());
         }
 
-        return generatedAttributes;
-    }
-
-    private FlowFile createCustomTextFlowFile(final ProcessContext context, final ProcessSession session, final Map<String, String> generatedAttributes) {
-        final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
-        final byte[] customData = context.getProperty(CUSTOM_TEXT).evaluateAttributeExpressions().getValue().getBytes(charset);
-        FlowFile flowFile = session.create();
-        if (customData.length > 0) {
-            flowFile = session.write(flowFile, out -> out.write(customData));
-        }
-        return finishCreatedFlowFile(session, flowFile, generatedAttributes);
-    }
-
-    private FlowFile createGeneratedFlowFile(final ProcessSession session, final GeneratedData data, final Map<String, String> generatedAttributes) {
-        FlowFile flowFile = session.create();
-        if (data.byteCount() > 0) {
-            flowFile = session.write(flowFile, out -> writeGeneratedData(out, data));
-        }
-        return finishCreatedFlowFile(session, flowFile, generatedAttributes);
-    }
-
-    private FlowFile finishCreatedFlowFile(final ProcessSession session, FlowFile flowFile, final Map<String, String> generatedAttributes) {
-        flowFile = session.putAllAttributes(flowFile, generatedAttributes);
-        session.getProvenanceReporter().create(flowFile);
-        return flowFile;
-    }
-
-    private static void writeGeneratedData(final OutputStream outputStream, final GeneratedData generatedData) throws IOException {
-        final Random random = new Random(generatedData.seed());
-        final byte[] buffer = new byte[(int) Math.min(BUFFER_SIZE, generatedData.byteCount())];
-        long remaining = generatedData.byteCount();
-
-        while (remaining > 0) {
-            final int length = (int) Math.min(buffer.length, remaining);
-            if (generatedData.binary()) {
-                random.nextBytes(buffer);
-            } else {
-                for (int i = 0; i < length; i++) {
-                    buffer[i] = (byte) TEXT_CHARS[random.nextInt(TEXT_CHARS.length)];
-                }
+        for (int i = 0; i < context.getProperty(BATCH_SIZE).asInteger(); i++) {
+            FlowFile flowFile = session.create();
+            final byte[] writtenData = uniqueData ? generateData(context) : data;
+            if (writtenData.length > 0) {
+                flowFile = session.write(flowFile, out -> out.write(writtenData));
             }
-            outputStream.write(buffer, 0, length);
-            remaining -= length;
-        }
-    }
+            flowFile = session.putAllAttributes(flowFile, generatedAttributes);
 
-    private record GeneratedData(long byteCount, boolean binary, long seed) {
+            session.getProvenanceReporter().create(flowFile);
+            session.transfer(flowFile, SUCCESS);
+        }
     }
 
     @Override
