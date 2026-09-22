@@ -81,7 +81,7 @@ public class StateBackedStoreService extends AbstractControllerService implement
     }
 
     @Override
-    public synchronized void append(final String row) {
+    public void append(final String row) {
         try {
             final StateManager stateManager = getStateManager();
             final Map<String, String> state = new HashMap<>(stateManager.getState(Scope.LOCAL).toMap());

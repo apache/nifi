@@ -19,6 +19,7 @@ package org.apache.nifi.processors.tests.system;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.cs.tests.system.StateBackedStoreService;
 import org.apache.nifi.cs.tests.system.StoreService;
@@ -34,11 +35,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Post-upgrade shape of a processor whose property migration creates the store Controller Service
- * that the pre-upgrade shape did not have. Each execution appends a row to the store so that tests
- * can observe whether store contents survive flow and runtime upgrades.
- */
+@CapabilityDescription("""
+        Post-upgrade shape of a processor whose property migration creates the store Controller Service that the pre-upgrade shape did not have.
+        Each execution appends a row to the store so that tests can observe whether store contents survive flow and runtime upgrades.
+        """)
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 public class MigrateToControllerService extends AbstractProcessor {
 

@@ -19,6 +19,7 @@ package org.apache.nifi.processors.tests.system;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -30,11 +31,10 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Pre-upgrade shape of a processor that keeps its store location in a plain property.
- * The post-upgrade shape of the same processor, in the alternate-config extensions bundle,
- * migrates that property into a Controller Service.
- */
+@CapabilityDescription("""
+        Pre-upgrade shape of a processor that keeps its store location in a plain property.
+        The post-upgrade shape of the same processor, in the alternate-config extensions bundle, migrates that property into a Controller Service.
+        """)
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 public class MigrateToControllerService extends AbstractProcessor {
 

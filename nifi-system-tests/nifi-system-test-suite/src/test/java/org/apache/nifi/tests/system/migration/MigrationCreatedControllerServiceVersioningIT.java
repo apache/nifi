@@ -19,9 +19,9 @@ package org.apache.nifi.tests.system.migration;
 
 import org.apache.nifi.migration.StandardControllerServiceFactory;
 import org.apache.nifi.tests.system.AbstractNarSwapMigrationIT;
-import org.apache.nifi.tests.system.ExceptionalBooleanSupplier;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.StateEntryDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -34,8 +34,6 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,10 +41,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Verifies that a Controller Service created by property migration survives the operations a deployed flow goes
@@ -58,7 +54,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * declares the service, so the flow relies entirely on property migration to create it, and the later version only
  * adds an unrelated processor.
  */
-public class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSwapMigrationIT {
+class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSwapMigrationIT {
     private static final String TEST_FLOWS_BUCKET = "test-flows";
     private static final String SERVICE_DECLARED_FLOW_ID = "11111111-2222-3333-4444-555555555555";
     private static final String SERVICE_ABSENT_FLOW_ID = "22222222-3333-4444-5555-666666666666";
@@ -71,15 +67,14 @@ public class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSw
     private static final String VERSIONED_FLOWS_DIRECTORY = "src/test/resources/versioned-flows";
     private static final String CREATED_STATE_KEY = "created";
     private static final String ROW_COUNT_STATE_KEY = "rowCount";
-    private static final Duration CONDITION_TIMEOUT = Duration.ofSeconds(30);
-    private static final Duration CONDITION_POLL = Duration.ofMillis(100);
+    private static final long CONDITION_POLL_MILLIS = 100L;
 
     /**
      * After the runtime is upgraded, the Controller Service that property migration creates must be present,
      * enabled and referenced, and the flow that was running before the upgrade must be running again, with no manual action.
      */
     @Test
-    public void testRuntimeUpgradeCreatesEnabledServiceAndKeepsFlowRunning() throws NiFiClientException, IOException, InterruptedException {
+    void testRuntimeUpgradeCreatesEnabledServiceAndKeepsFlowRunning() throws NiFiClientException, IOException, InterruptedException {
         final MigratedFlow flow = importAndUpgradeRuntime(SERVICE_DECLARED_FLOW_ID);
         final ControllerServiceEntity service = waitForSingleStoreService(flow.groupId());
         final String serviceId = service.getComponent().getId();
@@ -88,17 +83,16 @@ public class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSw
         assertBelongsToLocalFlowOnly(service);
         getClientUtil().waitForControllerServiceRunStatus(serviceId, "ENABLED");
         getClientUtil().waitForRunningProcessor(flow.processorId());
-        assertEquals(serviceId, getStoreServiceId(flow.processorId()));
 
-        final Collection<String> validationErrors = getNifiClient().getProcessorClient().getProcessor(flow.processorId()).getComponent().getValidationErrors();
-        final boolean processorValid = validationErrors == null || validationErrors.isEmpty();
-        assertTrue(processorValid, "Processor must be valid after the runtime upgrade");
+        final String referencedServiceId = getStoreServiceId(flow.processorId());
+        assertEquals(serviceId, referencedServiceId);
 
-        waitForCondition(() -> countRows(serviceId) > 0, "store row count > 0");
+        final String validationStatus = getNifiClient().getProcessorClient().getProcessor(flow.processorId()).getComponent().getValidationStatus();
+        assertEquals(ProcessorDTO.VALID, validationStatus);
 
-        final String versionedFlowState = getClientUtil().getVersionedFlowState(flow.groupId(), "root");
-        assertNotEquals("LOCALLY_MODIFIED", versionedFlowState, "The migration-created Controller Service must not make the flow dirty");
-        assertNotEquals("LOCALLY_MODIFIED_AND_STALE", versionedFlowState, "The migration-created Controller Service must not make the flow dirty");
+        waitFor(() -> countRows(serviceId) > 0, CONDITION_POLL_MILLIS, "store row count > 0");
+
+        getClientUtil().assertFlowStaleAndUnmodified(flow.groupId());
 
         final boolean serviceReportedAsLocalModification = getNifiClient().getProcessGroupClient().getLocalModifications(flow.groupId())
                 .getComponentDifferences().stream()
@@ -111,7 +105,7 @@ public class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSw
      * property migration already created, rather than removing it and substituting the one the published version declares.
      */
     @Test
-    public void testFlowUpgradePreservesMigrationCreatedControllerService() throws NiFiClientException, IOException, InterruptedException {
+    void testFlowUpgradePreservesMigrationCreatedControllerService() throws NiFiClientException, IOException, InterruptedException {
         final MigratedFlow flow = importAndUpgradeRuntime(SERVICE_DECLARED_FLOW_ID);
         final MigratedStore store = awaitPopulatedStoreService(flow);
         assertBelongsToLocalFlowOnly(waitForSingleStoreService(flow.groupId()));
@@ -122,12 +116,13 @@ public class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSw
         getClientUtil().assertFlowUpToDate(flow.groupId());
 
         final ControllerServiceEntity serviceAfterUpgrade = waitForSingleStoreService(flow.groupId());
-        assertEquals(DECLARED_SERVICE_VERSIONED_ID, serviceAfterUpgrade.getComponent().getVersionedComponentId(),
-                "The service must track the Controller Service that version 2 declares, instead of belonging to the local flow only");
-        assertEquals("", serviceAfterUpgrade.getComponent().getComments(),
-                "Comments must come from version 2 once the service tracks the declared Controller Service");
-        assertNull(upgradeRequest.getRequest().getFailureReason(),
-                "The migration-created Controller Service must not prevent the versioned flow from upgrading");
+        final String versionedComponentId = serviceAfterUpgrade.getComponent().getVersionedComponentId();
+        assertEquals(DECLARED_SERVICE_VERSIONED_ID, versionedComponentId);
+
+        final String comments = serviceAfterUpgrade.getComponent().getComments();
+        assertTrue(comments.isEmpty());
+
+        assertNull(upgradeRequest.getRequest().getFailureReason());
     }
 
     /**
@@ -136,13 +131,14 @@ public class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSw
      * processor untouched, must not disturb the service: the version change has nothing to say about it.
      */
     @Test
-    public void testFlowUpgradeAddingUnrelatedProcessorPreservesMigrationCreatedControllerService() throws NiFiClientException, IOException, InterruptedException {
+    void testFlowUpgradeAddingUnrelatedProcessorPreservesMigrationCreatedControllerService() throws NiFiClientException, IOException, InterruptedException {
         final MigratedFlow flow = importAndUpgradeRuntime(SERVICE_ABSENT_FLOW_ID);
         final MigratedStore store = awaitPopulatedStoreService(flow);
 
         final VersionedFlowUpdateRequestEntity upgradeRequest = getClientUtil().changeFlowVersion(flow.groupId(), "2", false);
 
-        assertTrue(hasProcessorNamed(flow.groupId(), ADDED_PROCESSOR_NAME), "The upgrade must have added the unrelated processor");
+        final boolean addedProcessorPresent = hasProcessorNamed(flow.groupId(), ADDED_PROCESSOR_NAME);
+        assertTrue(addedProcessorPresent, "unrelated processor not added by upgrade");
 
         assertStorePreserved(flow, store, "flow upgrade");
         getClientUtil().assertFlowUpToDate(flow.groupId());
@@ -150,8 +146,7 @@ public class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSw
         final ControllerServiceEntity serviceAfterUpgrade = waitForSingleStoreService(flow.groupId());
         assertBelongsToLocalFlowOnly(serviceAfterUpgrade);
         assertEquals(StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT, serviceAfterUpgrade.getComponent().getComments());
-        assertNull(upgradeRequest.getRequest().getFailureReason(),
-                "The migration-created Controller Service must not prevent the versioned flow from upgrading");
+        assertNull(upgradeRequest.getRequest().getFailureReason());
     }
 
     /**
@@ -159,7 +154,7 @@ public class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSw
      * created previously rather than creating a second one.
      */
     @Test
-    public void testRuntimeRestartDoesNotRecreateMigrationCreatedControllerService() throws NiFiClientException, IOException, InterruptedException {
+    void testRuntimeRestartDoesNotRecreateMigrationCreatedControllerService() throws NiFiClientException, IOException, InterruptedException {
         final MigratedFlow flow = importAndUpgradeRuntime(SERVICE_DECLARED_FLOW_ID);
         final MigratedStore store = awaitPopulatedStoreService(flow);
 
@@ -170,12 +165,6 @@ public class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSw
         assertBelongsToLocalFlowOnly(waitForSingleStoreService(flow.groupId()));
     }
 
-    /**
-     * Asserts that the given Controller Service has no counterpart in the flow definition. Such a service either
-     * carries no versioned component id at all, or carries the placeholder that the framework derives from its own
-     * instance id while mapping the group. A service that tracks a Controller Service declared by the flow definition
-     * carries the identifier from the definition instead.
-     */
     private void assertBelongsToLocalFlowOnly(final ControllerServiceEntity service) {
         final String versionedComponentId = service.getComponent().getVersionedComponentId();
         if (versionedComponentId == null) {
@@ -183,8 +172,7 @@ public class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSw
         }
 
         final String derivedFromInstanceId = UUID.nameUUIDFromBytes(service.getComponent().getId().getBytes(StandardCharsets.UTF_8)).toString();
-        assertEquals(derivedFromInstanceId, versionedComponentId,
-                "The service tracks a Controller Service declared by the flow definition, so it no longer belongs to the local flow only");
+        assertEquals(derivedFromInstanceId, versionedComponentId, "versioned component id not derived from instance id");
     }
 
     /**
@@ -213,44 +201,34 @@ public class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSw
         final ControllerServiceEntity service = waitForSingleStoreService(flow.groupId());
         final String serviceId = service.getComponent().getId();
         getClientUtil().waitForControllerServiceRunStatus(serviceId, "ENABLED");
-        waitForCondition(() -> countRows(serviceId) > 0, "store row count > 0");
+        waitFor(() -> countRows(serviceId) > 0, CONDITION_POLL_MILLIS, "store row count > 0");
 
         return new MigratedStore(serviceId, readCreatedTimestamp(flow, serviceId));
     }
 
-    /**
-     * Asserts that the given operation left the migration-created Controller Service in place and the flow working.
-     *
-     * Two independent properties are checked. An unchanged creation timestamp proves the service was never torn down,
-     * since removing a Controller Service clears its state and a replacement records a new timestamp. A row count that
-     * keeps climbing afterwards proves the flow is doing work again, which a RUNNING state alone does not show: a
-     * processor whose Controller Service reference is broken still reports RUNNING while writing nothing.
-     *
-     * The store is read through the service the processor references now rather than the one recorded earlier, so
-     * that a service substituted by the operation is detected rather than silently passing.
-     */
     private void assertStorePreserved(final MigratedFlow flow, final MigratedStore store, final String operation)
             throws NiFiClientException, IOException, InterruptedException {
 
-        waitForCondition(() -> !findStoreServices(flow.groupId()).isEmpty(), "store Controller Service found");
+        waitFor(() -> !findStoreServices(flow.groupId()).isEmpty(), CONDITION_POLL_MILLIS, "store Controller Service found");
 
         final List<ControllerServiceEntity> servicesAfter = findControllerServicesInGroup(flow.groupId());
-        assertEquals(1, servicesAfter.size(),
-                "The " + operation + " left " + servicesAfter.size() + " Controller Services in the group, so one was created alongside the migration-created one");
+        assertEquals(1, servicesAfter.size(), operation);
 
         final ControllerServiceEntity serviceAfter = servicesAfter.getFirst();
-        assertEquals(store.serviceId(), serviceAfter.getComponent().getId(),
-                "The " + operation + " replaced the migration-created Controller Service with a different one");
-        assertEquals(store.serviceId(), getStoreServiceId(flow.processorId()));
+        final String remainingServiceId = serviceAfter.getComponent().getId();
+        assertEquals(store.serviceId(), remainingServiceId, operation + " replaced the Controller Service");
+
+        final String referencedServiceId = getStoreServiceId(flow.processorId());
+        assertEquals(store.serviceId(), referencedServiceId);
 
         getClientUtil().waitForControllerServiceRunStatus(store.serviceId(), "ENABLED");
         getClientUtil().waitForRunningProcessor(flow.processorId());
 
-        assertEquals(store.created(), readCreatedTimestamp(flow, store.serviceId()),
-                "The migration-created Controller Service was removed during the " + operation + ": its store was created again, so the state it held is gone");
+        final String createdTimestamp = readCreatedTimestamp(flow, store.serviceId());
+        assertEquals(store.created(), createdTimestamp, "store was recreated during " + operation);
 
         final long rowsAfterOperation = countRows(getStoreServiceId(flow.processorId()));
-        waitForCondition(() -> countRows(getStoreServiceId(flow.processorId())) > rowsAfterOperation, "store row count increase");
+        waitFor(() -> countRows(getStoreServiceId(flow.processorId())) > rowsAfterOperation, CONDITION_POLL_MILLIS, "store row count increase");
     }
 
 
@@ -285,7 +263,7 @@ public class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSw
     }
 
     private ControllerServiceEntity waitForSingleStoreService(final String groupId) throws NiFiClientException, IOException, InterruptedException {
-        waitForCondition(() -> findStoreServices(groupId).size() == 1, "exactly one store Controller Service");
+        waitFor(() -> findStoreServices(groupId).size() == 1, CONDITION_POLL_MILLIS, "exactly one store Controller Service");
         return findStoreServices(groupId).getFirst();
     }
 
@@ -331,29 +309,6 @@ public class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSw
     private long countRows(final String serviceId) throws NiFiClientException, IOException {
         final String rowCount = readStoreState(serviceId).get(ROW_COUNT_STATE_KEY);
         return rowCount == null ? 0 : Long.parseLong(rowCount);
-    }
-
-    /**
-     * Polls the given condition until it holds, failing the test once the timeout elapses. Conditions query a NiFi that
-     * may still be starting up or replacing components, so a failing query is treated as the condition not holding yet.
-     */
-    private void waitForCondition(final ExceptionalBooleanSupplier condition, final String conditionDescription) throws InterruptedException {
-        final long deadline = System.nanoTime() + CONDITION_TIMEOUT.toNanos();
-
-        while (System.nanoTime() < deadline) {
-            try {
-                if (condition.getAsBoolean()) {
-                    return;
-                }
-            } catch (final InterruptedException ie) {
-                throw ie;
-            } catch (final Exception ignored) {
-            }
-
-            Thread.sleep(CONDITION_POLL);
-        }
-
-        fail("Timed out after " + CONDITION_TIMEOUT + " waiting for " + conditionDescription);
     }
 
     private record MigratedFlow(String groupId, String processorId) {

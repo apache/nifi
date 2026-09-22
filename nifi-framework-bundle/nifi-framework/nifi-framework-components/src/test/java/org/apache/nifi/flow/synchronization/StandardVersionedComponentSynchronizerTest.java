@@ -569,13 +569,13 @@ public class StandardVersionedComponentSynchronizerTest {
     public void testUserAddedControllerServiceRemovedWhenAbsentFromProposedFlow() {
         final ProcessGroup processGroup = createMockProcessGroup();
 
-        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name("abc").build();
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name(PARAM_ABC).build();
         final ControllerServiceNode serviceNode = createMockControllerService();
         when(serviceNode.getComments()).thenReturn("Added by a user");
         when(serviceNode.getName()).thenReturn("name");
         when(serviceNode.getCanonicalClassName()).thenReturn("ControllerServiceImpl");
-        when(serviceNode.getProperties()).thenReturn(Map.of(descriptor, new PropertyConfiguration("123", null, null, null)));
-        when(serviceNode.getRawPropertyValues()).thenReturn(Map.of(descriptor, "123"));
+        when(serviceNode.getProperties()).thenReturn(Map.of(descriptor, new PropertyConfiguration(VALUE_123, null, null, null)));
+        when(serviceNode.getRawPropertyValues()).thenReturn(Map.of(descriptor, VALUE_123));
         when(serviceNode.getVersionedComponentId()).thenReturn(Optional.empty());
         when(processGroup.getControllerServices(false)).thenReturn(Set.of(serviceNode));
 
@@ -595,19 +595,26 @@ public class StandardVersionedComponentSynchronizerTest {
     @Nested
     class MigrationCreatedControllerService {
 
+        private static final String STORE_SERVICE_PROPERTY = "Store Service";
+        private static final String STORE_NAME_PROPERTY = "Store Name";
+        private static final String STORE_NAME = "store";
+        private static final String PROCESSOR_VERSIONED_ID = "processor-versioned-id";
+        private static final String DECLARED_SERVICE_VERSIONED_ID = "declared-service-versioned-id";
+        private static final String INNER_SERVICE_VERSIONED_ID = "inner-service-versioned-id";
+
         @Test
-        public void doesNotRemoveWhenProposedFlowDeclaresUnrelatedService() {
+        void doesNotRemoveWhenProposedFlowDeclaresUnrelatedService() {
             final ProcessGroup processGroup = createMockProcessGroup();
 
-            final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name("abc").build();
+            final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name(STORE_NAME_PROPERTY).build();
 
             final ControllerServiceNode localOnlyService = createMockControllerService();
             when(localOnlyService.getComments()).thenReturn(StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT);
             when(localOnlyService.getName()).thenReturn("ServiceName");
             when(localOnlyService.getCanonicalClassName()).thenReturn("ServiceType");
             when(localOnlyService.getBundleCoordinate()).thenReturn(bundleCoordinate);
-            when(localOnlyService.getProperties()).thenReturn(Map.of(descriptor, new PropertyConfiguration("123", null, null, null)));
-            when(localOnlyService.getRawPropertyValues()).thenReturn(Map.of(descriptor, "123"));
+            when(localOnlyService.getProperties()).thenReturn(Map.of(descriptor, new PropertyConfiguration(STORE_NAME, null, null, null)));
+            when(localOnlyService.getRawPropertyValues()).thenReturn(Map.of(descriptor, STORE_NAME));
             when(localOnlyService.getState()).thenReturn(ControllerServiceState.DISABLED);
             trackVersionedComponentId(localOnlyService);
 
@@ -621,7 +628,7 @@ public class StandardVersionedComponentSynchronizerTest {
         }
 
         @Test
-        public void assignsProposedVersionedIdWithoutCreatingDuplicate() {
+        void assignsProposedVersionedIdWithoutCreatingDuplicate() {
             final MigrationCreatedMatchSetup setup = newMigrationCreatedMatchSetup();
 
             synchronizeMigrationMatch(setup);
@@ -634,7 +641,7 @@ public class StandardVersionedComponentSynchronizerTest {
         }
 
         @Test
-        public void doesNotAssignWhenReferencedByMultipleComponents() {
+        void doesNotAssignWhenReferencedByMultipleComponents() {
             final MigrationCreatedMatchSetup setup = newMigrationCreatedMatchSetup();
 
             final ProcessorNode additionalReferencer = createMappableProcessor(setup.processGroup());
@@ -648,7 +655,7 @@ public class StandardVersionedComponentSynchronizerTest {
         }
 
         @Test
-        public void doesNotAssignWhenProposedServiceTypeDiffers() {
+        void doesNotAssignWhenProposedServiceTypeDiffers() {
             final MigrationCreatedMatchSetup setup = newMigrationCreatedMatchSetup();
             when(setup.localService().getCanonicalClassName()).thenReturn("org.apache.nifi.cs.DifferentService");
 
@@ -660,11 +667,11 @@ public class StandardVersionedComponentSynchronizerTest {
         }
 
         @Test
-        public void assignsNestedServicesWhenInnerListedBeforeOuter() {
+        void assignsNestedServicesWhenInnerListedBeforeOuter() {
             final MigrationCreatedMatchSetup outer = newMigrationCreatedMatchSetup();
 
             final VersionedControllerService proposedInnerService = createMinimalVersionedControllerService();
-            proposedInnerService.setIdentifier("inner-service-versioned-id");
+            proposedInnerService.setIdentifier(INNER_SERVICE_VERSIONED_ID);
 
             final ControllerServiceNode innerService = createMockControllerService();
             stubMigrationCreatedService(innerService, proposedInnerService);
@@ -672,8 +679,8 @@ public class StandardVersionedComponentSynchronizerTest {
             setReferences(innerService, outer.localService());
             when(outer.processGroup().findControllerService(eq(innerService.getIdentifier()), anyBoolean(), anyBoolean())).thenReturn(innerService);
 
-            outer.proposedService().setProperties(Map.of("Store Service", proposedInnerService.getIdentifier()));
-            outer.proposedService().setPropertyDescriptors(Map.of("Store Service", storeServiceVersionedDescriptor()));
+            outer.proposedService().setProperties(Map.of(STORE_SERVICE_PROPERTY, proposedInnerService.getIdentifier()));
+            outer.proposedService().setPropertyDescriptors(Map.of(STORE_SERVICE_PROPERTY, storeServiceVersionedDescriptor()));
 
             final Set<ControllerServiceNode> localServices = new LinkedHashSet<>();
             localServices.add(innerService);
@@ -689,7 +696,7 @@ public class StandardVersionedComponentSynchronizerTest {
         }
 
         @Test
-        public void doesNotAssignWhenProposedVersionedIdAlreadyUsed() {
+        void doesNotAssignWhenProposedVersionedIdAlreadyUsed() {
             final MigrationCreatedMatchSetup setup = newMigrationCreatedMatchSetup();
 
             final ControllerServiceNode existingService = createMockControllerService();
@@ -708,7 +715,7 @@ public class StandardVersionedComponentSynchronizerTest {
             final ProcessGroup processGroup = createMockProcessGroup();
 
             final VersionedControllerService proposedService = createMinimalVersionedControllerService();
-            proposedService.setIdentifier("declared-service-versioned-id");
+            proposedService.setIdentifier(DECLARED_SERVICE_VERSIONED_ID);
 
             final PropertyDescriptor storeServiceDescriptor = storeServicePropertyDescriptor();
 
@@ -717,7 +724,7 @@ public class StandardVersionedComponentSynchronizerTest {
             stubMigrationCreatedService(localService, proposedService);
 
             final ProcessorNode processor = createMappableProcessor(processGroup);
-            when(processor.getVersionedComponentId()).thenReturn(Optional.of("processor-versioned-id"));
+            when(processor.getVersionedComponentId()).thenReturn(Optional.of(PROCESSOR_VERSIONED_ID));
             stubControllerServiceReferenceProperty(processor, storeServiceDescriptor, localServiceId);
             setReferences(localService, processor);
 
@@ -726,9 +733,9 @@ public class StandardVersionedComponentSynchronizerTest {
             when(processGroup.findControllerService(eq(localServiceId), anyBoolean(), anyBoolean())).thenReturn(localService);
 
             final VersionedProcessor proposedProcessor = createMinimalVersionedProcessor();
-            proposedProcessor.setIdentifier("processor-versioned-id");
-            proposedProcessor.setProperties(Map.of("Store Service", proposedService.getIdentifier()));
-            proposedProcessor.setPropertyDescriptors(Map.of("Store Service", storeServiceVersionedDescriptor()));
+            proposedProcessor.setIdentifier(PROCESSOR_VERSIONED_ID);
+            proposedProcessor.setProperties(Map.of(STORE_SERVICE_PROPERTY, proposedService.getIdentifier()));
+            proposedProcessor.setPropertyDescriptors(Map.of(STORE_SERVICE_PROPERTY, storeServiceVersionedDescriptor()));
 
             return new MigrationCreatedMatchSetup(processGroup, localService, processor, proposedService, proposedProcessor);
         }
@@ -761,14 +768,14 @@ public class StandardVersionedComponentSynchronizerTest {
 
         private PropertyDescriptor storeServicePropertyDescriptor() {
             return new PropertyDescriptor.Builder()
-                    .name("Store Service")
+                    .name(STORE_SERVICE_PROPERTY)
                     .identifiesControllerService(ControllerService.class)
                     .build();
         }
 
         private VersionedPropertyDescriptor storeServiceVersionedDescriptor() {
             final VersionedPropertyDescriptor proposedDescriptor = new VersionedPropertyDescriptor();
-            proposedDescriptor.setName("Store Service");
+            proposedDescriptor.setName(STORE_SERVICE_PROPERTY);
             proposedDescriptor.setIdentifiesControllerService(true);
             return proposedDescriptor;
         }
@@ -776,9 +783,9 @@ public class StandardVersionedComponentSynchronizerTest {
         private void stubControllerServiceListedInFlow(final ControllerServiceNode localService, final VersionedControllerService proposed) {
             when(localService.getCanonicalClassName()).thenReturn(proposed.getType());
             when(localService.getName()).thenReturn(proposed.getName());
-            when(localService.getProperties()).thenReturn(Map.of(new PropertyDescriptor.Builder().name("abc").build(),
-                    new PropertyConfiguration("123", null, null, null)));
-            when(localService.getRawPropertyValues()).thenReturn(Map.of(new PropertyDescriptor.Builder().name("abc").build(), "123"));
+            when(localService.getProperties()).thenReturn(Map.of(new PropertyDescriptor.Builder().name(STORE_NAME_PROPERTY).build(),
+                    new PropertyConfiguration(STORE_NAME, null, null, null)));
+            when(localService.getRawPropertyValues()).thenReturn(Map.of(new PropertyDescriptor.Builder().name(STORE_NAME_PROPERTY).build(), STORE_NAME));
         }
 
         private void stubMigrationCreatedService(final ControllerServiceNode localService, final VersionedControllerService proposed) {
