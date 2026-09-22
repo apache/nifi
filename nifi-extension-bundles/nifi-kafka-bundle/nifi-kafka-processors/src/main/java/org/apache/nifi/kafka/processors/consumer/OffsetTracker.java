@@ -42,7 +42,6 @@ public class OffsetTracker {
 
         final long bundledCount = consumerRecord.getBundledCount();
         recordCounts.merge(consumerRecord.getTopic(), bundledCount, Long::sum);
-        partitionRecords.merge(topicPartitionSummary, bundledCount, Long::sum);
 
         long recordSize = consumerRecord.getValue().length;
         final Optional<byte[]> key = consumerRecord.getKey();
@@ -51,7 +50,11 @@ public class OffsetTracker {
         }
 
         totalRecordSize.addAndGet(recordSize);
-        partitionBytes.merge(topicPartitionSummary, recordSize, Long::sum);
+    }
+
+    public void recordConsumed(final TopicPartitionSummary topicPartition, final long records, final long bytes) {
+        partitionRecords.merge(topicPartition, records, Long::sum);
+        partitionBytes.merge(topicPartition, bytes, Long::sum);
     }
 
     public long getTotalRecordSize() {

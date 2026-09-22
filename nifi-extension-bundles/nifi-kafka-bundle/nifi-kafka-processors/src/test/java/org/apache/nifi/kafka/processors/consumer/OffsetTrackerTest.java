@@ -35,11 +35,18 @@ class OffsetTrackerTest {
     private static final byte[] RECORD_KEY = "key".getBytes(StandardCharsets.UTF_8);
     private static final byte[] FIRST_VALUE = "alpha".getBytes(StandardCharsets.UTF_8);
     private static final byte[] SECOND_VALUE = "beta".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] FIRST_KEY = "k1".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] SECOND_KEY = "k2".getBytes(StandardCharsets.UTF_8);
     private static final long SECOND_TOPIC_BUNDLED_COUNT = 3L;
+    private static final byte[] NEWLINE_DEMARCATOR = new byte[]{10};
 
     @Test
     void testUpdateAggregatesRecordsAndBytesByPartition() {
         final OffsetTracker offsetTracker = new OffsetTracker();
+        recordConsumed(offsetTracker, newByteRecord(FIRST_TOPIC, FIRST_PARTITION, RECORD_KEY, FIRST_VALUE, 1));
+        recordConsumed(offsetTracker, newByteRecord(FIRST_TOPIC, FIRST_PARTITION, null, SECOND_VALUE, 1));
+        recordConsumed(offsetTracker, newByteRecord(FIRST_TOPIC, SECOND_PARTITION, RECORD_KEY, FIRST_VALUE, 1));
+        recordConsumed(offsetTracker, newByteRecord(SECOND_TOPIC, FIRST_PARTITION, null, SECOND_VALUE, SECOND_TOPIC_BUNDLED_COUNT));
         offsetTracker.update(newByteRecord(FIRST_TOPIC, FIRST_PARTITION, RECORD_KEY, FIRST_VALUE, 1));
         offsetTracker.update(newByteRecord(FIRST_TOPIC, FIRST_PARTITION, null, SECOND_VALUE, 1));
         offsetTracker.update(newByteRecord(FIRST_TOPIC, SECOND_PARTITION, RECORD_KEY, FIRST_VALUE, 1));
@@ -68,8 +75,31 @@ class OffsetTrackerTest {
     }
 
     @Test
+    void testRecordConsumedKeepsOriginalBytesWhenUpdateSeesBundledRecord() {
+        final OffsetTracker offsetTracker = new OffsetTracker();
+        final ByteRecord firstRecord = newByteRecord(FIRST_TOPIC, FIRST_PARTITION, FIRST_KEY, FIRST_VALUE, 1);
+        final ByteRecord secondRecord = newByteRecord(FIRST_TOPIC, FIRST_PARTITION, SECOND_KEY, SECOND_VALUE, 1);
+        final TopicPartitionSummary topicPartition = new TopicPartitionSummary(FIRST_TOPIC, FIRST_PARTITION);
+        final long originalBytes = FIRST_KEY.length + FIRST_VALUE.length + SECOND_KEY.length + SECOND_VALUE.length;
+
+        recordConsumed(offsetTracker, firstRecord);
+        recordConsumed(offsetTracker, secondRecord);
+
+        final byte[] bundledValue = new byte[FIRST_VALUE.length + NEWLINE_DEMARCATOR.length + SECOND_VALUE.length];
+        System.arraycopy(FIRST_VALUE, 0, bundledValue, 0, FIRST_VALUE.length);
+        System.arraycopy(NEWLINE_DEMARCATOR, 0, bundledValue, FIRST_VALUE.length, NEWLINE_DEMARCATOR.length);
+        System.arraycopy(SECOND_VALUE, 0, bundledValue, FIRST_VALUE.length + NEWLINE_DEMARCATOR.length, SECOND_VALUE.length);
+        offsetTracker.update(newByteRecord(FIRST_TOPIC, FIRST_PARTITION, null, bundledValue, 2));
+
+        assertEquals(2L, offsetTracker.getPartitionRecords().get(topicPartition));
+        assertEquals(originalBytes, offsetTracker.getPartitionBytes().get(topicPartition));
+        assertEquals(bundledValue.length, offsetTracker.getTotalRecordSize());
+    }
+
+    @Test
     void testClearRemovesPartitionAggregates() {
         final OffsetTracker offsetTracker = new OffsetTracker();
+        recordConsumed(offsetTracker, newByteRecord(FIRST_TOPIC, FIRST_PARTITION, RECORD_KEY, FIRST_VALUE, 2));
         offsetTracker.update(newByteRecord(FIRST_TOPIC, FIRST_PARTITION, RECORD_KEY, FIRST_VALUE, 2));
 
         offsetTracker.clear();
@@ -78,6 +108,21 @@ class OffsetTrackerTest {
         assertTrue(offsetTracker.getPartitionBytes().isEmpty());
         assertTrue(offsetTracker.getRecordCounts().isEmpty());
         assertEquals(0L, offsetTracker.getTotalRecordSize());
+    }
+
+    private static void recordConsumed(final OffsetTracker offsetTracker, final ByteRecord consumerRecord) {
+        offsetTracker.recordConsumed(
+                new TopicPartitionSummary(consumerRecord.getTopic(), consumerRecord.getPartition()),
+                consumerRecord.getBundledCount(),
+                consumedBytes(consumerRecord));
+    }
+
+    private static long consumedBytes(final ByteRecord consumerRecord) {
+        long recordSize = consumerRecord.getValue().length;
+        if (consumerRecord.getKey().isPresent()) {
+            recordSize += consumerRecord.getKey().get().length;
+        }
+        return recordSize;
     }
 
     private static ByteRecord newByteRecord(final String topic, final int partition, final byte[] key, final byte[] value, final long bundledCount) {

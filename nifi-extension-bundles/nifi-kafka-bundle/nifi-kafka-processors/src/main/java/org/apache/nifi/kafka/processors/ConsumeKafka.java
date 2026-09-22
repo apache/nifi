@@ -505,7 +505,9 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                         break;
                     }
 
-                    final TopicPartitionScanningIterator consumerRecords = new TopicPartitionScanningIterator(consumerService.poll(maxWaitDuration).iterator());
+                    final TopicPartitionScanningIterator consumerRecords = new TopicPartitionScanningIterator(
+                            consumerService.poll(maxWaitDuration).iterator(), offsetTracker
+                    );
                     if (!consumerRecords.hasNext()) {
                         getLogger().trace("No Kafka Records consumed: {}", pollingContext);
                         // Check if a rebalance occurred during poll - if so, break to commit what we have
@@ -998,11 +1000,13 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     static class TopicPartitionScanningIterator implements Iterator<ByteRecord> {
         private final Iterator<ByteRecord> iterator;
+        private final OffsetTracker offsetTracker;
         private final Set<TopicPartitionSummary> topicPartitionSummaries = new HashSet<>();
         private TopicPartitionSummary lastTopicPartition;
 
-        TopicPartitionScanningIterator(final Iterator<ByteRecord> iterator) {
+        TopicPartitionScanningIterator(final Iterator<ByteRecord> iterator, final OffsetTracker offsetTracker) {
             this.iterator = iterator;
+            this.offsetTracker = offsetTracker;
         }
 
         @Override
@@ -1013,12 +1017,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         @Override
         public ByteRecord next() {
             final ByteRecord record = iterator.next();
-            if (isNewTopicPartition(record)) {
-                final TopicPartitionSummary summary = new TopicPartitionSummary(record.getTopic(), record.getPartition());
-                topicPartitionSummaries.add(summary);
-                lastTopicPartition = summary;
-            }
-
+            final TopicPartitionSummary topicPartition = topicPartition(record);
+            offsetTracker.recordConsumed(topicPartition, record.getBundledCount(), consumedBytes(record));
             return record;
         }
 
@@ -1026,10 +1026,28 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             return topicPartitionSummaries;
         }
 
+        private TopicPartitionSummary topicPartition(final ByteRecord record) {
+            if (isNewTopicPartition(record)) {
+                final TopicPartitionSummary summary = new TopicPartitionSummary(record.getTopic(), record.getPartition());
+                topicPartitionSummaries.add(summary);
+                lastTopicPartition = summary;
+            }
+            return lastTopicPartition;
+        }
+
         private boolean isNewTopicPartition(final ByteRecord record) {
             return lastTopicPartition == null
                     || !lastTopicPartition.getTopic().equals(record.getTopic())
                     || lastTopicPartition.getPartition() != record.getPartition();
+        }
+
+        private static long consumedBytes(final ByteRecord record) {
+            long recordSize = record.getValue().length;
+            final Optional<byte[]> key = record.getKey();
+            if (key.isPresent()) {
+                recordSize += key.get().length;
+            }
+            return recordSize;
         }
     }
 

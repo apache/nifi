@@ -20,6 +20,7 @@ import org.apache.nifi.components.Backlog;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.kafka.processors.consumer.KafkaMetricName;
+import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
 import org.apache.nifi.kafka.service.api.KafkaConnectionService;
 import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
@@ -39,6 +40,7 @@ import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +54,7 @@ import static org.apache.nifi.kafka.processors.ConsumeKafka.GROUP_ID;
 import static org.apache.nifi.kafka.processors.ConsumeKafka.TOPICS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -75,7 +78,13 @@ class ConsumeKafkaTest {
 
     private static final byte[] SECOND_RECORD_VALUE = "beta".getBytes(StandardCharsets.UTF_8);
 
+    private static final byte[] SECOND_RECORD_KEY = "k2".getBytes(StandardCharsets.UTF_8);
+
     private static final long FIRST_RECORD_BYTES = FIRST_RECORD_KEY.length + FIRST_RECORD_VALUE.length;
+
+    private static final long SECOND_RECORD_BYTES = SECOND_RECORD_KEY.length + SECOND_RECORD_VALUE.length;
+
+    private static final String RECORD_DEMARCATOR = "\n";
 
     private static final long FIRST_PARTITION_LAG = 4L;
 
@@ -324,6 +333,36 @@ class ConsumeKafkaTest {
         assertEquals(1L, runner.getCounterValue(KafkaMetricName.RECORDS_CONSUMED.getMetricName(), firstAttributes));
         assertEquals(FIRST_RECORD_BYTES, runner.getCounterValue(KafkaMetricName.BYTES_CONSUMED.getMetricName(), firstAttributes));
         runner.assertTransferCount(ConsumeKafka.SUCCESS, 0);
+    }
+
+    @Test
+    public void testOnTriggerDemarcatorRecordsOriginalKafkaBytes() throws InitializationException {
+        setConnectionService();
+        configureProcessor();
+        runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.DEMARCATOR);
+        runner.setProperty(ConsumeKafka.MESSAGE_DEMARCATOR, RECORD_DEMARCATOR);
+        when(kafkaConnectionService.getBrokerUri()).thenReturn(BROKER_URI);
+        when(kafkaConnectionService.getConsumerService(any())).thenReturn(kafkaConsumerService);
+
+        final ByteRecord firstRecord = new ByteRecord(TEST_TOPIC_NAME, FIRST_PARTITION, 0, 0L, new ArrayList<>(), FIRST_RECORD_KEY, FIRST_RECORD_VALUE, 1);
+        final ByteRecord secondRecord = new ByteRecord(TEST_TOPIC_NAME, FIRST_PARTITION, 1, 0L, new ArrayList<>(), SECOND_RECORD_KEY, SECOND_RECORD_VALUE, 1);
+        when(kafkaConsumerService.poll(any(Duration.class))).thenReturn(List.of(firstRecord, secondRecord)).thenReturn(List.of());
+
+        final TopicPartitionSummary firstPartition = new TopicPartitionSummary(TEST_TOPIC_NAME, FIRST_PARTITION);
+        when(kafkaConsumerService.currentLag(firstPartition)).thenReturn(OptionalLong.of(FIRST_PARTITION_LAG));
+
+        runner.run();
+
+        final Map<String, String> firstAttributes = topicPartitionAttributes(TEST_TOPIC_NAME, FIRST_PARTITION);
+        final long originalKafkaBytes = FIRST_RECORD_BYTES + SECOND_RECORD_BYTES;
+        final long bundledFlowFileBytes = FIRST_RECORD_VALUE.length
+                + RECORD_DEMARCATOR.getBytes(StandardCharsets.UTF_8).length
+                + SECOND_RECORD_VALUE.length;
+
+        assertEquals(2L, runner.getCounterValue(KafkaMetricName.RECORDS_CONSUMED.getMetricName(), firstAttributes));
+        assertEquals(originalKafkaBytes, runner.getCounterValue(KafkaMetricName.BYTES_CONSUMED.getMetricName(), firstAttributes));
+        assertNotEquals(bundledFlowFileBytes, originalKafkaBytes);
+        runner.assertTransferCount(ConsumeKafka.SUCCESS, 1);
     }
 
     private void configureProcessor() {
