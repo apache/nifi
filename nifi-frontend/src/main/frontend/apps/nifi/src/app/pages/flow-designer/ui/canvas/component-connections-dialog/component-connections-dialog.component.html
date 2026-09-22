@@ -17,14 +17,13 @@
 
 <h2 mat-dialog-title>{{ title }}</h2>
 <mat-dialog-content>
-<!--    <div class="flex flex-col gap-y-4">-->
-    <div class="dialog-content flex flex-col h-full">
+    <div class="dialog-content flex flex-col h-full gap-y-2">
         <component-context
             [type]="componentType"
             [name]="componentName"
             [id]="componentId"></component-context>
         @if (rows.length === 0) {
-            <div class="neutral-contrast">{{ emptyMessage }}</div>
+            <div class="unset">{{ emptyMessage }}</div>
         } @else {
             <div class="listing-table component-connections-table flex-1 relative">
                 <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
