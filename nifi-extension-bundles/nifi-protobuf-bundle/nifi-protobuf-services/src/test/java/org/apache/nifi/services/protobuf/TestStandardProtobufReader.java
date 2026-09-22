@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.services.protobuf;
 
+import com.google.protobuf.DescriptorProtos.DescriptorProto;
+import com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
+import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
+import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
@@ -213,6 +217,80 @@ class TestStandardProtobufReader extends StandardProtobufReaderTestBase {
         @Test
         void testStandardProtobufReaderWithTestProto3Schema() throws Exception {
             TestStandardProtobufReader.this.testStandardProtobufReaderWithTestProto3Schema();
+        }
+    }
+
+    @Nested
+    class WithCustomOptions {
+
+        private static final String SCHEMA_FILE_NAME = "sample.proto";
+        private static final String PACKAGE_NAME = "example";
+        private static final String MESSAGE_NAME = "Sample";
+        private static final String MESSAGE_TYPE = PACKAGE_NAME + "." + MESSAGE_NAME;
+        private static final String ENABLED_FIELD = "enabled";
+        private static final String NAME_FIELD = "name";
+        private static final int ENABLED_VALUE = 42;
+        private static final String NAME_VALUE = "banner";
+        private static final String SCHEMA_TEXT = """
+            syntax = "proto3";
+            package example;
+
+            message Sample {
+              int32 enabled = 1 [(confluent.field_meta) = {
+                params: [
+                  {
+                    key: "connect.type",
+                    value: "int16"
+                  }
+                ]
+              }];
+              string name = 2;
+            }
+            """;
+
+        @Test
+        void testCreateRecordReaderWithCustomOptionWithoutImport() throws Exception {
+            mockSchemaRegistry.returnSchemaText(SCHEMA_TEXT);
+            mockSchemaReferenceReader.returnSchemaIdentifierWithName(SCHEMA_FILE_NAME);
+            mockMessageNameResolver.returnMessageName(MESSAGE_TYPE);
+            enableAllControllerServices();
+
+            final InputStream testDataStream = generateInputDataForSampleWithCustomOption();
+            final RecordReader recordReader = standardProtobufReader.createRecordReader(emptyMap(), testDataStream, 0L, runner.getLogger());
+            final Record record = recordReader.nextRecord();
+
+            assertNotNull(recordReader);
+            assertNotNull(record);
+            assertEquals(ENABLED_VALUE, record.getAsInt(ENABLED_FIELD));
+            assertEquals(NAME_VALUE, record.getAsString(NAME_FIELD));
+        }
+
+        private InputStream generateInputDataForSampleWithCustomOption() throws DescriptorValidationException {
+            final FileDescriptorProto fileDescriptorProto = FileDescriptorProto.newBuilder()
+                .setName(SCHEMA_FILE_NAME)
+                .setPackage(PACKAGE_NAME)
+                .setSyntax("proto3")
+                .addMessageType(DescriptorProto.newBuilder()
+                    .setName(MESSAGE_NAME)
+                    .addField(FieldDescriptorProto.newBuilder()
+                        .setName(ENABLED_FIELD)
+                        .setNumber(1)
+                        .setType(FieldDescriptorProto.Type.TYPE_INT32)
+                        .build())
+                    .addField(FieldDescriptorProto.newBuilder()
+                        .setName(NAME_FIELD)
+                        .setNumber(2)
+                        .setType(FieldDescriptorProto.Type.TYPE_STRING)
+                        .build())
+                    .build())
+                .build();
+            final FileDescriptor fileDescriptor = FileDescriptor.buildFrom(fileDescriptorProto, new FileDescriptor[0]);
+            final Descriptor sampleDescriptor = fileDescriptor.findMessageTypeByName(MESSAGE_NAME);
+            final DynamicMessage sample = DynamicMessage.newBuilder(sampleDescriptor)
+                .setField(sampleDescriptor.findFieldByName(ENABLED_FIELD), ENABLED_VALUE)
+                .setField(sampleDescriptor.findFieldByName(NAME_FIELD), NAME_VALUE)
+                .build();
+            return sample.toByteString().newInput();
         }
     }
 

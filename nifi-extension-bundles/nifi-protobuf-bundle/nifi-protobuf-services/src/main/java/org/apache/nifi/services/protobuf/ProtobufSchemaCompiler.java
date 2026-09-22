@@ -29,6 +29,7 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -195,10 +196,10 @@ final class ProtobufSchemaCompiler {
         final String schemaFileName = generateSchemaFileName(schemaDefinition);
         final Path schemaFile = tempDir.resolve(schemaFileName);
 
-        // Write schema text to file
-        Files.write(schemaFile, schemaDefinition.getText().getBytes(), CREATE, WRITE, TRUNCATE_EXISTING);
+        final String cleanedUpSchemaText = ProtobufCustomOptionRemover.remove(schemaDefinition.getText(), Location.get(schemaFileName), logger);
+        Files.write(schemaFile, cleanedUpSchemaText.getBytes(StandardCharsets.UTF_8), CREATE, WRITE, TRUNCATE_EXISTING);
         logger.debug("Successfully wrote schema to file: {} (string length: {})",
-            schemaFile, schemaDefinition.getText().length());
+            schemaFile, cleanedUpSchemaText.length());
     }
 
     /**
