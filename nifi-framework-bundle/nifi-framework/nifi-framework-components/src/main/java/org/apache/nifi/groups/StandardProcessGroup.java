@@ -3881,9 +3881,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             return;
         }
 
-        final ValidationStatus validationStatus = flowRegistry.getValidationStatus(10, TimeUnit.SECONDS);
+        final ValidationStatus validationStatus = flowRegistry.getValidationStatus();
 
         if (validationStatus == ValidationStatus.VALIDATING) {
+            LOG.debug("Skipping synchronization of {} with Flow Registry Client {} because validation is in progress", this, flowRegistry);
             return;
         }
 

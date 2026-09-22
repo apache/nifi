@@ -1628,7 +1628,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             timerDrivenEngineRef.get().scheduleWithFixedDelay(discoverPythonExtensions, 1, 1, TimeUnit.MINUTES);
 
             ComponentAccessPolicyDeprecationLogger.logComponentPolicies(authorizer, flowManager.getRootGroupId());
-            postInitializationRegistrySynchronizationTask = registrySynchronizationTask;
+            postInitializationRegistrySynchronizationTask = registrySynchronizationTask == null ? null : registrySynchronizationTask::synchronizeAllProcessGroups;
         } finally {
             writeLock.unlock("onFlowInitialized");
         }
