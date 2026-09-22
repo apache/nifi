@@ -54,6 +54,14 @@ final class RegistryFlowSynchronizationTask implements Runnable {
 
     @Override
     public void run() {
+        synchronizeProcessGroups(true);
+    }
+
+    void synchronizeAllProcessGroups() {
+        synchronizeProcessGroups(false);
+    }
+
+    private void synchronizeProcessGroups(final boolean enforceSynchronizationInterval) {
         final ProcessGroup rootGroup = flowManager.getRootGroup();
         final List<ProcessGroup> allGroups = rootGroup.findAllProcessGroups();
         allGroups.add(rootGroup);
@@ -74,7 +82,7 @@ final class RegistryFlowSynchronizationTask implements Runnable {
             final long intervalSeconds = getEffectiveIntervalSeconds(registryClientId);
             final Long lastSynchronization = lastSynchronizationTimestamps.get(registryClientId);
 
-            if (lastSynchronization != null && (now - lastSynchronization) < TimeUnit.SECONDS.toMillis(intervalSeconds)) {
+            if (enforceSynchronizationInterval && lastSynchronization != null && (now - lastSynchronization) < TimeUnit.SECONDS.toMillis(intervalSeconds)) {
                 continue;
             }
 
@@ -86,7 +94,9 @@ final class RegistryFlowSynchronizationTask implements Runnable {
                 }
             }
 
-            lastSynchronizationTimestamps.put(registryClientId, now);
+            if (enforceSynchronizationInterval) {
+                lastSynchronizationTimestamps.put(registryClientId, now);
+            }
         }
 
         // Stop tracking Flow Registry Clients that no longer have any version-controlled Process Groups so that a client

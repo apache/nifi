@@ -59,7 +59,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -619,13 +618,14 @@ class StandardProcessGroupTest {
     void testSynchronizeWithFlowRegistryDoesNotLatchRetrievalFailureWhileRegistryIsValidating() throws Exception {
         final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
         when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
-        when(flowRegistry.getValidationStatus(anyLong(), eq(TimeUnit.SECONDS))).thenReturn(ValidationStatus.VALIDATING);
+        when(flowRegistry.getValidationStatus()).thenReturn(ValidationStatus.VALIDATING);
 
         processGroup.setVersionControlInformation(createVersionControlInformation(null, VersionedFlowState.UP_TO_DATE, null), Map.of());
 
         assertDoesNotThrow(() -> processGroup.synchronizeWithFlowRegistry(flowManager));
 
-        assertNull(getSyncFailureExplanation(processGroup));
+        assertFalse(processGroup.getVersionControlInformation().getStatus().getStateExplanation().contains("could not retrieve version"));
+        verify(flowRegistry, never()).getValidationStatus(anyLong(), any(TimeUnit.class));
         verify(flowRegistry, never()).getFlowContents(any(), any(), eq(false));
         verify(flowRegistry, never()).getFlow(any(), any());
         verify(flowRegistry, never()).getLatestVersion(any(), any());
@@ -637,7 +637,7 @@ class StandardProcessGroupTest {
         final String previousFailure = "Previous registry failure";
 
         when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
-        when(flowRegistry.getValidationStatus(anyLong(), eq(TimeUnit.SECONDS))).thenReturn(ValidationStatus.VALIDATING);
+        when(flowRegistry.getValidationStatus()).thenReturn(ValidationStatus.VALIDATING);
 
         processGroup.setVersionControlInformation(
                 createVersionControlInformation(null, VersionedFlowState.SYNC_FAILURE, previousFailure),
@@ -646,7 +646,7 @@ class StandardProcessGroupTest {
 
         processGroup.synchronizeWithFlowRegistry(flowManager);
 
-        assertEquals(previousFailure, getSyncFailureExplanation(processGroup));
+        assertEquals(previousFailure, processGroup.getVersionControlInformation().getStatus().getStateExplanation());
         verify(flowRegistry, never()).getFlowContents(any(), any(), eq(false));
         verify(flowRegistry, never()).getFlow(any(), any());
         verify(flowRegistry, never()).getLatestVersion(any(), any());
@@ -657,7 +657,7 @@ class StandardProcessGroupTest {
         final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
 
         when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
-        when(flowRegistry.getValidationStatus(anyLong(), eq(TimeUnit.SECONDS))).thenReturn(ValidationStatus.VALIDATING);
+        when(flowRegistry.getValidationStatus()).thenReturn(ValidationStatus.VALIDATING);
 
         processGroup.setVersionControlInformation(
                 createVersionControlInformation(mock(VersionedProcessGroup.class), VersionedFlowState.UP_TO_DATE, null),
@@ -666,7 +666,6 @@ class StandardProcessGroupTest {
 
         assertDoesNotThrow(() -> processGroup.synchronizeWithFlowRegistry(flowManager));
 
-        assertNull(getSyncFailureExplanation(processGroup));
         verify(flowRegistry, never()).getFlow(any(), any());
         verify(flowRegistry, never()).getLatestVersion(any(), any());
     }
@@ -677,7 +676,7 @@ class StandardProcessGroupTest {
         final RegisteredFlow versionedFlow = mock(RegisteredFlow.class);
 
         when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
-        when(flowRegistry.getValidationStatus(anyLong(), eq(TimeUnit.SECONDS))).thenReturn(ValidationStatus.VALID);
+        when(flowRegistry.getValidationStatus()).thenReturn(ValidationStatus.VALID);
         when(flowRegistry.getFlow(any(), any())).thenReturn(versionedFlow);
         when(flowRegistry.getLatestVersion(any(), any())).thenReturn(Optional.of(REGISTERED_FLOW_VERSION));
         when(versionedFlow.getBucketName()).thenReturn("Bucket");
@@ -694,7 +693,6 @@ class StandardProcessGroupTest {
 
         verify(flowRegistry).getFlow(any(), any());
         verify(flowRegistry).getLatestVersion(any(), any());
-        assertNull(getSyncFailureExplanation(processGroup));
     }
 
     @Test
@@ -702,7 +700,7 @@ class StandardProcessGroupTest {
         final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
 
         when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
-        when(flowRegistry.getValidationStatus(anyLong(), eq(TimeUnit.SECONDS))).thenReturn(ValidationStatus.INVALID);
+        when(flowRegistry.getValidationStatus()).thenReturn(ValidationStatus.INVALID);
         when(flowRegistry.getValidationErrors()).thenReturn(List.of(new ValidationResult.Builder()
                 .subject("Registry URL")
                 .input("")
@@ -714,7 +712,7 @@ class StandardProcessGroupTest {
 
         processGroup.synchronizeWithFlowRegistry(flowManager);
 
-        final String syncFailureExplanation = getSyncFailureExplanation(processGroup);
+        final String syncFailureExplanation = processGroup.getVersionControlInformation().getStatus().getStateExplanation();
         assertNotNull(syncFailureExplanation);
         assertTrue(syncFailureExplanation.toLowerCase().contains("validation"));
         assertTrue(syncFailureExplanation.contains("Registry URL is required"));
@@ -728,14 +726,14 @@ class StandardProcessGroupTest {
         final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
 
         when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
-        when(flowRegistry.getValidationStatus(anyLong(), eq(TimeUnit.SECONDS))).thenReturn(ValidationStatus.VALID);
+        when(flowRegistry.getValidationStatus()).thenReturn(ValidationStatus.VALID);
         when(flowRegistry.getFlowContents(any(), any(), eq(false))).thenThrow(new FlowRegistryException("Registry offline"));
 
         processGroup.setVersionControlInformation(createVersionControlInformation(null, VersionedFlowState.UP_TO_DATE, null), Map.of());
 
         processGroup.synchronizeWithFlowRegistry(flowManager);
 
-        final String syncFailureExplanation = getSyncFailureExplanation(processGroup);
+        final String syncFailureExplanation = processGroup.getVersionControlInformation().getStatus().getStateExplanation();
         assertNotNull(syncFailureExplanation);
         assertTrue(syncFailureExplanation.contains("could not retrieve version"));
         assertTrue(syncFailureExplanation.contains("Registry offline"));
@@ -749,7 +747,7 @@ class StandardProcessGroupTest {
         final RegisteredFlow versionedFlow = mock(RegisteredFlow.class);
 
         when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
-        when(flowRegistry.getValidationStatus(anyLong(), eq(TimeUnit.SECONDS))).thenReturn(ValidationStatus.VALID);
+        when(flowRegistry.getValidationStatus()).thenReturn(ValidationStatus.VALID);
         when(flowRegistry.getFlowContents(any(), any(), eq(false)))
                 .thenThrow(new FlowRegistryException("Registry offline"))
                 .thenReturn(snapshotContainer);
@@ -765,11 +763,11 @@ class StandardProcessGroupTest {
         processGroup.setVersionControlInformation(createVersionControlInformation(null, VersionedFlowState.UP_TO_DATE, null), Map.of());
 
         processGroup.synchronizeWithFlowRegistry(flowManager);
-        assertNotNull(getSyncFailureExplanation(processGroup));
+        assertNotNull(processGroup.getVersionControlInformation().getStatus().getStateExplanation());
 
         processGroup.synchronizeWithFlowRegistry(flowManager);
 
-        assertNull(getSyncFailureExplanation(processGroup));
+        assertFalse(processGroup.getVersionControlInformation().getStatus().getStateExplanation().contains("Registry offline"));
     }
 
     @Test
@@ -778,7 +776,7 @@ class StandardProcessGroupTest {
         final RegisteredFlow versionedFlow = mock(RegisteredFlow.class);
 
         when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
-        when(flowRegistry.getValidationStatus(anyLong(), eq(TimeUnit.SECONDS)))
+        when(flowRegistry.getValidationStatus())
                 .thenReturn(ValidationStatus.INVALID)
                 .thenReturn(ValidationStatus.VALID);
         when(flowRegistry.getValidationErrors()).thenReturn(List.of(new ValidationResult.Builder()
@@ -800,11 +798,11 @@ class StandardProcessGroupTest {
         );
 
         processGroup.synchronizeWithFlowRegistry(flowManager);
-        assertNotNull(getSyncFailureExplanation(processGroup));
+        assertNotNull(processGroup.getVersionControlInformation().getStatus().getStateExplanation());
 
         processGroup.synchronizeWithFlowRegistry(flowManager);
 
-        assertNull(getSyncFailureExplanation(processGroup));
+        assertFalse(processGroup.getVersionControlInformation().getStatus().getStateExplanation().contains("Registry URL is required"));
     }
 
     private StandardProcessGroup createStandardProcessGroup(final String id) {
@@ -826,17 +824,6 @@ class StandardProcessGroupTest {
                 flowSnapshot,
                 new StandardVersionedFlowStatus(state, explanation)
         );
-    }
-
-    private String getSyncFailureExplanation(final StandardProcessGroup group) {
-        try {
-            final Field versionControlFieldsField = StandardProcessGroup.class.getDeclaredField("versionControlFields");
-            versionControlFieldsField.setAccessible(true);
-            final VersionControlFields versionControlFields = (VersionControlFields) versionControlFieldsField.get(group);
-            return versionControlFields.getSyncFailureExplanation();
-        } catch (final ReflectiveOperationException e) {
-            throw new AssertionError(e);
-        }
     }
 
     private StandardProcessGroup createStandardProcessGroup(final String id, final String connectorId) {

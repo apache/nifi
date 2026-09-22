@@ -76,7 +76,7 @@ class RegistryFlowSynchronizationTaskTest {
     }
 
     @Test
-    void testFirstRunSynchronizesAllVersionControlledGroups() {
+    void testPostInitializationSynchronizationDoesNotDelayFirstPeriodicSynchronization() {
         final FlowManager flowManager = mock(FlowManager.class);
         final ProcessGroup rootGroup = mock(ProcessGroup.class);
         final ProcessGroup childGroup = mock(ProcessGroup.class);
@@ -84,16 +84,17 @@ class RegistryFlowSynchronizationTaskTest {
         final VersionControlInformation childVersionControlInformation = versionControlInformation("child-registry");
 
         when(flowManager.getRootGroup()).thenReturn(rootGroup);
-        when(rootGroup.findAllProcessGroups()).thenReturn(new ArrayList<>(List.of(childGroup)));
+        when(rootGroup.findAllProcessGroups()).thenAnswer(invocation -> new ArrayList<>(List.of(childGroup)));
         when(rootGroup.getVersionControlInformation()).thenReturn(rootVersionControlInformation);
         when(childGroup.getVersionControlInformation()).thenReturn(childVersionControlInformation);
 
         final RegistryFlowSynchronizationTask task = new RegistryFlowSynchronizationTask(flowManager, DEFAULT_INTERVAL_SECONDS);
 
+        task.synchronizeAllProcessGroups();
         task.run();
 
-        verify(rootGroup).synchronizeWithFlowRegistry(flowManager);
-        verify(childGroup).synchronizeWithFlowRegistry(flowManager);
+        verify(rootGroup, times(2)).synchronizeWithFlowRegistry(flowManager);
+        verify(childGroup, times(2)).synchronizeWithFlowRegistry(flowManager);
     }
 
     @Test
