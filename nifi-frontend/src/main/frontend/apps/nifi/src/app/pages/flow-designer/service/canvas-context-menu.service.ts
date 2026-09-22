@@ -50,16 +50,18 @@ import {
     stopSources,
     stopVersionControlRequest,
     terminateThreads,
-    updatePositions
+    updatePositions,
+    viewComponentConnections
 } from '../state/flow/flow.actions';
 import { ComponentType } from '@nifi/shared';
 import {
     ConfirmStopVersionControlRequest,
+    ConnectionDirection,
     MoveComponentRequest,
     OpenChangeVersionDialogRequest,
     OpenLocalChangesDialogRequest
 } from '../state/flow';
-import { UpdateComponentRequest } from '../../../state/shared';
+import { BreadcrumbEntity, UpdateComponentRequest } from '../../../state/shared';
 import {
     ContextMenuDefinition,
     ContextMenuDefinitionProvider,
@@ -287,25 +289,31 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
         id: 'upstream-downstream',
         menuItems: [
             {
-                condition: () => {
-                    // TODO - hasUpstream
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    // an empty selection targets the current process group, whose connections are defined in its
+                    // parent, so there is nothing to report from the root process group since it has no parent
+                    return (
+                        this.canvasUtils.hasUpstream(selection) ||
+                        this.canvasUtils.isNotRootGroupAndEmptySelection(selection)
+                    );
                 },
-                clazz: 'icon',
+                clazz: 'fa fa-long-arrow-up fa-rotate-45',
                 text: 'Upstream',
-                action: () => {
-                    // TODO - showUpstream
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    this.requestComponentConnections(selection, 'upstream');
                 }
             },
             {
-                condition: () => {
-                    // TODO - hasDownstream
-                    return false;
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return (
+                        this.canvasUtils.hasDownstream(selection) ||
+                        this.canvasUtils.isNotRootGroupAndEmptySelection(selection)
+                    );
                 },
-                clazz: 'icon',
+                clazz: 'fa fa-long-arrow-down fa-rotate-45',
                 text: 'Downstream',
-                action: () => {
-                    // TODO - showDownstream
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    this.requestComponentConnections(selection, 'downstream');
                 }
             }
         ]
@@ -1464,5 +1472,71 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             const selection = this.canvasUtils.getSelection();
             menuItem.action(selection, event);
         }
+    }
+
+    /**
+     * Requests the connections attached to the specified component in the specified direction.
+     *
+     * A component's connections are defined in the group that encloses it, which is the group currently
+     * on the canvas. The exception is a component whose connections cross that group's own boundary and
+     * are defined one level up: the upstream side of an Input Port, the downstream side of an Output
+     * Port, and either side of the current group itself. Those are the cases that
+     * hasUpstream/hasDownstream gate on the presence of a parent group.
+     *
+     * An empty selection means the user did not select a component, which implicitly targets the current
+     * group.
+     */
+    private requestComponentConnections(
+        selection: d3.Selection<any, any, any, any>,
+        direction: ConnectionDirection
+    ): void {
+        const currentProcessGroupTargeted: boolean = this.canvasUtils.emptySelection(selection);
+
+        const crossesParentBoundary: boolean =
+            currentProcessGroupTargeted ||
+            (direction === 'upstream' && this.canvasUtils.isInputPort(selection)) ||
+            (direction === 'downstream' && this.canvasUtils.isOutputPort(selection));
+
+        let groupId: string | null = this.canvasUtils.getProcessGroupId();
+        if (crossesParentBoundary) {
+            groupId = this.canvasUtils.getParentProcessGroupId();
+
+            // hasUpstream/hasDownstream do not offer these directions without a parent group
+            if (groupId === null) {
+                return;
+            }
+        }
+
+        const selectionData = currentProcessGroupTargeted ? this.currentProcessGroupDatum() : selection.datum();
+        this.store.dispatch(
+            viewComponentConnections({
+                request: {
+                    id: selectionData.id,
+                    // funnels have no name, and an unreadable component has no name to read
+                    name: selectionData.permissions.canRead
+                        ? (selectionData.component.name ?? selectionData.id)
+                        : selectionData.id,
+                    type: selectionData.type,
+                    groupId,
+                    direction
+                }
+            })
+        );
+    }
+
+    /**
+     * Returns the current group shaped like the datum of a component rendered on the canvas, so that it
+     * can be reported the same way a selected component is. The current group draws the canvas itself
+     * rather than a node on it, so there is no selection to read this from.
+     */
+    private currentProcessGroupDatum(): any {
+        const breadcrumb: BreadcrumbEntity | null = this.canvasUtils.getCurrentProcessGroupBreadcrumb();
+
+        return {
+            id: this.canvasUtils.getProcessGroupId(),
+            type: ComponentType.ProcessGroup,
+            permissions: breadcrumb ? breadcrumb.permissions : { canRead: false, canWrite: false },
+            component: { name: breadcrumb?.breadcrumb.name }
+        };
     }
 }
