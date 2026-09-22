@@ -67,6 +67,12 @@ public class StandaloneProcessorLifecycle implements ProcessorLifecycle {
 
     @Override
     public CompletableFuture<Void> stop() {
+        final ScheduledState scheduledState = processorNode.getPhysicalScheduledState();
+        if (scheduledState == ScheduledState.STOPPED || scheduledState == ScheduledState.DISABLED) {
+            logger.debug("Not stopping Processor {} because its state is {}", processorNode, scheduledState);
+            return CompletableFuture.completedFuture(null);
+        }
+
         return processScheduler.stopProcessor(processorNode, ProcessorStopLifecycleMethods.TRIGGER_ALL);
     }
 
