@@ -46,7 +46,7 @@ public class TestGenerateFlowFile {
 
     @Test
     public void testGenerateCustomText() {
-        runner.setProperty(GenerateFlowFile.FILE_SIZE, "100MB");
+        runner.setProperty(GenerateFlowFile.FILE_SIZE, "1MB");
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_TEXT);
         runner.setProperty(GenerateFlowFile.CUSTOM_TEXT, "This is my custom text!");
 
@@ -60,7 +60,7 @@ public class TestGenerateFlowFile {
 
     @Test
     public void testInvalidCustomText() {
-        runner.setProperty(GenerateFlowFile.FILE_SIZE, "100MB");
+        runner.setProperty(GenerateFlowFile.FILE_SIZE, "1MB");
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_BINARY);
         runner.setProperty(GenerateFlowFile.CUSTOM_TEXT, "This is my custom text!");
         runner.assertNotValid();
