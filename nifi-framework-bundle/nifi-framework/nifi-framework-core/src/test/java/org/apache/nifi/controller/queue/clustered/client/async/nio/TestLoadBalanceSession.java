@@ -38,6 +38,7 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -204,10 +205,7 @@ public class TestLoadBalanceSession {
             new SimpleLimitThreshold(100, 10_000_000));
 
         // Advance session1 until it has written its opening protocol-version byte.
-        while (received.size() < 1) {
-            session1.communicate();
-            Thread.sleep(10L);
-        }
+        writeUntilReceived(session1, 1);
 
         // A LoadBalanceSession cancel neither closes the channel nor sends ABORT_TRANSACTION; closing a channel whose
         // transaction was abandoned is the caller's responsibility (NioAsyncLoadBalanceClient#unregister).
@@ -215,16 +213,14 @@ public class TestLoadBalanceSession {
         assertTrue(socketChannel.isOpen());
 
         // If the same channel is reused for the next transaction, it again writes protocol-version byte 1.
+        // Only the version bytes are asserted here; draining session2 through a full handshake would consume leftover
+        // SPACE_AVAILABLE / checksum / complete-transaction bytes that the mock server writes up front.
         final LoadBalanceSession session2 = new LoadBalanceSession(partition1, contentAccess, new StandardLoadBalanceFlowFileCodec(), peerChannel, 30000,
             new SimpleLimitThreshold(100, 10_000_000));
-        while (session2.communicate()) {
-        }
+        writeUntilReceived(session2, 2);
 
         // Two protocol-version bytes then sit back-to-back on the stream: the abandoned transaction's, then the reused
         // channel's. The second lands where the peer expects a continuation of the first transaction (the desync).
-        while (received.size() < 2) {
-            Thread.sleep(10L);
-        }
         final byte[] sent = received.toByteArray();
         assertEquals(1, sent[0]);
         assertEquals(1, sent[1]);
@@ -311,5 +307,15 @@ public class TestLoadBalanceSession {
         assertArrayEquals(expectedSent, dataSent);
 
         assertEquals(Arrays.asList(flowFile1), transaction.getAndPurgeFlowFilesSent());
+    }
+
+    private void writeUntilReceived(final LoadBalanceSession session, final int minimumBytes) throws IOException, InterruptedException {
+        while (received.size() < minimumBytes) {
+            if (session.getDesiredReadinessFlag() == SelectionKey.OP_WRITE) {
+                session.communicate();
+            }
+
+            Thread.sleep(10L);
+        }
     }
 }
