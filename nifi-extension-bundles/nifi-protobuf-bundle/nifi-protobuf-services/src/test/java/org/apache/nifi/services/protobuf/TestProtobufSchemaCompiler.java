@@ -55,6 +55,18 @@ class TestProtobufSchemaCompiler {
 
     private static final ComponentLog COMPONENT_LOG = new MockComponentLog("test", TestProtobufSchemaCompiler.class);
 
+    private static final String PACKAGE = "example";
+    private static final String SAMPLE_TYPE = PACKAGE + ".Sample";
+    private static final String WRAPPER_TYPE = PACKAGE + ".Wrapper";
+    private static final String WRAPPER_PAYLOAD_TYPE = WRAPPER_TYPE + ".Payload";
+
+    private static final String SAMPLE_PROTO = "sample.proto";
+    private static final String COMMON_PROTO = "common.proto";
+
+    private static final String FIELD_VALUE = "value";
+    private static final String FIELD_EXTRA = "extra";
+    private static final String ENUM_RED = "RED";
+
     private final ProtobufSchemaCompiler compiler = new ProtobufSchemaCompiler("test", COMPONENT_LOG);
 
     @Test
@@ -74,11 +86,11 @@ class TestProtobufSchemaCompiler {
               }];
             }
             """;
-        final SchemaDefinition schemaDefinition = schemaDefinition("sample.proto", schemaText);
+        final SchemaDefinition schemaDefinition = schemaDefinition(SAMPLE_PROTO, schemaText);
 
         final Schema schema = compiler.compileOrGetFromCache(schemaDefinition);
 
-        final Field enabled = schema.getField("example.Sample", "enabled");
+        final Field enabled = schema.getField(SAMPLE_TYPE, "enabled");
 
         assertNotNull(enabled);
         assertNoParenthesizedOptions(enabled.getOptions());
@@ -87,18 +99,17 @@ class TestProtobufSchemaCompiler {
     @Test
     void testCompileNestedSchemaWithRepeatedFieldMetaOptions() throws IOException {
         final String schemaText = readTestResource("/org/apache/nifi/protobuf/test/nested_wrapper_with_field_meta.proto");
-        final SchemaDefinition schemaDefinition = schemaDefinition("nested_wrapper_with_field_meta.proto", schemaText);
+        final SchemaDefinition schemaDefinition = schemaDefinition(SAMPLE_PROTO, schemaText);
 
         final Schema schema = compiler.compileOrGetFromCache(schemaDefinition);
-        final String payloadMessageName = "example.sample.Wrapper.Payload";
 
-        final Field flagA = schema.getField(payloadMessageName, "flag_a");
-        final Field flagB = schema.getField(payloadMessageName, "flag_b");
-        final Field flagC = schema.getField(payloadMessageName, "flag_c");
+        final Field flagA = schema.getField(WRAPPER_PAYLOAD_TYPE, "flag_a");
+        final Field flagB = schema.getField(WRAPPER_PAYLOAD_TYPE, "flag_b");
+        final Field flagC = schema.getField(WRAPPER_PAYLOAD_TYPE, "flag_c");
 
-        assertNotNull(schema.getType("example.sample.Wrapper"));
-        assertNotNull(schema.getType("example.sample.Wrapper.Origin"));
-        assertNotNull(schema.getType("example.sample.Wrapper.chunk"));
+        assertNotNull(schema.getType(WRAPPER_TYPE));
+        assertNotNull(schema.getType(WRAPPER_TYPE + ".Origin"));
+        assertNotNull(schema.getType(WRAPPER_TYPE + ".chunk"));
         assertNotNull(flagA);
         assertNotNull(flagB);
         assertNotNull(flagC);
@@ -119,10 +130,10 @@ class TestProtobufSchemaCompiler {
               }];
             }
             """;
-        final SchemaDefinition schemaDefinition = schemaDefinition("packed.proto", schemaText);
+        final SchemaDefinition schemaDefinition = schemaDefinition(SAMPLE_PROTO, schemaText);
 
         final Schema schema = compiler.compileOrGetFromCache(schemaDefinition);
-        final Field values = schema.getField("example.Sample", "values");
+        final Field values = schema.getField(SAMPLE_TYPE, "values");
 
         assertNotNull(values);
         assertTrue(values.isRepeated());
@@ -143,12 +154,12 @@ class TestProtobufSchemaCompiler {
               int32 value = 1;
             }
             """;
-        final SchemaDefinition schemaDefinition = schemaDefinition("java-package.proto", schemaText);
+        final SchemaDefinition schemaDefinition = schemaDefinition(SAMPLE_PROTO, schemaText);
 
         final Schema schema = compiler.compileOrGetFromCache(schemaDefinition);
-        final ProtoFile protoFile = schema.protoFile("java-package.proto");
+        final ProtoFile protoFile = schema.protoFile(SAMPLE_PROTO);
 
-        assertNotNull(schema.getType("example.Sample"));
+        assertNotNull(schema.getType(SAMPLE_TYPE));
         assertNotNull(protoFile);
         assertEquals("com.example", protoFile.javaPackage());
         assertNoParenthesizedOptions(protoFile.getOptions());
@@ -164,11 +175,11 @@ class TestProtobufSchemaCompiler {
               int32 value = 1;
             }
             """;
-        final SchemaDefinition schemaDefinition = schemaDefinition("plain.proto", schemaText);
+        final SchemaDefinition schemaDefinition = schemaDefinition(SAMPLE_PROTO, schemaText);
 
         final Schema schema = compiler.compileOrGetFromCache(schemaDefinition);
 
-        assertNotNull(schema.getField("example.Sample", "value"));
+        assertNotNull(schema.getField(SAMPLE_TYPE, FIELD_VALUE));
     }
 
     @Test
@@ -191,13 +202,13 @@ class TestProtobufSchemaCompiler {
               Common item = 1 [(custom.field_meta) = "r"];
             }
             """;
-        final SchemaDefinition referencedSchema = schemaDefinition("common.proto", referencedSchemaText);
-        final SchemaDefinition rootSchema = schemaDefinition("root.proto", rootSchemaText, Map.of("common.proto", referencedSchema));
+        final SchemaDefinition referencedSchema = schemaDefinition(COMMON_PROTO, referencedSchemaText);
+        final SchemaDefinition rootSchema = schemaDefinition(SAMPLE_PROTO, rootSchemaText, Map.of(COMMON_PROTO, referencedSchema));
 
         final Schema schema = compiler.compileOrGetFromCache(rootSchema);
 
-        final Field id = schema.getField("example.Common", "id");
-        final Field item = schema.getField("example.Root", "item");
+        final Field id = schema.getField(PACKAGE + ".Common", "id");
+        final Field item = schema.getField(PACKAGE + ".Root", "item");
 
         assertNotNull(id);
         assertNoParenthesizedOptions(id.getOptions());
@@ -215,7 +226,7 @@ class TestProtobufSchemaCompiler {
               Common item = 1;
             }
             """;
-        final SchemaDefinition schemaDefinition = schemaDefinition("root.proto", schemaText);
+        final SchemaDefinition schemaDefinition = schemaDefinition(SAMPLE_PROTO, schemaText);
 
         final RuntimeException exception = assertThrows(RuntimeException.class, () -> compiler.compileOrGetFromCache(schemaDefinition));
 
@@ -234,7 +245,7 @@ class TestProtobufSchemaCompiler {
               Common item = 1;
             }
             """;
-        final SchemaDefinition schemaDefinition = schemaDefinition("root.proto", schemaText);
+        final SchemaDefinition schemaDefinition = schemaDefinition(SAMPLE_PROTO, schemaText);
 
         final RuntimeException exception = assertThrows(RuntimeException.class, () -> compiler.compileOrGetFromCache(schemaDefinition));
 
@@ -263,15 +274,15 @@ class TestProtobufSchemaCompiler {
               GREEN = 1;
             }
             """;
-        final SchemaDefinition schemaDefinition = schemaDefinition("nested.proto", schemaText);
+        final SchemaDefinition schemaDefinition = schemaDefinition(SAMPLE_PROTO, schemaText);
 
         final Schema schema = compiler.compileOrGetFromCache(schemaDefinition);
-        final MessageType outer = assertInstanceOf(MessageType.class, schema.getType("example.Outer"));
-        final EnumType color = assertInstanceOf(EnumType.class, schema.getType("example.Color"));
-        final EnumConstant red = color.constant("RED");
+        final MessageType outer = assertInstanceOf(MessageType.class, schema.getType(PACKAGE + ".Outer"));
+        final EnumType color = assertInstanceOf(EnumType.class, schema.getType(PACKAGE + ".Color"));
+        final EnumConstant red = color.constant(ENUM_RED);
 
         assertNotNull(outer.field("inner"));
-        assertNotNull(schema.getField("example.Outer.Inner", "value"));
+        assertNotNull(schema.getField(PACKAGE + ".Outer.Inner", FIELD_VALUE));
         assertNotNull(red);
         assertNotNull(color.constant("GREEN"));
         assertNoParenthesizedOptions(color.getOptions());
@@ -293,35 +304,34 @@ class TestProtobufSchemaCompiler {
               optional int32 extra = 100;
             }
             """;
-        final SchemaDefinition schemaDefinition = schemaDefinition("extend.proto", schemaText);
+        final SchemaDefinition schemaDefinition = schemaDefinition(SAMPLE_PROTO, schemaText);
 
         final Schema schema = compiler.compileOrGetFromCache(schemaDefinition);
-        final MessageType base = assertInstanceOf(MessageType.class, schema.getType("example.Base"));
-        final ProtoFile protoFile = schema.protoFile("extend.proto");
+        final MessageType base = assertInstanceOf(MessageType.class, schema.getType(PACKAGE + ".Base"));
+        final ProtoFile protoFile = schema.protoFile(SAMPLE_PROTO);
 
         assertNotNull(base.field("name"));
         assertNotNull(protoFile);
         assertEquals(1, protoFile.getExtendList().size());
-        assertEquals("extra", protoFile.getExtendList().get(0).getFields().get(0).getName());
+        assertEquals(FIELD_EXTRA, protoFile.getExtendList().get(0).getFields().get(0).getName());
     }
 
     @Test
     void testCompileRemovesCustomOptionsFromAllSyntaxElements() throws IOException {
         final String schemaText = readTestResource("/org/apache/nifi/protobuf/test/custom_options_on_all_elements.proto");
-        final SchemaDefinition schemaDefinition = schemaDefinition("custom_options_on_all_elements.proto", schemaText);
+        final SchemaDefinition schemaDefinition = schemaDefinition(SAMPLE_PROTO, schemaText);
 
         final Schema schema = compiler.compileOrGetFromCache(schemaDefinition);
-        final String wrapperTypeName = "example.comprehensive.Wrapper";
 
-        final ProtoFile protoFile = schema.protoFile("custom_options_on_all_elements.proto");
+        final ProtoFile protoFile = schema.protoFile(SAMPLE_PROTO);
         assertNotNull(protoFile);
         assertEquals("com.example.comprehensive", protoFile.javaPackage());
         assertNoParenthesizedOptions(protoFile.getOptions());
 
-        final MessageType wrapper = assertInstanceOf(MessageType.class, schema.getType(wrapperTypeName));
+        final MessageType wrapper = assertInstanceOf(MessageType.class, schema.getType(WRAPPER_TYPE));
         assertNoParenthesizedOptions(wrapper.getOptions());
 
-        final Field flag = schema.getField(wrapperTypeName, "flag");
+        final Field flag = schema.getField(WRAPPER_TYPE, "flag");
         assertNotNull(flag);
         assertNoParenthesizedOptions(flag.getOptions());
 
@@ -329,36 +339,36 @@ class TestProtobufSchemaCompiler {
         assertNotNull(kind);
         assertNoParenthesizedOptions(kind.getOptions());
 
-        final Field text = schema.getField(wrapperTypeName, "text");
+        final Field text = schema.getField(WRAPPER_TYPE, "text");
         assertNotNull(text);
         assertNoParenthesizedOptions(text.getOptions());
 
         assertEquals(1, protoFile.getExtendList().size());
         final Field extra = protoFile.getExtendList().get(0).getFields().get(0);
-        assertEquals("extra", extra.getName());
+        assertEquals(FIELD_EXTRA, extra.getName());
         assertNoParenthesizedOptions(extra.getOptions());
 
-        assertNotNull(schema.getType(wrapperTypeName + ".Nested"));
+        assertNotNull(schema.getType(WRAPPER_TYPE + ".Nested"));
         assertEquals(1, wrapper.getNestedExtendList().size());
         final Field nestedExtra = wrapper.getNestedExtendList().get(0).getFields().get(0);
         assertEquals("nested_extra", nestedExtra.getName());
         assertNoParenthesizedOptions(nestedExtra.getOptions());
 
-        final EnumType color = assertInstanceOf(EnumType.class, schema.getType(wrapperTypeName + ".Color"));
+        final EnumType color = assertInstanceOf(EnumType.class, schema.getType(WRAPPER_TYPE + ".Color"));
         assertNoParenthesizedOptions(color.getOptions());
 
-        final EnumConstant red = color.constant("RED");
+        final EnumConstant red = color.constant(ENUM_RED);
         assertNotNull(red);
         assertNoParenthesizedOptions(red.getOptions());
 
-        final Service catalog = schema.getService("example.comprehensive.Catalog");
+        final Service catalog = schema.getService(PACKAGE + ".Catalog");
         assertNotNull(catalog);
         assertNoParenthesizedOptions(catalog.options());
 
         final Rpc lookup = catalog.rpc("Lookup");
         assertNotNull(lookup);
-        assertEquals("example.comprehensive.Request", lookup.getRequestType().toString());
-        assertEquals("example.comprehensive.Response", lookup.getResponseType().toString());
+        assertEquals(PACKAGE + ".Request", lookup.getRequestType().toString());
+        assertEquals(PACKAGE + ".Response", lookup.getResponseType().toString());
         assertNoParenthesizedOptions(lookup.getOptions());
     }
 

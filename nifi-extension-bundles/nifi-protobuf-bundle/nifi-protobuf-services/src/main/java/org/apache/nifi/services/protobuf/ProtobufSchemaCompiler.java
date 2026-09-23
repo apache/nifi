@@ -196,10 +196,10 @@ final class ProtobufSchemaCompiler {
         final String schemaFileName = generateSchemaFileName(schemaDefinition);
         final Path schemaFile = tempDir.resolve(schemaFileName);
 
-        final String cleanedUpSchemaText = ProtobufCustomOptionRemover.remove(schemaDefinition.getText(), Location.get(schemaFileName), logger);
-        Files.write(schemaFile, cleanedUpSchemaText.getBytes(StandardCharsets.UTF_8), CREATE, WRITE, TRUNCATE_EXISTING);
+        final String preparedSchemaDefinition = ProtobufCustomOptionRemover.remove(schemaDefinition.getText(), Location.get(schemaFileName), logger);
+        Files.write(schemaFile, preparedSchemaDefinition.getBytes(StandardCharsets.UTF_8), CREATE, WRITE, TRUNCATE_EXISTING);
         logger.debug("Successfully wrote schema to file: {} (string length: {})",
-            schemaFile, cleanedUpSchemaText.length());
+            schemaFile, preparedSchemaDefinition.length());
     }
 
     /**

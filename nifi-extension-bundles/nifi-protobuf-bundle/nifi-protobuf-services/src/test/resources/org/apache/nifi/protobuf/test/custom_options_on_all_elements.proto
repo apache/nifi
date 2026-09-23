@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 syntax = "proto2";
-package example.comprehensive;
+package example;
 
 option java_package = "com.example.comprehensive";
 option (custom.file_meta) = "docs";
