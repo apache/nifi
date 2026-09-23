@@ -20,6 +20,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.kafka.processors.consumer.KafkaMetricName;
 import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
 import org.apache.nifi.kafka.service.Kafka3ConnectionService;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
@@ -39,6 +40,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -115,6 +117,13 @@ class ConsumeKafkaIT extends AbstractConsumeKafkaIT {
         flowFile.assertAttributeEquals("bbb", "value");
         flowFile.assertAttributeNotExists("aaa");
         flowFile.assertAttributeNotExists("ccc");
+
+        final Map<String, String> topicPartitionAttributes = Map.of(
+                KafkaFlowFileAttribute.KAFKA_TOPIC, topic,
+                KafkaFlowFileAttribute.KAFKA_PARTITION, Integer.toString(FIRST_PARTITION));
+        assertEquals(1L, runner.getCounterValue(KafkaMetricName.RECORDS_CONSUMED.getMetricName(), topicPartitionAttributes));
+        assertEquals(RECORD_VALUE.getBytes(StandardCharsets.UTF_8).length,
+                runner.getCounterValue(KafkaMetricName.BYTES_CONSUMED.getMetricName(), topicPartitionAttributes));
     }
 
     @Test

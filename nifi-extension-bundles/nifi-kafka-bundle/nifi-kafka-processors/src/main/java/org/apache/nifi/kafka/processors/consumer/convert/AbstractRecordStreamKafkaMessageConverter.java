@@ -20,11 +20,14 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.kafka.processors.ConsumeKafka;
 import org.apache.nifi.kafka.processors.common.HeaderValueConverter;
 import org.apache.nifi.kafka.processors.common.KafkaUtils;
+import org.apache.nifi.kafka.processors.consumer.KafkaMetricName;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
+import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.metrics.CommitTiming;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -122,6 +125,11 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
         ff = session.write(ff, out -> out.write(value));
         session.transfer(ff, ConsumeKafka.PARSE_FAILURE);
         session.adjustCounter("Records Received from " + consumerRecord.getTopic(), 1, false);
+        final Map<String, String> counterAttributes = Map.of(
+                KafkaFlowFileAttribute.KAFKA_TOPIC, consumerRecord.getTopic(),
+                KafkaFlowFileAttribute.KAFKA_PARTITION, Integer.toString(consumerRecord.getPartition())
+        );
+        session.adjustCounter(KafkaMetricName.RECORDS_PARSED_ERRORS.getMetricName(), 1, counterAttributes, CommitTiming.NOW);
     }
 
     /**
