@@ -5415,7 +5415,19 @@ public final class DtoFactory {
         dto.setExtensionMissing(connector.isExtensionMissing());
         dto.setSupportsBacklogReporting(connector.getConnector() instanceof BacklogReportingConnector);
 
-        dto.setBundle(createBundleDto(connector.getBundleCoordinate()));
+        final BundleCoordinate bundleCoordinate = connector.getBundleCoordinate();
+        final List<Bundle> availableBundles = extensionManager.getBundles(connector.getCanonicalClassName());
+        int compatibleBundleCount = 0;
+        for (final Bundle bundle : availableBundles) {
+            final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
+            if (bundleCoordinate.getGroup().equals(coordinate.getGroup()) && bundleCoordinate.getId().equals(coordinate.getId())) {
+                compatibleBundleCount++;
+            }
+        }
+
+        dto.setMultipleVersionsAvailable(connector.isExtensionMissing() ? compatibleBundleCount > 0 : compatibleBundleCount > 1);
+
+        dto.setBundle(createBundleDto(bundleCoordinate));
         dto.setState(connector.getCurrentState().name());
 
         final FrameworkFlowContext activeFlowContext = connector.getActiveFlowContext();

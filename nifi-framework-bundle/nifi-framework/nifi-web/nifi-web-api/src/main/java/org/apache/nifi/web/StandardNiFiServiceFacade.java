@@ -3757,9 +3757,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ConnectorNode connector = connectorDAO.getConnector(connectorDTO.getId());
         final ConnectorState currentState = connector.getCurrentState();
 
-        if (connectorDTO.getName() != null && currentState == ConnectorState.TROUBLESHOOTING) {
+        if ((connectorDTO.getName() != null || connectorDTO.getBundle() != null) && currentState == ConnectorState.TROUBLESHOOTING) {
             throw new IllegalStateException("Cannot update Connector " + connectorDTO.getId()
                 + " while it is in Troubleshooting mode; exit Troubleshooting mode before modifying the Connector configuration.");
+        }
+
+        if (connectorDTO.getBundle() != null) {
+            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(controllerFacade.getExtensionManager(), connector.getCanonicalClassName(), connectorDTO.getBundle());
+            if (!incomingCoordinate.equals(connector.getBundleCoordinate())) {
+                connector.verifyCanUpdateBundle(incomingCoordinate);
+                connector.verifyCanReload();
+            }
         }
 
         if (connectorDTO.getState() != null) {

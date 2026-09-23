@@ -1231,6 +1231,67 @@ public class TestStandardConnectorRepository {
         verify(connector, never()).transitionStateForUpdating();
     }
 
+    /**
+     * A version change can leave a stored value behind when the target version no longer declares the property. The
+     * value is discarded from the configuration at that point, but the Asset it referenced is not reclaimed until the
+     * user applies a configuration. Applying an update saves to the provider and reclaims every Asset that neither the
+     * active nor the working configuration still references.
+     */
+    @Test
+    public void testApplyUpdateReclaimsAssetsNoLongerReferenced() throws Exception {
+        final AssetManager assetManager = mock(AssetManager.class);
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.shouldApplyUpdate("connector-1")).thenReturn(true);
+
+        final ConnectorRequestReplicator requestReplicator = mock(ConnectorRequestReplicator.class);
+        when(requestReplicator.getState("connector-1")).thenReturn(ConnectorState.UPDATING, ConnectorState.UPDATED);
+
+        final StandardConnectorRepository repository = new StandardConnectorRepository();
+        final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
+        when(initContext.getFlowManager()).thenReturn(mock(FlowManager.class));
+        when(initContext.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
+        when(initContext.getAssetManager()).thenReturn(assetManager);
+        when(initContext.getConnectorConfigurationProvider()).thenReturn(provider);
+        when(initContext.getRequestReplicator()).thenReturn(requestReplicator);
+        repository.initialize(initContext);
+
+        final Asset referencedAsset = mock(Asset.class);
+        when(referencedAsset.getIdentifier()).thenReturn("referenced-asset");
+        when(referencedAsset.getName()).thenReturn("referenced.txt");
+
+        final Asset droppedAsset = mock(Asset.class);
+        when(droppedAsset.getIdentifier()).thenReturn("dropped-asset");
+        when(droppedAsset.getName()).thenReturn("dropped.txt");
+
+        final MutableConnectorConfigurationContext activeConfigContext = mock(MutableConnectorConfigurationContext.class);
+        when(activeConfigContext.toConnectorConfiguration()).thenReturn(new ConnectorConfiguration(Set.of(
+            new NamedStepConfiguration("step1", new StepConfiguration(Map.of("property", new AssetReference(Set.of("referenced-asset"))))))));
+
+        final FrameworkFlowContext activeFlowContext = mock(FrameworkFlowContext.class);
+        when(activeFlowContext.getConfigurationContext()).thenReturn(activeConfigContext);
+
+        final MutableConnectorConfigurationContext workingConfigContext = mock(MutableConnectorConfigurationContext.class);
+        when(workingConfigContext.toConnectorConfiguration()).thenReturn(new ConnectorConfiguration(Set.of()));
+
+        final FrameworkFlowContext workingFlowContext = mock(FrameworkFlowContext.class);
+        when(workingFlowContext.getConfigurationContext()).thenReturn(workingConfigContext);
+
+        final ConnectorNode connector = mock(ConnectorNode.class);
+        when(connector.getIdentifier()).thenReturn("connector-1");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.getDesiredState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.getActiveFlowContext()).thenReturn(activeFlowContext);
+        when(connector.getWorkingFlowContext()).thenReturn(workingFlowContext);
+        repository.addConnector(connector);
+
+        when(assetManager.getAssets("connector-1")).thenReturn(List.of(referencedAsset, droppedAsset));
+
+        repository.applyUpdate(connector, mock(ConnectorUpdateContext.class));
+
+        verify(provider, timeout(5000)).deleteAsset("connector-1", "dropped-asset");
+        verify(provider, never()).deleteAsset("connector-1", "referenced-asset");
+    }
+
     // --- syncConnector tests ---
 
     @Test
