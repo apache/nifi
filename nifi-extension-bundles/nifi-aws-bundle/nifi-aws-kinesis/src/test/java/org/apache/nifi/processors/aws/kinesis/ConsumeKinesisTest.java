@@ -378,6 +378,76 @@ class ConsumeKinesisTest {
     }
 
     @Test
+    void testEmptyPollRecordsBehindGaugeWhenStillLagging() throws Exception {
+        final Map<String, Long> shardLag = new LinkedHashMap<>();
+        shardLag.put(DEFAULT_SHARD_ID, FLOW_FILE_BEHIND_MS);
+        final KinesisShardManager mockShardManager = buildShardManager(DEFAULT_SHARD_ID);
+        final LagReportingConsumeKinesis processor = new LagReportingConsumeKinesis(mockShardManager, shardLag);
+        runner = TestRunners.newTestRunner(processor);
+
+        setCommonProperties();
+        runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, "FLOW_FILE");
+        runner.setProperty(ConsumeKinesis.CONSUMER_TYPE, "SHARED_THROUGHPUT");
+
+        runner.run(1, false, true);
+
+        final Map<String, String> attributes = getMetricAttributes(DEFAULT_SHARD_ID);
+        assertNull(runner.getCounterValue(KinesisMetricName.RECORDS_CONSUMED.getMetricName(), attributes));
+        assertNull(runner.getCounterValue(KinesisMetricName.BYTES_CONSUMED.getMetricName(), attributes));
+        assertEquals(List.of((double) FLOW_FILE_BEHIND_MS),
+                runner.getGaugeValues(KinesisMetricName.CONSUMER_MILLISECONDS_BEHIND.getMetricName(), attributes));
+        runner.assertTransferCount(ConsumeKinesis.REL_SUCCESS, 0);
+    }
+
+    @Test
+    void testEmptyPollUpdatesBehindGaugeToCaughtUp() throws Exception {
+        final List<UserRecord> records = List.of(
+                testRecord("1", FIRST_FLOW_FILE_RECORD),
+                testRecord("2", SECOND_FLOW_FILE_RECORD));
+        final KinesisShardManager mockShardManager = buildShardManager(DEFAULT_SHARD_ID);
+        final ShardFetchResult firstFetch = new ShardFetchResult(DEFAULT_SHARD_ID, records, FLOW_FILE_BEHIND_MS);
+        final SequentialFetchConsumeKinesis processor = new SequentialFetchConsumeKinesis(mockShardManager, firstFetch, 0L);
+        runner = TestRunners.newTestRunner(processor);
+
+        setCommonProperties();
+        runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, "FLOW_FILE");
+        runner.setProperty(ConsumeKinesis.CONSUMER_TYPE, "SHARED_THROUGHPUT");
+
+        runner.run(2, false, true);
+
+        final Map<String, String> attributes = getMetricAttributes(DEFAULT_SHARD_ID);
+        final long expectedBytes = payloadBytes(FIRST_FLOW_FILE_RECORD) + payloadBytes(SECOND_FLOW_FILE_RECORD);
+        assertEquals(2L, runner.getCounterValue(KinesisMetricName.RECORDS_CONSUMED.getMetricName(), attributes));
+        assertEquals(expectedBytes, runner.getCounterValue(KinesisMetricName.BYTES_CONSUMED.getMetricName(), attributes));
+        assertEquals(List.of((double) FLOW_FILE_BEHIND_MS, 0.0),
+                runner.getGaugeValues(KinesisMetricName.CONSUMER_MILLISECONDS_BEHIND.getMetricName(), attributes));
+        runner.assertTransferCount(ConsumeKinesis.REL_SUCCESS, 2);
+    }
+
+    @Test
+    void testAbsentMillisBehindDoesNotRecordGauge() throws Exception {
+        final List<UserRecord> records = List.of(testRecord("1", FIRST_FLOW_FILE_RECORD));
+        final KinesisShardManager mockShardManager = buildShardManager(DEFAULT_SHARD_ID);
+        final ShardFetchResult fetchResult = new ShardFetchResult(DEFAULT_SHARD_ID, records, -1L);
+        final TestableConsumeKinesis processor = new TestableConsumeKinesis(mockShardManager, fetchResult);
+        runner = TestRunners.newTestRunner(processor);
+
+        setCommonProperties();
+        runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, "FLOW_FILE");
+        runner.setProperty(ConsumeKinesis.CONSUMER_TYPE, "SHARED_THROUGHPUT");
+
+        runner.run();
+
+        runner.assertTransferCount(ConsumeKinesis.REL_SUCCESS, 1);
+
+        final Map<String, String> attributes = getMetricAttributes(DEFAULT_SHARD_ID);
+        assertEquals(1L, runner.getCounterValue(KinesisMetricName.RECORDS_CONSUMED.getMetricName(), attributes));
+        assertEquals(payloadBytes(FIRST_FLOW_FILE_RECORD),
+                runner.getCounterValue(KinesisMetricName.BYTES_CONSUMED.getMetricName(), attributes));
+        assertTrue(runner.getGaugeValues(KinesisMetricName.CONSUMER_MILLISECONDS_BEHIND.getMetricName(), attributes).isEmpty());
+    }
+
+    @Test
     void testFlowFileStrategyRecordsBytesAndBehindMetrics() throws Exception {
         final List<UserRecord> records = List.of(
                 testRecord("1", FIRST_FLOW_FILE_RECORD),
@@ -687,6 +757,55 @@ class ConsumeKinesisTest {
                 client.enqueueResult(result);
             }
             return client;
+        }
+    }
+
+    static class SequentialFetchConsumeKinesis extends ConsumeKinesis {
+        private final KinesisShardManager mockShardManager;
+        private final ShardFetchResult firstFetch;
+        private final long emptyPollMillisBehind;
+
+        SequentialFetchConsumeKinesis(final KinesisShardManager mockShardManager, final ShardFetchResult firstFetch,
+                final long emptyPollMillisBehind) {
+            this.mockShardManager = mockShardManager;
+            this.firstFetch = firstFetch;
+            this.emptyPollMillisBehind = emptyPollMillisBehind;
+        }
+
+        @Override
+        protected KinesisShardManager createShardManager(final KinesisClient kinesisClient, final DynamoDbClient dynamoDbClient,
+                final ComponentLog logger, final String checkpointTableName, final String streamName) {
+            return mockShardManager;
+        }
+
+        @Override
+        protected KinesisConsumerClient createConsumerClient(final KinesisClient kinesisClient, final ComponentLog logger,
+                final boolean efoMode) {
+            return new SequentialFetchConsumerClient(mock(KinesisClient.class), logger, firstFetch, emptyPollMillisBehind);
+        }
+    }
+
+    static class SequentialFetchConsumerClient extends StubConsumerClient {
+        private final ShardFetchResult firstFetch;
+        private final long emptyPollMillisBehind;
+        private int fetchCycles;
+
+        SequentialFetchConsumerClient(final KinesisClient kinesisClient, final ComponentLog logger,
+                final ShardFetchResult firstFetch, final long emptyPollMillisBehind) {
+            super(kinesisClient, logger);
+            this.firstFetch = firstFetch;
+            this.emptyPollMillisBehind = emptyPollMillisBehind;
+        }
+
+        @Override
+        void startFetches(final List<Shard> shards, final String streamName, final int batchSize,
+                final String initialStreamPosition, final KinesisShardManager shardManager) {
+            if (fetchCycles++ == 0) {
+                enqueueResult(firstFetch);
+                recordShardLag(firstFetch.shardId(), firstFetch.millisBehindLatest());
+            } else {
+                recordShardLag(firstFetch.shardId(), emptyPollMillisBehind);
+            }
         }
     }
 

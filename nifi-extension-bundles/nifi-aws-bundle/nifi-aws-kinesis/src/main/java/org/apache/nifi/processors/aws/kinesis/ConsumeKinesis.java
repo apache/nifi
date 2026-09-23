@@ -590,6 +590,11 @@ public class ConsumeKinesis extends AbstractProcessor implements BacklogReportin
             consumed = consumeRecords(claimedShards);
             final List<ShardFetchResult> accepted = discardRelinquishedResults(consumed, claimedShards);
 
+            for (final ShardFetchResult result : accepted) {
+                shardMillisBehindLatest.put(result.shardId(), result.millisBehindLatest());
+            }
+            recordBehindMetrics(session, ownedShardIds);
+
             if (accepted.isEmpty()) {
                 consumerClient.releaseShards(claimedShards);
                 context.yield();
@@ -952,11 +957,9 @@ public class ConsumeKinesis extends AbstractProcessor implements BacklogReportin
     private void recordConsumptionMetrics(final ProcessSession session, final List<ShardFetchResult> shardResults) {
         long recordCount = 0;
         long bytesConsumed = 0;
-        long maxMillisBehind = -1;
         String shardId = null;
         for (final ShardFetchResult result : shardResults) {
             shardId = result.shardId();
-            maxMillisBehind = Math.max(maxMillisBehind, result.millisBehindLatest());
             for (final UserRecord record : result.records()) {
                 recordCount++;
                 bytesConsumed += record.data().length;
@@ -970,9 +973,18 @@ public class ConsumeKinesis extends AbstractProcessor implements BacklogReportin
         final Map<String, String> attributes = getMetricAttributes(streamName, shardId);
         session.adjustCounter(KinesisMetricName.RECORDS_CONSUMED.getMetricName(), recordCount, attributes, CommitTiming.NOW);
         session.adjustCounter(KinesisMetricName.BYTES_CONSUMED.getMetricName(), bytesConsumed, attributes, CommitTiming.NOW);
-        // Kinesis uses -1 when millisBehindLatest is absent so record that as 0
-        final long consumerMillisecondsBehind = Math.max(0, maxMillisBehind);
-        session.recordGauge(KinesisMetricName.CONSUMER_MILLISECONDS_BEHIND.getMetricName(), consumerMillisecondsBehind, attributes, CommitTiming.NOW);
+    }
+
+    private void recordBehindMetrics(final ProcessSession session, final Set<String> ownedShardIds) {
+        for (final String shardId : ownedShardIds) {
+            final Long millisBehind = shardMillisBehindLatest.get(shardId);
+            // Kinesis uses -1 when millisBehindLatest is not provided
+            if (millisBehind == null || millisBehind < 0) {
+                continue;
+            }
+            final Map<String, String> metricAttributes = getMetricAttributes(streamName, shardId);
+            session.recordGauge(KinesisMetricName.CONSUMER_MILLISECONDS_BEHIND.getMetricName(), millisBehind, metricAttributes, CommitTiming.NOW);
+        }
     }
 
     private static Map<String, String> getMetricAttributes(final String streamName, final String shardId) {
