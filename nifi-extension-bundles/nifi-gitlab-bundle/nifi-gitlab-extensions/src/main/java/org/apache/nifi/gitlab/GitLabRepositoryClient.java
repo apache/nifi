@@ -81,6 +81,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     private static final String DIRECTORY_MODE = "040000";
 
     private static final int DEFAULT_ITEMS_PER_PAGE = 100;
+    private static final int COMMIT_PAGE_SIZE = 10;
 
     private static final TokenInfo UNKNOWN_TOKEN = new TokenInfo("unknown", false, false);
 
@@ -212,7 +213,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
         logger.debug("Getting commits for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
 
         final CommitsApi commitsApi = gitLab.getCommitsApi();
-        return execute(() -> commitsApi.getCommits(projectPath, branch, resolvedPath).stream()
+        return execute(() -> commitsApi.getCommits(projectPath, branch, null, null, resolvedPath, COMMIT_PAGE_SIZE).next().stream()
                 .map(this::toGitCommit)
                 .toList()
         );
