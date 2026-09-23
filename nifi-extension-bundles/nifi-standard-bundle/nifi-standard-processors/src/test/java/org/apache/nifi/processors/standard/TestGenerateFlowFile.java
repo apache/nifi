@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -36,9 +37,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Unit tests for the GenerateFlowFile processor.
  */
 public class TestGenerateFlowFile {
-    private static final String STREAMED_FILE_SIZE = "9 KB";
-    private static final long STREAMED_FILE_SIZE_BYTES = 9 * 1024;
-
     private TestRunner runner;
 
     @BeforeEach
@@ -48,23 +46,21 @@ public class TestGenerateFlowFile {
 
     @Test
     public void testGenerateCustomText() {
-        runner.setProperty(GenerateFlowFile.FILE_SIZE, "1B");
+        runner.setProperty(GenerateFlowFile.FILE_SIZE, "1MB");
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_TEXT);
         runner.setProperty(GenerateFlowFile.CUSTOM_TEXT, "This is my custom text!");
 
-        runner.setProperty(GenerateFlowFile.BATCH_SIZE, "2");
-
         runner.run();
 
-        runner.assertTransferCount(GenerateFlowFile.SUCCESS, 2);
-        runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0).assertContentEquals("This is my custom text!");
-        runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(1).assertContentEquals("This is my custom text!");
-        runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0).assertAttributeNotExists("mime.type");
+        runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1);
+        MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).getFirst();
+        generatedFlowFile.assertContentEquals("This is my custom text!");
+        generatedFlowFile.assertAttributeNotExists("mime.type");
     }
 
     @Test
     public void testInvalidCustomText() {
-        runner.setProperty(GenerateFlowFile.FILE_SIZE, "1B");
+        runner.setProperty(GenerateFlowFile.FILE_SIZE, "1MB");
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_BINARY);
         runner.setProperty(GenerateFlowFile.CUSTOM_TEXT, "This is my custom text!");
         runner.assertNotValid();
@@ -76,30 +72,51 @@ public class TestGenerateFlowFile {
 
     @Test
     public void testFileSizeLargerThanIntegerMaxIsInvalid() {
-        // Configuration only — do not runner.run() with this size. GitHub runners cannot host a 3 GB FlowFile.
         runner.setProperty(GenerateFlowFile.FILE_SIZE, "3 GB");
 
         runner.assertNotValid();
     }
 
     @Test
-    public void testGenerateNonUniqueBinaryContentStreamed() {
-        assertStreamedContent(false, GenerateFlowFile.DATA_FORMAT_BINARY);
+    public void testNonUniqueContentReusedAcrossInvocations() {
+        runner.setProperty(GenerateFlowFile.FILE_SIZE, "9 KB");
+        runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_BINARY);
+        runner.setProperty(GenerateFlowFile.UNIQUE_FLOWFILES, "false");
+
+        runner.run(2);
+
+        runner.assertAllFlowFilesTransferred(GenerateFlowFile.SUCCESS, 2);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS);
+        assertArrayEquals(flowFiles.get(0).getData(), flowFiles.get(1).getData());
     }
 
     @Test
-    public void testGenerateNonUniqueTextContentStreamed() {
-        assertStreamedContent(false, GenerateFlowFile.DATA_FORMAT_TEXT);
+    public void testUniqueContentGeneratedForEachFlowFile() {
+        runner.setProperty(GenerateFlowFile.FILE_SIZE, "9 KB");
+        runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_BINARY);
+        runner.setProperty(GenerateFlowFile.UNIQUE_FLOWFILES, "true");
+        runner.setProperty(GenerateFlowFile.BATCH_SIZE, "2");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(GenerateFlowFile.SUCCESS, 2);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS);
+        assertFalse(Arrays.equals(flowFiles.get(0).getData(), flowFiles.get(1).getData()));
     }
 
     @Test
-    public void testGenerateUniqueBinaryContentStreamed() {
-        assertStreamedContent(true, GenerateFlowFile.DATA_FORMAT_BINARY);
-    }
+    public void testBatchCreatesIndependentFlowFiles() {
+        runner.setProperty(GenerateFlowFile.FILE_SIZE, "9 KB");
+        runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_BINARY);
+        runner.setProperty(GenerateFlowFile.UNIQUE_FLOWFILES, "false");
+        runner.setProperty(GenerateFlowFile.BATCH_SIZE, "3");
 
-    @Test
-    public void testGenerateUniqueTextContentStreamed() {
-        assertStreamedContent(true, GenerateFlowFile.DATA_FORMAT_TEXT);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(GenerateFlowFile.SUCCESS, 3);
+        assertEquals(3, runner.getProvenanceEvents().size());
+        assertTrue(runner.getProvenanceEvents().stream()
+                .allMatch(event -> event.getEventType() == ProvenanceEventType.CREATE));
     }
 
     @Test
@@ -171,30 +188,6 @@ public class TestGenerateFlowFile {
 
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
-    }
-
-    private void assertStreamedContent(final boolean unique, final String dataFormat) {
-        runner.setProperty(GenerateFlowFile.FILE_SIZE, STREAMED_FILE_SIZE);
-        runner.setProperty(GenerateFlowFile.DATA_FORMAT, dataFormat);
-        runner.setProperty(GenerateFlowFile.UNIQUE_FLOWFILES, Boolean.toString(unique));
-        runner.setProperty(GenerateFlowFile.BATCH_SIZE, unique ? "2" : "3");
-
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(GenerateFlowFile.SUCCESS, unique ? 2 : 3);
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS);
-        final MockFlowFile first = flowFiles.getFirst();
-        for (final MockFlowFile flowFile : flowFiles) {
-            assertEquals(STREAMED_FILE_SIZE_BYTES, flowFile.getSize());
-        }
-
-        if (unique) {
-            assertFalse(Arrays.equals(first.getData(), flowFiles.get(1).getData()));
-        } else {
-            for (int i = 1; i < flowFiles.size(); i++) {
-                assertArrayEquals(first.getData(), flowFiles.get(i).getData());
-            }
-        }
     }
 
 }
