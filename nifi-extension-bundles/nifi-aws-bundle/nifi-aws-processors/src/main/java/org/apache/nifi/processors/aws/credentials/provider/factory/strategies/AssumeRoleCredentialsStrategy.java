@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -27,7 +26,7 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.ssl.SSLContextProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.http.apache5.Apache5HttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.services.sts.StsClientBuilder;
@@ -38,7 +37,10 @@ import java.net.Proxy;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
-import javax.net.ssl.SSLContext;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509TrustManager;
 
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_EXTERNAL_ID;
@@ -115,17 +117,23 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
 
         final StsAssumeRoleCredentialsProvider.Builder builder = StsAssumeRoleCredentialsProvider.builder();
 
-        final ApacheHttpClient.Builder httpClientBuilder = ApacheHttpClient.builder();
+        final Apache5HttpClient.Builder httpClientBuilder = Apache5HttpClient.builder();
 
         if (sslContextProvider != null) {
-            final SSLContext sslContext = sslContextProvider.createContext();
-            httpClientBuilder.socketFactory(new SSLConnectionSocketFactory(sslContext));
+            final X509TrustManager trustManager = sslContextProvider.createTrustManager();
+            final TrustManager[] trustManagers = new TrustManager[]{trustManager};
+            httpClientBuilder.tlsTrustManagersProvider(() -> trustManagers);
+
+            sslContextProvider.createKeyManager().ifPresent(keyManager -> {
+                final KeyManager[] keyManagers = new X509ExtendedKeyManager[]{keyManager};
+                httpClientBuilder.tlsKeyManagersProvider(() -> keyManagers);
+            });
         }
 
         if (proxyConfigurationService != null) {
             final ProxyConfiguration proxyConfiguration = proxyConfigurationService.getConfiguration();
             if (proxyConfiguration.getProxyType() == Proxy.Type.HTTP) {
-                final software.amazon.awssdk.http.apache.ProxyConfiguration.Builder proxyConfigBuilder = software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
+                final software.amazon.awssdk.http.apache5.ProxyConfiguration.Builder proxyConfigBuilder = software.amazon.awssdk.http.apache5.ProxyConfiguration.builder()
                         .endpoint(URI.create(String.format("http://%s:%s", proxyConfiguration.getProxyServerHost(), proxyConfiguration.getProxyServerPort())));
 
                 if (proxyConfiguration.hasCredential()) {

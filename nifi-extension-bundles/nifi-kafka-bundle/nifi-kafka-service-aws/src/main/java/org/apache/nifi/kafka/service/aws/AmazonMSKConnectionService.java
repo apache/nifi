@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.kafka.service.aws;
 
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -37,7 +36,7 @@ import org.apache.nifi.util.StringUtils;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
-import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.http.apache5.Apache5HttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.services.sts.StsClientBuilder;
@@ -56,7 +55,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509TrustManager;
 
 @Tags({"AWS", "MSK", "streaming", "kafka"})
 @CapabilityDescription("Provides and manages connections to AWS MSK Kafka Brokers for producer or consumer operations.")
@@ -215,11 +217,17 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
         final String stsEndpoint = propertyContext.getProperty(AWS_WEB_IDENTITY_STS_ENDPOINT).getValue();
         final SSLContextProvider sslContextProvider = propertyContext.getProperty(AWS_WEB_IDENTITY_SSL_CONTEXT_PROVIDER).asControllerService(SSLContextProvider.class);
 
-        final ApacheHttpClient.Builder httpClientBuilder = ApacheHttpClient.builder();
+        final Apache5HttpClient.Builder httpClientBuilder = Apache5HttpClient.builder();
 
         if (sslContextProvider != null) {
-            final SSLContext sslContext = sslContextProvider.createContext();
-            httpClientBuilder.socketFactory(new SSLConnectionSocketFactory(sslContext));
+            final X509TrustManager trustManager = sslContextProvider.createTrustManager();
+            final TrustManager[] trustManagers = new TrustManager[]{trustManager};
+            httpClientBuilder.tlsTrustManagersProvider(() -> trustManagers);
+
+            sslContextProvider.createKeyManager().ifPresent(keyManager -> {
+                final KeyManager[] keyManagers = new X509ExtendedKeyManager[]{keyManager};
+                httpClientBuilder.tlsKeyManagersProvider(() -> keyManagers);
+            });
         }
 
         final StsClientBuilder stsClientBuilder = StsClient.builder().httpClient(httpClientBuilder.build());

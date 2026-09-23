@@ -41,7 +41,7 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.ssl.SSLContextProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.http.SdkHttpClient;
-import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.http.apache5.Apache5HttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.glue.GlueClient;
 import software.amazon.awssdk.services.glue.GlueClientBuilder;
@@ -224,7 +224,7 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
     }
 
     private SdkHttpClient createSdkHttpClient(final ConfigurationContext context) {
-        final ApacheHttpClient.Builder builder = ApacheHttpClient.builder();
+        final Apache5HttpClient.Builder builder = Apache5HttpClient.builder();
 
         final int communicationsTimeout = context.getProperty(COMMUNICATIONS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         builder.connectionTimeout(Duration.ofMillis(communicationsTimeout));
@@ -248,7 +248,7 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
         final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context);
 
         if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
-            final software.amazon.awssdk.http.apache.ProxyConfiguration.Builder proxyConfigBuilder = software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
+            final software.amazon.awssdk.http.apache5.ProxyConfiguration.Builder proxyConfigBuilder = software.amazon.awssdk.http.apache5.ProxyConfiguration.builder()
                     .endpoint(URI.create(String.format("http://%s:%s", proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort())));
 
             if (proxyConfig.hasCredential()) {

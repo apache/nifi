@@ -24,7 +24,7 @@ import software.amazon.awssdk.awscore.client.builder.AwsSyncClientBuilder;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.TlsKeyManagersProvider;
 import software.amazon.awssdk.http.TlsTrustManagersProvider;
-import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.http.apache5.Apache5HttpClient;
 
 import java.net.URI;
 import java.time.Duration;
@@ -49,7 +49,7 @@ public abstract class AbstractAwsSyncProcessor<
     }
 
     private SdkHttpClient createSdkHttpClient(final ProcessContext context) {
-        final ApacheHttpClient.Builder builder = ApacheHttpClient.builder();
+        final Apache5HttpClient.Builder builder = Apache5HttpClient.builder();
 
         final AwsHttpClientConfigurer configurer = new AwsHttpClientConfigurer() {
             @Override
@@ -67,7 +67,7 @@ public abstract class AbstractAwsSyncProcessor<
 
             @Override
             public void configureProxy(final ProxyConfiguration proxyConfiguration) {
-                final software.amazon.awssdk.http.apache.ProxyConfiguration.Builder proxyConfigBuilder = software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
+                final software.amazon.awssdk.http.apache5.ProxyConfiguration.Builder proxyConfigBuilder = software.amazon.awssdk.http.apache5.ProxyConfiguration.builder()
                         .endpoint(URI.create(String.format("http://%s:%s", proxyConfiguration.getProxyServerHost(), proxyConfiguration.getProxyServerPort())));
 
                 if (proxyConfiguration.hasCredential()) {
