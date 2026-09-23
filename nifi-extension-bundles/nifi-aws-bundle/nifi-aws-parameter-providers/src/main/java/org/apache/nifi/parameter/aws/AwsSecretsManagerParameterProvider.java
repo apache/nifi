@@ -42,7 +42,7 @@ import software.amazon.awssdk.core.client.config.SdkAdvancedClientOption;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.TlsKeyManagersProvider;
 import software.amazon.awssdk.http.TlsTrustManagersProvider;
-import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.http.apache5.Apache5HttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.retries.DefaultRetryStrategy;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
@@ -373,7 +373,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
     }
 
     private SdkHttpClient createHttpClient(final ConfigurationContext context) {
-        final ApacheHttpClient.Builder builder = ApacheHttpClient.builder();
+        final Apache5HttpClient.Builder builder = Apache5HttpClient.builder();
 
         final Duration commsTimeout = context.getProperty(TIMEOUT).asDuration();
         builder.connectionTimeout(commsTimeout);

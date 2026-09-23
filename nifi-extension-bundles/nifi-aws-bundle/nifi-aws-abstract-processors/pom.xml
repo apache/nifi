@@ -31,7 +31,7 @@
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
-            <artifactId>apache-client</artifactId>
+            <artifactId>apache5-client</artifactId>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
