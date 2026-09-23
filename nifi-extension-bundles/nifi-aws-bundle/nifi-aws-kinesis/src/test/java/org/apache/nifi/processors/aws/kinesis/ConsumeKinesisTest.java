@@ -45,12 +45,39 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ConsumeKinesisTest {
+
+    private static final String TEST_STREAM_NAME = "test-stream";
+
+    private static final String DEFAULT_SHARD_ID = "shardId-000000000001";
+
+    private static final String FIRST_SHARD_ID = "shard-A";
+
+    private static final String SECOND_SHARD_ID = "shard-B";
+
+    private static final String FIRST_JSON_RECORD = "{\"id\":1}";
+
+    private static final String SECOND_JSON_RECORD = "{\"id\":2}";
+
+    private static final String THIRD_JSON_RECORD = "{\"id\":3}";
+
+    private static final String FOURTH_JSON_RECORD = "{\"id\":4}";
+
+    private static final String FIRST_FLOW_FILE_RECORD = "record-one";
+
+    private static final String SECOND_FLOW_FILE_RECORD = "record-two";
+
+    private static final long FIRST_SHARD_BEHIND_MS = 1000L;
+
+    private static final long SECOND_SHARD_BEHIND_MS = 2500L;
+
+    private static final long FLOW_FILE_BEHIND_MS = 5000L;
 
     private TestRunner runner;
 
@@ -79,7 +106,7 @@ class ConsumeKinesisTest {
         targetRunner.enableControllerService(credentialsService);
 
         targetRunner.setProperty(ConsumeKinesis.APPLICATION_NAME, "test-app");
-        targetRunner.setProperty(ConsumeKinesis.STREAM_NAME, "test-stream");
+        targetRunner.setProperty(ConsumeKinesis.STREAM_NAME, TEST_STREAM_NAME);
         targetRunner.setProperty(ConsumeKinesis.AWS_CREDENTIALS_PROVIDER_SERVICE, "creds");
     }
 
@@ -168,6 +195,10 @@ class ConsumeKinesisTest {
         runner.assertTransferCount(ConsumeKinesis.REL_PARSE_FAILURE, 0);
         final MockFlowFile success = runner.getFlowFilesForRelationship(ConsumeKinesis.REL_SUCCESS).getFirst();
         success.assertAttributeEquals("record.count", "3");
+
+        final Map<String, String> attributes = getMetricAttributes(DEFAULT_SHARD_ID);
+        assertEquals(3L, runner.getCounterValue(KinesisMetricName.RECORDS_CONSUMED.getMetricName(), attributes));
+        assertEquals(List.of(0.0), runner.getGaugeValues(KinesisMetricName.CONSUMER_MILLISECONDS_BEHIND.getMetricName(), attributes));
     }
 
     @Test
@@ -205,6 +236,10 @@ class ConsumeKinesisTest {
         assertTrue(failureSequences.contains("1"));
         assertTrue(failureSequences.contains("3"));
         assertTrue(failureSequences.contains("5"));
+
+        final Map<String, String> attributes = getMetricAttributes(DEFAULT_SHARD_ID);
+        assertEquals(5L, runner.getCounterValue(KinesisMetricName.RECORDS_CONSUMED.getMetricName(), attributes));
+        assertEquals(3L, runner.getCounterValue(KinesisMetricName.RECORDS_PARSED_ERRORS.getMetricName(), attributes));
     }
 
     @Test
@@ -218,6 +253,10 @@ class ConsumeKinesisTest {
 
         runner.assertTransferCount(ConsumeKinesis.REL_SUCCESS, 0);
         runner.assertTransferCount(ConsumeKinesis.REL_PARSE_FAILURE, 3);
+
+        final Map<String, String> attributes = getMetricAttributes(DEFAULT_SHARD_ID);
+        assertEquals(3L, runner.getCounterValue(KinesisMetricName.RECORDS_CONSUMED.getMetricName(), attributes));
+        assertEquals(3L, runner.getCounterValue(KinesisMetricName.RECORDS_PARSED_ERRORS.getMetricName(), attributes));
     }
 
     @Test
@@ -234,7 +273,7 @@ class ConsumeKinesisTest {
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKinesis.REL_SUCCESS);
         for (final MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeEquals("record.count", "1");
-            flowFile.assertAttributeEquals(ConsumeKinesis.ATTR_STREAM_NAME, "test-stream");
+            flowFile.assertAttributeEquals(ConsumeKinesis.ATTR_STREAM_NAME, TEST_STREAM_NAME);
             flowFile.assertAttributeEquals(ConsumeKinesis.ATTR_SHARD_ID, "shardId-000000000001");
             final String firstSequence = flowFile.getAttribute(ConsumeKinesis.ATTR_FIRST_SEQUENCE);
             final String lastSequence = flowFile.getAttribute(ConsumeKinesis.ATTR_LAST_SEQUENCE);
@@ -284,10 +323,10 @@ class ConsumeKinesisTest {
 
     @Test
     void testMultipleShardsNoDataLoss() throws Exception {
-        final ShardFetchResult shard1Result = new ShardFetchResult("shard-A",
-                List.of(testRecord("10", "{\"id\":1}"), testRecord("20", "{\"id\":2}")), 0L);
-        final ShardFetchResult shard2Result = new ShardFetchResult("shard-B",
-                List.of(testRecord("30", "{\"id\":3}"), testRecord("40", "{\"id\":4}")), 0L);
+        final ShardFetchResult shard1Result = new ShardFetchResult(FIRST_SHARD_ID,
+                List.of(testRecord("10", FIRST_JSON_RECORD), testRecord("20", SECOND_JSON_RECORD)), FIRST_SHARD_BEHIND_MS);
+        final ShardFetchResult shard2Result = new ShardFetchResult(SECOND_SHARD_ID,
+                List.of(testRecord("30", THIRD_JSON_RECORD), testRecord("40", FOURTH_JSON_RECORD)), SECOND_SHARD_BEHIND_MS);
 
         triggerWithResults(List.of(shard1Result, shard2Result), "RECORD");
 
@@ -301,8 +340,68 @@ class ConsumeKinesisTest {
             shardsSeen.add(flowFile.getAttribute(ConsumeKinesis.ATTR_SHARD_ID));
             totalRecords += Long.parseLong(flowFile.getAttribute("record.count"));
         }
-        assertEquals(Set.of("shard-A", "shard-B"), shardsSeen);
+        assertEquals(Set.of(FIRST_SHARD_ID, SECOND_SHARD_ID), shardsSeen);
         assertEquals(4, totalRecords);
+
+        final Map<String, String> firstAttributes = getMetricAttributes(FIRST_SHARD_ID);
+        final Map<String, String> secondAttributes = getMetricAttributes(SECOND_SHARD_ID);
+        final long firstShardBytes = payloadBytes(FIRST_JSON_RECORD) + payloadBytes(SECOND_JSON_RECORD);
+        final long secondShardBytes = payloadBytes(THIRD_JSON_RECORD) + payloadBytes(FOURTH_JSON_RECORD);
+
+        assertEquals(2L, runner.getCounterValue(KinesisMetricName.RECORDS_CONSUMED.getMetricName(), firstAttributes));
+        assertEquals(2L, runner.getCounterValue(KinesisMetricName.RECORDS_CONSUMED.getMetricName(), secondAttributes));
+        assertEquals(firstShardBytes, runner.getCounterValue(KinesisMetricName.BYTES_CONSUMED.getMetricName(), firstAttributes));
+        assertEquals(secondShardBytes, runner.getCounterValue(KinesisMetricName.BYTES_CONSUMED.getMetricName(), secondAttributes));
+        assertEquals(List.of((double) FIRST_SHARD_BEHIND_MS),
+                runner.getGaugeValues(KinesisMetricName.CONSUMER_MILLISECONDS_BEHIND.getMetricName(), firstAttributes));
+        assertEquals(List.of((double) SECOND_SHARD_BEHIND_MS),
+                runner.getGaugeValues(KinesisMetricName.CONSUMER_MILLISECONDS_BEHIND.getMetricName(), secondAttributes));
+    }
+
+    @Test
+    void testEmptyConsumeDoesNotRecordMetrics() throws Exception {
+        final KinesisShardManager mockShardManager = buildShardManager(DEFAULT_SHARD_ID);
+        final TestableConsumeKinesis processor = new TestableConsumeKinesis(mockShardManager, List.of());
+        runner = TestRunners.newTestRunner(processor);
+
+        setCommonProperties();
+        runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, "FLOW_FILE");
+        runner.setProperty(ConsumeKinesis.CONSUMER_TYPE, "SHARED_THROUGHPUT");
+
+        runner.run();
+
+        final Map<String, String> attributes = getMetricAttributes(DEFAULT_SHARD_ID);
+        assertNull(runner.getCounterValue(KinesisMetricName.RECORDS_CONSUMED.getMetricName(), attributes));
+        assertNull(runner.getCounterValue(KinesisMetricName.BYTES_CONSUMED.getMetricName(), attributes));
+        assertTrue(runner.getGaugeValues(KinesisMetricName.CONSUMER_MILLISECONDS_BEHIND.getMetricName(), attributes).isEmpty());
+        runner.assertTransferCount(ConsumeKinesis.REL_SUCCESS, 0);
+    }
+
+    @Test
+    void testFlowFileStrategyRecordsBytesAndBehindMetrics() throws Exception {
+        final List<UserRecord> records = List.of(
+                testRecord("1", FIRST_FLOW_FILE_RECORD),
+                testRecord("2", SECOND_FLOW_FILE_RECORD));
+        final KinesisShardManager mockShardManager = buildShardManager(DEFAULT_SHARD_ID);
+        final ShardFetchResult fetchResult = new ShardFetchResult(DEFAULT_SHARD_ID, records, FLOW_FILE_BEHIND_MS);
+        final TestableConsumeKinesis processor = new TestableConsumeKinesis(mockShardManager, fetchResult);
+        runner = TestRunners.newTestRunner(processor);
+
+        setCommonProperties();
+        runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, "FLOW_FILE");
+        runner.setProperty(ConsumeKinesis.CONSUMER_TYPE, "SHARED_THROUGHPUT");
+
+        runner.run();
+
+        runner.assertTransferCount(ConsumeKinesis.REL_SUCCESS, 2);
+
+        final Map<String, String> attributes = getMetricAttributes(DEFAULT_SHARD_ID);
+        final long expectedBytes = payloadBytes(FIRST_FLOW_FILE_RECORD) + payloadBytes(SECOND_FLOW_FILE_RECORD);
+        assertEquals(2L, runner.getCounterValue(KinesisMetricName.RECORDS_CONSUMED.getMetricName(), attributes));
+        assertEquals(expectedBytes, runner.getCounterValue(KinesisMetricName.BYTES_CONSUMED.getMetricName(), attributes));
+        assertEquals(2L, runner.getCounterValue("Records Consumed"));
+        assertEquals(List.of((double) FLOW_FILE_BEHIND_MS),
+                runner.getGaugeValues(KinesisMetricName.CONSUMER_MILLISECONDS_BEHIND.getMetricName(), attributes));
     }
 
     @Test
@@ -413,8 +512,8 @@ class ConsumeKinesisTest {
     }
 
     private void triggerWithRecords(final List<UserRecord> records) throws Exception {
-        final KinesisShardManager mockShardManager = buildShardManager("shardId-000000000001");
-        final ShardFetchResult fetchResult = new ShardFetchResult("shardId-000000000001", records, 0L);
+        final KinesisShardManager mockShardManager = buildShardManager(DEFAULT_SHARD_ID);
+        final ShardFetchResult fetchResult = new ShardFetchResult(DEFAULT_SHARD_ID, records, 0L);
         final TestableConsumeKinesis processor = new TestableConsumeKinesis(mockShardManager, fetchResult);
         runner = TestRunners.newTestRunner(processor);
 
@@ -456,11 +555,15 @@ class ConsumeKinesisTest {
         failure.assertContentEquals(expectedFailureContent);
         failure.assertAttributeEquals(ConsumeKinesis.ATTR_FIRST_SEQUENCE, expectedFailureSequence);
         assertNotNull(failure.getAttribute(ConsumeKinesis.ATTR_RECORD_ERROR_MESSAGE));
+
+        final Map<String, String> attributes = getMetricAttributes(DEFAULT_SHARD_ID);
+        assertEquals(3L, runner.getCounterValue(KinesisMetricName.RECORDS_CONSUMED.getMetricName(), attributes));
+        assertEquals(1L, runner.getCounterValue(KinesisMetricName.RECORDS_PARSED_ERRORS.getMetricName(), attributes));
     }
 
     private void triggerWithOutputStrategy(final List<UserRecord> records, final String outputStrategy) throws Exception {
-        final KinesisShardManager mockShardManager = buildShardManager("shardId-000000000001");
-        final ShardFetchResult fetchResult = new ShardFetchResult("shardId-000000000001", records, 0L);
+        final KinesisShardManager mockShardManager = buildShardManager(DEFAULT_SHARD_ID);
+        final ShardFetchResult fetchResult = new ShardFetchResult(DEFAULT_SHARD_ID, records, 0L);
         final TestableConsumeKinesis processor = new TestableConsumeKinesis(mockShardManager, fetchResult);
         runner = TestRunners.newTestRunner(processor);
 
@@ -538,12 +641,23 @@ class ConsumeKinesisTest {
 
     private static UserRecord testRecord(final String sequenceNumber, final String data, final Instant arrivalTimestamp) {
         return new UserRecord(
-                "shardId-000000000001",
+                DEFAULT_SHARD_ID,
                 sequenceNumber,
                 0,
                 "pk-" + sequenceNumber,
                 data.getBytes(StandardCharsets.UTF_8),
                 arrivalTimestamp);
+    }
+
+    private static Map<String, String> getMetricAttributes(final String shardId) {
+        return Map.of(
+                ConsumeKinesis.ATTR_STREAM_NAME, TEST_STREAM_NAME,
+                ConsumeKinesis.ATTR_SHARD_ID, shardId
+        );
+    }
+
+    private static long payloadBytes(final String payload) {
+        return payload.getBytes(StandardCharsets.UTF_8).length;
     }
 
     static class TestableConsumeKinesis extends ConsumeKinesis {
