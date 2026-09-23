@@ -1,0 +1,72 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+syntax = "proto3";
+package example;
+
+message Wrapper {
+  optional Payload previous = 1;
+  optional Payload current = 2;
+  Origin origin = 3;
+  string operation = 4;
+  optional int64 event_time = 5;
+  optional chunk grouping = 6;
+
+  message Payload {
+    int64 record_id = 1;
+    string display_name = 2;
+    optional string code = 3;
+    int32 flag_a = 4 [(confluent.field_meta) = {
+      params: [
+        {
+          key: "connect.type",
+          value: "int16"
+        }
+      ]
+    }];
+    optional int32 flag_b = 5 [(confluent.field_meta) = {
+      params: [
+        {
+          key: "connect.type",
+          value: "int16"
+        }
+      ]
+    }];
+    int32 flag_c = 6 [(confluent.field_meta) = {
+      params: [
+        {
+          key: "connect.type",
+          value: "int16"
+        }
+      ]
+    }];
+    string first_seen = 7;
+    optional string last_editor = 8;
+  }
+  message Origin {
+    string schema_version = 1;
+    string producer = 2;
+    int64 origin_time = 3;
+    optional string mode = 4;
+    string catalog = 5;
+    optional string relation = 6;
+  }
+  message chunk {
+    string grouping_id = 1;
+    int64 sequence_a = 2;
+    int64 sequence_b = 3;
+  }
+}
