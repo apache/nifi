@@ -196,8 +196,8 @@ final class ProtobufSchemaCompiler {
 
     /**
      * Writes schema text to a path relative to the temporary directory, creating any parent directories.
-     * Import paths may contain directories, such as {@code airlines/ph/cdm/shared.proto}, so the enclosing
-     * directory structure has to exist before the file is written.
+     * Import paths may contain directories, such as {@code airlines/ph/cdm/shared.proto}, so this method
+     * creates the enclosing directory structure before writing the file.
      *
      * @param tempDir      the temporary directory root
      * @param relativePath the path of the schema file relative to the temporary directory

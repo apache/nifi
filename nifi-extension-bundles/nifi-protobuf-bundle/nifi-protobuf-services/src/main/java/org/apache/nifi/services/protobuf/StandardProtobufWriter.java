@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.services.protobuf;
 
+import com.squareup.wire.schema.MessageType;
 import com.squareup.wire.schema.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -25,6 +26,8 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -32,6 +35,7 @@ import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.MessageIndexWriter;
 import org.apache.nifi.schemaregistry.services.MessageName;
@@ -49,7 +53,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.services.protobuf.schema.ProtoSchemaParser;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -57,9 +60,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
@@ -78,11 +84,13 @@ import static org.apache.nifi.services.protobuf.StandardProtobufWriter.MessageNa
 @CapabilityDescription("""
     Serializes NiFi Records into Protocol Buffers binary format. \
     Supports inline schema text and schema registry lookup for determining the Proto schema. \
-    When a Schema Reference Writer is configured, a Confluent wire-format header is written; when a \
-    Message Index Writer is also configured, the Confluent message index array is written after the header. \
-    The target Proto message name can be determined statically using the 'Message Name' property, \
-    or dynamically using a Message Name Resolver service.
-    A single record is written per FlowFile, since concatenated Protocol Buffers messages cannot be delimited. \
+    Optional Schema Reference Writer and Message Index Writer Controller Services can add framing before the \
+    Protobuf payload. When both are configured, schema reference information is written first, followed by message \
+    index information. Selected implementations must be compatible with each other and with the target wire format. \
+    Confluent Protobuf wire format requires both compatible services. \
+    The target Proto message name can be determined statically using the 'Message Name' property or dynamically \
+    using a Message Name Resolver service. \
+    A single record is written per FlowFile because concatenated Protocol Buffers messages cannot be delimited. \
     The 'google.protobuf.Any' well-known type is not expanded on write; a Record derived from an Any-typed message \
     is serialized as an ordinary nested message rather than being re-wrapped as an Any.""")
 public class StandardProtobufWriter extends SchemaRegistryService implements RecordSetWriterFactory {
@@ -117,16 +125,19 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
 
     public static final PropertyDescriptor SCHEMA_REFERENCE_WRITER = new PropertyDescriptor.Builder()
         .name("Schema Reference Writer")
-        .description("Service used to write schema reference information, such as a Confluent wire-format header, before the serialized Protobuf content. "
-            + "When not configured, plain Protobuf content is written without any header.")
+        .description("The Controller Service used to write schema reference information before any message index information "
+            + "and the Protobuf payload. The selected implementation must be compatible with the target wire format and any "
+            + "configured Message Index Writer. When not configured, no schema reference information is written.")
         .required(false)
         .identifiesControllerService(SchemaReferenceWriter.class)
         .build();
 
     public static final PropertyDescriptor MESSAGE_INDEX_WRITER = new PropertyDescriptor.Builder()
         .name("Message Index Writer")
-        .description("Service used to write the Confluent message index array identifying the target message within the schema, written after the Schema Reference Writer header. "
-            + "Applicable only when producing Confluent wire-format content.")
+        .description("The Controller Service used to write information identifying the selected message within the Protobuf "
+            + "schema. Message index information is written after any schema reference information and before the Protobuf "
+            + "payload. The selected implementation must be compatible with the target wire format and any configured "
+            + "Schema Reference Writer.")
         .required(false)
         .identifiesControllerService(MessageIndexWriter.class)
         .build();
@@ -141,8 +152,6 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
         .build();
 
     private static final String PROTO_EXTENSION = ".proto";
-
-    private static final InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
 
     private volatile ProtobufSchemaCompiler schemaCompiler;
     private volatile MessageNameResolver messageNameResolver;
@@ -185,6 +194,10 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
         // Resolve the schema against the identifier of the supplied schema, so that a registry version registered after
         // getSchema() was called cannot change the schema used for writing
         final ProtobufWriteContext context = createWriteContext(variables, schema);
+
+        if (schemaReferenceWriter != null) {
+            schemaReferenceWriter.validateSchema(context.recordSchema());
+        }
         return new WriteProtobufResultWithExternalSchema(context.schema(), context.messageName(), context.recordSchema(),
             context.schemaDefinition(), schemaReferenceWriter, messageIndexWriter, variables, out);
     }
@@ -192,8 +205,6 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        // The Schema Reference Reader is a read-side concern: a writer determines its schema from the configured
-        // access strategy and writes references through the Schema Reference Writer instead.
         properties.removeIf(property -> SCHEMA_REFERENCE_READER.getName().equals(property.getName()));
         properties.add(MESSAGE_NAME_RESOLUTION_STRATEGY);
         properties.add(MESSAGE_NAME_RESOLVER);
@@ -205,9 +216,17 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
 
     @Override
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
-        // Only the strategies that createSchemaDefinition supports are offered; the inherited list also contains
-        // the Schema Reference Reader strategy, which cannot be used to obtain a schema for writing.
         return List.of(SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+
+        validateLiteralSchemaText(validationContext, results);
+        validateSchemaReferenceWriterCompatibility(validationContext, results);
+
+        return results;
     }
 
     @Override
@@ -218,12 +237,11 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
     private ProtobufWriteContext createWriteContext(final Map<String, String> variables, final RecordSchema suppliedSchema) throws SchemaNotFoundException, IOException {
         final SchemaDefinition schemaDefinition = createSchemaDefinition(variables, suppliedSchema);
         final Schema schema = schemaCompiler.compileOrGetFromCache(schemaDefinition);
-        final MessageName messageName = messageNameResolver.getMessageName(variables, schemaDefinition, EMPTY_INPUT_STREAM);
+        final MessageName messageName = messageNameResolver.getMessageName(variables, schemaDefinition, InputStream.nullInputStream());
 
         final ProtoSchemaParser schemaParser = new ProtoSchemaParser(schema);
         final RecordSchema parsedSchema = schemaParser.createSchema(messageName.getFullyQualifiedName());
-        // Preserve the schema identifier from the SchemaDefinition so the configured Schema Reference Writer can
-        // write the correct schema id in the Confluent header.
+        // Preserve the schema identifier required by the configured Schema Reference Writer.
         final RecordSchema recordSchema = new SimpleRecordSchema(parsedSchema.getFields(), schemaDefinition.getIdentifier());
 
         return new ProtobufWriteContext(schemaDefinition, schema, messageName, recordSchema);
@@ -241,6 +259,83 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
         }
 
         throw new SchemaNotFoundException("Unsupported schema access strategy: " + schemaAccessStrategyValue);
+    }
+
+    private void validateLiteralSchemaText(final ValidationContext validationContext, final List<ValidationResult> results) {
+        final String schemaAccessStrategy = validationContext.getProperty(SCHEMA_ACCESS_STRATEGY).getValue();
+        if (!SCHEMA_TEXT_PROPERTY.getValue().equals(schemaAccessStrategy)) {
+            return;
+        }
+
+        final String schemaTextValue = validationContext.getProperty(SCHEMA_TEXT).getValue();
+        if (schemaTextValue == null || schemaTextValue.isBlank() || validationContext.isExpressionLanguagePresent(schemaTextValue)) {
+            return;
+        }
+
+        final Schema compiledSchema;
+        try {
+            final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder()
+                .name(sha256Hex(schemaTextValue) + PROTO_EXTENSION)
+                .build();
+            final SchemaDefinition schemaDefinition = new StandardSchemaDefinition(schemaIdentifier, schemaTextValue, SchemaDefinition.SchemaType.PROTOBUF);
+            compiledSchema = schemaCompiler.compileOrGetFromCache(schemaDefinition);
+        } catch (final RuntimeException e) {
+            // The compiler reports Wire schema errors as SchemaCompilationException and other failures as other
+            // runtime exceptions, all of which indicate that the configured schema text cannot be used
+            results.add(new ValidationResult.Builder()
+                .subject(SCHEMA_TEXT.getDisplayName())
+                .valid(false)
+                .explanation("Invalid Protocol Buffers schema: " + e.getMessage())
+                .build());
+            return;
+        }
+
+        validateLiteralMessageName(validationContext, compiledSchema, results);
+    }
+
+    private void validateLiteralMessageName(final ValidationContext validationContext, final Schema compiledSchema, final List<ValidationResult> results) {
+        final String resolutionStrategy = validationContext.getProperty(MESSAGE_NAME_RESOLUTION_STRATEGY).getValue();
+        if (!MESSAGE_NAME_PROPERTY.getValue().equals(resolutionStrategy)) {
+            return;
+        }
+
+        final String messageNameValue = validationContext.getProperty(MESSAGE_NAME).getValue();
+        if (messageNameValue == null || messageNameValue.isBlank() || validationContext.isExpressionLanguagePresent(messageNameValue)) {
+            return;
+        }
+
+        if (!(compiledSchema.getType(messageNameValue) instanceof MessageType)) {
+            results.add(new ValidationResult.Builder()
+                .subject(MESSAGE_NAME.getDisplayName())
+                .input(messageNameValue)
+                .valid(false)
+                .explanation("Message name '%s' does not identify a message in the configured Protocol Buffers schema".formatted(messageNameValue))
+                .build());
+        }
+    }
+
+    private void validateSchemaReferenceWriterCompatibility(final ValidationContext validationContext, final List<ValidationResult> results) {
+        if (!validationContext.getProperty(SCHEMA_REFERENCE_WRITER).isSet()) {
+            return;
+        }
+
+        final SchemaReferenceWriter referenceWriter = validationContext.getProperty(SCHEMA_REFERENCE_WRITER).asControllerService(SchemaReferenceWriter.class);
+        if (referenceWriter == null) {
+            return;
+        }
+
+        final Set<SchemaField> missingFields = EnumSet.noneOf(SchemaField.class);
+        missingFields.addAll(referenceWriter.getRequiredSchemaFields());
+        missingFields.removeAll(getSuppliedSchemaFields(validationContext));
+
+        if (!missingFields.isEmpty()) {
+            results.add(new ValidationResult.Builder()
+                .subject(SCHEMA_REFERENCE_WRITER.getDisplayName())
+                .valid(false)
+                .explanation("The configured Schema Reference Writer requires schema fields that are not provided "
+                    + "by the configured Schema Access Strategy and Schema Registry: " + missingFields)
+                .build());
+        }
     }
 
     private void setupMessageNameResolver(final ConfigurationContext context) {
