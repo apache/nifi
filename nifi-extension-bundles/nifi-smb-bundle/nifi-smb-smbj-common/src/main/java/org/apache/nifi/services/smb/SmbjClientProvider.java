@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.services.smb;
 
+import com.hierynomus.protocol.transport.TransportException;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.auth.GSSAuthenticationContext;
+import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
@@ -94,14 +96,17 @@ public class SmbjClientProvider implements SmbClientProvider, Closeable {
 
     @Override
     public SmbClientService getClient(final ComponentLog logger, final Map<String, String> attributes) throws IOException {
-        final Connection connection = smbClient.connect(getHostname(attributes), getPort(attributes));
+        final String hostname = getHostname(attributes);
+        final Integer port = getPort(attributes);
         final URI serviceLocation = getServiceLocation(attributes);
+
+        final AuthenticationContext authenticationContext = createAuthenticationContext(logger);
 
         final Session session;
         final Share share;
 
         try {
-            session = connection.authenticate(createAuthenticationContext(logger));
+            session = createSession(hostname, port, authenticationContext);
         } catch (Exception e) {
             throw new IOException("Could not create session for share " + serviceLocation, e);
         }
@@ -121,6 +126,34 @@ public class SmbjClientProvider implements SmbClientProvider, Closeable {
         return new SmbjClientService(session, (DiskShare) share, getServiceLocation(attributes), logger);
     }
 
+    private Session createSession(String hostname, int port, AuthenticationContext authenticationContext) throws IOException {
+        Connection connection = smbClient.connect(hostname, port);
+
+        try {
+            return connection.authenticate(authenticationContext);
+        } catch (SMBRuntimeException e) {
+            if (e.getCause() != null && e.getCause() instanceof TransportException) {
+                logger.info("Stale connection found, unregistering it and creating a new one");
+
+                closeConnection(connection);
+                connection = smbClient.connect(hostname, port);
+
+                return connection.authenticate(authenticationContext);
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    private void closeConnection(final Connection connection) {
+        try {
+            if (connection != null) {
+                connection.close(true);
+            }
+        } catch (Exception e) {
+            logger.info("Could not close connection to {}", getServiceLocation(), e);
+        }
+    }
 
     private void closeSession(final Session session, URI serviceLocation) {
         try {

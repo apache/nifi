@@ -21,6 +21,7 @@ import com.hierynomus.smbj.SmbConfig;
 import org.apache.nifi.context.PropertyContext;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.nifi.smb.common.SmbProperties.CONNECTION_VALIDATION;
 import static org.apache.nifi.smb.common.SmbProperties.ENABLE_DFS;
 import static org.apache.nifi.smb.common.SmbProperties.SMB_DIALECT;
 import static org.apache.nifi.smb.common.SmbProperties.TIMEOUT;
@@ -33,7 +34,9 @@ public final class SmbUtils {
     }
 
     public static SMBClient buildSmbClient(final PropertyContext context) {
-        return SmbClient.create(buildSmbConfig(context));
+        final boolean connectionValidationEnabled =  context.getProperty(CONNECTION_VALIDATION).asBoolean();
+
+        return SmbClient.create(buildSmbConfig(context), connectionValidationEnabled);
     }
 
     static SmbConfig buildSmbConfig(final PropertyContext context) {

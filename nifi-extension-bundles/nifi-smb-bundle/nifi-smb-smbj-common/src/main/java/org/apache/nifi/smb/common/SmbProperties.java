@@ -162,6 +162,16 @@ public class SmbProperties {
             .defaultValue("false")
             .build();
 
+    public static final PropertyDescriptor CONNECTION_VALIDATION = new PropertyDescriptor.Builder()
+            .name("Connection Validation")
+            .description("When enabled, validates reused SMB connections with an SMB2 ECHO request and replaces stale connections. Please note " +
+                    "that Windows and Linux/Samba servers support this way of validation but others may not. Connection validation must be enabled " +
+                    "when DFS is used.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
+
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .name("Timeout")
             .description("Timeout for read and write operations.")

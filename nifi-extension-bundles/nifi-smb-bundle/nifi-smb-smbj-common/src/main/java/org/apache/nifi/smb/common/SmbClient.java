@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Extends {@link SMBClient} with connection health check.
+ * Extends {@link SMBClient} with optional connection health check.
  * <br/>
  * Workaround to https://github.com/hierynomus/smbj/issues/796.
  * <br/><br/>
@@ -49,20 +49,21 @@ class SmbClient extends SMBClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SmbClient.class);
 
-    private SMBEventBus bus;
+    private final SMBEventBus bus;
 
-    private SmbClient(final SmbConfig config, final SMBEventBus bus) {
+    private final boolean connectionValidationEnabled;
+
+    private SmbClient(final SmbConfig config, final SMBEventBus bus, final boolean connectionValidationEnabled) {
         super(config, bus);
+
+        this.bus = bus;
+        this.connectionValidationEnabled = connectionValidationEnabled;
     }
 
-    static SmbClient create(final SmbConfig config) {
+    static SmbClient create(final SmbConfig config, final boolean connectionValidationEnabled) {
         final SMBEventBus bus = new SMBEventBus();
 
-        final SmbClient client = new SmbClient(config, bus);
-
-        client.bus = bus;
-
-        return client;
+        return new SmbClient(config, bus, connectionValidationEnabled);
     }
 
     @Override
@@ -73,6 +74,10 @@ class SmbClient extends SMBClient {
     @Override
     public synchronized Connection connect(final String hostname, final int port) throws IOException {
         final Connection connection = super.connect(hostname, port);
+
+        if (!connectionValidationEnabled) {
+            return connection;
+        }
 
         try {
             // SMB2 ECHO message can only be sent if this is not a new connection (and health check is only needed in this case)
