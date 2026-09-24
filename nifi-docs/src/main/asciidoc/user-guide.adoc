@@ -1785,7 +1785,8 @@ A Process Group using the Stateless Engine can also be configured with a maximum
 and a heap percentage from `0` to `90`. A value of `0 B` or `0` percent means zero -- it does not mean unlimited. If only one setting is configured, that setting is used. If both are
 configured, the smaller of the two limits is used, so `80` percent with a `4 GB` maximum means 80% of the heap, up to 4 GB. If neither is configured, or if the effective limit is zero,
 all content is written to the Content Repository. The default is `0` percent and no data size, which uses no in-memory content. The configured maximum applies to the Stateless Process Group
-as a whole, including all Concurrent Tasks. In-memory content is dropped on restart, just like other data inside a Stateless group. Content that has already spilled to the Content Repository,
+as a whole, including all Concurrent Tasks. The limit counts allocated content buffer capacity, including unused space in those buffers. Object metadata and buffers allocated by processors
+are additional heap usage, so leave sufficient heap available for them. In-memory content is dropped on restart, just like other data inside a Stateless group. Content that has already spilled to the Content Repository,
 or that has left the group through an Output Port, remains on disk.
 
 

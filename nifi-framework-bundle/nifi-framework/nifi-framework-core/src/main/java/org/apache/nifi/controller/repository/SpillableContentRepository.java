@@ -17,22 +17,27 @@
 
 package org.apache.nifi.controller.repository;
 
-import org.apache.commons.io.output.UnsynchronizedByteArrayOutputStream;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.SequenceInputStream;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -42,8 +47,9 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * A {@link ContentRepository} used by an embedded Stateless Process Group that buffers FlowFile content in memory up to a configured total size and spills to a
  * backing (on-disk) Content Repository once that size is exceeded. Content for a single {@link ContentClaim} is stored either entirely in memory or entirely in
- * the backing repository: while a claim is being written, each write checks the running total of buffered bytes and, if the write would exceed the configured
- * size, the bytes buffered so far are flushed to the backing repository and the remainder of the claim is written there.
+ * the backing repository: while a claim is being written, each allocation reserves its buffer capacity against the configured size. If capacity is unavailable,
+ * the bytes buffered so far are flushed to the backing repository and the remainder of the claim is written there. The limit covers content byte arrays,
+ * including unused capacity, but not object metadata or buffers owned by processors and their streams.
  *
  * <p>
  * Claimant counts for in-memory claims are tracked in the {@link ResourceClaimManager} provided at initialization, the same manager used by the backing
@@ -103,7 +109,7 @@ public class SpillableContentRepository implements ContentRepository {
 
     @Override
     public ContentClaim create(final boolean lossTolerant) {
-        final SpillableContentClaim contentClaim = new SpillableContentClaim(lossTolerant);
+        final SpillableContentClaim contentClaim = new SpillableContentClaim(resourceClaimManager, lossTolerant);
         resourceClaimManager.incrementClaimantCount(contentClaim.getResourceClaim());
         activeClaims.add(contentClaim);
         return contentClaim;
@@ -458,9 +464,7 @@ public class SpillableContentRepository implements ContentRepository {
     private final class SpillableOutputStream extends OutputStream {
         private final SpillableContentClaim contentClaim;
         private final boolean lossTolerant;
-        private final byte[] singleByte = new byte[1];
-        private UnsynchronizedByteArrayOutputStream buffer = UnsynchronizedByteArrayOutputStream.builder().get();
-        private long reserved = 0L;
+        private MemoryContents buffer = new MemoryContents();
         private OutputStream spillStream;
         private boolean closed = false;
 
@@ -470,9 +474,20 @@ public class SpillableContentRepository implements ContentRepository {
         }
 
         @Override
-        public void write(final int b) throws IOException {
-            singleByte[0] = (byte) b;
-            write(singleByte, 0, 1);
+        public void write(final int value) throws IOException {
+            if (closed) {
+                throw new IOException("Cannot write to closed stream");
+            }
+
+            if (spillStream == null && !reserveCapacity(1)) {
+                spillOver();
+            }
+
+            if (spillStream == null) {
+                buffer.write(value);
+            } else {
+                spillStream.write(value);
+            }
         }
 
         @Override
@@ -492,9 +507,8 @@ public class SpillableContentRepository implements ContentRepository {
                 return;
             }
 
-            if (reserveMemory(len)) {
+            if (reserveCapacity(len)) {
                 buffer.write(b, off, len);
-                reserved += len;
                 return;
             }
 
@@ -502,14 +516,29 @@ public class SpillableContentRepository implements ContentRepository {
             spillStream.write(b, off, len);
         }
 
-        private boolean reserveMemory(final int bytes) {
+        private boolean reserveCapacity(final int bytes) {
+            final long required = bytes - (buffer.capacity() - buffer.size());
+            if (required <= 0) {
+                return true;
+            }
+
+            final long preferred = Math.max(buffer.nextBufferSize(), required);
             while (true) {
                 final long currentMemoryUsed = memoryUsed.get();
-                if (currentMemoryUsed > memoryThresholdBytes - bytes) {
+                final long available = memoryThresholdBytes - currentMemoryUsed;
+                if (available < required) {
                     return false;
                 }
 
-                if (memoryUsed.compareAndSet(currentMemoryUsed, currentMemoryUsed + bytes)) {
+                final long reserved = Math.min(preferred, available);
+                if (memoryUsed.compareAndSet(currentMemoryUsed, currentMemoryUsed + reserved)) {
+                    try {
+                        buffer.allocate(reserved);
+                    } catch (final RuntimeException | Error e) {
+                        memoryUsed.addAndGet(-reserved);
+                        throw e;
+                    }
+
                     return true;
                 }
             }
@@ -536,11 +565,11 @@ public class SpillableContentRepository implements ContentRepository {
             }
 
             spillStream = createdSpillStream;
+            final long reserved = buffer.capacity();
             buffer = null;
             memoryUsed.addAndGet(-reserved);
             logger.debug("Spilled Content Claim {} to the Content Repository after buffering {} bytes in memory; in-memory budget is {} bytes", contentClaim.getResourceClaim().getId(), reserved,
                 memoryThresholdBytes);
-            reserved = 0L;
         }
 
         @Override
@@ -572,11 +601,118 @@ public class SpillableContentRepository implements ContentRepository {
         }
     }
 
+    static final class MemoryContents {
+        private static final int MAX_BUFFER_SIZE = 64 * 1024;
+
+        private final List<byte[]> buffers = new ArrayList<>();
+        private long capacity;
+        private long size;
+        private int writeBufferIndex;
+        private int writeBufferOffset;
+
+        int nextBufferSize() {
+            return buffers.isEmpty() ? 32 : Math.min(MAX_BUFFER_SIZE, buffers.getLast().length * 2);
+        }
+
+        void allocate(final long bytes) {
+            final int originalBufferCount = buffers.size();
+            try {
+                long remaining = bytes;
+                while (remaining > 0) {
+                    final int bufferSize = (int) Math.min(MAX_BUFFER_SIZE, remaining);
+                    buffers.add(new byte[bufferSize]);
+                    remaining -= bufferSize;
+                }
+            } catch (final RuntimeException | Error e) {
+                buffers.subList(originalBufferCount, buffers.size()).clear();
+                throw e;
+            }
+
+            capacity += bytes;
+        }
+
+        void write(final int value) {
+            final byte[] currentBuffer = writableBuffer();
+            currentBuffer[writeBufferOffset++] = (byte) value;
+            size++;
+        }
+
+        private byte[] writableBuffer() {
+            if (writeBufferOffset == buffers.get(writeBufferIndex).length) {
+                writeBufferIndex++;
+                writeBufferOffset = 0;
+            }
+
+            return buffers.get(writeBufferIndex);
+        }
+
+        void write(final byte[] source, final int offset, final int length) {
+            int remaining = length;
+            while (remaining > 0) {
+                final byte[] currentBuffer = writableBuffer();
+                final int copied = Math.min(remaining, currentBuffer.length - writeBufferOffset);
+                System.arraycopy(source, offset + length - remaining, currentBuffer, writeBufferOffset, copied);
+                writeBufferOffset += copied;
+                size += copied;
+                remaining -= copied;
+            }
+        }
+
+        long size() {
+            return size;
+        }
+
+        long capacity() {
+            return capacity;
+        }
+
+        void writeTo(final OutputStream destination) throws IOException {
+            long remaining = size;
+            for (final byte[] currentBuffer : buffers) {
+                final int length = (int) Math.min(remaining, currentBuffer.length);
+                destination.write(currentBuffer, 0, length);
+                remaining -= length;
+                if (remaining == 0) {
+                    break;
+                }
+            }
+        }
+
+        InputStream toInputStream() {
+            if (size == 0) {
+                return InputStream.nullInputStream();
+            }
+
+            if (buffers.size() == 1) {
+                return new ByteArrayInputStream(buffers.getFirst(), 0, (int) size);
+            }
+
+            final Iterator<byte[]> iterator = buffers.iterator();
+            final Enumeration<InputStream> streams = new Enumeration<>() {
+                private long remaining = size;
+
+                @Override
+                public boolean hasMoreElements() {
+                    return remaining > 0 && iterator.hasNext();
+                }
+
+                @Override
+                public InputStream nextElement() {
+                    final byte[] currentBuffer = iterator.next();
+                    final int length = (int) Math.min(remaining, currentBuffer.length);
+                    remaining -= length;
+                    return new ByteArrayInputStream(currentBuffer, 0, length);
+                }
+            };
+            return new SequenceInputStream(streams);
+        }
+    }
+
     private static final class SpillableContentClaim implements ContentClaim {
         private final SpillableResourceClaim resourceClaim;
 
-        private SpillableContentClaim(final boolean lossTolerant) {
-            this.resourceClaim = new SpillableResourceClaim(lossTolerant);
+        private SpillableContentClaim(final ResourceClaimManager claimManager, final boolean lossTolerant) {
+            this.resourceClaim = new SpillableResourceClaim(claimManager, lossTolerant);
         }
 
         @Override
@@ -615,7 +751,7 @@ public class SpillableContentRepository implements ContentRepository {
             return resourceClaim.isWriteInProgress();
         }
 
-        private void storeInMemory(final UnsynchronizedByteArrayOutputStream contents) {
+        private void storeInMemory(final MemoryContents contents) {
             resourceClaim.storeInMemory(contents);
         }
 
@@ -667,45 +803,20 @@ public class SpillableContentRepository implements ContentRepository {
         }
     }
 
-    private static final class SpillableResourceClaim implements ResourceClaim {
+    private static final class SpillableResourceClaim extends StandardResourceClaim {
         private static final AtomicLong idCounter = new AtomicLong(0L);
 
-        private final String id = String.valueOf(idCounter.getAndIncrement());
-        private final boolean lossTolerant;
-        private volatile UnsynchronizedByteArrayOutputStream contents;
+        private final ResourceClaimManager claimManager;
+        private volatile MemoryContents contents;
         private volatile ContentClaim backingClaim;
         private volatile BackingClaimOwnership backingClaimOwnership = BackingClaimOwnership.NONE;
         private volatile boolean writeStarted;
         private volatile boolean writeFinished;
         private volatile boolean discarded = false;
 
-        private SpillableResourceClaim(final boolean lossTolerant) {
-            this.lossTolerant = lossTolerant;
-        }
-
-        @Override
-        public String getId() {
-            return id;
-        }
-
-        @Override
-        public String getContainer() {
-            return "in-memory";
-        }
-
-        @Override
-        public String getSection() {
-            return "in-memory";
-        }
-
-        @Override
-        public boolean isLossTolerant() {
-            return lossTolerant;
-        }
-
-        @Override
-        public boolean isWritable() {
-            return !discarded && (!writeStarted || !writeFinished);
+        private SpillableResourceClaim(final ResourceClaimManager claimManager, final boolean lossTolerant) {
+            super(claimManager, "in-memory", "in-memory", String.valueOf(idCounter.getAndIncrement()), lossTolerant);
+            this.claimManager = claimManager;
         }
 
         @Override
@@ -719,12 +830,12 @@ public class SpillableContentRepository implements ContentRepository {
                 return currentBackingClaim.getLength();
             }
 
-            final UnsynchronizedByteArrayOutputStream currentContents = contents;
+            final MemoryContents currentContents = contents;
             return currentContents == null ? 0L : currentContents.size();
         }
 
         private synchronized boolean beginWrite() {
-            if (writeStarted || discarded || contents != null || backingClaim != null) {
+            if (writeStarted || discarded || !isWritable() || contents != null || backingClaim != null) {
                 return false;
             }
 
@@ -734,13 +845,14 @@ public class SpillableContentRepository implements ContentRepository {
 
         private synchronized void finishWrite() {
             writeFinished = true;
+            claimManager.freeze(this);
         }
 
         private boolean isWriteInProgress() {
             return writeStarted && !writeFinished;
         }
 
-        private synchronized void storeInMemory(final UnsynchronizedByteArrayOutputStream contents) {
+        private synchronized void storeInMemory(final MemoryContents contents) {
             this.contents = contents;
         }
 
@@ -766,10 +878,11 @@ public class SpillableContentRepository implements ContentRepository {
             this.backingClaim = backingClaim;
             backingClaimOwnership = BackingClaimOwnership.REPOSITORY;
 
-            final UnsynchronizedByteArrayOutputStream currentContents = contents;
+            final MemoryContents currentContents = contents;
             contents = null;
             discarded = true;
-            return currentContents == null ? 0L : currentContents.size();
+            claimManager.freeze(this);
+            return currentContents == null ? 0L : currentContents.capacity();
         }
 
         private boolean hasInMemoryContents() {
@@ -777,14 +890,14 @@ public class SpillableContentRepository implements ContentRepository {
         }
 
         private void writeInMemoryTo(final OutputStream out) throws IOException {
-            final UnsynchronizedByteArrayOutputStream currentContents = contents;
+            final MemoryContents currentContents = contents;
             if (currentContents != null) {
                 currentContents.writeTo(out);
             }
         }
 
         private InputStream readInMemory() {
-            final UnsynchronizedByteArrayOutputStream currentContents = contents;
+            final MemoryContents currentContents = contents;
             if (currentContents == null) {
                 return InputStream.nullInputStream();
             }
@@ -793,9 +906,10 @@ public class SpillableContentRepository implements ContentRepository {
         }
 
         private synchronized ReleasedContent releaseForCleanup() {
-            final UnsynchronizedByteArrayOutputStream currentContents = contents;
+            final MemoryContents currentContents = contents;
             contents = null;
             discarded = true;
+            claimManager.freeze(this);
 
             final ContentClaim cleanupClaim;
             if (backingClaimOwnership == BackingClaimOwnership.REPOSITORY) {
@@ -805,26 +919,7 @@ public class SpillableContentRepository implements ContentRepository {
                 cleanupClaim = null;
             }
 
-            return new ReleasedContent(currentContents == null ? 0L : currentContents.size(), cleanupClaim);
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-
-            final SpillableResourceClaim that = (SpillableResourceClaim) o;
-            return Objects.equals(id, that.id);
-        }
-
-        @Override
-        public int hashCode() {
-            return id.hashCode();
+            return new ReleasedContent(currentContents == null ? 0L : currentContents.capacity(), cleanupClaim);
         }
     }
 

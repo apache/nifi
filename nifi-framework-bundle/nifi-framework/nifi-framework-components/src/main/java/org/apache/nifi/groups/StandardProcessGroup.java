@@ -219,6 +219,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private volatile String statelessFlowTimeout = "1 min";
     private volatile String statelessFlowFileContentInMemoryMax;
     private volatile Integer statelessFlowFileContentInMemoryHeapPercentage = 0;
+    private volatile long resolvedStatelessContentMaxHeap;
     private volatile Authorizable explicitParentAuthorizable;
     private final FlowFileActivity flowFileActivity = new ProcessGroupFlowFileActivity(this);
 
@@ -4798,8 +4799,10 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void setStatelessContentMaxHeap(final String maxSize) {
         writeLock.lock();
         try {
-            verifyCanSetStatelessContentMaxHeap(maxSize);
+            final long proposedMaxSizeBytes = resolveStatelessContentMaxHeap(maxSize, getStatelessContentMaxHeapPercentage());
+            verifyCanSetStatelessContentMaxHeap(proposedMaxSizeBytes);
             this.statelessFlowFileContentInMemoryMax = normalizeStatelessContentMaxHeap(maxSize);
+            this.resolvedStatelessContentMaxHeap = proposedMaxSizeBytes;
         } finally {
             writeLock.unlock();
         }
@@ -4814,8 +4817,10 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void setStatelessContentMaxHeapPercentage(final Integer heapPercentage) {
         writeLock.lock();
         try {
-            verifyCanSetStatelessContentMaxHeapPercentage(heapPercentage);
+            final long proposedMaxSizeBytes = resolveStatelessContentMaxHeap(getStatelessContentMaxHeap(), heapPercentage);
+            verifyCanSetStatelessContentMaxHeap(proposedMaxSizeBytes);
             this.statelessFlowFileContentInMemoryHeapPercentage = heapPercentage;
+            this.resolvedStatelessContentMaxHeap = proposedMaxSizeBytes;
         } finally {
             writeLock.unlock();
         }
@@ -4823,7 +4828,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public long resolveStatelessContentMaxHeap() {
-        return resolveStatelessContentMaxHeap(getStatelessContentMaxHeap(), getStatelessContentMaxHeapPercentage());
+        return resolvedStatelessContentMaxHeap;
     }
 
     @Override

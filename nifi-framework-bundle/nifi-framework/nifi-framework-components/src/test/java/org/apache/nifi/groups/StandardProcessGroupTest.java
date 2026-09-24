@@ -575,6 +575,7 @@ class StandardProcessGroupTest {
     @Test
     void testSetStatelessContentMaxHeapRejectsInvalidDataSize() {
         processGroup.setStatelessContentMaxHeapPercentage(null);
+        processGroup.setStatelessContentMaxHeap("1 MB");
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("not a size"));
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("-1 MB"));
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("limit 1 MB"));
@@ -583,6 +584,9 @@ class StandardProcessGroupTest {
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("50%"));
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeapPercentage(91));
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeapPercentage(-1));
+        assertEquals("1 MB", processGroup.getStatelessContentMaxHeap());
+        assertNull(processGroup.getStatelessContentMaxHeapPercentage());
+        assertEquals(1024L * 1024L, processGroup.resolveStatelessContentMaxHeap());
     }
 
     @Test
@@ -599,6 +603,13 @@ class StandardProcessGroupTest {
         assertEquals("1024 KB", runningGroup.getStatelessContentMaxHeap());
         assertThrows(IllegalStateException.class, () -> runningGroup.setStatelessContentMaxHeap("2 MB"));
         assertThrows(IllegalStateException.class, () -> runningGroup.setStatelessContentMaxHeapPercentage(0));
+        assertEquals(1024L * 1024L, runningGroup.resolveStatelessContentMaxHeap());
+
+        when(statelessGroupNode.getCurrentState()).thenReturn(ScheduledState.STOPPED);
+        runningGroup.setStatelessContentMaxHeap("2 MB");
+        assertEquals(2L * 1024L * 1024L, runningGroup.resolveStatelessContentMaxHeap());
+        runningGroup.setStatelessContentMaxHeapPercentage(0);
+        assertEquals(0L, runningGroup.resolveStatelessContentMaxHeap());
     }
 
     private StandardProcessGroup createStandardProcessGroup(final String id) {
