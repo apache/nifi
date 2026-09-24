@@ -80,7 +80,7 @@ public class WriteProtobufResultWithExternalSchema extends AbstractRecordSetWrit
     @Override
     protected Map<String, String> onFinishRecordSet() throws IOException {
         flush();
-        return Map.of();
+        return getSchemaReferenceAttributes();
     }
 
     @Override
@@ -100,7 +100,11 @@ public class WriteProtobufResultWithExternalSchema extends AbstractRecordSetWrit
 
         final byte[] payload = serializer.serialize(record);
         buffered.write(payload);
-        return Map.of();
+        return getSchemaReferenceAttributes();
+    }
+
+    private Map<String, String> getSchemaReferenceAttributes() {
+        return schemaReferenceWriter == null ? Map.of() : schemaReferenceWriter.getAttributes(recordSchema);
     }
 
     private void writeConfluentFraming(final OutputStream out) throws IOException {

@@ -27,15 +27,19 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.generateInputDataForRootMessage;
+import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto2TestSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto3TestSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadRepeatedProto3TestSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadRootMessageSchema;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Validates {@link ProtobufDataSerializer} by round-tripping through the reader-side
@@ -147,5 +151,47 @@ public class TestProtobufDataSerializer {
 
         final MapRecord record2 = (MapRecord) repeatedMessage[1];
         assertArrayEquals(new Object[]{true}, (Object[]) record2.getValue("booleanField"));
+    }
+
+    @Test
+    public void testSerializeProto2RequiredFieldPresent() throws IOException {
+        final Schema schema = loadProto2TestSchema();
+        final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("Proto2Message");
+        final MapRecord originalRecord = new MapRecord(recordSchema, Map.of("booleanField", true));
+
+        final byte[] serialized = new ProtobufDataSerializer(schema, "Proto2Message").serialize(originalRecord);
+
+        final MapRecord record = new ProtobufDataConverter(schema, "Proto2Message", recordSchema, false, false)
+            .createRecord(new ByteArrayInputStream(serialized));
+        assertEquals(true, record.getValue("booleanField"));
+    }
+
+    @Test
+    public void testSerializeProto2MissingRequiredFieldFails() {
+        final Schema schema = loadProto2TestSchema();
+        final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("Proto2Message");
+        final MapRecord record = new MapRecord(recordSchema, Map.of("stringField", "Test text"));
+
+        final IOException exception = assertThrows(IOException.class,
+            () -> new ProtobufDataSerializer(schema, "Proto2Message").serialize(record));
+        assertTrue(exception.getMessage().contains("booleanField"));
+    }
+
+    @Test
+    public void testSerializeNullMapKeyFails() throws DescriptorValidationException, IOException {
+        final Schema schema = loadProto3TestSchema();
+        final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("Proto3Message");
+        final MapRecord record = new ProtobufDataConverter(schema, "Proto3Message", recordSchema, false, false)
+            .createRecord(ProtoTestUtil.generateInputDataForProto3());
+
+        final Map<String, Object> mapWithNullKey = new HashMap<>();
+        mapWithNullKey.put(null, 1);
+        final MapRecord nestedRecord = (MapRecord) record.getValue("nestedMessage");
+        final MapRecord nestedRecord2 = (MapRecord) ((Object[]) nestedRecord.getValue("nestedMessage2"))[0];
+        nestedRecord2.setValue("testMap", mapWithNullKey);
+
+        final IOException exception = assertThrows(IOException.class,
+            () -> new ProtobufDataSerializer(schema, "Proto3Message").serialize(record));
+        assertTrue(exception.getMessage().contains("null key"));
     }
 }

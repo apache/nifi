@@ -58,7 +58,7 @@ final class ProtobufMessageIndexEncoder {
         final List<Integer> messageIndexPath = findMessageIndexPath(rootMessages, messageName);
 
         if (messageIndexPath.size() == 1 && messageIndexPath.getFirst() == 0) {
-            return FIRST_ROOT_MESSAGE_INDEX;
+            return FIRST_ROOT_MESSAGE_INDEX.clone();
         }
 
         final ByteArrayOutputStream output = new ByteArrayOutputStream();

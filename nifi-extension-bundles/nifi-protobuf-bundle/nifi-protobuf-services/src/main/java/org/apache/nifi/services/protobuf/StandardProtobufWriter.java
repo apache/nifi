@@ -18,6 +18,7 @@ package org.apache.nifi.services.protobuf;
 
 import com.squareup.wire.schema.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
@@ -73,6 +74,7 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 import static org.apache.nifi.services.protobuf.StandardProtobufWriter.MessageNameResolverStrategy.MESSAGE_NAME_PROPERTY;
 
 @Tags({"protobuf", "record", "writer", "serializer", "confluent"})
+@SeeAlso(StandardProtobufReader.class)
 @CapabilityDescription("""
     Serializes NiFi Records into Protocol Buffers binary format. \
     Supports inline schema text and schema registry lookup for determining the Proto schema. \
@@ -175,12 +177,14 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
 
     @Override
     public RecordSchema getSchema(final Map<String, String> variables, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
-        return createWriteContext(variables).recordSchema();
+        return createWriteContext(variables, null).recordSchema();
     }
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) throws SchemaNotFoundException, IOException {
-        final ProtobufWriteContext context = createWriteContext(variables);
+        // Resolve the schema against the identifier of the supplied schema, so that a registry version registered after
+        // getSchema() was called cannot change the schema used for writing
+        final ProtobufWriteContext context = createWriteContext(variables, schema);
         return new WriteProtobufResultWithExternalSchema(context.schema(), context.messageName(), context.recordSchema(),
             context.schemaDefinition(), schemaReferenceWriter, messageIndexWriter, variables, out);
     }
@@ -211,8 +215,8 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
         return PROTOBUF_SCHEMA_TEXT;
     }
 
-    private ProtobufWriteContext createWriteContext(final Map<String, String> variables) throws SchemaNotFoundException, IOException {
-        final SchemaDefinition schemaDefinition = createSchemaDefinition(variables);
+    private ProtobufWriteContext createWriteContext(final Map<String, String> variables, final RecordSchema suppliedSchema) throws SchemaNotFoundException, IOException {
+        final SchemaDefinition schemaDefinition = createSchemaDefinition(variables, suppliedSchema);
         final Schema schema = schemaCompiler.compileOrGetFromCache(schemaDefinition);
         final MessageName messageName = messageNameResolver.getMessageName(variables, schemaDefinition, EMPTY_INPUT_STREAM);
 
@@ -225,10 +229,14 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
         return new ProtobufWriteContext(schemaDefinition, schema, messageName, recordSchema);
     }
 
-    private SchemaDefinition createSchemaDefinition(final Map<String, String> variables) throws SchemaNotFoundException, IOException {
+    private SchemaDefinition createSchemaDefinition(final Map<String, String> variables, final RecordSchema suppliedSchema) throws SchemaNotFoundException, IOException {
         if (SCHEMA_TEXT_PROPERTY.getValue().equals(schemaAccessStrategyValue)) {
             return createSchemaDefinitionFromText(variables);
         } else if (SCHEMA_NAME_PROPERTY.getValue().equals(schemaAccessStrategyValue)) {
+            final SchemaIdentifier suppliedIdentifier = getVersionedIdentifier(suppliedSchema);
+            if (suppliedIdentifier != null) {
+                return schemaRegistry.retrieveSchemaDefinition(suppliedIdentifier);
+            }
             return createSchemaDefinitionFromRegistry(variables);
         }
 
@@ -264,6 +272,27 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
 
         final SchemaIdentifier schemaIdentifier = buildSchemaIdentifier(schemaNameValue, schemaBranchNameValue, schemaVersionValue);
         return schemaRegistry.retrieveSchemaDefinition(schemaIdentifier);
+    }
+
+    /**
+     * Returns an identifier addressing the exact registry version of the supplied schema, or null when the supplied
+     * schema does not carry both a name and a version.
+     */
+    private SchemaIdentifier getVersionedIdentifier(final RecordSchema suppliedSchema) {
+        if (suppliedSchema == null) {
+            return null;
+        }
+
+        final SchemaIdentifier identifier = suppliedSchema.getIdentifier();
+        if (identifier.getName().isEmpty() || identifier.getVersion().isEmpty()) {
+            return null;
+        }
+
+        final SchemaIdentifier.Builder identifierBuilder = SchemaIdentifier.builder()
+            .name(identifier.getName().get())
+            .version(identifier.getVersion().getAsInt());
+        identifier.getBranch().ifPresent(identifierBuilder::branch);
+        return identifierBuilder.build();
     }
 
     private SchemaIdentifier buildSchemaIdentifier(final String schemaNameValue, final String schemaBranchNameValue, final String schemaVersionValue) throws SchemaNotFoundException {
