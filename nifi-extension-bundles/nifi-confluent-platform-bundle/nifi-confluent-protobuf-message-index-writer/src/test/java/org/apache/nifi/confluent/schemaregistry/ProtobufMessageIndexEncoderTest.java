@@ -133,6 +133,17 @@ class ProtobufMessageIndexEncoderTest {
     }
 
     @Test
+    void testEncodeFirstRootMessageReturnsIndependentArrays() {
+        final List<ProtobufMessageSchema> rootMessages = new AntlrProtobufMessageSchemaParser().parse(DEFAULT_PACKAGE_SCHEMA);
+        final MessageName messageName = new StandardMessageName(Optional.empty(), "User");
+
+        final byte[] first = ProtobufMessageIndexEncoder.encode(rootMessages, messageName);
+        first[0] = 0x7F;
+
+        assertArrayEquals(new byte[] {0x00}, ProtobufMessageIndexEncoder.encode(rootMessages, messageName));
+    }
+
+    @Test
     void testEncodeMessageNotFoundThrows() {
         final List<ProtobufMessageSchema> rootMessages = new AntlrProtobufMessageSchemaParser().parse(DEFAULT_PACKAGE_SCHEMA);
 

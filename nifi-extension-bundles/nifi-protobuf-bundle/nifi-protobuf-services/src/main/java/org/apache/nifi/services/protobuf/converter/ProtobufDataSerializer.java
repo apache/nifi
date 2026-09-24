@@ -100,6 +100,10 @@ public class ProtobufDataSerializer {
 
     private void writeField(final CodedOutputStream output, final Field field, final Object value) throws IOException {
         if (value == null) {
+            // proto2 parsers reject messages without required fields, so fail here instead of producing unreadable content
+            if (field.isRequired()) {
+                throw new IOException(String.format("Required field [%s] has no value", field.getName()));
+            }
             return;
         }
 
@@ -171,6 +175,10 @@ public class ProtobufDataSerializer {
         final ProtoType valueType = protoType.getValueType();
 
         for (final Map.Entry<?, ?> entry : map.entrySet()) {
+            if (entry.getKey() == null) {
+                throw new IOException(String.format("Map field with tag [%d] contains a null key", tag));
+            }
+
             final ByteArrayOutputStream entryBytes = new ByteArrayOutputStream();
             final CodedOutputStream entryOutput = CodedOutputStream.newInstance(entryBytes);
 
@@ -235,14 +243,14 @@ public class ProtobufDataSerializer {
         return schema.getType(protoType) instanceof EnumType;
     }
 
-    private int enumTag(final ProtoType protoType, final Object value) {
+    private int enumTag(final ProtoType protoType, final Object value) throws IOException {
         final EnumType enumType = (EnumType) schema.getType(protoType);
         Objects.requireNonNull(enumType, String.format("Enum with name [%s] not found in the provided proto files", protoType));
 
         final String constantName = String.valueOf(value);
         final EnumConstant constant = enumType.constant(constantName);
         if (constant == null) {
-            throw new IllegalStateException(String.format("Enum constant [%s] not found in enum [%s]", constantName, protoType));
+            throw new IOException(String.format("Enum constant [%s] not found in enum [%s]", constantName, protoType));
         }
         return constant.getTag();
     }

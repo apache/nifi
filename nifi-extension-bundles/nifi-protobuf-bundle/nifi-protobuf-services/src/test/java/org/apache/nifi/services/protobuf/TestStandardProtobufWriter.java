@@ -26,11 +26,18 @@ import org.apache.nifi.schemaregistry.services.MessageIndexWriter;
 import org.apache.nifi.schemaregistry.services.MessageName;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.schemaregistry.services.SchemaReferenceWriter;
+import org.apache.nifi.schemaregistry.services.SchemaRegistry;
+import org.apache.nifi.schemaregistry.services.StandardSchemaDefinition;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.services.protobuf.converter.ProtobufDataConverter;
 import org.apache.nifi.services.protobuf.schema.ProtoSchemaParser;
 import org.apache.nifi.util.NoOpProcessor;
@@ -51,8 +58,10 @@ import java.util.Set;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REFERENCE_READER;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.generateInputDataForProto3;
@@ -70,6 +79,13 @@ class TestStandardProtobufWriter {
     private static final String PROTO_3_MESSAGE = "Proto3Message";
     private static final byte[] FAKE_HEADER = {0x00, 0x00, 0x00, 0x00, 0x2A};
     private static final byte[] FAKE_INDEX = {0x00};
+    private static final Map<String, String> FAKE_ATTRIBUTES = Map.of("schema.name", "proto3");
+
+    private static final String VERSIONED_SUBJECT = "versioned";
+    private static final String VERSIONED_MESSAGE = "Versioned";
+    // Length-delimited field keys: (field number << 3) | wire type 2
+    private static final int FIELD_1_STRING_KEY = 0x0A;
+    private static final int FIELD_2_STRING_KEY = 0x12;
 
     private TestRunner runner;
     private StandardProtobufWriter writer;
@@ -164,6 +180,73 @@ class TestStandardProtobufWriter {
     }
 
     @Test
+    void testFinishRecordSetReturnsSchemaReferenceAttributes() throws Exception {
+        enableFakeSchemaReferenceWriter();
+        runner.enableControllerService(writer);
+
+        final RecordSchema writeSchema = writer.getSchema(emptyMap(), null);
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (RecordSetWriter recordSetWriter = writer.createWriter(runner.getLogger(), writeSchema, out, emptyMap())) {
+            recordSetWriter.beginRecordSet();
+            recordSetWriter.write(buildProto3Record());
+            final WriteResult writeResult = recordSetWriter.finishRecordSet();
+
+            assertEquals(FAKE_ATTRIBUTES, writeResult.getAttributes());
+        }
+    }
+
+    @Test
+    void testWriteWithoutActiveRecordSetReturnsSchemaReferenceAttributes() throws Exception {
+        enableFakeSchemaReferenceWriter();
+        runner.enableControllerService(writer);
+
+        final RecordSchema writeSchema = writer.getSchema(emptyMap(), null);
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (RecordSetWriter recordSetWriter = writer.createWriter(runner.getLogger(), writeSchema, out, emptyMap())) {
+            final WriteResult writeResult = recordSetWriter.write(buildProto3Record());
+
+            assertEquals(FAKE_ATTRIBUTES, writeResult.getAttributes());
+        }
+    }
+
+    @Test
+    void testCreateWriterUsesVersionOfSuppliedSchema() throws Exception {
+        final VersionedSchemaRegistry schemaRegistry = new VersionedSchemaRegistry();
+        runner.addControllerService("versionedRegistry", schemaRegistry);
+        runner.enableControllerService(schemaRegistry);
+
+        final StandardProtobufWriter registryWriter = new StandardProtobufWriter();
+        runner.addControllerService("registryWriter", registryWriter);
+        runner.setProperty(registryWriter, SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY.getValue());
+        runner.setProperty(registryWriter, SCHEMA_REGISTRY, "versionedRegistry");
+        runner.setProperty(registryWriter, SCHEMA_NAME, VERSIONED_SUBJECT);
+        runner.setProperty(registryWriter, StandardProtobufWriter.MESSAGE_NAME, VERSIONED_MESSAGE);
+        runner.enableControllerService(registryWriter);
+
+        final RecordSchema writeSchema = registryWriter.getSchema(emptyMap(), null);
+        assertEquals(1, writeSchema.getIdentifier().getVersion().getAsInt());
+
+        // A new latest version registered between getSchema() and createWriter() must not change the written content
+        schemaRegistry.latestVersion = 2;
+
+        final MapRecord record = new MapRecord(new SimpleRecordSchema(List.of(new RecordField("name", RecordFieldType.STRING.getDataType()))),
+            Map.of("name", "Alice"));
+        assertEquals(FIELD_1_STRING_KEY, writeFirstByte(registryWriter, writeSchema, record));
+
+        // A schema obtained after the new version was registered uses the new version
+        final RecordSchema latestWriteSchema = registryWriter.getSchema(emptyMap(), null);
+        assertEquals(FIELD_2_STRING_KEY, writeFirstByte(registryWriter, latestWriteSchema, record));
+    }
+
+    private byte writeFirstByte(final StandardProtobufWriter protobufWriter, final RecordSchema writeSchema, final MapRecord record) throws Exception {
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (RecordSetWriter recordSetWriter = protobufWriter.createWriter(runner.getLogger(), writeSchema, out, emptyMap())) {
+            recordSetWriter.write(record);
+        }
+        return out.toByteArray()[0];
+    }
+
+    @Test
     void testRoundTripThroughStandardProtobufReaderProto3() throws Exception {
         runner.enableControllerService(writer);
         final byte[] output = writeSingleRecord(buildProto3Record());
@@ -203,6 +286,13 @@ class TestStandardProtobufWriter {
         assertArrayEquals(new Object[]{"ENUM_VALUE_2", "ENUM_VALUE_3"}, (Object[]) first.getValue("testEnum"));
 
         assertNull(recordReader.nextRecord());
+    }
+
+    private void enableFakeSchemaReferenceWriter() throws Exception {
+        final FakeSchemaReferenceWriter referenceWriter = new FakeSchemaReferenceWriter();
+        runner.addControllerService("referenceWriter", referenceWriter);
+        runner.enableControllerService(referenceWriter);
+        runner.setProperty(writer, StandardProtobufWriter.SCHEMA_REFERENCE_WRITER, "referenceWriter");
     }
 
     private MapRecord buildRepeatedRecord() throws Exception {
@@ -295,7 +385,7 @@ class TestStandardProtobufWriter {
 
         @Override
         public Map<String, String> getAttributes(final RecordSchema recordSchema) {
-            return Map.of();
+            return FAKE_ATTRIBUTES;
         }
 
         @Override
@@ -312,6 +402,38 @@ class TestStandardProtobufWriter {
         @Override
         public void writeMessageIndex(final Map<String, String> variables, final SchemaDefinition schemaDefinition, final MessageName messageName, final OutputStream outputStream) throws IOException {
             outputStream.write(FAKE_INDEX);
+        }
+    }
+
+    /**
+     * Returns version 1 or 2 of the same subject, where the {@code name} field moves from tag 1 to tag 2, and resolves
+     * lookups without a version to the configurable latest version.
+     */
+    static class VersionedSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
+        private volatile int latestVersion = 1;
+
+        @Override
+        public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) {
+            throw new UnsupportedOperationException("retrieveSchema is not used in this test");
+        }
+
+        @Override
+        public SchemaDefinition retrieveSchemaDefinition(final SchemaIdentifier schemaIdentifier) {
+            final int version = schemaIdentifier.getVersion().orElse(latestVersion);
+            final String schemaText = """
+                syntax = "proto3";
+                message Versioned {
+                  string name = %d;
+                }""".formatted(version);
+            return new StandardSchemaDefinition(
+                SchemaIdentifier.builder().name(VERSIONED_SUBJECT).id((long) version).version(version).build(),
+                schemaText,
+                SchemaDefinition.SchemaType.PROTOBUF);
+        }
+
+        @Override
+        public Set<SchemaField> getSuppliedSchemaFields() {
+            return emptySet();
         }
     }
 }
