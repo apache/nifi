@@ -38,9 +38,9 @@ final class ProtobufSchemaValidator {
      * resolves. The extension is required because the compiler only discovers files named {@code *.proto}; without it
      * the schema would fail to compile later with an unresolved import that does not indicate the cause.
      * <p>
-     * The identifier of a referenced schema is deliberately not validated. It carries the subject the schema is
-     * registered under, which is unrelated to the import path and legitimately has no .proto suffix. Under the
-     * Confluent RecordNameStrategy, for instance, a subject is a fully qualified record name.
+     * The identifier of a referenced schema is deliberately not validated. It identifies the schema
+     * in its source registry and is unrelated to the Protobuf import path, so it is not required to
+     * have a .proto suffix.
      *
      * @param schemaDefinition the schema definition whose references should be validated
      * @throws IllegalArgumentException if any reference is keyed by a path that does not end in .proto

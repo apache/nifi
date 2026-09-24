@@ -44,19 +44,21 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REFERENCE_READER;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REFERENCE_READER_PROPERTY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -75,7 +77,7 @@ class TestStandardProtobufWriterConfluentRoundTrip {
     // Confluent header: magic byte 0x00 followed by the big-endian schema id (42).
     private static final byte[] EXPECTED_HEADER = {0x00, 0x00, 0x00, 0x00, 0x2A};
 
-    private static final String SCHEMA_TEXT = """
+    private static final String SCHEMA_TEXT_VALUE = """
         syntax = "proto3";
         message User {
           int32 id = 1;
@@ -146,6 +148,20 @@ class TestStandardProtobufWriterConfluentRoundTrip {
         assertEquals("hello", readBack.getValue("bio"));
     }
 
+    @Test
+    void testSchemaTextWithConfluentSchemaReferenceWriterIsInvalid() throws Exception {
+        final StandardProtobufWriter writer = new StandardProtobufWriter();
+        runner.addControllerService("schemaTextWriter", writer);
+        runner.setProperty(writer, SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY.getValue());
+        runner.setProperty(writer, SCHEMA_TEXT, SCHEMA_TEXT_VALUE);
+        runner.setProperty(writer, StandardProtobufWriter.MESSAGE_NAME, "User");
+        runner.assertValid(writer);
+
+        // Inline schema text has no registry identifier or version for the Confluent header
+        runner.setProperty(writer, StandardProtobufWriter.SCHEMA_REFERENCE_WRITER, "referenceWriter");
+        runner.assertNotValid(writer);
+    }
+
     private byte[] writeConfluent(final String messageName, final MapRecord record) throws Exception {
         final StandardProtobufWriter writer = new StandardProtobufWriter();
         runner.addControllerService("writer-" + messageName, writer);
@@ -214,7 +230,7 @@ class TestStandardProtobufWriterConfluentRoundTrip {
     static class MockSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
         private final SchemaDefinition schemaDefinition = new StandardSchemaDefinition(
             SchemaIdentifier.builder().name("user.proto").id((long) SCHEMA_ID).version(1).build(),
-            SCHEMA_TEXT,
+            SCHEMA_TEXT_VALUE,
             SchemaDefinition.SchemaType.PROTOBUF);
 
         @Override
@@ -229,7 +245,8 @@ class TestStandardProtobufWriterConfluentRoundTrip {
 
         @Override
         public Set<SchemaField> getSuppliedSchemaFields() {
-            return emptySet();
+            return EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT,
+                SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
         }
     }
 }

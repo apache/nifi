@@ -51,6 +51,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -247,6 +248,51 @@ class TestStandardProtobufWriter {
     }
 
     @Test
+    void testInvalidLiteralSchemaText() {
+        runner.setProperty(writer, SCHEMA_TEXT, "message Broken {");
+
+        runner.assertNotValid(writer);
+    }
+
+    @Test
+    void testLiteralMessageNameNotInSchema() {
+        runner.setProperty(writer, StandardProtobufWriter.MESSAGE_NAME, "MissingMessage");
+
+        runner.assertNotValid(writer);
+    }
+
+    @Test
+    void testExpressionLanguageSchemaTextNotCompiledDuringValidation() {
+        runner.setProperty(writer, SCHEMA_TEXT, "${proto.schema}");
+        runner.setProperty(writer, StandardProtobufWriter.MESSAGE_NAME, "MissingMessage");
+
+        runner.assertValid(writer);
+    }
+
+    @Test
+    void testSchemaReferenceWriterRequiringFieldsNotSuppliedIsInvalid() throws Exception {
+        final IdentifierRequiringSchemaReferenceWriter referenceWriter = new IdentifierRequiringSchemaReferenceWriter();
+        runner.addControllerService("identifierReferenceWriter", referenceWriter);
+        runner.enableControllerService(referenceWriter);
+        runner.setProperty(writer, StandardProtobufWriter.SCHEMA_REFERENCE_WRITER, "identifierReferenceWriter");
+
+        runner.assertNotValid(writer);
+    }
+
+    @Test
+    void testCreateWriterValidatesSchemaWithSchemaReferenceWriter() throws Exception {
+        final RejectingSchemaReferenceWriter referenceWriter = new RejectingSchemaReferenceWriter();
+        runner.addControllerService("rejectingReferenceWriter", referenceWriter);
+        runner.enableControllerService(referenceWriter);
+        runner.setProperty(writer, StandardProtobufWriter.SCHEMA_REFERENCE_WRITER, "rejectingReferenceWriter");
+        runner.enableControllerService(writer);
+
+        final RecordSchema writeSchema = writer.getSchema(emptyMap(), null);
+        assertThrows(SchemaNotFoundException.class,
+            () -> writer.createWriter(runner.getLogger(), writeSchema, new ByteArrayOutputStream(), emptyMap()));
+    }
+
+    @Test
     void testRoundTripThroughStandardProtobufReaderProto3() throws Exception {
         runner.enableControllerService(writer);
         final byte[] output = writeSingleRecord(buildProto3Record());
@@ -389,7 +435,7 @@ class TestStandardProtobufWriter {
         }
 
         @Override
-        public void validateSchema(final RecordSchema recordSchema) {
+        public void validateSchema(final RecordSchema recordSchema) throws SchemaNotFoundException {
         }
 
         @Override
@@ -434,6 +480,20 @@ class TestStandardProtobufWriter {
         @Override
         public Set<SchemaField> getSuppliedSchemaFields() {
             return emptySet();
+        }
+    }
+
+    static class IdentifierRequiringSchemaReferenceWriter extends FakeSchemaReferenceWriter {
+        @Override
+        public Set<SchemaField> getRequiredSchemaFields() {
+            return EnumSet.of(SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
+        }
+    }
+
+    static class RejectingSchemaReferenceWriter extends FakeSchemaReferenceWriter {
+        @Override
+        public void validateSchema(final RecordSchema recordSchema) throws SchemaNotFoundException {
+            throw new SchemaNotFoundException("Schema rejected");
         }
     }
 }
