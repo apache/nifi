@@ -37,24 +37,24 @@ import java.util.regex.Pattern;
 public class SyslogParser {
 
     public static final String SYSLOG_MSG_RFC5424_0 =
-            "(?:\\<(\\d{1,3})\\>)" + // priority
+            "(?:<(\\d{1,3})>)" + // priority
                     "(?:(\\d)?\\s?)" + // version
                     /* yyyy-MM-dd'T'HH:mm:ss.SZ or yyyy-MM-dd'T'HH:mm:ss.S+hh:mm or - (null stamp) */
                     "(?:" +
                     "(\\d{4}[-]\\d{2}[-]\\d{2}[T]\\d{2}[:]\\d{2}[:]\\d{2}" +
                     "(?:\\.\\d{1,6})?(?:[+-]\\d{2}[:]\\d{2}|Z)?)|-)" + // stamp
                     "\\s" + // separator
-                    "(?:([\\w][\\w\\d\\.@\\-]*)|-)" + // host name or - (null)
+                    "(?:([\\w][\\w\\d.@\\-]*)|-)" + // host name or - (null)
                     "\\s" + // separator
                     "(.*)$"; // body
 
     public static final String SYSLOG_MSG_RFC3164_0 =
-            "(?:\\<(\\d{1,3})\\>)" +
+            "(?:<(\\d{1,3})>)" +
                     "(?:(\\d)?\\s?)" + // version
                     // stamp MMM d HH:mm:ss, single digit date has two spaces
                     "([A-Z][a-z][a-z]\\s{1,2}\\d{1,2}\\s\\d{2}[:]\\d{2}[:]\\d{2})" +
                     "\\s" + // separator
-                    "([\\w][\\w\\d(\\.|\\:)@-]*)" + // host
+                    "([\\w][\\w\\d(.|:)@-]*)" + // host
                     "\\s(.*)$";  // body
 
     public static final Collection<Pattern> MESSAGE_PATTERNS;

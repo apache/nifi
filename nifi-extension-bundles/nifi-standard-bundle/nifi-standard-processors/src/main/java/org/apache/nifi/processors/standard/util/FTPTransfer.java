@@ -366,7 +366,7 @@ public class FTPTransfer implements FileTransfer {
             ensureDirectoryExists(flowFile, directoryName.getParentFile());
         }
 
-        final String remoteDirectory = directoryName.getAbsolutePath().replace("\\", "/").replaceAll("^.\\:", "");
+        final String remoteDirectory = directoryName.getAbsolutePath().replace("\\", "/").replaceAll("^.:", "");
         final FTPClient client = getClient(flowFile);
         final boolean cdSuccessful = setWorkingDirectory(remoteDirectory);
 

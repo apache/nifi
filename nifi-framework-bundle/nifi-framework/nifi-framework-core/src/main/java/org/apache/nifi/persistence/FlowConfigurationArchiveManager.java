@@ -51,7 +51,7 @@ public class FlowConfigurationArchiveManager {
      * <li>yyyyMMddTHHmmss-HHmm_original-file-name</li>
      * <li>yyyyMMddTHHmmssZ_original-file-name</li>
      */
-    private final Pattern archiveFilenamePattern = Pattern.compile("^([\\d]{8}T[\\d]{6}([\\+\\-][\\d]{4}|Z))_.+$");
+    private final Pattern archiveFilenamePattern = Pattern.compile("^([\\d]{8}T[\\d]{6}([+\\-][\\d]{4}|Z))_.+$");
     private final Path archiveDir;
     private final Integer maxCount;
     private final Long maxTimeMillis;

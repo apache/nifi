@@ -59,7 +59,7 @@ public class NarBundleExtractor implements BundleExtractor {
      * The pattern of a JarEntry for additionalDetails.md entries.
      */
     private static final Pattern ADDITIONAL_DETAILS_ENTRY_PATTERN =
-            Pattern.compile("META-INF\\/docs\\/additional-details\\/(.+)\\/additionalDetails.md");
+            Pattern.compile("META-INF/docs/additional-details/(.+)/additionalDetails.md");
 
     /**
      * The format of the date string in the NAR MANIFEST for Built-Timestamp.

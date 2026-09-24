@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 public class RegexSearchQueryParser implements SearchQueryParser {
     private static final String REGEX = "(?<filter>(\\w+:[\\w-]+\\s+)*(\\w+:[\\w-]+)?)(?<term>.*)";
-    private static final String FILTER_TOKEN_SEPARATOR = "\\:";
+    private static final String FILTER_TOKEN_SEPARATOR = ":";
     private static final String FILTER_SEPARATOR = "[\\s]+";
     private static final String FILTER_GROUP = "filter";
     private static final String TERM_GROUP = "term";

@@ -336,6 +336,6 @@ public class HashServiceTest {
     }
 
     private static String translateStringToMapKey(String string) {
-        return string.toLowerCase().replaceAll("[-\\/]", "_");
+        return string.toLowerCase().replaceAll("[-/]", "_");
     }
 }

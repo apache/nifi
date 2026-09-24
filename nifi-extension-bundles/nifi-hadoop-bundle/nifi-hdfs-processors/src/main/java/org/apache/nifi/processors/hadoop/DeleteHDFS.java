@@ -96,7 +96,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    protected static final Pattern GLOB_PATTERN = Pattern.compile("\\[|\\]|\\*|\\?|\\^|\\{|\\}|\\\\c");
+    protected static final Pattern GLOB_PATTERN = Pattern.compile("\\[|]|\\*|\\?|\\^|\\{|}|\\\\c");
     protected final Matcher globMatcher = GLOB_PATTERN.matcher("");
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(

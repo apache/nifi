@@ -83,7 +83,7 @@ public class DataTypeUtils {
     private static final Logger logger = LoggerFactory.getLogger(DataTypeUtils.class);
 
     // Regexes for parsing Floating-Point numbers
-    private static final String OptionalSign  = "[\\-\\+]?";
+    private static final String OptionalSign  = "[\\-+]?";
     private static final String Infinity = "(Infinity)";
     private static final String NotANumber = "(NaN)";
 

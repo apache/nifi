@@ -233,7 +233,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final String DEFAULT_FLOWFILE_EXPIRATION = "0 sec";
     private static final long DEFAULT_BACKPRESSURE_OBJECT = 10_000L;
     private static final String DEFAULT_BACKPRESSURE_DATA_SIZE = "1 GB";
-    private static final Pattern INVALID_DIRECTORY_NAME_CHARACTERS = Pattern.compile("[\\s\\<\\>:\\'\\\"\\/\\\\\\|\\?\\*]");
+    private static final Pattern INVALID_DIRECTORY_NAME_CHARACTERS = Pattern.compile("[\\s<>:'\"/\\\\|?*]");
     private static final String PATH_SEPARATOR = "/";
     private static final String VERSION_SEPARATOR = ":";
     private static final String STANDARD_PROCESS_GROUP_NAME = "StandardProcessGroup";
