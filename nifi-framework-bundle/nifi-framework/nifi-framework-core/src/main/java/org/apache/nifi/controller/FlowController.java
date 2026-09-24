@@ -269,6 +269,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.management.NotificationEmitter;
@@ -367,6 +368,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final RepositoryContextFactory repositoryContextFactory;
     private final RingBufferGarbageCollectionLog gcLog;
     private final Optional<FlowEngine> longRunningTaskMonitorThreadPool;
+    private volatile RegistryFlowSynchronizationTask registrySynchronizationTask;
 
 
     /**
@@ -1428,8 +1430,12 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
             LOG.info("Scheduled Flow Registry with Sync Interval [{} s] Check Interval [{} s]", registrySyncInterval, registrySyncTickSeconds);
 
-            final RegistryFlowSynchronizationTask registrySynchronizationTask = new RegistryFlowSynchronizationTask(flowManager, defaultRegistrySyncIntervalSeconds);
-            timerDrivenEngineRef.get().scheduleWithFixedDelay(registrySynchronizationTask, 300, registrySyncTickSeconds, TimeUnit.SECONDS);
+            registrySynchronizationTask = scheduleRegistrySynchronizationTask(
+                    timerDrivenEngineRef.get(),
+                    flowManager,
+                    defaultRegistrySyncIntervalSeconds,
+                    registrySyncTickSeconds
+            );
 
             initialized.set(true);
         } finally {
@@ -1491,6 +1497,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
      * @param startDelayedComponents true if start
      */
     public void onFlowInitialized(final boolean startDelayedComponents) {
+        Runnable postInitializationRegistrySynchronizationTask = null;
         writeLock.lock();
         try {
             // Perform validation of all components before attempting to start them.
@@ -1655,9 +1662,31 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             timerDrivenEngineRef.get().scheduleWithFixedDelay(discoverPythonExtensions, 1, 1, TimeUnit.MINUTES);
 
             ComponentAccessPolicyDeprecationLogger.logComponentPolicies(authorizer, flowManager.getRootGroupId());
+            postInitializationRegistrySynchronizationTask = registrySynchronizationTask == null ? null : registrySynchronizationTask::synchronizeAllProcessGroups;
         } finally {
             writeLock.unlock("onFlowInitialized");
         }
+
+        submitPostInitializationRegistrySynchronizationTask(processScheduler, postInitializationRegistrySynchronizationTask, rwLock::isWriteLockedByCurrentThread);
+    }
+
+    static RegistryFlowSynchronizationTask scheduleRegistrySynchronizationTask(final ScheduledExecutorService timerDrivenEngine, final FlowManager flowManager,
+            final long defaultRegistrySyncIntervalSeconds, final long registrySyncTickSeconds) {
+        final RegistryFlowSynchronizationTask registrySynchronizationTask = new RegistryFlowSynchronizationTask(flowManager, defaultRegistrySyncIntervalSeconds);
+        timerDrivenEngine.scheduleWithFixedDelay(registrySynchronizationTask, 300, registrySyncTickSeconds, TimeUnit.SECONDS);
+        return registrySynchronizationTask;
+    }
+
+    static void submitPostInitializationRegistrySynchronizationTask(final ProcessScheduler processScheduler, final Runnable registrySynchronizationTask,
+            final BooleanSupplier writeLockHeldSupplier) {
+        if (registrySynchronizationTask == null) {
+            return;
+        }
+        if (writeLockHeldSupplier.getAsBoolean()) {
+            throw new IllegalStateException("Cannot submit Flow Registry Synchronization Task while write lock is held");
+        }
+
+        processScheduler.submitFrameworkTask(registrySynchronizationTask);
     }
 
     private void scheduleBackgroundFlowAnalysis(Supplier<VersionedProcessGroup> rootProcessGroupSupplier) {
