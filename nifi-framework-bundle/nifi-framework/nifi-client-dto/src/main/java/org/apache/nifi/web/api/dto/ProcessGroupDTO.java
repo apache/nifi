@@ -41,6 +41,8 @@ public class ProcessGroupDTO extends ComponentDTO {
     private String resolvedExecutionEngine;
     private Integer maxConcurrentTasks;
     private String statelessFlowTimeout;
+    private String statelessFlowFileContentInMemoryMax;
+    private String statelessFlowFileContentInMemoryHeapPercentage;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -433,5 +435,42 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     public void setStatelessFlowTimeout(final String timeout) {
         this.statelessFlowTimeout = timeout;
+    }
+
+    @Schema(description = "The maximum amount of FlowFile content to buffer in memory when the flow is run using the Stateless Engine, as a data size such as " +
+        "\"4 GB\". A value of \"0 B\" means zero bytes. When this value is not set, only the heap percentage limit is used. When both this value and the heap percentage are set, " +
+        "the smaller of the two limits is used.")
+    public String getStatelessFlowFileContentInMemoryMax() {
+        return statelessFlowFileContentInMemoryMax;
+    }
+
+    public void setStatelessFlowFileContentInMemoryMax(final String statelessFlowFileContentInMemoryMax) {
+        this.statelessFlowFileContentInMemoryMax = statelessFlowFileContentInMemoryMax;
+    }
+
+    @Schema(description = "The maximum percentage of the Java heap to use for buffering FlowFile content when the flow is run using the Stateless Engine, from 0 to 90. " +
+        "A value of 0 means zero percent of the heap. An empty value means this limit is not configured. When both this value and the in-memory content maximum data size are set, " +
+        "the smaller of the two limits is used. The default is 0.")
+    public String getStatelessFlowFileContentInMemoryHeapPercentage() {
+        return statelessFlowFileContentInMemoryHeapPercentage;
+    }
+
+    public void setStatelessFlowFileContentInMemoryHeapPercentage(final String statelessFlowFileContentInMemoryHeapPercentage) {
+        this.statelessFlowFileContentInMemoryHeapPercentage = statelessFlowFileContentInMemoryHeapPercentage;
+    }
+
+    /**
+     * @return the heap percentage as an Integer, or null when the value is blank (not configured)
+     */
+    public Integer toStatelessFlowFileContentInMemoryHeapPercentage() {
+        if (statelessFlowFileContentInMemoryHeapPercentage == null || statelessFlowFileContentInMemoryHeapPercentage.isBlank()) {
+            return null;
+        }
+
+        try {
+            return Integer.valueOf(statelessFlowFileContentInMemoryHeapPercentage.trim());
+        } catch (final NumberFormatException e) {
+            throw new IllegalArgumentException("Illegal value proposed for Max In-Memory Heap Percentage: " + statelessFlowFileContentInMemoryHeapPercentage, e);
+        }
     }
 }

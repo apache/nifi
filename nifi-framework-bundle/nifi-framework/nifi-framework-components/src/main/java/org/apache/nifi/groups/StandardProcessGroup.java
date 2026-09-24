@@ -128,6 +128,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -138,6 +140,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -156,6 +159,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -213,6 +217,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     private volatile ExecutionEngine executionEngine = ExecutionEngine.INHERITED;
     private volatile int maxConcurrentTasks = 1;
     private volatile String statelessFlowTimeout = "1 min";
+    private volatile String statelessFlowFileContentInMemoryMax;
+    private volatile Integer statelessFlowFileContentInMemoryHeapPercentage = 0;
     private volatile Authorizable explicitParentAuthorizable;
     private final FlowFileActivity flowFileActivity = new ProcessGroupFlowFileActivity(this);
 
@@ -233,6 +239,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final String DEFAULT_FLOWFILE_EXPIRATION = "0 sec";
     private static final long DEFAULT_BACKPRESSURE_OBJECT = 10_000L;
     private static final String DEFAULT_BACKPRESSURE_DATA_SIZE = "1 GB";
+    private static final int MAX_HEAP_PERCENTAGE = 90;
     private static final Pattern INVALID_DIRECTORY_NAME_CHARACTERS = Pattern.compile("[\\s\\<\\>:\\'\\\"\\/\\\\\\|\\?\\*]");
     private static final String PATH_SEPARATOR = "/";
     private static final String VERSION_SEPARATOR = ":";
@@ -3761,6 +3768,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         copy.setExecutionEngine(processGroup.getExecutionEngine());
         copy.setMaxConcurrentTasks(processGroup.getMaxConcurrentTasks());
         copy.setStatelessFlowTimeout(processGroup.getStatelessFlowTimeout());
+        copy.setStatelessFlowFileContentInMemoryMax(processGroup.getStatelessFlowFileContentInMemoryMax());
+        copy.setStatelessFlowFileContentInMemoryHeapPercentage(processGroup.getStatelessFlowFileContentInMemoryHeapPercentage());
 
         final Set<VersionedProcessGroup> copyChildren = new HashSet<>();
 
@@ -3785,6 +3794,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 childCopy.setExecutionEngine(childGroup.getExecutionEngine());
                 childCopy.setMaxConcurrentTasks(childGroup.getMaxConcurrentTasks());
                 childCopy.setStatelessFlowTimeout(childGroup.getStatelessFlowTimeout());
+                childCopy.setStatelessFlowFileContentInMemoryMax(childGroup.getStatelessFlowFileContentInMemoryMax());
+                childCopy.setStatelessFlowFileContentInMemoryHeapPercentage(childGroup.getStatelessFlowFileContentInMemoryHeapPercentage());
 
                 copyChildren.add(childCopy);
             }
@@ -4775,6 +4786,128 @@ public final class StandardProcessGroup implements ProcessGroup {
             this.statelessFlowTimeout = statelessFlowTimeout;
         } catch (final Exception e) {
             LOG.warn("Attempted to set Stateless Flow Timeout for {} to invalid value: {}; ignoring this value", this, statelessFlowTimeout);
+        }
+    }
+
+    @Override
+    public String getStatelessContentMaxHeap() {
+        return statelessFlowFileContentInMemoryMax;
+    }
+
+    @Override
+    public void setStatelessContentMaxHeap(final String maxSize) {
+        writeLock.lock();
+        try {
+            verifyCanSetStatelessContentMaxHeap(maxSize);
+            this.statelessFlowFileContentInMemoryMax = normalizeStatelessContentMaxHeap(maxSize);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public Integer getStatelessContentMaxHeapPercentage() {
+        return statelessFlowFileContentInMemoryHeapPercentage;
+    }
+
+    @Override
+    public void setStatelessContentMaxHeapPercentage(final Integer heapPercentage) {
+        writeLock.lock();
+        try {
+            verifyCanSetStatelessContentMaxHeapPercentage(heapPercentage);
+            this.statelessFlowFileContentInMemoryHeapPercentage = heapPercentage;
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public long resolveStatelessContentMaxHeap() {
+        return resolveStatelessContentMaxHeap(getStatelessContentMaxHeap(), getStatelessContentMaxHeapPercentage());
+    }
+
+    @Override
+    public void verifyCanSetStatelessContentMaxHeap(final String maxSize) {
+        final long proposedMaxSizeBytes = resolveStatelessContentMaxHeap(maxSize, getStatelessContentMaxHeapPercentage());
+        verifyCanSetStatelessContentMaxHeap(proposedMaxSizeBytes);
+    }
+
+    @Override
+    public void verifyCanSetStatelessContentMaxHeapPercentage(final Integer heapPercentage) {
+        final long proposedMaxSizeBytes = resolveStatelessContentMaxHeap(getStatelessContentMaxHeap(), heapPercentage);
+        verifyCanSetStatelessContentMaxHeap(proposedMaxSizeBytes);
+    }
+
+    private void verifyCanSetStatelessContentMaxHeap(final long proposedMaxSizeBytes) {
+        // The Content Repository is selected when the Stateless flow starts, so the setting cannot change while the flow is running.
+        final ProcessGroup statelessGroup = getStatelessGroup(this);
+        if (statelessGroup != null && statelessGroup.getStatelessScheduledState() != StatelessGroupScheduledState.STOPPED
+            && proposedMaxSizeBytes != resolveStatelessContentMaxHeap()) {
+            throw new IllegalStateException("Cannot change the maximum in-memory FlowFile content for " + this
+                + " while the Stateless flow is running. Stop the Process Group before changing this setting.");
+        }
+    }
+
+    private static String normalizeStatelessContentMaxHeap(final String maxSize) {
+        if (maxSize == null || maxSize.isBlank()) {
+            return null;
+        }
+
+        return maxSize.trim();
+    }
+
+    private static long resolveStatelessContentMaxHeap(final String maxSize, final Integer heapPercentage) {
+        validateHeapPercentage(heapPercentage);
+
+        final boolean sizeConfigured = maxSize != null && !maxSize.isBlank();
+        final boolean heapPercentageConfigured = heapPercentage != null;
+        if (!sizeConfigured && !heapPercentageConfigured) {
+            return 0L;
+        }
+
+        if (sizeConfigured && !heapPercentageConfigured) {
+            return parseStatelessContentMaxHeap(maxSize);
+        }
+        if (!sizeConfigured) {
+            return toHeapPercentageBytes(heapPercentage);
+        }
+
+        return Math.min(parseStatelessContentMaxHeap(maxSize), toHeapPercentageBytes(heapPercentage));
+    }
+
+    private static void validateHeapPercentage(final Integer heapPercentage) {
+        if (heapPercentage != null && (heapPercentage < 0 || heapPercentage > MAX_HEAP_PERCENTAGE)) {
+            throw new IllegalArgumentException("Heap percentage must be between 0 and " + MAX_HEAP_PERCENTAGE + ": " + heapPercentage);
+        }
+    }
+
+    private static long toHeapPercentageBytes(final Integer heapPercentage) {
+        return BigDecimal.valueOf(heapPercentage)
+            .multiply(BigDecimal.valueOf(Runtime.getRuntime().maxMemory()))
+            .divide(BigDecimal.valueOf(100), 0, RoundingMode.DOWN)
+            .longValue();
+    }
+
+    private static long parseStatelessContentMaxHeap(final String maxSize) {
+        final String normalizedMaxSize = maxSize.trim().toUpperCase(Locale.ROOT);
+        final Matcher matcher = DataUnit.DATA_SIZE_PATTERN.matcher(normalizedMaxSize);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Invalid data size: " + maxSize);
+        }
+
+        final long multiplier = switch (matcher.group(2)) {
+            case "B" -> 1L;
+            case "KB" -> 1L << 10;
+            case "MB" -> 1L << 20;
+            case "GB" -> 1L << 30;
+            case "TB" -> 1L << 40;
+            default -> throw new IllegalArgumentException("Invalid data size: " + maxSize);
+        };
+
+        try {
+            return new BigDecimal(matcher.group(1)).multiply(BigDecimal.valueOf(multiplier)).longValueExact();
+        } catch (final ArithmeticException e) {
+            throw new IllegalArgumentException("Data size must represent a whole number of bytes within the supported range: " + maxSize, e);
         }
     }
 

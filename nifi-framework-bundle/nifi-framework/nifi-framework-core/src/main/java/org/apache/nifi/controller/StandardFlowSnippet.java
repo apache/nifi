@@ -484,6 +484,10 @@ public class StandardFlowSnippet implements FlowSnippet {
             childGroup.setName(groupDTO.getName());
             childGroup.setExecutionEngine(ExecutionEngine.valueOf(groupDTO.getExecutionEngine()));
             childGroup.setStatelessFlowTimeout(groupDTO.getStatelessFlowTimeout());
+            childGroup.setStatelessContentMaxHeap(groupDTO.getStatelessFlowFileContentInMemoryMax());
+            if (groupDTO.getStatelessFlowFileContentInMemoryHeapPercentage() != null) {
+                childGroup.setStatelessContentMaxHeapPercentage(groupDTO.toStatelessFlowFileContentInMemoryHeapPercentage());
+            }
             childGroup.setMaxConcurrentTasks(groupDTO.getMaxConcurrentTasks());
 
             final String flowfileConcurrentName = groupDTO.getFlowfileConcurrency();
