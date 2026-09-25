@@ -196,6 +196,37 @@ public class TestExcelStartingRowSchemaInference {
 
     @ParameterizedTest
     @EnumSource(RowEvaluationStrategy.class)
+    void testWhereLeadingRowAndConfiguredInferenceRowsHaveNoCells(RowEvaluationStrategy rowEvaluationStrategy) throws IOException {
+        Object[][] singleSheet = {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
+
+        try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
+            final IOException ioException = assertThrows(IOException.class, () -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
+            assertInstanceOf(SchemaNotFoundException.class, ioException.getCause());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(RowEvaluationStrategy.class)
+    void testWhereLeadingRowHasBlankValuesAndConfiguredInferenceRowsHaveNoCells(RowEvaluationStrategy rowEvaluationStrategy) throws IOException {
+        Object[][] singleSheet = {{"", "", ""}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
+
+        try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
+            final RecordSchema recordSchema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
+            assertEquals(List.of("column_0", "column_1", "column_2"), recordSchema.getFieldNames());
+
+            for(String fieldName : recordSchema.getFieldNames()) {
+                final Optional<DataType> optional = recordSchema.getDataType(fieldName);
+                assertTrue(optional.isPresent() && optional.get().getFieldType().equals(RecordFieldType.STRING));
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(RowEvaluationStrategy.class)
     void testWhereConfiguredInferenceRowsAreAllBlank(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
         Object[][] singleSheet = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {11, "Eleven", "E"}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
