@@ -24,22 +24,27 @@ import com.splunk.ResponseMessage;
 import com.splunk.SSLSecurityProtocol;
 import com.splunk.Service;
 import com.splunk.ServiceArgs;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
+@RequiresInstanceClassLoading(cloneAncestorResources = true)
 @SuppressWarnings("PMD.LooseCoupling")
-abstract class SplunkAPICall extends AbstractProcessor {
+abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIsolationKeyProvider {
     private static final String REQUEST_CHANNEL_HEADER_NAME = "X-Splunk-Request-Channel";
 
     private static final String HTTP_SCHEME = "http";
@@ -87,6 +92,13 @@ abstract class SplunkAPICall extends AbstractProcessor {
             .defaultValue(TLS_1_2_VALUE.getValue())
             .build();
 
+    static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections.")
+            .required(false)
+            .identifiesControllerService(SSLContextProvider.class)
+            .build();
+
     static final PropertyDescriptor OWNER = new PropertyDescriptor.Builder()
             .name("Owner")
             .description("The owner to pass to Splunk.")
@@ -132,6 +144,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
             HOSTNAME,
             PORT,
             SECURITY_PROTOCOL,
+            SSL_CONTEXT_SERVICE,
             OWNER,
             TOKEN,
             USERNAME,
@@ -158,6 +171,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        configureSocketFactory(context);
         splunkServiceArguments = getSplunkServiceArgs(context);
         splunkService = getSplunkService(splunkServiceArguments);
         requestChannel = context.getProperty(REQUEST_CHANNEL).evaluateAttributeExpressions().getValue();
@@ -165,6 +179,22 @@ abstract class SplunkAPICall extends AbstractProcessor {
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         transitBaseUri = "%s://%s:%d".formatted(scheme, hostname, port);
+    }
+
+    private void configureSocketFactory(final ProcessContext context) {
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider == null) {
+            return;
+        }
+
+        // Constructing a Splunk Service applies the Security Protocol to static configuration, and changing the protocol discards the
+        // current Socket Factory. Applying the protocol first leaves the configured Socket Factory in place once the Service connects.
+        final SSLSecurityProtocol securityProtocol = getSecurityProtocol(context);
+        if (securityProtocol != null) {
+            Service.setSslSecurityProtocol(securityProtocol);
+        }
+
+        Service.setSSLSocketFactory(sslContextProvider.createContext().getSocketFactory());
     }
 
     private ServiceArgs getSplunkServiceArgs(final ProcessContext context) {
@@ -190,11 +220,24 @@ abstract class SplunkAPICall extends AbstractProcessor {
             splunkServiceArguments.setPassword(context.getProperty(PASSWORD).getValue());
         }
 
-        if (HTTPS_SCHEME.equals(context.getProperty(SCHEME).getValue()) && context.getProperty(SECURITY_PROTOCOL).isSet()) {
-            splunkServiceArguments.setSSLSecurityProtocol(SSLSecurityProtocol.valueOf(context.getProperty(SECURITY_PROTOCOL).getValue()));
+        final SSLSecurityProtocol securityProtocol = getSecurityProtocol(context);
+        if (securityProtocol != null) {
+            splunkServiceArguments.setSSLSecurityProtocol(securityProtocol);
         }
 
         return splunkServiceArguments;
+    }
+
+    private SSLSecurityProtocol getSecurityProtocol(final ProcessContext context) {
+        final SSLSecurityProtocol sslSecurityProtocol;
+
+        if (HTTPS_SCHEME.equals(context.getProperty(SCHEME).getValue()) && context.getProperty(SECURITY_PROTOCOL).isSet()) {
+            sslSecurityProtocol = SSLSecurityProtocol.valueOf(context.getProperty(SECURITY_PROTOCOL).getValue());
+        } else {
+            sslSecurityProtocol = null;
+        }
+
+        return sslSecurityProtocol;
     }
 
     protected Service getSplunkService(final ServiceArgs splunkServiceArguments) {
@@ -211,6 +254,23 @@ abstract class SplunkAPICall extends AbstractProcessor {
         requestChannel = null;
         splunkServiceArguments = null;
         transitBaseUri = null;
+    }
+
+    @Override
+    public String getClassloaderIsolationKey(final PropertyContext context) {
+        final String isolationKey;
+
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider == null) {
+            // Instances that do not configure an SSL Context Service leave the Socket Factory untouched and can share a ClassLoader.
+            isolationKey = getClass().getName();
+        } else {
+            // Service.setSSLSocketFactory changes the Socket Factory for every Splunk Service loaded by a given ClassLoader, so instances
+            // are isolated by the identifier of the SSL Context Service supplying that Socket Factory.
+            isolationKey = sslContextProvider.getIdentifier();
+        }
+
+        return isolationKey;
     }
 
     @Override
