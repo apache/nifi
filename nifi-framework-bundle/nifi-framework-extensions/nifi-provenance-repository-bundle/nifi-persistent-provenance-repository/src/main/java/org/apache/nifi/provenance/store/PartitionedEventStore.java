@@ -25,18 +25,19 @@ import org.apache.nifi.provenance.authorization.EventAuthorizer;
 import org.apache.nifi.provenance.authorization.EventTransformer;
 import org.apache.nifi.provenance.store.iterator.AuthorizingEventIterator;
 import org.apache.nifi.provenance.store.iterator.EventIterator;
-import org.apache.nifi.provenance.util.DirectoryUtils;
+import org.apache.nifi.provenance.util.FileInfo;
 import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -112,16 +113,6 @@ public abstract class PartitionedEventStore implements EventStore {
         }
 
         return size;
-    }
-
-    private long getRepoSize() {
-        long total = 0L;
-
-        for (final File storageDir : repoConfig.getStorageDirectories().values()) {
-            total += DirectoryUtils.getSize(storageDir);
-        }
-
-        return total;
     }
 
     @Override
@@ -241,10 +232,34 @@ public abstract class PartitionedEventStore implements EventStore {
 
     void performMaintenance() {
         try {
+            // Scan each partition for info about every file on the file system. Save this listing for use below
+            final Map<String, List<FileInfo>> partitionFilesMap = new HashMap<>();
+            try {
+                for (final EventStorePartition partition : getPartitions()) {
+                    List<FileInfo> allFiles = partition.getAllFiles();
+                    partitionFilesMap.put(partition.getPartitionName(), allFiles);
+                }
+            } catch (Exception e) {
+                logger.error("Could not perform directory listing of Provenance Repository. Will not expire any data.", e);
+                eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Failed to perform directory listing of Provenance Repository. "
+                        + "No data will be expired at this time. See logs for more information.");
+                return;
+            }
+
+            // Calculate disk space used by all files in all partitions
+            long currentSize = 0;
+            for (final List<FileInfo> partitionFiles : partitionFilesMap.values()) {
+                for (FileInfo file : partitionFiles) {
+                    currentSize += file.size();
+                }
+            }
+
+            // Delete event files exceeding the max storage time
             final long maxFileLife = repoConfig.getMaxRecordLife(TimeUnit.MILLISECONDS);
             for (final EventStorePartition partition : getPartitions()) {
                 try {
-                    partition.purgeOldEvents(maxFileLife, ChronoUnit.MILLIS);
+                    List<FileInfo> partitionFiles = partitionFilesMap.get(partition.getPartitionName());
+                    currentSize -= partition.purgeOldEvents(partitionFiles, maxFileLife, ChronoUnit.MILLIS);
                 } catch (final Exception e) {
                     logger.error("Failed to purge expired events from {}", partition, e);
                     eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY,
@@ -252,28 +267,22 @@ public abstract class PartitionedEventStore implements EventStore {
                 }
             }
 
+            // Delete the oldest event files exceeding the max storage size
             final long maxStorageCapacity = repoConfig.getMaxStorageCapacity();
-            long currentSize;
-            try {
-                currentSize = getRepoSize();
-            } catch (final Exception e) {
-                logger.error("Could not determine size of Provenance Repository. Will not expire any data due to storage limits", e);
-                eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Failed to determine size of Provenance Repository. "
-                    + "No data will be expired due to storage limits at this time. See logs for more information.");
-                return;
-            }
-
-            while (currentSize > maxStorageCapacity) {
+            long removedBytesThisPass = 1;
+            while (currentSize > maxStorageCapacity && removedBytesThisPass > 0) {
+                removedBytesThisPass = 0;
                 for (final EventStorePartition partition : getPartitions()) {
                     try {
-                        final long removed = partition.purgeOldestEvents();
-                        currentSize -= removed;
+                        List<FileInfo> partitionFiles = partitionFilesMap.get(partition.getPartitionName());
+                        removedBytesThisPass += partition.purgeOldestEvents(partitionFiles);
                     } catch (final Exception e) {
                         logger.error("Failed to purge oldest events from {}", partition, e);
                         eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY,
                             "Failed to purge oldest events from Provenance Repository. See logs for more information.");
                     }
                 }
+                currentSize -= removedBytesThisPass;
             }
         } catch (final Exception e) {
             logger.error("Failed to perform periodic maintenance", e);

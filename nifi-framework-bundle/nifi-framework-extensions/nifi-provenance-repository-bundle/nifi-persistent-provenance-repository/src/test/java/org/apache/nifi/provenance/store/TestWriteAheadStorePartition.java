@@ -30,12 +30,18 @@ import org.apache.nifi.provenance.toc.StandardTocWriter;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.provenance.util.DirectoryUtils;
+import org.apache.nifi.provenance.util.FileInfo;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -132,6 +138,70 @@ public class TestWriteAheadStorePartition {
         partition.initialize();
 
         assertEquals(maxEventId, partition.getMaxEventId());
+    }
+
+    @Test
+    public void testPurgeOldFiles() throws Exception {
+        final RepositoryConfiguration repoConfig = createConfig(1, "testPurgeOldFiles");
+        repoConfig.setMaxEventFileCount(5);
+
+        final String partitionName = repoConfig.getStorageDirectories().keySet().iterator().next();
+        final File storageDirectory = repoConfig.getStorageDirectories().values().iterator().next();
+
+        final RecordWriterFactory recordWriterFactory = (file, idGenerator, compressed, createToc) -> {
+            final TocWriter tocWriter = createToc ? new StandardTocWriter(TocUtil.getTocFile(file), false, false) : null;
+            return new EventIdFirstSchemaRecordWriter(file, idGenerator, tocWriter, compressed, 32 * 1024, IdentifierLookup.EMPTY);
+        };
+
+        final RecordReaderFactory recordReaderFactory = RecordReaders::newRecordReader;
+
+        WriteAheadStorePartition partition = new WriteAheadStorePartition(storageDirectory, partitionName, repoConfig, recordWriterFactory,
+                recordReaderFactory, new LinkedBlockingQueue<>(), new AtomicLong(0L), EventReporter.NO_OP, Mockito.mock(EventFileManager.class));
+
+        for (int i = 0; i < 11; i++) {
+            partition.addEvents(Collections.singleton(TestUtil.createEvent()));
+        }
+
+        // we start with 6 files, 3 .prov files and 3 .toc files
+        List<FileInfo> files = DirectoryUtils.listFiles(storageDirectory.toPath());
+        assertEquals(6, files.size());
+
+        // one .prov file and one .toc file should be deleted in the first pass
+        partition.purgeOldestEvents(files);
+        files = DirectoryUtils.listFiles(storageDirectory.toPath());
+        assertEquals(4, files.size());
+
+        // modify the files for the test
+        final List<FileInfo> eventFiles = files.stream()
+                .filter(DirectoryUtils.EVENT_PATH_FILTER)
+                .sorted(DirectoryUtils.OLDEST_FILEINFO_FIRST)
+                .toList();
+        for (int i = 0; i < eventFiles.size(); i++) {
+            Path file = eventFiles.get(i).path();
+            if (i == 0) {
+                // rename the oldest file, which also updates its lastModifiedTime
+                Path renamedProvFile = file.resolveSibling(file.getFileName().toString() + ".gz");
+                Files.move(file, renamedProvFile, StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                // update lastModifiedTime of the other files
+                Files.setLastModifiedTime(file, FileTime.from(Instant.now()));
+            }
+        }
+
+        // pass the old file list before file rename and verify the corresponding .toc file is not deleted
+        partition.purgeOldestEvents(files);
+        files = DirectoryUtils.listFiles(storageDirectory.toPath());
+        assertEquals(4, files.size());
+
+        // One more pass to delete the oldest
+        partition.purgeOldestEvents(files);
+        files = DirectoryUtils.listFiles(storageDirectory.toPath());
+        assertEquals(2, files.size());
+
+        // One last pass to verify the active event file is not deleted.
+        partition.purgeOldestEvents(files);
+        files = DirectoryUtils.listFiles(storageDirectory.toPath());
+        assertEquals(2, files.size());
     }
 
     private RepositoryConfiguration createConfig(final int numStorageDirs, final String testName) {
