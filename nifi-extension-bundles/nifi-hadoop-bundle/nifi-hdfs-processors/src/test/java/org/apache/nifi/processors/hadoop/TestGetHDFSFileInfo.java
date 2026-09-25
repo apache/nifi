@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestGetHDFSFileInfo {
-    private static final Pattern SINGLE_JSON_PATTERN = Pattern.compile("^\\{[^\\}]*\\}$");
+    private static final Pattern SINGLE_JSON_PATTERN = Pattern.compile("^\\{[^}]*}$");
 
     private TestRunner runner;
     private GetHDFSFileInfoWithMockedFileSystem proc;

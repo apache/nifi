@@ -34,7 +34,7 @@ import static java.util.stream.Collectors.toList;
 public final class RecordPathPropertyUtil {
 
     private static final String NULL_VALUE = "null";
-    private static final Pattern RECORD_PATH_PATTERN = Pattern.compile("@\\{(/.*?)\\}");
+    private static final Pattern RECORD_PATH_PATTERN = Pattern.compile("@\\{(/.*?)}");
 
     private RecordPathPropertyUtil() {
     }

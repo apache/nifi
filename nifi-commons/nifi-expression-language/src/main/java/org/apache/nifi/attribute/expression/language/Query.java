@@ -249,7 +249,7 @@ public class Query {
      * @return un-escaped value
      */
     public static String unescape(final String value) {
-        return value.replaceAll("\\$\\$(?=\\$*\\{.*?\\})", "\\$");
+        return value.replaceAll("\\$\\$(?=\\$*\\{.*?})", "\\$");
     }
 
     public static Query fromTree(final Tree tree, final String text) {

@@ -77,7 +77,7 @@ public class CountText extends AbstractProcessor {
             StandardCharsets.UTF_16BE
     );
 
-    private static final Pattern SYMBOL_PATTERN = Pattern.compile("[\\s-\\._]");
+    private static final Pattern SYMBOL_PATTERN = Pattern.compile("[\\s-._]");
     private static final Pattern WHITESPACE_ONLY_PATTERN = Pattern.compile("\\s");
 
     // Attribute keys

@@ -91,7 +91,7 @@ import java.util.regex.Pattern;
         + "will be read into memory in case the property to use the flow file content as the email body is set to true.")
 public class PutEmail extends AbstractProcessor {
 
-    private static final Pattern MAIL_PROPERTY_PATTERN = Pattern.compile("^mail\\.smtps?\\.([a-z0-9\\.]+)$");
+    private static final Pattern MAIL_PROPERTY_PATTERN = Pattern.compile("^mail\\.smtps?\\.([a-z0-9.]+)$");
 
     public static final PropertyDescriptor SMTP_HOSTNAME = new PropertyDescriptor.Builder()
             .name("SMTP Hostname")

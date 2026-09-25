@@ -24,7 +24,7 @@ public class NumberParsing {
     public enum ParseResultType {
         NOT_NUMBER, WHOLE_NUMBER, DECIMAL
     }
-    private static final String OptionalSign  = "[\\-\\+]?";
+    private static final String OptionalSign  = "[\\-+]?";
 
     private static final String Infinity = "(Infinity)";
     private static final String NotANumber = "(NaN)";
