@@ -68,6 +68,7 @@ import static org.apache.nifi.processors.smb.util.LocalSmbProperties.SMB_DIALECT
 import static org.apache.nifi.processors.smb.util.LocalSmbProperties.TIMEOUT;
 import static org.apache.nifi.processors.smb.util.LocalSmbProperties.USERNAME;
 import static org.apache.nifi.processors.smb.util.LocalSmbProperties.USE_ENCRYPTION;
+import static org.apache.nifi.smb.common.SmbProperties.CONNECTION_VALIDATION;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_ENABLE_DFS_PROPERTY_NAME;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_SMB_DIALECT_PROPERTY_NAME;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_TIMEOUT_PROPERTY_NAME;
@@ -164,6 +165,7 @@ public class PutSmbFile extends AbstractProcessor {
             SMB_DIALECT,
             USE_ENCRYPTION,
             ENABLE_DFS,
+            CONNECTION_VALIDATION,
             TIMEOUT);
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(

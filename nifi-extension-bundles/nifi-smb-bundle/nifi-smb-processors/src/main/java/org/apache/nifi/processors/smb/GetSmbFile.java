@@ -76,6 +76,7 @@ import static org.apache.nifi.processors.smb.util.LocalSmbProperties.DOMAIN;
 import static org.apache.nifi.processors.smb.util.LocalSmbProperties.PASSWORD;
 import static org.apache.nifi.processors.smb.util.LocalSmbProperties.SMB_CLIENT_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.smb.util.LocalSmbProperties.USERNAME;
+import static org.apache.nifi.smb.common.SmbProperties.CONNECTION_VALIDATION;
 import static org.apache.nifi.smb.common.SmbProperties.ENABLE_DFS;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_ENABLE_DFS_PROPERTY_NAME;
 import static org.apache.nifi.smb.common.SmbProperties.OLD_SMB_DIALECT_PROPERTY_NAME;
@@ -221,6 +222,7 @@ public class GetSmbFile extends AbstractProcessor {
         SMB_DIALECT,
         USE_ENCRYPTION,
         ENABLE_DFS,
+        CONNECTION_VALIDATION,
         TIMEOUT
     );
 

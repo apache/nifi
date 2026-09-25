@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.smb.common.SmbProperties.AUTHENTICATION_TYPE;
+import static org.apache.nifi.smb.common.SmbProperties.CONNECTION_VALIDATION;
 import static org.apache.nifi.smb.common.SmbProperties.DOMAIN;
 import static org.apache.nifi.smb.common.SmbProperties.ENABLE_DFS;
 import static org.apache.nifi.smb.common.SmbProperties.HOSTNAME;
@@ -70,6 +71,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             SMB_DIALECT,
             USE_ENCRYPTION,
             ENABLE_DFS,
+            CONNECTION_VALIDATION,
             TIMEOUT
     );
 
