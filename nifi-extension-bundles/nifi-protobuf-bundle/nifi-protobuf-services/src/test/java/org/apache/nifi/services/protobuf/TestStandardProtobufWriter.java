@@ -71,6 +71,7 @@ import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto3TestSche
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadRepeatedProto3TestSchema;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -178,6 +179,70 @@ class TestStandardProtobufWriter {
 
         final byte[] payload = Arrays.copyOfRange(output, FAKE_HEADER.length + FAKE_INDEX.length, output.length);
         assertProto3Message(new ByteArrayInputStream(payload));
+    }
+
+    @Test
+    void testEmptyRecordSetWritesNoFraming() throws Exception {
+        enableFakeFramingWriters();
+        runner.enableControllerService(writer);
+
+        final RecordSchema writeSchema = writer.getSchema(emptyMap(), null);
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (RecordSetWriter recordSetWriter = writer.createWriter(runner.getLogger(), writeSchema, out, emptyMap())) {
+            recordSetWriter.beginRecordSet();
+            recordSetWriter.finishRecordSet();
+        }
+
+        assertEquals(0, out.size());
+    }
+
+    @Test
+    void testSerializationFailureWritesNoFraming() throws Exception {
+        enableFakeFramingWriters();
+        runner.enableControllerService(writer);
+
+        // A String value for a message field cannot be serialized
+        final MapRecord invalidRecord = new MapRecord(new SimpleRecordSchema(List.of(new RecordField("nestedMessage", RecordFieldType.STRING.getDataType()))),
+            Map.of("nestedMessage", "not a record"));
+
+        final RecordSchema writeSchema = writer.getSchema(emptyMap(), null);
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (RecordSetWriter recordSetWriter = writer.createWriter(runner.getLogger(), writeSchema, out, emptyMap())) {
+            recordSetWriter.beginRecordSet();
+            assertThrows(IOException.class, () -> recordSetWriter.write(invalidRecord));
+        }
+
+        assertEquals(0, out.size());
+    }
+
+    @Test
+    void testCloseClosesStreamWhenFlushFails() throws Exception {
+        runner.enableControllerService(writer);
+
+        final RecordSchema writeSchema = writer.getSchema(emptyMap(), null);
+        final FlushFailingOutputStream out = new FlushFailingOutputStream();
+        final RecordSetWriter recordSetWriter = writer.createWriter(runner.getLogger(), writeSchema, out, emptyMap());
+        recordSetWriter.write(buildProto3Record());
+
+        assertThrows(IOException.class, recordSetWriter::close);
+        assertTrue(out.closed);
+    }
+
+    @Test
+    void testCloseTwiceHasNoEffect() throws Exception {
+        runner.enableControllerService(writer);
+
+        final RecordSchema writeSchema = writer.getSchema(emptyMap(), null);
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final RecordSetWriter recordSetWriter = writer.createWriter(runner.getLogger(), writeSchema, out, emptyMap());
+        recordSetWriter.write(buildProto3Record());
+        recordSetWriter.close();
+        final int size = out.size();
+
+        recordSetWriter.close();
+
+        assertEquals(size, out.size());
+        assertNotEquals(0, size);
     }
 
     @Test
@@ -341,6 +406,14 @@ class TestStandardProtobufWriter {
         runner.setProperty(writer, StandardProtobufWriter.SCHEMA_REFERENCE_WRITER, "referenceWriter");
     }
 
+    private void enableFakeFramingWriters() throws Exception {
+        enableFakeSchemaReferenceWriter();
+        final FakeMessageIndexWriter indexWriter = new FakeMessageIndexWriter();
+        runner.addControllerService("indexWriter", indexWriter);
+        runner.enableControllerService(indexWriter);
+        runner.setProperty(writer, StandardProtobufWriter.MESSAGE_INDEX_WRITER, "indexWriter");
+    }
+
     private MapRecord buildRepeatedRecord() throws Exception {
         final Schema schema = loadRepeatedProto3TestSchema();
         final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("RootMessage");
@@ -494,6 +567,20 @@ class TestStandardProtobufWriter {
         @Override
         public void validateSchema(final RecordSchema recordSchema) throws SchemaNotFoundException {
             throw new SchemaNotFoundException("Schema rejected");
+        }
+    }
+
+    static class FlushFailingOutputStream extends ByteArrayOutputStream {
+        private boolean closed;
+
+        @Override
+        public void flush() throws IOException {
+            throw new IOException("Flush failed");
+        }
+
+        @Override
+        public void close() {
+            closed = true;
         }
     }
 }
