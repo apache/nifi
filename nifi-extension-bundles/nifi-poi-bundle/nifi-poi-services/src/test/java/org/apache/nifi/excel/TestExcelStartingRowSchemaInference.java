@@ -22,6 +22,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.InferSchemaAccessStrategy;
 import org.apache.nifi.schema.inference.TimeValueInference;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -51,6 +52,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.nio.file.Files.newDirectoryStream;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -169,6 +171,60 @@ public class TestExcelStartingRowSchemaInference {
         }
     }
 
+    @Test
+    void testWithHeaderWithOnlySingleCellOfData() throws Exception {
+        Object[][] singleSheet = {{"ID", "First", "Middle"}, {}, {}, {},
+                {}, {}, {6}, {}, {}, {}, {}};
+
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
+
+        try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(RowEvaluationStrategy.STANDARD);
+            final RecordSchema recordSchema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
+
+            assertEquals(List.of("ID", "First", "Middle"), recordSchema.getFieldNames());
+            Optional<DataType> optional = recordSchema.getDataType("ID");
+            assertTrue(optional.isPresent() && optional.get().getFieldType().equals(RecordFieldType.LONG));
+
+            optional = recordSchema.getDataType("First");
+            assertTrue(optional.isPresent() && optional.get().getFieldType().equals(RecordFieldType.STRING));
+
+            optional = recordSchema.getDataType("Middle");
+            assertTrue(optional.isPresent() && optional.get().getFieldType().equals(RecordFieldType.STRING));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(RowEvaluationStrategy.class)
+    void testWhereLeadingRowAndConfiguredInferenceRowsHaveNoCells(RowEvaluationStrategy rowEvaluationStrategy) throws IOException {
+        Object[][] singleSheet = {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
+
+        try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
+            final IOException ioException = assertThrows(IOException.class, () -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
+            assertInstanceOf(SchemaNotFoundException.class, ioException.getCause());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(RowEvaluationStrategy.class)
+    void testWhereLeadingRowHasBlankValuesAndConfiguredInferenceRowsHaveNoCells(RowEvaluationStrategy rowEvaluationStrategy) throws IOException {
+        Object[][] singleSheet = {{"", "", ""}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
+
+        try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
+            final RecordSchema recordSchema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
+            assertEquals(List.of("column_0", "column_1", "column_2"), recordSchema.getFieldNames());
+
+            for (String fieldName : recordSchema.getFieldNames()) {
+                final Optional<DataType> optional = recordSchema.getDataType(fieldName);
+                assertTrue(optional.isPresent() && optional.get().getFieldType().equals(RecordFieldType.STRING));
+            }
+        }
+    }
+
     @ParameterizedTest
     @EnumSource(RowEvaluationStrategy.class)
     void testWhereConfiguredInferenceRowsAreAllBlank(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
@@ -177,15 +233,23 @@ public class TestExcelStartingRowSchemaInference {
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
             final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
+            final RecordSchema recordSchema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
 
-            switch (rowEvaluationStrategy) {
-                case STANDARD -> {
-                    final IOException ioException = assertThrows(IOException.class, () -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
-                    assertInstanceOf(SchemaNotFoundException.class, ioException.getCause());
-                    assertTrue(ioException.getCause().getMessage().contains("empty"));
-                }
-                case ALL -> assertDoesNotThrow(() -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
+            assertEquals(List.of("ID", "First", "Middle"), recordSchema.getFieldNames());
+            Optional<DataType> optional = recordSchema.getDataType("ID");
+
+            if (RowEvaluationStrategy.STANDARD.equals(rowEvaluationStrategy)) {
+                assertTrue(optional.isPresent() && optional.get().getFieldType().equals(RecordFieldType.STRING));
+            } else {
+                assertTrue(optional.isPresent() && optional.get().getFieldType().equals(RecordFieldType.LONG));
             }
+
+            optional = recordSchema.getDataType("First");
+            assertTrue(optional.isPresent() && optional.get().getFieldType().equals(RecordFieldType.STRING));
+
+            optional = recordSchema.getDataType("Middle");
+            assertTrue(optional.isPresent() && optional.get().getFieldType().equals(RecordFieldType.STRING));
+
         }
     }
 
@@ -197,10 +261,17 @@ public class TestExcelStartingRowSchemaInference {
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
             final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
+            final RecordSchema recordSchema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
 
-            final IOException ioException = assertThrows(IOException.class, () -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
-            assertInstanceOf(SchemaNotFoundException.class, ioException.getCause());
-            assertTrue(ioException.getCause().getMessage().contains("empty"));
+            assertEquals(List.of("ID", "First", "Middle"), recordSchema.getFieldNames());
+            Optional<DataType> optional = recordSchema.getDataType("ID");
+            assertTrue(optional.isPresent() && optional.get().getFieldType().equals(RecordFieldType.STRING));
+
+            optional = recordSchema.getDataType("First");
+            assertTrue(optional.isPresent() && optional.get().getFieldType().equals(RecordFieldType.STRING));
+
+            optional = recordSchema.getDataType("Middle");
+            assertTrue(optional.isPresent() && optional.get().getFieldType().equals(RecordFieldType.STRING));
         }
     }
 
