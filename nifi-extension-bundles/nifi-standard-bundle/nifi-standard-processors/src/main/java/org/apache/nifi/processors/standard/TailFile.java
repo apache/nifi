@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -59,6 +58,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
@@ -70,8 +70,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -81,13 +81,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.Checksum;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
-import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.REGULAR_EXPRESSION_VALIDATOR;
 
 // note: it is important that this Processor is not marked as @SupportsBatching because the session commits must complete before persisting state locally; otherwise, data loss may occur
@@ -260,7 +260,7 @@ public class TailFile extends AbstractProcessor {
             "buffering all data from the tailed file, which can quickly exhaust the heap. To avoid this, the Processor will buffer only up to this amount of data before flushing the buffer, even if" +
             " it means ingesting partial data from the file.")
         .required(true)
-        .addValidator(DATA_SIZE_VALIDATOR)
+        .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Integer.MAX_VALUE))
         .expressionLanguageSupported(NONE)
         .defaultValue("64 KB")
         .dependsOn(LINE_START_PATTERN)
@@ -270,7 +270,7 @@ public class TailFile extends AbstractProcessor {
             .name("Preallocated Buffer Size")
             .description("Sets the amount of memory that is preallocated for each tailed file.")
             .required(true)
-            .addValidator(DATA_SIZE_VALIDATOR)
+            .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Integer.MAX_VALUE))
             .expressionLanguageSupported(NONE)
             .defaultValue("65536 B")
             .build();
@@ -359,7 +359,7 @@ public class TailFile extends AbstractProcessor {
 
     private List<String> lookup(final ProcessContext context) {
         // set last lookup to now
-        lastLookup.set(new Date().getTime());
+        lastLookup.set(System.currentTimeMillis());
 
         // maxAge
         long maxAge = context.getProperty(MAXIMUM_AGE).getValue() == null ? Long.MAX_VALUE : context.getProperty(MAXIMUM_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
@@ -415,6 +415,7 @@ public class TailFile extends AbstractProcessor {
 
     private void initStates(final List<String> filesToTail, final Map<String, String> statesMap, final boolean isCleared) {
         int fileIndex = 0;
+        final Set<String> uniqueFilesToTail = new HashSet<>(filesToTail);
 
         if (isCleared) {
             states.clear();
@@ -427,8 +428,8 @@ public class TailFile extends AbstractProcessor {
                 for (Entry<String, String> entry : statesMap.entrySet()) {
                     final String key = entry.getKey();
                     final String value = entry.getValue();
-                    if (key.endsWith(TailFileState.StateKeys.FILENAME) && filesToTail.contains(value)) {
-                        int index = Integer.parseInt(key.split("\\.")[1]);
+                    if (key.endsWith(TailFileState.StateKeys.FILENAME) && uniqueFilesToTail.contains(value)) {
+                        final int index = Integer.parseInt(key.split("\\.")[1]);
                         states.put(value, new TailFileObject(index, statesMap, preAllocatedBufferSize));
                     }
                 }
@@ -439,7 +440,7 @@ public class TailFile extends AbstractProcessor {
             for (Entry<String, TailFileObject> entry : states.entrySet()) {
                 final String filePath = entry.getKey();
                 final TailFileObject tailFileObject = entry.getValue();
-                if (!filesToTail.contains(filePath)) {
+                if (!uniqueFilesToTail.contains(filePath)) {
                     toBeRemoved.add(filePath);
                     cleanReader(tailFileObject);
                 }
@@ -481,10 +482,11 @@ public class TailFile extends AbstractProcessor {
      * @return List of files to tail
      */
     private List<String> getFilesToTail(final String baseDir, String fileRegex, boolean isRecursive, long maxAge) {
-        final Collection<File> files = FileUtils.listFiles(new File(baseDir), null, isRecursive);
         final List<String> result = new ArrayList<>();
+        final File baseDirectory = new File(baseDir);
 
-        final String baseDirNoTrailingSeparator = baseDir.endsWith(File.separator) ? baseDir.substring(0, baseDir.length() - 1) : baseDir;
+        final String normalizedBaseDir = baseDirectory.getPath();
+        final String baseDirNoTrailingSeparator = normalizedBaseDir.endsWith(File.separator) ? normalizedBaseDir.substring(0, normalizedBaseDir.length() - 1) : normalizedBaseDir;
         final String fullRegex;
         if (File.separator.equals("/")) {
             // handle unix-style paths
@@ -494,18 +496,18 @@ public class TailFile extends AbstractProcessor {
             fullRegex = baseDirNoTrailingSeparator + Pattern.quote(File.separator) + fileRegex;
         }
         final Pattern p = Pattern.compile(fullRegex);
+        final int maxDepth = isRecursive ? Integer.MAX_VALUE : 1;
+        final long now = getCurrentTimeMs();
 
-        for (File file : files) {
-            final String path = file.getPath();
-            if (p.matcher(path).matches()) {
-                if (isMultiChanging.get()) {
-                    if ((new Date().getTime() - file.lastModified()) < maxAge) {
-                        result.add(path);
-                    }
-                } else {
-                    result.add(path);
-                }
-            }
+        try (final Stream<Path> paths = Files.find(baseDirectory.toPath(), maxDepth,
+                (path, attributes) -> attributes.isRegularFile() || Files.isRegularFile(path))) {
+            paths.map(Path::toFile)
+                    .filter(file -> p.matcher(file.getPath()).matches())
+                    .filter(file -> !isMultiChanging.get() || now - file.lastModified() < maxAge)
+                    .map(File::getPath)
+                    .forEach(result::add);
+        } catch (final IOException | UncheckedIOException | SecurityException e) {
+            getLogger().warn("Failed to list files to tail from base directory {}", baseDirectory, e);
         }
 
         return result;
@@ -539,15 +541,31 @@ public class TailFile extends AbstractProcessor {
         final String checksumValue = stateValues.get(prefix + TailFileState.StateKeys.CHECKSUM);
         final boolean checksumPresent = (checksumValue != null);
         final String storedStateFilename = stateValues.get(prefix + TailFileState.StateKeys.FILENAME);
-        final long position = Long.parseLong(stateValues.get(prefix + TailFileState.StateKeys.POSITION));
-        final long timestamp = Long.parseLong(stateValues.get(prefix + TailFileState.StateKeys.TIMESTAMP));
-        final long length = Long.parseLong(stateValues.get(prefix + TailFileState.StateKeys.LENGTH));
+        final boolean tailingPostRollover = Boolean.parseBoolean(stateValues.get(prefix + StateKeys.TAILING_POST_ROLLOVER));
+        final long position;
+        final long timestamp;
+        final long length;
+        try {
+            position = Long.parseLong(stateValues.get(prefix + TailFileState.StateKeys.POSITION));
+            timestamp = Long.parseLong(stateValues.get(prefix + TailFileState.StateKeys.TIMESTAMP));
+            length = Long.parseLong(stateValues.get(prefix + TailFileState.StateKeys.LENGTH));
+        } catch (final NumberFormatException e) {
+            getLogger().warn("Resetting TailFile state for {} because persisted numeric state is invalid", filePath, e);
+            resetState(filePath);
+            return;
+        }
 
         FileChannel reader = null;
         File tailFile = null;
 
         if (checksumPresent && filePath.equals(storedStateFilename)) {
-            tailFileObject.setExpectedRecoveryChecksum(Long.parseLong(checksumValue));
+            try {
+                tailFileObject.setExpectedRecoveryChecksum(Long.parseLong(checksumValue));
+            } catch (final NumberFormatException e) {
+                getLogger().warn("Resetting TailFile state for {} because persisted checksum is invalid", filePath, e);
+                resetState(filePath);
+                return;
+            }
 
             // We have an expected checksum and the currently configured filename is the same as the state file.
             // We need to check if the existing file is the same as the one referred to in the state file based on
@@ -559,7 +577,7 @@ public class TailFile extends AbstractProcessor {
                      final CheckedInputStream in = new CheckedInputStream(tailFileIs, checksum)) {
 
                     try {
-                        StreamUtils.copy(in, new NullOutputStream(), tailFileObject.getState().getPosition());
+                        StreamUtils.copy(in, new NullOutputStream(), position);
                     } catch (final EOFException eof) {
                         // If we hit EOFException, then the file is smaller than we expected. Assume rollover.
                         getLogger().debug("When recovering state, file being tailed has less data than was stored in the state. "
@@ -590,7 +608,7 @@ public class TailFile extends AbstractProcessor {
                         + "this indicates that the file has rotated. Will begin tailing current file from beginning.", existingTailFile.length(), position);
             }
 
-            tailFileObject.setState(new TailFileState(filePath, tailFile, reader, position, timestamp, length, checksum, ByteBuffer.allocate(preAllocatedBufferSize)));
+            tailFileObject.setState(new TailFileState(filePath, tailFile, reader, position, timestamp, length, checksum, ByteBuffer.allocate(preAllocatedBufferSize), tailingPostRollover));
         } else {
             resetState(filePath);
         }
@@ -608,7 +626,8 @@ public class TailFile extends AbstractProcessor {
         for (TailFileObject tfo : states.values()) {
             cleanReader(tfo);
             final TailFileState state = tfo.getState();
-            tfo.setState(new TailFileState(state.getFilename(), state.getFile(), null, state.getPosition() - linesBuffer.size(),
+            final long updatedPosition = Math.max(0L, state.getPosition() - linesBuffer.size());
+            tfo.setState(new TailFileState(state.getFilename(), state.getFile(), null, updatedPosition,
                 state.getTimestamp(), state.getLength(), state.getChecksum(), state.getBuffer(), state.isTailingPostRollover()));
             persistState(tfo, null, context);
         }
@@ -637,7 +656,7 @@ public class TailFile extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         if (isMultiChanging.get()) {
-            long timeSinceLastLookup = new Date().getTime() - lastLookup.get();
+            long timeSinceLastLookup = System.currentTimeMillis() - lastLookup.get();
             if (timeSinceLastLookup > context.getProperty(LOOKUP_FREQUENCY).asTimePeriod(TimeUnit.MILLISECONDS)) {
                 try {
                     final List<String> filesToTail = lookup(context);
@@ -1042,6 +1061,7 @@ public class TailFile extends AbstractProcessor {
                 }
 
                 pos = reader.position();
+                buffer.clear();
             }
 
             if (readFully) {
@@ -1337,6 +1357,10 @@ public class TailFile extends AbstractProcessor {
                 // has not changed.
                 final List<File> allRolledFiles = getRolledOffFiles(context, 0L, tailFile);
                 allRolledFiles.sort(Comparator.comparing(File::lastModified).reversed());
+                if (allRolledFiles.isEmpty()) {
+                    getLogger().debug("State indicates {} was tailing post-rollover, but no rolled files are available", tailFile);
+                    return false;
+                }
                 final File newestFile = allRolledFiles.getFirst();
 
                 // If we don't notice that the file has been modified, per the checks above, then we want to keep checking until the last modified
@@ -1539,7 +1563,7 @@ public class TailFile extends AbstractProcessor {
             final long position = Long.parseLong(statesMap.get(prefix + TailFileState.StateKeys.POSITION));
             final long timestamp = Long.parseLong(statesMap.get(prefix + TailFileState.StateKeys.TIMESTAMP));
             final long length = Long.parseLong(statesMap.get(prefix + TailFileState.StateKeys.LENGTH));
-            final boolean tailingPostRollover = Boolean.parseBoolean(prefix + StateKeys.TAILING_POST_ROLLOVER);
+            final boolean tailingPostRollover = Boolean.parseBoolean(statesMap.get(prefix + StateKeys.TAILING_POST_ROLLOVER));
             this.state = new TailFileState(filename, new File(filename), null, position, timestamp, length, null, ByteBuffer.allocate(preAllocatedBufferSize), tailingPostRollover);
         }
 
@@ -1660,7 +1684,7 @@ public class TailFile extends AbstractProcessor {
 
         public Map<String, String> toStateMap(int index) {
             final String prefix = MAP_PREFIX + index + '.';
-            final Map<String, String> map = HashMap.newHashMap(4);
+            final Map<String, String> map = HashMap.newHashMap(6);
             map.put(prefix + StateKeys.FILENAME, filename);
             map.put(prefix + StateKeys.POSITION, String.valueOf(position));
             map.put(prefix + StateKeys.LENGTH, String.valueOf(length));
