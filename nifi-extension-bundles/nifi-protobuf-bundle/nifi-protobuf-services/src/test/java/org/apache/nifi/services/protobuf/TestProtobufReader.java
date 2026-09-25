@@ -214,7 +214,7 @@ class TestProtobufReader {
         Path protoFileNamePath = testTempDir.resolve(protoFileName);
         try (final InputStream resourceStream = getClass().getClassLoader().getResourceAsStream(protoFileName)) {
             if (resourceStream != null) {
-                Files.copy(resourceStream, /*testTempDir*/protoFileNamePath, StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(resourceStream, protoFileNamePath, StandardCopyOption.REPLACE_EXISTING);
             }
         }
     }
