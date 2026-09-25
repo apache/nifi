@@ -593,7 +593,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
         private volatile IOException refreshException;
 
         private TestScopedGoogleCredentials(final AccessToken initialAccessToken) {
-            super(initialAccessToken);
+            super(newBuilder().setAccessToken(initialAccessToken));
         }
 
         @Override
