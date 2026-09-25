@@ -17,10 +17,13 @@
 
 package org.apache.nifi.registry.flow.git;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flow.ConnectableComponent;
@@ -68,6 +71,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -130,6 +135,13 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             .required(true)
             .build();
 
+    public static final PropertyDescriptor COMMIT_CACHE_TTL = new PropertyDescriptor.Builder()
+            .name("Commit Cache TTL")
+            .description("Specifies the maximum staleness window for detecting a new remote version. Leave blank to disable commit caching.")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .required(false)
+            .build();
+
     static final String DEFAULT_BUCKET_NAME = "default";
     static final String DEFAULT_BUCKET_KEEP_FILE_PATH = DEFAULT_BUCKET_NAME + "/.keep";
     static final String DEFAULT_BUCKET_KEEP_FILE_CONTENT = "Do Not Delete";
@@ -142,6 +154,10 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
     static final String SNAPSHOT_FILE_EXTENSION = ".json";
     static final String SNAPSHOT_FILE_PATH_FORMAT = "%s/%s" + SNAPSHOT_FILE_EXTENSION;
     static final String FLOW_CONTENTS_GROUP_ID = "flow-contents-group";
+
+    static final long COMMIT_CACHE_MAX_ENTRIES = 1000;
+
+    private volatile Cache<String, List<GitCommit>> commitCache;
 
     private volatile FlowSnapshotSerializer flowSnapshotSerializer;
     private volatile GitRepositoryClient repositoryClient;
@@ -160,6 +176,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         combinedPropertyDescriptors.add(DIRECTORY_FILTER_EXCLUDE);
         combinedPropertyDescriptors.add(PARAMETER_CONTEXT_VALUES);
         combinedPropertyDescriptors.add(COMMIT_AUTHOR_SOURCE);
+        combinedPropertyDescriptors.add(COMMIT_CACHE_TTL);
         combinedPropertyDescriptors.add(SSL_CONTEXT_SERVICE);
         combinedPropertyDescriptors.add(SYNCHRONIZATION_INTERVAL);
         propertyDescriptors = Collections.unmodifiableList(combinedPropertyDescriptors);
@@ -313,6 +330,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
                 .build();
 
         repositoryClient.createContent(request);
+        invalidateCommitCache(filePath, branch);
 
         // Re-populate fields before returning
         flow.setBucketName(originalBucketId);
@@ -332,6 +350,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String commitMessage = DEREGISTER_FLOW_MESSAGE_FORMAT.formatted(flowLocation.getFlowId());
         final String userIdentity = resolveAuthorIdentity(context);
         try (final InputStream deletedSnapshotContent = repositoryClient.deleteContent(filePath, commitMessage, branch, userIdentity, userIdentity)) {
+            invalidateCommitCache(filePath, branch);
             final RegisteredFlowSnapshot deletedSnapshot = getSnapshot(deletedSnapshotContent);
             populateFlowAndSnapshotMetadata(deletedSnapshot, flowLocation);
             updateBucketReferences(repositoryClient, deletedSnapshot, flowLocation.getBucketId());
@@ -412,9 +431,9 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         // Capture the expected version before any modifications - this is the commit SHA the user believes they are committing on top of
         final String expectedVersion = snapshotMetadata.getVersion();
 
-        // Get the current version (latest commit SHA) from the repository
-        final List<GitCommit> commits = repositoryClient.getCommits(filePath, branch);
-        final String currentVersion = commits.isEmpty() ? null : commits.getFirst().id();
+        // Get the current version (latest commit SHA) directly from the repository so a stale cache cannot incorrectly
+        // permit a write when another user has already committed a newer version.
+        final String currentVersion = getCommitsWithoutCache(filePath, branch).stream().findFirst().map(GitCommit::id).orElse(null);
 
         // Check for version conflict: if the user expects a specific version but it doesn't match the current version in the repository,
         // another user may have committed changes in the meantime. Reject the commit unless FORCE_COMMIT is specified.
@@ -509,6 +528,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         } else if (createContentCommitSha.isEmpty() || createContentCommitSha.isBlank()) {
             throw new FlowRegistryException("Created Content Commit SHA is empty");
         }
+        invalidateCommitCache(filePath, branch);
 
         final VersionedFlowCoordinates versionedFlowCoordinates = new VersionedFlowCoordinates();
         versionedFlowCoordinates.setRegistryId(getIdentifier());
@@ -544,7 +564,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String filePath = getSnapshotFilePath(flowLocation);
 
         final Set<RegisteredFlowSnapshotMetadata> snapshotMetadataSet = new LinkedHashSet<>();
-        for (final GitCommit commit : repositoryClient.getCommits(filePath, branch)) {
+        for (final GitCommit commit : getCommitsCached(filePath, branch)) {
             final RegisteredFlowSnapshotMetadata snapshotMetadata = createSnapshotMetadata(commit, flowLocation);
             if (snapshotMetadata.getComments() != null && snapshotMetadata.getComments().startsWith(REGISTER_FLOW_MESSAGE_PREFIX)) {
                 continue;
@@ -562,7 +582,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String branch = flowLocation.getBranch();
         final String filePath = getSnapshotFilePath(flowLocation);
 
-        final List<GitCommit> commits = repositoryClient.getCommits(filePath, branch);
+        final List<GitCommit> commits = getCommitsCached(filePath, branch);
         final String latestVersion = commits.isEmpty() ? null : commits.getFirst().id();
         return Optional.ofNullable(latestVersion);
     }
@@ -598,6 +618,43 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         snapshotMetadata.setComments(commit.message());
         snapshotMetadata.setTimestamp(commit.commitDate().toEpochMilli());
         return snapshotMetadata;
+    }
+
+    private List<GitCommit> getCommitsWithoutCache(final String filePath, final String branch) throws FlowRegistryException, IOException {
+        return repositoryClient.getCommits(filePath, branch);
+    }
+
+    private List<GitCommit> getCommitsCached(final String filePath, final String branch) throws FlowRegistryException, IOException {
+        final String key = filePath + "\n" + branch;
+        final Cache<String, List<GitCommit>> cache = commitCache;
+        if (cache == null) {
+            return repositoryClient.getCommits(filePath, branch);
+        }
+        try {
+            return cache.get(key, k -> {
+                try {
+                    return List.copyOf(repositoryClient.getCommits(filePath, branch));
+                } catch (final FlowRegistryException | IOException e) {
+                    throw new CompletionException(e);
+                }
+            });
+        } catch (final CompletionException e) {
+            final Throwable cause = e.getCause();
+            if (cause instanceof FlowRegistryException fre) {
+                throw fre;
+            }
+            if (cause instanceof IOException ioe) {
+                throw ioe;
+            }
+            throw new FlowRegistryException("Failed to list commits for " + filePath + " on " + branch, cause);
+        }
+    }
+
+    private void invalidateCommitCache(final String filePath, final String branch) {
+        final Cache<String, List<GitCommit>> cache = commitCache;
+        if (cache != null) {
+            cache.invalidate(filePath + "\n" + branch);
+        }
     }
 
     private RegisteredFlow mapToRegisteredFlow(final BucketLocation bucketLocation, final String filename) {
@@ -732,6 +789,15 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
     protected synchronized GitRepositoryClient getRepositoryClient(final FlowRegistryClientConfigurationContext context) throws IOException, FlowRegistryException {
         if (!clientInitialized.get()) {
             getLogger().info("Initializing repository client");
+            if (commitCache != null) {
+                commitCache.invalidateAll();
+            }
+            final PropertyValue commitCacheTtl = context.getProperty(COMMIT_CACHE_TTL);
+            final String cacheTtl = commitCacheTtl == null ? null : commitCacheTtl.getValue();
+            commitCache = StringUtils.isBlank(cacheTtl) ? null : Caffeine.newBuilder()
+                    .expireAfterWrite(commitCacheTtl.asTimePeriod(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
+                    .maximumSize(COMMIT_CACHE_MAX_ENTRIES)
+                    .build();
             repositoryClient = createRepositoryClient(context);
             initializeDefaultBucket(context);
             directoryExclusionPattern = Pattern.compile(context.getProperty(DIRECTORY_FILTER_EXCLUDE).getValue());
