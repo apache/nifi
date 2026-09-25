@@ -1,0 +1,36 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Minimal single-node ScyllaDB configuration for this module's IT containers. Client-to-node TLS
+# (client_encryption_options) and the bootstrap authenticator/auth_superuser_* settings are appended onto
+# this template at runtime by the individual IT classes (see ScyllaSslIT/ScyllaAuthenticationIT), not set
+# here. Parameter names and defaults are per the ScyllaDB Configuration Reference:
+# https://docs.scylladb.com/manual/stable/reference/configuration-parameters.html
+
+seed_provider:
+  - class_name: org.apache.cassandra.locator.SimpleSeedProvider
+    parameters:
+      - seeds: "127.0.0.1"
+
+listen_address: localhost
+rpc_address: localhost
+
+native_transport_port: 9042
+
+# SimpleSnitch assigns every node to datacenter "datacenter1" / rack "rack1" - the datacenter name the IT
+# tests use when creating their test keyspace with NetworkTopologyStrategy.
+endpoint_snitch: org.apache.cassandra.locator.SimpleSnitch
+
+partitioner: org.apache.cassandra.dht.Murmur3Partitioner
