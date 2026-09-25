@@ -26,6 +26,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -64,6 +65,9 @@ class TestProtobufReader {
     private TestRunner runner;
     private ProtobufReader protobufReader;
 
+    @TempDir
+    private Path testTempDir;
+
     @BeforeEach
     void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
@@ -82,7 +86,7 @@ class TestProtobufReader {
     @ParameterizedTest
     @MethodSource("validConfigurationProvider")
     void testValidConfigurations(final String protoFileName, final String messageType) throws IOException {
-        final Path testTempDir = createTempDirWithProtoFile(protoFileName);
+        createProtoFile(protoFileName);
         runner.setProperty(protobufReader, PROTOBUF_DIRECTORY, testTempDir.toString());
         runner.setProperty(protobufReader, MESSAGE_TYPE, messageType);
         runner.enableControllerService(protobufReader);
@@ -104,7 +108,7 @@ class TestProtobufReader {
 
     @Test
     void testInvalidConfigurationMissingMessageType() throws IOException {
-        final Path testTempDir = createTempDirWithProtoFile("test_proto3.proto");
+        createProtoFile("test_proto3.proto");
         runner.setProperty(protobufReader, PROTOBUF_DIRECTORY, testTempDir.toString());
 
         final Collection<ValidationResult> results = runner.validate(protobufReader);
@@ -117,7 +121,7 @@ class TestProtobufReader {
 
     @Test
     void testInvalidConfigurationNonExistentDirectory() throws IOException {
-        final Path testTempDir = createTempDirWithProtoFile("test_proto3.proto");
+        createProtoFile("test_proto3.proto");
         final String nonExistentDir = testTempDir.resolve("non-existent").toString();
         runner.setProperty(protobufReader, PROTOBUF_DIRECTORY, nonExistentDir);
         runner.setProperty(protobufReader, MESSAGE_TYPE, PROTO3_MESSAGE_TYPE);
@@ -132,7 +136,7 @@ class TestProtobufReader {
 
     @Test
     void testCustomValidationWithInvalidMessageType() throws IOException {
-        final Path testTempDir = createTempDirWithProtoFile("test_proto3.proto");
+        createProtoFile("test_proto3.proto");
         runner.setProperty(protobufReader, PROTOBUF_DIRECTORY, testTempDir.toString());
         runner.setProperty(protobufReader, MESSAGE_TYPE, "NonExistentMessage");
 
@@ -163,7 +167,7 @@ class TestProtobufReader {
 
     @Test
     void testCreateRecordReaderWithValidConfiguration() throws Exception {
-        final Path testTempDir = createTempDirWithProtoFile("test_proto3.proto");
+        createProtoFile("test_proto3.proto");
         runner.setProperty(protobufReader, PROTOBUF_DIRECTORY, testTempDir.toString());
         runner.setProperty(protobufReader, MESSAGE_TYPE, PROTO3_MESSAGE_TYPE);
         runner.enableControllerService(protobufReader);
@@ -182,7 +186,7 @@ class TestProtobufReader {
 
     @Test
     void testCreateRecordReaderWithRepeatedFields() throws Exception {
-        final Path testTempDir = createTempDirWithProtoFile("test_repeated_proto3.proto");
+        createProtoFile("test_repeated_proto3.proto");
         runner.setProperty(protobufReader, PROTOBUF_DIRECTORY, testTempDir.toString());
         runner.setProperty(protobufReader, MESSAGE_TYPE, REPEATED_PROTO3_MESSAGE_TYPE);
         runner.enableControllerService(protobufReader);
@@ -198,7 +202,7 @@ class TestProtobufReader {
 
     @Test
     void testValidationWithCircularReferenceProto() throws IOException {
-        final Path testTempDir = createTempDirWithProtoFile("test_circular_reference.proto");
+        createProtoFile("test_circular_reference.proto");
         runner.setProperty(protobufReader, PROTOBUF_DIRECTORY, testTempDir.toString());
         runner.setProperty(protobufReader, MESSAGE_TYPE, "A");
 
@@ -206,14 +210,13 @@ class TestProtobufReader {
         assertTrue(results.stream().allMatch(ValidationResult::isValid));
     }
 
-    private Path createTempDirWithProtoFile(final String protoFileName) throws IOException {
-        final Path testTempDir = Files.createTempDirectory("proto-test-");
+    private void createProtoFile(final String protoFileName) throws IOException {
+        Path protoFileNamePath = testTempDir.resolve(protoFileName);
         try (final InputStream resourceStream = getClass().getClassLoader().getResourceAsStream(protoFileName)) {
             if (resourceStream != null) {
-                Files.copy(resourceStream, testTempDir.resolve(protoFileName), StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(resourceStream, /*testTempDir*/protoFileNamePath, StandardCopyOption.REPLACE_EXISTING);
             }
         }
-        return testTempDir;
     }
 
     private ValidationResult findFirstInvalid(final Collection<ValidationResult> results) {

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,13 +55,16 @@ class StandardFileResourceServiceTest {
 
     private static Path directoryPath;
 
+    @TempDir
+    private static Path tempDir;
+
     private TestRunner runner;
 
     private StandardFileResourceService service;
 
     @BeforeAll
     static void createTestDirectory() throws IOException {
-        directoryPath = Files.createTempDirectory(TEST_NAME);
+        directoryPath = Files.createDirectory(tempDir.resolve(TEST_NAME));
     }
 
     @AfterAll

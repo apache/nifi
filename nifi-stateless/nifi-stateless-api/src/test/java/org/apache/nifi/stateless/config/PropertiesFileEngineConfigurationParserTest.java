@@ -17,10 +17,10 @@
 package org.apache.nifi.stateless.config;
 
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -43,16 +43,13 @@ public class PropertiesFileEngineConfigurationParserTest {
 
     private static Path workingDirectory;
 
+    @TempDir
+    private static Path tmpDir;
+
     @BeforeAll
     public static void setDirectories() throws IOException {
-        narDirectory = Files.createTempDirectory(PropertiesFileEngineConfigurationParserTest.class.getSimpleName());
-        workingDirectory = Files.createTempDirectory(PropertiesFileEngineConfigurationParserTest.class.getSimpleName());
-    }
-
-    @AfterAll
-    public static void deleteDirectories() throws IOException {
-        Files.deleteIfExists(narDirectory);
-        Files.deleteIfExists(workingDirectory);
+        narDirectory = Files.createDirectory(tmpDir.resolve(PropertiesFileEngineConfigurationParserTest.class.getSimpleName() + "-nar"));
+        workingDirectory = Files.createDirectory(tmpDir.resolve(PropertiesFileEngineConfigurationParserTest.class.getSimpleName() + "working"));
     }
 
     @BeforeEach
