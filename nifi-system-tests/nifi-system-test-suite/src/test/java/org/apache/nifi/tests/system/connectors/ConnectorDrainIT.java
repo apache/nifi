@@ -18,10 +18,14 @@
 package org.apache.nifi.tests.system.connectors;
 
 import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +42,7 @@ public class ConnectorDrainIT extends NiFiSystemIT {
     private static final Logger logger = LoggerFactory.getLogger(ConnectorDrainIT.class);
 
     @Test
+    @Timeout(60)
     public void testDrainFlowFiles() throws NiFiClientException, IOException, InterruptedException {
         final File gateFile = new File(getNiFiInstance().getInstanceDirectory(), "gate-file.txt");
         gateFile.deleteOnExit();
@@ -64,6 +69,17 @@ public class ConnectorDrainIT extends NiFiSystemIT {
         logger.info("Stopping connector {}", connectorId);
         getClientUtil().stopConnector(connectorId);
         getClientUtil().waitForConnectorStopped(connectorId);
+
+        final ProcessGroupFlowEntity flow = getNifiClient().getConnectorClient().getFlow(connectorId);
+        ProcessorEntity disabledProcessor = null;
+        for (final ProcessorEntity processor : flow.getProcessGroupFlow().getFlow().getProcessors()) {
+            if (ScheduledState.DISABLED.name().equals(processor.getComponent().getState())) {
+                disabledProcessor = processor;
+                break;
+            }
+        }
+
+        assertNotNull(disabledProcessor);
 
         final int queuedCountBeforeDrain = getConnectorQueuedFlowFileCount(connectorId);
         logger.info("Queued FlowFile count before drain: {}", queuedCountBeforeDrain);

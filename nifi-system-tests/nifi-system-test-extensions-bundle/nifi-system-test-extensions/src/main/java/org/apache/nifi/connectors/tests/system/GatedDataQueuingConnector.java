@@ -29,6 +29,7 @@ import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.util.VersionedFlowUtils;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.Position;
+import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
@@ -84,6 +85,11 @@ public class GatedDataQueuingConnector extends AbstractConnector {
 
         final VersionedProcessor terminate = VersionedFlowUtils.addProcessor(rootGroup,
             "org.apache.nifi.processors.tests.system.TerminateFlowFile", bundle, "TerminateFlowFile", new Position(0, 0));
+
+        final VersionedProcessor disabled = VersionedFlowUtils.addProcessor(rootGroup,
+            "org.apache.nifi.processors.tests.system.GenerateFlowFile", bundle, "Disabled GenerateFlowFile", new Position(0, 200));
+        disabled.setScheduledState(ScheduledState.DISABLED);
+        disabled.setAutoTerminatedRelationships(Set.of("success"));
 
         VersionedFlowUtils.addConnection(rootGroup, VersionedFlowUtils.createConnectableComponent(generate),
             VersionedFlowUtils.createConnectableComponent(terminate), Set.of("success"));
