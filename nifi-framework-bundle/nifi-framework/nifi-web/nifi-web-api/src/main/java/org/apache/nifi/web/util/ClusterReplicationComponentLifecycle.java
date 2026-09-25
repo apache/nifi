@@ -26,7 +26,9 @@ import jakarta.ws.rs.core.Response.Status;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.AsyncClusterResponse;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -39,6 +41,7 @@ import org.apache.nifi.web.api.ApplicationResource.ReplicationTarget;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
+import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
@@ -47,6 +50,7 @@ import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
+import org.apache.nifi.web.api.entity.ListingRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
@@ -60,9 +64,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -631,6 +639,57 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             .collect(Collectors.toSet());
     }
 
+    @Override
+    public boolean waitForConnectionQueuesEmpty(final URI originalUri, final Set<String> connectionIds, final Pause pause) throws LifecycleManagementException {
+        if (connectionIds.isEmpty()) {
+            return true;
+        }
+
+        final Set<NodeIdentifier> expectedNodes = new HashSet<>(clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED));
+        final List<String> orderedConnectionIds = connectionIds.stream()
+            .sorted(Comparator.naturalOrder())
+            .toList();
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Map<String, QueuePollResult> queuePollResults = new LinkedHashMap<>();
+
+        boolean continuePolling = true;
+        while (continuePolling) {
+            boolean allQueuesEmpty = true;
+            for (final String connectionId : orderedConnectionIds) {
+                final ListingRequestResult listingRequest = createFlowFileListingRequest(user, originalUri, connectionId, expectedNodes);
+                final Integer queuedFlowFiles = getQueuedFlowFiles(listingRequest.entity());
+                queuePollResults.put(connectionId, new QueuePollResult(queuedFlowFiles, listingRequest.hasExpectedCoverage(),
+                        listingRequest.involvedNodeIds(), listingRequest.completedNodeIds(), listingRequest.successfulNodeIds()));
+                logger.debug("Removed connection drain cluster queue poll [connectionId={}, queuedFlowFiles={}, expectedNodeIds={}, involvedNodeIds={}, "
+                                + "completedNodeIds={}, successfulNodeIds={}, expectedCoverage={}]", connectionId, queuedFlowFiles,
+                        getExpectedNodeIds(expectedNodes), listingRequest.involvedNodeIds(), listingRequest.completedNodeIds(),
+                        listingRequest.successfulNodeIds(), listingRequest.hasExpectedCoverage());
+                if (!listingRequest.hasExpectedCoverage() || queuedFlowFiles == null || queuedFlowFiles != 0) {
+                    allQueuesEmpty = false;
+                }
+
+                final String listingRequestId = getListingRequestId(listingRequest.entity());
+                final boolean listingDeleted = deleteFlowFileListingRequest(user, originalUri, connectionId, listingRequestId, expectedNodes);
+                if (!listingDeleted) {
+                    logger.debug("Failed to delete replicated flow file listing request {} for connection {}", listingRequestId, connectionId);
+                }
+
+                if (!allQueuesEmpty) {
+                    break;
+                }
+            }
+
+            if (allQueuesEmpty) {
+                return true;
+            }
+
+            continuePolling = pause.pause();
+        }
+
+        logger.warn("Removed connection drain cluster queue wait ended with remaining queues {}", queuePollResults);
+        return false;
+    }
+
     private boolean waitForControllerServiceValidation(final NiFiUser user, final URI originalUri, final String groupId,
                                                        final Set<String> serviceIds, final Pause pause)
             throws InterruptedException {
@@ -678,6 +737,183 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         }
 
         return false;
+    }
+
+    private ListingRequestResult createFlowFileListingRequest(final NiFiUser user, final URI originalUri, final String connectionId,
+                                                              final Set<NodeIdentifier> expectedNodes) throws LifecycleManagementException {
+        final URI createListingRequestUri;
+        try {
+            createListingRequestUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(), originalUri.getPort(),
+                "/nifi-api/flowfile-queues/" + connectionId + "/listing-requests", null, originalUri.getFragment());
+        } catch (final URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            final AsyncClusterResponse clusterResponse = replicateFlowFileListingRequest(expectedNodes, user, HttpMethod.POST, createListingRequestUri);
+
+            final NodeResponse mergedResponse = clusterResponse.awaitMergedResponse();
+            final ListingRequestEntity listingRequestEntity = mergedResponse != null && mergedResponse.is2xx()
+                ? getResponseEntity(mergedResponse, ListingRequestEntity.class)
+                : null;
+            final Set<String> involvedNodeIds = getNodeIds(clusterResponse.getNodesInvolved());
+            final Set<String> completedNodeIds = getNodeIds(clusterResponse.getCompletedNodeIdentifiers());
+            final Set<String> successfulNodeIds = getSuccessfulNodeIds(clusterResponse.getCompletedNodeResponses());
+
+            if (!hasExpectedSuccessfulNodeCoverage(clusterResponse, expectedNodes)) {
+                return new ListingRequestResult(listingRequestEntity, false, involvedNodeIds, completedNodeIds, successfulNodeIds);
+            }
+
+            if (mergedResponse == null || !mergedResponse.is2xx()) {
+                return new ListingRequestResult(listingRequestEntity, false, involvedNodeIds, completedNodeIds, successfulNodeIds);
+            }
+
+            return new ListingRequestResult(listingRequestEntity, true, involvedNodeIds, completedNodeIds, successfulNodeIds);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new LifecycleManagementException("Interrupted while waiting for connection queues to empty");
+        }
+    }
+
+    private boolean deleteFlowFileListingRequest(final NiFiUser user, final URI originalUri, final String connectionId, final String requestId,
+                                                 final Set<NodeIdentifier> expectedNodes) {
+        if (requestId == null) {
+            return false;
+        }
+
+        final URI listingRequestUri;
+        try {
+            listingRequestUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(), originalUri.getPort(),
+                "/nifi-api/flowfile-queues/" + connectionId + "/listing-requests/" + requestId, null, originalUri.getFragment());
+        } catch (final URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            final AsyncClusterResponse clusterResponse = replicateFlowFileListingRequest(expectedNodes, user, HttpMethod.DELETE, listingRequestUri);
+
+            final NodeResponse mergedResponse = clusterResponse.awaitMergedResponse();
+            return mergedResponse != null && mergedResponse.is2xx() && hasExpectedSuccessfulNodeCoverage(clusterResponse, expectedNodes);
+        } catch (final Exception e) {
+            logger.debug("Failed to delete replicated flow file listing request {} for connection {}", requestId, connectionId, e);
+            return false;
+        }
+    }
+
+    private AsyncClusterResponse replicateFlowFileListingRequest(final Set<NodeIdentifier> expectedNodes, final NiFiUser user, final String method, final URI requestUri) {
+        return getRequestReplicator().replicate(expectedNodes, user, method, requestUri, Collections.emptyMap(), Collections.emptyMap(), true, true);
+    }
+
+    private String getListingRequestId(final ListingRequestEntity entity) {
+        if (entity == null || entity.getListingRequest() == null) {
+            return null;
+        }
+
+        return entity.getListingRequest().getId();
+    }
+
+    private record ListingRequestResult(ListingRequestEntity entity, boolean hasExpectedCoverage, Set<String> involvedNodeIds,
+                                        Set<String> completedNodeIds, Set<String> successfulNodeIds) {
+    }
+
+    private record QueuePollResult(Integer queuedFlowFiles, boolean expectedCoverage, Set<String> involvedNodeIds,
+                                   Set<String> completedNodeIds, Set<String> successfulNodeIds) {
+    }
+
+    private boolean hasExpectedSuccessfulNodeCoverage(final AsyncClusterResponse clusterResponse, final Set<NodeIdentifier> expectedNodes) {
+        if (clusterResponse == null || !clusterResponse.isComplete()) {
+            return false;
+        }
+
+        final Set<String> expectedNodeIds = getExpectedNodeIds(expectedNodes);
+        if (!hasExpectedNodeIds(clusterResponse.getNodesInvolved(), expectedNodeIds)) {
+            return false;
+        }
+
+        if (!hasExpectedNodeIds(clusterResponse.getCompletedNodeIdentifiers(), expectedNodeIds)) {
+            return false;
+        }
+
+        final Set<NodeResponse> completedNodeResponses = clusterResponse.getCompletedNodeResponses();
+        if (completedNodeResponses == null || completedNodeResponses.size() != expectedNodes.size()) {
+            return false;
+        }
+
+        final Set<String> completedNodeIds = new HashSet<>();
+        for (final NodeResponse nodeResponse : completedNodeResponses) {
+            if (nodeResponse == null || nodeResponse.getNodeId() == null || !nodeResponse.is2xx()) {
+                return false;
+            }
+
+            final String nodeId = nodeResponse.getNodeId().getId();
+            if (nodeId == null || !expectedNodeIds.contains(nodeId) || !completedNodeIds.add(nodeId)) {
+                return false;
+            }
+        }
+
+        return completedNodeIds.equals(expectedNodeIds);
+    }
+
+    private Set<String> getExpectedNodeIds(final Set<NodeIdentifier> expectedNodes) {
+        final Set<String> expectedNodeIds = new HashSet<>();
+        for (final NodeIdentifier nodeIdentifier : expectedNodes) {
+            if (nodeIdentifier == null || nodeIdentifier.getId() == null || !expectedNodeIds.add(nodeIdentifier.getId())) {
+                throw new IllegalArgumentException("Expected connected nodes must contain unique node identifiers");
+            }
+        }
+
+        return expectedNodeIds;
+    }
+
+    private boolean hasExpectedNodeIds(final Set<NodeIdentifier> actualNodes, final Set<String> expectedNodeIds) {
+        if (actualNodes == null || actualNodes.size() != expectedNodeIds.size()) {
+            return false;
+        }
+
+        final Set<String> actualNodeIds = new HashSet<>();
+        for (final NodeIdentifier actualNode : actualNodes) {
+            if (actualNode == null || actualNode.getId() == null || !actualNodeIds.add(actualNode.getId())) {
+                return false;
+            }
+        }
+
+        return actualNodeIds.equals(expectedNodeIds);
+    }
+
+    private Integer getQueuedFlowFiles(final ListingRequestEntity entity) {
+        if (entity == null || entity.getListingRequest() == null) {
+            return null;
+        }
+
+        final ListingRequestDTO listingRequest = entity.getListingRequest();
+        return listingRequest.getQueueSize() == null ? null : listingRequest.getQueueSize().getObjectCount();
+    }
+
+    private Set<String> getNodeIds(final Set<NodeIdentifier> nodeIdentifiers) {
+        if (nodeIdentifiers == null) {
+            return Collections.emptySet();
+        }
+
+        return nodeIdentifiers.stream()
+                .filter(Objects::nonNull)
+                .map(NodeIdentifier::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<String> getSuccessfulNodeIds(final Set<NodeResponse> nodeResponses) {
+        if (nodeResponses == null) {
+            return Collections.emptySet();
+        }
+
+        return nodeResponses.stream()
+                .filter(Objects::nonNull)
+                .filter(NodeResponse::is2xx)
+                .map(NodeResponse::getNodeId)
+                .filter(Objects::nonNull)
+                .map(NodeIdentifier::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     private boolean isControllerServiceValidationComplete(final Set<ControllerServiceEntity> controllerServiceEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
