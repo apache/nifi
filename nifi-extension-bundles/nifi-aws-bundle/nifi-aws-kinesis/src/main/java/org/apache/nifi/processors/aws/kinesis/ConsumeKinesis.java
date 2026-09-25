@@ -46,6 +46,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.metrics.CommitTiming;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.processors.aws.region.RegionUtil;
@@ -589,6 +590,11 @@ public class ConsumeKinesis extends AbstractProcessor implements BacklogReportin
             consumed = consumeRecords(claimedShards);
             final List<ShardFetchResult> accepted = discardRelinquishedResults(consumed, claimedShards);
 
+            for (final ShardFetchResult result : accepted) {
+                shardMillisBehindLatest.put(result.shardId(), result.millisBehindLatest());
+            }
+            recordBehindMetrics(session, ownedShardIds);
+
             if (accepted.isEmpty()) {
                 consumerClient.releaseShards(claimedShards);
                 context.yield();
@@ -895,6 +901,7 @@ public class ConsumeKinesis extends AbstractProcessor implements BacklogReportin
             if (processingStrategy == ProcessingStrategy.FLOW_FILE) {
                 final BatchAccumulator batch = new BatchAccumulator();
                 for (final List<ShardFetchResult> shardResults : resultsByShard.values()) {
+                    recordConsumptionMetrics(session, shardResults);
                     for (final ShardFetchResult result : shardResults) {
                         batch.updateMillisBehind(result.millisBehindLatest());
                         for (final UserRecord record : result.records()) {
@@ -910,6 +917,7 @@ public class ConsumeKinesis extends AbstractProcessor implements BacklogReportin
                 for (final Map.Entry<String, List<ShardFetchResult>> entry : resultsByShard.entrySet()) {
                     final BatchAccumulator batch = new BatchAccumulator();
                     batch.setLastShardId(entry.getKey());
+                    recordConsumptionMetrics(session, entry.getValue());
                     for (final ShardFetchResult result : entry.getValue()) {
                         batch.updateMillisBehind(result.millisBehindLatest());
                         batch.updateSequenceRange(result);
@@ -944,6 +952,46 @@ public class ConsumeKinesis extends AbstractProcessor implements BacklogReportin
         }
 
         return new WriteResult(produced, parseFailures, totalRecordCount, totalBytesConsumed, maxMillisBehind);
+    }
+
+    private void recordConsumptionMetrics(final ProcessSession session, final List<ShardFetchResult> shardResults) {
+        long recordCount = 0;
+        long bytesConsumed = 0;
+        String shardId = null;
+        for (final ShardFetchResult result : shardResults) {
+            shardId = result.shardId();
+            for (final UserRecord record : result.records()) {
+                recordCount++;
+                bytesConsumed += record.data().length;
+            }
+        }
+
+        if (recordCount == 0) {
+            return;
+        }
+
+        final Map<String, String> attributes = getMetricAttributes(streamName, shardId);
+        session.adjustCounter(KinesisMetricName.RECORDS_CONSUMED.getMetricName(), recordCount, attributes, CommitTiming.NOW);
+        session.adjustCounter(KinesisMetricName.BYTES_CONSUMED.getMetricName(), bytesConsumed, attributes, CommitTiming.NOW);
+    }
+
+    private void recordBehindMetrics(final ProcessSession session, final Set<String> ownedShardIds) {
+        for (final String shardId : ownedShardIds) {
+            final Long millisBehind = shardMillisBehindLatest.get(shardId);
+            // Kinesis uses -1 when millisBehindLatest is not provided
+            if (millisBehind == null || millisBehind < 0) {
+                continue;
+            }
+            final Map<String, String> metricAttributes = getMetricAttributes(streamName, shardId);
+            session.recordGauge(KinesisMetricName.CONSUMER_MILLISECONDS_BEHIND.getMetricName(), millisBehind, metricAttributes, CommitTiming.NOW);
+        }
+    }
+
+    private static Map<String, String> getMetricAttributes(final String streamName, final String shardId) {
+        return Map.of(
+                ATTR_STREAM_NAME, streamName,
+                ATTR_SHARD_ID, shardId
+        );
     }
 
     private void writeFlowFilePerRecord(final ProcessSession session, final List<ShardFetchResult> results,
@@ -1360,6 +1408,9 @@ public class ConsumeKinesis extends AbstractProcessor implements BacklogReportin
                 }
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 parseFailureOutput.add(flowFile);
+
+                final Map<String, String> metricAttributes = getMetricAttributes(streamName, record.shardId());
+                session.adjustCounter(KinesisMetricName.RECORDS_PARSED_ERRORS.getMetricName(), 1, metricAttributes, CommitTiming.NOW);
             } catch (final Exception e) {
                 session.remove(flowFile);
                 throw e;
