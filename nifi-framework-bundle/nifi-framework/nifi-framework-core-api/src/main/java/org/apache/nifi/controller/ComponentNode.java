@@ -151,6 +151,18 @@ public interface ComponentNode extends ComponentAuthorizable {
 
     ConfigurableComponent getComponent();
 
+    /**
+     * Returns the property map that {@code migrateProperties} would produce for the given original values, without
+     * mutating this component. An empty result means the component's migration is a no-op, the preview could not be
+     * computed, or the component type does not support property migration preview.
+     *
+     * @param originalPropertyValues the property values from the versioned snapshot
+     * @return the migrated properties when migration would change the configuration; otherwise empty
+     */
+    default Optional<Map<String, String>> previewMigratedProperties(Map<String, String> originalPropertyValues) {
+        return Optional.empty();
+    }
+
     TerminationAwareLogger getLogger();
 
     boolean isExtensionMissing();
