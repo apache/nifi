@@ -36,7 +36,7 @@ import java.util.Set;
  * in-memory FlowFile content size is greater than zero, a {@link SpillableContentRepository} buffers FlowFile content in memory up to that size and spills to
  * the NiFi instance's Content Repository once it is exceeded; when the size is zero, the NiFi instance's Content Repository is used directly.
  */
-public class DeferredStatelessContentRepository implements ContentRepository {
+public class DeferredStatelessContentRepository implements TransferableContentClaimRepository {
     private final ProcessGroup processGroup;
     private final ContentRepository contentRepositoryDelegate;
     private final FlowFileRepository nifiFlowFileRepository;
@@ -56,18 +56,17 @@ public class DeferredStatelessContentRepository implements ContentRepository {
     }
 
     /**
-     * Ensures that the content for the given claim is accessible outside of the Stateless Process Group and returns a Content Claim that references it in the
-     * NiFi instance's Content Repository. When FlowFile content was buffered in memory, this writes it to the NiFi Content Repository and returns the new claim.
-     * When content was not buffered in memory (or the Process Group is not configured to buffer content in memory), the claim is returned unchanged.
+     * Prepares a claim from the backing Content Repository when the configured delegate buffers content in memory. Otherwise, returns the supplied claim unchanged.
      *
-     * @param claim the claim to make externally accessible
-     * @return a Content Claim whose content is stored in the NiFi instance's Content Repository
-     * @throws IOException if the content cannot be written to the NiFi Content Repository
+     * @param claim the claim to prepare
+     * @return a Content Claim whose content is stored in the backing Content Repository
+     * @throws IOException if the content cannot be written to the backing Content Repository
      */
-    public ContentClaim exportForExternalUse(final ContentClaim claim) throws IOException {
+    @Override
+    public ContentClaim prepareBackingClaim(final ContentClaim claim) throws IOException {
         final ContentRepository resolved = getDelegate();
         if (resolved instanceof final SpillableContentRepository spillableContentRepository) {
-            return spillableContentRepository.exportForExternalUse(claim);
+            return spillableContentRepository.prepareBackingClaim(claim);
         }
 
         return claim;
@@ -76,12 +75,13 @@ public class DeferredStatelessContentRepository implements ContentRepository {
     /**
      * Completes the handoff of a prepared Content Claim after the NiFi FlowFile Repository has been updated successfully.
      *
-     * @param claim the original claim passed to {@link #exportForExternalUse(ContentClaim)}
+     * @param claim the original claim passed to {@link #prepareBackingClaim(ContentClaim)}
      */
-    public void commitExportForExternalUse(final ContentClaim claim) {
+    @Override
+    public void completeBackingClaimTransfer(final ContentClaim claim) {
         final ContentRepository resolved = getDelegate();
         if (resolved instanceof final SpillableContentRepository spillableContentRepository) {
-            spillableContentRepository.commitExportForExternalUse(claim);
+            spillableContentRepository.completeBackingClaimTransfer(claim);
         }
     }
 

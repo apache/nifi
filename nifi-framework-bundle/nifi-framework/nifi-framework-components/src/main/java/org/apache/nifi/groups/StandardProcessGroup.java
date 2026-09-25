@@ -218,7 +218,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private volatile int maxConcurrentTasks = 1;
     private volatile String statelessFlowTimeout = "1 min";
     private volatile String statelessFlowFileContentInMemoryMax;
-    private volatile Integer statelessFlowFileContentInMemoryHeapPercentage = 0;
+    private volatile Integer statelessFlowFileContentInMemoryHeapPercentage;
     private volatile long resolvedStatelessContentMaxHeap;
     private volatile Authorizable explicitParentAuthorizable;
     private final FlowFileActivity flowFileActivity = new ProcessGroupFlowFileActivity(this);
@@ -4881,8 +4881,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private static void validateHeapPercentage(final Integer heapPercentage) {
-        if (heapPercentage != null && (heapPercentage < 0 || heapPercentage > MAX_HEAP_PERCENTAGE)) {
-            throw new IllegalArgumentException("Heap percentage must be between 0 and " + MAX_HEAP_PERCENTAGE + ": " + heapPercentage);
+        if (heapPercentage != null && (heapPercentage <= 0 || heapPercentage > MAX_HEAP_PERCENTAGE)) {
+            throw new IllegalArgumentException("Heap percentage must be greater than 0 and no more than " + MAX_HEAP_PERCENTAGE + ": " + heapPercentage);
         }
     }
 

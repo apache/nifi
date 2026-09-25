@@ -46,15 +46,15 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A {@link ContentRepository} used by an embedded Stateless Process Group that buffers FlowFile content in memory up to a configured total size and spills to a
- * backing (on-disk) Content Repository once that size is exceeded. Content for a single {@link ContentClaim} is stored either entirely in memory or entirely in
+ * backing Content Repository once that size is exceeded. Content for a single {@link ContentClaim} is stored either entirely in memory or entirely in
  * the backing repository: while a claim is being written, each allocation reserves its buffer capacity against the configured size. If capacity is unavailable,
  * the bytes buffered so far are flushed to the backing repository and the remainder of the claim is written there. The limit covers content byte arrays,
  * including unused capacity, but not object metadata or buffers owned by processors and their streams.
  *
  * <p>
  * Claimant counts for in-memory claims are tracked in the {@link ResourceClaimManager} provided at initialization, the same manager used by the backing
- * repository. Each claim that spills holds a single claimant count on its backing claim that this repository owns. Exporting prepares the backing claim while
- * retaining that ownership until {@link #commitExportForExternalUse(ContentClaim)} confirms that the NiFi FlowFile Repository references it. If export does not
+ * repository. Each claim that spills holds a single claimant count on its backing claim that this repository owns. Preparing a backing claim retains that ownership
+ * until {@link #completeBackingClaimTransfer(ContentClaim)} confirms that the NiFi FlowFile Repository references it. If the transfer does not
  * complete, purge releases the backing claim for cleanup. In-memory claims that report {@link ResourceClaim#isInUse()} as {@code true} are never handed to the NiFi
  * FlowFile Repository for destruction; they are reclaimed by garbage collection once no FlowFile references them, and their memory accounting is released when
  * the claim is removed or the repository is purged.
@@ -340,17 +340,17 @@ public class SpillableContentRepository implements ContentRepository {
     }
 
     /**
-     * Ensures that the content for the given claim is accessible outside of this Stateless Process Group by making it available in the backing (on-disk) Content
-     * Repository, and returns a Content Claim that references it there. For a claim whose content was buffered in memory, the content is written to the backing
-     * repository and a new backing claim is returned. This repository retains ownership of the backing claim until
-     * {@link #commitExportForExternalUse(ContentClaim)} is called. For any claim that does not belong to this repository, the claim is returned unchanged.
+     * Returns a claim from the backing Content Repository. For a claim whose content was buffered in memory, the content is written to the backing repository
+     * and a new backing claim is returned. This repository retains ownership of the backing claim until
+     * {@link #completeBackingClaimTransfer(ContentClaim)} is called. For any claim that does not belong to this repository, the claim is returned unchanged.
      *
-     * @param claim the claim to make externally accessible
+     * @param claim the claim to prepare
      * @return a Content Claim whose content is stored in the backing Content Repository
      * @throws IOException if the content cannot be written to the backing repository
      */
-    public ContentClaim exportForExternalUse(final ContentClaim claim) throws IOException {
+    ContentClaim prepareBackingClaim(final ContentClaim claim) throws IOException {
         if (!(claim instanceof final SpillableContentClaim spillableClaim)) {
+            // Input FlowFiles can already reference claims from the backing Content Repository.
             return claim;
         }
 
@@ -385,11 +385,11 @@ public class SpillableContentRepository implements ContentRepository {
     /**
      * Hands ownership of a prepared backing claim to the NiFi FlowFile Repository after its records have been updated successfully.
      *
-     * @param claim the original claim passed to {@link #exportForExternalUse(ContentClaim)}
+     * @param claim the original claim passed to {@link #prepareBackingClaim(ContentClaim)}
      */
-    public void commitExportForExternalUse(final ContentClaim claim) {
+    void completeBackingClaimTransfer(final ContentClaim claim) {
         if (!(claim instanceof final SpillableContentClaim spillableClaim)) {
-            return;
+            throw new IllegalArgumentException("Content Claim was not created by this repository");
         }
 
         final SpillableResourceClaim resourceClaim = spillableClaim.getResourceClaim();

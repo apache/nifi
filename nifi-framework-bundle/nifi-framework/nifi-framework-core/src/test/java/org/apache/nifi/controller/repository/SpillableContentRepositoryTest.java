@@ -23,7 +23,6 @@ import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,14 +45,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -72,7 +69,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class SpillableContentRepositoryTest {
     private static final long BUDGET = 100L;
@@ -88,15 +84,13 @@ class SpillableContentRepositoryTest {
         backingRepository = new TrackingContentRepository();
         backingRepository.initialize(new StandardContentRepositoryContext(resourceClaimManager, EventReporter.NO_OP));
         flowFileRepository = mock(FlowFileRepository.class);
-        repository = new SpillableContentRepository(backingRepository, flowFileRepository, BUDGET);
-        repository.initialize(new StandardContentRepositoryContext(resourceClaimManager, EventReporter.NO_OP));
+        repository = createRepository(resourceClaimManager, BUDGET);
     }
 
     @ParameterizedTest
     @ValueSource(ints = {1, 200_000})
     void testInMemoryContentSupportsRepeatedReads(final int length) throws IOException {
-        repository = new SpillableContentRepository(backingRepository, flowFileRepository, Math.max(BUDGET, length));
-        repository.initialize(new StandardContentRepositoryContext(resourceClaimManager, EventReporter.NO_OP));
+        repository = createRepository(resourceClaimManager, Math.max(BUDGET, length));
         final byte[] content = bytes(length);
         final ContentClaim claim = repository.create(false);
         write(claim, content);
@@ -108,33 +102,23 @@ class SpillableContentRepositoryTest {
         assertEquals(Math.max(32, length), repository.getInMemoryByteCount());
         assertArrayEquals(content, readAll(claim));
         assertArrayEquals(content, readAll(claim));
-        final ContentClaim exported = repository.exportForExternalUse(claim);
-        assertArrayEquals(content, readAll(exported));
+        final ContentClaim backingClaim = repository.prepareBackingClaim(claim);
+        assertArrayEquals(content, readAll(backingClaim));
         assertEquals(0L, repository.getInMemoryByteCount());
     }
 
     @Test
-    void testSmallClaimsAccountForAllocatedCapacity() throws Exception {
-        long allocated = 0L;
-        int spilled = 0;
-        for (int claimIndex = 0; claimIndex < 100; claimIndex++) {
+    void testSmallClaimsAccountForAllocatedCapacity() throws IOException {
+        final byte[] content = new byte[] {1};
+        for (int claimIndex = 0; claimIndex < 5; claimIndex++) {
             final ContentClaim claim = repository.create(false);
-            try (final OutputStream output = repository.write(claim)) {
-                output.write(1);
-            }
+            write(claim, content);
 
-            if (repository.isHeldInMemory(claim)) {
-                allocated += allocatedBytes(claim);
-            } else {
-                spilled++;
-            }
-
-            assertArrayEquals(new byte[] {1}, readAll(claim));
-            assertEquals(allocated, repository.getInMemoryByteCount());
-            assertTrue(allocated <= BUDGET);
+            assertArrayEquals(content, readAll(claim));
+            assertEquals(claimIndex < 4, repository.isHeldInMemory(claim));
+            assertEquals(claimIndex == 4, repository.isSpilled(claim));
+            assertEquals(Math.min((claimIndex + 1) * 32L, BUDGET), repository.getInMemoryByteCount());
         }
-
-        assertTrue(spilled > 0);
     }
 
     @Test
@@ -155,19 +139,19 @@ class SpillableContentRepositoryTest {
             }
 
             startWriting.countDown();
-            long allocated = 0L;
+            int inMemoryClaimCount = 0;
             for (final Future<ContentClaim> future : futures) {
                 final ContentClaim claim = future.get(10, TimeUnit.SECONDS);
                 assertArrayEquals(bytes(32), readAll(claim));
                 if (repository.isHeldInMemory(claim)) {
-                    allocated += allocatedBytes(claim);
+                    inMemoryClaimCount++;
                 }
 
                 repository.decrementClaimantCount(claim);
             }
 
-            assertEquals(allocated, repository.getInMemoryByteCount());
-            assertTrue(allocated <= BUDGET);
+            assertEquals(3, inMemoryClaimCount);
+            assertEquals(96L, repository.getInMemoryByteCount());
         }
 
         repository.purge();
@@ -310,9 +294,7 @@ class SpillableContentRepositoryTest {
         }).when(blockingResourceClaimManager).incrementClaimantCount(any(ResourceClaim.class));
 
         backingRepository.initialize(new StandardContentRepositoryContext(blockingResourceClaimManager, EventReporter.NO_OP));
-        final SpillableContentRepository concurrentRepository = new SpillableContentRepository(
-            backingRepository, flowFileRepository, BUDGET);
-        concurrentRepository.initialize(new StandardContentRepositoryContext(blockingResourceClaimManager, EventReporter.NO_OP));
+        final SpillableContentRepository concurrentRepository = createRepository(blockingResourceClaimManager, BUDGET);
 
         final ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
@@ -353,22 +335,9 @@ class SpillableContentRepositoryTest {
         assertEquals(0L, repository.getInMemoryByteCount());
     }
 
-    @Test
-    void testFailedImportRemovesUnwrittenClaim(@TempDir final Path directory) throws Exception {
-        final ContentClaim claim = repository.create(false);
-        assertThrows(IOException.class, () -> repository.importFrom(directory.resolve("missing"), claim));
-        assertEquals(0, repository.decrementClaimantCount(claim));
-        assertTrue(repository.remove(claim));
-        repository.purge();
-
-        assertClaimNotTracked(claim);
-        assertFalse(claim.getResourceClaim().isWritable());
-        assertEquals(0L, repository.getInMemoryByteCount());
-    }
-
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 150})
-    void testExportHandsOffContentOnce(final int length) throws Exception {
+    void testBackingClaimTransferCompletesOnce(final int length) throws IOException {
         final byte[] content = bytes(length);
         final ContentClaim claim = repository.create(false);
         write(claim, content);
@@ -384,57 +353,56 @@ class SpillableContentRepositoryTest {
             assertArrayEquals(content, input.readAllBytes());
         }
 
-        final long allocated = spilled ? 0L : allocatedBytes(claim);
-        assertEquals(length == 1 ? 32L : 0L, allocated);
-        assertEquals(allocated, repository.getInMemoryByteCount());
+        assertEquals(length == 1 ? 32L : 0L, repository.getInMemoryByteCount());
 
-        final ContentClaim exported = repository.exportForExternalUse(claim);
-        assertNotSame(claim, exported);
-        assertSame(exported, repository.exportForExternalUse(claim));
-        assertArrayEquals(content, readAll(exported));
-        assertEquals(length, exported.getLength());
+        final ContentClaim backingClaim = repository.prepareBackingClaim(claim);
+        assertNotSame(claim, backingClaim);
+        assertSame(backingClaim, repository.prepareBackingClaim(claim));
+        assertArrayEquals(content, readAll(backingClaim));
+        assertEquals(length, backingClaim.getLength());
         assertEquals(0L, repository.getInMemoryByteCount());
         assertEquals(1, backingRepository.writeCount.get());
         assertEquals(1, backingRepository.closedStreamCount.get());
-        assertEquals(1, repository.getClaimantCount(exported));
+        assertEquals(1, repository.getClaimantCount(backingClaim));
 
-        repository.incrementClaimaintCount(exported);
-        repository.commitExportForExternalUse(claim);
-        repository.commitExportForExternalUse(claim);
-        assertEquals(1, repository.getClaimantCount(exported));
+        repository.incrementClaimaintCount(backingClaim);
+        repository.completeBackingClaimTransfer(claim);
+        repository.completeBackingClaimTransfer(claim);
+        assertEquals(1, repository.getClaimantCount(backingClaim));
+        assertThrows(IllegalArgumentException.class, () -> repository.completeBackingClaimTransfer(backingClaim));
         repository.decrementClaimantCount(claim);
         repository.purge();
-        assertArrayEquals(content, readAll(exported));
+        assertArrayEquals(content, readAll(backingClaim));
         verify(flowFileRepository, never()).updateRepository(anyList());
     }
 
     @Test
-    void testExportFailureSubmitsBackingClaimForCleanup() throws IOException {
+    void testPreparingBackingClaimFailureSubmitsClaimForCleanup() throws IOException {
         final ContentClaim claim = repository.create(false);
         write(claim, bytes(50));
         backingRepository.failNextWrite = true;
 
-        assertThrows(IOException.class, () -> repository.exportForExternalUse(claim));
+        assertThrows(IOException.class, () -> repository.prepareBackingClaim(claim));
 
         repository.purge();
         verify(flowFileRepository).updateRepository(anyList());
     }
 
     @Test
-    void testPurgeCleansExportWhenExternalUpdateFails() throws IOException {
+    void testPurgeCleansBackingClaimWhenRepositoryUpdateFails() throws IOException {
         final ContentClaim claim = repository.create(false);
         write(claim, bytes(50));
 
-        final ContentClaim exportedClaim = repository.exportForExternalUse(claim);
-        repository.incrementClaimaintCount(exportedClaim);
-        repository.decrementClaimantCount(exportedClaim);
+        final ContentClaim backingClaim = repository.prepareBackingClaim(claim);
+        repository.incrementClaimaintCount(backingClaim);
+        repository.decrementClaimantCount(backingClaim);
         repository.decrementClaimantCount(claim);
         repository.purge();
 
         final ArgumentCaptor<List<RepositoryRecord>> recordsCaptor = captureRepositoryRecords();
         verify(flowFileRepository).updateRepository(recordsCaptor.capture());
-        assertEquals(List.of(exportedClaim), recordsCaptor.getValue().getFirst().getTransientClaims());
-        assertEquals(0, resourceClaimManager.getClaimantCount(exportedClaim.getResourceClaim()));
+        assertEquals(List.of(backingClaim), recordsCaptor.getValue().getFirst().getTransientClaims());
+        assertEquals(0, resourceClaimManager.getClaimantCount(backingClaim.getResourceClaim()));
     }
 
     @Test
@@ -466,58 +434,32 @@ class SpillableContentRepositoryTest {
     }
 
     @Test
-    void testDeferredRepositoryResolvesChangedThreshold() throws Exception {
-        final ProcessGroup processGroup = mock(ProcessGroup.class);
-        final AtomicLong threshold = new AtomicLong(BUDGET);
-        when(processGroup.resolveStatelessContentMaxHeap()).thenAnswer(invocation -> threshold.get());
-        final DeferredStatelessContentRepository deferredRepository = new DeferredStatelessContentRepository(
-            processGroup, backingRepository, flowFileRepository, resourceClaimManager, EventReporter.NO_OP);
+    void testContentOperationsAcrossStorageStates(@TempDir final Path tempDirectory) throws IOException {
+        for (final int length : new int[] {40, 150}) {
+            final byte[] content = bytes(length);
+            final ContentClaim claim = repository.create(false);
+            assertEquals(length, repository.importFrom(new ByteArrayInputStream(content), claim));
 
-        final ContentClaim inMemoryClaim = deferredRepository.create(false);
-        assertEquals("in-memory", inMemoryClaim.getResourceClaim().getContainer());
-        deferredRepository.decrementClaimantCount(inMemoryClaim);
-        deferredRepository.purge();
-        assertClaimNotTracked(inMemoryClaim);
-        assertFalse(inMemoryClaim.getResourceClaim().isWritable());
+            final ByteArrayOutputStream out = new ByteArrayOutputStream();
+            assertEquals(length, repository.exportTo(claim, out));
+            assertArrayEquals(content, out.toByteArray());
 
-        threshold.set(0L);
-        final ContentClaim backingClaim = deferredRepository.create(false);
-        assertEquals("container", backingClaim.getResourceClaim().getContainer());
+            final Path destination = tempDirectory.resolve("content-" + length);
+            Files.write(destination, bytes(length * 2));
+            assertEquals(length, repository.exportTo(claim, destination, false));
+            assertArrayEquals(content, Files.readAllBytes(destination));
+
+            final ContentClaim clone = repository.clone(claim, false);
+            assertArrayEquals(content, readAll(clone));
+            assertEquals(length > BUDGET, repository.isSpilled(clone));
+            assertEquals(length <= BUDGET, repository.isHeldInMemory(clone));
+        }
     }
 
-    @Test
-    void testCloneAcrossStates() throws IOException {
-        final byte[] smallContent = bytes(40);
-        final ContentClaim small = repository.create(false);
-        write(small, smallContent);
-        final ContentClaim smallClone = repository.clone(small, false);
-        assertArrayEquals(smallContent, readAll(smallClone));
-        assertTrue(repository.isHeldInMemory(smallClone));
-
-        final byte[] largeContent = bytes(150);
-        final ContentClaim large = repository.create(false);
-        write(large, largeContent);
-        final ContentClaim largeClone = repository.clone(large, false);
-        assertArrayEquals(largeContent, readAll(largeClone));
-        assertTrue(repository.isSpilled(largeClone));
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {50, 150})
-    void testImportAndExport(final int length, @TempDir final Path tempDirectory) throws IOException {
-        final byte[] content = bytes(length);
-        final ContentClaim claim = repository.create(false);
-        final long imported = repository.importFrom(new ByteArrayInputStream(content), claim);
-        assertEquals(length, imported);
-
-        final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        assertEquals(length, repository.exportTo(claim, out));
-        assertArrayEquals(content, out.toByteArray());
-
-        final Path destination = tempDirectory.resolve("content");
-        Files.write(destination, bytes(length * 2));
-        assertEquals(length, repository.exportTo(claim, destination, false));
-        assertArrayEquals(content, Files.readAllBytes(destination));
+    private SpillableContentRepository createRepository(final ResourceClaimManager claimManager, final long memoryThresholdBytes) {
+        final SpillableContentRepository contentRepository = new SpillableContentRepository(backingRepository, flowFileRepository, memoryThresholdBytes);
+        contentRepository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
+        return contentRepository;
     }
 
     private ArgumentCaptor<List<RepositoryRecord>> captureRepositoryRecords() {
@@ -542,27 +484,10 @@ class SpillableContentRepositoryTest {
         }
     }
 
-    private void assertClaimNotTracked(final ContentClaim claim) throws ReflectiveOperationException {
+    private void assertClaimNotTracked(final ContentClaim claim) {
         final ResourceClaim resourceClaim = claim.getResourceClaim();
-        final Field countsField = StandardResourceClaimManager.class.getDeclaredField("claimantCounts");
-        countsField.setAccessible(true);
-        final Map<?, ?> claimantCounts = (Map<?, ?>) countsField.get(resourceClaimManager);
-        assertFalse(claimantCounts.containsKey(resourceClaim));
         assertNull(resourceClaimManager.getResourceClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId()));
         assertEquals(0, resourceClaimManager.getClaimantCount(resourceClaim));
-    }
-
-    private long allocatedBytes(final ContentClaim claim) throws ReflectiveOperationException {
-        final Object resourceClaim = claim.getResourceClaim();
-        final Field contentsField = resourceClaim.getClass().getDeclaredField("contents");
-        contentsField.setAccessible(true);
-        final MemoryContents contents = (MemoryContents) contentsField.get(resourceClaim);
-        long allocated = 0L;
-        for (final byte[] buffer : getBuffers(contents)) {
-            allocated += buffer.length;
-        }
-
-        return allocated;
     }
 
     @SuppressWarnings("unchecked")

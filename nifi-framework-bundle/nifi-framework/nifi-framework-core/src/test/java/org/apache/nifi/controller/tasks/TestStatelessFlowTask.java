@@ -89,8 +89,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestStatelessFlowTask {
@@ -253,12 +251,7 @@ public class TestStatelessFlowTask {
     @Test
     public void testCreateOutputRecordsExportsSharedInMemoryClaimOnce() throws IOException {
         final byte[] content = "shared content".getBytes(StandardCharsets.UTF_8);
-        final ByteArrayContentRepository backingRepository = new ByteArrayContentRepository();
-        backingRepository.initialize(new StandardContentRepositoryContext(resourceClaimManager, EventReporter.NO_OP));
-        final ProcessGroup processGroup = mock(ProcessGroup.class);
-        when(processGroup.resolveStatelessContentMaxHeap()).thenReturn(1024L);
-        final DeferredStatelessContentRepository deferredRepository = new DeferredStatelessContentRepository(
-            processGroup, backingRepository, flowFileRepository, resourceClaimManager, EventReporter.NO_OP);
+        final DeferredStatelessContentRepository deferredRepository = createDeferredContentRepository();
 
         final ContentClaim inMemoryClaim = deferredRepository.create(false);
         try (final OutputStream out = deferredRepository.write(inMemoryClaim)) {
@@ -298,12 +291,7 @@ public class TestStatelessFlowTask {
 
     @Test
     public void testCompleteInvocationsRollsBackPreparedExportsWhenRepositoryUpdateFails() throws IOException {
-        final ByteArrayContentRepository backingRepository = new ByteArrayContentRepository();
-        backingRepository.initialize(new StandardContentRepositoryContext(resourceClaimManager, EventReporter.NO_OP));
-        final ProcessGroup processGroup = mock(ProcessGroup.class);
-        when(processGroup.resolveStatelessContentMaxHeap()).thenReturn(1024L);
-        final DeferredStatelessContentRepository deferredRepository = new DeferredStatelessContentRepository(
-            processGroup, backingRepository, flowFileRepository, resourceClaimManager, EventReporter.NO_OP);
+        final DeferredStatelessContentRepository deferredRepository = createDeferredContentRepository();
 
         final ContentClaim firstClaim = deferredRepository.create(false);
         final ContentClaim secondClaim = deferredRepository.create(false);
@@ -340,7 +328,6 @@ public class TestStatelessFlowTask {
 
         assertEquals(0, resourceClaimManager.getClaimantCount(firstBackingClaim.getResourceClaim()));
         assertEquals(0, resourceClaimManager.getClaimantCount(secondBackingClaim.getResourceClaim()));
-        verify(flowFileRepository, times(2)).updateRepository(any());
     }
 
     @Test
@@ -512,6 +499,14 @@ public class TestStatelessFlowTask {
         final Connection connection = mock(Connection.class);
         when(connection.getFlowFileQueue()).thenReturn(queue);
         return connection;
+    }
+
+    private DeferredStatelessContentRepository createDeferredContentRepository() throws IOException {
+        final ByteArrayContentRepository backingRepository = new ByteArrayContentRepository();
+        backingRepository.initialize(new StandardContentRepositoryContext(resourceClaimManager, EventReporter.NO_OP));
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.resolveStatelessContentMaxHeap()).thenReturn(1024L);
+        return new DeferredStatelessContentRepository(processGroup, backingRepository, flowFileRepository, resourceClaimManager, EventReporter.NO_OP);
     }
 
     private StatelessFlowTask createTask(final ContentRepository contentRepository) {

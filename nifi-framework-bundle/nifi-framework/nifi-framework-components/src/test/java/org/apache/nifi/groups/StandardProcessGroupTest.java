@@ -481,9 +481,9 @@ class StandardProcessGroupTest {
     }
 
     @Test
-    void testStatelessContentMaxHeapDefaultsToZeroPercentAndUnsetSize() {
+    void testStatelessContentMaxHeapDefaultsToZeroBytesWithUnsetLimits() {
         assertNull(processGroup.getStatelessContentMaxHeap());
-        assertEquals(0, processGroup.getStatelessContentMaxHeapPercentage());
+        assertNull(processGroup.getStatelessContentMaxHeapPercentage());
         assertEquals(0L, processGroup.resolveStatelessContentMaxHeap());
     }
 
@@ -503,6 +503,10 @@ class StandardProcessGroupTest {
         processGroup.setStatelessContentMaxHeap("0 B");
         assertEquals("0 B", processGroup.getStatelessContentMaxHeap());
         assertEquals(0L, processGroup.resolveStatelessContentMaxHeap());
+
+        processGroup.setStatelessContentMaxHeap("   ");
+        assertNull(processGroup.getStatelessContentMaxHeap());
+        assertEquals(0L, processGroup.resolveStatelessContentMaxHeap());
     }
 
     @Test
@@ -517,63 +521,21 @@ class StandardProcessGroupTest {
             .divide(BigDecimal.valueOf(100), 0, RoundingMode.DOWN)
             .longValue();
         assertEquals(expectedNinetyPercent, processGroup.resolveStatelessContentMaxHeap());
-
-        processGroup.setStatelessContentMaxHeapPercentage(0);
-        assertEquals(0, processGroup.getStatelessContentMaxHeapPercentage());
-        assertEquals(0L, processGroup.resolveStatelessContentMaxHeap());
-    }
-
-    @Test
-    void testResolveStatelessContentMaxHeapUsesConfiguredLimitWhenTheOtherIsUnset() {
-        processGroup.setStatelessContentMaxHeapPercentage(null);
-        processGroup.setStatelessContentMaxHeap("2 MB");
-        assertEquals(2L * 1024 * 1024, processGroup.resolveStatelessContentMaxHeap());
-
-        processGroup.setStatelessContentMaxHeap(null);
-        processGroup.setStatelessContentMaxHeapPercentage(25);
-        final long expectedTwentyFivePercent = new BigDecimal("25")
-            .multiply(BigDecimal.valueOf(Runtime.getRuntime().maxMemory()))
-            .divide(BigDecimal.valueOf(100), 0, RoundingMode.DOWN)
-            .longValue();
-        assertEquals(expectedTwentyFivePercent, processGroup.resolveStatelessContentMaxHeap());
     }
 
     @Test
     void testResolveStatelessContentMaxHeapUsesTheSmallerLimitWhenBothAreSet() {
-        processGroup.setStatelessContentMaxHeap("1 MB");
+        processGroup.setStatelessContentMaxHeap("1 B");
         processGroup.setStatelessContentMaxHeapPercentage(90);
-        assertEquals(1024L * 1024L, processGroup.resolveStatelessContentMaxHeap());
+        assertEquals(1L, processGroup.resolveStatelessContentMaxHeap());
 
-        processGroup.setStatelessContentMaxHeap("100 GB");
+        processGroup.setStatelessContentMaxHeap(Runtime.getRuntime().maxMemory() + " B");
         processGroup.setStatelessContentMaxHeapPercentage(50);
         assertEquals(Runtime.getRuntime().maxMemory() / 2, processGroup.resolveStatelessContentMaxHeap());
-
-        processGroup.setStatelessContentMaxHeap("4 GB");
-        processGroup.setStatelessContentMaxHeapPercentage(0);
-        assertEquals(0L, processGroup.resolveStatelessContentMaxHeap());
     }
 
     @Test
-    void testResolveStatelessContentMaxHeapWhenBothAreUnsetIsZero() {
-        processGroup.setStatelessContentMaxHeapPercentage(null);
-        processGroup.setStatelessContentMaxHeap(null);
-        assertNull(processGroup.getStatelessContentMaxHeap());
-        assertNull(processGroup.getStatelessContentMaxHeapPercentage());
-        assertEquals(0L, processGroup.resolveStatelessContentMaxHeap());
-    }
-
-    @Test
-    void testSetStatelessContentMaxHeapTreatsBlankAsUnset() {
-        processGroup.setStatelessContentMaxHeapPercentage(null);
-        processGroup.setStatelessContentMaxHeap("100 MB");
-
-        processGroup.setStatelessContentMaxHeap("   ");
-        assertNull(processGroup.getStatelessContentMaxHeap());
-        assertEquals(0L, processGroup.resolveStatelessContentMaxHeap());
-    }
-
-    @Test
-    void testSetStatelessContentMaxHeapRejectsInvalidDataSize() {
+    void testSetStatelessContentMaxHeapRejectsInvalidLimits() {
         processGroup.setStatelessContentMaxHeapPercentage(null);
         processGroup.setStatelessContentMaxHeap("1 MB");
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("not a size"));
@@ -582,8 +544,11 @@ class StandardProcessGroupTest {
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("0.9 B"));
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("999999999999999999999999999999999999999999999 TB"));
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("50%"));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeapPercentage(0));
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeapPercentage(91));
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeapPercentage(-1));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.verifyCanSetStatelessContentMaxHeap("not a size"));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.verifyCanSetStatelessContentMaxHeapPercentage(0));
         assertEquals("1 MB", processGroup.getStatelessContentMaxHeap());
         assertNull(processGroup.getStatelessContentMaxHeapPercentage());
         assertEquals(1024L * 1024L, processGroup.resolveStatelessContentMaxHeap());
@@ -599,17 +564,34 @@ class StandardProcessGroupTest {
         runningGroup.setExecutionEngine(ExecutionEngine.STATELESS);
         when(statelessGroupNode.getCurrentState()).thenReturn(ScheduledState.RUNNING);
 
+        runningGroup.verifyCanSetStatelessContentMaxHeap("1024 KB");
         runningGroup.setStatelessContentMaxHeap("1024 KB");
         assertEquals("1024 KB", runningGroup.getStatelessContentMaxHeap());
+        assertThrows(IllegalStateException.class, () -> runningGroup.verifyCanSetStatelessContentMaxHeap("2 MB"));
         assertThrows(IllegalStateException.class, () -> runningGroup.setStatelessContentMaxHeap("2 MB"));
-        assertThrows(IllegalStateException.class, () -> runningGroup.setStatelessContentMaxHeapPercentage(0));
         assertEquals(1024L * 1024L, runningGroup.resolveStatelessContentMaxHeap());
+
+        final StandardProcessGroup childGroup = createStandardProcessGroup("child");
+        childGroup.setName("Child");
+        runningGroup.addProcessGroup(childGroup);
+        assertThrows(IllegalStateException.class, () -> childGroup.verifyCanSetStatelessContentMaxHeap("2 MB"));
+        assertThrows(IllegalStateException.class, () -> childGroup.setStatelessContentMaxHeap("2 MB"));
 
         when(statelessGroupNode.getCurrentState()).thenReturn(ScheduledState.STOPPED);
         runningGroup.setStatelessContentMaxHeap("2 MB");
         assertEquals(2L * 1024L * 1024L, runningGroup.resolveStatelessContentMaxHeap());
-        runningGroup.setStatelessContentMaxHeapPercentage(0);
-        assertEquals(0L, runningGroup.resolveStatelessContentMaxHeap());
+        runningGroup.setStatelessContentMaxHeap(null);
+        runningGroup.setStatelessContentMaxHeapPercentage(90);
+
+        when(statelessGroupNode.getCurrentState()).thenReturn(ScheduledState.RUNNING);
+        runningGroup.verifyCanSetStatelessContentMaxHeapPercentage(90);
+        runningGroup.setStatelessContentMaxHeapPercentage(90);
+        assertThrows(IllegalStateException.class, () -> runningGroup.verifyCanSetStatelessContentMaxHeapPercentage(50));
+        assertThrows(IllegalStateException.class, () -> runningGroup.setStatelessContentMaxHeapPercentage(50));
+
+        when(statelessGroupNode.getCurrentState()).thenReturn(ScheduledState.STOPPED);
+        runningGroup.setStatelessContentMaxHeapPercentage(50);
+        assertEquals(50, runningGroup.getStatelessContentMaxHeapPercentage());
     }
 
     private StandardProcessGroup createStandardProcessGroup(final String id) {

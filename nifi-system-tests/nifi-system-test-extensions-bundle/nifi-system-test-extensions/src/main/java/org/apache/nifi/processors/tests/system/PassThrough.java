@@ -17,22 +17,38 @@
 
 package org.apache.nifi.processors.tests.system;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 
+import java.io.File;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 public class PassThrough extends AbstractProcessor {
+
+    private static final PropertyDescriptor GATE_FILE = new PropertyDescriptor.Builder()
+        .name("Gate File")
+        .description("An optional file path. FlowFiles are transferred only when this file exists.")
+        .required(false)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .build();
 
     private static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("Everything goes here")
         .build();
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return List.of(GATE_FILE);
+    }
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -41,7 +57,13 @@ public class PassThrough extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final String gateFilePath = context.getProperty(GATE_FILE).getValue();
+        if (gateFilePath != null && !new File(gateFilePath).exists()) {
+            context.yield();
+            return;
+        }
+
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }

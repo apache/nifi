@@ -162,13 +162,13 @@
                                             class="fa fa-info-circle"
                                             nifiTooltip
                                             [tooltipComponentType]="TextTip"
-                                            tooltipInputData="A whole number from 0 to 90. 0 means zero percent of the heap. Leave empty if this limit should not apply. When both this value and the data size are set, the smaller of the two is used. For example, 80% up to 4 GB. The default is 0."></i>
+                                            tooltipInputData="A whole number greater than 0 and no more than 90. Leave empty if this limit should not apply. When both this value and the data size are set, the smaller of the two is used. For example, 80% up to 4 GB."></i>
                                     </mat-label>
                                     <input
                                         matInput
                                         formControlName="statelessFlowFileContentInMemoryHeapPercentage"
                                         type="number"
-                                        min="0"
+                                        min="1"
                                         max="90"
                                         [readonly]="readonly" />
                                 </mat-form-field>

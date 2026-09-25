@@ -70,7 +70,6 @@ import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 import org.apache.nifi.web.api.dto.VerifyConnectorConfigStepRequestDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
@@ -136,7 +135,6 @@ import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
-import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
@@ -157,7 +155,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -1287,6 +1284,12 @@ public class NiFiClientUtil {
     public ProcessorEntity updateProcessorRunDuration(final ProcessorEntity currentEntity, final int runDuration) throws NiFiClientException, IOException {
         final ProcessorConfigDTO config = new ProcessorConfigDTO();
         config.setRunDurationMillis((long) runDuration);
+        return updateProcessorConfig(currentEntity, config);
+    }
+
+    public ProcessorEntity updateProcessorYieldDuration(final ProcessorEntity currentEntity, final String yieldDuration) throws NiFiClientException, IOException {
+        final ProcessorConfigDTO config = new ProcessorConfigDTO();
+        config.setYieldDuration(yieldDuration);
         return updateProcessorConfig(currentEntity, config);
     }
 
@@ -2912,19 +2915,4 @@ public class NiFiClientUtil {
         return nifiClient.getProcessGroupClient().updateProcessGroup(current);
     }
 
-    public SnippetEntity moveProcessGroup(final ProcessGroupEntity groupToMove, final String destinationGroupId) throws NiFiClientException, IOException {
-        final Map<String, RevisionDTO> processGroupRevisions = new HashMap<>();
-        processGroupRevisions.put(groupToMove.getId(), groupToMove.getRevision());
-
-        final SnippetDTO snippetDto = new SnippetDTO();
-        snippetDto.setParentGroupId(groupToMove.getComponent().getParentGroupId());
-        snippetDto.setProcessGroups(processGroupRevisions);
-
-        final SnippetEntity snippet = new SnippetEntity();
-        snippet.setSnippet(snippetDto);
-        final SnippetEntity createdSnippet = nifiClient.getSnippetClient().createSnippet(snippet);
-
-        createdSnippet.getSnippet().setParentGroupId(destinationGroupId);
-        return nifiClient.getSnippetClient().updateSnippet(createdSnippet);
-    }
 }

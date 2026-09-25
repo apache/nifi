@@ -188,6 +188,9 @@ describe('EditProcessGroup', () => {
             const control = component.editProcessGroupForm.get('statelessFlowFileContentInMemoryHeapPercentage');
 
             control?.setValue(0);
+            expect(control?.valid).toBeFalsy();
+
+            control?.setValue(1);
             expect(control?.valid).toBeTruthy();
 
             control?.setValue(90);

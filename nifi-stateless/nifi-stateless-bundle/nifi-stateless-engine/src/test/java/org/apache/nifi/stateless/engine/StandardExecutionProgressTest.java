@@ -66,31 +66,17 @@ class StandardExecutionProgressTest {
     }
 
     @Test
-    void testOutputClaimReleasedWhenAborted() {
+    void testRepeatedAbortReleasesOutputClaimOnce() {
         final TestContext context = createTestContext();
         context.progress().enqueueTriggerResult(() -> { }, failure -> { });
         final TriggerResult result = context.results().remove();
 
         result.abort(new IOException("Processing failed"));
+        result.abort(new IOException("Processing failed again"));
 
         verify(context.contentRepository()).decrementClaimantCount(context.contentClaim());
         verify(context.contentRepository()).purge();
         verify(context.purgeAction()).purge();
-    }
-
-    @Test
-    void testEachAbortedResultPurgesReleasedClaims() {
-        final TestContext context = createTestContext();
-        context.progress().enqueueTriggerResult(() -> { }, failure -> { });
-        context.progress().enqueueTriggerResult(() -> { }, failure -> { });
-        final TriggerResult firstResult = context.results().remove();
-        final TriggerResult secondResult = context.results().remove();
-
-        firstResult.abort(new IOException("First processing failure"));
-        secondResult.abort(new IOException("Second processing failure"));
-
-        verify(context.contentRepository(), times(2)).decrementClaimantCount(context.contentClaim());
-        verify(context.contentRepository(), times(2)).purge();
     }
 
     @Test

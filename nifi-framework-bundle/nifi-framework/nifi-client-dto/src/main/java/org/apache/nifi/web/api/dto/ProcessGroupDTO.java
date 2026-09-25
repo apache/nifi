@@ -448,9 +448,9 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.statelessFlowFileContentInMemoryMax = statelessFlowFileContentInMemoryMax;
     }
 
-    @Schema(description = "The maximum percentage of the Java heap to use for buffering FlowFile content when the flow is run using the Stateless Engine, from 0 to 90. " +
-        "A value of 0 means zero percent of the heap. An empty value means this limit is not configured. When both this value and the in-memory content maximum data size are set, " +
-        "the smaller of the two limits is used. The default is 0.")
+    @Schema(description = "The maximum percentage of the Java heap to use for buffering FlowFile content when the flow is run using the Stateless Engine. " +
+        "The value must be greater than 0 and no more than 90. An empty value means this limit is not configured. When both this value and the in-memory content maximum data size " +
+        "are set, the smaller of the two limits is used.")
     public String getStatelessFlowFileContentInMemoryHeapPercentage() {
         return statelessFlowFileContentInMemoryHeapPercentage;
     }
@@ -470,7 +470,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         try {
             return Integer.valueOf(statelessFlowFileContentInMemoryHeapPercentage.trim());
         } catch (final NumberFormatException e) {
-            throw new IllegalArgumentException("Illegal value proposed for Max In-Memory Heap Percentage: " + statelessFlowFileContentInMemoryHeapPercentage, e);
+            throw new IllegalArgumentException("Max In-Memory Heap Percentage must be a whole number: " + statelessFlowFileContentInMemoryHeapPercentage, e);
         }
     }
 }

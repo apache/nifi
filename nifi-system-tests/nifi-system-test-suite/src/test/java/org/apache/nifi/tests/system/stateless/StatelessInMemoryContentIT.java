@@ -17,6 +17,7 @@
 
 package org.apache.nifi.tests.system.stateless;
 
+import jakarta.ws.rs.WebApplicationException;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
@@ -24,18 +25,23 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Timeout(value = 30, unit = TimeUnit.SECONDS)
 public class StatelessInMemoryContentIT extends NiFiSystemIT {
 
     private static final String HELLO_WORLD = "Hello World";
@@ -46,26 +52,18 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
 
     private static final String LARGE_BUDGET = "1 MB";
     private static final String TINY_BUDGET = "10 B";
-
-    @Override
-    protected boolean isAllowFactoryReuse() {
-        return false;
-    }
-
-    @Override
-    protected boolean isDestroyEnvironmentAfterEachTest() {
-        return true;
-    }
+    private static final String GATE_YIELD_DURATION = "10 millis";
 
     @Test
     public void testContentUnderBudgetStaysInMemory() throws NiFiClientException, IOException, InterruptedException {
         final SelfContainedFlow flow = createSelfContainedTransformFlow(LARGE_BUDGET);
-        final long contentBytesBeforeStart = contentBytesOnDisk();
+        final Map<Path, Long> contentFileSizesBeforeStart = getContentFileSizes();
 
         getClientUtil().startProcessGroupComponents(flow.groupId());
 
         waitFor(() -> Files.exists(flow.markerFile()));
-        assertEquals(contentBytesBeforeStart, contentBytesOnDisk());
+        assertFalse(hasContentRepositoryGrown(contentFileSizesBeforeStart));
+        Files.createFile(flow.gateFile());
         waitFor(() -> getProcessorFlowFilesIn(flow.matchedTerminateId()) >= 1);
         getClientUtil().stopProcessGroupComponents(flow.groupId());
 
@@ -75,12 +73,13 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
     @Test
     public void testContentOverBudgetSpills() throws NiFiClientException, IOException, InterruptedException {
         final SelfContainedFlow flow = createSelfContainedTransformFlow(TINY_BUDGET);
-        final long contentBytesBeforeStart = contentBytesOnDisk();
+        final Map<Path, Long> contentFileSizesBeforeStart = getContentFileSizes();
 
         getClientUtil().startProcessGroupComponents(flow.groupId());
 
         waitFor(() -> Files.exists(flow.markerFile()));
-        assertTrue(contentBytesOnDisk() > contentBytesBeforeStart);
+        waitFor(() -> hasContentRepositoryGrown(contentFileSizesBeforeStart));
+        Files.createFile(flow.gateFile());
         waitFor(() -> getProcessorFlowFilesIn(flow.matchedTerminateId()) >= 1);
         getClientUtil().stopProcessGroupComponents(flow.groupId());
 
@@ -119,26 +118,28 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
         waitFor(() -> getProcessorFlowFilesIn(terminate.getId()) >= 1);
 
         // The in-memory budget is applied when the Stateless flow starts, so it cannot be changed while the group is running.
-        assertThrows(NiFiClientException.class, () -> getClientUtil().setStatelessFlowFileContentInMemoryMax(statelessGroup, TINY_BUDGET));
+        final NiFiClientException exception = assertThrows(
+            NiFiClientException.class, () -> getClientUtil().setStatelessFlowFileContentInMemoryMax(statelessGroup, TINY_BUDGET));
+        final WebApplicationException cause = assertInstanceOf(WebApplicationException.class, exception.getCause());
+        assertEquals(409, cause.getResponse().getStatus());
 
         getClientUtil().stopProcessGroupComponents(groupId);
 
         final ProcessGroupEntity stoppedGroup = getClientUtil().setStatelessFlowFileContentInMemoryMax(statelessGroup, TINY_BUDGET);
         assertEquals(TINY_BUDGET, stoppedGroup.getComponent().getStatelessFlowFileContentInMemoryMax());
 
-        final long contentBytesBeforeRestart = contentBytesOnDisk();
+        final Map<Path, Long> contentFileSizesBeforeRestart = getContentFileSizes();
         getClientUtil().startProcessGroupComponents(groupId);
         waitFor(() -> getProcessorFlowFilesIn(terminate.getId()) >= 2);
-        assertTrue(contentBytesOnDisk() > contentBytesBeforeRestart);
+        waitFor(() -> hasContentRepositoryGrown(contentFileSizesBeforeRestart));
         getClientUtil().stopProcessGroupComponents(groupId);
     }
 
     /**
      * Builds a flow in which a FlowFile is generated outside the Stateless group, sent into it through an Input Port, has its content rewritten inside the group by
      * ReverseContents, and leaves through an Output Port into a connection whose destination is never started. The FlowFile therefore remains queued outside the
-     * group, which keeps the content that left the group referenced on disk. The transformed content is verified byte-for-byte. For the spill case, a Sleep
-     * processor keeps the transformed FlowFile inside the Stateless group long enough to confirm that its claim is written to disk before it reaches the Output
-     * Port boundary.
+     * group, which keeps the content that left the group referenced in the Content Repository. The transformed content is verified byte-for-byte. For the spill case,
+     * a file-controlled processor keeps the transformed FlowFile inside the Stateless group until its claim is confirmed in the Content Repository.
      */
     private void verifyInputOutputPortsReverseContent(final String budget, final String content) throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor(GENERATE_FLOWFILE);
@@ -154,13 +155,17 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
 
         final ProcessorEntity reverse = getClientUtil().createProcessor(REVERSE_CONTENTS, groupId);
         getClientUtil().createConnection(inputPort, reverse, groupId);
+        final Path gateFile;
         if (verifySpill) {
-            final ProcessorEntity sleep = getClientUtil().createProcessor("Sleep", groupId);
-            getClientUtil().updateProcessorProperties(sleep, Map.of("onTrigger Sleep Time", "10 sec"));
-            getClientUtil().createConnection(reverse, sleep, SUCCESS, groupId);
-            getClientUtil().createConnection(sleep, outputPort, SUCCESS);
-            getClientUtil().waitForValidProcessor(sleep.getId());
+            gateFile = prepareGateFile("input-output-" + groupId);
+            final ProcessorEntity passThrough = getClientUtil().createProcessor("PassThrough", groupId);
+            getClientUtil().updateProcessorProperties(passThrough, Map.of("Gate File", gateFile.toString()));
+            getClientUtil().updateProcessorYieldDuration(passThrough, GATE_YIELD_DURATION);
+            getClientUtil().createConnection(reverse, passThrough, SUCCESS, groupId);
+            getClientUtil().createConnection(passThrough, outputPort, SUCCESS);
+            getClientUtil().waitForValidProcessor(passThrough.getId());
         } else {
+            gateFile = null;
             getClientUtil().createConnection(reverse, outputPort, SUCCESS);
         }
 
@@ -173,12 +178,13 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
 
         getClientUtil().runProcessorOnce(generate);
         waitForQueueCount(inputToStateless.getId(), 1);
-        final long contentBytesBeforeStateless = contentBytesOnDisk();
+        final Map<Path, Long> contentFileSizesBeforeStateless = getContentFileSizes();
         getClientUtil().startProcessGroupComponents(groupId);
 
         if (verifySpill) {
-            waitFor(() -> contentBytesOnDisk() > contentBytesBeforeStateless);
+            waitFor(() -> hasContentRepositoryGrown(contentFileSizesBeforeStateless));
             assertEquals(0, getConnectionQueueSize(outputToTerminate.getId()));
+            Files.createFile(gateFile);
         }
 
         waitForQueueCount(outputToTerminate.getId(), 1);
@@ -193,7 +199,6 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
 
     private SelfContainedFlow createSelfContainedTransformFlow(final String budget) throws NiFiClientException, IOException, InterruptedException {
         final ProcessGroupEntity statelessGroup = getClientUtil().createProcessGroup("Stateless", "root");
-        statelessGroup.getComponent().setMaxConcurrentTasks(4);
         getClientUtil().markStateless(statelessGroup, "1 min", budget);
         final String groupId = statelessGroup.getId();
 
@@ -204,9 +209,6 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
         final ProcessorEntity append = getClientUtil().createProcessor("UpdateContent", groupId);
         getClientUtil().updateProcessorProperties(append, Map.of("Content", EXCLAMATIONS, "Update Strategy", "Append"));
         final ProcessorEntity reverseSecond = getClientUtil().createProcessor(REVERSE_CONTENTS, groupId);
-        getClientUtil().updateProcessorRunDuration(reverseFirst, 25);
-        getClientUtil().updateProcessorRunDuration(append, 25);
-        getClientUtil().updateProcessorRunDuration(reverseSecond, 25);
 
         final ProcessorEntity verify = getClientUtil().createProcessor("VerifyContents", groupId);
         getClientUtil().updateProcessorProperties(verify, Map.of("matched", TRANSFORMED));
@@ -215,8 +217,10 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
         final ProcessorEntity writeMarker = getClientUtil().createProcessor("WriteToFile", groupId);
         getClientUtil().updateProcessorProperties(writeMarker, Map.of("Filename", markerFile.toString()));
         getClientUtil().setAutoTerminatedRelationships(writeMarker, "failure");
-        final ProcessorEntity sleep = getClientUtil().createProcessor("Sleep", groupId);
-        getClientUtil().updateProcessorProperties(sleep, Map.of("onTrigger Sleep Time", "10 sec"));
+        final Path gateFile = prepareGateFile("self-contained-" + groupId);
+        final ProcessorEntity passThrough = getClientUtil().createProcessor("PassThrough", groupId);
+        getClientUtil().updateProcessorProperties(passThrough, Map.of("Gate File", gateFile.toString()));
+        getClientUtil().updateProcessorYieldDuration(passThrough, GATE_YIELD_DURATION);
         final ProcessorEntity matchedTerminate = getClientUtil().createProcessor(TERMINATE_FLOWFILE, groupId);
         final ProcessorEntity unmatchedTerminate = getClientUtil().createProcessor(TERMINATE_FLOWFILE, groupId);
 
@@ -225,8 +229,8 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
         getClientUtil().createConnection(append, reverseSecond, SUCCESS, groupId);
         getClientUtil().createConnection(reverseSecond, verify, SUCCESS, groupId);
         getClientUtil().createConnection(verify, writeMarker, "matched", groupId);
-        getClientUtil().createConnection(writeMarker, sleep, SUCCESS, groupId);
-        getClientUtil().createConnection(sleep, matchedTerminate, SUCCESS, groupId);
+        getClientUtil().createConnection(writeMarker, passThrough, SUCCESS, groupId);
+        getClientUtil().createConnection(passThrough, matchedTerminate, SUCCESS, groupId);
         getClientUtil().createConnection(verify, unmatchedTerminate, "unmatched", groupId);
 
         getClientUtil().waitForValidProcessor(generate.getId());
@@ -235,28 +239,47 @@ public class StatelessInMemoryContentIT extends NiFiSystemIT {
         getClientUtil().waitForValidProcessor(reverseSecond.getId());
         getClientUtil().waitForValidProcessor(verify.getId());
         getClientUtil().waitForValidProcessor(writeMarker.getId());
-        getClientUtil().waitForValidProcessor(sleep.getId());
+        getClientUtil().waitForValidProcessor(passThrough.getId());
 
-        return new SelfContainedFlow(groupId, matchedTerminate.getId(), unmatchedTerminate.getId(), markerFile);
+        return new SelfContainedFlow(groupId, matchedTerminate.getId(), unmatchedTerminate.getId(), markerFile, gateFile);
+    }
+
+    private Path prepareGateFile(final String name) throws IOException {
+        final Path gateFile = new File(getNiFiInstance().getInstanceDirectory(), "target/stateless-content-gate-" + name).getAbsoluteFile().toPath();
+        Files.createDirectories(gateFile.getParent());
+        Files.deleteIfExists(gateFile);
+        return gateFile;
     }
 
     private int getProcessorFlowFilesIn(final String processorId) throws NiFiClientException, IOException {
         return getNifiClient().getProcessorClient().getProcessor(processorId).getStatus().getAggregateSnapshot().getFlowFilesIn();
     }
 
-    private long contentBytesOnDisk() throws IOException {
+    private Map<Path, Long> getContentFileSizes() throws IOException {
+        final Map<Path, Long> contentFileSizes = new HashMap<>();
         final File contentRepository = new File(getNiFiInstance().getInstanceDirectory(), "content_repository");
         if (!contentRepository.exists()) {
-            return 0L;
+            return contentFileSizes;
         }
 
         try (final Stream<Path> paths = Files.walk(contentRepository.toPath())) {
-            return paths.filter(Files::isRegularFile)
-                .mapToLong(path -> path.toFile().length())
-                .sum();
+            paths.filter(Files::isRegularFile).forEach(path -> contentFileSizes.put(path, path.toFile().length()));
         }
+
+        return contentFileSizes;
     }
 
-    private record SelfContainedFlow(String groupId, String matchedTerminateId, String unmatchedTerminateId, Path markerFile) {
+    private boolean hasContentRepositoryGrown(final Map<Path, Long> originalFileSizes) throws IOException {
+        final Map<Path, Long> currentFileSizes = getContentFileSizes();
+        for (final Map.Entry<Path, Long> entry : currentFileSizes.entrySet()) {
+            if (entry.getValue() > originalFileSizes.getOrDefault(entry.getKey(), 0L)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private record SelfContainedFlow(String groupId, String matchedTerminateId, String unmatchedTerminateId, Path markerFile, Path gateFile) {
     }
 }

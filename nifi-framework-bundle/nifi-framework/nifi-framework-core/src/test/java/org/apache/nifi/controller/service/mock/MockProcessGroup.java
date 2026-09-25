@@ -920,7 +920,7 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public Integer getStatelessContentMaxHeapPercentage() {
-        return 0;
+        return null;
     }
 
     @Override

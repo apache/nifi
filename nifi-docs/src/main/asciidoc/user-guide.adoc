@@ -1782,12 +1782,12 @@ it can be a great choice. Additionally, for protocols such as HTTP, NiFi offers 
 As such, it is safe even when NiFi is responsible for accepting incoming connections. The key here is the application-level acknowledgment message that is sent from NiFi.
 
 A Process Group using the Stateless Engine can also be configured with a maximum amount of FlowFile content to keep in memory. This is controlled by two settings: a data size such as `4 GB`,
-and a heap percentage from `0` to `90`. A value of `0 B` or `0` percent means zero -- it does not mean unlimited. If only one setting is configured, that setting is used. If both are
+and a heap percentage greater than `0` and no more than `90`. A value of `0 B` means zero bytes -- it does not mean unlimited. If only one setting is configured, that setting is used. If both are
 configured, the smaller of the two limits is used, so `80` percent with a `4 GB` maximum means 80% of the heap, up to 4 GB. If neither is configured, or if the effective limit is zero,
-all content is written to the Content Repository. The default is `0` percent and no data size, which uses no in-memory content. The configured maximum applies to the Stateless Process Group
+all content is written to the Content Repository. By default, neither setting is configured, which uses no in-memory content. The configured maximum applies to the Stateless Process Group
 as a whole, including all Concurrent Tasks. The limit counts allocated content buffer capacity, including unused space in those buffers. Object metadata and buffers allocated by processors
 are additional heap usage, so leave sufficient heap available for them. In-memory content is dropped on restart, just like other data inside a Stateless group. Content that has already spilled to the Content Repository,
-or that has left the group through an Output Port, remains on disk.
+or that has left the group through an Output Port, remains in the Content Repository.
 
 
 ==== Data Ordering

@@ -28,7 +28,6 @@ import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.DeferredStatelessContentRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
@@ -36,6 +35,7 @@ import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.RepositoryRecordType;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.controller.repository.StandardRepositoryRecord;
+import org.apache.nifi.controller.repository.TransferableContentClaimRepository;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.metrics.ProcessSessionEventBuilder;
 import org.apache.nifi.flowfile.FlowFile;
@@ -334,14 +334,9 @@ public class StatelessFlowTask {
         updateClaimantCounts();
 
         // Update the FlowFile Repository to reflect that the input FlowFiles were dropped and the output FlowFiles were created.
-        try {
-            updateFlowFileRepository();
-        } catch (final Exception e) {
-            rollbackClaimantCounts();
-            throw new IOException("Failed to update FlowFile Repository after triggering " + this, e);
-        }
+        updateFlowFileRepositoryWithRollback();
 
-        commitContentExports();
+        completeContentClaimTransfers();
         incrementedOutputClaims.clear();
 
         updateProvenanceRepository(statelessProvRepo, event -> true);
@@ -423,12 +418,7 @@ public class StatelessFlowTask {
         }
 
         // Update the FlowFile Repository to reflect that the input FlowFiles were dropped and the output FlowFiles were created.
-        try {
-            updateFlowFileRepository();
-        } catch (final Exception e) {
-            rollbackClaimantCounts();
-            throw new IOException("Failed to update FlowFile Repository after triggering " + this, e);
-        }
+        updateFlowFileRepositoryWithRollback();
 
         updateProvenanceRepository(statelessProvRepo, event -> eventTypesToKeepOnFailure.contains(event.getEventType()));
 
@@ -489,46 +479,46 @@ public class StatelessFlowTask {
             final List<FlowFileRecord> portFlowFiles = (List) entry.getValue();
             final Set<Connection> outputConnections = outputPort.getConnections();
             for (final FlowFileRecord outputFlowFile : portFlowFiles) {
-                // Outbound FlowFiles must reference content that remains accessible after stateless content is purged.
-                final FlowFileRecord externallyAccessibleFlowFile = exportContentForExternalUse(outputFlowFile);
+                // Outbound FlowFiles must reference content that remains available after Stateless content is purged.
+                final FlowFileRecord outputFlowFileWithBackingClaim = prepareBackingClaim(outputFlowFile);
 
-                final FlowFileCloneResult cloneResult = ConnectionUtils.clone(externallyAccessibleFlowFile, outputConnections, nifiFlowFileRepository, null);
+                final FlowFileCloneResult cloneResult = ConnectionUtils.clone(outputFlowFileWithBackingClaim, outputConnections, nifiFlowFileRepository, null);
                 cloneResults.add(cloneResult);
 
                 final List<RepositoryRecord> repoRecords = cloneResult.getRepositoryRecords();
                 outputRepositoryRecords.addAll(repoRecords);
 
                 // If we generated any clones, create provenance events for them.
-                createCloneProvenanceEvent(externallyAccessibleFlowFile, repoRecords, outputPort).ifPresent(cloneProvenanceEvents::add);
+                createCloneProvenanceEvent(outputFlowFileWithBackingClaim, repoRecords, outputPort).ifPresent(cloneProvenanceEvents::add);
             }
         }
     }
 
-    private FlowFileRecord exportContentForExternalUse(final FlowFileRecord flowFile) throws IOException {
+    private FlowFileRecord prepareBackingClaim(final FlowFileRecord flowFile) throws IOException {
         final ContentClaim contentClaim = flowFile.getContentClaim();
-        if (contentClaim == null || !(nifiContentRepository instanceof final DeferredStatelessContentRepository deferredContentRepository)) {
+        if (contentClaim == null || !(nifiContentRepository instanceof final TransferableContentClaimRepository transferableContentClaimRepository)) {
             return flowFile;
         }
 
-        final ContentClaim externallyAccessibleClaim = deferredContentRepository.exportForExternalUse(contentClaim);
-        if (externallyAccessibleClaim == contentClaim) {
+        final ContentClaim backingClaim = transferableContentClaimRepository.prepareBackingClaim(contentClaim);
+        if (backingClaim == contentClaim) {
             return flowFile;
         }
 
         preparedContentClaims.add(contentClaim);
         return new StandardFlowFileRecord.Builder()
             .fromFlowFile(flowFile)
-            .contentClaim(externallyAccessibleClaim)
+            .contentClaim(backingClaim)
             .build();
     }
 
-    private void commitContentExports() {
-        if (!(nifiContentRepository instanceof final DeferredStatelessContentRepository deferredContentRepository)) {
+    private void completeContentClaimTransfers() {
+        if (!(nifiContentRepository instanceof final TransferableContentClaimRepository transferableContentClaimRepository)) {
             return;
         }
 
         for (final ContentClaim preparedContentClaim : preparedContentClaims) {
-            deferredContentRepository.commitExportForExternalUse(preparedContentClaim);
+            transferableContentClaimRepository.completeBackingClaimTransfer(preparedContentClaim);
         }
 
         preparedContentClaims.clear();
@@ -596,6 +586,15 @@ public class StatelessFlowTask {
         }
 
         incrementedOutputClaims.clear();
+    }
+
+    private void updateFlowFileRepositoryWithRollback() throws IOException {
+        try {
+            updateFlowFileRepository();
+        } catch (final Exception e) {
+            rollbackClaimantCounts();
+            throw new IOException("Failed to update FlowFile Repository after triggering " + this, e);
+        }
     }
 
     private void updateFlowFileRepository() throws IOException {
