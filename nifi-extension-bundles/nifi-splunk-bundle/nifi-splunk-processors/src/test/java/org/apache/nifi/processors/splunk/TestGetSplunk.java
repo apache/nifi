@@ -17,15 +17,19 @@
 package org.apache.nifi.processors.splunk;
 
 import com.splunk.JobExportArgs;
+import com.splunk.SSLSecurityProtocol;
 import com.splunk.Service;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -37,10 +41,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.TimeZone;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.argThat;
@@ -52,9 +59,16 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings("PMD.LooseCoupling")
 public class TestGetSplunk {
 
+    private static final String SSL_CONTEXT_SERVICE_ID = "ssl-context-service";
+
     private Service service;
     private TestableGetSplunk proc;
     private TestRunner runner;
+
+    // The Splunk Service holds the Security Protocol and the Socket Factory in static state shared by every test running in the
+    // same JVM, so both are captured and restored around each test.
+    private SSLSecurityProtocol splunkSecurityProtocol;
+    private SSLSocketFactory splunkSocketFactory;
 
     @BeforeEach
     public void setup() {
@@ -62,6 +76,15 @@ public class TestGetSplunk {
         proc = new TestableGetSplunk(service);
 
         runner = TestRunners.newTestRunner(proc);
+
+        splunkSecurityProtocol = Service.getSslSecurityProtocol();
+        splunkSocketFactory = Service.getSSLSocketFactory();
+    }
+
+    @AfterEach
+    public void restoreSplunkTlsConfiguration() {
+        Service.setSslSecurityProtocol(splunkSecurityProtocol);
+        Service.setSSLSocketFactory(splunkSocketFactory);
     }
 
     @Test
@@ -367,6 +390,52 @@ public class TestGetSplunk {
         assertNotNull(actualArgs);
 
         assertNotNull(actualArgs.get("index_latest"));
+    }
+
+    @Test
+    public void testSslContextServiceProvidesSplunkSocketFactory() throws InitializationException {
+        // Splunk discards the configured Socket Factory when the static Security Protocol changes, so the Processor is configured with
+        // a protocol other than the one applied here to confirm the Socket Factory survives connecting the Splunk Service.
+        Service.setSslSecurityProtocol(SSLSecurityProtocol.TLSv1_1);
+
+        final SSLSocketFactory socketFactory = Mockito.mock(SSLSocketFactory.class);
+        final SSLContext sslContext = Mockito.mock(SSLContext.class);
+        when(sslContext.getSocketFactory()).thenReturn(socketFactory);
+
+        final SSLContextProvider sslContextProvider = Mockito.mock(SSLContextProvider.class);
+        when(sslContextProvider.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
+        when(sslContextProvider.createContext()).thenReturn(sslContext);
+
+        final GetSplunk getSplunk = new GetSplunk();
+        final TestRunner connectingRunner = TestRunners.newTestRunner(getSplunk);
+        connectingRunner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextProvider);
+        connectingRunner.enableControllerService(sslContextProvider);
+        connectingRunner.setProperty(GetSplunk.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
+        connectingRunner.setProperty(GetSplunk.SCHEME, GetSplunk.HTTPS_SCHEME);
+        connectingRunner.setProperty(GetSplunk.SECURITY_PROTOCOL, SSLSecurityProtocol.TLSv1_2.name());
+        connectingRunner.setProperty(GetSplunk.TOKEN, "Splunk 888c5a81-8777-49a0-a3af-f76e050ab5d9");
+
+        getSplunk.createSplunkService(connectingRunner.getProcessContext());
+
+        assertSame(socketFactory, Service.getSSLSocketFactory());
+        assertEquals(SSLSecurityProtocol.TLSv1_2, Service.getSslSecurityProtocol());
+    }
+
+    @Test
+    public void testClassloaderIsolationKey() throws InitializationException {
+        final GetSplunk getSplunk = new GetSplunk();
+        final TestRunner isolationKeyRunner = TestRunners.newTestRunner(getSplunk);
+
+        // Instances without an SSL Context Service leave the Splunk Socket Factory untouched, so they can share a ClassLoader.
+        assertEquals(GetSplunk.class.getName(), getSplunk.getClassloaderIsolationKey(isolationKeyRunner.getProcessContext()));
+
+        final SSLContextProvider sslContextProvider = Mockito.mock(SSLContextProvider.class);
+        when(sslContextProvider.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
+        isolationKeyRunner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextProvider);
+        isolationKeyRunner.enableControllerService(sslContextProvider);
+        isolationKeyRunner.setProperty(GetSplunk.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
+
+        assertEquals(SSL_CONTEXT_SERVICE_ID, getSplunk.getClassloaderIsolationKey(isolationKeyRunner.getProcessContext()));
     }
 
     /**
