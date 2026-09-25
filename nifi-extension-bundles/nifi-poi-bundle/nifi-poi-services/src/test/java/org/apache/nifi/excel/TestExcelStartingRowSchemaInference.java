@@ -218,7 +218,7 @@ public class TestExcelStartingRowSchemaInference {
             final RecordSchema recordSchema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
             assertEquals(List.of("column_0", "column_1", "column_2"), recordSchema.getFieldNames());
 
-            for(String fieldName : recordSchema.getFieldNames()) {
+            for (String fieldName : recordSchema.getFieldNames()) {
                 final Optional<DataType> optional = recordSchema.getDataType(fieldName);
                 assertTrue(optional.isPresent() && optional.get().getFieldType().equals(RecordFieldType.STRING));
             }
