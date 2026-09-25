@@ -44,12 +44,12 @@ public class PropertiesFileEngineConfigurationParserTest {
     private static Path workingDirectory;
 
     @TempDir
-    private static Path tmpDir;
+    private static Path tempDir;
 
     @BeforeAll
     public static void setDirectories() throws IOException {
-        narDirectory = Files.createDirectory(tmpDir.resolve(PropertiesFileEngineConfigurationParserTest.class.getSimpleName() + "-nar"));
-        workingDirectory = Files.createDirectory(tmpDir.resolve(PropertiesFileEngineConfigurationParserTest.class.getSimpleName() + "working"));
+        narDirectory = Files.createDirectory(tempDir.resolve(PropertiesFileEngineConfigurationParserTest.class.getSimpleName() + "-nar"));
+        workingDirectory = Files.createDirectory(tempDir.resolve(PropertiesFileEngineConfigurationParserTest.class.getSimpleName() + "working"));
     }
 
     @BeforeEach
@@ -145,8 +145,7 @@ public class PropertiesFileEngineConfigurationParserTest {
     }
 
     private File getPropertiesFile(final Properties properties) throws IOException {
-        final File file = File.createTempFile(getClass().getSimpleName(), ".properties");
-        file.deleteOnExit();
+        final File file = tempDir.resolve(getClass().getSimpleName() + ".properties").toFile();
 
         try (final OutputStream outputStream = new FileOutputStream(file)) {
             properties.store(outputStream, null);

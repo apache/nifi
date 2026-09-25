@@ -211,7 +211,7 @@ class TestProtobufReader {
     }
 
     private void createProtoFile(final String protoFileName) throws IOException {
-        Path protoFileNamePath = testTempDir.resolve(protoFileName);
+        final Path protoFileNamePath = testTempDir.resolve(protoFileName);
         try (final InputStream resourceStream = getClass().getClassLoader().getResourceAsStream(protoFileName)) {
             if (resourceStream != null) {
                 Files.copy(resourceStream, protoFileNamePath, StandardCopyOption.REPLACE_EXISTING);
