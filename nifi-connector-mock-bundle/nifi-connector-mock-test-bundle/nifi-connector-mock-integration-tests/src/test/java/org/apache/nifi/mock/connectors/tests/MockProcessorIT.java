@@ -29,13 +29,18 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MockProcessorIT {
+
+    @TempDir
+    private Path temporaryDirectory;
 
     @Test
     @Timeout(10)
@@ -44,6 +49,7 @@ public class MockProcessorIT {
             .narLibraryDirectory(new File("target/libDir"))
             .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
             .mockProcessor("org.apache.nifi.processors.attributes.UpdateAttribute", MockProcessor.class)
+            .instanceDirectory(temporaryDirectory)
             .build()) {
 
             runner.startConnector();

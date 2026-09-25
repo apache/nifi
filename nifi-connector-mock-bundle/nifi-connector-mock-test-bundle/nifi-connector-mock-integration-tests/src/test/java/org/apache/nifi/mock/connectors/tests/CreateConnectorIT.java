@@ -25,9 +25,11 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.mock.connector.StandardConnectorTestRunner;
 import org.apache.nifi.mock.connector.server.ConnectorTestRunner;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -41,11 +43,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CreateConnectorIT {
 
+    @TempDir
+    private Path temporaryDirectory;
+
     @Test
     public void testCreateStartAndStopGenerateAndUpdateConnector() throws IOException {
         try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
             .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
             .narLibraryDirectory(new File("target/libDir"))
+            .instanceDirectory(temporaryDirectory)
             .build()) {
 
             // Verify the active flow snapshot reflects the initial flow loaded from Generate_and_Update.json
@@ -74,6 +80,7 @@ public class CreateConnectorIT {
         try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
                 .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
                 .narLibraryDirectory(new File("target/libDir"))
+                .instanceDirectory(temporaryDirectory)
                 .build()) {
 
             testRunner.startConnector();
@@ -88,6 +95,7 @@ public class CreateConnectorIT {
         try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
                 .connectorClassName("org.apache.nifi.mock.connectors.MissingBundleConnector")
                 .narLibraryDirectory(new File("target/libDir"))
+                .instanceDirectory(temporaryDirectory)
                 .build()) {
 
             final List<ValidationResult> results = testRunner.validate();
@@ -103,6 +111,7 @@ public class CreateConnectorIT {
         try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
                 .connectorClassName("org.apache.nifi.mock.connectors.MissingBundleConnector")
                 .narLibraryDirectory(new File("target/libDir"))
+                .instanceDirectory(temporaryDirectory)
                 .build()) {
 
             final IllegalStateException exception = assertThrows(IllegalStateException.class, testRunner::startConnector);

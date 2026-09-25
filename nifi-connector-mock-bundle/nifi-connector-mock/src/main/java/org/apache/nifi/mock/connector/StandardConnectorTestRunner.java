@@ -43,11 +43,14 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
@@ -55,35 +58,80 @@ import java.util.concurrent.TimeoutException;
 public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeable {
     private final File narLibraryDirectory;
     private final int httpPort;
+    private final Path instanceDirectory;
 
     private ConnectorMockServer mockServer;
+
+    static Properties getInstanceProperties(final Path instanceDirectory) {
+        final Properties properties = new Properties();
+        if (instanceDirectory == null) {
+            return properties;
+        }
+
+        properties.setProperty(NiFiProperties.FLOW_CONFIGURATION_FILE, instanceDirectory.resolve("conf/flow.json.gz").toString());
+        properties.setProperty(NiFiProperties.FLOW_CONFIGURATION_ARCHIVE_DIR, instanceDirectory.resolve("conf/archive").toString());
+        properties.setProperty(NiFiProperties.STATE_MANAGEMENT_CONFIG_FILE, instanceDirectory.resolve("conf/state-management.xml").toString());
+        properties.setProperty(NiFiProperties.REPOSITORY_DATABASE_DIRECTORY, instanceDirectory.resolve("database_repository").toString());
+        properties.setProperty(NiFiProperties.FLOWFILE_REPOSITORY_DIRECTORY, instanceDirectory.resolve("flowfile_repository").toString());
+        properties.setProperty(NiFiProperties.REPOSITORY_CONTENT_PREFIX + "default", instanceDirectory.resolve("content_repository").toString());
+        properties.setProperty(NiFiProperties.NAR_PERSISTENCE_PROVIDER_PROPERTIES_PREFIX + "directory", instanceDirectory.resolve("nar_repository").toString());
+        properties.setProperty(NiFiProperties.ASSET_MANAGER_PREFIX + "directory", instanceDirectory.resolve("assets").toString());
+        properties.setProperty(NiFiProperties.CONNECTOR_ASSET_MANAGER_PREFIX + "directory", instanceDirectory.resolve("connector-assets").toString());
+        properties.setProperty(NiFiProperties.NAR_WORKING_DIRECTORY, instanceDirectory.resolve("work").toString());
+        properties.setProperty(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, instanceDirectory.resolve("autoload").toString());
+        properties.setProperty(NiFiProperties.WEB_WORKING_DIR, instanceDirectory.resolve("work/jetty").toString());
+        return properties;
+    }
 
     private StandardConnectorTestRunner(final Builder builder) {
         this.narLibraryDirectory = builder.narLibraryDirectory;
         this.httpPort = builder.httpPort;
+        this.instanceDirectory = builder.instanceDirectory;
 
         try {
             bootstrapInstance();
         } catch (final Exception e) {
+            closeAfterFailure(e);
             throw new RuntimeException("Failed to bootstrap ConnectorTestRunner", e);
         }
 
-        // It is important that we register the processor and controller service mocks before instantiating the connector.
-        // Otherwise, the call to instantiateConnector will initialize the Connector, which may update the flow.
-        // If the flow is updated before the mocks are registered, the components will be created without
-        // using the mocks. Subsequent updates to the flow will not replace the components already created because
-        // these are not recognized as updates to the flow, since the framework assumes that the type of a component
-        // with a given ID does not change.
-        builder.processorMocks.forEach(mockServer::mockProcessor);
-        builder.controllerServiceMocks.forEach(mockServer::mockControllerService);
+        try {
+            // It is important that we register the processor and controller service mocks before instantiating the connector.
+            // Otherwise, the call to instantiateConnector will initialize the Connector, which may update the flow.
+            // If the flow is updated before the mocks are registered, the components will be created without
+            // using the mocks. Subsequent updates to the flow will not replace the components already created because
+            // these are not recognized as updates to the flow, since the framework assumes that the type of a component
+            // with a given ID does not change.
+            builder.processorMocks.forEach(mockServer::mockProcessor);
+            builder.controllerServiceMocks.forEach(mockServer::mockControllerService);
 
-        mockServer.instantiateConnector(builder.connectorClassName);
+            mockServer.instantiateConnector(builder.connectorClassName);
+        } catch (final RuntimeException e) {
+            closeAfterFailure(e);
+            throw e;
+        }
+    }
+
+    private void closeAfterFailure(final Exception failure) {
+        try {
+            close();
+        } catch (final RuntimeException e) {
+            failure.addSuppressed(e);
+        }
     }
 
     private void bootstrapInstance() throws IOException, ClassNotFoundException {
         final List<Path> libDirectoryPaths = List.of(narLibraryDirectory.toPath());
-        final File extensionsWorkingDir = new File("target/work/extensions");
-        final File frameworkWorkingDir = new File("target/work/framework");
+        final File extensionsWorkingDir;
+        final File frameworkWorkingDir;
+        if (instanceDirectory == null) {
+            extensionsWorkingDir = new File("target/work/extensions");
+            frameworkWorkingDir = new File("target/work/framework");
+        } else {
+            final File narWorkingDirectory = instanceDirectory.resolve("work").toFile();
+            extensionsWorkingDir = new File(narWorkingDirectory, "extensions");
+            frameworkWorkingDir = new File(narWorkingDirectory, "framework");
+        }
 
         final Bundle systemBundle = SystemBundle.create(narLibraryDirectory.getAbsolutePath(), ClassLoader.getSystemClassLoader());
 
@@ -108,7 +156,7 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
 
         final Set<Bundle> narBundles = narClassLoaders.getBundles();
 
-        final Properties additionalProperties = new Properties();
+        final Properties additionalProperties = getInstanceProperties(instanceDirectory);
         if (httpPort >= 0) {
             additionalProperties.setProperty(NiFiProperties.WEB_HTTP_PORT, String.valueOf(httpPort));
         }
@@ -118,10 +166,9 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
             properties = NiFiProperties.createBasicNiFiProperties(propertiesIn, additionalProperties);
         }
 
-        nifiServer.initialize(properties, systemBundle, narBundles, extensionMapping);
-        nifiServer.start();
-
         mockServer = (ConnectorMockServer) nifiServer;
+        mockServer.initialize(properties, systemBundle, narBundles, extensionMapping);
+        mockServer.start();
         mockServer.registerMockBundle(getClass().getClassLoader(), new File(extensionsWorkingDir, "mock-implementations-bundle"));
     }
 
@@ -249,6 +296,7 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
         private String connectorClassName;
         private File narLibraryDirectory;
         private int httpPort = -1;
+        private Path instanceDirectory;
         private final Map<String, Class<? extends Processor>> processorMocks = new HashMap<>();
         private final Map<String, Class<? extends ControllerService>> controllerServiceMocks = new HashMap<>();
 
@@ -267,6 +315,13 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
             return this;
         }
 
+        public Builder instanceDirectory(final Path instanceDirectory) {
+            this.instanceDirectory = Objects.requireNonNull(instanceDirectory, "Instance Directory required")
+                    .toAbsolutePath()
+                    .normalize();
+            return this;
+        }
+
         public Builder mockProcessor(final String processorType, final Class<? extends Processor> mockProcessorClass) {
             processorMocks.put(processorType, mockProcessorClass);
             return this;
@@ -280,6 +335,14 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
         public StandardConnectorTestRunner build() {
             if (!narLibraryDirectory.exists() || !narLibraryDirectory.isDirectory()) {
                 throw new IllegalArgumentException("NAR file does not exist or is not a directory: " + narLibraryDirectory.getAbsolutePath());
+            }
+
+            if (instanceDirectory != null) {
+                try {
+                    Files.createDirectories(instanceDirectory);
+                } catch (final IOException e) {
+                    throw new UncheckedIOException("Failed to create instance directory: " + instanceDirectory, e);
+                }
             }
 
             return new StandardConnectorTestRunner(this);

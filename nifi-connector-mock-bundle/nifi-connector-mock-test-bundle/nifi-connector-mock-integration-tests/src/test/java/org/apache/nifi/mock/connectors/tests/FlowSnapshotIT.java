@@ -26,11 +26,13 @@ import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.mock.connector.StandardConnectorTestRunner;
 import org.apache.nifi.mock.connector.server.ConnectorTestRunner;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,11 +49,15 @@ public class FlowSnapshotIT {
     private static final String SENSITIVE_PARAMETER_NAME = "sensitive_parameter";
     private static final String ASSET_PARAMETER_NAME = "asset_parameter";
 
+    @TempDir
+    private Path temporaryDirectory;
+
     @Test
     public void testWorkingAndActiveFlowSnapshotsPreserveParameterMetadata() throws IOException, FlowUpdateException {
         try (final ConnectorTestRunner runner = new StandardConnectorTestRunner.Builder()
                 .connectorClassName(CONNECTOR_CLASS)
                 .narLibraryDirectory(new File("target/libDir"))
+                .instanceDirectory(temporaryDirectory)
                 .build()) {
 
             final ByteArrayInputStream assetContents = new ByteArrayInputStream("certificate contents".getBytes(StandardCharsets.UTF_8));

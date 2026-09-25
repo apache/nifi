@@ -22,9 +22,11 @@ import org.apache.nifi.mock.connector.StandardConnectorTestRunner;
 import org.apache.nifi.mock.connector.server.ConnectorConfigVerificationResult;
 import org.apache.nifi.mock.connector.server.ConnectorTestRunner;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -39,6 +41,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 public class CronScheduleIT {
 
     private static final String CONNECTOR_CLASS = "org.apache.nifi.mock.connectors.CronScheduleConnector";
+
+    @TempDir
+    private Path temporaryDirectory;
 
     @Test
     public void testValidCronExpression() throws IOException {
@@ -63,6 +68,7 @@ public class CronScheduleIT {
         return new StandardConnectorTestRunner.Builder()
                 .connectorClassName(CONNECTOR_CLASS)
                 .narLibraryDirectory(new File("target/libDir"))
+                .instanceDirectory(temporaryDirectory)
                 .build();
     }
 }
