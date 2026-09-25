@@ -145,6 +145,7 @@ import java.io.UncheckedIOException;
 import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -552,18 +553,19 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         //
         // The sequence of steps / order of operations are as follows:
         //
-        // 1. Remove any Controller Services that do not exist in the proposed group
-        // 2. Add any Controller Services that are in the proposed group that are not in the current flow
-        // 3. Update Controller Services to match those in the proposed group
-        // 4. Remove any connections that do not exist in the proposed group
-        // 5. For any connection that does exist, if the proposed group has a different destination for the connection, update the destination.
+        // 1. Assign proposed versioned ids to Controller Services that property migration created
+        // 2. Remove any Controller Services that do not exist in the proposed group
+        // 3. Add any Controller Services that are in the proposed group that are not in the current flow
+        // 4. Update Controller Services to match those in the proposed group
+        // 5. Remove any connections that do not exist in the proposed group
+        // 6. For any connection that does exist, if the proposed group has a different destination for the connection, update the destination.
         //    If the new destination does not yet exist in the flow, set the destination as some temporary component.
-        // 6. Remove any other components that do not exist in the proposed group.
-        // 7. Add any components, other than Connections, that exist in the proposed group but not in the current flow
-        // 8. Update components, other than Connections, to match those in the proposed group
-        // 9. Add connections that exist in the proposed group that are not in the current flow
-        // 10. Update connections to match those in the proposed group
-        // 11. Delete the temporary destination that was created above
+        // 7. Remove any other components that do not exist in the proposed group.
+        // 8. Add any components, other than Connections, that exist in the proposed group but not in the current flow
+        // 9. Update components, other than Connections, to match those in the proposed group
+        // 10. Add connections that exist in the proposed group that are not in the current flow
+        // 11. Update connections to match those in the proposed group
+        // 12. Delete the temporary destination that was created above
 
         // During the flow update, we will use temporary names for process group ports. This is because port names must be
         // unique within a process group, but during an update we might temporarily be in a state where two ports have the same name.
@@ -574,6 +576,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final Map<Port, String> proposedPortFinalNames = new HashMap<>();
 
         // Controller Services
+        assignVersionedIdsToMigrationCreatedControllerServices(group, proposed);
         final Map<String, ControllerServiceNode> controllerServicesByVersionedId = componentsById(group, grp -> grp.getControllerServices(false),
             ControllerServiceNode::getIdentifier, ControllerServiceNode::getVersionedComponentId);
         removeMissingControllerServices(group, proposed, controllerServicesByVersionedId);
@@ -1169,9 +1172,228 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         removeMissingComponents(group, proposed, rpgsByVersionedId, VersionedProcessGroup::getRemoteProcessGroups, ProcessGroup::removeRemoteProcessGroup);
     }
 
+    /**
+     * Assigns a proposed versioned id to a Controller Service created by property migration.
+     * The service must have exactly one referencer.
+     * The proposed counterpart of that referencer must point at a Controller Service of the same type.
+     * If those do not hold, the service stays unversioned.
+     * A proposed id is assigned to at most one local service.
+     */
+    private void assignVersionedIdsToMigrationCreatedControllerServices(final ProcessGroup group, final VersionedProcessGroup proposed) {
+        final Collection<ControllerServiceNode> groupServices = group.getControllerServices(false);
+        if (groupServices.isEmpty()) {
+            return;
+        }
+
+        final List<ControllerServiceNode> migrationCreatedServices = getUnversionedMigrationCreatedServices(groupServices);
+        if (migrationCreatedServices.isEmpty()) {
+            return;
+        }
+
+        final Set<String> claimedVersionedIds = getClaimedVersionedIds(groupServices);
+
+        final Set<VersionedControllerService> proposedControllerServices = Objects.requireNonNullElse(proposed.getControllerServices(), Set.of());
+        final Set<VersionedProcessor> proposedProcessors = Objects.requireNonNullElse(proposed.getProcessors(), Set.of());
+        final Map<String, VersionedConfigurableExtension> proposedComponentsByVersionedId = indexByVersionedId(proposedControllerServices, proposedProcessors);
+
+        for (final ControllerServiceNode localService : orderByReferencerChain(migrationCreatedServices)) {
+            assignMatchingVersionedId(group, localService, claimedVersionedIds, proposedComponentsByVersionedId);
+        }
+    }
+
+    private List<ControllerServiceNode> getUnversionedMigrationCreatedServices(final Collection<ControllerServiceNode> groupServices) {
+        final List<ControllerServiceNode> migrationCreatedServices = new ArrayList<>();
+        for (final ControllerServiceNode localService : groupServices) {
+            if (localService.getVersionedComponentId().isEmpty() && isMigrationCreated(localService)) {
+                migrationCreatedServices.add(localService);
+            }
+        }
+        return migrationCreatedServices;
+    }
+
+    private Set<String> getClaimedVersionedIds(final Collection<ControllerServiceNode> groupServices) {
+        final Set<String> claimedVersionedIds = HashSet.newHashSet(groupServices.size());
+        for (final ControllerServiceNode localService : groupServices) {
+            localService.getVersionedComponentId().ifPresent(claimedVersionedIds::add);
+        }
+        return claimedVersionedIds;
+    }
+
+    private void assignMatchingVersionedId(
+            final ProcessGroup group,
+            final ControllerServiceNode localService,
+            final Set<String> claimedVersionedIds,
+            final Map<String, VersionedConfigurableExtension> proposedComponentsByVersionedId
+    ) {
+        final ComponentNode referencer = getSoleReferencer(localService);
+        if (referencer == null) {
+            LOG.debug("Leaving {} in {} unversioned because it is not referenced by exactly one component", localService, group);
+            return;
+        }
+
+        final VersionedConfigurableExtension proposedReferencer = getProposedReferencer(referencer, proposedComponentsByVersionedId);
+        if (proposedReferencer == null) {
+            LOG.debug("Leaving {} in {} unversioned because its referencer {} has no counterpart in the proposed flow", localService, group, referencer);
+            return;
+        }
+
+        final ProposedControllerServiceMatch match = findMatchingProposedControllerService(localService, referencer, proposedReferencer, proposedComponentsByVersionedId, group);
+        if (match == null) {
+            LOG.debug("Leaving {} in {} unversioned because no proposed Controller Service matches the referencing property of {}", localService, group, referencer);
+            return;
+        }
+
+        if (!claimedVersionedIds.add(match.versionedId())) {
+            LOG.debug("Leaving {} in {} unversioned because versioned id {} is already used by another Controller Service", localService, group, match.versionedId());
+            return;
+        }
+
+        localService.setVersionedComponentId(match.versionedId());
+        updatedVersionedComponentIds.add(match.versionedId());
+        LOG.info("Matched {} in {} to the Controller Service with versioned id {} that the proposed flow declares, based on the {} property of {}",
+            localService, group, match.versionedId(), match.propertyName(), referencer);
+    }
+
+    private List<ControllerServiceNode> orderByReferencerChain(final List<ControllerServiceNode> migrationCreatedServices) {
+        final BitSet visited = new BitSet(migrationCreatedServices.size());
+        final List<ControllerServiceNode> ordered = new ArrayList<>(migrationCreatedServices.size());
+
+        for (int i = 0; i < migrationCreatedServices.size(); i++) {
+            appendReferencerChain(i, migrationCreatedServices, visited, ordered);
+        }
+
+        return ordered;
+    }
+
+    private void appendReferencerChain(
+            final int index,
+            final List<ControllerServiceNode> migrationCreatedServices,
+            final BitSet visited,
+            final List<ControllerServiceNode> ordered
+    ) {
+        if (visited.get(index)) {
+            return;
+        }
+        visited.set(index);
+
+        final ControllerServiceNode localService = migrationCreatedServices.get(index);
+        final ComponentNode referencer = getSoleReferencer(localService);
+        if (referencer instanceof ControllerServiceNode referencingService && isMigrationCreated(referencingService)) {
+            final int referencerIndex = migrationCreatedServices.indexOf(referencingService);
+            if (referencerIndex >= 0) {
+                // Visit the creator first so we can assign the versioned id to the creator first.
+                appendReferencerChain(referencerIndex, migrationCreatedServices, visited, ordered);
+            }
+        }
+
+        ordered.add(localService);
+    }
+
+    private boolean isMigrationCreated(final ControllerServiceNode service) {
+        return StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT.equals(service.getComments());
+    }
+
+    private Map<String, VersionedConfigurableExtension> indexByVersionedId(
+            final Collection<? extends VersionedConfigurableExtension> controllerServices,
+            final Collection<? extends VersionedConfigurableExtension> processors
+    ) {
+        final Map<String, VersionedConfigurableExtension> byVersionedId = HashMap.newHashMap(controllerServices.size() + processors.size());
+        addByVersionedId(byVersionedId, controllerServices);
+        addByVersionedId(byVersionedId, processors);
+        return byVersionedId;
+    }
+
+    private void addByVersionedId(
+            final Map<String, VersionedConfigurableExtension> byVersionedId,
+            final Collection<? extends VersionedConfigurableExtension> components
+    ) {
+        for (final VersionedConfigurableExtension component : components) {
+            byVersionedId.put(component.getIdentifier(), component);
+        }
+    }
+
+    private ComponentNode getSoleReferencer(final ControllerServiceNode localService) {
+        final Set<ComponentNode> referencers = localService.getReferences().getReferencingComponents();
+        if (referencers.size() != 1) {
+            return null;
+        }
+
+        return referencers.iterator().next();
+    }
+
+    private VersionedConfigurableExtension getProposedReferencer(
+            final ComponentNode referencer,
+            final Map<String, VersionedConfigurableExtension> proposedComponentsByVersionedId
+    ) {
+        if (!(referencer instanceof org.apache.nifi.components.VersionedComponent versionedReferencer)) {
+            return null;
+        }
+
+        return versionedReferencer.getVersionedComponentId()
+            .map(proposedComponentsByVersionedId::get)
+            .orElse(null);
+    }
+
+    private ProposedControllerServiceMatch findMatchingProposedControllerService(
+            final ControllerServiceNode localService,
+            final ComponentNode referencer,
+            final VersionedConfigurableExtension proposedReferencer,
+            final Map<String, VersionedConfigurableExtension> proposedComponentsByVersionedId,
+            final ProcessGroup group
+    ) {
+        for (final Map.Entry<PropertyDescriptor, String> propertyEntry : referencer.getRawPropertyValues().entrySet()) {
+            final PropertyDescriptor descriptor = propertyEntry.getKey();
+            final String propertyName = descriptor.getName();
+            if (descriptor.getControllerServiceDefinition() == null) {
+                continue;
+            }
+
+            if (!localService.getIdentifier().equals(propertyEntry.getValue())) {
+                continue;
+            }
+
+            final Map<String, String> proposedProperties = proposedReferencer.getProperties();
+            final String proposedServiceId = proposedProperties == null ? null : proposedProperties.get(propertyName);
+            if (proposedServiceId == null) {
+                LOG.debug("Leaving {} in {} unversioned because the proposed {} does not set the {} property",
+                    localService, group, proposedReferencer, propertyName);
+                continue;
+            }
+
+            // In versioned flow, the service identifier is the versioned component id of the service.
+            final VersionedConfigurableExtension proposedService = proposedComponentsByVersionedId.get(proposedServiceId);
+            if (proposedService == null || !proposedService.getType().equals(localService.getCanonicalClassName())) {
+                LOG.debug("Leaving {} in {} unversioned because proposed Controller Service {} is missing or has a different type than {}",
+                    localService, group, proposedServiceId, localService);
+                continue;
+            }
+
+            return new ProposedControllerServiceMatch(proposedServiceId, propertyName);
+        }
+
+        return null;
+    }
+
+    private record ProposedControllerServiceMatch(String versionedId, String propertyName) {
+    }
+
     private void removeMissingControllerServices(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, ControllerServiceNode> servicesByVersionedId) {
-        final BiConsumer<ProcessGroup, ControllerServiceNode> componentRemoval = (grp, service) -> context.getControllerServiceProvider().removeControllerService(service);
-        removeMissingComponents(group, proposed, servicesByVersionedId, VersionedProcessGroup::getControllerServices, componentRemoval);
+        // Do not remove Controller Services created by migrateProperties.
+        final Map<String, ControllerServiceNode> servicesEligibleForRemoval = HashMap.newHashMap(servicesByVersionedId.size());
+        for (final Map.Entry<String, ControllerServiceNode> entry : servicesByVersionedId.entrySet()) {
+            final ControllerServiceNode service = entry.getValue();
+            if (isMigrationCreated(service)) {
+                if (service.getVersionedComponentId().isEmpty()) {
+                    LOG.info("Keeping {} in {} because it was created by property migration and is not present in the proposed flow",
+                            service, group);
+                }
+            } else {
+                servicesEligibleForRemoval.put(entry.getKey(), service);
+            }
+        }
+
+        final BiConsumer<ProcessGroup, ControllerServiceNode> componentRemoval = (procGroup, service) -> context.getControllerServiceProvider().removeControllerService(service);
+        removeMissingComponents(group, proposed, servicesEligibleForRemoval, VersionedProcessGroup::getControllerServices, componentRemoval);
     }
 
     private void removeMissingChildGroups(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, ProcessGroup> groupsByVersionedId) {

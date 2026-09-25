@@ -15,24 +15,18 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>nifi-system-test-extensions-bundle</artifactId>
+        <artifactId>nifi-system-test-flow-registry-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
         <version>2.13.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>nifi-system-test-extensions</artifactId>
+    <artifactId>nifi-system-test-flow-registry</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-system-test-dynamic-classpath</artifactId>
-            <version>2.13.0-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-stateless-api</artifactId>
+            <artifactId>nifi-framework-api</artifactId>
             <version>2.13.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -41,35 +35,8 @@
             <version>2.13.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-bin-manager</artifactId>
-            <version>2.13.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-connector-common</artifactId>
-            <version>2.13.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-system-test-extensions-services-api</artifactId>
-            <version>2.13.0-SNAPSHOT</version>
-            <scope>provided</scope>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes combine.children="append">
-                        <!-- Connector flow definition; JSON cannot carry an Apache license header -->
-                        <exclude>src/main/resources/flows/method-signature-verify-connector.json</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>
