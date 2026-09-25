@@ -54,6 +54,9 @@ public class TestStandardParameterContext {
     private static final String PARAM_VALUE_UPDATED = "new-value";
     private static final String DESCRIPTION_ORIGINAL = "original description";
     private static final String DESCRIPTION_UPDATED = "updated description";
+    private static final String TEST_PARAMETER = "test.parameter";
+    private static final String VALUE_A = "VALUE_A";
+    private static final String VALUE_B = "VALUE_B";
 
     @Test
     public void testUpdatesApply() {
@@ -846,6 +849,58 @@ public class TestStandardParameterContext {
 
         assertEquals("c.child", effectiveParameters.get(child).getValue());
         assertEquals("c", effectiveParameters.get(child).getParameterContextId());
+    }
+
+    @Test
+    public void testSubsequentInheritanceReorderUpdatesEffectiveParameterValue() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+        final ParameterContext contextA = createParameterContext("a", parameterContextLookup);
+        final ParameterDescriptor testParameter = addParameter(contextA, TEST_PARAMETER, VALUE_A);
+
+        final ParameterContext contextB = createParameterContext("b", parameterContextLookup);
+        addParameter(contextB, TEST_PARAMETER, VALUE_B);
+
+        final ParameterContext contextC = createParameterContext("c", parameterContextLookup);
+        contextC.setInheritedParameterContexts(List.of(contextA, contextB));
+        assertEquals(VALUE_A, contextC.getParameter(testParameter).orElseThrow().getValue());
+        assertEquals("a", contextC.getParameter(testParameter).orElseThrow().getParameterContextId());
+
+        final Map<String, Parameter> firstReorderUpdates = contextC.getEffectiveParameterUpdates(Map.of(), List.of(contextB, contextA));
+        assertEquals(VALUE_B, firstReorderUpdates.get(TEST_PARAMETER).getValue());
+        assertEquals("b", firstReorderUpdates.get(TEST_PARAMETER).getParameterContextId());
+
+        contextC.setInheritedParameterContexts(List.of(contextB, contextA));
+        assertEquals(VALUE_B, contextC.getParameter(testParameter).orElseThrow().getValue());
+        assertEquals("b", contextC.getParameter(testParameter).orElseThrow().getParameterContextId());
+
+        final Map<String, Parameter> secondReorderUpdates = contextC.getEffectiveParameterUpdates(Map.of(), List.of(contextA, contextB));
+        assertEquals(VALUE_A, secondReorderUpdates.get(TEST_PARAMETER).getValue());
+        assertEquals("a", secondReorderUpdates.get(TEST_PARAMETER).getParameterContextId());
+
+        contextC.setInheritedParameterContexts(List.of(contextA, contextB));
+        assertEquals(VALUE_A, contextC.getParameter(testParameter).orElseThrow().getValue());
+        assertTrue(contextC.getParameters().isEmpty());
+    }
+
+    @Test
+    public void testSubsequentInheritanceAddRemoveUpdatesEffectiveParameterValue() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+        final ParameterContext contextA = createParameterContext("a", parameterContextLookup);
+        final ParameterDescriptor testParameter = addParameter(contextA, TEST_PARAMETER, VALUE_A);
+
+        final ParameterContext contextB = createParameterContext("b", parameterContextLookup);
+        addParameter(contextB, TEST_PARAMETER, VALUE_B);
+
+        final ParameterContext contextC = createParameterContext("c", parameterContextLookup);
+        contextC.setInheritedParameterContexts(List.of(contextB));
+        assertEquals(VALUE_B, contextC.getParameter(testParameter).orElseThrow().getValue());
+
+        contextC.setInheritedParameterContexts(List.of(contextA, contextB));
+        assertEquals(VALUE_A, contextC.getParameter(testParameter).orElseThrow().getValue());
+
+        contextC.setInheritedParameterContexts(List.of(contextB));
+        assertEquals(VALUE_B, contextC.getParameter(testParameter).orElseThrow().getValue());
+        assertTrue(contextC.getParameters().isEmpty());
     }
 
     @Test
