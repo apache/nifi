@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.fileresource.service;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
@@ -25,7 +24,6 @@ import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,11 +63,6 @@ class StandardFileResourceServiceTest {
     @BeforeAll
     static void createTestDirectory() throws IOException {
         directoryPath = Files.createDirectory(tempDir.resolve(TEST_NAME));
-    }
-
-    @AfterAll
-    static void removeTestDirectory() throws IOException {
-        FileUtils.deleteDirectory(directoryPath.toFile());
     }
 
     @BeforeEach
