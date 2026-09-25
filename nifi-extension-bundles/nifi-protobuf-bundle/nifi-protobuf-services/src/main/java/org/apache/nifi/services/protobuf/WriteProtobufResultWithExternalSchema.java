@@ -32,14 +32,12 @@ import java.io.OutputStream;
 import java.util.Map;
 
 /**
- * Writes Records as Protocol Buffers binary content. When a {@link SchemaReferenceWriter} is
- * configured, a Confluent wire-format header (magic byte and schema identifier) is written first;
- * when a {@link MessageIndexWriter} is configured, the Confluent message index array follows the
- * header. The serialized Protobuf payload is written last.
+ * Writes a single Record as Protocol Buffers binary content. When configured, the
+ * Schema Reference Writer and Message Index Writer write format-specific information
+ * before the Protobuf payload, in that order.
  * <p>
- * The Confluent framing (header and message index) is written once at the beginning of the record
- * set, mirroring {@code WriteAvroResultWithExternalSchema}; the typical Confluent use case writes a
- * single message per FlowFile.
+ * Only one Record can be written because raw Protocol Buffers messages do not contain
+ * boundaries that allow concatenated messages to be decoded independently.
  */
 public class WriteProtobufResultWithExternalSchema extends AbstractRecordSetWriter {
 
@@ -51,7 +49,6 @@ public class WriteProtobufResultWithExternalSchema extends AbstractRecordSetWrit
     private final Map<String, String> variables;
     private final ProtobufDataSerializer serializer;
     private final OutputStream buffered;
-    private boolean closed = false;
 
     public WriteProtobufResultWithExternalSchema(final Schema schema,
                                                  final MessageName messageName,
@@ -73,11 +70,6 @@ public class WriteProtobufResultWithExternalSchema extends AbstractRecordSetWrit
     }
 
     @Override
-    protected void onBeginRecordSet() throws IOException {
-        writeConfluentFraming(buffered);
-    }
-
-    @Override
     protected Map<String, String> onFinishRecordSet() throws IOException {
         flush();
         return getSchemaReferenceAttributes();
@@ -86,19 +78,14 @@ public class WriteProtobufResultWithExternalSchema extends AbstractRecordSetWrit
     @Override
     public Map<String, String> writeRecord(final Record record) throws IOException {
         // Concatenated top-level Protobuf messages cannot be delimited: a standard decoder would merge them into a
-        // single message (repeated fields accumulate, singular fields take last-wins). Only a single record per
-        // FlowFile can be represented, which also matches the Confluent one-message-per-record convention.
+        // single message (repeated fields accumulate, singular fields take last-wins), so only a single record per
+        // FlowFile can be represented.
         if (getRecordCount() > 0) {
             throw new IOException("Protobuf output supports only a single record because concatenated Protobuf messages cannot be delimited");
         }
 
-        // If we are not writing an active record set, then we need to ensure that the Confluent framing is written.
-        if (!isActiveRecordSet()) {
-            flush();
-            writeConfluentFraming(buffered);
-        }
-
         final byte[] payload = serializer.serialize(record);
+        writeFraming(buffered);
         buffered.write(payload);
         return getSchemaReferenceAttributes();
     }
@@ -107,7 +94,7 @@ public class WriteProtobufResultWithExternalSchema extends AbstractRecordSetWrit
         return schemaReferenceWriter == null ? Map.of() : schemaReferenceWriter.getAttributes(recordSchema);
     }
 
-    private void writeConfluentFraming(final OutputStream out) throws IOException {
+    private void writeFraming(final OutputStream out) throws IOException {
         if (schemaReferenceWriter != null) {
             schemaReferenceWriter.writeHeader(recordSchema, out);
         }
@@ -128,14 +115,7 @@ public class WriteProtobufResultWithExternalSchema extends AbstractRecordSetWrit
 
     @Override
     public void close() throws IOException {
-        if (closed) {
-            return;
-        }
-        closed = true;
-
-        // Ensure buffered content is flushed to the underlying stream before it is closed, including the
-        // write-without-active-record-set path where onFinishRecordSet is never invoked.
-        flush();
-        super.close();
+        // Flushes buffered content and closes the underlying stream even if flushing fails; repeated calls have no effect
+        buffered.close();
     }
 }

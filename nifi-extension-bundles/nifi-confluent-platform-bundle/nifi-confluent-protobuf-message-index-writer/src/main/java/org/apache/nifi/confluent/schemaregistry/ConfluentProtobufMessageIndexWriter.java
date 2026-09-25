@@ -75,7 +75,7 @@ public class ConfluentProtobufMessageIndexWriter extends AbstractControllerServi
             final List<ProtobufMessageSchema> rootMessages = parser.parse(schemaText);
             return ProtobufMessageIndexEncoder.encode(rootMessages, encodeMessageIndexArguments.messageName());
         } catch (final Exception e) {
-            throw new IllegalStateException("Failed to parse protobuf schema", e);
+            throw new IllegalStateException("Failed to generate Protobuf message index", e);
         }
     }
 

@@ -96,6 +96,21 @@ class ProtobufMessageIndexEncoderTest {
           string city = 2;
         }""";
 
+    private static final String NON_ZERO_NESTED_INDEX_SCHEMA = """
+        syntax = "proto3";
+        package com.example.nested;
+        message Unused {}
+        message Root {
+          message ChildZero {}
+          message ChildOne {}
+          message ChildTwo {
+            message GrandchildZero {}
+            message GrandchildOne {}
+            message GrandchildTwo {}
+            message GrandchildThree {}
+          }
+        }""";
+
     private static Stream<Arguments> provideMessageIndexTestCases() {
         return Stream.of(
             // the format is [input schema], [target message name], [expected message indexes]
@@ -109,7 +124,9 @@ class ProtobufMessageIndexEncoderTest {
             Arguments.of(EXPLICIT_PACKAGE_SCHEMA, new StandardMessageName(Optional.of("com.example.proto"), "Company"), new int[] {1}),
             Arguments.of(EXPLICIT_PACKAGE_SCHEMA, new StandardMessageName(Optional.of("com.example.proto"), "Address"), new int[] {2}),
             Arguments.of(EXPLICIT_PACKAGE_SCHEMA, new StandardMessageName(Optional.of("com.example.proto"), "User.Profile"), new int[] {0, 0}),
-            Arguments.of(EXPLICIT_PACKAGE_SCHEMA, new StandardMessageName(Optional.of("com.example.proto"), "User.Profile.Settings"), new int[] {0, 0, 0})
+            Arguments.of(EXPLICIT_PACKAGE_SCHEMA, new StandardMessageName(Optional.of("com.example.proto"), "User.Profile.Settings"), new int[] {0, 0, 0}),
+
+            Arguments.of(NON_ZERO_NESTED_INDEX_SCHEMA, new StandardMessageName(Optional.of("com.example.nested"), "Root.ChildTwo.GrandchildThree"), new int[] {1, 2, 3})
         );
     }
 
