@@ -93,7 +93,7 @@
                 <ng-container matColumnDef="penalized">
                     <th mat-header-cell *matHeaderCellDef>Penalized</th>
                     <td mat-cell *matCellDef="let item">
-                        {{ item.penalized ? 'Yes' : 'No' }}
+                        {{ item.penalized ? formatDuration(item.penaltyExpiresIn) : 'No' }}
                     </td>
                 </ng-container>
 
