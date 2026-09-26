@@ -22,6 +22,7 @@ import com.azure.core.credential.TokenRequestContext;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.dbcp.api.DatabaseCredentialPlacement;
 import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
 import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -95,12 +96,27 @@ class AzureEntraDatabasePasswordProviderTest {
         final AzureEntraDatabasePasswordProvider provider = new AzureEntraDatabasePasswordProvider();
         final List<PropertyDescriptor> descriptors = provider.getSupportedPropertyDescriptors();
 
-        assertEquals(1, descriptors.size());
+        assertEquals(2, descriptors.size());
         assertEquals(AzureEntraDatabasePasswordProvider.AZURE_CREDENTIALS_SERVICE, descriptors.get(0));
+        assertEquals(AzureEntraDatabasePasswordProvider.DATABASE_TARGET, descriptors.get(1));
         assertTrue(descriptors.get(0).isRequired());
+        assertTrue(descriptors.get(1).isRequired());
+        assertEquals(AzureEntraDatabasePasswordProvider.DatabaseTarget.AZURE_OSS_RDBMS.name(), descriptors.get(1).getDefaultValue());
+        assertEquals(2, descriptors.get(1).getAllowableValues().size());
+        assertEquals("Azure OSS Database", AzureEntraDatabasePasswordProvider.DatabaseTarget.AZURE_OSS_RDBMS.getDisplayName());
+        assertTrue(AzureEntraDatabasePasswordProvider.DatabaseTarget.AZURE_OSS_RDBMS.getDescription().contains("PostgreSQL"));
+        assertTrue(AzureEntraDatabasePasswordProvider.DatabaseTarget.AZURE_OSS_RDBMS.getDescription().contains("MySQL"));
+        assertEquals("Microsoft SQL Server", AzureEntraDatabasePasswordProvider.DatabaseTarget.SQL_SERVER.getDisplayName());
         final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         runner.addControllerService(PASSWORD_PROVIDER_ID, provider);
+        runner.assertNotValid(provider);
+
+        final TestAzureCredentialsService credentialsService = new TestAzureCredentialsService(new StaticTokenCredential(validToken(TOKEN_VALUE)));
+        runner.addControllerService(CREDENTIALS_SERVICE_ID, credentialsService);
+        runner.enableControllerService(credentialsService);
+        runner.setProperty(provider, AzureEntraDatabasePasswordProvider.AZURE_CREDENTIALS_SERVICE, CREDENTIALS_SERVICE_ID);
+        runner.setProperty(provider, AzureEntraDatabasePasswordProvider.DATABASE_TARGET, "NOT_A_TARGET");
         runner.assertNotValid(provider);
     }
 
@@ -125,12 +141,26 @@ class AzureEntraDatabasePasswordProviderTest {
 
     @Test
     void testGetPasswordRequestsExactOssRdbmsScope() throws Exception {
-        final RecordingTokenCredential credential = new RecordingTokenCredential(Mono.just(validToken(TOKEN_VALUE)));
-        final DatabasePasswordProvider provider = getProvider(configureRunner(new TestAzureCredentialsService(credential)));
+        final RecordingTokenCredential ossCredential = new RecordingTokenCredential(Mono.just(validToken(TOKEN_VALUE)));
+        final DatabasePasswordProvider ossProvider = getProvider(configureRunner(new TestAzureCredentialsService(ossCredential)));
 
-        provider.getPassword(requestContext());
+        ossProvider.getPassword(requestContext());
 
-        assertEquals(List.of(AzureEntraDatabasePasswordProvider.OSS_RDBMS_SCOPE), credential.getLastRequestedScopes());
+        assertEquals(DatabaseCredentialPlacement.PASSWORD, ossProvider.getDatabaseCredentialPlacement());
+        assertEquals(List.of(AzureEntraDatabasePasswordProvider.OSS_RDBMS_SCOPE), ossCredential.getLastRequestedScopes());
+
+        final AzureEntraDatabasePasswordProvider sqlServerProviderImplementation = new AzureEntraDatabasePasswordProvider();
+        final RecordingTokenCredential sqlServerCredential = new RecordingTokenCredential(Mono.just(validToken(REFRESHED_TOKEN_VALUE)));
+        final TestRunner sqlServerRunner = configureRunner(sqlServerProviderImplementation, new TestAzureCredentialsService(sqlServerCredential), false);
+        sqlServerRunner.setProperty(sqlServerProviderImplementation, AzureEntraDatabasePasswordProvider.DATABASE_TARGET,
+                AzureEntraDatabasePasswordProvider.DatabaseTarget.SQL_SERVER.name());
+        sqlServerRunner.enableControllerService(sqlServerProviderImplementation);
+        final DatabasePasswordProvider sqlServerProvider = getProvider(sqlServerRunner);
+
+        sqlServerProvider.getPassword(requestContext());
+
+        assertEquals(DatabaseCredentialPlacement.ACCESS_TOKEN, sqlServerProvider.getDatabaseCredentialPlacement());
+        assertEquals(List.of(AzureEntraDatabasePasswordProvider.SQL_SERVER_SCOPE), sqlServerCredential.getLastRequestedScopes());
     }
 
     @Test
@@ -254,12 +284,22 @@ class AzureEntraDatabasePasswordProviderTest {
 
     @Test
     void testVerifyUsesExactOssRdbmsScope() throws Exception {
-        final RecordingTokenCredential credential = new RecordingTokenCredential(Mono.just(validToken(TOKEN_VALUE)));
-        final TestRunner runner = configureRunner(new TestAzureCredentialsService(credential), false);
+        final RecordingTokenCredential ossCredential = new RecordingTokenCredential(Mono.just(validToken(TOKEN_VALUE)));
+        final TestRunner ossRunner = configureRunner(new TestAzureCredentialsService(ossCredential), false);
 
-        runner.verify(getProviderImplementation(runner), Map.of());
+        ossRunner.verify(getProviderImplementation(ossRunner), Map.of());
 
-        assertEquals(List.of(AzureEntraDatabasePasswordProvider.OSS_RDBMS_SCOPE), credential.getLastRequestedScopes());
+        assertEquals(List.of(AzureEntraDatabasePasswordProvider.OSS_RDBMS_SCOPE), ossCredential.getLastRequestedScopes());
+
+        final AzureEntraDatabasePasswordProvider sqlServerProvider = new AzureEntraDatabasePasswordProvider();
+        final RecordingTokenCredential sqlServerCredential = new RecordingTokenCredential(Mono.just(validToken(REFRESHED_TOKEN_VALUE)));
+        final TestRunner sqlServerRunner = configureRunner(sqlServerProvider, new TestAzureCredentialsService(sqlServerCredential), false);
+        sqlServerRunner.setProperty(sqlServerProvider, AzureEntraDatabasePasswordProvider.DATABASE_TARGET,
+                AzureEntraDatabasePasswordProvider.DatabaseTarget.SQL_SERVER.name());
+
+        sqlServerRunner.verify(sqlServerProvider, Map.of());
+
+        assertEquals(List.of(AzureEntraDatabasePasswordProvider.SQL_SERVER_SCOPE), sqlServerCredential.getLastRequestedScopes());
     }
 
     @Test

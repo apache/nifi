@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.rds;
 
+import org.apache.nifi.dbcp.api.DatabaseCredentialPlacement;
 import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
 import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -32,6 +33,7 @@ import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCre
 import static org.apache.nifi.processors.aws.rds.AwsRdsIamDatabasePasswordProvider.AWS_CREDENTIALS_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.aws.rds.AwsRdsIamDatabasePasswordProvider.TOKEN_REQUEST_ENDPOINT;
 import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -76,6 +78,7 @@ class AwsRdsIamDatabasePasswordProviderTest {
                 .build();
 
         final String token = new String(service.getPassword(context));
+        assertEquals(DatabaseCredentialPlacement.PASSWORD, service.getDatabaseCredentialPlacement());
         assertTrue(token.startsWith("%s:%d/".formatted(HOSTNAME, PORT)));
         assertTrue(token.contains("DBUser=" + DB_USER));
     }

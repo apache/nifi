@@ -16,27 +16,34 @@
  */
 package org.apache.nifi.dbcp.api;
 
-import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.components.DescribedValue;
 
 /**
- * Supplies database credentials on-demand for Controller Services that establish JDBC connections.
+ * Describes how a database credential is supplied when establishing a JDBC connection.
  */
-public interface DatabasePasswordProvider extends ControllerService {
+public enum DatabaseCredentialPlacement implements DescribedValue {
 
-    /**
-     * Returns how the supplied credential should be applied when establishing a database connection.
-     *
-     * @return credential placement used for connection attempts
-     */
-    default DatabaseCredentialPlacement getDatabaseCredentialPlacement() {
-        return DatabaseCredentialPlacement.PASSWORD;
+    PASSWORD("Supply the credential using the JDBC password property."),
+    ACCESS_TOKEN("Supply the credential using a JDBC access token property.");
+
+    private final String description;
+
+    DatabaseCredentialPlacement(final String description) {
+        this.description = description;
     }
 
-    /**
-     * Returns credential characters to be used when establishing a database connection.
-     *
-     * @param requestContext context for the database credential request
-     * @return credential characters
-     */
-    char[] getPassword(DatabasePasswordRequestContext requestContext);
+    @Override
+    public String getValue() {
+        return name();
+    }
+
+    @Override
+    public String getDisplayName() {
+        return name();
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
 }

@@ -20,17 +20,24 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.dbcp2.ConnectionFactory;
 import org.apache.commons.dbcp2.Constants;
 import org.apache.commons.dbcp2.DriverConnectionFactory;
+import org.apache.nifi.dbcp.api.DatabaseCredentialPlacement;
 import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
 import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Locale;
+import java.util.Properties;
 
 /**
  * Extension of {@link BasicDataSource} that supports obtaining database passwords from a {@link DatabasePasswordProvider}.
  */
 public class ProviderAwareBasicDataSource extends BasicDataSource {
+    private static final String USER_PROPERTY = "user";
+    private static final String USER_NAME_PROPERTY = "username";
+    private static final String ACCESS_TOKEN_PROPERTY = "accessToken";
+
     private volatile DatabasePasswordProvider databasePasswordProvider;
     private volatile DatabasePasswordRequestContext passwordRequestContext;
 
@@ -73,6 +80,7 @@ public class ProviderAwareBasicDataSource extends BasicDataSource {
 
         @Override
         public Connection createConnection() throws SQLException {
+            final DatabaseCredentialPlacement credentialPlacement = passwordProvider.getDatabaseCredentialPlacement();
             final char[] passwordCharacters;
             try {
                 passwordCharacters = passwordProvider.getPassword(passwordRequestContext);
@@ -84,12 +92,54 @@ public class ProviderAwareBasicDataSource extends BasicDataSource {
                 throw new SQLException("Database Password Provider returned an empty password");
             }
 
-            final String password = new String(passwordCharacters);
-            Arrays.fill(passwordCharacters, '\0');
+            final String credentialValue;
+            try {
+                credentialValue = new String(passwordCharacters);
+            } finally {
+                Arrays.fill(passwordCharacters, '\0');
+            }
 
-            // DBCP expects the password value to be in the connection properties when creating a new connection
-            getProperties().put(Constants.KEY_PASSWORD, password);
-            return super.createConnection();
+            final Properties connectionProperties = copyConnectionProperties();
+            final String credentialPropertyName = configureCredentialPlacement(connectionProperties, credentialPlacement, credentialValue);
+            try {
+                return getDriver().connect(getConnectionString(), connectionProperties);
+            } finally {
+                connectionProperties.remove(credentialPropertyName);
+            }
+        }
+
+        private Properties copyConnectionProperties() {
+            final Properties connectionProperties = new Properties();
+            connectionProperties.putAll(getProperties());
+            return connectionProperties;
+        }
+
+        private String configureCredentialPlacement(final Properties connectionProperties,
+                                                   final DatabaseCredentialPlacement credentialPlacement,
+                                                   final String credentialValue) {
+            if (credentialPlacement == DatabaseCredentialPlacement.ACCESS_TOKEN) {
+                removeAccessTokenConflicts(connectionProperties);
+                connectionProperties.put(USER_PROPERTY, "");
+                connectionProperties.put(Constants.KEY_PASSWORD, "");
+                connectionProperties.put(ACCESS_TOKEN_PROPERTY, credentialValue);
+                return ACCESS_TOKEN_PROPERTY;
+            }
+
+            connectionProperties.put(Constants.KEY_PASSWORD, credentialValue);
+            return Constants.KEY_PASSWORD;
+        }
+
+        private void removeAccessTokenConflicts(final Properties connectionProperties) {
+            connectionProperties.keySet().removeIf(key -> {
+                if (!(key instanceof final String propertyName)) {
+                    return false;
+                }
+
+                final String normalizedPropertyName = propertyName.toLowerCase(Locale.ROOT);
+                return USER_PROPERTY.equals(normalizedPropertyName)
+                        || USER_NAME_PROPERTY.equals(normalizedPropertyName)
+                        || Constants.KEY_PASSWORD.equals(normalizedPropertyName);
+            });
         }
     }
 }
