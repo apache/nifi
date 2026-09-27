@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -61,6 +63,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ProcessBuilder.Redirect;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -157,6 +161,9 @@ import java.util.regex.Pattern;
         @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments. Sensitive properties will be masked"),
         @WritesAttribute(attribute = "execution.status", description = "The exit status code returned from executing the command"),
         @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command"),
+        @WritesAttribute(attribute = "execution.attribute.update.error", description = "The reason the attribute updates written by the command could not be applied, "
+                + "if 'Enable Attribute Updates' is true and the update file could not be parsed. The FlowFile is routed to 'nonzero status', "
+                + "or to 'original' if 'Output Destination Attribute' is set"),
         @WritesAttribute(attribute = "mime.type", description = "Sets the MIME type of the output if the 'Output MIME Type' property is set and 'Output Destination Attribute' is not set")})
 
 public class ExecuteStreamCommand extends AbstractProcessor {
@@ -275,6 +282,25 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+    static final PropertyDescriptor ENABLE_ATTRIBUTE_UPDATES = new PropertyDescriptor.Builder()
+            .name("Enable Attribute Updates")
+            .description("""
+                    When enabled, an empty temporary file is created in the system temporary directory for each FlowFile,
+                    and its path is passed to the command in the NIFI_ESC_ATTRIBUTE_STORAGE environment variable.
+                    The command may write a JSON object to that file to add or update attributes on the FlowFile sent to
+                    'output stream', or on the FlowFile sent to 'original' if 'Output Destination Attribute' is set.
+                    Updates are applied only when the command exits with status 0. The JSON object must contain only
+                    top-level fields whose values are strings, numbers or booleans; fields with null values are ignored.
+                    The uuid attribute cannot be changed, and the execution.* and mime.type attributes written by this
+                    processor take precedence over values from the command. A blank file means no updates. If the file
+                    cannot be parsed, is not a JSON object or contains nested values, the reason is written to the
+                    execution.attribute.update.error attribute and the FlowFile is routed to 'nonzero status', or to
+                    'original' if 'Output Destination Attribute' is set.
+                    The file is deleted after each execution.
+                    """)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             WORKING_DIR,
@@ -285,10 +311,16 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             IGNORE_STDIN,
             PUT_OUTPUT_IN_ATTRIBUTE,
             PUT_ATTRIBUTE_MAX_LENGTH,
-            MIME_TYPE
+            MIME_TYPE,
+            ENABLE_ATTRIBUTE_UPDATES
     );
 
     private static final String MASKED_ARGUMENT = "********";
+
+    private static final String ATTRIBUTE_UPDATE_ERROR_ATTRIBUTE = "execution.attribute.update.error";
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final TypeReference<Map<String, Object>> ATTRIBUTES_TYPE = new TypeReference<>() { };
 
     private ComponentLog logger;
 
@@ -356,6 +388,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         final boolean useDynamicPropertyArguments = argumentsStrategyPropertyValue.isSet() && argumentsStrategyPropertyValue.getValue().equals(DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
         final Integer attributeSize = context.getProperty(PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
         final String attributeName = context.getProperty(PUT_OUTPUT_IN_ATTRIBUTE).getValue();
+        final boolean enableAttributeUpdates = context.getProperty(ENABLE_ATTRIBUTE_UPDATES).asBoolean();
 
         final String executeCommand = context.getProperty(EXECUTION_COMMAND).evaluateAttributeExpressions(inputFlowFile).getValue();
         args.add(executeCommand);
@@ -435,7 +468,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 environment.put(entry.getKey().getName(), entry.getValue());
             }
         }
-        builder.environment().putAll(environment);
+
         builder.command(args);
         builder.directory(dir);
         builder.redirectInput(Redirect.PIPE);
@@ -449,6 +482,22 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             throw new ProcessException(e);
         }
 
+        final Path attributeStorage;
+        if (enableAttributeUpdates) {
+            try {
+                attributeStorage = Files.createTempFile("nifi-esc-attrs-", ".tmp");
+            } catch (IOException e) {
+                FileUtils.deleteQuietly(errorOut);
+                logger.error("Could not create temporary file for attribute updates", e);
+                throw new ProcessException(e);
+            }
+            environment.put("NIFI_ESC_ATTRIBUTE_STORAGE", attributeStorage.toString());
+        } else {
+            attributeStorage = null;
+        }
+
+        builder.environment().putAll(environment);
+
         final Process process;
         try {
             process = builder.start();
@@ -459,6 +508,9 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 }
             } catch (SecurityException se) {
                 logger.warn("Unable to delete file: '{}'", errorOut.getAbsolutePath(), se);
+            }
+            if (attributeStorage != null) {
+                FileUtils.deleteQuietly(attributeStorage.toFile());
             }
             logger.error("Could not create external process to run command", e);
             throw new ProcessException(e);
@@ -491,12 +543,30 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             }
             attributes.put("execution.error", stdErr);
 
-            final Relationship outputFlowFileRelationship = putToAttribute ? ORIGINAL_RELATIONSHIP : (exitCode != 0) ? NONZERO_STATUS_RELATIONSHIP : OUTPUT_STREAM_RELATIONSHIP;
-            if (exitCode == 0) {
-                logger.info("Transferring {} to {}", outputFlowFile, outputFlowFileRelationship.getName());
-            } else {
+            Relationship relationship = putToAttribute ? ORIGINAL_RELATIONSHIP : (exitCode != 0) ? NONZERO_STATUS_RELATIONSHIP : OUTPUT_STREAM_RELATIONSHIP;
+
+            AttributeUpdateException attributeUpdateError = null;
+            if (exitCode == 0 && enableAttributeUpdates) {
+                try {
+                    outputFlowFile = applyUpdatedAttributes(outputFlowFile, session, attributeStorage);
+                } catch (AttributeUpdateException aue) {
+                    attributeUpdateError = aue;
+                    attributes.put(ATTRIBUTE_UPDATE_ERROR_ATTRIBUTE, aue.getMessage());
+                    // Attribute output mode only supports the original relationship, as with nonzero exit codes
+                    relationship = putToAttribute ? ORIGINAL_RELATIONSHIP : NONZERO_STATUS_RELATIONSHIP;
+                }
+            }
+
+            final Relationship outputFlowFileRelationship = relationship;
+
+            if (exitCode != 0) {
                 logger.error("Transferring {} to {}. Executable command {} returned exitCode {} and error message: {}",
                         outputFlowFile, outputFlowFileRelationship.getName(), executeCommand, exitCode, stdErr);
+            } else if (attributeUpdateError != null) {
+                logger.error("Transferring {} to {}. Executable command {} succeeded but its attribute updates could not be applied",
+                        outputFlowFile, outputFlowFileRelationship.getName(), executeCommand, attributeUpdateError);
+            } else {
+                logger.info("Transferring {} to {}", outputFlowFile, outputFlowFileRelationship.getName());
             }
 
             attributes.put("execution.status", Integer.toString(exitCode));
@@ -526,12 +596,56 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         } finally {
             FileUtils.deleteQuietly(errorOut);
             process.destroy(); // last ditch effort to clean up that process.
+
+            if (attributeStorage != null) {
+                FileUtils.deleteQuietly(attributeStorage.toFile());
+            }
         }
+    }
+
+    private FlowFile applyUpdatedAttributes(final FlowFile outputFlowFile, final ProcessSession session,
+                                            final Path attributeStorage) throws AttributeUpdateException {
+        final Map<String, String> attributesToApply = new HashMap<>();
+        try {
+            final String json = Files.readString(attributeStorage);
+            if (json.isBlank()) {
+                return outputFlowFile;
+            }
+
+            final Map<String, Object> attributes = OBJECT_MAPPER.readValue(json, ATTRIBUTES_TYPE);
+            if (attributes == null) {
+                throw new AttributeUpdateException("Attributes in " + attributeStorage + " must be a JSON object");
+            }
+            for (final Map.Entry<String, Object> entry : attributes.entrySet()) {
+                final Object value = entry.getValue();
+                if (value == null || entry.getKey().equalsIgnoreCase(CoreAttributes.UUID.key())) {
+                    continue;
+                }
+                if (!(value instanceof String || value instanceof Number || value instanceof Boolean)) {
+                    throw new AttributeUpdateException("Attribute [" + entry.getKey() + "] in " + attributeStorage + " must be a string, number or boolean");
+                }
+                attributesToApply.put(entry.getKey(), value.toString());
+            }
+        } catch (IOException e) {
+            throw new AttributeUpdateException("Unable to read attributes from " + attributeStorage + ": " + e.getMessage(), e);
+        }
+
+        return session.putAllAttributes(outputFlowFile, attributesToApply);
     }
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         config.renameProperty("argumentsStrategy", ARGUMENTS_STRATEGY.getName());
+    }
+
+    private static class AttributeUpdateException extends Exception {
+        AttributeUpdateException(final String message) {
+            super(message);
+        }
+
+        AttributeUpdateException(final String message, final Throwable cause) {
+            super(message, cause);
+        }
     }
 
     static class ProcessStreamWriterCallback implements InputStreamCallback {

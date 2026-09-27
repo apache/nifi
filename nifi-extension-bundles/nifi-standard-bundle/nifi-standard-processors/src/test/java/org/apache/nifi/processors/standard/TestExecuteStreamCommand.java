@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
@@ -27,8 +28,11 @@ import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -45,16 +49,20 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestExecuteStreamCommand {
     private static final Path JAVA_FILES_DIR = Paths.get("src/test/java");
     private static final Path NO_SUCH_FILE = Paths.get("NoSuchFile.java");
     private static final Path TEST_DYNAMIC_ENVIRONMENT = Paths.get("TestDynamicEnvironment.java");
+    private static final Path ESC_ATTRIBUTE_UPDATER = Paths.get("ESCAttributeUpdater.java");
+    private static final Path ESC_INVALID_ATTRIBUTE_WRITER = Paths.get("ESCInvalidAttributeWriter.java");
     private static final Path TEST_INGEST_AND_UPDATE = Paths.get("TestIngestAndUpdate.java");
     private static final Path TEST_LOG_STDERR = Paths.get("TestLogStdErr.java");
     private static final Path TEST_SUCCESS = Paths.get("TestSuccess.java");
     private static final String JAVA_COMMAND = "java";
+    private static final String OUTPUT_ATTRIBUTE = "executeStreamCommand.output";
 
     @TempDir
     private File tempDir;
@@ -396,6 +404,65 @@ public class TestExecuteStreamCommand {
         Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
         Set<String> expectedEnvironmentVariables = Set.of("NIFI_TEST_1=testvalue1", "NIFI_TEST_2=testvalue2");
         assertTrue(dynamicEnvironmentVariables.containsAll(expectedEnvironmentVariables));
+    }
+
+    @ParameterizedTest(name = "Output Destination Attribute set: {0}")
+    @ValueSource(booleans = {false, true})
+    @DisplayName("Attributes written by the command to the attribute storage file are applied to the FlowFile carrying the command output")
+    public void testAttributeUpdates(final boolean putOutputInAttribute) {
+        configureAttributeUpdates(ESC_ATTRIBUTE_UPDATER + ";NiFi", putOutputInAttribute);
+        runner.run(1);
+        runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
+        runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, putOutputInAttribute ? 0 : 1);
+        runner.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 0);
+
+        final Relationship outputRelationship = putOutputInAttribute
+                ? ExecuteStreamCommand.ORIGINAL_RELATIONSHIP : ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP;
+        final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(outputRelationship).getFirst();
+        assertTrue(Pattern.compile("Hello, NiFi\r?\n").matcher(commandOutput(outputFlowFile, putOutputInAttribute)).find());
+        assertEquals("0", outputFlowFile.getAttribute("execution.status"));
+        outputFlowFile.assertAttributeEquals("attr.test", "wrote");
+        outputFlowFile.assertAttributeNotExists("execution.attribute.update.error");
+    }
+
+    @ParameterizedTest(name = "Output Destination Attribute set: {0}")
+    @ValueSource(booleans = {false, true})
+    @DisplayName("Invalid JSON in the attribute storage file records the failure, leaves the attributes unapplied and deletes the file")
+    public void testInvalidAttributeUpdates(final boolean putOutputInAttribute) {
+        configureAttributeUpdates(ESC_INVALID_ATTRIBUTE_WRITER.toString(), putOutputInAttribute);
+        runner.run(1);
+        runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
+        runner.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, putOutputInAttribute ? 0 : 1);
+        runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
+
+        // Attribute output mode only supports the original relationship, as with nonzero exit codes
+        final Relationship outputRelationship = putOutputInAttribute
+                ? ExecuteStreamCommand.ORIGINAL_RELATIONSHIP : ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP;
+        final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(outputRelationship).getFirst();
+        assertEquals(!putOutputInAttribute, outputFlowFile.isPenalized());
+        assertEquals("0", outputFlowFile.getAttribute("execution.status"));
+        outputFlowFile.assertAttributeExists("execution.attribute.update.error");
+        outputFlowFile.assertAttributeNotExists("attr.test");
+
+        // The command prints the storage file path so that its removal can be verified here
+        final Path attributeStorage = Paths.get(commandOutput(outputFlowFile, putOutputInAttribute));
+        assertTrue(attributeStorage.getFileName().toString().startsWith("nifi-esc-attrs-"));
+        assertFalse(Files.exists(attributeStorage), "Attribute storage file not deleted");
+    }
+
+    private void configureAttributeUpdates(final String arguments, final boolean putOutputInAttribute) {
+        runner.enqueue("");
+        runner.setProperty(ExecuteStreamCommand.WORKING_DIR, JAVA_FILES_DIR.toString());
+        runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
+        runner.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, arguments);
+        runner.setProperty(ExecuteStreamCommand.ENABLE_ATTRIBUTE_UPDATES, "true");
+        if (putOutputInAttribute) {
+            runner.setProperty(ExecuteStreamCommand.PUT_OUTPUT_IN_ATTRIBUTE, OUTPUT_ATTRIBUTE);
+        }
+    }
+
+    private String commandOutput(final MockFlowFile flowFile, final boolean putOutputInAttribute) {
+        return putOutputInAttribute ? flowFile.getAttribute(OUTPUT_ATTRIBUTE) : flowFile.getContent();
     }
 
     @Test
