@@ -595,12 +595,19 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         }
 
         final String secProtocol = context.getProperty(SECURITY_PROTOCOL).getValue();
-        if (!StringUtils.isBlank(secProtocol) && HTTPS_SCHEME.equals(scheme)) {
-            serviceArgs.setSSLSecurityProtocol(SSLSecurityProtocol.valueOf(secProtocol));
+        final SSLSecurityProtocol securityProtocol = (!StringUtils.isBlank(secProtocol) && HTTPS_SCHEME.equals(scheme)) ? SSLSecurityProtocol.valueOf(secProtocol) : null;
+        if (securityProtocol != null) {
+            serviceArgs.setSSLSecurityProtocol(securityProtocol);
         }
 
         final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
         if (sslContextProvider != null) {
+            // Constructing a Splunk Service applies the Security Protocol to static configuration, and changing the protocol discards the
+            // current Socket Factory. Applying the protocol first leaves the configured Socket Factory in place once the Service connects.
+            if (securityProtocol != null) {
+                Service.setSslSecurityProtocol(securityProtocol);
+            }
+
             Service.setSSLSocketFactory(sslContextProvider.createContext().getSocketFactory());
         }
 

@@ -18,15 +18,20 @@ package org.apache.nifi.processors.splunk;
 
 import com.splunk.RequestMessage;
 import com.splunk.ResponseMessage;
+import com.splunk.SSLSecurityProtocol;
 import com.splunk.Service;
 import com.splunk.ServiceArgs;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -41,14 +46,18 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 public class TestPutSplunkHTTP {
+    private static final String SSL_CONTEXT_SERVICE_ID = "ssl-context-service";
     private static final String ACK_ID = "1234";
     private static final String EVENT = "{\"a\"=\"á\",\"c\"=\"ő\",\"e\"=\"'ű'\"}"; // Intentionally uses UTF-8 character
     private static final String SUCCESS_RESPONSE =
@@ -78,6 +87,23 @@ public class TestPutSplunkHTTP {
     private MockedPutSplunkHTTP processor;
     private TestRunner testRunner;
 
+    private SSLSecurityProtocol splunkSecurityProtocol;
+    private SSLSocketFactory splunkSocketFactory;
+
+    // The Splunk Service holds the Security Protocol and the Socket Factory in static state shared by every test running in the
+    // same JVM, so both are captured and restored around each test.
+    @BeforeEach
+    public void captureSplunkTlsConfiguration() {
+        splunkSecurityProtocol = Service.getSslSecurityProtocol();
+        splunkSocketFactory = Service.getSSLSocketFactory();
+    }
+
+    @AfterEach
+    public void restoreSplunkTlsConfiguration() {
+        Service.setSslSecurityProtocol(splunkSecurityProtocol);
+        Service.setSSLSocketFactory(splunkSocketFactory);
+    }
+
     public void setUpMocks() {
         processor = new MockedPutSplunkHTTP(service);
         testRunner = TestRunners.newTestRunner(processor);
@@ -91,14 +117,11 @@ public class TestPutSplunkHTTP {
     @Test
     public void testRunSuccess() {
         setUpMocks();
-        // given
         givenSplunkReturnsWithSuccess();
 
-        // when
         testRunner.enqueue(givenFlowFile());
         testRunner.run();
 
-        // then
         testRunner.assertAllFlowFilesTransferred(PutSplunkHTTP.RELATIONSHIP_SUCCESS, 1);
         final MockFlowFile outgoingFlowFile = testRunner.getFlowFilesForRelationship(PutSplunkHTTP.RELATIONSHIP_SUCCESS).getFirst();
 
@@ -112,16 +135,13 @@ public class TestPutSplunkHTTP {
     @Test
     public void testHappyPathWithCustomQueryParameters() {
         setUpMocks();
-        // given
         testRunner.setProperty(PutSplunkHTTP.SOURCE, "test_source");
         testRunner.setProperty(PutSplunkHTTP.SOURCE_TYPE, "test?source?type");
         givenSplunkReturnsWithSuccess();
 
-        // when
         testRunner.enqueue(EVENT);
         testRunner.run();
 
-        // then
         testRunner.assertAllFlowFilesTransferred(PutSplunkHTTP.RELATIONSHIP_SUCCESS, 1);
         assertTrue(path.getValue().startsWith("/services/collector/raw"));
     }
@@ -129,7 +149,6 @@ public class TestPutSplunkHTTP {
     @Test
     public void testHappyPathWithCustomQueryParametersFromFlowFile() {
         setUpMocks();
-        // given
         testRunner.setProperty(PutSplunkHTTP.SOURCE, "${ff_source}");
         testRunner.setProperty(PutSplunkHTTP.SOURCE_TYPE, "${ff_source_type}");
         testRunner.setProperty(PutSplunkHTTP.HOST, "${ff_host}");
@@ -150,11 +169,9 @@ public class TestPutSplunkHTTP {
         incomingFlowFile.putAttributes(attributes);
         incomingFlowFile.setData(EVENT.getBytes(StandardCharsets.UTF_8));
 
-        // when
         testRunner.enqueue(incomingFlowFile);
         testRunner.run();
 
-        // then
         testRunner.assertAllFlowFilesTransferred(PutSplunkHTTP.RELATIONSHIP_SUCCESS, 1);
         assertTrue(path.getValue().startsWith("/services/collector/raw"));
 
@@ -165,15 +182,13 @@ public class TestPutSplunkHTTP {
     @Test
     public void testHappyPathWithContentType() {
         setUpMocks();
-        // given
         testRunner.setProperty(PutSplunkHTTP.CONTENT_TYPE, "text/xml");
         givenSplunkReturnsWithSuccess();
 
-        // when
+
         testRunner.enqueue(givenFlowFile());
         testRunner.run();
 
-        // then
         testRunner.assertAllFlowFilesTransferred(PutSplunkHTTP.RELATIONSHIP_SUCCESS, 1);
         assertEquals("text/xml", request.getValue().getHeader().get("Content-Type"));
     }
@@ -181,14 +196,11 @@ public class TestPutSplunkHTTP {
     @Test
     public void testSplunkCallFailure() {
         setUpMocks();
-        // given
         givenSplunkReturnsWithFailure();
 
-        // when
         testRunner.enqueue(givenFlowFile());
         testRunner.run();
 
-        // then
         testRunner.assertAllFlowFilesTransferred(PutSplunkHTTP.RELATIONSHIP_FAILURE, 1);
         final MockFlowFile outgoingFlowFile = testRunner.getFlowFilesForRelationship(PutSplunkHTTP.RELATIONSHIP_FAILURE).getFirst();
 
@@ -202,14 +214,11 @@ public class TestPutSplunkHTTP {
     @Test
     public void testSplunkApplicationFailure() {
         setUpMocks();
-        // given
         givenSplunkReturnsWithApplicationFailure(403);
 
-        // when
         testRunner.enqueue(givenFlowFile());
         testRunner.run();
 
-        // then
         testRunner.assertAllFlowFilesTransferred(PutSplunkHTTP.RELATIONSHIP_FAILURE, 1);
         final MockFlowFile outgoingFlowFile = testRunner.getFlowFilesForRelationship(PutSplunkHTTP.RELATIONSHIP_FAILURE).getFirst();
 
@@ -218,6 +227,52 @@ public class TestPutSplunkHTTP {
         assertNull(outgoingFlowFile.getAttribute("splunk.responded.at"));
         assertNull(outgoingFlowFile.getAttribute("splunk.response.code"));
         assertEquals("403", outgoingFlowFile.getAttribute("splunk.status.code"));
+    }
+
+    @Test
+    public void testSslContextServiceProvidesSplunkSocketFactory() throws InitializationException {
+        // Splunk discards the configured Socket Factory when the static Security Protocol changes, so the Processor is configured with
+        // a protocol other than the one applied here to confirm the Socket Factory survives connecting the Splunk Service.
+        Service.setSslSecurityProtocol(SSLSecurityProtocol.TLSv1_1);
+
+        final SSLSocketFactory socketFactory = Mockito.mock(SSLSocketFactory.class);
+        final SSLContext sslContext = Mockito.mock(SSLContext.class);
+        Mockito.when(sslContext.getSocketFactory()).thenReturn(socketFactory);
+
+        final SSLContextProvider sslContextProvider = Mockito.mock(SSLContextProvider.class);
+        Mockito.when(sslContextProvider.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
+        Mockito.when(sslContextProvider.createContext()).thenReturn(sslContext);
+
+        final TestRunner connectingRunner = TestRunners.newTestRunner(PutSplunkHTTP.class);
+        connectingRunner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextProvider);
+        connectingRunner.enableControllerService(sslContextProvider);
+        connectingRunner.setProperty(SplunkAPICall.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
+        connectingRunner.setProperty(SplunkAPICall.SCHEME, "https");
+        connectingRunner.setProperty(SplunkAPICall.SECURITY_PROTOCOL, SSLSecurityProtocol.TLSv1_2.name());
+        connectingRunner.setProperty(SplunkAPICall.TOKEN, "Splunk 888c5a81-8777-49a0-a3af-f76e050ab5d9");
+        connectingRunner.setProperty(SplunkAPICall.REQUEST_CHANNEL, "22bd7414-0d77-4c73-936d-c8f5d1b21862");
+
+        connectingRunner.run();
+
+        assertSame(socketFactory, Service.getSSLSocketFactory());
+        assertEquals(SSLSecurityProtocol.TLSv1_2, Service.getSslSecurityProtocol());
+    }
+
+    @Test
+    public void testClassloaderIsolationKey() throws InitializationException {
+        final PutSplunkHTTP putSplunkHTTP = new PutSplunkHTTP();
+        final TestRunner isolationKeyRunner = TestRunners.newTestRunner(putSplunkHTTP);
+
+        // Instances without an SSL Context Service leave the Splunk Socket Factory untouched, so they can share a ClassLoader.
+        assertEquals(PutSplunkHTTP.class.getName(), putSplunkHTTP.getClassloaderIsolationKey(isolationKeyRunner.getProcessContext()));
+
+        final SSLContextProvider sslContextProvider = Mockito.mock(SSLContextProvider.class);
+        Mockito.when(sslContextProvider.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
+        isolationKeyRunner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextProvider);
+        isolationKeyRunner.enableControllerService(sslContextProvider);
+        isolationKeyRunner.setProperty(SplunkAPICall.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
+
+        assertEquals(SSL_CONTEXT_SERVICE_ID, putSplunkHTTP.getClassloaderIsolationKey(isolationKeyRunner.getProcessContext()));
     }
 
     @Test
