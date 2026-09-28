@@ -17,17 +17,26 @@
 package org.apache.nifi.services.protobuf.converter;
 
 import com.google.protobuf.Descriptors.DescriptorValidationException;
+import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.Schema;
+import com.squareup.wire.schema.SchemaLoader;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.services.protobuf.ProtoTestUtil;
 import org.apache.nifi.services.protobuf.schema.ProtoSchemaParser;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.generateInputDataForRootMessage;
@@ -193,5 +202,133 @@ public class TestProtobufDataSerializer {
         final IOException exception = assertThrows(IOException.class,
             () -> new ProtobufDataSerializer(schema, "Proto3Message").serialize(record));
         assertTrue(exception.getMessage().contains("null key"));
+    }
+
+    // Tag bytes: (field number << 3) | wire type, where wire type 0 is varint and 2 is length-delimited
+    private static final byte FIELD_1_VARINT_TAG = 0x08;
+    private static final byte FIELD_1_LENGTH_DELIMITED_TAG = 0x0A;
+
+    @TempDir
+    private Path schemaDirectory;
+
+    @Test
+    public void testSerializeOneofWithMultipleValuesFails() throws IOException {
+        final Schema schema = compileSchema("""
+            syntax = "proto3";
+            message Choice {
+              oneof value {
+                string text = 1;
+                int32 number = 2;
+              }
+            }""");
+        final MapRecord record = new MapRecord(new ProtoSchemaParser(schema).createSchema("Choice"), Map.of("text", "a", "number", 1));
+
+        final IOException exception = assertThrows(IOException.class, () -> new ProtobufDataSerializer(schema, "Choice").serialize(record));
+        assertTrue(exception.getMessage().contains("value"));
+    }
+
+    @Test
+    public void testSerializeOneofWithSingleValue() throws IOException {
+        final Schema schema = compileSchema("""
+            syntax = "proto3";
+            message Choice {
+              oneof value {
+                string text = 1;
+                int32 number = 2;
+              }
+            }""");
+        final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("Choice");
+        final MapRecord originalRecord = new MapRecord(recordSchema, Map.of("number", 7));
+
+        final byte[] serialized = new ProtobufDataSerializer(schema, "Choice").serialize(originalRecord);
+
+        final MapRecord record = new ProtobufDataConverter(schema, "Choice", recordSchema, false, false).createRecord(new ByteArrayInputStream(serialized));
+        assertEquals(7, record.getValue("number"));
+        assertNull(record.getValue("text"));
+    }
+
+    @Test
+    public void testSerializeProto2RepeatedUnpackedByDefault() throws IOException {
+        assertArrayEquals(new byte[] {FIELD_1_VARINT_TAG, 1, FIELD_1_VARINT_TAG, 2}, serializeRepeated("proto2", "int32", ""));
+    }
+
+    @Test
+    public void testSerializeProto2RepeatedPackedOption() throws IOException {
+        assertArrayEquals(new byte[] {FIELD_1_LENGTH_DELIMITED_TAG, 2, 1, 2}, serializeRepeated("proto2", "int32", " [packed = true]"));
+    }
+
+    @Test
+    public void testSerializeProto3RepeatedPackedByDefault() throws IOException {
+        assertArrayEquals(new byte[] {FIELD_1_LENGTH_DELIMITED_TAG, 2, 1, 2}, serializeRepeated("proto3", "int32", ""));
+    }
+
+    @Test
+    public void testSerializeProto3RepeatedUnpackedOption() throws IOException {
+        assertArrayEquals(new byte[] {FIELD_1_VARINT_TAG, 1, FIELD_1_VARINT_TAG, 2}, serializeRepeated("proto3", "int32", " [packed = false]"));
+    }
+
+    @Test
+    public void testSerializeProto3RepeatedEnumPackedByDefault() throws IOException {
+        assertArrayEquals(new byte[] {FIELD_1_LENGTH_DELIMITED_TAG, 2, 1, 2}, serializeRepeated("proto3", "Color", ""));
+    }
+
+    @Test
+    public void testSerializeProto2RepeatedEnumUnpackedByDefault() throws IOException {
+        assertArrayEquals(new byte[] {FIELD_1_VARINT_TAG, 1, FIELD_1_VARINT_TAG, 2}, serializeRepeated("proto2", "Color", ""));
+    }
+
+    @Test
+    public void testSerializeBytesFromByteBuffer() throws IOException {
+        final byte[] expected = "bytes".getBytes(StandardCharsets.UTF_8);
+        assertArrayEquals(expected, serializeAndReadBytes(ByteBuffer.wrap(expected)));
+    }
+
+    @Test
+    public void testSerializeBytesFromUnsupportedValueFails() {
+        assertThrows(IOException.class, () -> serializeAndReadBytes("text"));
+    }
+
+    @Test
+    public void testSerializeBytesWithNonNumericElementFails() {
+        assertThrows(IOException.class, () -> serializeAndReadBytes(new Object[] {1, "two"}));
+    }
+
+    private byte[] serializeRepeated(final String syntax, final String elementType, final String fieldOptions) throws IOException {
+        final Schema schema = compileSchema("""
+            syntax = "%s";
+            enum Color {
+              RED = 0;
+              GREEN = 1;
+              BLUE = 2;
+            }
+            message Values {
+              repeated %s values = 1%s;
+            }""".formatted(syntax, elementType, fieldOptions));
+        final Object[] values = "Color".equals(elementType) ? new Object[] {"GREEN", "BLUE"} : new Object[] {1, 2};
+        final MapRecord record = new MapRecord(new ProtoSchemaParser(schema).createSchema("Values"), Map.of("values", values));
+
+        return new ProtobufDataSerializer(schema, "Values").serialize(record);
+    }
+
+    private byte[] serializeAndReadBytes(final Object value) throws IOException {
+        final Schema schema = compileSchema("""
+            syntax = "proto3";
+            message Binary {
+              bytes data = 1;
+            }""");
+        final RecordSchema recordSchema = new ProtoSchemaParser(schema).createSchema("Binary");
+        final MapRecord originalRecord = new MapRecord(recordSchema, Map.of("data", value));
+
+        final byte[] serialized = new ProtobufDataSerializer(schema, "Binary").serialize(originalRecord);
+
+        final MapRecord record = new ProtobufDataConverter(schema, "Binary", recordSchema, false, false).createRecord(new ByteArrayInputStream(serialized));
+        return (byte[]) record.getValue("data");
+    }
+
+    private Schema compileSchema(final String schemaText) throws IOException {
+        Files.writeString(schemaDirectory.resolve("test.proto"), schemaText);
+        final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
+        schemaLoader.initRoots(List.of(Location.get(schemaDirectory.toString())), List.of());
+        return schemaLoader.loadSchema();
     }
 }

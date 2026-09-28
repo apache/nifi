@@ -17,11 +17,15 @@
 package org.apache.nifi.services.protobuf.converter;
 
 import com.google.protobuf.CodedOutputStream;
+import com.squareup.wire.Syntax;
 import com.squareup.wire.schema.EnumConstant;
 import com.squareup.wire.schema.EnumType;
 import com.squareup.wire.schema.Field;
 import com.squareup.wire.schema.MessageType;
 import com.squareup.wire.schema.OneOf;
+import com.squareup.wire.schema.Options;
+import com.squareup.wire.schema.ProtoFile;
+import com.squareup.wire.schema.ProtoMember;
 import com.squareup.wire.schema.ProtoType;
 import com.squareup.wire.schema.Schema;
 import org.apache.nifi.serialization.record.Record;
@@ -31,7 +35,8 @@ import org.apache.nifi.services.protobuf.FieldType;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,6 +59,8 @@ public class ProtobufDataSerializer {
 
     private static final int MAP_KEY_TAG = 1;
     private static final int MAP_VALUE_TAG = 2;
+
+    private static final ProtoMember PACKED_OPTION = ProtoMember.get(Options.FIELD_OPTIONS, "packed");
 
     private final Schema schema;
     private final String rootMessageType;
@@ -89,8 +96,19 @@ public class ProtobufDataSerializer {
             writeField(codedOutput, field, record.getValue(field.getName()));
         }
         for (final OneOf oneOf : messageType.getOneOfs()) {
+            // A decoder keeps only the last field of a oneof, so writing more than one would silently drop values
+            Field fieldWithValue = null;
             for (final Field field : oneOf.getFields()) {
-                writeField(codedOutput, field, record.getValue(field.getName()));
+                final Object value = record.getValue(field.getName());
+                if (value == null) {
+                    continue;
+                }
+                if (fieldWithValue != null) {
+                    throw new IOException(String.format("Oneof [%s] has values for more than one field: [%s] and [%s]",
+                        oneOf.getName(), fieldWithValue.getName(), field.getName()));
+                }
+                fieldWithValue = field;
+                writeField(codedOutput, field, value);
             }
         }
 
@@ -113,17 +131,17 @@ public class ProtobufDataSerializer {
         if (protoType.isMap()) {
             writeMap(output, tag, protoType, value);
         } else if (field.isRepeated()) {
-            writeRepeated(output, tag, protoType, value);
+            writeRepeated(output, tag, protoType, isPacked(field), value);
         } else {
             writeSingleValue(output, tag, protoType, value);
         }
     }
 
-    private void writeRepeated(final CodedOutputStream output, final int tag, final ProtoType protoType, final Object value) throws IOException {
+    private void writeRepeated(final CodedOutputStream output, final int tag, final ProtoType protoType, final boolean packed, final Object value) throws IOException {
         final Object[] values = toArray(value);
 
-        if (isPackable(protoType)) {
-            // proto3 packs repeated scalar and enum fields into a single length-delimited entry
+        if (packed) {
+            // packed repeated scalar and enum fields are written as a single length-delimited entry
             final ByteArrayOutputStream packedBytes = new ByteArrayOutputStream();
             final CodedOutputStream packedOutput = CodedOutputStream.newInstance(packedBytes);
             for (final Object element : values) {
@@ -132,11 +150,11 @@ public class ProtobufDataSerializer {
             packedOutput.flush();
 
             output.writeTag(tag, WIRETYPE_LENGTH_DELIMITED);
-            final byte[] packed = packedBytes.toByteArray();
-            output.writeUInt32NoTag(packed.length);
-            output.writeRawBytes(packed);
+            final byte[] packedValues = packedBytes.toByteArray();
+            output.writeUInt32NoTag(packedValues.length);
+            output.writeRawBytes(packedValues);
         } else {
-            // repeated messages, strings and bytes are written as separate length-delimited entries
+            // unpacked repeated fields, including messages, strings and bytes, are written as one entry per element
             for (final Object element : values) {
                 writeSingleValue(output, tag, protoType, element);
             }
@@ -234,6 +252,22 @@ public class ProtobufDataSerializer {
         };
     }
 
+    private boolean isPacked(final Field field) {
+        if (!isPackable(field.getType())) {
+            return false;
+        }
+        if (field.isPacked()) {
+            return true;
+        }
+
+        // Wire applies the proto3 packed default only to scalar fields, while proto3 packs repeated enum fields by default too
+        if (field.getOptions().get(PACKED_OPTION) != null || !(schema.getType(field.getType()) instanceof EnumType)) {
+            return false;
+        }
+        final ProtoFile protoFile = schema.protoFile(field.getLocation().getPath());
+        return protoFile != null && protoFile.getSyntax() == Syntax.PROTO_3;
+    }
+
     private boolean isPackable(final ProtoType protoType) {
         if (protoType.isScalar()) {
             final FieldType fieldType = FieldType.findValue(protoType.getSimpleName());
@@ -282,27 +316,28 @@ public class ProtobufDataSerializer {
         return new BigInteger(String.valueOf(value));
     }
 
-    private byte[] toByteArray(final Object value) {
+    private byte[] toByteArray(final Object value) throws IOException {
         if (value instanceof final byte[] bytes) {
             return bytes;
         }
+        if (value instanceof final ByteBuffer byteBuffer) {
+            final byte[] bytes = new byte[byteBuffer.remaining()];
+            byteBuffer.duplicate().get(bytes);
+            return bytes;
+        }
         if (value instanceof final Object[] array) {
-            final byte[] bytes = new byte[array.length];
-            for (int i = 0; i < array.length; i++) {
-                bytes[i] = ((Number) array[i]).byteValue();
+            return toByteArray(Arrays.asList(array));
+        }
+        if (value instanceof final List<?> list) {
+            final byte[] bytes = new byte[list.size()];
+            for (int i = 0; i < bytes.length; i++) {
+                if (!(list.get(i) instanceof final Number number)) {
+                    throw new IOException(String.format("Unsupported element [%s] in value for bytes field", list.get(i)));
+                }
+                bytes[i] = number.byteValue();
             }
             return bytes;
         }
-        final List<Byte> collected = new ArrayList<>();
-        if (value instanceof final List<?> list) {
-            for (final Object element : list) {
-                collected.add(((Number) element).byteValue());
-            }
-        }
-        final byte[] bytes = new byte[collected.size()];
-        for (int i = 0; i < collected.size(); i++) {
-            bytes[i] = collected.get(i);
-        }
-        return bytes;
+        throw new IOException(String.format("Unsupported value type [%s] for bytes field", value.getClass().getName()));
     }
 }
