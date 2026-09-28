@@ -160,7 +160,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Evaluate Changed Paths
-        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d
         id: changes
         with:
           filters: |
@@ -235,7 +235,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Evaluate Changed Paths
-        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d
         id: changes
         with:
           filters: |
@@ -304,7 +304,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Evaluate Changed Paths
-        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d
         id: changes
         with:
           filters: |
@@ -378,7 +378,7 @@ jobs:
           java-version: '21'
           cache: 'maven'
       - name: Evaluate Changed Paths
-        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d
         id: changes
         with:
           filters: |
