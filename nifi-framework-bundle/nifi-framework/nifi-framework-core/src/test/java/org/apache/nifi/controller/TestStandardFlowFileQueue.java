@@ -24,6 +24,7 @@ import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.ListFlowFileState;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
+import org.apache.nifi.controller.queue.QueueSchedulingRegistration;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.StandardFlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -42,6 +43,7 @@ import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -49,6 +51,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -168,6 +174,58 @@ public class TestStandardFlowFileQueue {
         assertFalse(queue.isFull());
         assertFalse(queue.isEmpty());
         assertFalse(queue.isActiveQueueEmpty());
+    }
+
+    @Test
+    public void testSchedulingListenerNotificationsAndRemoval() {
+        final AtomicInteger notificationCount = new AtomicInteger();
+        final QueueSchedulingRegistration registration = queue.addSchedulingListener(notificationCount::incrementAndGet);
+
+        final FlowFileRecord flowFile = new MockFlowFileRecord();
+        queue.put(flowFile);
+        assertEquals(1, notificationCount.get());
+
+        final Set<FlowFileRecord> expiredRecords = new HashSet<>();
+        final FlowFileRecord polled = queue.poll(expiredRecords);
+        assertEquals(flowFile, polled);
+        assertEquals(2, notificationCount.get());
+        assertEquals(new QueueSize(0, 0L), queue.getLocalQueueSize());
+
+        queue.acknowledge(polled);
+        assertEquals(3, notificationCount.get());
+
+        registration.close();
+        registration.close();
+        queue.put(new MockFlowFileRecord());
+        assertEquals(3, notificationCount.get());
+    }
+
+    @Test
+    public void testSelectiveDropNotifiesSchedulingListenerOutsideQueueLock() throws IOException {
+        queue.put(new MockFlowFileRecord());
+        final AtomicBoolean listenerInvoked = new AtomicBoolean();
+        final AtomicBoolean concurrentMutationCompleted = new AtomicBoolean();
+        final AtomicBoolean notificationOutsideLock = new AtomicBoolean();
+        queue.addSchedulingListener(() -> {
+            if (!listenerInvoked.compareAndSet(false, true)) {
+                return;
+            }
+
+            Thread.ofVirtual().start(() -> {
+                queue.put(new MockFlowFileRecord());
+                concurrentMutationCompleted.set(true);
+            });
+            final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1L);
+            while (!concurrentMutationCompleted.get() && System.nanoTime() < deadline) {
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1L));
+            }
+            notificationOutsideLock.set(concurrentMutationCompleted.get());
+        });
+
+        final DropFlowFileSummary summary = queue.dropFlowFiles(flowFile -> true);
+
+        assertEquals(1L, summary.getDroppedCount());
+        assertTrue(notificationOutsideLock.get());
     }
 
     @Test

@@ -157,8 +157,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
             // Notify the processor node that the configuration (properties, e.g.) has been restored
             final Class<?> componentClass = processor.getProcessor() == null ? null : processor.getProcessor().getClass();
-            final StandardProcessContext processContext = new StandardProcessContext(processor, flowController.getControllerServiceProvider(),
-                    flowController.getStateManagerProvider().getStateManager(processor.getProcessor().getIdentifier(), componentClass), () -> false, flowController);
+            final StandardProcessContext processContext = StandardProcessContext.createBuilder(processor, flowController.getControllerServiceProvider(),
+                    flowController.getStateManagerProvider().getStateManager(processor.getProcessor().getIdentifier(), componentClass), () -> false, flowController).build();
             processor.onConfigurationRestored(processContext);
 
             return processor;
@@ -209,6 +209,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                 if (isNotNull(maxTasks)) {
                     processor.setMaxConcurrentTasks(maxTasks);
                 }
+
                 if (isNotNull(schedulingPeriod)) {
                     processor.setSchedulingPeriod(schedulingPeriod);
                 }
@@ -319,6 +320,10 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             }
         }
 
+        if (schedulingStrategy == SchedulingStrategy.AUTO && !processorNode.isAutoSchedulingSupported()) {
+            validationErrors.add("Scheduling strategy AUTO is not supported by Processor " + processorNode.getName() + " [" + processorNode.getIdentifier() + "]");
+        }
+
         // validate the concurrent tasks based on the scheduling strategy
         if (isNotNull(config.getConcurrentlySchedulableTaskCount())) {
             if (schedulingStrategy == SchedulingStrategy.TIMER_DRIVEN) {
@@ -346,6 +351,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     } catch (final Exception e) {
                         throw new IllegalArgumentException(String.format("Scheduling Period '%s' is not a valid cron expression: %s", schedulingPeriod, e.getMessage()));
                     }
+                    break;
+                case AUTO:
                     break;
             }
         }
@@ -419,8 +426,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         final ProcessorNode processor = locateProcessor(processorId);
         final Processor componentProcessor = processor.getProcessor();
         final Class<?> componentClass = componentProcessor == null ? null : componentProcessor.getClass();
-        final ProcessContext processContext = new StandardProcessContext(processor, flowController.getControllerServiceProvider(),
-                flowController.getStateManagerProvider().getStateManager(processor.getIdentifier(), componentClass), () -> false, flowController);
+        final ProcessContext processContext = StandardProcessContext.createBuilder(processor, flowController.getControllerServiceProvider(),
+                flowController.getStateManagerProvider().getStateManager(processor.getIdentifier(), componentClass), () -> false, flowController).build();
 
         return processor.getReportedBacklog(processContext);
     }
@@ -528,9 +535,10 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     public List<ConfigVerificationResultDTO> verifyProcessorConfiguration(final String processorId, final Map<String, String> properties, final Map<String, String> attributes) {
         final ProcessorNode processor = locateProcessor(processorId);
 
-        final ProcessContext processContext = new StandardProcessContext(processor, properties, processor.getAnnotationData(),
-            processor.getProcessGroup().getParameterContext(), flowController.getControllerServiceProvider(),
-            new NopStateManager(), () -> false, flowController);
+        final ProcessContext processContext = StandardProcessContext.createBuilder(
+                        processor, flowController.getControllerServiceProvider(), new NopStateManager(), () -> false, flowController)
+                .setPropertyOverrides(properties, processor.getProcessGroup().getParameterContext())
+                .build();
 
         final LogRepository logRepository = new NopLogRepository();
         final ComponentLog configVerificationLog = new StandardComponentLog(
@@ -564,6 +572,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         // configure the processor
         configureProcessor(processor, processorDTO);
         parentGroup.onComponentModified();
+        flowController.getProcessScheduler().notifySchedulingEvent(processor);
 
         // attempt to change the underlying processor if an updated bundle is specified
         // updating the bundle must happen after configuring so that any additional classpath resources are set first

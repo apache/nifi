@@ -31,6 +31,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
@@ -101,8 +102,10 @@ class TestProcessorAuditor {
     private Processor processor;
     @Mock
     private ExtensionManager extensionManager;
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private FlowController flowController;
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private StandardProcessScheduler processScheduler;
     @Autowired
     private FlowManager flowManager;
     @Mock
@@ -127,6 +130,7 @@ class TestProcessorAuditor {
         when(authentication.getCredentials()).thenReturn(Object.class.getSimpleName());
 
         when(flowController.getFlowManager()).thenReturn(flowManager);
+        when(flowController.getProcessScheduler()).thenReturn(processScheduler);
 
         processorDao.setFlowController(flowController);
         processorAuditor.setAuditService(auditService);

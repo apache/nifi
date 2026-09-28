@@ -19,12 +19,22 @@ package org.apache.nifi.controller.scheduling;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.GarbageCollectionLog;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.QueueSchedulingListener;
+import org.apache.nifi.controller.queue.QueueSchedulingRegistration;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RepositoryContext;
+import org.apache.nifi.controller.scheduling.auto.AutoSchedulingDiagnostics;
+import org.apache.nifi.controller.scheduling.auto.SystemSchedulingMetrics;
+import org.apache.nifi.controller.scheduling.auto.SystemSchedulingSnapshot;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
@@ -42,7 +52,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -50,6 +62,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.IntSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -57,9 +70,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -96,7 +113,15 @@ class VirtualThreadSchedulingAgentTest {
     @BeforeEach
     void setUp() {
         when(nifiProperties.getBoredYieldDuration()).thenReturn("10 millis");
-        agent = new VirtualThreadSchedulingAgent(flowController, contextFactory, nifiProperties, MAX_THREADS);
+        when(nifiProperties.getProcessorAutoMaxConcurrentTasks()).thenReturn(12);
+        final SystemSchedulingMetrics systemSchedulingMetrics = mock(SystemSchedulingMetrics.class);
+        when(systemSchedulingMetrics.captureSnapshot(anyInt(), anyDouble(), anyDouble())).thenAnswer(invocation -> SystemSchedulingSnapshot.createBuilder()
+                .setCpuLoadAvailable(true)
+                .setCpuLoad(0.25D)
+                .setAverageCpuLoad(0.25D)
+                .setMaxGlobalConcurrentTasks(invocation.getArgument(0, Integer.class))
+                .build());
+        agent = new VirtualThreadSchedulingAgent(flowController, contextFactory, nifiProperties, MAX_THREADS, 12, systemSchedulingMetrics);
     }
 
     @AfterEach
@@ -119,6 +144,284 @@ class VirtualThreadSchedulingAgentTest {
         assertEquals(originalPermits + 2, agent.getGlobalSemaphore().getMaxPermits());
 
         assertThrows(IllegalStateException.class, () -> agent.incrementMaxThreadCount(-1000));
+    }
+
+    @Test
+    void testProcessContextConcurrencyLimit() {
+        final Connectable timerDriven = mock(Connectable.class);
+        when(timerDriven.getSchedulingStrategy()).thenReturn(SchedulingStrategy.TIMER_DRIVEN);
+        when(timerDriven.getMaxConcurrentTasks()).thenReturn(4);
+        assertEquals(4, agent.getProcessContextConcurrencyLimit(timerDriven));
+
+        final ProcessorNode automatic = mock(ProcessorNode.class);
+        when(automatic.getSchedulingStrategy()).thenReturn(SchedulingStrategy.AUTO);
+        assertEquals(12, agent.getProcessContextConcurrencyLimit(automatic));
+
+        when(automatic.isTriggeredSerially()).thenReturn(true);
+        assertEquals(1, agent.getProcessContextConcurrencyLimit(automatic));
+    }
+
+    @Test
+    void testAutomaticSchedulingBacksOffEmptySource() throws InterruptedException {
+        final AtomicInteger invocationCount = new AtomicInteger();
+        final CountDownLatch firstInvocation = new CountDownLatch(1);
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.AUTO, invocationCount, firstInvocation);
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+
+        scheduleConnectable(connectable, lifecycleState);
+        try {
+            assertTrue(firstInvocation.await(2, TimeUnit.SECONDS));
+            Thread.sleep(400L);
+            assertTrue(invocationCount.get() >= 3);
+            assertTrue(invocationCount.get() <= 10, "Empty source invocation count was " + invocationCount.get());
+        } finally {
+            unscheduleConnectable(connectable, lifecycleState);
+        }
+    }
+
+    @Test
+    void testAutomaticSchedulingBypassesSourceBackoffForLocalInputAndRemovesListener() throws InterruptedException {
+        final AtomicInteger invocationCount = new AtomicInteger();
+        final CountDownLatch firstInvocation = new CountDownLatch(1);
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.AUTO, invocationCount, firstInvocation);
+        final Connection connection = mock(Connection.class);
+        final FlowFileQueue queue = mock(FlowFileQueue.class);
+        final QueueSchedulingRegistration registration = mock(QueueSchedulingRegistration.class);
+        final AtomicInteger listenerRegistrations = new AtomicInteger();
+        final CountDownLatch listenerRefreshed = new CountDownLatch(1);
+        configureIncomingConnection(connectable, connection, queue);
+        when(queue.getLocalQueueSize()).thenReturn(new QueueSize(1, 1L));
+        when(queue.isActiveQueueEmpty()).thenReturn(false);
+        when(queue.getFlowFileAvailability()).thenReturn(FlowFileAvailability.FLOWFILE_AVAILABLE);
+        when(queue.addSchedulingListener(any())).thenAnswer(invocation -> {
+            if (listenerRegistrations.incrementAndGet() == 2) {
+                listenerRefreshed.countDown();
+            }
+
+            return registration;
+        });
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+
+        scheduleConnectable(connectable, lifecycleState);
+        try {
+            assertTrue(firstInvocation.await(2, TimeUnit.SECONDS));
+            Thread.sleep(200L);
+            assertTrue(invocationCount.get() > 10, "Local input invocation count was " + invocationCount.get());
+            agent.onEvent(connectable);
+            assertTrue(listenerRefreshed.await(2, TimeUnit.SECONDS));
+        } finally {
+            unscheduleConnectable(connectable, lifecycleState);
+        }
+
+        verify(registration, times(2)).close();
+    }
+
+    @Test
+    void testAutomaticSchedulingDoesNotBypassProcessorYield() throws InterruptedException {
+        final AtomicInteger invocationCount = new AtomicInteger();
+        final CountDownLatch firstInvocation = new CountDownLatch(1);
+        final AtomicLong yieldExpiration = new AtomicLong();
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.AUTO, invocationCount, firstInvocation);
+        when(connectable.getYieldExpiration()).thenAnswer(invocation -> yieldExpiration.get());
+        doAnswer(invocation -> {
+            invocationCount.incrementAndGet();
+            yieldExpiration.set(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(1L));
+            firstInvocation.countDown();
+            return null;
+        }).when(connectable).onTrigger(any(), any());
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+
+        scheduleConnectable(connectable, lifecycleState);
+        try {
+            assertTrue(firstInvocation.await(2, TimeUnit.SECONDS));
+            Thread.sleep(300L);
+            assertEquals(1, invocationCount.get());
+        } finally {
+            unscheduleConnectable(connectable, lifecycleState);
+        }
+    }
+
+    @Test
+    void testAutomaticSchedulingWakesAtPenaltyDeadlineWithoutQueueMutation() throws InterruptedException {
+        final CountDownLatch invocation = new CountDownLatch(1);
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.AUTO, new AtomicInteger(), invocation);
+        final Connection connection = mock(Connection.class);
+        final FlowFileQueue queue = mock(FlowFileQueue.class);
+        final Instant penaltyExpiration = Instant.now().plusMillis(300L);
+        configureIncomingConnection(connectable, connection, queue);
+        when(queue.addSchedulingListener(any())).thenReturn(QueueSchedulingRegistration.NO_OP);
+        when(queue.getNextFlowFileAvailabilityTime()).thenReturn(penaltyExpiration);
+        when(queue.getFlowFileAvailability()).thenAnswer(ignored -> Instant.now().isBefore(penaltyExpiration)
+                ? FlowFileAvailability.HEAD_OF_QUEUE_PENALIZED : FlowFileAvailability.FLOWFILE_AVAILABLE);
+        when(connectable.isTriggerWhenEmpty()).thenReturn(false);
+        when(connectable.hasIncomingConnection()).thenReturn(true);
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+
+        scheduleConnectable(connectable, lifecycleState);
+        try {
+            assertFalse(invocation.await(150L, TimeUnit.MILLISECONDS));
+            assertTrue(invocation.await(2L, TimeUnit.SECONDS));
+        } finally {
+            unscheduleConnectable(connectable, lifecycleState);
+        }
+    }
+
+    @Test
+    void testAutomaticSchedulingGenerationWakesForQueueListenerNotification() throws InterruptedException {
+        final AtomicBoolean inputAvailable = new AtomicBoolean();
+        final AtomicReference<QueueSchedulingListener> listenerReference = new AtomicReference<>();
+        final CountDownLatch invocation = new CountDownLatch(1);
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.AUTO, new AtomicInteger(), invocation);
+        final Connection connection = mock(Connection.class);
+        final FlowFileQueue queue = mock(FlowFileQueue.class);
+        configureIncomingConnection(connectable, connection, queue);
+        when(connectable.isTriggerWhenEmpty()).thenReturn(false);
+        when(queue.getLocalQueueSize()).thenAnswer(ignored -> inputAvailable.get() ? new QueueSize(1, 1L) : new QueueSize(0, 0L));
+        when(queue.isActiveQueueEmpty()).thenAnswer(ignored -> !inputAvailable.get());
+        when(queue.getFlowFileAvailability()).thenAnswer(ignored -> inputAvailable.get()
+                ? FlowFileAvailability.FLOWFILE_AVAILABLE : FlowFileAvailability.ACTIVE_QUEUE_EMPTY);
+        when(queue.addSchedulingListener(any())).thenAnswer(invocationOnMock -> {
+            listenerReference.set(invocationOnMock.getArgument(0, QueueSchedulingListener.class));
+            return QueueSchedulingRegistration.NO_OP;
+        });
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+
+        scheduleConnectable(connectable, lifecycleState);
+        try {
+            waitForAutoCount(1, () -> agent.getAutoSchedulingWaiterCount(COMPONENT_ID));
+            inputAvailable.set(true);
+            listenerReference.get().onQueueStateChanged();
+            assertTrue(invocation.await(2L, TimeUnit.SECONDS));
+        } finally {
+            unscheduleConnectable(connectable, lifecycleState);
+        }
+    }
+
+    @Test
+    void testAutomaticSchedulingStartsConcurrentWorkBeforeFirstInvocationCompletes() throws InterruptedException {
+        final CountDownLatch invocationsStarted = new CountDownLatch(2);
+        final CountDownLatch releaseInvocations = new CountDownLatch(1);
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.AUTO, new AtomicInteger(), new CountDownLatch(0));
+        doAnswer(invocation -> {
+            invocationsStarted.countDown();
+            releaseInvocations.await();
+            return null;
+        }).when(connectable).onTrigger(any(), any());
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+
+        scheduleConnectable(connectable, lifecycleState);
+        try {
+            assertTrue(invocationsStarted.await(4, TimeUnit.SECONDS));
+            final AutoSchedulingDiagnostics diagnostics = agent.getAutoSchedulingDiagnostics(COMPONENT_ID);
+            assertEquals(2, diagnostics.activeProcessorInvocations());
+            assertFalse(diagnostics.flowFileMeasurementsAvailable());
+        } finally {
+            releaseInvocations.countDown();
+            unscheduleConnectable(connectable, lifecycleState);
+        }
+    }
+
+    @Test
+    void testAutomaticWorkersScaleAndRetireAfterLongInvocations() throws InterruptedException {
+        final CountDownLatch invocationStarted = new CountDownLatch(1);
+        final CountDownLatch releaseInvocations = new CountDownLatch(1);
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.AUTO, new AtomicInteger(), new CountDownLatch(0));
+        doAnswer(invocation -> {
+            invocationStarted.countDown();
+            releaseInvocations.await();
+            return null;
+        }).when(connectable).onTrigger(any(), any());
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+
+        scheduleConnectable(connectable, lifecycleState);
+        try {
+            agent.requestAutoSchedulingSettings(COMPONENT_ID, new SchedulingSettings(3, 0L));
+            assertTrue(invocationStarted.await(2L, TimeUnit.SECONDS));
+            waitForRunningThreadCount(3, 2L, TimeUnit.SECONDS);
+            assertEquals(3, agent.getAutoSchedulingDiagnostics(COMPONENT_ID).currentConcurrentTasks());
+
+            agent.setMaxThreadCount(1);
+            waitForAutoCount(1, () -> agent.getAutoSchedulingDiagnostics(COMPONENT_ID).currentConcurrentTasks());
+
+            releaseInvocations.countDown();
+            waitForRunningThreadCount(1, 2L, TimeUnit.SECONDS);
+        } finally {
+            releaseInvocations.countDown();
+            unscheduleConnectable(connectable, lifecycleState);
+        }
+    }
+
+    @Test
+    void testAutomaticWorkerWaitsForConcurrentTaskSlotReleasedByRetiringInvocation() throws InterruptedException {
+        final CountDownLatch firstWorkerStarted = new CountDownLatch(1);
+        final CountDownLatch retiringWorkerStarted = new CountDownLatch(1);
+        final CountDownLatch releaseFirstWorker = new CountDownLatch(1);
+        final CountDownLatch releaseRetiringWorker = new CountDownLatch(1);
+        final CountDownLatch invocationAfterConcurrentTaskSlotReleased = new CountDownLatch(1);
+        final AtomicInteger invocationCount = new AtomicInteger();
+        final AtomicReference<QueueSchedulingListener> listenerReference = new AtomicReference<>();
+        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.AUTO, new AtomicInteger(), new CountDownLatch(0));
+        final Connection connection = mock(Connection.class);
+        final FlowFileQueue queue = mock(FlowFileQueue.class);
+        configureIncomingConnection(connectable, connection, queue);
+        when(connectable.isTriggerWhenEmpty()).thenReturn(false);
+        when(connectable.hasIncomingConnection()).thenReturn(true);
+        when(queue.getLocalQueueSize()).thenReturn(new QueueSize(1, 1L));
+        when(queue.isActiveQueueEmpty()).thenReturn(false);
+        when(queue.getFlowFileAvailability()).thenReturn(FlowFileAvailability.FLOWFILE_AVAILABLE);
+        when(queue.addSchedulingListener(any())).thenAnswer(invocation -> {
+            listenerReference.set(invocation.getArgument(0, QueueSchedulingListener.class));
+            return QueueSchedulingRegistration.NO_OP;
+        });
+        doAnswer(invocation -> {
+            final int currentInvocation = invocationCount.incrementAndGet();
+            if (currentInvocation > 2) {
+                invocationAfterConcurrentTaskSlotReleased.countDown();
+                return null;
+            }
+
+            if (Thread.currentThread().getName().endsWith("task 1")) {
+                retiringWorkerStarted.countDown();
+                releaseRetiringWorker.await();
+            } else {
+                firstWorkerStarted.countDown();
+                releaseFirstWorker.await();
+            }
+
+            return null;
+        }).when(connectable).onTrigger(any(), any());
+        final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
+
+        scheduleConnectable(connectable, lifecycleState);
+        try {
+            agent.requestAutoSchedulingSettings(COMPONENT_ID, new SchedulingSettings(2, 0L));
+            assertTrue(firstWorkerStarted.await(2L, TimeUnit.SECONDS));
+            assertTrue(retiringWorkerStarted.await(2L, TimeUnit.SECONDS));
+
+            agent.requestAutoSchedulingSettings(COMPONENT_ID, new SchedulingSettings(1, 0L));
+            waitForAutoCount(1, () -> agent.getAutoSchedulingDiagnostics(COMPONENT_ID).currentConcurrentTasks());
+            releaseFirstWorker.countDown();
+            waitForAutoCount(1, () -> agent.getAutoSchedulingConcurrentTaskSlotWaiterCount(COMPONENT_ID));
+            assertEquals(2, invocationCount.get());
+            assertEquals(MAX_THREADS - 1, agent.getGlobalSemaphore().availablePermits());
+
+            final long concurrentTaskSlotChangeCount = agent.getAutoSchedulingConcurrentTaskSlotChangeCount(COMPONENT_ID);
+            for (int signal = 0; signal < 100; signal++) {
+                listenerReference.get().onQueueStateChanged();
+            }
+
+            assertEquals(concurrentTaskSlotChangeCount, agent.getAutoSchedulingConcurrentTaskSlotChangeCount(COMPONENT_ID));
+            assertEquals(1, agent.getAutoSchedulingConcurrentTaskSlotWaiterCount(COMPONENT_ID));
+            assertEquals(2, invocationCount.get());
+            assertEquals(MAX_THREADS - 1, agent.getGlobalSemaphore().availablePermits());
+
+            releaseRetiringWorker.countDown();
+            assertTrue(invocationAfterConcurrentTaskSlotReleased.await(2L, TimeUnit.SECONDS));
+        } finally {
+            releaseFirstWorker.countDown();
+            releaseRetiringWorker.countDown();
+            unscheduleConnectable(connectable, lifecycleState);
+        }
     }
 
     @Test
@@ -643,6 +946,16 @@ class VirtualThreadSchedulingAgentTest {
         agent.schedule(connectable, lifecycleState);
     }
 
+    private void configureIncomingConnection(final Connectable connectable, final Connection connection, final FlowFileQueue queue) {
+        final Connectable source = mock(Connectable.class);
+        when(source.getIdentifier()).thenReturn("upstream");
+        when(connection.getSource()).thenReturn(source);
+        when(connection.getDestination()).thenReturn(connectable);
+        when(connection.getFlowFileQueue()).thenReturn(queue);
+        when(connectable.getIncomingConnections()).thenReturn(List.of(connection));
+        when(queue.getNextFlowFileAvailabilityTime()).thenReturn(Instant.EPOCH);
+    }
+
     private void unscheduleConnectable(final Connectable connectable, final LifecycleState lifecycleState) {
         lifecycleState.setScheduled(false);
         agent.unschedule(connectable, lifecycleState);
@@ -654,6 +967,15 @@ class VirtualThreadSchedulingAgentTest {
             Thread.sleep(10L);
         }
         assertEquals(expectedCount, agent.getRunningThreadCount());
+    }
+
+    private void waitForAutoCount(final int expectedCount, final IntSupplier countSupplier) throws InterruptedException {
+        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2L);
+        while (countSupplier.getAsInt() != expectedCount && System.nanoTime() < deadline) {
+            Thread.sleep(10L);
+        }
+
+        assertEquals(expectedCount, countSupplier.getAsInt());
     }
 
     private Connectable createMockedConnectable(final int maxConcurrentTasks, final SchedulingStrategy schedulingStrategy,
