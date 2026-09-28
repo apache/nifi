@@ -69,6 +69,11 @@ public class ExcelStartingRowSchemaInference implements SchemaInferenceEngine<Ro
         while ((row = recordSource.next()) != null) {
             if (index == 0) {
                 fieldNames = getFieldNames(firstRow, row);
+                // Initialize the typeMap with all the determined field names thereby setting data type defaults for all fields
+                // just in case a specific field data type cannot be inferred.
+                for (String fieldName : fieldNames) {
+                    typeMap.put(fieldName, new FieldTypeInference());
+                }
             } else if (row.getRowNum() == zeroBasedFirstRow) { // skip first row of all sheets
                 continue;
             } else {
