@@ -43,10 +43,12 @@ import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.MigrationRequestDTO;
 import org.apache.nifi.web.api.dto.MigrationRequestLocalSourceDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VerifyConnectorConfigStepRequestDTO;
@@ -65,6 +67,7 @@ import org.apache.nifi.web.api.entity.MigrationPayloadEntity;
 import org.apache.nifi.web.api.entity.MigrationRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
@@ -99,6 +102,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -148,6 +152,9 @@ public class TestConnectorResource {
     @Mock
     private ControllerServiceResource controllerServiceResource;
 
+    @Mock
+    private ProcessGroupResource processGroupResource;
+
     private static final String CONNECTOR_ID = "test-connector-id";
     private static final String CONNECTOR_NAME = "Test Connector";
     private static final String CONNECTOR_TYPE = "TestConnectorType";
@@ -177,6 +184,7 @@ public class TestConnectorResource {
         connectorResource.setServiceFacade(serviceFacade);
         connectorResource.setFlowResource(flowResource);
         connectorResource.setControllerServiceResource(controllerServiceResource);
+        connectorResource.setProcessGroupResource(processGroupResource);
         connectorResource.httpServletRequest = httpServletRequest;
         connectorResource.properties = properties;
         connectorResource.uriInfo = uriInfo;
@@ -1138,6 +1146,40 @@ public class TestConnectorResource {
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
         verify(serviceFacade, never()).getConnectorControllerService(anyString(), anyString(), eq(true));
+    }
+
+    @Test
+    public void testGetConnectorProcessGroup() {
+        final ProcessGroupDTO processGroupDto = new ProcessGroupDTO();
+        processGroupDto.setId(PROCESS_GROUP_ID);
+        processGroupDto.setContents(new FlowSnippetDTO());
+
+        final ProcessGroupEntity processGroupEntity = new ProcessGroupEntity();
+        processGroupEntity.setId(PROCESS_GROUP_ID);
+        processGroupEntity.setComponent(processGroupDto);
+        when(serviceFacade.getConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID)).thenReturn(processGroupEntity);
+        when(processGroupResource.populateRemainingProcessGroupEntityContent(processGroupEntity)).thenReturn(processGroupEntity);
+
+        try (Response response = connectorResource.getConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(processGroupEntity, response.getEntity());
+            assertNull(processGroupDto.getContents());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID);
+        verify(processGroupResource).populateRemainingProcessGroupEntityContent(processGroupEntity);
+    }
+
+    @Test
+    public void testGetConnectorProcessGroupNotAuthorized() {
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () ->
+            connectorResource.getConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID));
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade, never()).getConnectorProcessGroup(anyString(), anyString());
     }
 
     @Test

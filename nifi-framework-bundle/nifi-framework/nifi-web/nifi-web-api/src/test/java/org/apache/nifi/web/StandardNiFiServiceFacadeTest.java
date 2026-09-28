@@ -2253,6 +2253,26 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
+    public void testGetConnectorProcessGroupNotFound() {
+        final String connectorId = "connector-id";
+        final String processGroupId = "non-existent-process-group-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.findProcessGroup(processGroupId)).thenReturn(null);
+
+        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.getConnectorProcessGroup(connectorId, processGroupId));
+    }
+
+    @Test
     public void testGetConnectorControllerServiceState() {
         final String connectorId = "connector-id";
         final String controllerServiceId = "controller-service-id";

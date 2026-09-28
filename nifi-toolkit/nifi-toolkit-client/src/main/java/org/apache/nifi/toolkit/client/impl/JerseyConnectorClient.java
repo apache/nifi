@@ -38,6 +38,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.MigrationPayloadEntity;
 import org.apache.nifi.web.api.entity.MigrationRequestEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
@@ -585,6 +586,25 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
                     .resolveTemplate("processGroupId", processGroupId);
 
             return getRequestBuilder(target).get(ProcessGroupFlowEntity.class);
+        });
+    }
+
+    @Override
+    public ProcessGroupEntity getProcessGroup(final String connectorId, final String processGroupId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        return executeAction("Error retrieving process group for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                .path("/process-groups/{processGroupId}")
+                .resolveTemplate("id", connectorId)
+                .resolveTemplate("processGroupId", processGroupId);
+
+            return getRequestBuilder(target).get(ProcessGroupEntity.class);
         });
     }
 

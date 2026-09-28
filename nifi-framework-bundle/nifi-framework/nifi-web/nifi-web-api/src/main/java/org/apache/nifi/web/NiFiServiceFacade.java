@@ -2362,6 +2362,16 @@ public interface NiFiServiceFacade {
     ControllerServiceEntity getConnectorControllerService(String connectorId, String controllerServiceId, boolean includeReferencingComponents);
 
     /**
+     * Gets a process group within a connector's managed process group. Available regardless of whether
+     * the Connector is in Troubleshooting mode.
+     *
+     * @param connectorId    the connector id
+     * @param processGroupId the process group id
+     * @return the process group entity
+     */
+    ProcessGroupEntity getConnectorProcessGroup(String connectorId, String processGroupId);
+
+    /**
      * Gets the state for a controller service within a connector's managed process group.
      *
      * @param connectorId         the connector id

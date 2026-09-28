@@ -28,6 +28,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.MigrationPayloadEntity;
 import org.apache.nifi.web.api.entity.MigrationRequestEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
@@ -327,6 +328,18 @@ public interface ConnectorClient {
      * @throws IOException if an I/O error occurs
      */
     ProcessGroupFlowEntity getFlow(String connectorId, String processGroupId) throws NiFiClientException, IOException;
+
+    /**
+     * Gets a process group within a connector's managed flow. Available regardless of whether
+     * the Connector is in Troubleshooting mode.
+     *
+     * @param connectorId the connector ID
+     * @param processGroupId the process group ID within the connector's managed flow
+     * @return the process group entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ProcessGroupEntity getProcessGroup(String connectorId, String processGroupId) throws NiFiClientException, IOException;
 
     /**
      * Gets the status for the process group managed by a connector.

@@ -111,6 +111,7 @@ import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.MigrationPayloadEntity;
 import org.apache.nifi.web.api.entity.MigrationRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
@@ -172,6 +173,7 @@ public class ConnectorResource extends ApplicationResource {
     private Authorizer authorizer;
     private FlowResource flowResource;
     private ControllerServiceResource controllerServiceResource;
+    private ProcessGroupResource processGroupResource;
     private UploadRequestReplicator uploadRequestReplicator;
 
     private final RequestManager<VerifyConnectorConfigStepRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
@@ -2324,6 +2326,61 @@ public class ConnectorResource extends ApplicationResource {
     }
 
     /**
+     * Gets a process group within a connector. Available regardless of whether the Connector is in Troubleshooting mode.
+     *
+     * @param connectorId    the connector id
+     * @param processGroupId the process group id within the connector's managed flow
+     * @return a ProcessGroupEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/process-groups/{processGroupId}")
+    @Operation(
+            summary = "Gets a process group within a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ProcessGroupEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /connectors/{uuid}")
+            },
+            description = "Returns the Process Group entity for the specified group within the connector's managed flow. " +
+                    "The processGroupId can be obtained from the managedProcessGroupId field of the ConnectorDTO for the root " +
+                    "process group, or from child process groups within the flow. Available regardless of whether the Connector " +
+                    "is in Troubleshooting mode."
+    )
+    public Response getConnectorProcessGroup(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId,
+            @Parameter(description = "The process group id.", required = true)
+            @PathParam("processGroupId") final String processGroupId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        // Resolve the process group from the managed Process Group tree so the Troubleshooting access gate does not apply.
+        final ProcessGroupEntity entity = serviceFacade.getConnectorProcessGroup(connectorId, processGroupId);
+        processGroupResource.populateRemainingProcessGroupEntityContent(entity);
+
+        if (entity.getComponent() != null) {
+            entity.getComponent().setContents(null);
+        }
+
+        return generateOkResponse(entity).build();
+    }
+
+    /**
      * Gets the status history for a Process Group inside the Connector's managed flow. The status history is available
      * regardless of whether the Connector is in Troubleshooting mode.
      *
@@ -3546,6 +3603,11 @@ public class ConnectorResource extends ApplicationResource {
     @Autowired
     public void setControllerServiceResource(final ControllerServiceResource controllerServiceResource) {
         this.controllerServiceResource = controllerServiceResource;
+    }
+
+    @Autowired
+    public void setProcessGroupResource(final ProcessGroupResource processGroupResource) {
+        this.processGroupResource = processGroupResource;
     }
 
     @Autowired(required = false)
