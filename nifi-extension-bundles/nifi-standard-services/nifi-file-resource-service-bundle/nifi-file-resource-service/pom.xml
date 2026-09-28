@@ -26,10 +26,5 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-file-resource-service-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 </project>
