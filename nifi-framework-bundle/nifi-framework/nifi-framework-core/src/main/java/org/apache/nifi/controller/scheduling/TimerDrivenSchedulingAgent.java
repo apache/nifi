@@ -20,9 +20,11 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.tasks.ConnectableTask;
+import org.apache.nifi.controller.tasks.InvocationObserver;
 import org.apache.nifi.controller.tasks.InvocationResult;
 import org.apache.nifi.controller.tasks.ReportingTaskWrapper;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 
@@ -43,7 +45,8 @@ public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent
         try {
             noWorkYieldNanos = FormatUtils.getTimeDuration(boredYieldDuration, TimeUnit.NANOSECONDS);
         } catch (final IllegalArgumentException e) {
-            throw new RuntimeException("Failed to create SchedulingAgent because the " + NiFiProperties.BORED_YIELD_DURATION + " property is set to an invalid time duration: " + boredYieldDuration);
+            throw new IllegalStateException("Failed to create SchedulingAgent because the " + NiFiProperties.BORED_YIELD_DURATION
+                    + " property is set to an invalid time duration: " + boredYieldDuration, e);
         }
     }
 
@@ -69,12 +72,16 @@ public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent
     public void doSchedule(final Connectable connectable, final LifecycleState scheduleState) {
         final List<ScheduledFuture<?>> futures = new ArrayList<>();
         final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, scheduleState);
+        final boolean automaticScheduling = connectable.getSchedulingStrategy() == SchedulingStrategy.AUTO;
+        final int taskCount = automaticScheduling ? 1 : connectable.getMaxConcurrentTasks();
+        final long effectiveRunDurationNanos = automaticScheduling && connectable.isSessionBatchingSupported() ? TimeUnit.MILLISECONDS.toNanos(25L)
+                : connectable.getRunDuration(TimeUnit.NANOSECONDS);
 
-        for (int i = 0; i < connectable.getMaxConcurrentTasks(); i++) {
+        for (int i = 0; i < taskCount; i++) {
             // Determine the task to run and create it.
             final AtomicReference<ScheduledFuture<?>> futureRef = new AtomicReference<>();
 
-            final Runnable trigger = createTrigger(connectableTask, scheduleState, futureRef);
+            final Runnable trigger = createTrigger(connectableTask, scheduleState, futureRef, effectiveRunDurationNanos);
 
             // Schedule the task to run
             final ScheduledFuture<?> future = flowEngine.scheduleWithFixedDelay(trigger, 0L,
@@ -89,17 +96,18 @@ public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent
         }
 
         scheduleState.setFutures(futures);
-        logger.info("Scheduled {} to run with {} threads", connectable, connectable.getMaxConcurrentTasks());
+        logger.info("Scheduled {} to run with {} threads", connectable, taskCount);
     }
 
-    private Runnable createTrigger(final ConnectableTask connectableTask, final LifecycleState scheduleState, final AtomicReference<ScheduledFuture<?>> futureRef) {
+    private Runnable createTrigger(final ConnectableTask connectableTask, final LifecycleState scheduleState, final AtomicReference<ScheduledFuture<?>> futureRef,
+                                   final long effectiveRunDurationNanos) {
         final Connectable connectable = connectableTask.getConnectable();
         final Runnable yieldDetectionRunnable = new Runnable() {
             @Override
             public void run() {
                 // Call the task. It will return a boolean indicating whether or not we should yield
                 // based on a lack of work for to do for the component.
-                final InvocationResult invocationResult = connectableTask.invoke();
+                final InvocationResult invocationResult = connectableTask.invoke(effectiveRunDurationNanos, scheduleState::isScheduled, InvocationObserver.NO_OP);
                 if (invocationResult.isYield()) {
                     logger.debug("Yielding {} due to {}", connectable, invocationResult.getYieldExplanation());
                 }

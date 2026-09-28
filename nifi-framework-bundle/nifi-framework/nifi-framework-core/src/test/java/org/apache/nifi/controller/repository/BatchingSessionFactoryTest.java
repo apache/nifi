@@ -20,6 +20,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.metrics.GaugeRecord;
 import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
+import org.apache.nifi.controller.scheduling.SessionSchedulingObserver;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.metrics.CommitTiming;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,7 +72,7 @@ class BatchingSessionFactoryTest {
     void setFactory() {
         when(repositoryContext.getConnectable()).thenReturn(connectable);
         when(connectable.getIdentifier()).thenReturn(CONNECTABLE_ID);
-        final StandardProcessSession standardProcessSession = new StandardProcessSession(repositoryContext, taskTermination, new NopPerformanceTracker());
+        final StandardProcessSession standardProcessSession = new StandardProcessSession(repositoryContext, taskTermination, new NopPerformanceTracker(), SessionSchedulingObserver.NO_OP);
         factory = new BatchingSessionFactory(standardProcessSession);
     }
 

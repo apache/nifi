@@ -138,6 +138,7 @@ import org.apache.nifi.controller.scheduling.StandardLifecycleStateManager;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.scheduling.TimerDrivenSchedulingAgent;
 import org.apache.nifi.controller.scheduling.VirtualThreadSchedulingAgent;
+import org.apache.nifi.controller.scheduling.auto.AutoSchedulingDiagnostics;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSerializer;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
@@ -678,10 +679,12 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             flowAnalyzer.initialize(controllerServiceProvider);
         }
 
+        final int autoMaxConcurrentTasks = nifiProperties.getProcessorAutoMaxConcurrentTasks();
         if (virtualThreadSchedulingEnabled) {
-            this.virtualThreadSchedulingAgent = new VirtualThreadSchedulingAgent(this, repositoryContextFactory, this.nifiProperties, maxTimerDrivenThreads.get());
+            this.virtualThreadSchedulingAgent = new VirtualThreadSchedulingAgent(this, repositoryContextFactory, this.nifiProperties, maxTimerDrivenThreads.get(), autoMaxConcurrentTasks);
             processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, virtualThreadSchedulingAgent);
             processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, virtualThreadSchedulingAgent);
+            processScheduler.setSchedulingAgent(SchedulingStrategy.AUTO, virtualThreadSchedulingAgent);
             LOG.info("Component scheduling configured to use virtual threads with a maximum of {} concurrent tasks", maxTimerDrivenThreads.get());
         } else {
             this.virtualThreadSchedulingAgent = null;
@@ -690,6 +693,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final CronSchedulingAgent cronSchedulingAgent = new CronSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory);
             processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, timerDrivenAgent);
             processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, cronSchedulingAgent);
+            processScheduler.setSchedulingAgent(SchedulingStrategy.AUTO, timerDrivenAgent);
             LOG.info("Component scheduling configured to use a platform thread pool of {} threads", maxTimerDrivenThreads.get());
         }
 
@@ -1442,8 +1446,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final Processor processor = procNode.getProcessor();
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, processor.getClass(), processor.getIdentifier())) {
                 final Class<?> componentClass = processor == null ? null : processor.getClass();
-                final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider,
-                        getStateManagerProvider().getStateManager(processor.getIdentifier(), componentClass), () -> false, this);
+                final StandardProcessContext processContext = StandardProcessContext.createBuilder(procNode, controllerServiceProvider,
+                        getStateManagerProvider().getStateManager(processor.getIdentifier(), componentClass), () -> false, this).build();
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor, processContext);
             }
         }
@@ -2252,6 +2256,42 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         return virtualThreadSchedulingAgent.getActiveThreadCount();
     }
 
+    public AutoSchedulingDiagnostics getAutoSchedulingDiagnostics(final ProcessorNode processorNode) {
+        if (processorNode.getSchedulingStrategy() != SchedulingStrategy.AUTO) {
+            return null;
+        }
+
+        if (virtualThreadSchedulingAgent != null) {
+            final AutoSchedulingDiagnostics diagnostics = virtualThreadSchedulingAgent.getAutoSchedulingDiagnostics(processorNode.getIdentifier());
+            if (diagnostics != null) {
+                return diagnostics;
+            }
+
+            final int maxConcurrentTasks = processorNode.isTriggeredSerially() ? 1 : nifiProperties.getProcessorAutoMaxConcurrentTasks();
+            return AutoSchedulingDiagnostics.createBuilder()
+                    .setExecutionMode("adaptive")
+                    .setMaxConcurrentTasks(maxConcurrentTasks)
+                    .setCurrentConcurrentTasks(1)
+                    .setActiveProcessorInvocations(processorNode.getActiveThreadCount())
+                    .setConcurrencyEvaluationState("NOT_RUNNING")
+                    .setConcurrencyUpdateReason("PROCESSOR_NOT_RUNNING")
+                    .setConcurrencyIncreaseExplanation("Will not increase concurrent tasks because the Processor is not running.")
+                    .build();
+        }
+
+        final long runDurationMillis = processorNode.isSessionBatchingSupported() ? 25L : 0L;
+        return AutoSchedulingDiagnostics.createBuilder()
+                .setExecutionMode("platform fallback")
+                .setMaxConcurrentTasks(1)
+                .setCurrentConcurrentTasks(1)
+                .setActiveProcessorInvocations(processorNode.getActiveThreadCount())
+                .setCurrentRunDurationMillis(runDurationMillis)
+                .setConcurrencyEvaluationState("PLATFORM_FALLBACK")
+                .setConcurrencyUpdateReason("PLATFORM_THREAD_FALLBACK")
+                .setConcurrencyIncreaseExplanation("Will not increase concurrent tasks because platform-thread fallback uses one concurrent task.")
+                .build();
+    }
+
     public void setMaxTimerDrivenThreadCount(final int maxThreadCount) {
         if (maxThreadCount < 1) {
             throw new IllegalArgumentException("Cannot set max number of threads to less than 1");
@@ -2354,6 +2394,12 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
                 if (supportedTypes.containsKey(processor.getType())) {
                     verifyBundleInVersionedFlow(processor.getBundle(), supportedTypes.get(processor.getType()));
+                    if (SchedulingStrategy.AUTO.name().equals(processor.getSchedulingStrategy())) {
+                        final Bundle bundle = processor.getBundle();
+                        final BundleCoordinate coordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+                        final Object temporaryComponent = extensionManager.getTempComponent(processor.getType(), coordinate);
+                        ProcessorDetails.verifyAutoSchedulingSupported(temporaryComponent, processor.getName(), processor.getIdentifier());
+                    }
                 } else {
                     throw new IllegalStateException("Invalid Processor Type: " + processor.getType());
                 }

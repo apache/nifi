@@ -60,64 +60,18 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     private final NodeTypeProvider nodeTypeProvider;
     private final Map<PropertyDescriptor, String> properties;
     private final String annotationData;
+    private final int maxConcurrentTasks;
 
-    public StandardProcessContext(
-            final ProcessorNode processorNode,
-            final ControllerServiceProvider controllerServiceProvider,
-            final StateManager stateManager,
-            final TaskTermination taskTermination,
-            final NodeTypeProvider nodeTypeProvider
-    ) {
+    private StandardProcessContext(final Builder builder) {
+        procNode = builder.processorNode;
+        controllerServiceProvider = builder.controllerServiceProvider;
+        stateManager = builder.stateManager;
+        taskTermination = builder.taskTermination;
+        nodeTypeProvider = builder.nodeTypeProvider;
+        annotationData = builder.annotationData;
+        maxConcurrentTasks = builder.maxConcurrentTasks;
 
-        this(
-                processorNode,
-                controllerServiceProvider,
-                stateManager,
-                taskTermination,
-                nodeTypeProvider,
-                processorNode.getEffectivePropertyValues(),
-                processorNode.getAnnotationData()
-        );
-    }
-
-    public StandardProcessContext(
-            final ProcessorNode processorNode,
-            final Map<String, String> propertiesOverride,
-            final String annotationDataOverride,
-            final ParameterLookup parameterLookup,
-            final ControllerServiceProvider controllerServiceProvider,
-            final StateManager stateManager,
-            final TaskTermination taskTermination,
-            final NodeTypeProvider nodeTypeProvider
-    ) {
-        this(
-                processorNode,
-                controllerServiceProvider,
-                stateManager,
-                taskTermination,
-                nodeTypeProvider,
-                resolvePropertyValues(processorNode, parameterLookup, propertiesOverride),
-                annotationDataOverride
-        );
-    }
-
-    public StandardProcessContext(
-            final ProcessorNode processorNode,
-            final ControllerServiceProvider controllerServiceProvider,
-            final StateManager stateManager,
-            final TaskTermination taskTermination,
-            final NodeTypeProvider nodeTypeProvider,
-            final Map<PropertyDescriptor, String> propertyValues,
-            final String annotationData
-    ) {
-        this.procNode = processorNode;
-        this.controllerServiceProvider = controllerServiceProvider;
-        this.stateManager = stateManager;
-        this.taskTermination = taskTermination;
-        this.nodeTypeProvider = nodeTypeProvider;
-        this.annotationData = annotationData;
-
-        properties = Collections.unmodifiableMap(propertyValues);
+        properties = Collections.unmodifiableMap(builder.propertyValues);
 
         preparedQueries = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
@@ -131,6 +85,54 @@ public class StandardProcessContext implements ProcessContext, ControllerService
                 final PreparedQuery pq = Query.prepareWithParametersPreEvaluated(value);
                 preparedQueries.put(desc, pq);
             }
+        }
+    }
+
+    public static Builder createBuilder(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider,
+                                        final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
+        return new Builder(processorNode, controllerServiceProvider, stateManager, taskTermination, nodeTypeProvider);
+    }
+
+    public static final class Builder {
+        private final ProcessorNode processorNode;
+        private final ControllerServiceProvider controllerServiceProvider;
+        private final StateManager stateManager;
+        private final TaskTermination taskTermination;
+        private final NodeTypeProvider nodeTypeProvider;
+
+        private Map<PropertyDescriptor, String> propertyValues;
+        private String annotationData;
+        private int maxConcurrentTasks;
+
+        private Builder(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider,
+                        final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
+            this.processorNode = processorNode;
+            this.controllerServiceProvider = controllerServiceProvider;
+            this.stateManager = stateManager;
+            this.taskTermination = taskTermination;
+            this.nodeTypeProvider = nodeTypeProvider;
+            propertyValues = processorNode.getEffectivePropertyValues();
+            annotationData = processorNode.getAnnotationData();
+            maxConcurrentTasks = processorNode.getMaxConcurrentTasks();
+        }
+
+        public Builder setPropertyOverrides(final Map<String, String> propertyOverrides, final ParameterLookup parameterLookup) {
+            propertyValues = resolvePropertyValues(processorNode, parameterLookup, propertyOverrides);
+            return this;
+        }
+
+        public Builder setAnnotationData(final String annotationData) {
+            this.annotationData = annotationData;
+            return this;
+        }
+
+        public Builder setMaxConcurrentTasks(final int maxConcurrentTasks) {
+            this.maxConcurrentTasks = maxConcurrentTasks;
+            return this;
+        }
+
+        public StandardProcessContext build() {
+            return new StandardProcessContext(this);
         }
     }
 
@@ -219,7 +221,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     @Override
     public int getMaxConcurrentTasks() {
         verifyTaskActive();
-        return procNode.getMaxConcurrentTasks();
+        return maxConcurrentTasks;
     }
 
     @Override

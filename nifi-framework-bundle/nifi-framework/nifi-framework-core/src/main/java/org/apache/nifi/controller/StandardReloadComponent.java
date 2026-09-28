@@ -78,8 +78,8 @@ public class StandardReloadComponent implements ReloadComponent {
 
         final Class<?> componentClass = existingNode.getProcessor() == null ? null : existingNode.getProcessor().getClass();
         final StateManager stateManager = flowController.getStateManagerProvider().getStateManager(id, componentClass);
-        final StandardProcessContext processContext = new StandardProcessContext(existingNode, flowController.getControllerServiceProvider(),
-            stateManager, () -> false, flowController);
+        final StandardProcessContext processContext = StandardProcessContext.createBuilder(
+                existingNode, flowController.getControllerServiceProvider(), stateManager, () -> false, flowController).build();
 
         // Cleanup the URL ClassLoader for the existing processor instance.
         extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);

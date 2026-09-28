@@ -18,6 +18,7 @@ package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
+import org.apache.nifi.controller.scheduling.SessionSchedulingObserver;
 import org.apache.nifi.processor.ProcessSessionFactory;
 
 public class StandardProcessSessionFactory implements ProcessSessionFactory {
@@ -25,15 +26,18 @@ public class StandardProcessSessionFactory implements ProcessSessionFactory {
     private final RepositoryContext context;
     private final TaskTermination taskTermination;
     private final PerformanceTracker performanceTracker;
+    private final SessionSchedulingObserver schedulingObserver;
 
-    public StandardProcessSessionFactory(final RepositoryContext context, final TaskTermination taskTermination, final PerformanceTracker performanceTracker) {
+    public StandardProcessSessionFactory(final RepositoryContext context, final TaskTermination taskTermination, final PerformanceTracker performanceTracker,
+                                         final SessionSchedulingObserver schedulingObserver) {
         this.context = context;
         this.taskTermination = taskTermination;
         this.performanceTracker = performanceTracker;
+        this.schedulingObserver = schedulingObserver;
     }
 
     @Override
     public StandardProcessSession createSession() {
-        return new StandardProcessSession(context, taskTermination, performanceTracker);
+        return new StandardProcessSession(context, taskTermination, performanceTracker, schedulingObserver);
     }
 }

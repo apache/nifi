@@ -25,13 +25,16 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.junit.jupiter.api.BeforeEach;
@@ -205,6 +208,22 @@ class StandardProcessorDAOTest {
 
         // Should throw ResourceNotFoundException
         assertThrows(ResourceNotFoundException.class, () -> dao.verifyUpdate(processorDTO));
+    }
+
+    @Test
+    void testVerifyUpdateRejectsUnsupportedAutomaticScheduling() {
+        final ProcessorConfigDTO config = new ProcessorConfigDTO();
+        config.setSchedulingStrategy(SchedulingStrategy.AUTO.name());
+        final ProcessorDTO processorDTO = new ProcessorDTO();
+        processorDTO.setId("test-processor-id");
+        processorDTO.setConfig(config);
+        when(processorNode.isAutoSchedulingSupported()).thenReturn(false);
+        when(processorNode.getName()).thenReturn("Unsupported Processor");
+
+        final ValidationException exception = assertThrows(ValidationException.class, () -> dao.verifyUpdate(processorDTO));
+
+        assertEquals(List.of("Scheduling strategy AUTO is not supported by Processor Unsupported Processor [test-processor-id]"),
+                exception.getValidationErrors());
     }
 
     @Test
