@@ -160,12 +160,12 @@ jobs:
         with:
           python-version: '3.12'
       - name: Evaluate Changed Paths
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d
         id: changes
-        shell: bash
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          BEFORE_SHA: ${{ github.event.before }}
-        run: .github/scripts/build/evaluate-changed-paths.sh
+        with:
+          filters: |
+            frontend:
+              - 'nifi-frontend/**'
       - name: Maven Compile
         env:
           MAVEN_OPTS: >-
@@ -235,12 +235,12 @@ jobs:
         with:
           python-version: '3.12'
       - name: Evaluate Changed Paths
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d
         id: changes
-        shell: bash
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          BEFORE_SHA: ${{ github.event.before }}
-        run: .github/scripts/build/evaluate-changed-paths.sh
+        with:
+          filters: |
+            frontend:
+              - 'nifi-frontend/**'
       - name: Maven Compile
         env:
           MAVEN_OPTS: >-
@@ -304,12 +304,12 @@ jobs:
         with:
           python-version: '3.12'
       - name: Evaluate Changed Paths
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d
         id: changes
-        shell: bash
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          BEFORE_SHA: ${{ github.event.before }}
-        run: .github/scripts/build/evaluate-changed-paths.sh
+        with:
+          filters: |
+            frontend:
+              - 'nifi-frontend/**'
       - name: Maven Compile
         env:
           MAVEN_OPTS: >-
@@ -378,12 +378,12 @@ jobs:
           java-version: '21'
           cache: 'maven'
       - name: Evaluate Changed Paths
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d
         id: changes
-        shell: bash
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          BEFORE_SHA: ${{ github.event.before }}
-        run: .github/scripts/build/evaluate-changed-paths.sh
+        with:
+          filters: |
+            frontend:
+              - 'nifi-frontend/**'
       - name: Maven Compile
         env:
           MAVEN_OPTS: >-
