@@ -87,7 +87,7 @@ public class AllowableValuesIT {
         return new StandardConnectorTestRunner.Builder()
             .connectorClassName(CONNECTOR_CLASS)
             .narLibraryDirectory(new File("target/libDir"))
-            .instanceDirectory(temporaryDirectory)
+            .instanceDirectory(temporaryDirectory.toFile())
             .build();
     }
 }

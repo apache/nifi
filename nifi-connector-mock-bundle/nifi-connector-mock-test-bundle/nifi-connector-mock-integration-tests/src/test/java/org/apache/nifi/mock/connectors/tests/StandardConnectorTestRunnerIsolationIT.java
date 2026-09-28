@@ -30,17 +30,10 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -54,31 +47,17 @@ class StandardConnectorTestRunnerIsolationIT {
 
     @Test
     @Timeout(120)
-    void testConcurrentRunnersUseIndependentInstanceDirectories() throws Exception {
+    void testIndependentInstanceDirectories() throws Exception {
         final Path firstInstanceDirectory = temporaryDirectory.resolve("first");
         final Path secondInstanceDirectory = temporaryDirectory.resolve("second");
-        final ExecutorService executorService = Executors.newFixedThreadPool(2);
-        final Queue<StandardConnectorTestRunner> runners = new ConcurrentLinkedQueue<>();
+        StandardConnectorTestRunner firstRunner = createRunner(firstInstanceDirectory);
+        StandardConnectorTestRunner secondRunner = null;
 
         try {
-            final List<Callable<StandardConnectorTestRunner>> builders = List.of(
-                    () -> createRunner(firstInstanceDirectory, runners),
-                    () -> createRunner(secondInstanceDirectory, runners)
-            );
-            final List<Future<StandardConnectorTestRunner>> runnerFutures = executorService.invokeAll(builders);
-            final StandardConnectorTestRunner firstRunner = runnerFutures.get(0).get();
-            final StandardConnectorTestRunner secondRunner = runnerFutures.get(1).get();
+            secondRunner = createRunner(secondInstanceDirectory);
 
-            final Future<?> firstRun = executorService.submit(() -> {
-                startAndStop(firstRunner);
-                return null;
-            });
-            final Future<?> secondRun = executorService.submit(() -> {
-                startAndStop(secondRunner);
-                return null;
-            });
-            firstRun.get();
-            secondRun.get();
+            startAndStop(firstRunner);
+            startAndStop(secondRunner);
 
             addAsset(firstRunner, "first.txt", "first-runner");
             addAsset(secondRunner, "second.txt", "second-runner");
@@ -87,14 +66,19 @@ class StandardConnectorTestRunnerIsolationIT {
             assertEquals(Set.of("second-runner"), new HashSet<>(readAssetContents(secondInstanceDirectory)));
 
             firstRunner.close();
-            runners.remove(firstRunner);
+            firstRunner = null;
 
-            assertDoesNotThrow(secondRunner::validate);
+            secondRunner.validate();
             addAsset(secondRunner, "after-close.txt", "second-runner-after-close");
             assertEquals(Set.of("second-runner", "second-runner-after-close"), new HashSet<>(readAssetContents(secondInstanceDirectory)));
         } finally {
-            executorService.shutdownNow();
-            runners.forEach(StandardConnectorTestRunner::close);
+            if (firstRunner != null) {
+                firstRunner.close();
+            }
+
+            if (secondRunner != null) {
+                secondRunner.close();
+            }
         }
 
         assertTrue(Files.isDirectory(firstInstanceDirectory));
@@ -114,29 +98,21 @@ class StandardConnectorTestRunnerIsolationIT {
         assertThrows(RuntimeException.class, () -> new StandardConnectorTestRunner.Builder()
                 .connectorClassName("org.apache.nifi.mock.connectors.DoesNotExist")
                 .narLibraryDirectory(new File("target/libDir"))
-                .instanceDirectory(instanceDirectory)
+                .instanceDirectory(instanceDirectory.toFile())
                 .build());
 
         assertEquals("caller-owned", Files.readString(marker));
-        assertDoesNotThrow(() -> {
-            try (StandardConnectorTestRunner runner = createRunner(instanceDirectory)) {
-                runner.validate();
-            }
-        });
+        try (final StandardConnectorTestRunner runner = createRunner(instanceDirectory)) {
+            runner.validate();
+        }
     }
 
     private StandardConnectorTestRunner createRunner(final Path instanceDirectory) {
         return new StandardConnectorTestRunner.Builder()
                 .connectorClassName(CONNECTOR_CLASS)
                 .narLibraryDirectory(new File("target/libDir"))
-                .instanceDirectory(instanceDirectory)
+                .instanceDirectory(instanceDirectory.toFile())
                 .build();
-    }
-
-    private StandardConnectorTestRunner createRunner(final Path instanceDirectory, final Queue<StandardConnectorTestRunner> runners) {
-        final StandardConnectorTestRunner runner = createRunner(instanceDirectory);
-        runners.add(runner);
-        return runner;
     }
 
     private static void startAndStop(final StandardConnectorTestRunner runner) throws TimeoutException {
@@ -150,7 +126,7 @@ class StandardConnectorTestRunnerIsolationIT {
     }
 
     private static List<String> readAssetContents(final Path instanceDirectory) throws Exception {
-        try (Stream<Path> paths = Files.walk(instanceDirectory.resolve("connector-assets"))) {
+        try (final Stream<Path> paths = Files.walk(instanceDirectory.resolve("connector-assets"))) {
             return paths.filter(Files::isRegularFile)
                     .sorted()
                     .map(StandardConnectorTestRunnerIsolationIT::readString)

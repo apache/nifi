@@ -51,7 +51,7 @@ public class CreateConnectorIT {
         try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
             .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
             .narLibraryDirectory(new File("target/libDir"))
-            .instanceDirectory(temporaryDirectory)
+            .instanceDirectory(temporaryDirectory.toFile())
             .build()) {
 
             // Verify the active flow snapshot reflects the initial flow loaded from Generate_and_Update.json
@@ -80,7 +80,7 @@ public class CreateConnectorIT {
         try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
                 .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
                 .narLibraryDirectory(new File("target/libDir"))
-                .instanceDirectory(temporaryDirectory)
+                .instanceDirectory(temporaryDirectory.toFile())
                 .build()) {
 
             testRunner.startConnector();
@@ -95,7 +95,7 @@ public class CreateConnectorIT {
         try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
                 .connectorClassName("org.apache.nifi.mock.connectors.MissingBundleConnector")
                 .narLibraryDirectory(new File("target/libDir"))
-                .instanceDirectory(temporaryDirectory)
+                .instanceDirectory(temporaryDirectory.toFile())
                 .build()) {
 
             final List<ValidationResult> results = testRunner.validate();
@@ -111,7 +111,7 @@ public class CreateConnectorIT {
         try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
                 .connectorClassName("org.apache.nifi.mock.connectors.MissingBundleConnector")
                 .narLibraryDirectory(new File("target/libDir"))
-                .instanceDirectory(temporaryDirectory)
+                .instanceDirectory(temporaryDirectory.toFile())
                 .build()) {
 
             final IllegalStateException exception = assertThrows(IllegalStateException.class, testRunner::startConnector);

@@ -57,7 +57,7 @@ public class FlowSnapshotIT {
         try (final ConnectorTestRunner runner = new StandardConnectorTestRunner.Builder()
                 .connectorClassName(CONNECTOR_CLASS)
                 .narLibraryDirectory(new File("target/libDir"))
-                .instanceDirectory(temporaryDirectory)
+                .instanceDirectory(temporaryDirectory.toFile())
                 .build()) {
 
             final ByteArrayInputStream assetContents = new ByteArrayInputStream("certificate contents".getBytes(StandardCharsets.UTF_8));

@@ -49,7 +49,7 @@ public class MockProcessorIT {
             .narLibraryDirectory(new File("target/libDir"))
             .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
             .mockProcessor("org.apache.nifi.processors.attributes.UpdateAttribute", MockProcessor.class)
-            .instanceDirectory(temporaryDirectory)
+            .instanceDirectory(temporaryDirectory.toFile())
             .build()) {
 
             runner.startConnector();

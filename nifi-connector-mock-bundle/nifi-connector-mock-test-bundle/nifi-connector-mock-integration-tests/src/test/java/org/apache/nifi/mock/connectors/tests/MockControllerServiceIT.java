@@ -50,7 +50,7 @@ public class MockControllerServiceIT {
                 .narLibraryDirectory(new File("target/libDir"))
                 .connectorClassName("org.apache.nifi.mock.connectors.GenerateAndLog")
                 .mockControllerService("org.apache.nifi.lookup.SimpleKeyValueLookupService", MockStringLookupService.class)
-                .instanceDirectory(temporaryDirectory)
+                .instanceDirectory(temporaryDirectory.toFile())
                 .build()) {
 
             runner.startConnector();

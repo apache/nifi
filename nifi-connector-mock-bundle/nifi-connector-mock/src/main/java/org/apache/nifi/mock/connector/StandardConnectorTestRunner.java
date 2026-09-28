@@ -43,8 +43,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.HashMap;
@@ -58,30 +56,9 @@ import java.util.concurrent.TimeoutException;
 public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeable {
     private final File narLibraryDirectory;
     private final int httpPort;
-    private final Path instanceDirectory;
+    private final File instanceDirectory;
 
     private ConnectorMockServer mockServer;
-
-    static Properties getInstanceProperties(final Path instanceDirectory) {
-        final Properties properties = new Properties();
-        if (instanceDirectory == null) {
-            return properties;
-        }
-
-        properties.setProperty(NiFiProperties.FLOW_CONFIGURATION_FILE, instanceDirectory.resolve("conf/flow.json.gz").toString());
-        properties.setProperty(NiFiProperties.FLOW_CONFIGURATION_ARCHIVE_DIR, instanceDirectory.resolve("conf/archive").toString());
-        properties.setProperty(NiFiProperties.STATE_MANAGEMENT_CONFIG_FILE, instanceDirectory.resolve("conf/state-management.xml").toString());
-        properties.setProperty(NiFiProperties.REPOSITORY_DATABASE_DIRECTORY, instanceDirectory.resolve("database_repository").toString());
-        properties.setProperty(NiFiProperties.FLOWFILE_REPOSITORY_DIRECTORY, instanceDirectory.resolve("flowfile_repository").toString());
-        properties.setProperty(NiFiProperties.REPOSITORY_CONTENT_PREFIX + "default", instanceDirectory.resolve("content_repository").toString());
-        properties.setProperty(NiFiProperties.NAR_PERSISTENCE_PROVIDER_PROPERTIES_PREFIX + "directory", instanceDirectory.resolve("nar_repository").toString());
-        properties.setProperty(NiFiProperties.ASSET_MANAGER_PREFIX + "directory", instanceDirectory.resolve("assets").toString());
-        properties.setProperty(NiFiProperties.CONNECTOR_ASSET_MANAGER_PREFIX + "directory", instanceDirectory.resolve("connector-assets").toString());
-        properties.setProperty(NiFiProperties.NAR_WORKING_DIRECTORY, instanceDirectory.resolve("work").toString());
-        properties.setProperty(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, instanceDirectory.resolve("autoload").toString());
-        properties.setProperty(NiFiProperties.WEB_WORKING_DIR, instanceDirectory.resolve("work/jetty").toString());
-        return properties;
-    }
 
     private StandardConnectorTestRunner(final Builder builder) {
         this.narLibraryDirectory = builder.narLibraryDirectory;
@@ -91,7 +68,7 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
         try {
             bootstrapInstance();
         } catch (final Exception e) {
-            closeAfterFailure(e);
+            closeQuietly(e);
             throw new RuntimeException("Failed to bootstrap ConnectorTestRunner", e);
         }
 
@@ -107,12 +84,12 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
 
             mockServer.instantiateConnector(builder.connectorClassName);
         } catch (final RuntimeException e) {
-            closeAfterFailure(e);
+            closeQuietly(e);
             throw e;
         }
     }
 
-    private void closeAfterFailure(final Exception failure) {
+    private void closeQuietly(final Exception failure) {
         try {
             close();
         } catch (final RuntimeException e) {
@@ -128,7 +105,7 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
             extensionsWorkingDir = new File("target/work/extensions");
             frameworkWorkingDir = new File("target/work/framework");
         } else {
-            final File narWorkingDirectory = instanceDirectory.resolve("work").toFile();
+            final File narWorkingDirectory = new File(instanceDirectory, "work");
             extensionsWorkingDir = new File(narWorkingDirectory, "extensions");
             frameworkWorkingDir = new File(narWorkingDirectory, "framework");
         }
@@ -291,12 +268,36 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
         return mockServer.getWorkingFlowSnapshot();
     }
 
+    private static Properties getInstanceProperties(final File instanceDirectory) {
+        final Properties properties = new Properties();
+        if (instanceDirectory == null) {
+            return properties;
+        }
+
+        properties.setProperty(NiFiProperties.FLOW_CONFIGURATION_FILE, resolvePath(instanceDirectory, "conf/flow.json.gz"));
+        properties.setProperty(NiFiProperties.FLOW_CONFIGURATION_ARCHIVE_DIR, resolvePath(instanceDirectory, "conf/archive"));
+        properties.setProperty(NiFiProperties.STATE_MANAGEMENT_CONFIG_FILE, resolvePath(instanceDirectory, "conf/state-management.xml"));
+        properties.setProperty(NiFiProperties.REPOSITORY_DATABASE_DIRECTORY, resolvePath(instanceDirectory, "database_repository"));
+        properties.setProperty(NiFiProperties.FLOWFILE_REPOSITORY_DIRECTORY, resolvePath(instanceDirectory, "flowfile_repository"));
+        properties.setProperty(NiFiProperties.REPOSITORY_CONTENT_PREFIX + "default", resolvePath(instanceDirectory, "content_repository"));
+        properties.setProperty(NiFiProperties.NAR_PERSISTENCE_PROVIDER_PROPERTIES_PREFIX + "directory", resolvePath(instanceDirectory, "nar_repository"));
+        properties.setProperty(NiFiProperties.ASSET_MANAGER_PREFIX + "directory", resolvePath(instanceDirectory, "assets"));
+        properties.setProperty(NiFiProperties.CONNECTOR_ASSET_MANAGER_PREFIX + "directory", resolvePath(instanceDirectory, "connector-assets"));
+        properties.setProperty(NiFiProperties.NAR_WORKING_DIRECTORY, resolvePath(instanceDirectory, "work"));
+        properties.setProperty(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, resolvePath(instanceDirectory, "autoload"));
+        properties.setProperty(NiFiProperties.WEB_WORKING_DIR, resolvePath(instanceDirectory, "work/jetty"));
+        return properties;
+    }
+
+    private static String resolvePath(final File instanceDirectory, final String relativePath) {
+        return new File(instanceDirectory, relativePath).getAbsolutePath();
+    }
 
     public static class Builder {
         private String connectorClassName;
         private File narLibraryDirectory;
         private int httpPort = -1;
-        private Path instanceDirectory;
+        private File instanceDirectory;
         private final Map<String, Class<? extends Processor>> processorMocks = new HashMap<>();
         private final Map<String, Class<? extends ControllerService>> controllerServiceMocks = new HashMap<>();
 
@@ -315,10 +316,9 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
             return this;
         }
 
-        public Builder instanceDirectory(final Path instanceDirectory) {
+        public Builder instanceDirectory(final File instanceDirectory) {
             this.instanceDirectory = Objects.requireNonNull(instanceDirectory, "Instance Directory required")
-                    .toAbsolutePath()
-                    .normalize();
+                    .getAbsoluteFile();
             return this;
         }
 
@@ -337,12 +337,8 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
                 throw new IllegalArgumentException("NAR file does not exist or is not a directory: " + narLibraryDirectory.getAbsolutePath());
             }
 
-            if (instanceDirectory != null) {
-                try {
-                    Files.createDirectories(instanceDirectory);
-                } catch (final IOException e) {
-                    throw new UncheckedIOException("Failed to create instance directory: " + instanceDirectory, e);
-                }
+            if (instanceDirectory != null && !instanceDirectory.mkdirs() && !instanceDirectory.isDirectory()) {
+                throw new IllegalStateException("Failed to create instance directory: " + instanceDirectory.getAbsolutePath());
             }
 
             return new StandardConnectorTestRunner(this);
