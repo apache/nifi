@@ -30,6 +30,8 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
+import org.apache.nifi.controller.scheduling.CommittedSchedulingWork;
+import org.apache.nifi.controller.scheduling.SessionSchedulingObserver;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.status.LoadBalanceStatus;
 import org.apache.nifi.flowfile.FlowFile;
@@ -154,6 +156,9 @@ class StandardProcessSessionTest {
     @Captor
     ArgumentCaptor<ConnectionStatusEvent> connectionStatusEventCaptor;
 
+    @Captor
+    ArgumentCaptor<CommittedSchedulingWork> committedSchedulingWorkCaptor;
+
     StandardProcessSession session;
 
     @BeforeEach
@@ -165,7 +170,7 @@ class StandardProcessSessionTest {
         final FlowFileActivity flowFileActivity = mock(FlowFileActivity.class);
         when(connectable.getFlowFileActivity()).thenReturn(flowFileActivity);
 
-        session = new StandardProcessSession(repositoryContext, taskTermination, performanceTracker);
+        session = new StandardProcessSession(repositoryContext, taskTermination, performanceTracker, SessionSchedulingObserver.NO_OP);
     }
 
     @Test
@@ -188,6 +193,35 @@ class StandardProcessSessionTest {
         session.commit();
 
         verify(repositoryContext, never()).recordConnectionStatusEvent(connectionStatusEventCaptor.capture());
+    }
+
+    @Test
+    void testSchedulingObserverExcludesNamedSelfLoopReturnFromCommittedInputWork() {
+        final SessionSchedulingObserver observer = mock(SessionSchedulingObserver.class);
+        session = new StandardProcessSession(repositoryContext, taskTermination, performanceTracker, observer);
+        setRepositoryContext();
+        when(repositoryContext.getContentRepository()).thenReturn(contentRepository);
+        when(repositoryContext.isRecordConnectionStatusEventEnabled()).thenReturn(false);
+
+        final Connection connection = mock(Connection.class);
+        final FlowFileRecord flowFileRecord = mock(FlowFileRecord.class);
+        final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
+        when(repositoryContext.getPollableConnections()).thenReturn(List.of(connection));
+        when(connection.poll(anySet())).thenReturn(flowFileRecord);
+        when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
+        when(connection.getIdentifier()).thenReturn(INPUT_CONNECTION_ID);
+        when(flowFileRecord.getSize()).thenReturn(EXPECTED_BYTES);
+        final Relationship selfLoopRelationship = new Relationship.Builder().name("retry").build();
+        when(repositoryContext.getConnections(selfLoopRelationship)).thenReturn(List.of(connection));
+
+        final FlowFile flowFile = session.get();
+        session.transfer(flowFile, selfLoopRelationship);
+        session.commit();
+
+        verify(observer).onCommit(committedSchedulingWorkCaptor.capture());
+        final CommittedSchedulingWork committedWork = committedSchedulingWorkCaptor.getValue();
+        assertEquals(0L, committedWork.inputFlowFiles());
+        assertEquals(0L, committedWork.producedFlowFiles());
     }
 
     @Test
@@ -304,7 +338,7 @@ class StandardProcessSessionTest {
         final FlowFile flowFile = session.get();
         assertNotNull(flowFile);
 
-        final StandardProcessSession newOwner = new StandardProcessSession(repositoryContext, taskTermination, performanceTracker);
+        final StandardProcessSession newOwner = new StandardProcessSession(repositoryContext, taskTermination, performanceTracker, SessionSchedulingObserver.NO_OP);
         session.migrate(newOwner);
 
         when(flowFileQueue.getBackPressureDataSizeThreshold()).thenReturn(BACK_PRESSURE_DATA_SIZE_THRESHOLD);

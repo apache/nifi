@@ -27,6 +27,7 @@ import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
+import org.apache.nifi.controller.scheduling.SessionSchedulingObserver;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.util.FormatUtils;
@@ -62,7 +63,7 @@ public class ExpireFlowFiles implements Runnable {
 
     private StandardProcessSession createSession(final Connectable connectable) {
         final RepositoryContext context = contextFactory.newProcessContext(connectable, new AtomicLong(0L));
-        final StandardProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(context, () -> false, new NopPerformanceTracker());
+        final StandardProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(context, () -> false, new NopPerformanceTracker(), SessionSchedulingObserver.NO_OP);
         return sessionFactory.createSession();
     }
 

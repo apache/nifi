@@ -18,11 +18,13 @@
 package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.dto.diagnostics.AutoSchedulingDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ConnectionDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ConnectionDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ControllerServiceDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.LocalQueuePartitionDTO;
+import org.apache.nifi.web.api.dto.diagnostics.NodeAutoSchedulingDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.NodeJVMDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.RemoteQueuePartitionDTO;
@@ -50,6 +52,7 @@ public class ProcessorDiagnosticsEntityMerger implements ComponentEntityMerger<P
         final ProcessorDiagnosticsDTO clientDto = clientEntity.getComponent();
 
         final List<NodeJVMDiagnosticsSnapshotDTO> nodeJvmDiagnosticsSnapshots = new ArrayList<>(entityMap.size());
+        final List<NodeAutoSchedulingDiagnosticsDTO> nodeAutoSchedulingDiagnostics = new ArrayList<>(entityMap.size());
 
         // Merge connection diagnostics
         mergeConnectionDiagnostics(clientEntity, entityMap, entity -> entity.getComponent().getIncomingConnections());
@@ -73,8 +76,22 @@ public class ProcessorDiagnosticsEntityMerger implements ComponentEntityMerger<P
             nodeJvmDiagnosticsSnapshot.setNodeId(nodeId.getId());
             nodeJvmDiagnosticsSnapshot.setSnapshot(diagnosticsDto.getJvmDiagnostics().getAggregateSnapshot());
             nodeJvmDiagnosticsSnapshots.add(nodeJvmDiagnosticsSnapshot);
+
+            final AutoSchedulingDiagnosticsDTO autoSchedulingDiagnostics = diagnosticsDto.getAutoSchedulingDiagnostics();
+            if (autoSchedulingDiagnostics != null) {
+                final NodeAutoSchedulingDiagnosticsDTO nodeDiagnostics = new NodeAutoSchedulingDiagnosticsDTO();
+                nodeDiagnostics.setNodeId(nodeId.getId());
+                nodeDiagnostics.setAddress(nodeId.getApiAddress());
+                nodeDiagnostics.setApiPort(nodeId.getApiPort());
+                nodeDiagnostics.setSnapshot(autoSchedulingDiagnostics);
+                nodeAutoSchedulingDiagnostics.add(nodeDiagnostics);
+            }
         }
         clientDto.getJvmDiagnostics().setNodeSnapshots(nodeJvmDiagnosticsSnapshots);
+        if (!nodeAutoSchedulingDiagnostics.isEmpty()) {
+            clientDto.setAutoSchedulingDiagnostics(null);
+            clientDto.setNodeAutoSchedulingDiagnostics(nodeAutoSchedulingDiagnostics);
+        }
 
         // Merge JVM Diagnostics and thread dumps
         final JVMDiagnosticsSnapshotDTO mergedJvmDiagnosticsSnapshot = clientDto.getJvmDiagnostics().getAggregateSnapshot().clone();

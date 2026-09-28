@@ -25,6 +25,16 @@ import java.util.concurrent.TimeUnit;
 
 public interface SchedulingAgent {
 
+    /**
+     * Returns the stable concurrency ceiling exposed through the ProcessContext.
+     *
+     * @param connectable component being scheduled
+     * @return ProcessContext concurrency ceiling
+     */
+    default int getProcessContextConcurrencyLimit(final Connectable connectable) {
+        return connectable.getMaxConcurrentTasks();
+    }
+
     void schedule(Connectable connectable, LifecycleState scheduleState);
 
     void scheduleOnce(Connectable connectable, LifecycleState scheduleState, Callable<Future<Void>> stopCallback);

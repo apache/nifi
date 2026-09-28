@@ -26,6 +26,7 @@ import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.processor.FlowFileFilter;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -49,6 +50,8 @@ public interface LocalQueuePartition extends QueuePartition {
      * @return <code>true</code> if there is at least one FlowFile that has not yet been acknowledged, <code>false</code> if all FlowFiles have been acknowledged.
      */
     boolean isUnacknowledgedFlowFile();
+
+    Instant getNextFlowFileAvailabilityTime();
 
     /**
      * Returns a single FlowFile with the highest priority that is available in the partition, or <code>null</code> if no FlowFile is available

@@ -89,8 +89,8 @@ public class StatelessReloadComponent implements ReloadComponent {
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
             final Class<?> componentClass = existingNode.getProcessor() == null ? null : existingNode.getProcessor().getClass();
             final StateManager stateManager = statelessEngine.getStateManagerProvider().getStateManager(id, componentClass);
-            final StandardProcessContext processContext = new StandardProcessContext(existingNode, statelessEngine.getControllerServiceProvider(),
-                stateManager, () -> false, new StatelessNodeTypeProvider());
+            final StandardProcessContext processContext = StandardProcessContext.createBuilder(
+                    existingNode, statelessEngine.getControllerServiceProvider(), stateManager, () -> false, new StatelessNodeTypeProvider()).build();
 
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getProcessor(), processContext);
         } finally {
@@ -111,8 +111,8 @@ public class StatelessReloadComponent implements ReloadComponent {
 
         // Notify the processor node that the configuration (properties, e.g.) has been restored
         final Class<?> componentClass = existingNode.getProcessor() == null ? null : existingNode.getProcessor().getClass();
-        final StandardProcessContext processContext = new StandardProcessContext(existingNode, statelessEngine.getControllerServiceProvider(),
-                statelessEngine.getStateManagerProvider().getStateManager(id, componentClass), () -> false, new StatelessNodeTypeProvider());
+        final StandardProcessContext processContext = StandardProcessContext.createBuilder(existingNode, statelessEngine.getControllerServiceProvider(),
+                statelessEngine.getStateManagerProvider().getStateManager(id, componentClass), () -> false, new StatelessNodeTypeProvider()).build();
         existingNode.onConfigurationRestored(processContext);
 
         logger.debug("Successfully reloaded {}", existingNode);

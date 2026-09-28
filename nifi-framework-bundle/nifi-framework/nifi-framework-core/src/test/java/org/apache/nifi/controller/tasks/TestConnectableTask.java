@@ -29,51 +29,38 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RepositoryContext;
+import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.StandardRepositoryContext;
 import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
+import org.apache.nifi.controller.scheduling.auto.ProcessorSchedulingMeasurements;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.when;
 
 public class TestConnectableTask {
-
-    private ConnectableTask createTask(final Connectable connectable) {
-        final FlowController flowController = mock(FlowController.class);
-        when(flowController.getStateManagerProvider()).thenReturn(mock(StateManagerProvider.class));
-        when(flowController.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
-
-        final RepositoryContext repoContext = mock(StandardRepositoryContext.class);
-        when(repoContext.getFlowFileEventRepository()).thenReturn(mock(FlowFileEventRepository.class));
-
-        when(flowController.getGarbageCollectionLog()).thenReturn(mock(GarbageCollectionLog.class));
-
-        final RepositoryContextFactory contextFactory = mock(RepositoryContextFactory.class);
-        when(contextFactory.newProcessContext(any(Connectable.class), any(AtomicLong.class))).thenReturn(repoContext);
-
-        final LifecycleState lifecycleState = new LifecycleState(connectable.getIdentifier());
-        lifecycleState.setScheduled(true);
-
-        return new ConnectableTask(mock(SchedulingAgent.class), connectable,
-                flowController, contextFactory, lifecycleState);
-    }
 
     @Test
     public void testInvokeDoesNotHoldTaskMonitorDuringProcessorInvocation() {
@@ -100,6 +87,31 @@ public class TestConnectableTask {
 
         assertTrue(processorInvoked.get());
         assertFalse(taskMonitorHeld.get());
+    }
+
+    @Test
+    public void testAutomaticBatchEndsAtFirstEmptyTrigger() {
+        final ProcessorNode processorNode = mock(ProcessorNode.class);
+        when(processorNode.getIdentifier()).thenReturn("batch-source");
+        when(processorNode.getRunnableComponent()).thenReturn(mock(Processor.class));
+        when(processorNode.getRelationships()).thenReturn(Collections.emptySet());
+        when(processorNode.getIncomingConnections()).thenReturn(Collections.emptyList());
+        when(processorNode.getScheduledState()).thenReturn(ScheduledState.RUNNING);
+        when(processorNode.isSessionBatchingSupported()).thenReturn(true);
+        final InvocationObserver observer = new ProcessorSchedulingMeasurements().createInvocationObserver();
+        final AtomicInteger invocations = new AtomicInteger();
+        doAnswer(invocation -> {
+            if (invocations.incrementAndGet() == 1) {
+                observer.onActivity();
+            }
+
+            return null;
+        }).when(processorNode).onTrigger(any(), any());
+
+        try (final MockedConstruction<StandardProcessSession> ignored = mockConstruction(StandardProcessSession.class)) {
+            createTask(processorNode).invoke(TimeUnit.SECONDS.toNanos(1), () -> true, observer);
+            assertEquals(2, invocations.get());
+        }
     }
 
     @Test
@@ -216,5 +228,25 @@ public class TestConnectableTask {
         assertFalse(task.invoke().isYield(),
                 "When a Funnel has both incoming and outgoing connections and FlowFiles to process," +
                         " then it should be executed.");
+    }
+
+    private ConnectableTask createTask(final Connectable connectable) {
+        final FlowController flowController = mock(FlowController.class);
+        when(flowController.getStateManagerProvider()).thenReturn(mock(StateManagerProvider.class));
+        when(flowController.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
+
+        final RepositoryContext repoContext = mock(StandardRepositoryContext.class);
+        when(repoContext.getFlowFileEventRepository()).thenReturn(mock(FlowFileEventRepository.class));
+
+        when(flowController.getGarbageCollectionLog()).thenReturn(mock(GarbageCollectionLog.class));
+
+        final RepositoryContextFactory contextFactory = mock(RepositoryContextFactory.class);
+        when(contextFactory.newProcessContext(any(Connectable.class), any(AtomicLong.class))).thenReturn(repoContext);
+
+        final LifecycleState lifecycleState = new LifecycleState(connectable.getIdentifier());
+        lifecycleState.setScheduled(true);
+
+        return new ConnectableTask(mock(SchedulingAgent.class), connectable,
+                flowController, contextFactory, lifecycleState);
     }
 }

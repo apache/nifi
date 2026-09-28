@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.annotation.behavior.AllowsAutoScheduling;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -38,6 +39,7 @@ public class ProcessorDetails {
     private final boolean triggeredSerially;
     private final boolean triggerWhenAnyDestinationAvailable;
     private final boolean batchSupported;
+    private final boolean autoSchedulingSupported;
     private final boolean executionNodeRestricted;
     private final InputRequirement.Requirement inputRequirement;
     private final TerminationAwareLogger componentLog;
@@ -52,6 +54,8 @@ public class ProcessorDetails {
         this.triggerWhenEmpty = procClass.isAnnotationPresent(TriggerWhenEmpty.class);
         this.sideEffectFree = procClass.isAnnotationPresent(SideEffectFree.class);
         this.batchSupported = procClass.isAnnotationPresent(SupportsBatching.class);
+        final AllowsAutoScheduling allowsAutoScheduling = procClass.getAnnotation(AllowsAutoScheduling.class);
+        this.autoSchedulingSupported = allowsAutoScheduling == null || allowsAutoScheduling.value();
         this.triggeredSerially = procClass.isAnnotationPresent(TriggerSerially.class);
         this.triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class);
         this.executionNodeRestricted = procClass.isAnnotationPresent(PrimaryNodeOnly.class);
@@ -90,6 +94,23 @@ public class ProcessorDetails {
 
     public boolean isBatchSupported() {
         return batchSupported;
+    }
+
+    public boolean isAutoSchedulingSupported() {
+        return autoSchedulingSupported;
+    }
+
+    public static void verifyAutoSchedulingSupported(final Object component, final String name, final String identifier) {
+        if (!(component instanceof final Processor processor)) {
+            throw new IllegalStateException("Processor " + name + " [" + identifier
+                    + "] cannot use scheduling strategy AUTO because its automatic scheduling capability could not be resolved");
+        }
+
+        final AllowsAutoScheduling capability = processor.getClass().getAnnotation(AllowsAutoScheduling.class);
+        if (capability != null && !capability.value()) {
+            throw new IllegalStateException("Processor " + name + " [" + identifier
+                    + "] cannot use scheduling strategy AUTO because its implementation disables automatic scheduling");
+        }
     }
 
     public boolean isExecutionNodeRestricted() {

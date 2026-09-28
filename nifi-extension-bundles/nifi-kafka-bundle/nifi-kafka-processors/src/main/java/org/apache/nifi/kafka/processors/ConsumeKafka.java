@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.kafka.processors;
 
+import org.apache.nifi.annotation.behavior.AllowsAutoScheduling;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -131,6 +132,8 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @SeeAlso({PublishKafka.class})
+// Changing the number of concurrent tasks changes the number of Kafka consumers.
+@AllowsAutoScheduling(false)
 public class ConsumeKafka extends AbstractProcessor implements VerifiableProcessor, BacklogReportingProcessor {
 
     static final AllowableValue TOPIC_NAME = new AllowableValue("names", "names", "Topic is a full topic name or comma separated list of names");
