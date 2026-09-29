@@ -16,7 +16,9 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { FormBuilder } from '@angular/forms';
@@ -114,6 +116,22 @@ describe('ComponentStateDialog', () => {
         fixture.detectChanges();
     });
 
+    async function renderVirtualRows(): Promise<void> {
+        const viewportDe = fixture.debugElement.query(By.directive(CdkVirtualScrollViewport));
+        const viewport = viewportDe.componentInstance as CdkVirtualScrollViewport;
+        Object.defineProperty(viewportDe.nativeElement, 'clientHeight', {
+            configurable: true,
+            get: () => 400
+        });
+        Object.defineProperty(viewportDe.nativeElement, 'clientWidth', {
+            configurable: true,
+            get: () => 800
+        });
+        viewport.checkViewportSize();
+        await fixture.whenStable();
+        fixture.detectChanges();
+    }
+
     it('should create', () => {
         expect(component).toBeTruthy();
     });
@@ -138,8 +156,30 @@ describe('ComponentStateDialog', () => {
         });
 
         it('should include actions column when canClear and dropStateKeySupported are true', () => {
-            expect(component.displayedColumns).toContain('actions');
-            expect(component.canClear).toBe(true);
+            expect(component.displayedColumns).toEqual(['key', 'value', 'actions']);
+            expect(component.canClear()).toBe(true);
+            expect(fixture.nativeElement.querySelector('thead .action-column')).toBeTruthy();
+        });
+
+        it('should place scope before actions when connected to a cluster', () => {
+            store.setState({
+                [errorFeatureKey]: initialErrorState,
+                [currentUserFeatureKey]: initialCurrentUserState,
+                [clusterSummaryFeatureKey]: {
+                    ...clusterSummaryInitialState,
+                    clusterSummary: {
+                        clustered: true,
+                        connectedToCluster: true,
+                        connectedNodeCount: 2,
+                        totalNodeCount: 2
+                    }
+                },
+                [flowConfigurationFeatureKey]: flowConfigInitialState,
+                [componentStateFeatureKey]: mockInitialState
+            });
+            fixture.detectChanges();
+
+            expect(component.displayedColumns).toEqual(['key', 'value', 'scope', 'actions']);
         });
 
         it('should initialize currentSortColumn and currentSortDirection', () => {
@@ -308,6 +348,167 @@ describe('ComponentStateDialog', () => {
                     }
                 })
             );
+        });
+
+        it('should not dispatch when the listing is partial', () => {
+            component.partialResults = true;
+            vi.mocked(store.dispatch).mockClear();
+
+            component.clearComponentStateEntry({
+                key: 'local-key1',
+                value: 'local-value1',
+                scope: 'node1:8443'
+            });
+
+            expect(store.dispatch).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('partial listing', () => {
+        const truncatedLocalState: ComponentState = {
+            ...mockComponentState,
+            localState: {
+                scope: 'LOCAL',
+                state: [{ key: 'key1', value: 'value1' }],
+                totalEntryCount: 5
+            },
+            clusterState: undefined
+        };
+
+        const completeLocalState: ComponentState = {
+            ...mockComponentState,
+            localState: {
+                scope: 'LOCAL',
+                state: [{ key: 'key1', value: 'value1' }],
+                totalEntryCount: 1
+            },
+            clusterState: undefined
+        };
+
+        const truncatedClusterState: ComponentState = {
+            ...mockComponentState,
+            localState: {
+                scope: 'LOCAL',
+                state: [{ key: 'local-key1', value: 'local-value1', clusterNodeAddress: 'node1:8443' }],
+                totalEntryCount: 1
+            },
+            clusterState: {
+                scope: 'CLUSTER',
+                state: [{ key: 'cluster-key1', value: 'cluster-value1' }],
+                totalEntryCount: 5
+            }
+        };
+
+        function emitComponentState(componentState: ComponentState): void {
+            store.setState({
+                [errorFeatureKey]: initialErrorState,
+                [currentUserFeatureKey]: initialCurrentUserState,
+                [clusterSummaryFeatureKey]: clusterSummaryInitialState,
+                [flowConfigurationFeatureKey]: flowConfigInitialState,
+                [componentStateFeatureKey]: {
+                    ...mockInitialState,
+                    componentState
+                }
+            });
+            fixture.changeDetectorRef.markForCheck();
+        }
+
+        it('should hide the actions column and delete buttons when the listing is truncated', () => {
+            emitComponentState(truncatedLocalState);
+            fixture.detectChanges();
+
+            expect(component.partialResults).toBe(true);
+            expect(component.displayedColumns).not.toContain('actions');
+            expect(fixture.nativeElement.querySelector('thead .action-column')).toBeNull();
+            expect(fixture.nativeElement.querySelector('[data-qa="component-state-clear-entry"]')).toBeNull();
+        });
+
+        it('should still dispatch clearComponentState when the listing is partial', () => {
+            emitComponentState(truncatedLocalState);
+            vi.mocked(store.dispatch).mockClear();
+
+            component.clearState();
+
+            expect(store.dispatch).toHaveBeenCalledWith(ComponentStateActions.clearComponentState());
+        });
+
+        it('should show the partial-results banner when truncated', () => {
+            emitComponentState(truncatedLocalState);
+            fixture.detectChanges();
+
+            const banner = fixture.nativeElement.querySelector(
+                '[data-qa="component-state-partial-results-message"]'
+            ) as HTMLElement;
+            expect(banner).toBeTruthy();
+            expect(banner.textContent).toContain('Showing partial results');
+            expect(banner.textContent).toContain(
+                'Individual entries cannot be cleared while only partial results are shown'
+            );
+        });
+
+        it('should omit individual-clear copy on a partial listing when dropStateKeySupported is false', () => {
+            emitComponentState({
+                ...truncatedLocalState,
+                dropStateKeySupported: false
+            });
+            fixture.detectChanges();
+
+            const banner = fixture.nativeElement.querySelector(
+                '[data-qa="component-state-partial-results-message"]'
+            ) as HTMLElement;
+            expect(banner).toBeTruthy();
+            expect(banner.textContent).toContain('Showing partial results');
+            expect(banner.textContent).not.toContain('Individual entries cannot be cleared');
+        });
+
+        it('should not show the partial-results banner when the listing is complete', () => {
+            expect(
+                fixture.nativeElement.querySelector('[data-qa="component-state-partial-results-message"]')
+            ).toBeNull();
+        });
+
+        it('should restore the actions column after a complete listing replaces a truncated one', async () => {
+            emitComponentState(truncatedLocalState);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            expect(component.partialResults).toBe(true);
+            expect(component.displayedColumns).not.toContain('actions');
+            expect(fixture.nativeElement.querySelector('thead .action-column')).toBeNull();
+
+            emitComponentState(completeLocalState);
+            await fixture.whenStable();
+            fixture.detectChanges();
+            await renderVirtualRows();
+
+            expect(component.partialResults).toBe(false);
+            expect(component.displayedColumns).toContain('actions');
+            expect(fixture.nativeElement.querySelector('thead .action-column')).toBeTruthy();
+            expect(fixture.nativeElement.querySelector('[data-qa="component-state-clear-entry"]')).toBeTruthy();
+        });
+
+        it('should hide the actions column when only the cluster map is truncated', () => {
+            store.setState({
+                [errorFeatureKey]: initialErrorState,
+                [currentUserFeatureKey]: initialCurrentUserState,
+                [clusterSummaryFeatureKey]: {
+                    ...clusterSummaryInitialState,
+                    clusterSummary: {
+                        clustered: true,
+                        connectedToCluster: true,
+                        connectedNodeCount: 2,
+                        totalNodeCount: 2
+                    }
+                },
+                [flowConfigurationFeatureKey]: flowConfigInitialState,
+                [componentStateFeatureKey]: {
+                    ...mockInitialState,
+                    componentState: truncatedClusterState
+                }
+            });
+            fixture.detectChanges();
+
+            expect(component.partialResults).toBe(true);
+            expect(component.displayedColumns).toEqual(['key', 'value', 'scope']);
         });
     });
 

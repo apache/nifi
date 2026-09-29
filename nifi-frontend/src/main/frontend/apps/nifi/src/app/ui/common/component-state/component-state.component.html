@@ -32,7 +32,6 @@
                     {{ stateDescription }}
                 </div>
             </div>
-            @let dropStateKeySupported = (dropStateKeySupported$ | async)!;
             <div class="flex flex-col">
                 <div>
                     State Deletion Policy
@@ -43,7 +42,7 @@
                         tooltipInputData="In order to clear state this component must be stopped or disabled."></i>
                 </div>
                 <div class="tertiary-color font-medium">
-                    @if (dropStateKeySupported) {
+                    @if (dropStateKeySupported()) {
                         When clearing state this component supports deleting the entire state or individual entries.
                     } @else {
                         When clearing state this component only supports deleting the entire state.
@@ -59,7 +58,7 @@
                                 <mat-label>Filter</mat-label>
                                 <input matInput type="text" class="small" formControlName="filterTerm" />
                             </mat-form-field>
-                            @if (canClear && totalEntries > 0) {
+                            @if (canClear() && totalEntries > 0) {
                                 <button type="button" [disabled]="isClearing" (click)="clearState()" mat-button>
                                     <span *nifiSpinner="isClearing">Clear state</span>
                                 </button>
@@ -141,6 +140,7 @@
                                             <td class="mat-mdc-cell mdc-data-table__cell action-column">
                                                 <button
                                                     [disabled]="clearing()"
+                                                    data-qa="component-state-clear-entry"
                                                     mat-icon-button
                                                     color="primary"
                                                     (click)="clearComponentStateEntry(item)"
@@ -157,7 +157,12 @@
                 </div>
             </div>
             @if (partialResults) {
-                <div class="-mt-3">Showing partial results</div>
+                <div class="-mt-3" data-qa="component-state-partial-results-message">
+                    Showing partial results.
+                    @if (dropStateKeySupported()) {
+                        Individual entries cannot be cleared while only partial results are shown.
+                    }
+                </div>
             }
         </div>
     </mat-dialog-content>
