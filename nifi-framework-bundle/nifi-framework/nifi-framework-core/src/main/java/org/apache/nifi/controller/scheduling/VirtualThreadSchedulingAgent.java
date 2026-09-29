@@ -79,6 +79,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.BooleanSupplier;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
 /**
  * Scheduling agent that runs components on virtual threads. A {@link DynamicSemaphore}
@@ -89,6 +92,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     private static final Logger logger = LoggerFactory.getLogger(VirtualThreadSchedulingAgent.class);
 
     private static final long PERMIT_POLL_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(1L);
+    private static final long NON_BATCHED_PROCESSOR_BURST_NANOS = TimeUnit.MILLISECONDS.toNanos(10L);
 
     private final FlowController flowController;
     private final RepositoryContextFactory contextFactory;
@@ -317,11 +321,17 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                         }
 
                         invocationAttempted = true;
-                        final InvocationObserver observer = state.measurements.createInvocationObserver();
-                        final InvocationResult result = state.connectableTask.invoke(schedulingSettings.runDurationNanos(),
-                                () -> isActive(state.lifecycleState, state.generation) && !worker.retired.get()
-                                        && state.schedulingSettings.get() == schedulingSettings, observer);
-                        state.recordInvocationResult(result);
+                        final long burstNanos = state.batchingSupported || state.sourceProcessor ? 0L : NON_BATCHED_PROCESSOR_BURST_NANOS;
+                        invokeWithBurst(burstNanos, System::nanoTime,
+                                () -> shouldContinueNonBatchedProcessorBurst(state, worker, schedulingSettings),
+                                () -> {
+                                    final InvocationObserver observer = state.measurements.createInvocationObserver();
+                                    final InvocationResult result = state.connectableTask.invoke(schedulingSettings.runDurationNanos(),
+                                            () -> isActive(state.lifecycleState, state.generation) && !worker.retired.get()
+                                                    && state.schedulingSettings.get() == schedulingSettings, observer);
+                                    state.recordInvocationResult(result);
+                                    return result;
+                                });
                     } else {
                         concurrentTaskSlotUnavailable = true;
                     }
@@ -352,6 +362,33 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         } finally {
             state.workerStopped(worker);
         }
+    }
+
+    /**
+     * Allows a queue-consuming Processor without session batching support to perform additional independent invocations before
+     * releasing its global permit. Each invocation uses its normal Process Session and commit behavior. The bounded burst avoids
+     * making very short invocations repeatedly wait behind long-running invocations while preserving time-based fairness. The next
+     * invocation performs the authoritative input and backpressure readiness check, avoiding duplicate connection scans here.
+     */
+    private boolean shouldContinueNonBatchedProcessorBurst(final ProcessorAutoSchedulingState state, final ProcessorTaskWorker worker,
+                                                           final SchedulingSettings schedulingSettings) {
+        return !Thread.currentThread().isInterrupted()
+                && isActive(state.lifecycleState, state.generation)
+                && !worker.retired.get()
+                && state.schedulingSettings.get() == schedulingSettings;
+    }
+
+    static InvocationResult invokeWithBurst(final long burstNanos, final LongSupplier nanoTimeSupplier,
+                                            final BooleanSupplier continueBurst, final Supplier<InvocationResult> invocation) {
+        final long burstDeadlineNanos = nanoTimeSupplier.getAsLong() + burstNanos;
+        InvocationResult result;
+        do {
+            result = invocation.get();
+        } while (burstNanos > 0L
+                && result.getOutcome() == InvocationOutcome.INVOKED_WITH_ACTIVITY
+                && nanoTimeSupplier.getAsLong() < burstDeadlineNanos
+                && continueBurst.getAsBoolean());
+        return result;
     }
 
     private void waitForAutoReadiness(final ProcessorAutoSchedulingState state, final ProcessorTaskWorker worker) {

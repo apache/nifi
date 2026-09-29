@@ -35,6 +35,8 @@ import org.apache.nifi.controller.scheduling.auto.AutoSchedulingDiagnostics;
 import org.apache.nifi.controller.scheduling.auto.SystemSchedulingMetrics;
 import org.apache.nifi.controller.scheduling.auto.SystemSchedulingSnapshot;
 import org.apache.nifi.controller.status.FlowFileAvailability;
+import org.apache.nifi.controller.tasks.InvocationOutcome;
+import org.apache.nifi.controller.tasks.InvocationResult;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
@@ -159,6 +161,44 @@ class VirtualThreadSchedulingAgentTest {
 
         when(automatic.isTriggeredSerially()).thenReturn(true);
         assertEquals(1, agent.getProcessContextConcurrencyLimit(automatic));
+    }
+
+    @Test
+    void testInvocationBurstContinuesWhileActivityAndTimeRemain() {
+        final AtomicInteger invocationCount = new AtomicInteger();
+        final AtomicInteger continuationCount = new AtomicInteger();
+        final AtomicLong nanoTime = new AtomicLong();
+
+        final InvocationResult result = VirtualThreadSchedulingAgent.invokeWithBurst(10L, () -> nanoTime.getAndAdd(4L),
+                () -> {
+                    continuationCount.incrementAndGet();
+                    return true;
+                },
+                () -> {
+                    invocationCount.incrementAndGet();
+                    return InvocationResult.completed(InvocationOutcome.INVOKED_WITH_ACTIVITY);
+                });
+
+        assertEquals(InvocationOutcome.INVOKED_WITH_ACTIVITY, result.getOutcome());
+        assertEquals(3, invocationCount.get());
+        assertEquals(2, continuationCount.get());
+    }
+
+    @Test
+    void testInvocationBurstStopsWithoutActivityOrContinuation() {
+        final AtomicInteger noActivityInvocations = new AtomicInteger();
+        VirtualThreadSchedulingAgent.invokeWithBurst(10L, () -> 0L, () -> true, () -> {
+            noActivityInvocations.incrementAndGet();
+            return InvocationResult.completed(InvocationOutcome.INVOKED_WITHOUT_ACTIVITY);
+        });
+        assertEquals(1, noActivityInvocations.get());
+
+        final AtomicInteger stoppedInvocations = new AtomicInteger();
+        VirtualThreadSchedulingAgent.invokeWithBurst(10L, () -> 0L, () -> false, () -> {
+            stoppedInvocations.incrementAndGet();
+            return InvocationResult.completed(InvocationOutcome.INVOKED_WITH_ACTIVITY);
+        });
+        assertEquals(1, stoppedInvocations.get());
     }
 
     @Test
