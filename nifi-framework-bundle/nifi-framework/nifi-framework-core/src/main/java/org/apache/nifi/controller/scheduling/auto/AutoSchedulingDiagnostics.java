@@ -30,6 +30,9 @@ public final class AutoSchedulingDiagnostics {
     private final boolean collectingMeasurements;
     private final boolean flowFileMeasurementsAvailable;
     private final String concurrencyIncreaseExplanation;
+    private final long localInputQueueCount;
+    private final double demandScore;
+    private final String taskMoveRole;
 
     private AutoSchedulingDiagnostics(final Builder builder) {
         executionMode = builder.executionMode;
@@ -45,6 +48,9 @@ public final class AutoSchedulingDiagnostics {
         collectingMeasurements = builder.collectingMeasurements;
         flowFileMeasurementsAvailable = builder.flowFileMeasurementsAvailable;
         concurrencyIncreaseExplanation = builder.concurrencyIncreaseExplanation;
+        localInputQueueCount = builder.localInputQueueCount;
+        demandScore = builder.demandScore;
+        taskMoveRole = builder.taskMoveRole;
     }
 
     public static Builder createBuilder() {
@@ -103,6 +109,18 @@ public final class AutoSchedulingDiagnostics {
         return concurrencyIncreaseExplanation;
     }
 
+    public long localInputQueueCount() {
+        return localInputQueueCount;
+    }
+
+    public double demandScore() {
+        return demandScore;
+    }
+
+    public String taskMoveRole() {
+        return taskMoveRole;
+    }
+
     public static final class Builder {
         private String executionMode;
         private int maxConcurrentTasks;
@@ -117,6 +135,9 @@ public final class AutoSchedulingDiagnostics {
         private boolean collectingMeasurements;
         private boolean flowFileMeasurementsAvailable;
         private String concurrencyIncreaseExplanation;
+        private long localInputQueueCount;
+        private double demandScore;
+        private String taskMoveRole;
 
         private Builder() {
         }
@@ -183,6 +204,21 @@ public final class AutoSchedulingDiagnostics {
 
         public Builder setConcurrencyIncreaseExplanation(final String concurrencyIncreaseExplanation) {
             this.concurrencyIncreaseExplanation = concurrencyIncreaseExplanation;
+            return this;
+        }
+
+        public Builder setLocalInputQueueCount(final long localInputQueueCount) {
+            this.localInputQueueCount = localInputQueueCount;
+            return this;
+        }
+
+        public Builder setDemandScore(final double demandScore) {
+            this.demandScore = demandScore;
+            return this;
+        }
+
+        public Builder setTaskMoveRole(final String taskMoveRole) {
+            this.taskMoveRole = taskMoveRole;
             return this;
         }
 

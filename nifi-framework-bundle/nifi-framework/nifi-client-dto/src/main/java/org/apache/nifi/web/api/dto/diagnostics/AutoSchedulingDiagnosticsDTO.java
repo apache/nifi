@@ -34,6 +34,9 @@ public class AutoSchedulingDiagnosticsDTO {
     private Boolean collectingMeasurements;
     private Boolean flowFileMeasurementsAvailable;
     private String concurrencyIncreaseExplanation;
+    private Long localInputQueueCount;
+    private Double demandScore;
+    private String taskMoveRole;
 
     @Schema(description = "Automatic scheduling execution mode")
     public String getExecutionMode() {
@@ -139,5 +142,33 @@ public class AutoSchedulingDiagnosticsDTO {
 
     public void setConcurrencyIncreaseExplanation(final String concurrencyIncreaseExplanation) {
         this.concurrencyIncreaseExplanation = concurrencyIncreaseExplanation;
+    }
+
+    @Schema(description = "Number of FlowFiles queued on this node across the Processor's incoming connections")
+    public Long getLocalInputQueueCount() {
+        return localInputQueueCount;
+    }
+
+    public void setLocalInputQueueCount(final Long localInputQueueCount) {
+        this.localInputQueueCount = localInputQueueCount;
+    }
+
+    @Schema(description = "Score used to move concurrent tasks between Processors: seconds of queued work capped at 60, a fixed 10 for a busy "
+            + "source Processor, and 0 for a Processor that is failing, stalled, or has nothing queued")
+    public Double getDemandScore() {
+        return demandScore;
+    }
+
+    public void setDemandScore(final Double demandScore) {
+        this.demandScore = demandScore;
+    }
+
+    @Schema(description = "RECEIVER or DONOR while this Processor takes part in moving a concurrent task")
+    public String getTaskMoveRole() {
+        return taskMoveRole;
+    }
+
+    public void setTaskMoveRole(final String taskMoveRole) {
+        this.taskMoveRole = taskMoveRole;
     }
 }

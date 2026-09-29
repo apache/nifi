@@ -18,5 +18,6 @@ package org.apache.nifi.controller.scheduling.auto;
 
 public enum AutoSchedulingResetReason {
     PROCESSOR_CONNECTIONS_CHANGED,
-    GLOBAL_CONCURRENT_TASK_LIMIT_CHANGED
+    GLOBAL_CONCURRENT_TASK_LIMIT_CHANGED,
+    CONCURRENT_TASK_MOVED
 }
