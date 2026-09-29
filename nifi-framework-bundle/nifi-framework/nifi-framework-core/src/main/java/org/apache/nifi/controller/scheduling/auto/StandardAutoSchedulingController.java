@@ -32,7 +32,8 @@ import java.util.concurrent.TimeUnit;
  * <p>When there is sustained work and the existing calls are busy, the controller tests a higher number of
  * concurrent calls. Each test adds one call, and the higher number is kept only when it produces a clear increase
  * in completed work. No increase exceeds the processor maximum or the global concurrent task limit. An unsuccessful
- * increase waits before it is tried again.</p>
+ * increase waits before it is tried again. While the global concurrent task limit is fully used, an increase is tested only when
+ * the snapshot allows it, because the scheduling agent chose this processor to take a task from one with far less queued work.</p>
  *
  * <p>The controller also looks for a lower number of calls. If the processor is mostly idle or blocked for several
  * seconds, it removes one unused call immediately. At regular intervals it tests one fewer call even when the
@@ -53,7 +54,8 @@ public class StandardAutoSchedulingController {
     private static final long REDUCTION_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(30);
     private static final long UNUSED_TASK_REDUCTION_NANOS = TimeUnit.SECONDS.toNanos(3);
     private static final double THROUGHPUT_TOLERANCE = 0.05D;
-    private static final double MAX_FAILED_INVOCATION_FRACTION = 0.10D;
+    static final double MAX_FAILED_INVOCATION_FRACTION = 0.10D;
+    static final double MIN_UTILIZATION_FOR_INCREASE = 0.75D;
 
     private final int maxConcurrentTasks;
     private final long runDurationNanos;
@@ -173,6 +175,14 @@ public class StandardAutoSchedulingController {
 
     public ConcurrencyUpdateStatus getConcurrencyUpdateStatus() {
         return concurrencyUpdateStatus;
+    }
+
+    public boolean isConcurrencyComparisonActive() {
+        return concurrencyComparison != null;
+    }
+
+    public boolean isIncreaseCoolingDown(final long timestampNanos) {
+        return timestampNanos < nextIncreaseNanos;
     }
 
     /**
@@ -320,7 +330,7 @@ public class StandardAutoSchedulingController {
         if (systemMeasurements.garbageCollectionTimeAboveLimit()) {
             return ConcurrencyUpdateReason.GARBAGE_COLLECTION_TIME_TOO_HIGH;
         }
-        if (systemMeasurements.fractionOfSamplesWithAllGlobalTaskSlotsUsed() >= 0.90D && systemMeasurements.fractionOfGlobalTaskTimeSpentWaiting() > 0.10D) {
+        if (systemMeasurements.globalCapacityFull() && !processorMeasurements.globalCapacityTestAllowed()) {
             return ConcurrencyUpdateReason.GLOBAL_CAPACITY_FULL;
         }
         if (!processorMeasurements.inputQueueHasFlowFiles() && !processorMeasurements.sourceProcessorRecentlyReportedActivity()) {
@@ -335,7 +345,7 @@ public class StandardAutoSchedulingController {
         if (isProcessorYielding(processorMeasurements)) {
             return ConcurrencyUpdateReason.PROCESSOR_YIELDING;
         }
-        if (processorMeasurements.concurrentTaskUtilization() < 0.75D) {
+        if (processorMeasurements.concurrentTaskUtilization() < MIN_UTILIZATION_FOR_INCREASE) {
             return ConcurrencyUpdateReason.CONCURRENT_TASKS_UNDERUSED;
         }
         if (processorMeasurements.timestampNanos() < nextIncreaseNanos) {

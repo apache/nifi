@@ -28,19 +28,22 @@ import java.util.function.LongSupplier;
 
 public class ProcessorSchedulingMeasurements {
     private final LongAdder committedFlowFiles = new LongAdder();
+    private final LongAdder committedInputFlowFiles = new LongAdder();
     private final LongAdder completedInvocations = new LongAdder();
     private final LongAdder failedInvocations = new LongAdder();
     private final LongAdder processorInvocationNanos = new LongAdder();
     private final LongSupplier nanoTimeSupplier;
-    private final Object activeInvocationLock = new Object();
-    private int activeInvocations;
-    private long activeInvocationChangeNanos;
-    private long activeInvocationWindowStartNanos;
-    private long activeInvocationNanos;
+    private final Object busyTaskLock = new Object();
+    private int busyTasks;
+    private long busyTaskChangeNanos;
+    private long busyTaskWindowStartNanos;
+    private long busyTaskNanos;
     private long previousCommittedFlowFiles;
+    private long previousCommittedInputFlowFiles;
     private long previousCompletedInvocations;
     private long previousFailedInvocations;
     private long previousProcessorInvocationNanos;
+    private ProcessorSchedulingSnapshot.RecentDemand recentDemand = ProcessorSchedulingSnapshot.RecentDemand.NONE;
     private long backpressureNanos;
     private long processorYieldNanos;
 
@@ -50,8 +53,8 @@ public class ProcessorSchedulingMeasurements {
 
     ProcessorSchedulingMeasurements(final LongSupplier nanoTimeSupplier) {
         this.nanoTimeSupplier = nanoTimeSupplier;
-        activeInvocationChangeNanos = nanoTimeSupplier.getAsLong();
-        activeInvocationWindowStartNanos = activeInvocationChangeNanos;
+        busyTaskChangeNanos = nanoTimeSupplier.getAsLong();
+        busyTaskWindowStartNanos = busyTaskChangeNanos;
     }
 
     public InvocationObserver createInvocationObserver() {
@@ -62,17 +65,21 @@ public class ProcessorSchedulingMeasurements {
         processorInvocationNanos.add(Math.max(0L, nanos));
     }
 
-    public void recordInvocationStarted() {
-        synchronized (activeInvocationLock) {
-            accumulateActiveInvocationNanos();
-            activeInvocations++;
+    /**
+     * Records that a concurrent task has become busy. A task is busy from the time it starts waiting for a global permit
+     * until its invocation finishes, because a task waiting for a permit is ready to work.
+     */
+    public void recordTaskBusy() {
+        synchronized (busyTaskLock) {
+            accumulateBusyTaskNanos();
+            busyTasks++;
         }
     }
 
-    public void recordInvocationFinished() {
-        synchronized (activeInvocationLock) {
-            accumulateActiveInvocationNanos();
-            activeInvocations--;
+    public void recordTaskIdle() {
+        synchronized (busyTaskLock) {
+            accumulateBusyTaskNanos();
+            busyTasks--;
         }
     }
 
@@ -85,38 +92,45 @@ public class ProcessorSchedulingMeasurements {
     }
 
     /**
-     * Captures the measurements recorded since the previous snapshot. Concurrent task utilization is the total time spent in
-     * invocations since the previous snapshot, including invocations that are still running, divided by the time available
-     * to the allowed concurrent tasks over that same period. Utilization periods begin and end at times read while holding the
-     * lock that also guards invocation start and finish, so each moment of invocation time belongs to exactly one snapshot even
-     * when the caller's timestamp was read before an invocation started.
+     * Captures the measurements recorded since the previous snapshot. Concurrent task utilization is the total time that concurrent
+     * tasks were busy since the previous snapshot, including tasks that are still busy, divided by the time available to the allowed
+     * concurrent tasks over that same period. Utilization periods begin and end at times read while holding the lock that also guards
+     * changes in the number of busy tasks, so each moment of busy time belongs to exactly one snapshot even when the caller's timestamp
+     * was read before a task became busy.
      */
     public ProcessorSchedulingSnapshot captureSnapshot(final long timestampNanos, final long measurementWindowNanos, final SchedulingSettings settings,
-                                                       final boolean processorReady, final boolean inputQueueHasFlowFiles, final double inputQueueGrowth,
-                                                       final boolean sourceProcessorRecentlyReportedActivity, final boolean primaryNodeChanged) {
+                                                       final boolean processorReady, final boolean inputQueueHasFlowFiles, final long localInputQueueCount,
+                                                       final double inputQueueGrowth, final boolean sourceProcessorRecentlyReportedActivity,
+                                                       final boolean primaryNodeChanged, final boolean globalCapacityTestAllowed) {
         final long committedFlowFileCount = committedFlowFiles.sum();
+        final long committedInputFlowFileCount = committedInputFlowFiles.sum();
         final long completedInvocationCount = completedInvocations.sum();
         final long failedInvocationCount = failedInvocations.sum();
         final long processorInvocationDurationNanos = processorInvocationNanos.sum();
-        final long windowActiveInvocationNanos;
+        final long windowBusyTaskNanos;
         final long utilizationWindowNanos;
-        synchronized (activeInvocationLock) {
-            accumulateActiveInvocationNanos();
-            windowActiveInvocationNanos = activeInvocationNanos;
-            utilizationWindowNanos = activeInvocationChangeNanos - activeInvocationWindowStartNanos;
-            activeInvocationNanos = 0L;
-            activeInvocationWindowStartNanos = activeInvocationChangeNanos;
+        synchronized (busyTaskLock) {
+            accumulateBusyTaskNanos();
+            windowBusyTaskNanos = busyTaskNanos;
+            utilizationWindowNanos = busyTaskChangeNanos - busyTaskWindowStartNanos;
+            busyTaskNanos = 0L;
+            busyTaskWindowStartNanos = busyTaskChangeNanos;
         }
 
+        final long completedInvocationDelta = completedInvocationCount - previousCompletedInvocations;
+        final long failedInvocationDelta = failedInvocationCount - previousFailedInvocations;
+        recentDemand = recentDemand.add(measurementWindowNanos, committedInputFlowFileCount - previousCommittedInputFlowFiles, completedInvocationDelta,
+                failedInvocationDelta);
+
         final double concurrentTaskUtilization = Math.min(1D,
-                windowActiveInvocationNanos / ((double) Math.max(1L, utilizationWindowNanos) * settings.concurrentTasks()));
+                windowBusyTaskNanos / ((double) Math.max(1L, utilizationWindowNanos) * settings.concurrentTasks()));
         final ProcessorSchedulingSnapshot snapshot = ProcessorSchedulingSnapshot.createBuilder()
                 .setTimestampNanos(timestampNanos)
                 .setMeasurementWindowNanos(measurementWindowNanos)
                 .setAppliedSettings(settings)
                 .setCommittedFlowFiles(committedFlowFileCount - previousCommittedFlowFiles)
-                .setCompletedInvocations(completedInvocationCount - previousCompletedInvocations)
-                .setFailedInvocations(failedInvocationCount - previousFailedInvocations)
+                .setCompletedInvocations(completedInvocationDelta)
+                .setFailedInvocations(failedInvocationDelta)
                 .setProcessorInvocationNanos(processorInvocationDurationNanos - previousProcessorInvocationNanos)
                 .setBackpressureNanos(backpressureNanos)
                 .setProcessorYieldNanos(processorYieldNanos)
@@ -126,8 +140,12 @@ public class ProcessorSchedulingMeasurements {
                 .setInputQueueGrowth(inputQueueGrowth)
                 .setSourceProcessorRecentlyReportedActivity(sourceProcessorRecentlyReportedActivity)
                 .setPrimaryNodeChanged(primaryNodeChanged)
+                .setLocalInputQueueCount(localInputQueueCount)
+                .setRecentDemand(recentDemand)
+                .setGlobalCapacityTestAllowed(globalCapacityTestAllowed)
                 .build();
         previousCommittedFlowFiles = committedFlowFileCount;
+        previousCommittedInputFlowFiles = committedInputFlowFileCount;
         previousCompletedInvocations = completedInvocationCount;
         previousFailedInvocations = failedInvocationCount;
         previousProcessorInvocationNanos = processorInvocationDurationNanos;
@@ -137,13 +155,13 @@ public class ProcessorSchedulingMeasurements {
     }
 
     /**
-     * Adds the invocation time since the last change. Must be called while holding the active invocation lock; reading the
+     * Adds the busy time since the last change. Must be called while holding the busy task lock; reading the
      * clock under the lock keeps the change timestamp from moving backward.
      */
-    private void accumulateActiveInvocationNanos() {
+    private void accumulateBusyTaskNanos() {
         final long nowNanos = nanoTimeSupplier.getAsLong();
-        activeInvocationNanos += activeInvocations * (nowNanos - activeInvocationChangeNanos);
-        activeInvocationChangeNanos = nowNanos;
+        busyTaskNanos += busyTasks * (nowNanos - busyTaskChangeNanos);
+        busyTaskChangeNanos = nowNanos;
     }
 
     private void recordCompletedInvocation(final InvocationOutcome outcome) {
@@ -154,6 +172,7 @@ public class ProcessorSchedulingMeasurements {
     }
 
     private long recordCommittedFlowFiles(final CommittedSchedulingWork committedWork) {
+        committedInputFlowFiles.add(committedWork.inputFlowFiles());
         // Count committed input FlowFiles when present, otherwise count committed produced FlowFiles for source processors.
         final long count = committedWork.inputFlowFiles() > 0L ? committedWork.inputFlowFiles() : committedWork.producedFlowFiles();
         committedFlowFiles.add(count);

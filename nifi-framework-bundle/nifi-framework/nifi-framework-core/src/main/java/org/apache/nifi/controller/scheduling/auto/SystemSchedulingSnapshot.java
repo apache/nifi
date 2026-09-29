@@ -79,6 +79,14 @@ public final class SystemSchedulingSnapshot {
         return garbageCollectionTimeAboveLimit;
     }
 
+    /**
+     * @return whether nearly every sample found all global task slots in use while tasks also spent a meaningful share of their time
+     *         waiting for a slot
+     */
+    public boolean globalCapacityFull() {
+        return fractionOfSamplesWithAllGlobalTaskSlotsUsed >= 0.90D && fractionOfGlobalTaskTimeSpentWaiting > 0.10D;
+    }
+
     public static final class Builder {
         private boolean cpuLoadAvailable;
         private double cpuLoad;
