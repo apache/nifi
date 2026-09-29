@@ -85,6 +85,48 @@ public class PythonProcessorIT extends NiFiSystemIT {
     }
 
     @Test
+    public void testFlowFileTransformWithELAndSurroundingLiteralText() throws NiFiClientException, IOException, InterruptedException {
+        final String attributeValue = "Hello World";
+        final String expectedContents = "Hello World, welcome!";
+
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity writeProperty = getClientUtil().createPythonProcessor("WritePropertyToFlowFile");
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+
+        // Config GenerateFlowFile to add a "greeting" attribute with a value of "Hello World"
+        final ProcessorConfigDTO generateConfig = generate.getComponent().getConfig();
+        generateConfig.setProperties(Collections.singletonMap("greeting", attributeValue));
+        getClientUtil().updateProcessorConfig(generate, generateConfig);
+
+        // Configure the WritePropertyToFlowFile processor with a property value that references an
+        // attribute but also has literal text around it. Only the referenced attribute's value should be
+        // substituted; the surrounding literal text must be preserved.
+        final ProcessorConfigDTO writePropertyConfig = writeProperty.getComponent().getConfig();
+        writePropertyConfig.setProperties(Collections.singletonMap("Message", "${greeting}, welcome!"));
+        getClientUtil().updateProcessorConfig(writeProperty, writePropertyConfig);
+
+        // Connect flow
+        getClientUtil().createConnection(generate, writeProperty, "success");
+        getClientUtil().setAutoTerminatedRelationships(writeProperty, "failure");
+        final ConnectionEntity outputConnection = getClientUtil().createConnection(writeProperty, terminate, "success");
+
+        // Wait for processor validation to complete
+        getClientUtil().waitForValidProcessor(generate.getId());
+        getClientUtil().waitForValidProcessor(writeProperty.getId());
+
+        // Run the flow
+        getClientUtil().startProcessor(generate);
+        getClientUtil().startProcessor(writeProperty);
+
+        // Wait for output to be queued up
+        waitForQueueCount(outputConnection.getId(), 1);
+
+        // Validate the output
+        final String contents = getClientUtil().getFlowFileContentAsUtf8(outputConnection.getId(), 0);
+        assertEquals(expectedContents, contents);
+    }
+
+    @Test
     public void testRecordTransform() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
         final ProcessorEntity setRecordField = getClientUtil().createPythonProcessor("SetRecordField");
