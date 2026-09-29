@@ -1552,6 +1552,15 @@ describe('ConnectorCanvasEffects', () => {
             };
         }
 
+        function makeConnection(id: string, bendX: number, bendY: number): any {
+            return {
+                id,
+                permissions: { canRead: true, canWrite: true },
+                revision: { version: 0 },
+                component: { bends: [{ x: bendX, y: bendY }] }
+            };
+        }
+
         function makeFlowResponse(overrides: { processors?: any[]; connections?: any[] } = {}): any {
             return {
                 processGroupFlow: {
@@ -1600,15 +1609,26 @@ describe('ConnectorCanvasEffects', () => {
             warnSpy.mockRestore();
         });
 
+        it('does not sanitize a nonexistent connection position', async () => {
+            const { effects, actions$, mockConnectorService } = await setup();
+            const connection = makeConnection('conn-valid', 100, 200);
+            (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(
+                of(makeFlowResponse({ connections: [connection] }))
+            );
+
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+            actions$(of(loadConnectorFlow({ connectorId: 'c-1', processGroupId: 'pg-1' })));
+
+            const action: any = await firstValueFrom(effects.loadConnectorFlow$);
+            expect(action.connections[0]).not.toHaveProperty('position');
+            expect(action.connections[0].component.bends[0]).toEqual({ x: 100, y: 200 });
+            expect(warnSpy).not.toHaveBeenCalled();
+            warnSpy.mockRestore();
+        });
+
         it('clamps catastrophic-finite connection bends to (0, 0)', async () => {
             const { effects, actions$, mockConnectorService } = await setup();
-            const connection = {
-                id: 'conn-bad',
-                permissions: { canRead: true, canWrite: true },
-                revision: { version: 0 },
-                position: { x: 0, y: 0 },
-                component: { bends: [{ x: 9e307, y: 0 }] }
-            };
+            const connection = makeConnection('conn-bad', 9e307, 0);
             (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(
                 of(makeFlowResponse({ connections: [connection] }))
             );
@@ -1618,6 +1638,11 @@ describe('ConnectorCanvasEffects', () => {
 
             const action: any = await firstValueFrom(effects.loadConnectorFlow$);
             expect(action.connections[0].component.bends[0]).toEqual({ x: 0, y: 0 });
+            expect(warnSpy).toHaveBeenCalledWith(
+                expect.stringContaining('Component Connection bend conn-bad:bend:0 has an out-of-range position'),
+                { x: 9e307, y: 0 },
+                expect.stringContaining('falling back to (0, 0)')
+            );
             warnSpy.mockRestore();
         });
     });

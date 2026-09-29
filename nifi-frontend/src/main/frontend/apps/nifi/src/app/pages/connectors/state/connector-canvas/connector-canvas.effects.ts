@@ -831,11 +831,6 @@ export class ConnectorCanvasEffects {
         });
         const sanitizeConnection = (entity: any) => ({
             ...entity,
-            position: sanitizePosition(entity.position, {
-                componentId: entity.id,
-                componentKind: 'Connection',
-                warnedIds: this.warnedPositionIds
-            }),
             component: entity.component
                 ? {
                       ...entity.component,

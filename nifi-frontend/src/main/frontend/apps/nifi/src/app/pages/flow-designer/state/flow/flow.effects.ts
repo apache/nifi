@@ -5085,11 +5085,6 @@ export class FlowEffects {
         });
         const sanitizeConnection = (entity: ConnectionEntity): ConnectionEntity => ({
             ...entity,
-            position: sanitizePosition(entity.position, {
-                componentId: entity.id,
-                componentKind: 'Connection',
-                warnedIds: this.warnedPositionIds
-            }),
             component: entity.component
                 ? {
                       ...entity.component,

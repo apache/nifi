@@ -1444,7 +1444,6 @@ describe('FlowEffects', () => {
                 id,
                 permissions: { canRead: true, canWrite: true },
                 revision: { version: 0 },
-                position: { x: 0, y: 0 },
                 component: { bends: [{ x: bendX, y: bendY }] }
             };
         }
@@ -1504,6 +1503,21 @@ describe('FlowEffects', () => {
             warnSpy.mockRestore();
         });
 
+        it('does not sanitize a nonexistent connection position', async () => {
+            const connection = makeConnection('conn-valid', 100, 200);
+            (flowService as any).getFlow = vi.fn(() => of(buildFlowResponse({ connections: [connection] })));
+
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+            action$.next(FlowActions.loadProcessGroup({ request: { id: 'pg-1', transitionRequired: false } }));
+
+            const result: any = await firstValueFrom(effects.loadProcessGroup$.pipe(take(1)));
+            const sanitizedConnection = result.response.flow.processGroupFlow.flow.connections[0];
+            expect(sanitizedConnection).not.toHaveProperty('position');
+            expect(sanitizedConnection.component.bends[0]).toEqual({ x: 100, y: 200 });
+            expect(warnSpy).not.toHaveBeenCalled();
+            warnSpy.mockRestore();
+        });
+
         it('clamps catastrophic-finite connection bends to (0, 0)', async () => {
             const connection = makeConnection('conn-1', 9e307, 0);
             (flowService as any).getFlow = vi.fn(() => of(buildFlowResponse({ connections: [connection] })));
@@ -1514,6 +1528,11 @@ describe('FlowEffects', () => {
             const result: any = await firstValueFrom(effects.loadProcessGroup$.pipe(take(1)));
             const bend = result.response.flow.processGroupFlow.flow.connections[0].component.bends[0];
             expect(bend).toEqual({ x: 0, y: 0 });
+            expect(warnSpy).toHaveBeenCalledWith(
+                expect.stringContaining('Component Connection bend conn-1:bend:0 has an out-of-range position'),
+                { x: 9e307, y: 0 },
+                expect.stringContaining('falling back to (0, 0)')
+            );
             warnSpy.mockRestore();
         });
 
