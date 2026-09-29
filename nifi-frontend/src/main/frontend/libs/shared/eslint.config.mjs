@@ -86,6 +86,12 @@ export default [
                 '@angular-eslint/prefer-standalone': 'off'
             }
         })),
+    {
+        files: ['src/types/entities/**/*.ts'],
+        rules: {
+            '@typescript-eslint/no-explicit-any': 'error'
+        }
+    },
     ...compat
         .config({
             extends: ['plugin:@nx/angular-template']

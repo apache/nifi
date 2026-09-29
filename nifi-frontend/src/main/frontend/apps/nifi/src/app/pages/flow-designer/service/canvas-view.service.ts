@@ -30,13 +30,13 @@ import { RemoteProcessGroupManager } from './manager/remote-process-group-manage
 import { ConnectionManager } from './manager/connection-manager.service';
 import { deselectAllComponents } from '../state/flow/flow.actions';
 import { CanvasUtils } from './canvas-utils.service';
-import { Position } from '../state/shared';
 import {
     clampScale,
     isFiniteInBound,
     isScaleInBound,
     MAX_ABS_COORD,
     MAX_ABS_TRANSLATE,
+    Position,
     MAX_SCALE,
     MIN_SCALE
 } from '@nifi/shared';

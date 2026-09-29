@@ -31,12 +31,9 @@
  * - Emits events via @Output (to parent)
  */
 
-export const canvasUiFeatureKey = 'canvasUi';
+import { Position } from '@nifi/shared';
 
-export interface Position {
-    x: number;
-    y: number;
-}
+export const canvasUiFeatureKey = 'canvasUi';
 
 export interface CanvasTransform {
     translate: Position;

@@ -19,20 +19,24 @@
     <ul class="flex flex-wrap gap-y-1">
         @for (bulletinEntity of data?.bulletins; track bulletinEntity) {
             @if (bulletinEntity.canRead) {
-                <li>
-                    <div class="inline-flex flex-wrap gap-x-1.5">
-                        <div class="inline-flex flex-wrap gap-x-1.5" [copy]="getBulletinCopyMessage(bulletinEntity)">
-                            <div>{{ bulletinEntity.bulletin.timestamp }}</div>
-                            @if (bulletinEntity.nodeAddress) {
-                                <div>{{ bulletinEntity.nodeAddress }}</div>
-                            }
-                            <div class="font-bold {{ getSeverity(bulletinEntity.bulletin.level) }}">
-                                {{ bulletinEntity.bulletin.level }}
+                @if (bulletinEntity.bulletin; as bulletinDetails) {
+                    <li>
+                        <div class="inline-flex flex-wrap gap-x-1.5">
+                            <div
+                                class="inline-flex flex-wrap gap-x-1.5"
+                                [copy]="getBulletinCopyMessage(bulletinEntity)">
+                                <div>{{ bulletinDetails.timestamp }}</div>
+                                @if (bulletinEntity.nodeAddress) {
+                                    <div>{{ bulletinEntity.nodeAddress }}</div>
+                                }
+                                <div class="font-bold {{ getSeverity(bulletinDetails.level) }}">
+                                    {{ bulletinDetails.level }}
+                                </div>
                             </div>
+                            <pre class="whitespace-pre-wrap">{{ bulletinDetails.message }}</pre>
                         </div>
-                        <pre class="whitespace-pre-wrap">{{ bulletinEntity.bulletin.message }}</pre>
-                    </div>
-                </li>
+                    </li>
+                }
             }
         }
     </ul>

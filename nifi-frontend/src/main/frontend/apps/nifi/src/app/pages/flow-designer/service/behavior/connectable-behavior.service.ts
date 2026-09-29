@@ -22,7 +22,7 @@ import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
 import { openNewConnectionDialog, selectComponents } from '../../state/flow/flow.actions';
 import { ConnectionManager } from '../manager/connection-manager.service';
-import { Position } from '../../state/shared';
+import { Position } from '@nifi/shared';
 import { CreateConnectionRequest } from '../../state/flow';
 
 @Injectable({

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { ComponentType } from '@nifi/shared';
-import { Dimension, Position } from '../canvas/canvas.types';
+import { ComponentType, Position } from '@nifi/shared';
+import { Dimension } from '../canvas/canvas.types';
 
 /**
  * Simplified component data for birdseye rendering

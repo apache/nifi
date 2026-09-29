@@ -166,6 +166,9 @@ export class BulletinBoardList implements AfterViewInit, OnDestroy {
     }
 
     getRouterLink(bulletin: BulletinEntity): string[] | null {
+        if (!bulletin.bulletin) {
+            return null;
+        }
         const type: ComponentType | null = this.getComponentType(bulletin.bulletin.sourceType);
         if (type && bulletin.sourceId) {
             if (type === ComponentType.ControllerService) {
@@ -229,10 +232,13 @@ export class BulletinBoardList implements AfterViewInit, OnDestroy {
     }
 
     isExpanded(bulletin: BulletinEntity): boolean {
-        return this.expandedBulletinIds.has(bulletin.bulletin.id);
+        return bulletin.bulletin ? this.expandedBulletinIds.has(bulletin.bulletin.id) : false;
     }
 
     toggleStackTrace(bulletin: BulletinEntity): void {
+        if (!bulletin.bulletin) {
+            return;
+        }
         const id = bulletin.bulletin.id;
         if (this.expandedBulletinIds.has(id)) {
             this.expandedBulletinIds.delete(id);
@@ -241,6 +247,9 @@ export class BulletinBoardList implements AfterViewInit, OnDestroy {
         }
     }
     getBulletinCopyMessage(bulletin: BulletinEntity): string {
+        if (!bulletin.bulletin) {
+            return '';
+        }
         if (bulletin.bulletin.stackTrace) {
             return bulletin.bulletin.message + '\n\n' + bulletin.bulletin.stackTrace;
         }

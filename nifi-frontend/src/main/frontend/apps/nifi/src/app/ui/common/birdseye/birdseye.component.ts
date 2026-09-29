@@ -27,8 +27,8 @@ import {
     viewChild
 } from '@angular/core';
 import * as d3 from 'd3';
-import { ComponentType, isFiniteInBound, isScaleInBound, MAX_ABS_TRANSLATE } from '@nifi/shared';
-import { Dimension, Position } from '../canvas/canvas.types';
+import { ComponentType, isFiniteInBound, isScaleInBound, MAX_ABS_TRANSLATE, Position } from '@nifi/shared';
+import { Dimension } from '../canvas/canvas.types';
 import { BirdseyeBounds, BirdseyeComponentData, BirdseyeTransform } from './birdseye.types';
 
 /**

@@ -17,6 +17,7 @@
 
 import { MatDialogConfig } from '@angular/material/dialog';
 import { filter, Observable } from 'rxjs';
+import type { BulletinEntity, Bundle, Permissions, Revision } from './rest-api.types';
 
 export const SMALL_DIALOG: MatDialogConfig = {
     maxWidth: '24rem',
@@ -157,41 +158,6 @@ export interface ReferencedAsset {
     name: string;
 }
 
-export interface Permissions {
-    canRead: boolean;
-    canWrite: boolean;
-}
-
-export interface Revision {
-    version: number;
-    clientId?: string;
-    lastModifier?: string;
-}
-
-export interface BulletinEntity {
-    canRead: boolean;
-    id: number;
-    sourceId: string;
-    groupId: string;
-    timestamp: string;
-    timestampIso: string;
-    nodeAddress?: string;
-    bulletin: {
-        id: number;
-        sourceId: string;
-        groupId: string;
-        category: string;
-        level: string;
-        message: string;
-        stackTrace?: string;
-        sourceName: string;
-        timestamp: string;
-        timestampIso: string;
-        nodeAddress?: string;
-        sourceType: string;
-    };
-}
-
 export interface ProcessGroupName {
     id: string;
     name: string;
@@ -217,12 +183,6 @@ export function isDefinedAndNotNull<T>() {
                 return input !== null && typeof input !== 'undefined';
             })
         );
-}
-
-export interface Bundle {
-    artifact: string;
-    group: string;
-    version: string;
 }
 
 export type ConnectorActionName =
@@ -597,3 +557,5 @@ export function parseSecretKey(key: string): {
 export type ConnectorPropertyFormValue = string | boolean | string[] | AssetReference | AssetReference[] | null;
 
 export * from './connector-message.types';
+export * from './entities';
+export * from './rest-api.types';

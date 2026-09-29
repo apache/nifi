@@ -76,7 +76,7 @@ import {
     VersionControlInformationEntity
 } from './index';
 import { buildComponentIdToNameMap, collectEndpointGroupIds } from './component-connections.utils';
-import { Position } from '../shared';
+import { Position } from '@nifi/shared';
 import { Action, Store } from '@ngrx/store';
 import {
     selectAnySelectedComponentIds,

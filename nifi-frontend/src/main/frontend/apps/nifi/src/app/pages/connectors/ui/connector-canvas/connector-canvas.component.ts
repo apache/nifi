@@ -38,6 +38,7 @@ import {
     canOperateConnector,
     ComponentType,
     isConnectorActionAllowed,
+    Position,
     selectRouteParams,
     selectUrl,
     Storage
@@ -50,7 +51,7 @@ import { CanvasConfiguration } from '../../../../state/canvas-ui';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import { CanvasComponent } from '../../../../ui/common/canvas/canvas.component';
 import { BirdseyeComponentData, BirdseyeTransform } from '../../../../ui/common/birdseye/birdseye.types';
-import { ContextMenuContext, Dimension, Position } from '../../../../ui/common/canvas/canvas.types';
+import { ContextMenuContext, Dimension } from '../../../../ui/common/canvas/canvas.types';
 import {
     ContextMenuDefinition,
     ContextMenuDefinitionProvider,

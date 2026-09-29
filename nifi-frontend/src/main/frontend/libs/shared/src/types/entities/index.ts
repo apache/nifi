@@ -15,11 +15,23 @@
  * limitations under the License.
  */
 
-import { Position } from '@nifi/shared';
-
-export const transformFeatureKey = 'transform';
-
-export interface CanvasTransform {
-    translate: Position;
-    scale: number;
-}
+/**
+ * Canonical NiFi response entity contracts.
+ *
+ * @nifi-source: nifi-framework-bundle/nifi-framework/nifi-client-dto/src/main/java/org/apache/nifi/web/api
+ * @nifi-revision: eefa952edddc (2026-09-29)
+ * @vetted: 2026-09-29
+ */
+export * from './component-entity';
+export * from './connection-entity';
+export * from './controller-service-entity';
+export * from './flow-dto';
+export * from './funnel-entity';
+export * from './label-entity';
+export * from './port-entity';
+export * from './processing-performance-status-dto';
+export * from './process-group-entity';
+export * from './processor-entity';
+export * from './property-descriptor-dto';
+export * from './registered-flow-snapshot';
+export * from './remote-process-group-entity';

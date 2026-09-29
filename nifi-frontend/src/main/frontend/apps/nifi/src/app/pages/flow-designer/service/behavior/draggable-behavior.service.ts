@@ -26,9 +26,8 @@ import { moveComponents, showOkDialog, updatePositions } from '../../state/flow/
 import { Client } from '../../../../service/client.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MoveComponentRequest } from '../../state/flow';
-import { Position } from '../../state/shared';
 import { UpdateComponentRequest } from '../../../../state/shared';
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, Position } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 @Injectable({

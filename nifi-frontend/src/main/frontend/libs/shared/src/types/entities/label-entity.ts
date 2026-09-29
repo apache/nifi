@@ -15,11 +15,27 @@
  * limitations under the License.
  */
 
-import { Position } from '@nifi/shared';
+import { PositionableComponentDTO, PositionableComponentEntityBase } from './component-entity';
 
-export const transformFeatureKey = 'transform';
+/**
+ * @nifi-source: nifi-framework-bundle/nifi-framework/nifi-client-dto/src/main/java/org/apache/nifi/web/api/entity/LabelEntity.java
+ * @nifi-revision: eefa952edddc (2026-09-29)
+ * @vetted: 2026-09-29
+ */
+export interface LabelEntity extends PositionableComponentEntityBase<LabelDTO> {
+    dimensions: DimensionsDTO;
+    zIndex: number;
+}
 
-export interface CanvasTransform {
-    translate: Position;
-    scale: number;
+export interface LabelDTO extends PositionableComponentDTO {
+    label?: string;
+    style: Record<string, string>;
+    width: number;
+    height: number;
+    zIndex: number;
+}
+
+export interface DimensionsDTO {
+    width: number;
+    height: number;
 }

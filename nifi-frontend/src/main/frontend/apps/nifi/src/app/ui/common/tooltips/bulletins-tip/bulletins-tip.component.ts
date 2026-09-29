@@ -41,6 +41,9 @@ export class BulletinsTip {
     }
 
     getBulletinCopyMessage(bulletin: BulletinEntity): string {
+        if (!bulletin.bulletin) {
+            return '';
+        }
         if (bulletin.bulletin.stackTrace) {
             return bulletin.bulletin.message + '\n\n' + bulletin.bulletin.stackTrace;
         }
