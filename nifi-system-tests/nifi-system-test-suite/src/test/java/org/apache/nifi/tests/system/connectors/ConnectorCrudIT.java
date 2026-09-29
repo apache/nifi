@@ -266,6 +266,13 @@ public class ConnectorCrudIT extends NiFiSystemIT {
         assertConnectorManagedAccessRejected(() -> getNifiClient().getFlowClient().getProcessGroup(managedProcessGroupId),
             "Was able to retrieve connector-managed process group via FlowClient");
 
+        final ProcessGroupEntity managedProcessGroup = getNifiClient().getConnectorClient().getProcessGroup(connector.getId(), managedProcessGroupId);
+        assertNotNull(managedProcessGroup);
+        assertEquals(managedProcessGroupId, managedProcessGroup.getId());
+        assertNotNull(managedProcessGroup.getComponent());
+        assertNotNull(managedProcessGroup.getComponent().getName());
+        assertNull(managedProcessGroup.getComponent().getContents());
+
         final Set<ProcessGroupEntity> childGroups = connectorFlow.getFlow().getProcessGroups();
         assertEquals(1, childGroups.size(), "Expected exactly one child process group");
 
@@ -279,6 +286,13 @@ public class ConnectorCrudIT extends NiFiSystemIT {
 
         assertConnectorManagedAccessRejected(() -> getNifiClient().getFlowClient().getProcessGroup(childGroupId),
             "Was able to retrieve child process group of connector-managed flow via FlowClient");
+
+        final ProcessGroupEntity connectorChildGroup = getNifiClient().getConnectorClient().getProcessGroup(connector.getId(), childGroupId);
+        assertNotNull(connectorChildGroup);
+        assertEquals(childGroupId, connectorChildGroup.getId());
+        assertNotNull(connectorChildGroup.getComponent());
+        assertNotNull(connectorChildGroup.getComponent().getName());
+        assertNull(connectorChildGroup.getComponent().getContents());
     }
 
     private void assertConnectorManagedAccessRejected(final Callable<?> call, final String failureMessage) throws IOException {

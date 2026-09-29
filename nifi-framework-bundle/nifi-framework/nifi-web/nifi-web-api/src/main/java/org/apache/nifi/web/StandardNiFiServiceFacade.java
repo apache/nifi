@@ -2256,6 +2256,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ProcessGroupEntity getConnectorProcessGroup(final String connectorId, final String processGroupId) {
+        final ProcessGroup processGroup = locateConnectorProcessGroup(connectorId, processGroupId);
+        return createProcessGroupEntity(processGroup);
+    }
+
+    @Override
     public ComponentStateDTO getConnectorControllerServiceState(final String connectorId, final String controllerServiceId) {
         final ControllerServiceNode controllerService = locateConnectorControllerService(connectorId, controllerServiceId);
         final StateMap clusterState = isClustered() ? componentStateDAO.getState(controllerService, Scope.CLUSTER) : null;
@@ -2284,6 +2290,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new ResourceNotFoundException("Unable to find processor with id '%s' within connector '%s'.".formatted(processorId, connectorId));
         }
         return processor;
+    }
+
+    private ProcessGroup locateConnectorProcessGroup(final String connectorId, final String processGroupId) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+        final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ProcessGroup processGroup = managedGroup.findProcessGroup(processGroupId);
+        if (processGroup == null) {
+            throw new ResourceNotFoundException("Unable to find process group with id '%s' within connector '%s'.".formatted(processGroupId, connectorId));
+        }
+
+        return processGroup;
     }
 
     private ControllerServiceNode locateConnectorControllerService(final String connectorId, final String controllerServiceId) {

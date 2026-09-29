@@ -486,6 +486,11 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         getClientUtil().endTroubleshooting(connectorId);
         assertConnectorState(connectorId, ConnectorState.STOPPED);
 
+        final ProcessGroupEntity connectorScopedChild = getNifiClient().getConnectorClient().getProcessGroup(connectorId, childGroupId);
+        assertEquals(childGroupId, connectorScopedChild.getId());
+        assertNotNull(connectorScopedChild.getComponent());
+        assertNotNull(connectorScopedChild.getComponent().getName());
+
         assertConflictExpected("GET processor", () -> getNifiClient().getProcessorClient().getProcessor(processorId));
         assertConflictExpected("GET connection", () -> getNifiClient().getConnectionClient().getConnection(connectionId));
         assertConflictExpected("GET input port", () -> getNifiClient().getInputPortClient().getInputPort(inputPortId));
