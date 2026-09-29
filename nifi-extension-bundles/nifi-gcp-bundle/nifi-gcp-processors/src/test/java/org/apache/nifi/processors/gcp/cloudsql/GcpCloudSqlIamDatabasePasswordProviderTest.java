@@ -25,7 +25,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.dbcp.api.DatabaseCredentialPlacement;
+import org.apache.nifi.dbcp.api.DatabaseCredentialProperty;
 import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
 import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
@@ -122,7 +122,7 @@ class GcpCloudSqlIamDatabasePasswordProviderTest {
         assertEquals(1, rootCredentials.getCreateScopedCount());
         assertEquals(List.of(SQLSERVICE_LOGIN_SCOPE), rootCredentials.getLastRequestedScopes());
         assertSame(scopedCredentials, getScopedCredentials(provider));
-        assertEquals(DatabaseCredentialPlacement.PASSWORD, provider.getDatabaseCredentialPlacement());
+        assertEquals(DatabaseCredentialProperty.PASSWORD, provider.getDatabaseCredentialProperty());
         assertEquals(TOKEN_VALUE, new String(provider.getPassword(requestContext())));
         assertEquals(TOKEN_VALUE, new String(provider.getPassword(requestContext())));
         assertEquals(0, scopedCredentials.getRefreshAccessTokenCount());

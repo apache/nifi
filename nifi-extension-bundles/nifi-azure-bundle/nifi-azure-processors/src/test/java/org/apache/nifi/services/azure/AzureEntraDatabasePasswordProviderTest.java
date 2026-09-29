@@ -22,7 +22,7 @@ import com.azure.core.credential.TokenRequestContext;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.dbcp.api.DatabaseCredentialPlacement;
+import org.apache.nifi.dbcp.api.DatabaseCredentialProperty;
 import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
 import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -146,7 +146,7 @@ class AzureEntraDatabasePasswordProviderTest {
 
         ossProvider.getPassword(requestContext());
 
-        assertEquals(DatabaseCredentialPlacement.PASSWORD, ossProvider.getDatabaseCredentialPlacement());
+        assertEquals(DatabaseCredentialProperty.PASSWORD, ossProvider.getDatabaseCredentialProperty());
         assertEquals(List.of(AzureEntraDatabasePasswordProvider.OSS_RDBMS_SCOPE), ossCredential.getLastRequestedScopes());
 
         final AzureEntraDatabasePasswordProvider sqlServerProviderImplementation = new AzureEntraDatabasePasswordProvider();
@@ -159,7 +159,7 @@ class AzureEntraDatabasePasswordProviderTest {
 
         sqlServerProvider.getPassword(requestContext());
 
-        assertEquals(DatabaseCredentialPlacement.ACCESS_TOKEN, sqlServerProvider.getDatabaseCredentialPlacement());
+        assertEquals(DatabaseCredentialProperty.ACCESS_TOKEN, sqlServerProvider.getDatabaseCredentialProperty());
         assertEquals(List.of(AzureEntraDatabasePasswordProvider.SQL_SERVER_SCOPE), sqlServerCredential.getLastRequestedScopes());
     }
 

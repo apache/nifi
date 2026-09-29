@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.aws.rds;
 
-import org.apache.nifi.dbcp.api.DatabaseCredentialPlacement;
+import org.apache.nifi.dbcp.api.DatabaseCredentialProperty;
 import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
 import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -78,7 +78,7 @@ class AwsRdsIamDatabasePasswordProviderTest {
                 .build();
 
         final String token = new String(service.getPassword(context));
-        assertEquals(DatabaseCredentialPlacement.PASSWORD, service.getDatabaseCredentialPlacement());
+        assertEquals(DatabaseCredentialProperty.PASSWORD, service.getDatabaseCredentialProperty());
         assertTrue(token.startsWith("%s:%d/".formatted(HOSTNAME, PORT)));
         assertTrue(token.contains("DBUser=" + DB_USER));
     }

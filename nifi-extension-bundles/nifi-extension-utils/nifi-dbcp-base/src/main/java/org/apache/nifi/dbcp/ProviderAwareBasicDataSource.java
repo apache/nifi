@@ -20,7 +20,7 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.dbcp2.ConnectionFactory;
 import org.apache.commons.dbcp2.Constants;
 import org.apache.commons.dbcp2.DriverConnectionFactory;
-import org.apache.nifi.dbcp.api.DatabaseCredentialPlacement;
+import org.apache.nifi.dbcp.api.DatabaseCredentialProperty;
 import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
 import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;
 
@@ -80,7 +80,7 @@ public class ProviderAwareBasicDataSource extends BasicDataSource {
 
         @Override
         public Connection createConnection() throws SQLException {
-            final DatabaseCredentialPlacement credentialPlacement = passwordProvider.getDatabaseCredentialPlacement();
+            final DatabaseCredentialProperty credentialProperty = passwordProvider.getDatabaseCredentialProperty();
             final char[] passwordCharacters;
             try {
                 passwordCharacters = passwordProvider.getPassword(passwordRequestContext);
@@ -100,7 +100,7 @@ public class ProviderAwareBasicDataSource extends BasicDataSource {
             }
 
             final Properties connectionProperties = copyConnectionProperties();
-            final String credentialPropertyName = configureCredentialPlacement(connectionProperties, credentialPlacement, credentialValue);
+            final String credentialPropertyName = configureCredentialProperty(connectionProperties, credentialProperty, credentialValue);
             try {
                 return getDriver().connect(getConnectionString(), connectionProperties);
             } finally {
@@ -114,10 +114,10 @@ public class ProviderAwareBasicDataSource extends BasicDataSource {
             return connectionProperties;
         }
 
-        private String configureCredentialPlacement(final Properties connectionProperties,
-                                                   final DatabaseCredentialPlacement credentialPlacement,
+        private String configureCredentialProperty(final Properties connectionProperties,
+                                                   final DatabaseCredentialProperty credentialProperty,
                                                    final String credentialValue) {
-            if (credentialPlacement == DatabaseCredentialPlacement.ACCESS_TOKEN) {
+            if (credentialProperty == DatabaseCredentialProperty.ACCESS_TOKEN) {
                 removeAccessTokenConflicts(connectionProperties);
                 connectionProperties.put(USER_PROPERTY, "");
                 connectionProperties.put(Constants.KEY_PASSWORD, "");

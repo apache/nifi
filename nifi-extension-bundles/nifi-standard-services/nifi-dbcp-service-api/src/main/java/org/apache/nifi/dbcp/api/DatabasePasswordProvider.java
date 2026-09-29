@@ -24,12 +24,12 @@ import org.apache.nifi.controller.ControllerService;
 public interface DatabasePasswordProvider extends ControllerService {
 
     /**
-     * Returns how the supplied credential should be applied when establishing a database connection.
+     * Returns the JDBC property used to supply the credential when establishing a database connection.
      *
-     * @return credential placement used for connection attempts
+     * @return credential property used for connection attempts
      */
-    default DatabaseCredentialPlacement getDatabaseCredentialPlacement() {
-        return DatabaseCredentialPlacement.PASSWORD;
+    default DatabaseCredentialProperty getDatabaseCredentialProperty() {
+        return DatabaseCredentialProperty.PASSWORD;
     }
 
     /**

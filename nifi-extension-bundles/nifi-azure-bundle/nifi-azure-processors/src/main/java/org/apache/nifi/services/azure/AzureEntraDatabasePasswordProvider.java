@@ -31,7 +31,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
-import org.apache.nifi.dbcp.api.DatabaseCredentialPlacement;
+import org.apache.nifi.dbcp.api.DatabaseCredentialProperty;
 import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
 import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;
 import org.apache.nifi.logging.ComponentLog;
@@ -86,19 +86,19 @@ public class AzureEntraDatabasePasswordProvider extends AbstractControllerServic
     private volatile DatabaseTarget databaseTarget;
 
     enum DatabaseTarget implements DescribedValue {
-        AZURE_OSS_RDBMS(OSS_RDBMS_SCOPE, DatabaseCredentialPlacement.PASSWORD, "Azure OSS Database",
+        AZURE_OSS_RDBMS(OSS_RDBMS_SCOPE, DatabaseCredentialProperty.PASSWORD, "Azure OSS Database",
                 "Azure Database for PostgreSQL and Azure Database for MySQL. Requests the Azure OSS RDBMS scope and supplies the token as the JDBC password."),
-        SQL_SERVER(SQL_SERVER_SCOPE, DatabaseCredentialPlacement.ACCESS_TOKEN, "Microsoft SQL Server",
+        SQL_SERVER(SQL_SERVER_SCOPE, DatabaseCredentialProperty.ACCESS_TOKEN, "Microsoft SQL Server",
                 "Requests the SQL Server scope and supplies the token using the JDBC accessToken property.");
 
         private final String scope;
-        private final DatabaseCredentialPlacement credentialPlacement;
+        private final DatabaseCredentialProperty credentialProperty;
         private final String displayName;
         private final String description;
 
-        DatabaseTarget(final String scope, final DatabaseCredentialPlacement credentialPlacement, final String displayName, final String description) {
+        DatabaseTarget(final String scope, final DatabaseCredentialProperty credentialProperty, final String displayName, final String description) {
             this.scope = scope;
-            this.credentialPlacement = credentialPlacement;
+            this.credentialProperty = credentialProperty;
             this.displayName = displayName;
             this.description = description;
         }
@@ -122,8 +122,8 @@ public class AzureEntraDatabasePasswordProvider extends AbstractControllerServic
             return scope;
         }
 
-        private DatabaseCredentialPlacement getCredentialPlacement() {
-            return credentialPlacement;
+        private DatabaseCredentialProperty getCredentialProperty() {
+            return credentialProperty;
         }
     }
 
@@ -153,9 +153,9 @@ public class AzureEntraDatabasePasswordProvider extends AbstractControllerServic
     }
 
     @Override
-    public DatabaseCredentialPlacement getDatabaseCredentialPlacement() {
+    public DatabaseCredentialProperty getDatabaseCredentialProperty() {
         final DatabaseTarget configuredDatabaseTarget = databaseTarget;
-        return configuredDatabaseTarget == null ? DatabaseCredentialPlacement.PASSWORD : configuredDatabaseTarget.getCredentialPlacement();
+        return configuredDatabaseTarget == null ? DatabaseCredentialProperty.PASSWORD : configuredDatabaseTarget.getCredentialProperty();
     }
 
     @Override

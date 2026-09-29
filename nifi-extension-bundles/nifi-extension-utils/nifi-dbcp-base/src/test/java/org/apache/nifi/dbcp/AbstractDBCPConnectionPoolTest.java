@@ -22,7 +22,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.dbcp.api.DatabaseCredentialPlacement;
+import org.apache.nifi.dbcp.api.DatabaseCredentialProperty;
 import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
 import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;
 import org.apache.nifi.dbcp.utils.DBCPProperties;
@@ -160,7 +160,7 @@ class AbstractDBCPConnectionPoolTest {
         final AbstractDBCPConnectionPool connectionPool = new MockDBCPConnectionPool();
         final ExposedProviderAwareBasicDataSource passwordDataSource = new ExposedProviderAwareBasicDataSource();
         final ExposedProviderAwareBasicDataSource accessTokenDataSource = new ExposedProviderAwareBasicDataSource();
-        final AtomicReference<DatabaseCredentialPlacement> credentialPlacement = new AtomicReference<>(DatabaseCredentialPlacement.PASSWORD);
+        final AtomicReference<DatabaseCredentialProperty> credentialProperty = new AtomicReference<>(DatabaseCredentialProperty.PASSWORD);
         final List<char[]> issuedCredentials = new ArrayList<>();
         final AtomicInteger issuedCredentialIndex = new AtomicInteger();
         final String[] credentialValues = {
@@ -180,7 +180,7 @@ class AbstractDBCPConnectionPoolTest {
         final AtomicReference<String> connectionMode = new AtomicReference<>("VERIFY");
         final AtomicInteger accessTokenAttempt = new AtomicInteger();
 
-        assertEquals(DatabaseCredentialPlacement.PASSWORD, new MockDatabasePasswordProvider().getDatabaseCredentialPlacement());
+        assertEquals(DatabaseCredentialProperty.PASSWORD, new MockDatabasePasswordProvider().getDatabaseCredentialProperty());
 
         mockContextDatabaseProperties();
         mockDataSourceConfigurationDefaults();
@@ -191,7 +191,7 @@ class AbstractDBCPConnectionPoolTest {
         when(configurationContext.getProperty(eq(DBCPProperties.PASSWORD_SOURCE))).thenReturn(propertyValue(DBCPProperties.PASSWORD_SOURCE,
                 DBCPProperties.PasswordSource.PASSWORD_PROVIDER.getValue()));
         when(connection.isValid(eq(TIMEOUT))).thenReturn(true);
-        when(databasePasswordProvider.getDatabaseCredentialPlacement()).thenAnswer(invocation -> credentialPlacement.get());
+        when(databasePasswordProvider.getDatabaseCredentialProperty()).thenAnswer(invocation -> credentialProperty.get());
         when(databasePasswordProvider.getPassword(any())).thenAnswer(invocation -> {
             final char[] credential = credentialValues[issuedCredentialIndex.getAndIncrement()].toCharArray();
             issuedCredentials.add(credential);
@@ -231,7 +231,7 @@ class AbstractDBCPConnectionPoolTest {
         connectionMode.set("PASSWORD");
 
         verify(databasePasswordProvider, atLeastOnce()).getPassword(any());
-        verify(databasePasswordProvider, atLeastOnce()).getDatabaseCredentialPlacement();
+        verify(databasePasswordProvider, atLeastOnce()).getDatabaseCredentialProperty();
 
         passwordDataSource.setDriver(driver);
         passwordDataSource.setUrl(POSTGRESQL_URL);
@@ -271,7 +271,7 @@ class AbstractDBCPConnectionPoolTest {
         assertTrue(passwordSnapshots.stream().anyMatch(properties -> "password-token-2".equals(properties.getProperty("password"))));
         assertTrue(passwordLiveReferences.stream().allMatch(properties -> properties.getProperty("password") == null));
 
-        credentialPlacement.set(DatabaseCredentialPlacement.ACCESS_TOKEN);
+        credentialProperty.set(DatabaseCredentialProperty.ACCESS_TOKEN);
         connectionMode.set("ACCESS");
         accessTokenDataSource.setDriver(driver);
         accessTokenDataSource.setUrl(SQL_SERVER_URL);

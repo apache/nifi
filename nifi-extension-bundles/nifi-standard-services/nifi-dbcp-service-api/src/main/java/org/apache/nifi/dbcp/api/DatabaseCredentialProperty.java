@@ -19,16 +19,16 @@ package org.apache.nifi.dbcp.api;
 import org.apache.nifi.components.DescribedValue;
 
 /**
- * Describes how a database credential is supplied when establishing a JDBC connection.
+ * Describes the JDBC property used to supply a database credential when establishing a connection.
  */
-public enum DatabaseCredentialPlacement implements DescribedValue {
+public enum DatabaseCredentialProperty implements DescribedValue {
 
     PASSWORD("Supply the credential using the JDBC password property."),
     ACCESS_TOKEN("Supply the credential using a JDBC access token property.");
 
     private final String description;
 
-    DatabaseCredentialPlacement(final String description) {
+    DatabaseCredentialProperty(final String description) {
         this.description = description;
     }
 
