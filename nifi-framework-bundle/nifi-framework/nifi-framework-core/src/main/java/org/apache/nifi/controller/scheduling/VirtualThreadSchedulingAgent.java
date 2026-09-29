@@ -28,6 +28,9 @@ import org.apache.nifi.controller.scheduling.auto.AutoSchedulingDiagnostics;
 import org.apache.nifi.controller.scheduling.auto.AutoSchedulingResetReason;
 import org.apache.nifi.controller.scheduling.auto.ConcurrencyEvaluationState;
 import org.apache.nifi.controller.scheduling.auto.ConcurrencyUpdateStatus;
+import org.apache.nifi.controller.scheduling.auto.ConcurrentTaskMoveCoordinator;
+import org.apache.nifi.controller.scheduling.auto.ConcurrentTaskMoveSelector;
+import org.apache.nifi.controller.scheduling.auto.ConcurrentTaskMoveSelector.ProcessorDemand;
 import org.apache.nifi.controller.scheduling.auto.ProcessorSchedulingDecision;
 import org.apache.nifi.controller.scheduling.auto.ProcessorSchedulingDecisionReason;
 import org.apache.nifi.controller.scheduling.auto.ProcessorSchedulingMeasurements;
@@ -54,8 +57,10 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -96,6 +101,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     private final ScheduledExecutorService schedulingEvaluationExecutor;
     private final SystemSchedulingMetrics systemSchedulingMetrics;
     private final ConcurrentMap<String, SchedulingGeneration> schedulingGenerations = new ConcurrentHashMap<>();
+    private final ConcurrentTaskMoveCoordinator concurrentTaskMoveCoordinator = new ConcurrentTaskMoveCoordinator();
     private final LongAdder globalPermitHoldNanos = new LongAdder();
     private final LongAdder globalPermitWaitNanos = new LongAdder();
     private final LongAdder globalTaskSlotsFullyUsedSamples = new LongAdder();
@@ -286,7 +292,9 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                 }
 
                 final long concurrentTaskSlotChangeCount = state.generation.getConcurrentTaskSlotChangeCount();
+                state.measurements.recordTaskBusy();
                 if (!acquirePermitWithPolling(state.lifecycleState, state.generation)) {
+                    state.measurements.recordTaskIdle();
                     return;
                 }
 
@@ -334,6 +342,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                     globalPermitHoldNanos.add(permitHoldNanos);
                     Thread.interrupted();
                     globalSemaphore.release();
+                    state.measurements.recordTaskIdle();
                 }
 
                 if (concurrentTaskSlotUnavailable) {
@@ -498,7 +507,8 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
             final long nowNanos = System.nanoTime();
             final int maxGlobalConcurrentTasks = globalSemaphore.getMaxPermits();
             globalTaskUsageSamples.increment();
-            if (globalSemaphore.getInUsePermits() >= maxGlobalConcurrentTasks) {
+            // A waiting task means every permit is effectively in use, even while a permit is handed to the next waiting task.
+            if (globalSemaphore.getInUsePermits() >= maxGlobalConcurrentTasks || globalSemaphore.getWaitingThreadCount() > 0) {
                 globalTaskSlotsFullyUsedSamples.increment();
             }
 
@@ -513,6 +523,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                 systemSchedulingSnapshot = systemSchedulingMetrics.captureSnapshot(maxGlobalConcurrentTasks,
                         fractionOfSamplesWithAllGlobalTaskSlotsUsed, fractionOfGlobalTaskTimeSpentWaiting);
                 lastSystemSchedulingSnapshotNanos = nowNanos;
+                balanceConcurrentTasks(nowNanos);
             }
 
             for (final SchedulingGeneration generation : schedulingGenerations.values()) {
@@ -527,7 +538,8 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                     continue;
                 }
 
-                final ProcessorSchedulingSnapshot processorMeasurements = state.captureProcessorSchedulingSnapshot(nowNanos);
+                final boolean globalCapacityTestAllowed = concurrentTaskMoveCoordinator.isTestAllowed(state);
+                final ProcessorSchedulingSnapshot processorMeasurements = state.captureProcessorSchedulingSnapshot(nowNanos, globalCapacityTestAllowed);
                 final long resetSequence = state.resetSequence.get();
                 final ProcessorSchedulingDecision decision = state.controller.evaluate(processorMeasurements, systemSchedulingSnapshot);
                 logger.debug("Automatic scheduling evaluation for {}: processorMeasurements={}, systemMeasurements={}, decision={}",
@@ -546,10 +558,36 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                     state.applySettings(settings);
                     startAutoWorkers(state, selectedConcurrentTasks);
                 }
+
+                concurrentTaskMoveCoordinator.recordDecision(state, decision.reason());
             }
         } catch (final Throwable failure) {
             logger.error("Failed to evaluate automatic Processor scheduling", failure);
         }
+    }
+
+    /**
+     * Updates each Processor's demand score and lets the coordinator end or start a concurrent task move.
+     */
+    private void balanceConcurrentTasks(final long nowNanos) {
+        final List<ProcessorDemand> demands = new ArrayList<>();
+        final Map<String, ProcessorAutoSchedulingState> statesByIdentifier = new HashMap<>();
+        for (final SchedulingGeneration generation : schedulingGenerations.values()) {
+            final ProcessorAutoSchedulingState state = generation.getAutoSchedulingState();
+            final ProcessorSchedulingSnapshot snapshot = state == null ? null : state.lastProcessorSchedulingSnapshot;
+            if (snapshot == null || generation.isStopped()) {
+                continue;
+            }
+
+            final int maxConcurrentTasks = Math.min(state.maxConcurrentTasks, globalSemaphore.getMaxPermits());
+            final ProcessorDemand demand = new ProcessorDemand(state.connectable.getIdentifier(), state.sourceProcessor, state.schedulingSettings.get().concurrentTasks(),
+                    maxConcurrentTasks, state.controller.isConcurrencyComparisonActive(), state.controller.isIncreaseCoolingDown(nowNanos), snapshot);
+            state.demandScore = ConcurrentTaskMoveSelector.calculateScore(demand);
+            demands.add(demand);
+            statesByIdentifier.put(demand.identifier(), state);
+        }
+
+        concurrentTaskMoveCoordinator.balance(demands, statesByIdentifier, systemSchedulingSnapshot.globalCapacityFull());
     }
 
     private static CronExpression parseCronExpression(final String cronSchedule, final Object component) {
@@ -615,30 +653,37 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                     return;
                 }
 
-                if (reason == AutoSchedulingResetReason.PROCESSOR_CONNECTIONS_CHANGED) {
-                    generation.clearQueueRegistrations();
-                    registerQueueListeners(state.connectable, generation);
-                }
-
-                state.resetMeasurementsAfterEvent();
-                if (reason == AutoSchedulingResetReason.GLOBAL_CONCURRENT_TASK_LIMIT_CHANGED) {
-                    final SchedulingSettings currentSettings = state.schedulingSettings.get();
-                    final int selectedConcurrentTasks = Math.min(currentSettings.concurrentTasks(), globalSemaphore.getMaxPermits());
-                    final SchedulingSettings clampedSettings = new SchedulingSettings(selectedConcurrentTasks, currentSettings.runDurationNanos());
-                    state.applySettings(clampedSettings);
-                    startAutoWorkers(state, selectedConcurrentTasks);
-                }
-
-                state.controller.reset();
-                state.lastDecision = new ProcessorSchedulingDecision(state.schedulingSettings.get(),
-                        ConcurrencyEvaluationState.USING_CURRENT_CONCURRENCY,
-                        ProcessorSchedulingDecisionReason.PERFORMANCE_MEASUREMENTS_RESET, false);
+                resetController(generation, state, reason);
             });
         } catch (final RejectedExecutionException e) {
             if (!shutdown.get()) {
                 throw e;
             }
         }
+    }
+
+    /**
+     * Restarts a Processor's measurements after an event that makes them no longer comparable. Runs on the evaluation thread.
+     */
+    private void resetController(final SchedulingGeneration generation, final ProcessorAutoSchedulingState state, final AutoSchedulingResetReason reason) {
+        if (reason == AutoSchedulingResetReason.PROCESSOR_CONNECTIONS_CHANGED) {
+            generation.clearQueueRegistrations();
+            registerQueueListeners(state.connectable, generation);
+        }
+
+        state.resetMeasurementsAfterEvent();
+        if (reason == AutoSchedulingResetReason.GLOBAL_CONCURRENT_TASK_LIMIT_CHANGED) {
+            final SchedulingSettings currentSettings = state.schedulingSettings.get();
+            final int selectedConcurrentTasks = Math.min(currentSettings.concurrentTasks(), globalSemaphore.getMaxPermits());
+            final SchedulingSettings clampedSettings = new SchedulingSettings(selectedConcurrentTasks, currentSettings.runDurationNanos());
+            state.applySettings(clampedSettings);
+            startAutoWorkers(state, selectedConcurrentTasks);
+        }
+
+        state.controller.reset();
+        state.lastDecision = new ProcessorSchedulingDecision(state.schedulingSettings.get(),
+                ConcurrencyEvaluationState.USING_CURRENT_CONCURRENCY,
+                ProcessorSchedulingDecisionReason.PERFORMANCE_MEASUREMENTS_RESET, false);
     }
 
     @Override
@@ -685,6 +730,12 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     int getAutoSchedulingWaiterCount(final String componentIdentifier) {
         final SchedulingGeneration generation = schedulingGenerations.get(componentIdentifier);
         return generation == null ? 0 : generation.getWaiterCount();
+    }
+
+    ProcessorSchedulingMeasurements getAutoSchedulingMeasurements(final String componentIdentifier) {
+        final SchedulingGeneration generation = schedulingGenerations.get(componentIdentifier);
+        final ProcessorAutoSchedulingState state = generation == null ? null : generation.getAutoSchedulingState();
+        return state == null ? null : state.measurements;
     }
 
     int getAutoSchedulingConcurrentTaskSlotWaiterCount(final String componentIdentifier) {
@@ -966,7 +1017,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     private record WaitingProcessorTask(Thread thread, ProcessorTaskWorker worker) {
     }
 
-    private class ProcessorAutoSchedulingState {
+    private class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinator.Participant {
         private final Connectable connectable;
         private final ConnectableTask connectableTask;
         private final LifecycleState lifecycleState;
@@ -998,6 +1049,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         private volatile ProcessorSchedulingSnapshot lastProcessorSchedulingSnapshot;
         private volatile boolean previousPrimaryNode;
         private volatile boolean measurementsSupported;
+        private volatile double demandScore;
 
         private ProcessorAutoSchedulingState(final Connectable connectable, final ConnectableTask connectableTask,
                                              final LifecycleState lifecycleState, final SchedulingGeneration generation,
@@ -1069,7 +1121,6 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
 
                 if (activeProcessorInvocations.compareAndSet(currentActiveProcessorInvocations, currentActiveProcessorInvocations + 1)) {
                     if (schedulingSettings.get() == expectedSettings) {
-                        measurements.recordInvocationStarted();
                         return true;
                     }
 
@@ -1081,7 +1132,6 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         }
 
         void releaseConcurrentTaskSlot() {
-            measurements.recordInvocationFinished();
             activeProcessorInvocations.decrementAndGet();
             generation.signalConcurrentTaskSlotChange();
         }
@@ -1153,7 +1203,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
             measurements.recordReadiness(connectableTask.getReadinessOutcome(), measurementNanos);
         }
 
-        ProcessorSchedulingSnapshot captureProcessorSchedulingSnapshot(final long nowNanos) {
+        ProcessorSchedulingSnapshot captureProcessorSchedulingSnapshot(final long nowNanos, final boolean globalCapacityTestAllowed) {
             final SchedulingSettings currentSettings = schedulingSettings.get();
             long inputQueueSize = 0L;
             for (final Connection connection : connectable.getIncomingConnections()) {
@@ -1171,9 +1221,8 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
             final boolean sourceProcessorRecentlyReportedActivity = sourceProcessor && sourceDelayNanos == 0L
                     && (activeProcessorInvocations.get() > 0
                     || lastSourceActivityNanos > 0L && nowNanos - lastSourceActivityNanos < TimeUnit.SECONDS.toNanos(2));
-            final ProcessorSchedulingSnapshot snapshot = measurements.captureSnapshot(nowNanos, measurementWindowNanos,
-                    currentSettings, connectableTask.isReady(), inputQueueHasFlowFiles,
-                    inputQueueGrowth, sourceProcessorRecentlyReportedActivity, primaryNodeChanged);
+            final ProcessorSchedulingSnapshot snapshot = measurements.captureSnapshot(nowNanos, measurementWindowNanos, currentSettings, connectableTask.isReady(),
+                    inputQueueHasFlowFiles, inputQueueSize, inputQueueGrowth, sourceProcessorRecentlyReportedActivity, primaryNodeChanged, globalCapacityTestAllowed);
             if (snapshot.committedFlowFiles() > 0L) {
                 measurementsSupported = true;
             }
@@ -1222,6 +1271,43 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
             }
         }
 
+        @Override
+        public boolean isActive() {
+            return !generation.isStopped() && schedulingGenerations.get(connectable.getIdentifier()) == generation;
+        }
+
+        @Override
+        public int getConcurrentTasks() {
+            return schedulingSettings.get().concurrentTasks();
+        }
+
+        @Override
+        public boolean isConcurrencyComparisonActive() {
+            return controller.isConcurrencyComparisonActive();
+        }
+
+        /**
+         * Changes the concurrent task setting for a concurrent task move and restarts the measurements without counting a failed test.
+         */
+        @Override
+        public boolean changeConcurrentTasks(final int change) {
+            final SchedulingSettings currentSettings = schedulingSettings.get();
+            final int updatedConcurrentTasks = currentSettings.concurrentTasks() + change;
+            if (!isActive() || updatedConcurrentTasks < 1 || updatedConcurrentTasks > Math.min(maxConcurrentTasks, globalSemaphore.getMaxPermits())) {
+                return false;
+            }
+
+            applySettings(new SchedulingSettings(updatedConcurrentTasks, currentSettings.runDurationNanos()));
+            startAutoWorkers(this, updatedConcurrentTasks);
+            resetController(generation, this, AutoSchedulingResetReason.CONCURRENT_TASK_MOVED);
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return connectable.toString();
+        }
+
         AutoSchedulingDiagnostics getDiagnostics() {
             final SchedulingSettings currentSettings = schedulingSettings.get();
             final ProcessorSchedulingDecision currentDecision = lastDecision;
@@ -1251,6 +1337,9 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                     .setCollectingMeasurements(reason == ProcessorSchedulingDecisionReason.COLLECTING_COMPARISON_MEASUREMENTS)
                     .setFlowFileMeasurementsAvailable(measurementsSupported)
                     .setConcurrencyIncreaseExplanation(concurrencyUpdateStatus.explanation())
+                    .setLocalInputQueueCount(currentSnapshot == null ? 0L : currentSnapshot.localInputQueueCount())
+                    .setDemandScore(demandScore)
+                    .setTaskMoveRole(concurrentTaskMoveCoordinator.getRole(this))
                     .build();
         }
     }

@@ -55,8 +55,25 @@ class ProcessorSchedulingMeasurementsTest {
         assertEquals(1, failed.completedInvocations());
         assertEquals(1, failed.failedInvocations());
         observer.onCommit(new CommittedSchedulingWork(2, 10));
-        assertEquals(2, captureSnapshot(measurements, 2).committedFlowFiles());
+        final ProcessorSchedulingSnapshot committed = captureSnapshot(measurements, 2);
+        assertEquals(2, committed.committedFlowFiles());
+        // Until ten seconds are measured, the recent rates are the average of every one-second capture so far.
+        assertEquals(new ProcessorSchedulingSnapshot.RecentDemand(1D, 0.5D, 0.5D, TimeUnit.SECONDS.toNanos(2)), committed.recentDemand());
         assertEquals(0, captureSnapshot(measurements, 3).committedFlowFiles());
+
+        ProcessorSchedulingSnapshot later = null;
+        for (int second = 0; second < 7; second++) {
+            later = captureSnapshot(measurements, 3);
+        }
+
+        assertEquals(0.2D, later.recentDemand().committedInputFlowFilesPerSecond(), 0.000001D);
+
+        // After ten seconds, each capture is weighted toward the most recent measurements, so older commits fade away.
+        for (int second = 0; second < 10; second++) {
+            later = captureSnapshot(measurements, 3);
+        }
+
+        assertTrue(later.recentDemand().committedInputFlowFilesPerSecond() < 0.1D);
     }
 
     @Test
@@ -64,24 +81,24 @@ class ProcessorSchedulingMeasurementsTest {
         final AtomicLong nowNanos = new AtomicLong();
         final ProcessorSchedulingMeasurements measurements = new ProcessorSchedulingMeasurements(nowNanos::get);
         final SchedulingSettings settings = new SchedulingSettings(2, 0L);
-        measurements.recordInvocationStarted();
+        measurements.recordTaskBusy();
 
-        // The scheduling agent reads its timestamp at 1000 milliseconds, then a second invocation starts at 1200 milliseconds before the snapshot is captured.
+        // The scheduling agent reads its timestamp at 1000 milliseconds, then a second task becomes busy at 1200 milliseconds before the snapshot is captured.
         final long agentTimestampNanos = TimeUnit.MILLISECONDS.toNanos(1000);
         nowNanos.set(TimeUnit.MILLISECONDS.toNanos(1200));
-        measurements.recordInvocationStarted();
+        measurements.recordTaskBusy();
         final ProcessorSchedulingSnapshot first = measurements.captureSnapshot(agentTimestampNanos, agentTimestampNanos, settings,
-                true, true, 0D, false, false);
-        // 1200 milliseconds of invocation time out of 1200 milliseconds available to each of 2 tasks
+                true, true, 0L, 0D, false, false, false);
+        // 1200 milliseconds of busy time out of 1200 milliseconds available to each of 2 tasks
         assertEquals(0.5D, first.concurrentTaskUtilization(), 0.000001D);
         assertEquals(0, first.completedInvocations());
 
         nowNanos.set(TimeUnit.MILLISECONDS.toNanos(2200));
-        measurements.recordInvocationFinished();
+        measurements.recordTaskIdle();
         nowNanos.set(TimeUnit.MILLISECONDS.toNanos(3200));
         final ProcessorSchedulingSnapshot second = measurements.captureSnapshot(nowNanos.get(), nowNanos.get() - agentTimestampNanos, settings,
-                true, true, 0D, false, false);
-        // 2000 milliseconds from the first invocation plus 1000 milliseconds from the second, out of 2000 milliseconds available to each of 2 tasks
+                true, true, 0L, 0D, false, false, false);
+        // 2000 milliseconds from the first task plus 1000 milliseconds from the second, out of 2000 milliseconds available to each of 2 tasks
         assertEquals(0.75D, second.concurrentTaskUtilization(), 0.000001D);
     }
 
@@ -97,6 +114,6 @@ class ProcessorSchedulingMeasurementsTest {
 
     private ProcessorSchedulingSnapshot captureSnapshot(final ProcessorSchedulingMeasurements measurements, final int concurrency) {
         return measurements.captureSnapshot(System.nanoTime(), TimeUnit.SECONDS.toNanos(1),
-                new SchedulingSettings(concurrency, 0L), true, true, 0D, false, false);
+                new SchedulingSettings(concurrency, 0L), true, true, 0L, 0D, false, false, false);
     }
 }

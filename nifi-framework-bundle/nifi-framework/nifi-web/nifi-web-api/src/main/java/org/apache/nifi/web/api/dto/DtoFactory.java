@@ -4083,6 +4083,9 @@ public final class DtoFactory {
             autoSchedulingDiagnosticsDto.setCollectingMeasurements(autoSchedulingDiagnostics.collectingMeasurements());
             autoSchedulingDiagnosticsDto.setFlowFileMeasurementsAvailable(autoSchedulingDiagnostics.flowFileMeasurementsAvailable());
             autoSchedulingDiagnosticsDto.setConcurrencyIncreaseExplanation(autoSchedulingDiagnostics.concurrencyIncreaseExplanation());
+            autoSchedulingDiagnosticsDto.setLocalInputQueueCount(autoSchedulingDiagnostics.localInputQueueCount());
+            autoSchedulingDiagnosticsDto.setDemandScore(autoSchedulingDiagnostics.demandScore());
+            autoSchedulingDiagnosticsDto.setTaskMoveRole(autoSchedulingDiagnostics.taskMoveRole());
             procDiagnostics.setAutoSchedulingDiagnostics(autoSchedulingDiagnosticsDto);
         }
 

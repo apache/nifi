@@ -18,6 +18,8 @@ package org.apache.nifi.controller.scheduling.auto;
 
 import org.apache.nifi.controller.scheduling.SchedulingSettings;
 
+import java.util.concurrent.TimeUnit;
+
 public final class ProcessorSchedulingSnapshot {
     private final long timestampNanos;
     private final long measurementWindowNanos;
@@ -34,6 +36,9 @@ public final class ProcessorSchedulingSnapshot {
     private final double inputQueueGrowth;
     private final boolean sourceProcessorRecentlyReportedActivity;
     private final boolean primaryNodeChanged;
+    private final long localInputQueueCount;
+    private final RecentDemand recentDemand;
+    private final boolean globalCapacityTestAllowed;
 
     private ProcessorSchedulingSnapshot(final Builder builder) {
         timestampNanos = builder.timestampNanos;
@@ -51,6 +56,9 @@ public final class ProcessorSchedulingSnapshot {
         inputQueueGrowth = builder.inputQueueGrowth;
         sourceProcessorRecentlyReportedActivity = builder.sourceProcessorRecentlyReportedActivity;
         primaryNodeChanged = builder.primaryNodeChanged;
+        localInputQueueCount = builder.localInputQueueCount;
+        recentDemand = builder.recentDemand;
+        globalCapacityTestAllowed = builder.globalCapacityTestAllowed;
     }
 
     public static Builder createBuilder() {
@@ -117,6 +125,45 @@ public final class ProcessorSchedulingSnapshot {
         return primaryNodeChanged;
     }
 
+    public long localInputQueueCount() {
+        return localInputQueueCount;
+    }
+
+    public RecentDemand recentDemand() {
+        return recentDemand;
+    }
+
+    /**
+     * @return whether this evaluation may test one more concurrent task even though global capacity is full
+     */
+    public boolean globalCapacityTestAllowed() {
+        return globalCapacityTestAllowed;
+    }
+
+    /**
+     * Recent per-second rates, averaged over all measurements until {@link #AVERAGING_NANOS} have been measured and then weighted toward
+     * the most recent {@link #AVERAGING_NANOS}.
+     *
+     * @param committedInputFlowFilesPerSecond input FlowFiles committed per second
+     * @param completedInvocationsPerSecond invocations completed per second
+     * @param failedInvocationsPerSecond invocations failed per second
+     * @param measuredNanos total time measured
+     */
+    public record RecentDemand(double committedInputFlowFilesPerSecond, double completedInvocationsPerSecond, double failedInvocationsPerSecond,
+                               long measuredNanos) {
+        public static final long AVERAGING_NANOS = TimeUnit.SECONDS.toNanos(10);
+        public static final RecentDemand NONE = new RecentDemand(0D, 0D, 0D, 0L);
+
+        public RecentDemand add(final long windowNanos, final long committedInputFlowFiles, final long completedInvocations, final long failedInvocations) {
+            final long totalNanos = measuredNanos + windowNanos;
+            final double weight = Math.min(1D, windowNanos / (double) Math.max(1L, Math.min(totalNanos, AVERAGING_NANOS)));
+            final double windowSeconds = Math.max(1L, windowNanos) / (double) TimeUnit.SECONDS.toNanos(1);
+            return new RecentDemand(committedInputFlowFilesPerSecond + weight * (committedInputFlowFiles / windowSeconds - committedInputFlowFilesPerSecond),
+                    completedInvocationsPerSecond + weight * (completedInvocations / windowSeconds - completedInvocationsPerSecond),
+                    failedInvocationsPerSecond + weight * (failedInvocations / windowSeconds - failedInvocationsPerSecond), totalNanos);
+        }
+    }
+
     public static final class Builder {
         private long timestampNanos;
         private long measurementWindowNanos;
@@ -133,6 +180,9 @@ public final class ProcessorSchedulingSnapshot {
         private double inputQueueGrowth;
         private boolean sourceProcessorRecentlyReportedActivity;
         private boolean primaryNodeChanged;
+        private long localInputQueueCount;
+        private RecentDemand recentDemand = RecentDemand.NONE;
+        private boolean globalCapacityTestAllowed;
 
         private Builder() {
         }
@@ -209,6 +259,21 @@ public final class ProcessorSchedulingSnapshot {
 
         public Builder setPrimaryNodeChanged(final boolean primaryNodeChanged) {
             this.primaryNodeChanged = primaryNodeChanged;
+            return this;
+        }
+
+        public Builder setLocalInputQueueCount(final long localInputQueueCount) {
+            this.localInputQueueCount = localInputQueueCount;
+            return this;
+        }
+
+        public Builder setRecentDemand(final RecentDemand recentDemand) {
+            this.recentDemand = recentDemand;
+            return this;
+        }
+
+        public Builder setGlobalCapacityTestAllowed(final boolean globalCapacityTestAllowed) {
+            this.globalCapacityTestAllowed = globalCapacityTestAllowed;
             return this;
         }
 

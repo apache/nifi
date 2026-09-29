@@ -268,6 +268,43 @@ class StandardAutoSchedulingControllerTest {
         assertEquals(1, simulation.settings.concurrentTasks());
         simulation.observe(1000);
         assertEquals(ProcessorSchedulingDecisionReason.PROCESSOR_INVOCATION_FAILED, simulation.lastDecision.reason());
+
+        // With a larger global limit that is fully used, increases stay blocked after the failures stop and the increase cooldown ends.
+        simulation.failedInvocations = 0;
+        simulation.systemMeasurements = SystemSchedulingSnapshot.createBuilder()
+                .setCpuLoadAvailable(true)
+                .setCpuLoad(0.25D)
+                .setAverageCpuLoad(0.25D)
+                .setMaxGlobalConcurrentTasks(32)
+                .setFractionOfSamplesWithAllGlobalTaskSlotsUsed(1D)
+                .setFractionOfGlobalTaskTimeSpentWaiting(0.5D)
+                .build();
+        simulation.observe(15, 1000);
+        assertEquals(1, simulation.settings.concurrentTasks());
+        assertEquals(ConcurrencyUpdateReason.GLOBAL_CAPACITY_FULL, simulation.controller.getConcurrencyUpdateStatus().reason());
+
+        // A single evaluation that is allowed to test despite full global capacity starts the normal one-task test, which is kept because
+        // throughput increases.
+        simulation.globalCapacityTestAllowed = true;
+        simulation.observe(1000);
+        simulation.globalCapacityTestAllowed = false;
+        assertEquals(ProcessorSchedulingDecisionReason.TESTING_HIGHER_CONCURRENCY, simulation.lastDecision.reason());
+        assertEquals(2, simulation.settings.concurrentTasks());
+        simulation.observe(6, 2000);
+        assertEquals(ProcessorSchedulingDecisionReason.HIGHER_CONCURRENCY_INCREASED_THROUGHPUT, simulation.lastDecision.reason());
+        assertEquals(2, simulation.settings.concurrentTasks());
+
+        // Without the allowance, the next increase is blocked again. With it, a test that does not increase throughput is rejected.
+        simulation.observe(2000);
+        assertEquals(2, simulation.settings.concurrentTasks());
+        assertEquals(ConcurrencyUpdateReason.GLOBAL_CAPACITY_FULL, simulation.controller.getConcurrencyUpdateStatus().reason());
+        simulation.globalCapacityTestAllowed = true;
+        simulation.observe(2000);
+        simulation.globalCapacityTestAllowed = false;
+        assertEquals(3, simulation.settings.concurrentTasks());
+        simulation.observe(6, 2000);
+        assertEquals(ProcessorSchedulingDecisionReason.HIGHER_CONCURRENCY_DID_NOT_INCREASE_THROUGHPUT, simulation.lastDecision.reason());
+        assertEquals(2, simulation.settings.concurrentTasks());
     }
 
     @Test
@@ -379,6 +416,7 @@ class StandardAutoSchedulingControllerTest {
         private boolean processorReady = true;
         private boolean inputQueueHasFlowFiles = true;
         private boolean sourceProcessorRecentlyReportedActivity;
+        private boolean globalCapacityTestAllowed;
 
         private Simulation(final int maxConcurrentTasks, final boolean batchingSupported, final boolean processorTriggeredSerially) {
             this(maxConcurrentTasks, batchingSupported, processorTriggeredSerially, false, Runtime.getRuntime().availableProcessors());
@@ -418,6 +456,7 @@ class StandardAutoSchedulingControllerTest {
                     .setProcessorReady(processorReady)
                     .setInputQueueHasFlowFiles(inputQueueHasFlowFiles)
                     .setSourceProcessorRecentlyReportedActivity(sourceProcessorRecentlyReportedActivity)
+                    .setGlobalCapacityTestAllowed(globalCapacityTestAllowed)
                     .build();
             lastDecision = controller.evaluate(processorMeasurements, systemMeasurements);
             if (lastDecision.applySettings()) {
