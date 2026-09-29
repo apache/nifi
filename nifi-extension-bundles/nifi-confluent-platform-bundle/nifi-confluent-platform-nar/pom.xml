@@ -35,5 +35,10 @@
             <artifactId>nifi-confluent-protobuf-message-name-resolver</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-confluent-protobuf-message-index-writer</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>

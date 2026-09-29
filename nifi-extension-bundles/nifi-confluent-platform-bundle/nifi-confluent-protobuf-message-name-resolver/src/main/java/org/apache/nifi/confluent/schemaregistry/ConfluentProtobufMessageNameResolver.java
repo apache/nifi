@@ -42,9 +42,9 @@ import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
-import static org.apache.nifi.confluent.schemaregistry.VarintUtils.decodeZigZag;
-import static org.apache.nifi.confluent.schemaregistry.VarintUtils.readVarintFromStream;
-import static org.apache.nifi.confluent.schemaregistry.VarintUtils.readVarintFromStreamAfterFirstByteConsumed;
+import static org.apache.nifi.confluent.schema.VarintUtils.decodeZigZag;
+import static org.apache.nifi.confluent.schema.VarintUtils.readVarintFromStream;
+import static org.apache.nifi.confluent.schema.VarintUtils.readVarintFromStreamAfterFirstByteConsumed;
 
 @Tags({"confluent", "schema", "registry", "protobuf", "message", "name", "resolver"})
 @CapabilityDescription("""
