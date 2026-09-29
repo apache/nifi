@@ -75,6 +75,26 @@ class AbstractDBCPConnectionPoolTest {
 
     private static final int TIMEOUT = 0;
 
+    private static final String POSTGRESQL_URL = "jdbc:postgresql://example";
+
+    private static final String POSTGRESQL_DRIVER = "org.postgresql.Driver";
+
+    private static final String POSTGRESQL_USER = "dbuser";
+
+    private static final String SQL_SERVER_URL = "jdbc:sqlserver://example.database.windows.net:1433;databaseName=test";
+
+    private static final String SQL_SERVER_USER = "configured-user";
+
+    private static final String CONFIGURED_PASSWORD = "configured-password";
+
+    private static final Map<String, String> SQL_SERVER_CONNECTION_PROPERTIES = Map.of(
+            "USER", "dynamic-user",
+            "UserName", "dynamic-user-name",
+            "PASSWORD", "dynamic-password",
+            "authentication", "ActiveDirectoryManagedIdentity",
+            "integratedSecurity", "true"
+    );
+
     @Mock
     Driver driver;
 
@@ -214,15 +234,15 @@ class AbstractDBCPConnectionPoolTest {
         verify(databasePasswordProvider, atLeastOnce()).getDatabaseCredentialPlacement();
 
         passwordDataSource.setDriver(driver);
-        passwordDataSource.setUrl("jdbc:postgresql://example");
-        passwordDataSource.setUsername("dbuser");
-        passwordDataSource.setPassword("configured-password");
+        passwordDataSource.setUrl(POSTGRESQL_URL);
+        passwordDataSource.setUsername(POSTGRESQL_USER);
+        passwordDataSource.setPassword(CONFIGURED_PASSWORD);
         passwordDataSource.setMaxTotal(MAX_TOTAL);
         passwordDataSource.addConnectionProperty("ssl", "true");
         passwordDataSource.setDatabasePasswordProvider(databasePasswordProvider, DatabasePasswordRequestContext.builder()
-                .jdbcUrl("jdbc:postgresql://example")
-                .driverClassName("org.postgresql.Driver")
-                .databaseUser("dbuser")
+                .jdbcUrl(POSTGRESQL_URL)
+                .driverClassName(POSTGRESQL_DRIVER)
+                .databaseUser(POSTGRESQL_USER)
                 .connectionProperties(Map.of("ssl", "true"))
                 .build());
 
@@ -254,25 +274,15 @@ class AbstractDBCPConnectionPoolTest {
         credentialPlacement.set(DatabaseCredentialPlacement.ACCESS_TOKEN);
         connectionMode.set("ACCESS");
         accessTokenDataSource.setDriver(driver);
-        accessTokenDataSource.setUrl("jdbc:sqlserver://example.database.windows.net:1433;databaseName=test");
-        accessTokenDataSource.setUsername("configured-user");
-        accessTokenDataSource.setPassword("configured-password");
-        accessTokenDataSource.addConnectionProperty("USER", "dynamic-user");
-        accessTokenDataSource.addConnectionProperty("UserName", "dynamic-user-name");
-        accessTokenDataSource.addConnectionProperty("PASSWORD", "dynamic-password");
-        accessTokenDataSource.addConnectionProperty("authentication", "ActiveDirectoryManagedIdentity");
-        accessTokenDataSource.addConnectionProperty("integratedSecurity", "true");
+        accessTokenDataSource.setUrl(SQL_SERVER_URL);
+        accessTokenDataSource.setUsername(SQL_SERVER_USER);
+        accessTokenDataSource.setPassword(CONFIGURED_PASSWORD);
+        SQL_SERVER_CONNECTION_PROPERTIES.forEach(accessTokenDataSource::addConnectionProperty);
         accessTokenDataSource.setDatabasePasswordProvider(databasePasswordProvider, DatabasePasswordRequestContext.builder()
-                .jdbcUrl("jdbc:sqlserver://example.database.windows.net:1433;databaseName=test")
+                .jdbcUrl(SQL_SERVER_URL)
                 .driverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver")
-                .databaseUser("configured-user")
-                .connectionProperties(Map.of(
-                        "USER", "dynamic-user",
-                        "UserName", "dynamic-user-name",
-                        "PASSWORD", "dynamic-password",
-                        "authentication", "ActiveDirectoryManagedIdentity",
-                        "integratedSecurity", "true"
-                ))
+                .databaseUser(SQL_SERVER_USER)
+                .connectionProperties(SQL_SERVER_CONNECTION_PROPERTIES)
                 .build());
 
         final ConnectionFactory accessTokenConnectionFactory = accessTokenDataSource.callCreateConnectionFactory();
@@ -323,11 +333,11 @@ class AbstractDBCPConnectionPoolTest {
         doThrow(new IllegalStateException("provider failure")).when(databasePasswordProvider).getPassword(any());
         final ProviderAwareBasicDataSource failureDataSource = new ProviderAwareBasicDataSource();
         failureDataSource.setDriver(driver);
-        failureDataSource.setUrl("jdbc:postgresql://example");
+        failureDataSource.setUrl(POSTGRESQL_URL);
         failureDataSource.setDatabasePasswordProvider(databasePasswordProvider, DatabasePasswordRequestContext.builder()
-                .jdbcUrl("jdbc:postgresql://example")
-                .driverClassName("org.postgresql.Driver")
-                .databaseUser("dbuser")
+                .jdbcUrl(POSTGRESQL_URL)
+                .driverClassName(POSTGRESQL_DRIVER)
+                .databaseUser(POSTGRESQL_USER)
                 .build());
         try {
             final SQLException exception = assertThrows(SQLException.class, failureDataSource::getConnection);
@@ -347,9 +357,9 @@ class AbstractDBCPConnectionPoolTest {
     }
 
     private void mockDataSourceConfigurationDefaults() {
-        when(dataSourceConfiguration.getUrl()).thenReturn("jdbc:postgresql://example");
-        when(dataSourceConfiguration.getDriverName()).thenReturn("org.postgresql.Driver");
-        when(dataSourceConfiguration.getUserName()).thenReturn("dbuser");
+        when(dataSourceConfiguration.getUrl()).thenReturn(POSTGRESQL_URL);
+        when(dataSourceConfiguration.getDriverName()).thenReturn(POSTGRESQL_DRIVER);
+        when(dataSourceConfiguration.getUserName()).thenReturn(POSTGRESQL_USER);
         when(dataSourceConfiguration.getPassword()).thenReturn("secret");
         when(dataSourceConfiguration.getValidationQuery()).thenReturn(null);
         when(dataSourceConfiguration.getMaxWaitMillis()).thenReturn(1000L);
@@ -364,10 +374,10 @@ class AbstractDBCPConnectionPoolTest {
 
     private void mockContextDatabaseProperties() {
         when(configurationContext.getProperties()).thenReturn(Collections.emptyMap());
-        lenient().when(configurationContext.getProperty(eq(DBCPProperties.DATABASE_URL))).thenReturn(propertyValue(DBCPProperties.DATABASE_URL, "jdbc:postgresql://example"));
-        lenient().when(configurationContext.getProperty(eq(DBCPProperties.DB_DRIVERNAME))).thenReturn(propertyValue(DBCPProperties.DB_DRIVERNAME, "org.postgresql.Driver"));
+        lenient().when(configurationContext.getProperty(eq(DBCPProperties.DATABASE_URL))).thenReturn(propertyValue(DBCPProperties.DATABASE_URL, POSTGRESQL_URL));
+        lenient().when(configurationContext.getProperty(eq(DBCPProperties.DB_DRIVERNAME))).thenReturn(propertyValue(DBCPProperties.DB_DRIVERNAME, POSTGRESQL_DRIVER));
         lenient().when(configurationContext.getProperty(eq(DBCPProperties.DB_DRIVER_LOCATION))).thenReturn(propertyValue(DBCPProperties.DB_DRIVER_LOCATION, ""));
-        lenient().when(configurationContext.getProperty(eq(DBCPProperties.DB_USER))).thenReturn(propertyValue(DBCPProperties.DB_USER, "dbuser"));
+        lenient().when(configurationContext.getProperty(eq(DBCPProperties.DB_USER))).thenReturn(propertyValue(DBCPProperties.DB_USER, POSTGRESQL_USER));
         lenient().when(configurationContext.getProperty(eq(DBCPProperties.DB_PASSWORD))).thenReturn(propertyValue(DBCPProperties.DB_PASSWORD, "secret"));
         lenient().when(configurationContext.getProperty(eq(DBCPProperties.PASSWORD_SOURCE))).thenReturn(propertyValue(DBCPProperties.PASSWORD_SOURCE,
                 DBCPProperties.PasswordSource.PASSWORD.getValue()));
