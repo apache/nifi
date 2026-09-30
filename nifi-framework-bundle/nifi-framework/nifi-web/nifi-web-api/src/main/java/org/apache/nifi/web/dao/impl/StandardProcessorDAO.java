@@ -29,6 +29,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ProcessorDetails;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
@@ -123,7 +124,19 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
     @Override
     public void verifyCreate(final ProcessorDTO processorDTO) {
-        verifyCreate(flowController.getExtensionManager(), processorDTO.getType(), processorDTO.getBundle());
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+        verifyCreate(extensionManager, processorDTO.getType(), processorDTO.getBundle());
+
+        final ProcessorConfigDTO config = processorDTO.getConfig();
+        if (config == null || !SchedulingStrategy.AUTO.name().equals(config.getSchedulingStrategy())) {
+            return;
+        }
+
+        final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, processorDTO.getType(), processorDTO.getBundle());
+        final ConfigurableComponent temporaryComponent = extensionManager.getTempComponent(processorDTO.getType(), bundleCoordinate);
+        if (temporaryComponent != null && !ProcessorDetails.isAutoSchedulingSupported(temporaryComponent.getClass())) {
+            throw new ValidationException(List.of("Scheduling strategy AUTO is not supported by Processor type " + processorDTO.getType()));
+        }
     }
 
     @Override

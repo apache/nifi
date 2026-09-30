@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.annotation.behavior.AllowsAutoScheduling;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
@@ -61,6 +62,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -211,7 +213,7 @@ class StandardProcessorDAOTest {
     }
 
     @Test
-    void testVerifyUpdateRejectsUnsupportedAutomaticScheduling() {
+    void testVerifyRejectsAutoSchedulingForProcessorWithoutAutoScheduling(@TempDir final File tempDir) {
         final ProcessorConfigDTO config = new ProcessorConfigDTO();
         config.setSchedulingStrategy(SchedulingStrategy.AUTO.name());
         final ProcessorDTO processorDTO = new ProcessorDTO();
@@ -220,10 +222,24 @@ class StandardProcessorDAOTest {
         when(processorNode.isAutoSchedulingSupported()).thenReturn(false);
         when(processorNode.getName()).thenReturn("Unsupported Processor");
 
-        final ValidationException exception = assertThrows(ValidationException.class, () -> dao.verifyUpdate(processorDTO));
+        final ValidationException updateException = assertThrows(ValidationException.class, () -> dao.verifyUpdate(processorDTO));
+        assertEquals(1, updateException.getValidationErrors().size());
+        assertTrue(updateException.getValidationErrors().getFirst().contains("AUTO"));
 
-        assertEquals(List.of("Scheduling strategy AUTO is not supported by Processor Unsupported Processor [test-processor-id]"),
-                exception.getValidationErrors());
+        final String processorType = ProcessorWithoutAutoScheduling.class.getName();
+        processorDTO.setType(processorType);
+        final BundleCoordinate bundleCoordinate = new BundleCoordinate(BUNDLE_GROUP_ID, processorType, BUNDLE_VERSION);
+        final BundleDetails bundleDetails = new BundleDetails.Builder().coordinate(bundleCoordinate).workingDir(tempDir).build();
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        when(extensionManager.getBundles(processorType)).thenReturn(List.of(new Bundle(bundleDetails, getClass().getClassLoader())));
+        when(extensionManager.getTempComponent(processorType, bundleCoordinate)).thenReturn(mock(ProcessorWithoutAutoScheduling.class));
+
+        final ValidationException createException = assertThrows(ValidationException.class, () -> dao.verifyCreate(processorDTO));
+        assertEquals(1, createException.getValidationErrors().size());
+        assertTrue(createException.getValidationErrors().getFirst().contains("AUTO"));
+
+        when(extensionManager.getTempComponent(processorType, bundleCoordinate)).thenReturn(processor);
+        dao.verifyCreate(processorDTO);
     }
 
     @Test
@@ -282,5 +298,9 @@ class StandardProcessorDAOTest {
 
         assertEquals(processorNode, createdProcessorNode);
         verify(processorNode).setProcessGroup(processGroup);
+    }
+
+    @AllowsAutoScheduling(false)
+    private abstract static class ProcessorWithoutAutoScheduling implements Processor {
     }
 }

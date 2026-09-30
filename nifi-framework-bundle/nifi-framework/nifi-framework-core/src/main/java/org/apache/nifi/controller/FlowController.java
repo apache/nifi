@@ -2394,12 +2394,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
                 if (supportedTypes.containsKey(processor.getType())) {
                     verifyBundleInVersionedFlow(processor.getBundle(), supportedTypes.get(processor.getType()));
-                    if (SchedulingStrategy.AUTO.name().equals(processor.getSchedulingStrategy())) {
-                        final Bundle bundle = processor.getBundle();
-                        final BundleCoordinate coordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
-                        final Object temporaryComponent = extensionManager.getTempComponent(processor.getType(), coordinate);
-                        ProcessorDetails.verifyAutoSchedulingSupported(temporaryComponent, processor.getName(), processor.getIdentifier());
-                    }
                 } else {
                     throw new IllegalStateException("Invalid Processor Type: " + processor.getType());
                 }

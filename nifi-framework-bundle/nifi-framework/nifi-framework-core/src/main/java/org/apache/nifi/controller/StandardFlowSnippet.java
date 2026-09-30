@@ -209,7 +209,6 @@ public class StandardFlowSnippet implements FlowSnippet {
 
                 if (supportedTypes.containsKey(processor.getType())) {
                     verifyBundleInSnippet(processor.getBundle(), supportedTypes.get(processor.getType()));
-                    verifyAutoSchedulingSupported(processor);
                 } else {
                     throw new IllegalStateException("Invalid Processor Type: " + processor.getType());
                 }
@@ -219,18 +218,6 @@ public class StandardFlowSnippet implements FlowSnippet {
         if (templateContents.getProcessGroups() != null) {
             templateContents.getProcessGroups().forEach(processGroup -> verifyProcessorsInSnippet(processGroup.getContents(), supportedTypes));
         }
-    }
-
-    private void verifyAutoSchedulingSupported(final ProcessorDTO processor) {
-        final ProcessorConfigDTO config = processor.getConfig();
-        if (config == null || !SchedulingStrategy.AUTO.name().equals(config.getSchedulingStrategy())) {
-            return;
-        }
-
-        final BundleDTO bundle = processor.getBundle();
-        final BundleCoordinate coordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
-        final Object temporaryComponent = extensionManager.getTempComponent(processor.getType(), coordinate);
-        ProcessorDetails.verifyAutoSchedulingSupported(temporaryComponent, processor.getName(), processor.getId());
     }
 
     public void instantiate(final FlowManager flowManager, final FlowController flowController, final ProcessGroup group, final boolean topLevel) {
