@@ -26,7 +26,10 @@ import {
     ConnectionStatusSnapshotDTO,
     ConnectionStatusSnapshotEntity
 } from './connection-entity';
-import { ControllerServiceReferencingComponentEntity } from './controller-service-entity';
+import {
+    ControllerServiceReferencingComponentDTO,
+    ControllerServiceReferencingComponentEntity
+} from './controller-service-entity';
 import { FunnelDTO, FunnelEntity } from './funnel-entity';
 import { LabelDTO, LabelEntity } from './label-entity';
 import { PortDTO, PortEntity, PortStatusDTO, PortStatusSnapshotDTO, PortStatusSnapshotEntity } from './port-entity';
@@ -46,7 +49,7 @@ import {
     ProcessorStatusSnapshotDTO,
     ProcessorStatusSnapshotEntity
 } from './processor-entity';
-import { AllowableValueDTO, AllowableValueEntity } from './property-descriptor-dto';
+import { AllowableValueDTO, AllowableValueEntity, PropertyDescriptorDTO } from './property-descriptor-dto';
 import { VersionedProcessGroup } from './registered-flow-snapshot';
 import {
     RemoteProcessGroupDTO,
@@ -512,8 +515,8 @@ function createRemoteProcessGroupEntity(
         component: componentValue,
         status,
         operatePermissions: permissions,
-        inputPortCount: componentValue.inputPortCount,
-        outputPortCount: componentValue.outputPortCount
+        inputPortCount: componentValue.inputPortCount ?? 0,
+        outputPortCount: componentValue.outputPortCount ?? 0
     };
 }
 
@@ -625,7 +628,9 @@ describe('canonical response entity contracts', () => {
             ...entityEnvelope('remote-group'),
             permissions: deniedPermissions,
             position,
-            operatePermissions: permissions
+            operatePermissions: permissions,
+            inputPortCount: 0,
+            outputPortCount: 0
         };
         const deniedFunnel: FunnelEntity = {
             ...entityEnvelope('funnel'),
@@ -680,10 +685,38 @@ describe('canonical response entity contracts', () => {
             permissions: deniedPermissions,
             operatePermissions: deniedPermissions
         };
+        const uiOnlyReference: ControllerServiceReferencingComponentEntity = {
+            id: 'ui-only-reference',
+            revision: { version: 1 },
+            permissions,
+            operatePermissions: permissions,
+            component: {
+                id: 'ui-only-reference',
+                name: 'Processor'
+            }
+        };
+        const systemBulletin: BulletinEntity = {
+            canRead: true,
+            id: 2,
+            timestamp: '12:00:00 UTC',
+            timestampIso: '2026-09-29T12:00:00Z',
+            bulletin: {
+                id: 2,
+                category: 'System',
+                level: 'INFO',
+                message: 'System bulletin',
+                timestamp: '12:00:00 UTC',
+                timestampIso: '2026-09-29T12:00:00Z',
+                sourceType: 'FLOW_CONTROLLER'
+            }
+        };
 
         expect(deniedBulletin.bulletin).toBeUndefined();
         expect(readableReference.component?.name).toBe('Processor');
         expect(deniedReference.component).toBeUndefined();
+        expect(uiOnlyReference.component?.properties).toBeUndefined();
+        expect(systemBulletin.sourceId).toBeUndefined();
+        expect(systemBulletin.bulletin?.sourceName).toBeUndefined();
         expectTypeOf<ControllerServiceReferencingComponentEntity>().not.toHaveProperty('uri');
     });
 
@@ -760,6 +793,22 @@ describe('canonical response entity contracts', () => {
         expectTypeOf<ProcessGroupStatusSnapshotDTO['name']>().toEqualTypeOf<string>();
         expectTypeOf<RemoteProcessGroupStatusDTO['name']>().toEqualTypeOf<string>();
         expectTypeOf<RemoteProcessGroupStatusSnapshotDTO['name']>().toEqualTypeOf<string>();
+        expectTypeOf<ControllerServiceReferencingComponentDTO['properties']>().toEqualTypeOf<
+            Record<string, string | null> | undefined
+        >();
+        expectTypeOf<ControllerServiceReferencingComponentDTO['descriptors']>().toEqualTypeOf<
+            Record<string, PropertyDescriptorDTO> | undefined
+        >();
+        expectTypeOf<PortStatusDTO['transmitting']>().toEqualTypeOf<boolean | undefined>();
+        expectTypeOf<RemoteProcessGroupEntity['inputPortCount']>().toEqualTypeOf<number>();
+        expectTypeOf<RemoteProcessGroupEntity['outputPortCount']>().toEqualTypeOf<number>();
+        expectTypeOf<RemoteProcessGroupDTO['flowRefreshed']>().toEqualTypeOf<string | undefined>();
+        expectTypeOf<PropertyDescriptorDTO['expressionLanguageScope']>().toEqualTypeOf<string>();
+        expectTypeOf<BulletinEntity['sourceId']>().toEqualTypeOf<string | undefined>();
+        expectTypeOf<BulletinEntity['groupId']>().toEqualTypeOf<string | undefined>();
+        expectTypeOf<NonNullable<BulletinEntity['bulletin']>['sourceId']>().toEqualTypeOf<string | undefined>();
+        expectTypeOf<NonNullable<BulletinEntity['bulletin']>['groupId']>().toEqualTypeOf<string | undefined>();
+        expectTypeOf<NonNullable<BulletinEntity['bulletin']>['sourceName']>().toEqualTypeOf<string | undefined>();
         expectTypeOf<AllowableValueEntity['allowableValue']>().toEqualTypeOf<AllowableValueDTO>();
         expectTypeOf<VersionedProcessGroup['statelessFlowFileContentInMemoryMax']>().toEqualTypeOf<
             string | undefined
@@ -768,7 +817,7 @@ describe('canonical response entity contracts', () => {
             number | undefined
         >();
         expectTypeOf<ProcessGroupEntity['processGroupUpdateStrategy']>().toEqualTypeOf<
-            'CURRENT_GROUP' | 'CURRENT_GROUP_WITH_CHILDREN' | undefined
+            'DIRECT_CHILDREN' | 'ALL_DESCENDANTS' | undefined
         >();
     });
 });

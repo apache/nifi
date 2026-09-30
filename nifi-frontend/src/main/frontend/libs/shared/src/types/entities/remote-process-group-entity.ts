@@ -26,8 +26,8 @@ import { PositionableComponentDTO, PositionableComponentEntityBase } from './com
 export interface RemoteProcessGroupEntity extends PositionableComponentEntityBase<RemoteProcessGroupDTO> {
     operatePermissions: Permissions;
     status?: RemoteProcessGroupStatusDTO;
-    inputPortCount?: number;
-    outputPortCount?: number;
+    inputPortCount: number;
+    outputPortCount: number;
 }
 
 export interface RemoteProcessGroupDTO extends PositionableComponentDTO {
@@ -40,7 +40,7 @@ export interface RemoteProcessGroupDTO extends PositionableComponentDTO {
     inactiveRemoteInputPortCount: number;
     activeRemoteOutputPortCount: number;
     inactiveRemoteOutputPortCount: number;
-    flowRefreshed: string;
+    flowRefreshed?: string;
     contents: RemoteProcessGroupContentsDTO;
     targetUri?: string;
     name?: string;

@@ -57,7 +57,7 @@ export interface ProcessGroupEntity extends PositionableComponentEntityBase<Proc
     versionedFlowState?: string;
     parameterContext?: ParameterContextReferenceEntity;
     versionedFlowSnapshot?: RegisteredFlowSnapshot;
-    processGroupUpdateStrategy?: 'CURRENT_GROUP' | 'CURRENT_GROUP_WITH_CHILDREN';
+    processGroupUpdateStrategy?: 'DIRECT_CHILDREN' | 'ALL_DESCENDANTS';
 }
 
 export interface ProcessGroupDTO extends PositionableComponentDTO {

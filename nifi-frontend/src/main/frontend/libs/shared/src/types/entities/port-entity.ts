@@ -50,7 +50,7 @@ export interface PortDTO extends PositionableComponentDTO {
 export interface PortStatusDTO {
     id: string;
     groupId: string;
-    transmitting: boolean;
+    transmitting?: boolean;
     runStatus: string;
     statsLastRefreshed: string;
     aggregateSnapshot: PortStatusSnapshotDTO;

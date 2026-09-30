@@ -49,20 +49,20 @@ export interface Bundle {
 export interface BulletinEntity {
     canRead: boolean;
     id: number;
-    sourceId: string;
-    groupId: string;
+    sourceId?: string;
+    groupId?: string;
     timestamp: string;
     timestampIso: string;
     nodeAddress?: string;
     bulletin?: {
         id: number;
-        sourceId: string;
-        groupId: string;
+        sourceId?: string;
+        groupId?: string;
         category: string;
         level: string;
         message: string;
         stackTrace?: string;
-        sourceName: string;
+        sourceName?: string;
         timestamp: string;
         timestampIso: string;
         nodeAddress?: string;

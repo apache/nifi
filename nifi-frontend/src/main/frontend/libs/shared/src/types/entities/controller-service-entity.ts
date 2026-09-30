@@ -63,8 +63,8 @@ export interface ControllerServiceReferencingComponentDTO {
     name: string;
     type?: string;
     state?: string;
-    properties: Record<string, string | null>;
-    descriptors: Record<string, PropertyDescriptorDTO>;
+    properties?: Record<string, string | null>;
+    descriptors?: Record<string, PropertyDescriptorDTO>;
     validationErrors?: string[];
     referenceType?: string;
     activeThreadCount?: number;

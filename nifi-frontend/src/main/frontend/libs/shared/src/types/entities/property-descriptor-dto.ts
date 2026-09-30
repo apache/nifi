@@ -32,7 +32,7 @@ export interface PropertyDescriptorDTO {
     sensitive: boolean;
     dynamic: boolean;
     supportsEl: boolean;
-    expressionLanguageScope?: string;
+    expressionLanguageScope: string;
     identifiesControllerService?: string;
     identifiesControllerServiceBundle?: Bundle;
     dependencies: PropertyDependencyDTO[];
