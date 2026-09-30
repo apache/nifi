@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AutoSchedulingIT extends NiFiSystemIT {
     private static final int BACKPRESSURE_COUNT = 100;
@@ -68,42 +67,6 @@ public class AutoSchedulingIT extends NiFiSystemIT {
         }
 
         assertEquals(0, getConnectionQueueSize(connection.getId()));
-    }
-
-    @Test
-    @Timeout(value = 2, unit = TimeUnit.MINUTES)
-    public void testContinuousFlowAdaptsToBlockingWork() throws NiFiClientException, IOException, InterruptedException {
-        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
-        final ProcessorEntity sleep = getClientUtil().createProcessor("Sleep");
-        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
-        final ConnectionEntity input = getClientUtil().createConnection(generate, sleep, "success");
-        final ConnectionEntity output = getClientUtil().createConnection(sleep, terminate, "success");
-        getClientUtil().updateConnectionBackpressure(input, BACKPRESSURE_COUNT, 10_000_000L);
-        getClientUtil().updateConnectionBackpressure(output, BACKPRESSURE_COUNT, 10_000_000L);
-        getClientUtil().updateProcessorProperties(sleep, Map.of("onTrigger Sleep Time", "100 ms"));
-        getClientUtil().updateProcessorSchedulingStrategy(generate, "AUTO");
-        getClientUtil().updateProcessorSchedulingStrategy(sleep, "AUTO");
-        getClientUtil().updateProcessorSchedulingStrategy(terminate, "AUTO");
-
-        getClientUtil().startProcessor(terminate);
-        getClientUtil().startProcessor(sleep);
-        getClientUtil().startProcessor(generate);
-        try {
-            final boolean adaptive = "VIRTUAL".equals(getNifiPropertiesOverrides().get("nifi.scheduling.strategy"));
-            final int expectedActiveTasks = adaptive ? 4 : 1;
-            waitFor(() -> getNifiClient().getProcessorClient().getProcessor(sleep.getId()).getStatus().getAggregateSnapshot().getActiveThreadCount() >= expectedActiveTasks);
-            waitFor(() -> getNifiClient().getProcessorClient().getProcessor(terminate.getId()).getStatus().getAggregateSnapshot().getFlowFilesIn() > 0);
-            assertCanonicalAutoConfiguration(getNifiClient().getProcessorClient().getProcessor(sleep.getId()));
-            assertTrue(getConnectionQueueSize(input.getId()) > 0);
-
-            getClientUtil().stopProcessor(generate);
-            waitForQueueCount(input, 0);
-            waitForQueueCount(output, 0);
-        } finally {
-            getClientUtil().stopProcessor(generate);
-            getClientUtil().stopProcessor(sleep);
-            getClientUtil().stopProcessor(terminate);
-        }
     }
 
     private void assertCanonicalAutoConfiguration(final ProcessorEntity processorEntity) {

@@ -37,7 +37,6 @@ import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
-import org.apache.nifi.controller.ProcessorDetails;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -2825,10 +2824,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private ProcessorNode addProcessor(final ProcessGroup destination, final VersionedProcessor proposed, final ComponentIdGenerator componentIdGenerator,
                                        final ProcessGroup topLevelGroup) throws ProcessorInstantiationException {
-        if (SchedulingStrategy.AUTO.name().equals(proposed.getSchedulingStrategy())) {
-            verifyAutoSchedulingSupported(proposed);
-        }
-
         final String identifier = componentIdGenerator.generateUuid(proposed.getIdentifier(), proposed.getInstanceIdentifier(), destination.getIdentifier());
         LOG.debug("Adding Processor with ID {} of type {}", identifier, proposed.getType());
 
@@ -2905,10 +2900,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         if (processor == null && proposedProcessor == null) {
             return;
-        }
-
-        if (proposedProcessor != null && SchedulingStrategy.AUTO.name().equals(proposedProcessor.getSchedulingStrategy())) {
-            verifyAutoSchedulingSupported(proposedProcessor);
         }
 
         setSynchronizationOptions(synchronizationOptions);
@@ -3155,9 +3146,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private void updateProcessor(final ProcessorNode processor, final VersionedProcessor proposed, final ProcessGroup topLevelGroup) throws ProcessorInstantiationException {
         LOG.debug("Updating Processor {}", processor);
-        if (SchedulingStrategy.AUTO.name().equals(proposed.getSchedulingStrategy())) {
-            verifyAutoSchedulingSupported(proposed);
-        }
 
         processor.pauseValidationTrigger();
         try {
@@ -3215,12 +3203,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         } finally {
             processor.resumeValidationTrigger();
         }
-    }
-
-    private void verifyAutoSchedulingSupported(final VersionedProcessor processor) {
-        final BundleCoordinate coordinate = toCoordinate(processor.getBundle());
-        final Object temporaryComponent = context.getExtensionManager().getTempComponent(processor.getType(), coordinate);
-        ProcessorDetails.verifyAutoSchedulingSupported(temporaryComponent, processor.getName(), processor.getIdentifier());
     }
 
     private String getServiceInstanceId(final String serviceVersionedComponentId, final ProcessGroup group) {

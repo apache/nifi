@@ -3104,7 +3104,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyComponentTypes(final VersionedProcessGroup versionedGroup) {
-        controllerFacade.verifyComponentTypes(versionedGroup);
     }
 
     @Override

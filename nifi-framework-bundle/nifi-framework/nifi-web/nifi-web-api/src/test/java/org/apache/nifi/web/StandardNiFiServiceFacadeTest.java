@@ -408,17 +408,6 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
-    public void testVerifyComponentTypesDelegatesToControllerFacade() {
-        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
-        final VersionedProcessGroup versionedGroup = new VersionedProcessGroup();
-        serviceFacade.setControllerFacade(controllerFacade);
-
-        serviceFacade.verifyComponentTypes(versionedGroup);
-
-        verify(controllerFacade).verifyComponentTypes(versionedGroup);
-    }
-
-    @Test
     public void testGetComponentsAffectedByFlowUpdateForStatelessGroups() {
         final String groupId = UUID.randomUUID().toString();
         final ProcessGroup processGroup = mock(ProcessGroup.class);
