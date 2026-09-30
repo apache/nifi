@@ -45,19 +45,21 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.opentest4j.AssertionFailedError;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -71,63 +73,87 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-public class TestFlowController {
+@ExtendWith(MockitoExtension.class)
+class FlowControllerTest {
+
+    private static final String CLUSTERED_NODE = "clustered-node";
+    private static final String STANDALONE_NODE = "standalone-node";
+    private static final String LOCALHOST = "localhost";
 
     private final List<FlowController> flowControllers = new ArrayList<>();
     private final AtomicInteger controllerCounter = new AtomicInteger();
+
+    @Mock
+    private Authorizer authorizer;
+
+    @Mock
+    private AuditService auditService;
+
+    @Mock
+    private ComponentMetricReporter componentMetricReporter;
+
+    @Mock
+    private StatusHistoryRepository statusHistoryRepository;
+
+    @Mock
+    private ClusterCoordinator clusterCoordinator;
+
+    @Mock
+    private HeartbeatMonitor heartbeatMonitor;
+
+    @Mock
+    private LeaderElectionManager leaderElectionManager;
+
+    @Mock
+    private ConnectorRequestReplicator connectorRequestReplicator;
 
     @TempDir
     private Path tempDir;
 
     @Test
-    void shouldRemainStandaloneWhenConnectionStatusIsAssigned() throws IOException {
+    void testRemainStandaloneWhenConnectionStatusIsAssigned() throws IOException {
         final FlowController flowController = createStandaloneFlowController();
 
         assertEquals(NodeConnectionState.STANDALONE, flowController.getNodeConnectionState());
 
-        flowController.setConnectionStatus(new NodeConnectionStatus(createNodeIdentifier("standalone-node"), org.apache.nifi.cluster.coordination.node.NodeConnectionState.CONNECTED));
+        flowController.setConnectionStatus(new NodeConnectionStatus(createNodeIdentifier(STANDALONE_NODE), org.apache.nifi.cluster.coordination.node.NodeConnectionState.CONNECTED));
 
         assertEquals(NodeConnectionState.STANDALONE, flowController.getNodeConnectionState());
     }
 
     @Test
-    void shouldReportDisconnectedForNewClusteredController() throws IOException {
+    void testReportDisconnectedForNewClusteredController() throws IOException {
         final FlowController flowController = createClusteredFlowController();
 
+        assertEquals(NodeConnectionState.DISCONNECTED, flowController.getNodeConnectionState());
+
+        flowController.setConnectionStatus(null);
         assertEquals(NodeConnectionState.DISCONNECTED, flowController.getNodeConnectionState());
     }
 
     @ParameterizedTest
     @MethodSource("supportedClusterProtocolStates")
-    void shouldMapClusterProtocolNodeStatesToApiNodeStates(
+    void testMapClusterProtocolNodeStatesToApiNodeStates(
             final org.apache.nifi.cluster.coordination.node.NodeConnectionState protocolState,
             final NodeConnectionState apiState) throws IOException {
         final FlowController flowController = createClusteredFlowController();
 
-        flowController.setConnectionStatus(new NodeConnectionStatus(createNodeIdentifier("clustered-node"), protocolState));
+        flowController.setConnectionStatus(new NodeConnectionStatus(createNodeIdentifier(CLUSTERED_NODE), protocolState));
 
         assertEquals(apiState, flowController.getNodeConnectionState());
     }
 
     @Test
-    void shouldProvideNodeConnectionStateDuringFlowSynchronization() throws Exception {
+    void testProvideNodeConnectionStateDuringFlowSynchronization() throws Exception {
         final FlowController flowController = createClusteredFlowController();
         flowController.setConnectionStatus(new NodeConnectionStatus(
-                createNodeIdentifier("clustered-node"),
+                createNodeIdentifier(CLUSTERED_NODE),
                 org.apache.nifi.cluster.coordination.node.NodeConnectionState.CONNECTING
         ));
 
-        final ExecutorService lifecycleExecutor = Executors.newSingleThreadExecutor(runnable -> {
-            final Thread thread = new Thread(runnable);
-            thread.setName("node-connection-state-lifecycle");
-            thread.setDaemon(true);
-            return thread;
-        });
+        final ExecutorService lifecycleExecutor = Executors.newSingleThreadExecutor();
         final AtomicReference<Future<NodeConnectionState>> nodeStateFutureReference = new AtomicReference<>();
 
         try {
@@ -162,7 +188,7 @@ public class TestFlowController {
         }
     }
 
-    FlowController createStandaloneFlowController() throws IOException {
+    private FlowController createStandaloneFlowController() throws IOException {
         final NiFiProperties nifiProperties = createNiFiProperties(false);
         final FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
         final ExtensionDiscoveringManager extensionManager = createExtensionManager(nifiProperties);
@@ -173,45 +199,35 @@ public class TestFlowController {
                 flowFileEventRepository,
                 null,
                 nifiProperties,
-                mock(Authorizer.class),
-                mock(AuditService.class),
-                mock(ComponentMetricReporter.class),
+                authorizer,
+                auditService,
+                componentMetricReporter,
                 propertyEncryptionProvider,
                 new VolatileBulletinRepository(),
                 extensionManager,
-                mock(StatusHistoryRepository.class),
+                statusHistoryRepository,
                 null,
                 stateManagerProvider,
-                mock(ConnectorRequestReplicator.class)
+                connectorRequestReplicator
         );
 
         flowControllers.add(flowController);
         return flowController;
     }
 
-    FlowController createClusteredFlowController() throws IOException {
+    private FlowController createClusteredFlowController() throws IOException {
         final NiFiProperties nifiProperties = createNiFiProperties(true);
         final FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
         final ExtensionDiscoveringManager extensionManager = createExtensionManager(nifiProperties);
         final StateManagerProvider stateManagerProvider = new MockStateManagerProvider();
         final PropertyEncryptionProvider propertyEncryptionProvider = new InternalPassThroughPropertyEncryptionProvider();
-        final ClusterCoordinator clusterCoordinator = mock(ClusterCoordinator.class);
-        final HeartbeatMonitor heartbeatMonitor = mock(HeartbeatMonitor.class);
-        final LeaderElectionManager leaderElectionManager = mock(LeaderElectionManager.class);
-        final ConnectorRequestReplicator connectorRequestReplicator = mock(ConnectorRequestReplicator.class);
-
-        when(clusterCoordinator.getConnectionStatus(any())).thenReturn(null);
-        when(heartbeatMonitor.getHeartbeatAddress()).thenReturn("localhost:9090");
-        when(leaderElectionManager.getLeader(anyString())).thenReturn(Optional.of("cluster-coordinator"));
-        when(leaderElectionManager.isLeader(anyString())).thenReturn(false);
-
         final FlowController flowController = FlowController.createClusteredInstance(
                 flowFileEventRepository,
                 null,
                 nifiProperties,
-                mock(Authorizer.class),
-                mock(AuditService.class),
-                mock(ComponentMetricReporter.class),
+                authorizer,
+                auditService,
+                componentMetricReporter,
                 propertyEncryptionProvider,
                 mock(NodeProtocolSender.class),
                 new VolatileBulletinRepository(),
@@ -220,7 +236,7 @@ public class TestFlowController {
                 leaderElectionManager,
                 extensionManager,
                 mock(RevisionManager.class),
-                mock(StatusHistoryRepository.class),
+                statusHistoryRepository,
                 null,
                 stateManagerProvider,
                 connectorRequestReplicator
@@ -261,54 +277,34 @@ public class TestFlowController {
     }
 
     private NodeIdentifier createNodeIdentifier(final String id) {
-        return new NodeIdentifier(id, "localhost", 8443, "localhost", 9090, "localhost", 10000, 10001, true);
+        return new NodeIdentifier(id, LOCALHOST, 8443, LOCALHOST, 9090, LOCALHOST, 10000, 10001, true);
     }
 
-    private NiFiProperties createNiFiProperties(final boolean clustered) throws IOException {
+    private NiFiProperties createNiFiProperties(final boolean clustered) {
         final Path controllerDirectory = tempDir.resolve("controller-" + controllerCounter.incrementAndGet());
-        final Path narLibraryDirectory = Files.createDirectories(controllerDirectory.resolve("lib"));
-        final Path narWorkingDirectory = Files.createDirectories(controllerDirectory.resolve("work").resolve("nar"));
-        final Path databaseDirectory = Files.createDirectories(controllerDirectory.resolve("database_repository"));
-        final Path flowFileRepositoryDirectory = Files.createDirectories(controllerDirectory.resolve("flowfile_repository"));
-        final Path contentRepositoryDirectory = Files.createDirectories(controllerDirectory.resolve("content_repository"));
+        final Map<String, String> properties = new HashMap<>(Map.ofEntries(
+                Map.entry(NiFiProperties.CONTENT_ARCHIVE_ENABLED, "false"),
+                Map.entry(NiFiProperties.FLOW_CONFIGURATION_ARCHIVE_ENABLED, "false"),
+                Map.entry(NiFiProperties.FLOW_CONFIGURATION_FILE, controllerDirectory.resolve("flow.json.gz").toString()),
+                Map.entry(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD, "10 secs"),
+                Map.entry(NiFiProperties.FLOWFILE_REPOSITORY_DIRECTORY, controllerDirectory.resolve("flowfile_repository").toString()),
+                Map.entry(NiFiProperties.NAR_LIBRARY_DIRECTORY, controllerDirectory.resolve("lib").toString()),
+                Map.entry(NiFiProperties.NAR_WORKING_DIRECTORY, controllerDirectory.resolve("work").resolve("nar").toString()),
+                Map.entry(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName()),
+                Map.entry(NiFiProperties.PROVENANCE_REPO_DIRECTORY_PREFIX + "default", controllerDirectory.resolve("provenance_repository").toString()),
+                Map.entry(NiFiProperties.QUEUE_SWAP_THRESHOLD, String.valueOf(NiFiProperties.DEFAULT_QUEUE_SWAP_THRESHOLD)),
+                Map.entry(NiFiProperties.REPOSITORY_CONTENT_PREFIX + "default", controllerDirectory.resolve("content_repository").toString()),
+                Map.entry(NiFiProperties.REPOSITORY_DATABASE_DIRECTORY, controllerDirectory.resolve("database_repository").toString()),
+                Map.entry(NiFiProperties.WEB_HTTPS_HOST, LOCALHOST),
+                Map.entry(NiFiProperties.WEB_HTTPS_PORT, "8443")
+        ));
 
-        final Map<String, String> properties = clustered
-                ? Map.ofEntries(
-                        Map.entry(NiFiProperties.CLUSTER_NODE_ADDRESS, "localhost"),
-                        Map.entry(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, "9090"),
-                        Map.entry(NiFiProperties.CONTENT_ARCHIVE_ENABLED, "false"),
-                        Map.entry(NiFiProperties.FLOW_CONFIGURATION_ARCHIVE_ENABLED, "false"),
-                        Map.entry(NiFiProperties.FLOW_CONFIGURATION_FILE, controllerDirectory.resolve("flow.json.gz").toString()),
-                        Map.entry(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD, "10 secs"),
-                        Map.entry(NiFiProperties.FLOWFILE_REPOSITORY_DIRECTORY, flowFileRepositoryDirectory.toString()),
-                        Map.entry(NiFiProperties.LOAD_BALANCE_HOST, "localhost"),
-                        Map.entry(NiFiProperties.LOAD_BALANCE_PORT, "6342"),
-                        Map.entry(NiFiProperties.NAR_LIBRARY_DIRECTORY, narLibraryDirectory.toString()),
-                        Map.entry(NiFiProperties.NAR_WORKING_DIRECTORY, narWorkingDirectory.toString()),
-                        Map.entry(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName()),
-                        Map.entry(NiFiProperties.PROVENANCE_REPO_DIRECTORY_PREFIX + "default", controllerDirectory.resolve("provenance_repository").toString()),
-                        Map.entry(NiFiProperties.QUEUE_SWAP_THRESHOLD, String.valueOf(NiFiProperties.DEFAULT_QUEUE_SWAP_THRESHOLD)),
-                        Map.entry(NiFiProperties.REPOSITORY_CONTENT_PREFIX + "default", contentRepositoryDirectory.toString()),
-                        Map.entry(NiFiProperties.REPOSITORY_DATABASE_DIRECTORY, databaseDirectory.toString()),
-                        Map.entry(NiFiProperties.WEB_HTTPS_HOST, "localhost"),
-                        Map.entry(NiFiProperties.WEB_HTTPS_PORT, "8443")
-                )
-                : Map.ofEntries(
-                        Map.entry(NiFiProperties.CONTENT_ARCHIVE_ENABLED, "false"),
-                        Map.entry(NiFiProperties.FLOW_CONFIGURATION_ARCHIVE_ENABLED, "false"),
-                        Map.entry(NiFiProperties.FLOW_CONFIGURATION_FILE, controllerDirectory.resolve("flow.json.gz").toString()),
-                        Map.entry(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD, "10 secs"),
-                        Map.entry(NiFiProperties.FLOWFILE_REPOSITORY_DIRECTORY, flowFileRepositoryDirectory.toString()),
-                        Map.entry(NiFiProperties.NAR_LIBRARY_DIRECTORY, narLibraryDirectory.toString()),
-                        Map.entry(NiFiProperties.NAR_WORKING_DIRECTORY, narWorkingDirectory.toString()),
-                        Map.entry(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName()),
-                        Map.entry(NiFiProperties.PROVENANCE_REPO_DIRECTORY_PREFIX + "default", controllerDirectory.resolve("provenance_repository").toString()),
-                        Map.entry(NiFiProperties.QUEUE_SWAP_THRESHOLD, String.valueOf(NiFiProperties.DEFAULT_QUEUE_SWAP_THRESHOLD)),
-                        Map.entry(NiFiProperties.REPOSITORY_CONTENT_PREFIX + "default", contentRepositoryDirectory.toString()),
-                        Map.entry(NiFiProperties.REPOSITORY_DATABASE_DIRECTORY, databaseDirectory.toString()),
-                        Map.entry(NiFiProperties.WEB_HTTPS_HOST, "localhost"),
-                        Map.entry(NiFiProperties.WEB_HTTPS_PORT, "8443")
-                );
+        if (clustered) {
+            properties.put(NiFiProperties.CLUSTER_NODE_ADDRESS, LOCALHOST);
+            properties.put(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, "9090");
+            properties.put(NiFiProperties.LOAD_BALANCE_HOST, LOCALHOST);
+            properties.put(NiFiProperties.LOAD_BALANCE_PORT, "6342");
+        }
 
         return NiFiProperties.createBasicNiFiProperties(null, properties);
     }
