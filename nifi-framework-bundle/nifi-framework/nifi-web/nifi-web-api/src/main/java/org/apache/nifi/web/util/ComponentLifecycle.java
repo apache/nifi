@@ -60,5 +60,16 @@ public interface ComponentLifecycle {
     Set<AffectedComponentEntity> activateControllerServices(URI exampleUri, String groupId, Set<AffectedComponentEntity> servicesToUpdate, Set<AffectedComponentEntity> servicesRequiringDesiredState,
         ControllerServiceState desiredState, Pause pause, InvalidComponentAction invalidComponentAction) throws LifecycleManagementException;
 
+    /**
+     * Waits until the specified connections are empty or the supplied pause signals that waiting should stop.
+     * In a cluster, every connection must report zero queued FlowFiles on every connected target node in the same polling sweep.
+     * Missing or unsuccessful node responses cannot establish that a queue is empty.
+     *
+     * @param exampleUri an URI to use as a base for the REST API
+     * @param connectionIds the connections whose queues should be checked
+     * @param pause a pause controlling polling cadence, deadline, and cancellation
+     * @return {@code true} when all specified connections are empty; {@code false} when waiting stops first
+     * @throws LifecycleManagementException if queue state cannot be determined while waiting
+     */
     boolean waitForConnectionQueuesEmpty(URI exampleUri, Set<String> connectionIds, Pause pause) throws LifecycleManagementException;
 }

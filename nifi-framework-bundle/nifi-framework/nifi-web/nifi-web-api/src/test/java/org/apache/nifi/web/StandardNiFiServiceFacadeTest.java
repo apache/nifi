@@ -567,15 +567,15 @@ public class StandardNiFiServiceFacadeTest {
         final Set<String> affectedIdsFromImpact = impact.getAffectedComponents().stream()
                 .map(AffectedComponentEntity::getId)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        assertTrue(affectedIdsFromImpact.contains("removed-source-instance"));
-        assertTrue(affectedIdsFromImpact.contains("removed-destination-instance"));
-        assertTrue(affectedIdsFromImpact.contains("changed-source-instance"));
-        assertTrue(affectedIdsFromImpact.contains("changed-destination-instance"));
-
-        final Set<String> affectedIdsFromProjection = serviceFacadeSpy.getComponentsAffectedByFlowUpdate(rootGroupId, updatedSnapshot).stream()
-                .map(AffectedComponentEntity::getId)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        assertEquals(affectedIdsFromImpact, affectedIdsFromProjection);
+        assertEquals(Set.of(
+                "removed-source-instance",
+                "removed-destination-instance",
+                "removed-connection-instance",
+                "removed-endpoint-instance",
+                "removed-group-instance",
+                "changed-source-instance",
+                "changed-destination-instance",
+                "changed-connection-instance"), affectedIdsFromImpact);
     }
 
     @Test

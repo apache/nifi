@@ -75,6 +75,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -168,28 +169,19 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         final ComponentLifecycle componentLifecycle = replicateRequest ? clusterComponentLifecycle : localComponentLifecycle;
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-        // Workflow for this process:
-        // 0. Obtain the versioned flow snapshot to use for the update
-        //    a. Retrieve flow snapshot from request entity (import) or from registry (version change)
-        // 1. Determine which components would be affected (and are enabled/running)
-        //    a. Component itself is modified in some way, other than position changing.
-        //    b. Source and Destination of any Connection that is modified.
-        //    c. Any Processor or Controller Service that references a Controller Service that is modified.
-        // 2. Verify READ and WRITE permissions for user, for every component.
-        // 3. Verify that all components in the snapshot exist on all nodes (i.e., the NAR exists)?
-        // 4: Verify that Process Group can be updated. Only versioned flows care about the verifyNotDirty flag.
-        // 5. Drain non-empty removed Connections after stopping their producer barriers.
-        // 6. Stop all Processors, Funnels, Ports that are affected.
-        // 7. Wait for all of the components to finish stopping.
-        // 8. Disable all Controller Services that are affected.
-        // 9. Wait for all Controller Services to finish disabling.
-        // 10. Ensure that if any connection was deleted, that it has no data in it. Ensure that no Input Port
-        //    was removed, unless it currently has no incoming connections. Ensure that no Output Port was removed,
-        //    unless it currently has no outgoing connections. Checking ports & connections could be done before
-        //    stopping everything, but removal of Connections cannot.
-        // 11.-12. Update components in the Process Group; update Version Control Information (registry version change only).
-        // 13. Re-Enable all affected Controller Services that were not removed.
-        // 14. Re-Start all Processors, Funnels, Ports that are affected and not removed.
+        // Flow update sequence:
+        // 0. Obtain the versioned flow snapshot to use for the update.
+        // 1. Determine which components would be affected (and are enabled or running).
+        // 2. Verify READ and WRITE permissions for the user on every affected component.
+        // 3. Verify that all components in the snapshot exist on all nodes.
+        // 4. Verify that the Process Group can be updated. Only versioned flows care about verifyNotDirty.
+        // 5. Drain non-empty removed connections after stopping their producer barriers.
+        // 6. Stop all affected Processors, Funnels, and Ports.
+        // 7. Disable all affected Controller Services.
+        // 8. Ensure removed connections are empty and removed ports no longer have active edges.
+        // 9. Update components in the Process Group and, for version changes, their Version Control Information.
+        // 10. Re-enable affected Controller Services that were not removed.
+        // 11. Restart affected Processors, Funnels, and Ports that were not removed.
 
         // Step 0: Obtain the versioned flow snapshot to use for the update
         final FlowSnapshotContainer flowSnapshotContainer = flowSnapshotContainerSupplier.get();
@@ -211,8 +203,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 requestRevision,
                 lookup -> AuthorizeFlowUpdate.authorizeFlowUpdate(groupId, flowSnapshot, unresolvedReferences, serviceFacade, authorizer, lookup, user),
                 () -> {
-                    // Step 3: Verify that all components in the snapshot exist on all nodes
-                    // Step 4: Verify that Process Group can be updated. Only versioned flows care about the verifyNotDirty flag
+                    // Steps 3-4: Verify that all components in the snapshot exist on all nodes and that the process group can be updated.
                     serviceFacade.verifyCanUpdate(groupId, flowSnapshot, false, !allowDirtyFlowUpdate);
                 },
                 (revision, wrapper) -> submitFlowUpdateRequest(user, groupId, revision, wrapper, allowDirtyFlowUpdate)
@@ -236,7 +227,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         final String requestType = wrapper.getRequestType();
         final String idGenerationSeed = getIdGenerationSeed().orElse(null);
 
-        // Steps 5+ occur asynchronously
+        // Steps 5-11 occur asynchronously.
         // Create an asynchronous request that will occur in the background, because this request may
         // result in stopping components, which can take an indeterminate amount of time.
         final String requestId = UUID.randomUUID().toString();
@@ -287,11 +278,11 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
     /**
      * Perform the specified flow update
      */
-    private void updateFlow(final String groupId, final ComponentLifecycle componentLifecycle, final URI requestUri,
-                            final FlowUpdateImpact flowUpdateImpact, final boolean replicateRequest,
-                            final String replicateUriPath, final Revision revision, final T requestEntity,
-                            final RegisteredFlowSnapshot flowSnapshot, final AsynchronousWebRequest<T, T> asyncRequest,
-                            final String idGenerationSeed, final boolean allowDirtyFlowUpdate, final String requestType)
+    protected void updateFlow(final String groupId, final ComponentLifecycle componentLifecycle, final URI requestUri,
+                              final FlowUpdateImpact flowUpdateImpact, final boolean replicateRequest,
+                              final String replicateUriPath, final Revision revision, final T requestEntity,
+                              final RegisteredFlowSnapshot flowSnapshot, final AsynchronousWebRequest<T, T> asyncRequest,
+                              final String idGenerationSeed, final boolean allowDirtyFlowUpdate, final String requestType)
             throws LifecycleManagementException, ResumeFlowException {
 
         final Set<AffectedComponentEntity> affectedComponents = flowUpdateImpact.getAffectedComponents();
@@ -309,10 +300,18 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 .filter(entity -> stoppableReferenceTypes.contains(entity.getComponent().getReferenceType()))
                 .filter(entity -> isActive(entity.getComponent()))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+        final Set<AffectedComponentEntity> drainStoppedComponents = new LinkedHashSet<>();
+        final AtomicReference<Runnable> stopComponentsCancellationCallback = new AtomicReference<>();
+        asyncRequest.setCancelCallback(() -> {
+            final Runnable cancellationCallback = stopComponentsCancellationCallback.get();
+            if (cancellationCallback != null) {
+                cancellationCallback.run();
+            }
+        });
 
         if (UPDATE_REQUEST_TYPE.equals(requestType)) {
             final RemovedConnectionDrainCoordinator.DrainResult drainResult = preDrainRemovedConnections(
-                    flowUpdateImpact, componentLifecycle, requestUri, groupId, asyncRequest);
+                    flowUpdateImpact, componentLifecycle, requestUri, groupId, asyncRequest, stopComponentsCancellationCallback);
             if (drainResult.cancelled()) {
                 if (drainResult.restorationFailure() != null) {
                     logger.warn("Failed to restore components after removed connection drain cancellation", drainResult.restorationFailure());
@@ -320,21 +319,49 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 }
                 return;
             }
-            runningComponents.addAll(drainResult.drainStoppedComponents());
+
+            drainStoppedComponents.addAll(drainResult.drainStoppedComponents());
+            runningComponents.addAll(drainStoppedComponents);
+
+            if (asyncRequest.isCancelled()) {
+                restoreDrainStoppedComponentsAfterCancellation(componentLifecycle, requestUri, groupId, drainStoppedComponents, asyncRequest);
+                return;
+            }
+
             asyncRequest.markStepComplete();
         }
 
         logger.info("Stopping {} Processors", runningComponents.size());
         final CancellableTimedPause stopComponentsPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-        asyncRequest.setCancelCallback(stopComponentsPause::cancel);
-        componentLifecycle.scheduleComponents(requestUri, groupId, runningComponents, ScheduledState.STOPPED, stopComponentsPause, InvalidComponentAction.SKIP);
+        stopComponentsCancellationCallback.set(stopComponentsPause::cancel);
 
         if (asyncRequest.isCancelled()) {
+            restoreDrainStoppedComponentsAfterCancellation(componentLifecycle, requestUri, groupId, drainStoppedComponents, asyncRequest);
             return;
         }
+
+        try {
+            componentLifecycle.scheduleComponents(requestUri, groupId, runningComponents, ScheduledState.STOPPED, stopComponentsPause, InvalidComponentAction.SKIP);
+        } catch (final LifecycleManagementException | RuntimeException e) {
+            if (asyncRequest.isCancelled()) {
+                asyncRequest.appendFailureDetail("stop failed: " + e.getMessage());
+                restoreDrainStoppedComponentsAfterCancellation(componentLifecycle, requestUri, groupId, drainStoppedComponents, asyncRequest);
+                return;
+            }
+
+            restoreDrainStoppedComponentsAfterFailure(componentLifecycle, requestUri, groupId, drainStoppedComponents, e);
+            throw e;
+        }
+
+        if (asyncRequest.isCancelled()) {
+            restoreDrainStoppedComponentsAfterCancellation(componentLifecycle, requestUri, groupId, drainStoppedComponents, asyncRequest);
+            return;
+        }
+
+        stopComponentsCancellationCallback.set(null);
         asyncRequest.markStepComplete();
 
-        // Steps 8-9. Disable enabled controller services that are affected.
+        // Step 7. Disable enabled controller services that are affected.
         // We don't want to disable services that are already disabling. But we need to wait for their state to transition from Disabling to Disabled.
         final Set<AffectedComponentEntity> servicesToWaitFor = affectedComponents.stream()
                 .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
@@ -379,7 +406,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
         try {
             if (replicateRequest) {
-                // If replicating request, steps 9-11 are performed on each node individually
+                // If replicating the request, steps 8-9 are performed on each node individually.
                 final URI replicateUri = buildUri(requestUri, replicateUriPath, null);
                 final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
@@ -401,7 +428,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                     throw e;
                 }
             } else {
-                // Step 9: Ensure that if any connection exists in the flow and does not exist in the proposed snapshot,
+                // Step 8. Ensure that if any connection exists in the flow and does not exist in the proposed snapshot,
                 // that it has no data in it. Ensure that no Input Port was removed, unless it currently has no incoming connections.
                 // Ensure that no Output Port was removed, unless it currently has no outgoing connections.
                 serviceFacade.verifyCanUpdate(groupId, flowSnapshot, true, !allowDirtyFlowUpdate);
@@ -411,7 +438,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 final RevisionDTO currentGroupRevisionDto = serviceFacade.getProcessGroup(groupId).getRevision();
                 final Revision currentGroupRevision = new Revision(currentGroupRevisionDto.getVersion(), currentGroupRevisionDto.getClientId(), groupId);
 
-                // Step 10-11. Update Process Group to the new flow.
+                // Step 9. Update the Process Group to the new flow.
                 // Each concrete class defines its own update flow functionality
                 try {
                     performUpdateFlow(groupId, currentGroupRevision, requestEntity, flowSnapshot, idGenerationSeed, !allowDirtyFlowUpdate, true);
@@ -445,7 +472,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
                 asyncRequest.markStepComplete();
 
-                // Step 12. Re-enable all disabled controller services
+                // Step 10. Re-enable all disabled controller services.
                 final CancellableTimedPause enableServicesPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
                 asyncRequest.setCancelCallback(enableServicesPause::cancel);
                 final Set<AffectedComponentEntity> servicesToEnable = getUpdatedEntities(enabledServices);
@@ -468,7 +495,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
                 asyncRequest.markStepComplete();
 
-                // Step 13. Restart all components
+                // Step 11. Restart all components.
                 final Set<AffectedComponentEntity> componentsToStart = getUpdatedEntities(runningComponents);
 
                 // If there are any Remote Group Ports that are supposed to be started and have no connections, we want to remove those from our Set.
@@ -605,7 +632,8 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
     protected RemovedConnectionDrainCoordinator.DrainResult preDrainRemovedConnections(
             final FlowUpdateImpact flowUpdateImpact, final ComponentLifecycle componentLifecycle, final URI requestUri,
-            final String groupId, final AsynchronousWebRequest<T, T> asyncRequest) throws LifecycleManagementException {
+            final String groupId, final AsynchronousWebRequest<T, T> asyncRequest,
+            final AtomicReference<Runnable> stopComponentsCancellationCallback) throws LifecycleManagementException {
         return new RemovedConnectionDrainCoordinator().coordinateDrain(
                 flowUpdateImpact, serviceFacade.getRemovedConnectionDrainContext(), componentLifecycle, requestUri, groupId,
                 new RemovedConnectionDrainCoordinator.CancellationHandle() {
@@ -616,9 +644,41 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
                     @Override
                     public void setCancelCallback(final Runnable runnable) {
-                        asyncRequest.setCancelCallback(runnable);
+                        stopComponentsCancellationCallback.set(runnable);
                     }
                 });
+    }
+
+    private void restoreDrainStoppedComponentsAfterCancellation(final ComponentLifecycle componentLifecycle, final URI requestUri,
+                                                                final String groupId, final Set<AffectedComponentEntity> drainStoppedComponents,
+                                                                final AsynchronousWebRequest<T, T> asyncRequest) {
+        if (drainStoppedComponents.isEmpty()) {
+            return;
+        }
+
+        try {
+            componentLifecycle.scheduleComponents(requestUri, groupId, drainStoppedComponents, ScheduledState.RUNNING,
+                    new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS), InvalidComponentAction.SKIP);
+        } catch (final LifecycleManagementException | RuntimeException e) {
+            logger.warn("Failed to restore components after removed connection drain cancellation", e);
+            asyncRequest.appendFailureDetail("restoration failed: " + e.getMessage());
+        }
+    }
+
+    private void restoreDrainStoppedComponentsAfterFailure(final ComponentLifecycle componentLifecycle, final URI requestUri,
+                                                           final String groupId, final Set<AffectedComponentEntity> drainStoppedComponents,
+                                                           final Exception failure) {
+        if (drainStoppedComponents.isEmpty()) {
+            return;
+        }
+
+        try {
+            componentLifecycle.scheduleComponents(requestUri, groupId, drainStoppedComponents, ScheduledState.RUNNING,
+                    new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS), InvalidComponentAction.SKIP);
+        } catch (final LifecycleManagementException | RuntimeException restorationFailure) {
+            logger.warn("Failed to restore components after removed connection drain stop failure", restorationFailure);
+            failure.addSuppressed(restorationFailure);
+        }
     }
 
     /**

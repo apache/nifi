@@ -18,8 +18,9 @@
 package org.apache.nifi.web.util;
 
 import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.dto.ListingRequestDTO;
-import org.apache.nifi.web.api.dto.QueueSizeDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -31,8 +32,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,16 +47,14 @@ class LocalComponentLifecycleTest {
         final LocalComponentLifecycle lifecycle = new LocalComponentLifecycle();
         lifecycle.setServiceFacade(serviceFacade);
 
-        when(serviceFacade.createFlowFileListingRequest(eq("connection-a"), anyString())).thenReturn(listingRequest(0));
-        when(serviceFacade.createFlowFileListingRequest(eq("connection-b"), anyString())).thenReturn(listingRequest(0));
+        when(serviceFacade.getConnection("connection-a")).thenReturn(connectionEntity(0));
+        when(serviceFacade.getConnection("connection-b")).thenReturn(connectionEntity(0));
 
         final boolean result = lifecycle.waitForConnectionQueuesEmpty(URI.create("http://localhost:8080/nifi-api"), Set.of("connection-a", "connection-b"), new TestPause(true));
 
         assertTrue(result);
-        verify(serviceFacade).createFlowFileListingRequest(eq("connection-a"), anyString());
-        verify(serviceFacade).createFlowFileListingRequest(eq("connection-b"), anyString());
-        verify(serviceFacade).deleteFlowFileListingRequest(eq("connection-a"), anyString());
-        verify(serviceFacade).deleteFlowFileListingRequest(eq("connection-b"), anyString());
+        verify(serviceFacade).getConnection("connection-a");
+        verify(serviceFacade).getConnection("connection-b");
     }
 
     @Test
@@ -65,17 +63,15 @@ class LocalComponentLifecycleTest {
         lifecycle.setServiceFacade(serviceFacade);
         final TestPause pause = new TestPause(true, true);
 
-        when(serviceFacade.createFlowFileListingRequest(eq("connection-a"), anyString())).thenReturn(listingRequest(1), listingRequest(0));
-        when(serviceFacade.createFlowFileListingRequest(eq("connection-b"), anyString())).thenReturn(listingRequest(0));
+        when(serviceFacade.getConnection("connection-a")).thenReturn(connectionEntity(1), connectionEntity(0));
+        when(serviceFacade.getConnection("connection-b")).thenReturn(connectionEntity(0));
 
         final boolean result = lifecycle.waitForConnectionQueuesEmpty(URI.create("http://localhost:8080/nifi-api"), Set.of("connection-a", "connection-b"), pause);
 
         assertTrue(result);
         assertTrue(pause.wasInvoked());
-        verify(serviceFacade, times(2)).createFlowFileListingRequest(eq("connection-a"), anyString());
-        verify(serviceFacade).createFlowFileListingRequest(eq("connection-b"), anyString());
-        verify(serviceFacade, times(2)).deleteFlowFileListingRequest(eq("connection-a"), anyString());
-        verify(serviceFacade).deleteFlowFileListingRequest(eq("connection-b"), anyString());
+        verify(serviceFacade, times(2)).getConnection("connection-a");
+        verify(serviceFacade).getConnection("connection-b");
     }
 
     @Test
@@ -84,12 +80,13 @@ class LocalComponentLifecycleTest {
         lifecycle.setServiceFacade(serviceFacade);
         final TestPause pause = new TestPause(false);
 
-        when(serviceFacade.createFlowFileListingRequest(eq("connection-a"), anyString())).thenReturn(listingRequest(2));
+        when(serviceFacade.getConnection("connection-a")).thenReturn(connectionEntity(2));
         final boolean result = lifecycle.waitForConnectionQueuesEmpty(URI.create("http://localhost:8080/nifi-api"), Set.of("connection-a", "connection-b"), pause);
 
         assertFalse(result);
         assertTrue(pause.wasInvoked());
-        verify(serviceFacade).deleteFlowFileListingRequest(eq("connection-a"), anyString());
+        verify(serviceFacade).getConnection("connection-a");
+        verify(serviceFacade, never()).getConnection("connection-b");
     }
 
     @Test
@@ -98,21 +95,24 @@ class LocalComponentLifecycleTest {
         lifecycle.setServiceFacade(serviceFacade);
         final TestPause pause = new TestPause(false);
 
-        when(serviceFacade.createFlowFileListingRequest(eq("connection-a"), anyString())).thenReturn(listingRequest(1));
+        when(serviceFacade.getConnection("connection-a")).thenReturn(connectionEntity(1));
 
         final boolean result = lifecycle.waitForConnectionQueuesEmpty(URI.create("http://localhost:8080/nifi-api"), Set.of("connection-a"), pause);
 
         assertFalse(result);
-        verify(serviceFacade).deleteFlowFileListingRequest(eq("connection-a"), anyString());
+        verify(serviceFacade).getConnection("connection-a");
     }
 
-    private ListingRequestDTO listingRequest(final int flowFilesQueued) {
-        final QueueSizeDTO queueSize = new QueueSizeDTO();
-        queueSize.setObjectCount(flowFilesQueued);
+    private ConnectionEntity connectionEntity(final int flowFilesQueued) {
+        final ConnectionStatusSnapshotDTO aggregateSnapshot = new ConnectionStatusSnapshotDTO();
+        aggregateSnapshot.setFlowFilesQueued(flowFilesQueued);
 
-        final ListingRequestDTO listingRequest = new ListingRequestDTO();
-        listingRequest.setQueueSize(queueSize);
-        return listingRequest;
+        final ConnectionStatusDTO connectionStatus = new ConnectionStatusDTO();
+        connectionStatus.setAggregateSnapshot(aggregateSnapshot);
+
+        final ConnectionEntity connectionEntity = new ConnectionEntity();
+        connectionEntity.setStatus(connectionStatus);
+        return connectionEntity;
     }
 
     private static final class TestPause implements Pause {

@@ -36,6 +36,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -64,6 +65,7 @@ class RemovedConnectionDrainCoordinatorTest {
         assertFalse(result.cancelled());
         assertTrue(lifecycle.scheduleCalls.isEmpty());
         assertTrue(lifecycle.queueWaitCalls.isEmpty());
+        assertFalse(cancellationHandle.hasCancelCallback());
     }
 
     @Test
@@ -222,7 +224,7 @@ class RemovedConnectionDrainCoordinatorTest {
         final TestComponentLifecycle lifecycle = new TestComponentLifecycle();
         lifecycle.stoppedResultById.put("source-a", affectedProcessor("source-a", "Stopped", 0));
         lifecycle.cancelDuringQueueWait = true;
-        lifecycle.restoreException = new LifecycleManagementException("Failed to restore stopped producers");
+        lifecycle.restoreRuntimeException = new IllegalStateException("Cluster membership changed");
         final TestCancellationHandle cancellationHandle = new TestCancellationHandle();
         lifecycle.cancellationHandle = cancellationHandle;
 
@@ -234,6 +236,7 @@ class RemovedConnectionDrainCoordinatorTest {
 
         assertTrue(result.cancelled());
         assertEquals("Failed to restore stopped producers", result.restorationFailure().getMessage());
+        assertEquals("Cluster membership changed", result.restorationFailure().getCause().getMessage());
         assertEquals(List.of(
                 new ScheduleCall(ScheduledState.STOPPED, Set.of("source-a")),
                 new ScheduleCall(ScheduledState.RUNNING, Set.of("source-a"))
@@ -280,7 +283,7 @@ class RemovedConnectionDrainCoordinatorTest {
         assertEquals("Failed to restore stopped producers", result.restorationFailure().getMessage());
         assertEquals(List.of(
                 new ScheduleCall(ScheduledState.STOPPED, Set.of("upstream-a", "upstream-b")),
-                new ScheduleCall(ScheduledState.RUNNING, Set.of("upstream-a"))
+                new ScheduleCall(ScheduledState.RUNNING, Set.of("upstream-a", "upstream-b"))
         ), lifecycle.scheduleCalls);
         assertTrue(lifecycle.queueWaitCalls.isEmpty());
     }
@@ -369,7 +372,7 @@ class RemovedConnectionDrainCoordinatorTest {
         final TestComponentLifecycle lifecycle = new TestComponentLifecycle();
         lifecycle.stoppedResultById.put("source-a", affectedProcessor("source-a", "Stopped", 0));
         lifecycle.queueWaitResult = false;
-        lifecycle.restoreException = new LifecycleManagementException("Failed to restore stopped producers");
+        lifecycle.restoreRuntimeException = new IllegalStateException("Cluster membership changed");
 
         final RemovedConnectionDrainCoordinator coordinator = new RemovedConnectionDrainCoordinator(
                 new RemovedConnectionDrainClassifier(), new TestPauseFactory(), Duration.ofSeconds(30));
@@ -379,6 +382,7 @@ class RemovedConnectionDrainCoordinatorTest {
 
         assertEquals(1, exception.getSuppressed().length);
         assertEquals("Failed to restore stopped producers", exception.getSuppressed()[0].getMessage());
+        assertEquals("Cluster membership changed", exception.getSuppressed()[0].getCause().getMessage());
         assertTrue(exception.getMessage().contains("Removed connection drain timed out"));
     }
 
@@ -483,7 +487,7 @@ class RemovedConnectionDrainCoordinatorTest {
         assertSame(lifecycle.stopException, exception.getCause());
         assertEquals(List.of(
                 new ScheduleCall(ScheduledState.STOPPED, Set.of("upstream-a", "upstream-b")),
-                new ScheduleCall(ScheduledState.RUNNING, Set.of("upstream-a"))
+                new ScheduleCall(ScheduledState.RUNNING, Set.of("upstream-a", "upstream-b"))
         ), lifecycle.scheduleCalls);
         assertTrue(lifecycle.queueWaitCalls.isEmpty());
     }
@@ -593,16 +597,18 @@ class RemovedConnectionDrainCoordinatorTest {
                 .addProcessor("source-a", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID)
                 .addProcessor("destination-a", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID);
         final TestComponentLifecycle lifecycle = new TestComponentLifecycle();
+        final TestCancellationHandle cancellationHandle = new TestCancellationHandle();
 
         final RemovedConnectionDrainCoordinator coordinator = new RemovedConnectionDrainCoordinator(
                 new RemovedConnectionDrainClassifier(), new TestPauseFactory(), Duration.ofSeconds(30));
 
         final LifecycleManagementException exception = assertThrows(LifecycleManagementException.class, () -> coordinator.coordinateDrain(
-                impact, context, lifecycle, REQUEST_URI, ROOT_GROUP_ID, new TestCancellationHandle()));
+                impact, context, lifecycle, REQUEST_URI, ROOT_GROUP_ID, cancellationHandle));
 
         assertTrue(exception.getMessage().contains("connection-a[reason=SOURCE_CHANGED_REMOVAL]"));
         assertTrue(lifecycle.scheduleCalls.isEmpty());
         assertTrue(lifecycle.queueWaitCalls.isEmpty());
+        assertFalse(cancellationHandle.hasCancelCallback());
     }
 
     private FlowUpdateImpact createImpact(final Set<RemovedConnectionDescriptor> removedConnections, final Set<AffectedComponentEntity> affectedComponents) {
@@ -677,6 +683,7 @@ class RemovedConnectionDrainCoordinatorTest {
         private LifecycleManagementException queueWaitException;
         private RuntimeException queueWaitRuntimeException;
         private LifecycleManagementException restoreException;
+        private RuntimeException restoreRuntimeException;
         private TestCancellationHandle cancellationHandle;
         private Pause queueWaitPause;
 
@@ -689,6 +696,10 @@ class RemovedConnectionDrainCoordinatorTest {
 
             if (desiredState == ScheduledState.RUNNING && restoreException != null) {
                 throw restoreException;
+            }
+
+            if (desiredState == ScheduledState.RUNNING && restoreRuntimeException != null) {
+                throw restoreRuntimeException;
             }
 
             if (desiredState == ScheduledState.STOPPED && cancelAfterStop && cancellationHandle != null) {
@@ -770,6 +781,10 @@ class RemovedConnectionDrainCoordinatorTest {
             this.cancelCallback = runnable;
         }
 
+        private boolean hasCancelCallback() {
+            return cancelCallback != null;
+        }
+
         private void cancel() {
             cancelled = true;
             if (cancelCallback != null) {
@@ -819,6 +834,16 @@ class RemovedConnectionDrainCoordinatorTest {
         @Override
         public void cancel() {
             cancelled = true;
+        }
+
+        @Override
+        public long getRemainingPauseNanos() {
+            return cancelled ? 0L : TimeUnit.SECONDS.toNanos(30);
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return cancelled;
         }
 
         @Override

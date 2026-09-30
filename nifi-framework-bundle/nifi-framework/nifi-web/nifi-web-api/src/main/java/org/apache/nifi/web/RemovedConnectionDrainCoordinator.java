@@ -71,7 +71,8 @@ public final class RemovedConnectionDrainCoordinator {
         Objects.requireNonNull(groupId, "Group ID required");
         Objects.requireNonNull(cancellationHandle, "Cancellation Handle required");
 
-        final RemovedConnectionDrainClassifier.Context queueAwareContext = createQueueAwareContext(flowUpdateImpact, context, componentLifecycle, requestUri);
+        final DeadlinePause drainPause = pauseFactory.createDrainPause(drainTimeout);
+        final RemovedConnectionDrainClassifier.Context queueAwareContext = createQueueAwareContext(flowUpdateImpact, context, componentLifecycle, requestUri, drainPause);
         final RemovedConnectionDrainClassifier.BatchResult batchResult = classifier.classify(flowUpdateImpact, queueAwareContext);
         if (!batchResult.isSupported()) {
             throw new LifecycleManagementException(buildClassificationFailureMessage(batchResult));
@@ -85,6 +86,8 @@ public final class RemovedConnectionDrainCoordinator {
         if (candidateConnectionIds.isEmpty()) {
             return DrainResult.success(Collections.emptySet(), Collections.emptySet());
         }
+
+        cancellationHandle.setCancelCallback(drainPause::cancel);
 
         final Map<String, AffectedComponentEntity> affectedComponentsById = flowUpdateImpact.getAffectedComponents().stream()
                 .collect(Collectors.toMap(AffectedComponentEntity::getId, entity -> entity, (left, right) -> left, LinkedHashMap::new));
@@ -104,19 +107,19 @@ public final class RemovedConnectionDrainCoordinator {
         final List<String> orderedProducerBarrierIds = componentsToStop.stream().map(AffectedComponentEntity::getId).sorted().toList();
         logger.info("Starting drain of removed connections {} with producer barriers {}", orderedCandidateConnectionIds, orderedProducerBarrierIds);
 
-        final DeadlinePause drainPause = pauseFactory.createDrainPause(drainTimeout);
-        cancellationHandle.setCancelCallback(drainPause::cancel);
-
         final Set<AffectedComponentEntity> drainStoppedComponents = new LinkedHashSet<>();
+        boolean stopRequestCompleted = false;
         try {
             if (!componentsToStop.isEmpty()) {
                 final Set<AffectedComponentEntity> updatedStoppedComponents = componentLifecycle.scheduleComponents(
                         requestUri, groupId, componentsToStop, ScheduledState.STOPPED, drainPause, InvalidComponentAction.SKIP);
+                stopRequestCompleted = true;
                 drainStoppedComponents.addAll(getStoppedComponents(componentsToStop, updatedStoppedComponents));
 
                 if (!allComponentsStopped(componentsToStop, updatedStoppedComponents)) {
                     if (cancellationHandle.isCancelled()) {
-                        return restoreAfterCancellation(componentLifecycle, requestUri, groupId, candidateConnectionIds, drainStoppedComponents);
+                        return restoreAfterCancellation(componentLifecycle, requestUri, groupId, candidateConnectionIds,
+                                getStoppedComponentsToRestore(stopRequestCompleted, componentsToStop, drainStoppedComponents));
                     }
 
                     final Set<String> producerBarrierIds = componentsToStop.stream()
@@ -127,13 +130,15 @@ public final class RemovedConnectionDrainCoordinator {
             }
 
             if (cancellationHandle.isCancelled()) {
-                return restoreAfterCancellation(componentLifecycle, requestUri, groupId, candidateConnectionIds, drainStoppedComponents);
+                return restoreAfterCancellation(componentLifecycle, requestUri, groupId, candidateConnectionIds,
+                        getStoppedComponentsToRestore(stopRequestCompleted, componentsToStop, drainStoppedComponents));
             }
 
             final boolean queuesDrained = componentLifecycle.waitForConnectionQueuesEmpty(requestUri, candidateConnectionIds, drainPause);
             if (queuesDrained) {
                 if (cancellationHandle.isCancelled()) {
-                    return restoreAfterCancellation(componentLifecycle, requestUri, groupId, candidateConnectionIds, drainStoppedComponents);
+                    return restoreAfterCancellation(componentLifecycle, requestUri, groupId, candidateConnectionIds,
+                            getStoppedComponentsToRestore(stopRequestCompleted, componentsToStop, drainStoppedComponents));
                 }
 
                 logger.info("Completed draining removed connections {}", orderedCandidateConnectionIds);
@@ -141,12 +146,13 @@ public final class RemovedConnectionDrainCoordinator {
             }
 
             if (cancellationHandle.isCancelled()) {
-                return restoreAfterCancellation(componentLifecycle, requestUri, groupId, candidateConnectionIds, drainStoppedComponents);
+                return restoreAfterCancellation(componentLifecycle, requestUri, groupId, candidateConnectionIds,
+                        getStoppedComponentsToRestore(stopRequestCompleted, componentsToStop, drainStoppedComponents));
             }
 
             throw new LifecycleManagementException(buildQueueTimeoutMessage(candidateConnectionIds));
         } catch (final LifecycleManagementException e) {
-            final Set<AffectedComponentEntity> stoppedComponents = getStoppedComponentsToRestore(queueAwareContext, componentsToStop, drainStoppedComponents);
+            final Set<AffectedComponentEntity> stoppedComponents = getStoppedComponentsToRestore(stopRequestCompleted, componentsToStop, drainStoppedComponents);
             if (cancellationHandle.isCancelled()) {
                 return restoreAfterCancellation(componentLifecycle, requestUri, groupId, candidateConnectionIds, stoppedComponents);
             }
@@ -156,7 +162,7 @@ public final class RemovedConnectionDrainCoordinator {
             restoreOrSuppress(componentLifecycle, requestUri, groupId, stoppedComponents, failure);
             throw failure;
         } catch (final RuntimeException e) {
-            final Set<AffectedComponentEntity> stoppedComponents = getStoppedComponentsToRestore(queueAwareContext, componentsToStop, drainStoppedComponents);
+            final Set<AffectedComponentEntity> stoppedComponents = getStoppedComponentsToRestore(stopRequestCompleted, componentsToStop, drainStoppedComponents);
             if (cancellationHandle.isCancelled()) {
                 return restoreAfterCancellation(componentLifecycle, requestUri, groupId, candidateConnectionIds, stoppedComponents);
             }
@@ -295,23 +301,27 @@ public final class RemovedConnectionDrainCoordinator {
             return;
         }
 
-        componentLifecycle.scheduleComponents(requestUri, groupId, stoppedComponents, ScheduledState.RUNNING,
-                pauseFactory.createRestorationPause(), InvalidComponentAction.SKIP);
+        try {
+            componentLifecycle.scheduleComponents(requestUri, groupId, stoppedComponents, ScheduledState.RUNNING,
+                    pauseFactory.createRestorationPause(), InvalidComponentAction.SKIP);
+        } catch (final RuntimeException e) {
+            throw new LifecycleManagementException("Failed to restore stopped producers", e);
+        }
     }
 
     private RemovedConnectionDrainClassifier.Context createQueueAwareContext(final FlowUpdateImpact flowUpdateImpact,
                                                                              final RemovedConnectionDrainClassifier.Context context,
                                                                              final ComponentLifecycle componentLifecycle,
-                                                                             final URI requestUri) throws LifecycleManagementException {
+                                                                             final URI requestUri,
+                                                                             final Pause pause) throws LifecycleManagementException {
         final Map<String, Boolean> knownQueueEmptyByConnectionId = new LinkedHashMap<>();
-        final Pause noWaitPause = NoWaitPause.INSTANCE;
         for (final RemovedConnectionDescriptor removedConnection : flowUpdateImpact.getRemovedConnections()) {
             final String connectionId = removedConnection.getConnectionInstanceId();
             if (connectionId == null) {
                 continue;
             }
 
-            final boolean knownQueueEmpty = componentLifecycle.waitForConnectionQueuesEmpty(requestUri, Set.of(connectionId), noWaitPause);
+            final boolean knownQueueEmpty = componentLifecycle.waitForConnectionQueuesEmpty(requestUri, Set.of(connectionId), new NoWaitPause(pause));
             knownQueueEmptyByConnectionId.put(connectionId, knownQueueEmpty);
         }
 
@@ -352,36 +362,15 @@ public final class RemovedConnectionDrainCoordinator {
         return stoppedComponents;
     }
 
-    private Set<AffectedComponentEntity> getStoppedComponentsToRestore(final RemovedConnectionDrainClassifier.Context context,
+    private Set<AffectedComponentEntity> getStoppedComponentsToRestore(final boolean stopRequestCompleted,
                                                                        final Collection<AffectedComponentEntity> componentsToStop,
                                                                        final Collection<AffectedComponentEntity> updatedComponents) {
-        if (componentsToStop == null || componentsToStop.isEmpty()) {
+        final Collection<AffectedComponentEntity> componentsToRestore = stopRequestCompleted ? updatedComponents : componentsToStop;
+        if (componentsToRestore == null || componentsToRestore.isEmpty()) {
             return Collections.emptySet();
         }
 
-        final Map<String, AffectedComponentEntity> updatedComponentsById = toOrderedMap(updatedComponents);
-        final Set<AffectedComponentEntity> stoppedComponents = new LinkedHashSet<>();
-        for (final AffectedComponentEntity componentToStop : componentsToStop) {
-            final AffectedComponentEntity updatedComponent = updatedComponentsById.get(componentToStop.getId());
-            if (updatedComponent != null) {
-                if (updatedComponent.getComponent() != null && !isActive(updatedComponent.getComponent())) {
-                    stoppedComponents.add(updatedComponent);
-                }
-                continue;
-            }
-
-            final RemovedConnectionDrainClassifier.LiveConnectable liveConnectable = context.getConnectable(componentToStop.getId());
-            if (liveConnectable == null || isActive(liveConnectable)) {
-                continue;
-            }
-
-            final AffectedComponentEntity liveComponent = getProducerBarrierEntity(Collections.emptyMap(), context, componentToStop.getId());
-            if (liveComponent != null && liveComponent.getComponent() != null) {
-                stoppedComponents.add(liveComponent);
-            }
-        }
-
-        return stoppedComponents;
+        return copyOrderedSet(componentsToRestore);
     }
 
     private Map<String, AffectedComponentEntity> toOrderedMap(final Collection<AffectedComponentEntity> components) {
@@ -420,8 +409,18 @@ public final class RemovedConnectionDrainCoordinator {
     }
 
     public interface CancellationHandle {
+        /**
+         * Indicates whether the caller has cancelled the enclosing drain operation.
+         *
+         * @return {@code true} when cancellation has been requested
+         */
         boolean isCancelled();
 
+        /**
+         * Registers a callback that should be invoked when cancellation is requested.
+         *
+         * @param runnable callback to invoke on cancellation, or {@code null} when none is needed
+         */
         void setCancelCallback(Runnable runnable);
     }
 
@@ -433,6 +432,10 @@ public final class RemovedConnectionDrainCoordinator {
 
     interface DeadlinePause extends Pause {
         void cancel();
+
+        long getRemainingPauseNanos();
+
+        boolean isCancelled();
     }
 
     public record DrainResult(Set<String> candidateConnectionIds, Set<AffectedComponentEntity> drainStoppedComponents, boolean cancelled,
@@ -476,13 +479,14 @@ public final class RemovedConnectionDrainCoordinator {
         }
     }
 
-    private static final class TimedDeadlinePause implements DeadlinePause {
+    private static final class TimedDeadlinePause extends CancellableTimedPause implements DeadlinePause {
         private final long pauseNanos;
         private final long deadlineNanos;
         private final LongSupplier nanoTimeSupplier;
         private volatile boolean cancelled;
 
         private TimedDeadlinePause(final Duration pollInterval, final Duration timeout, final LongSupplier nanoTimeSupplier) {
+            super(1L, 1L, TimeUnit.NANOSECONDS);
             this.pauseNanos = Math.max(1L, pollInterval.toNanos());
             this.nanoTimeSupplier = nanoTimeSupplier;
             this.deadlineNanos = nanoTimeSupplier.getAsLong() + timeout.toNanos();
@@ -494,33 +498,73 @@ public final class RemovedConnectionDrainCoordinator {
         }
 
         @Override
+        public boolean isCancelled() {
+            return cancelled;
+        }
+
+        @Override
+        public long getRemainingPauseNanos() {
+            return Math.max(0L, deadlineNanos - nanoTimeSupplier.getAsLong());
+        }
+
+        @Override
         public boolean pause() {
-            if (cancelled) {
+            if (isCancelled()) {
                 return false;
             }
 
-            final long now = nanoTimeSupplier.getAsLong();
-            if (now >= deadlineNanos) {
+            final long remainingPauseNanos = getRemainingPauseNanos();
+            if (remainingPauseNanos == 0L) {
                 return false;
             }
 
             try {
-                TimeUnit.NANOSECONDS.sleep(Math.min(pauseNanos, Math.max(1L, deadlineNanos - now)));
+                TimeUnit.NANOSECONDS.sleep(Math.min(pauseNanos, remainingPauseNanos));
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return false;
             }
 
-            return !cancelled && nanoTimeSupplier.getAsLong() < deadlineNanos;
+            return !isCancelled() && getRemainingPauseNanos() > 0L;
         }
     }
 
-    private enum NoWaitPause implements Pause {
-        INSTANCE;
+    private static final class NoWaitPause extends CancellableTimedPause implements DeadlinePause {
+        private final Pause delegate;
+
+        private NoWaitPause(final Pause delegate) {
+            super(1L, 1L, TimeUnit.NANOSECONDS);
+            this.delegate = delegate;
+        }
+
+        @Override
+        public boolean isCancelled() {
+            if (delegate instanceof DeadlinePause deadlinePause) {
+                return deadlinePause.isCancelled();
+            }
+
+            return false;
+        }
+
+        @Override
+        public long getRemainingPauseNanos() {
+            if (delegate instanceof DeadlinePause deadlinePause) {
+                return deadlinePause.getRemainingPauseNanos();
+            }
+
+            return Long.MAX_VALUE;
+        }
 
         @Override
         public boolean pause() {
             return false;
+        }
+
+        @Override
+        public void cancel() {
+            if (delegate instanceof DeadlinePause deadlinePause) {
+                deadlinePause.cancel();
+            }
         }
     }
 
