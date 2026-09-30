@@ -39,31 +39,11 @@ public class TriggerValidationTask implements Runnable {
         try {
             logger.debug("Triggering validation of all components");
 
-            for (final ComponentNode node : flowManager.getAllControllerServices()) {
+            for (final ComponentNode node : ValidatableComponents.getComponentNodes(flowManager)) {
                 validationTrigger.trigger(node);
             }
 
-            for (final ComponentNode node : flowManager.getAllReportingTasks()) {
-                validationTrigger.trigger(node);
-            }
-
-            for (final ComponentNode node : flowManager.getAllFlowAnalysisRules()) {
-                validationTrigger.trigger(node);
-            }
-
-            for (final ComponentNode node : flowManager.getAllParameterProviders()) {
-                validationTrigger.trigger(node);
-            }
-
-            for (final ComponentNode node : flowManager.getRootGroup().findAllProcessors()) {
-                validationTrigger.trigger(node);
-            }
-
-            for (final ComponentNode node : flowManager.getAllFlowRegistryClients()) {
-                validationTrigger.trigger(node);
-            }
-
-            for (final ConnectorNode connector : flowManager.getAllConnectors()) {
+            for (final ConnectorNode connector : ValidatableComponents.getConnectors(flowManager)) {
                 connector.validateComponents(validationTrigger);
             }
         } catch (final Throwable t) {
