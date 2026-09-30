@@ -22,6 +22,10 @@ package org.apache.nifi.key.service.reader;
 public class PrivateKeyException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
+    public PrivateKeyException(final String message) {
+        super(message);
+    }
+
     public PrivateKeyException(final String message, final Throwable cause) {
         super(message, cause);
     }
