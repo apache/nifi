@@ -39,7 +39,7 @@ export interface PropertyDescriptorDTO {
 }
 
 export interface AllowableValueEntity {
-    allowableValue?: AllowableValueDTO;
+    allowableValue: AllowableValueDTO;
     canRead: boolean;
 }
 

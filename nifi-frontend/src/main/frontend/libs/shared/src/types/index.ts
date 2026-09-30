@@ -17,6 +17,7 @@
 
 import { MatDialogConfig } from '@angular/material/dialog';
 import { filter, Observable } from 'rxjs';
+import type { ParameterContextReferenceEntity } from './entities/process-group-entity';
 import type { BulletinEntity, Bundle, Permissions, Revision } from './rest-api.types';
 
 export const SMALL_DIALOG: MatDialogConfig = {
@@ -129,18 +130,6 @@ export interface AffectedComponentEntity {
     component: AffectedComponent;
     processGroup: ProcessGroupName;
     referenceType: string;
-}
-
-export interface ParameterContextReferenceEntity {
-    permissions: Permissions;
-    id: string;
-    component?: ParameterContextReference;
-    bulletins?: BulletinEntity[];
-}
-
-export interface ParameterContextReference {
-    id: string;
-    name: string;
 }
 
 export interface AffectedComponent {

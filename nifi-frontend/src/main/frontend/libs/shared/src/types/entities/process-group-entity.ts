@@ -139,7 +139,7 @@ export interface ProcessGroupStatusDTO {
     id: string;
     statsLastRefreshed: string;
     aggregateSnapshot: ProcessGroupStatusSnapshotDTO;
-    name?: string;
+    name: string;
     nodeSnapshots?: NodeProcessGroupStatusSnapshotDTO[];
 }
 
@@ -173,7 +173,7 @@ export interface ProcessGroupStatusSnapshotDTO {
     activeThreadCount: number;
     terminatedThreadCount: number;
     processingNanos: number;
-    name?: string;
+    name: string;
     connectionStatusSnapshots?: ConnectionStatusSnapshotEntity[];
     processorStatusSnapshots?: ProcessorStatusSnapshotEntity[];
     processGroupStatusSnapshots?: ProcessGroupStatusSnapshotEntity[];

@@ -99,7 +99,8 @@ describe('ConnectorCanvasEffects', () => {
         // Mock services
         const mockConnectorService = {
             getConnectorFlow: vi.fn(),
-            getConnectorParameterContext: vi.fn()
+            getConnectorParameterContext: vi.fn(),
+            getControllerService: vi.fn()
         };
 
         if (options.parameterContextError !== undefined) {
@@ -127,9 +128,11 @@ describe('ConnectorCanvasEffects', () => {
                 parameterContext?: ParameterContextEntity | null;
                 supportsParameters?: boolean;
                 goToParameter?: (parameter: string) => void;
+                goToService: (serviceId: string) => void;
                 [key: string]: any;
             },
-            afterClosed: () => afterClosed$.asObservable()
+            afterClosed: () => afterClosed$.asObservable(),
+            close: vi.fn()
         };
         const mockDialog = {
             open: vi.fn().mockReturnValue(mockDialogRef)

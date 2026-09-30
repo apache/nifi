@@ -90,7 +90,7 @@ export interface RemoteProcessGroupStatusDTO {
     transmissionStatus: string;
     statsLastRefreshed: string;
     aggregateSnapshot: RemoteProcessGroupStatusSnapshotDTO;
-    name?: string;
+    name: string;
     targetUri?: string;
     validationStatus: string;
     nodeSnapshots?: NodeRemoteProcessGroupStatusSnapshotDTO[];
@@ -107,7 +107,7 @@ export interface RemoteProcessGroupStatusSnapshotDTO {
     flowFilesReceived: number;
     bytesReceived: number;
     received: string;
-    name?: string;
+    name: string;
     targetUri?: string;
 }
 

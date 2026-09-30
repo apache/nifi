@@ -54,7 +54,7 @@ export interface PortStatusDTO {
     runStatus: string;
     statsLastRefreshed: string;
     aggregateSnapshot: PortStatusSnapshotDTO;
-    name?: string;
+    name: string;
     nodeSnapshots?: NodePortStatusSnapshotDTO[];
 }
 
@@ -70,7 +70,7 @@ export interface PortStatusSnapshotDTO {
     output: string;
     runStatus: string;
     transmitting?: boolean;
-    name?: string;
+    name: string;
 }
 
 export interface NodePortStatusSnapshotDTO {

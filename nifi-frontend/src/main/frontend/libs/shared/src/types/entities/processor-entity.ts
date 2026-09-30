@@ -88,7 +88,7 @@ export interface ProcessorStatusDTO {
     runStatus: string;
     statsLastRefreshed: string;
     aggregateSnapshot: ProcessorStatusSnapshotDTO;
-    name?: string;
+    name: string;
     type?: string;
     nodeSnapshots?: NodeProcessorStatusSnapshotDTO[];
 }
@@ -114,8 +114,8 @@ export interface ProcessorStatusSnapshotDTO {
     tasksDuration: string;
     activeThreadCount: number;
     terminatedThreadCount: number;
-    name?: string;
-    type?: string;
+    name: string;
+    type: string;
     processingPerformanceStatus?: ProcessingPerformanceStatusDTO;
 }
 

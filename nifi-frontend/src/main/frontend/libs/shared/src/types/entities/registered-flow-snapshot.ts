@@ -21,7 +21,7 @@ import { Bundle, Position } from '../rest-api.types';
  * Fully typed graph reachable from ProcessGroupEntity.versionedFlowSnapshot.
  *
  * @nifi-source: nifi-api/src/main/java/org/apache/nifi/registry/flow/RegisteredFlowSnapshot.java
- * @nifi-revision: eefa952edddc (2026-09-29)
+ * @nifi-revision: apache/nifi-api@dc575b83e2c0cddf6ac6d3adc51d3448a70654eb
  * @vetted: 2026-09-29
  */
 export interface RegisteredFlowSnapshot {
@@ -152,6 +152,8 @@ export interface VersionedProcessGroup extends VersionedComponent {
     executionEngine?: ExecutionEngine;
     maxConcurrentTasks?: number;
     statelessFlowTimeout?: string;
+    statelessFlowFileContentInMemoryMax?: string;
+    statelessFlowFileContentInMemoryHeapPercentage?: number;
     logFileSuffix?: string;
 }
 

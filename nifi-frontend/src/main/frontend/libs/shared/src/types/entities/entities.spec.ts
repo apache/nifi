@@ -46,6 +46,8 @@ import {
     ProcessorStatusSnapshotDTO,
     ProcessorStatusSnapshotEntity
 } from './processor-entity';
+import { AllowableValueDTO, AllowableValueEntity } from './property-descriptor-dto';
+import { VersionedProcessGroup } from './registered-flow-snapshot';
 import {
     RemoteProcessGroupDTO,
     RemoteProcessGroupEntity,
@@ -131,6 +133,8 @@ function processorSnapshot(id: string): ProcessorStatusSnapshotDTO {
     return {
         id,
         groupId: 'root',
+        name: 'Processor',
+        type: 'org.apache.nifi.processors.standard.GenerateFlowFile',
         runStatus: 'Stopped',
         executionNode: 'All',
         bytesRead: 1,
@@ -164,6 +168,7 @@ function processorStatus(id: string): ProcessorStatusDTO {
     return {
         id,
         groupId: 'root',
+        name: 'Processor',
         runStatus: 'Stopped',
         statsLastRefreshed: '12:00:00 UTC',
         aggregateSnapshot: processorSnapshot(id)
@@ -196,6 +201,9 @@ function connectionSnapshot(id: string): ConnectionStatusSnapshotDTO {
     return {
         id,
         groupId: 'root',
+        name: 'Connection',
+        sourceName: 'Source',
+        destinationName: 'Destination',
         flowFilesIn: 1,
         bytesIn: 2,
         input: '1 / 2 bytes',
@@ -216,8 +224,11 @@ function connectionStatus(id: string): ConnectionStatusDTO {
     return {
         id,
         groupId: 'root',
+        name: 'Connection',
         sourceId: 'source',
+        sourceName: 'Source',
         destinationId: 'destination',
+        destinationName: 'Destination',
         statsLastRefreshed: '12:00:00 UTC',
         aggregateSnapshot: connectionSnapshot(id)
     };
@@ -239,6 +250,7 @@ function portSnapshot(id: string): PortStatusSnapshotDTO {
     return {
         id,
         groupId: 'root',
+        name: 'Port',
         activeThreadCount: 0,
         flowFilesIn: 1,
         bytesIn: 2,
@@ -254,6 +266,7 @@ function portStatus(id: string): PortStatusDTO {
     return {
         id,
         groupId: 'root',
+        name: 'Port',
         transmitting: false,
         runStatus: 'Stopped',
         statsLastRefreshed: '12:00:00 UTC',
@@ -313,6 +326,7 @@ function processGroup(id: string): ProcessGroupDTO {
 function processGroupSnapshot(id: string): ProcessGroupStatusSnapshotDTO {
     return {
         id,
+        name: 'Process Group',
         statelessActiveThreadCount: 0,
         flowFilesIn: 1,
         bytesIn: 2,
@@ -354,6 +368,7 @@ function processGroupSnapshot(id: string): ProcessGroupStatusSnapshotDTO {
 function processGroupStatus(id: string): ProcessGroupStatusDTO {
     return {
         id,
+        name: 'Process Group',
         statsLastRefreshed: '12:00:00 UTC',
         aggregateSnapshot: processGroupSnapshot(id)
     };
@@ -395,6 +410,7 @@ function remoteProcessGroupSnapshot(id: string): RemoteProcessGroupStatusSnapsho
     return {
         id,
         groupId: 'root',
+        name: 'Remote Process Group',
         transmissionStatus: 'Not Transmitting',
         activeThreadCount: 0,
         flowFilesSent: 1,
@@ -410,6 +426,7 @@ function remoteProcessGroupStatus(id: string): RemoteProcessGroupStatusDTO {
     return {
         id,
         groupId: 'root',
+        name: 'Remote Process Group',
         transmissionStatus: 'Not Transmitting',
         statsLastRefreshed: '12:00:00 UTC',
         aggregateSnapshot: remoteProcessGroupSnapshot(id),
@@ -728,6 +745,28 @@ describe('canonical response entity contracts', () => {
         expectTypeOf<LabelDTO['width']>().toEqualTypeOf<number>();
         expectTypeOf<LabelDTO['height']>().toEqualTypeOf<number>();
         expectTypeOf<LabelDTO['zIndex']>().toEqualTypeOf<number>();
+        expectTypeOf<ProcessorStatusDTO['name']>().toEqualTypeOf<string>();
+        expectTypeOf<ProcessorStatusSnapshotDTO['name']>().toEqualTypeOf<string>();
+        expectTypeOf<ProcessorStatusSnapshotDTO['type']>().toEqualTypeOf<string>();
+        expectTypeOf<ConnectionStatusDTO['name']>().toEqualTypeOf<string>();
+        expectTypeOf<ConnectionStatusDTO['sourceName']>().toEqualTypeOf<string>();
+        expectTypeOf<ConnectionStatusDTO['destinationName']>().toEqualTypeOf<string>();
+        expectTypeOf<ConnectionStatusSnapshotDTO['name']>().toEqualTypeOf<string>();
+        expectTypeOf<ConnectionStatusSnapshotDTO['sourceName']>().toEqualTypeOf<string>();
+        expectTypeOf<ConnectionStatusSnapshotDTO['destinationName']>().toEqualTypeOf<string>();
+        expectTypeOf<PortStatusDTO['name']>().toEqualTypeOf<string>();
+        expectTypeOf<PortStatusSnapshotDTO['name']>().toEqualTypeOf<string>();
+        expectTypeOf<ProcessGroupStatusDTO['name']>().toEqualTypeOf<string>();
+        expectTypeOf<ProcessGroupStatusSnapshotDTO['name']>().toEqualTypeOf<string>();
+        expectTypeOf<RemoteProcessGroupStatusDTO['name']>().toEqualTypeOf<string>();
+        expectTypeOf<RemoteProcessGroupStatusSnapshotDTO['name']>().toEqualTypeOf<string>();
+        expectTypeOf<AllowableValueEntity['allowableValue']>().toEqualTypeOf<AllowableValueDTO>();
+        expectTypeOf<VersionedProcessGroup['statelessFlowFileContentInMemoryMax']>().toEqualTypeOf<
+            string | undefined
+        >();
+        expectTypeOf<VersionedProcessGroup['statelessFlowFileContentInMemoryHeapPercentage']>().toEqualTypeOf<
+            number | undefined
+        >();
         expectTypeOf<ProcessGroupEntity['processGroupUpdateStrategy']>().toEqualTypeOf<
             'CURRENT_GROUP' | 'CURRENT_GROUP_WITH_CHILDREN' | undefined
         >();

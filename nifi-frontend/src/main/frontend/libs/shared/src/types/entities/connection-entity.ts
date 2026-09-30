@@ -87,9 +87,9 @@ export interface ConnectionStatusDTO {
     destinationId: string;
     statsLastRefreshed: string;
     aggregateSnapshot: ConnectionStatusSnapshotDTO;
-    name?: string;
-    sourceName?: string;
-    destinationName?: string;
+    name: string;
+    sourceName: string;
+    destinationName: string;
     nodeSnapshots?: NodeConnectionStatusSnapshotDTO[];
 }
 
@@ -109,11 +109,11 @@ export interface ConnectionStatusSnapshotDTO {
     queuedCount: string;
     flowFileAvailability: string;
     loadBalanceStatus: string;
-    name?: string;
+    name: string;
     sourceId?: string;
-    sourceName?: string;
+    sourceName: string;
     destinationId?: string;
-    destinationName?: string;
+    destinationName: string;
     predictions?: ConnectionStatusPredictionsSnapshotDTO;
     percentUseCount?: number;
     percentUseBytes?: number;
