@@ -244,14 +244,12 @@ class ClusterReplicationComponentLifecycleTest {
     @Test
     void testWaitForConnectionQueuesEmptyReturnsFalseWhenDeadlineExpiresBeforeMergeCompletes() throws Exception {
         final ClusterReplicationComponentLifecycle lifecycle = createLifecycle();
-        final TestDeadlinePause pause = new TestDeadlinePause(1L, TimeUnit.MILLISECONDS);
+        final TestDeadlinePause pause = new TestDeadlinePause(1L, TimeUnit.MINUTES);
         final AsyncClusterResponse createResponse = mock(AsyncClusterResponse.class);
-        lenient().when(createResponse.awaitMergedResponse()).thenReturn(null);
-        lenient().when(createResponse.awaitMergedResponse(any(Long.class), any(TimeUnit.class))).thenReturn(null);
-        lenient().when(createResponse.getNodesInvolved()).thenReturn(EXPECTED_NODES);
-        lenient().when(createResponse.getCompletedNodeIdentifiers()).thenReturn(EXPECTED_NODES);
-        lenient().when(createResponse.getCompletedNodeResponses()).thenReturn(completedResponses(successfulNodeResponse(NODE_1), successfulNodeResponse(NODE_2)));
-        lenient().when(createResponse.isComplete()).thenReturn(true);
+        doAnswer(invocation -> {
+            pause.expire();
+            return null;
+        }).when(createResponse).awaitMergedResponse(any(Long.class), any(TimeUnit.class));
 
         when(clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED)).thenReturn(EXPECTED_NODES);
         stubReplicate(createResponse);
@@ -259,6 +257,8 @@ class ClusterReplicationComponentLifecycleTest {
         final boolean result = lifecycle.waitForConnectionQueuesEmpty(EXAMPLE_URI, Set.of("connection-a"), pause);
 
         assertFalse(result);
+        verifyReplicate(1);
+        verify(createResponse, times(1)).awaitMergedResponse(any(Long.class), any(TimeUnit.class));
         verify(createResponse, never()).awaitMergedResponse();
     }
 
@@ -403,8 +403,19 @@ class ClusterReplicationComponentLifecycleTest {
     }
 
     private static final class TestDeadlinePause extends CancellableTimedPause {
+        private boolean expired;
+
         private TestDeadlinePause(final long pauseTime, final TimeUnit timeUnit) {
             super(pauseTime, pauseTime, timeUnit);
+        }
+
+        private void expire() {
+            expired = true;
+        }
+
+        @Override
+        public long getRemainingPauseNanos() {
+            return expired ? 0L : super.getRemainingPauseNanos();
         }
     }
 }
