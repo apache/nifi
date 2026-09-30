@@ -257,7 +257,7 @@ public final class NarClassLoaders {
 
                                     // if that bundle is loaded, use it
                                     if (narCoordinateClassLoaderLookup.containsKey(coordinate.getCoordinate())) {
-                                        logger.warn("While loading '{}' unable to locate exact NAR dependency '{}'. Only found one possible match '{}'. Continuing...",
+                                        logger.info("While loading '{}' unable to locate exact NAR dependency '{}'. Only found one possible match '{}'. Continuing...",
                                                 narDetail.getCoordinate().getCoordinate(), dependencyCoordinateStr, coordinate.getCoordinate());
 
                                         final ClassLoader narDependencyClassLoader = narCoordinateClassLoaderLookup.get(coordinate.getCoordinate());
@@ -424,7 +424,7 @@ public final class NarClassLoaders {
                         final Optional<Bundle> matchingDependencyIdBundle = getBundle(coordinate);
                         if (matchingDependencyIdBundle.isPresent()) {
                             final String dependencyCoordinateStr = bundleDependencyCoordinate.getCoordinate();
-                            logger.warn("While loading '{}' unable to locate exact NAR dependency '{}'. Only found one possible match '{}'. Continuing...",
+                            logger.info("While loading '{}' unable to locate exact NAR dependency '{}'. Only found one possible match '{}'. Continuing...",
                                     bundleDetail.getCoordinate().getCoordinate(), dependencyCoordinateStr, coordinate.getCoordinate());
 
                             final ClassLoader narDependencyClassLoader = matchingDependencyIdBundle.get().getClassLoader();
