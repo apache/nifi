@@ -133,6 +133,21 @@ describe('Common', () => {
             expect(result).toBeNull();
         });
 
+        it('should return null when bulletin details are denied', () => {
+            const result = service.getMostSevereBulletin([
+                {
+                    id: 1,
+                    canRead: false,
+                    sourceId: 'source1',
+                    groupId: 'group1',
+                    timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z'
+                }
+            ]);
+
+            expect(result).toBeNull();
+        });
+
         it('should return the bulletin when only one bulletin provided', () => {
             const bulletins = [
                 {

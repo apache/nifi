@@ -16,10 +16,10 @@
  */
 
 import { Component, input, output } from '@angular/core';
-import { ConnectorEntity } from '@nifi/shared';
+import { ConnectorEntity, Position } from '@nifi/shared';
 import { CanvasNavigationControl } from '../../../../../ui/common/navigation-control/canvas-navigation-control.component';
 import { BirdseyeComponentData, BirdseyeTransform } from '../../../../../ui/common/birdseye/birdseye.types';
-import { Dimension, Position } from '../../../../../ui/common/canvas/canvas.types';
+import { Dimension } from '../../../../../ui/common/canvas/canvas.types';
 import { ConnectorInfoControl } from './connector-info-control/connector-info-control.component';
 import { ProvenancePreview } from '../../../../../ui/common/provenance-preview/provenance-preview.component';
 import { ProvenanceEvent } from '../../../../../state/shared';

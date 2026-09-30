@@ -18,8 +18,8 @@
 import * as d3 from 'd3';
 import { ConnectionRenderer } from './connection-renderer';
 import { ConnectionRenderContext } from '../render-context.types';
-import { CanvasConnection, Position } from '../../canvas.types';
-import { ComponentType } from '@nifi/shared';
+import { CanvasConnection } from '../../canvas.types';
+import { ComponentType, Position } from '@nifi/shared';
 
 /**
  * Test setup options for ConnectionRenderer tests

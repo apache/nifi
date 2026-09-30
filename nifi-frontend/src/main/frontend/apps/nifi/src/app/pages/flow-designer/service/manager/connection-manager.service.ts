@@ -40,10 +40,10 @@ import {
     updateConnection
 } from '../../state/flow/flow.actions';
 import { UnorderedListTip } from '../../../../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
-import { Dimension, Position } from '../../state/shared';
+import { Dimension } from '../../state/shared';
 import { loadBalanceStrategies, UpdateComponentRequest } from '../../../../state/shared';
 import { filter, Subject, switchMap, takeUntil } from 'rxjs';
-import { ComponentType, NiFiCommon, SelectOption } from '@nifi/shared';
+import { ComponentType, NiFiCommon, Position, SelectOption } from '@nifi/shared';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { wouldRemovalCauseOverlap } from '../../../../ui/common/overlap-detection.utils';

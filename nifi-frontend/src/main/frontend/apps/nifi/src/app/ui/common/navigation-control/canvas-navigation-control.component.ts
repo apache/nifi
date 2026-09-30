@@ -19,10 +19,10 @@ import { Component, inject, input, OnInit, output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionPanel, MatExpansionPanelHeader, MatExpansionPanelTitle } from '@angular/material/expansion';
 import { MatTooltip } from '@angular/material/tooltip';
-import { Storage } from '@nifi/shared';
+import { Position, Storage } from '@nifi/shared';
 import { CanvasBirdseyeComponent } from '../birdseye/birdseye.component';
 import { BirdseyeComponentData, BirdseyeTransform } from '../birdseye/birdseye.types';
-import { Dimension, Position } from '../canvas/canvas.types';
+import { Dimension } from '../canvas/canvas.types';
 
 @Component({
     selector: 'canvas-navigation-control',

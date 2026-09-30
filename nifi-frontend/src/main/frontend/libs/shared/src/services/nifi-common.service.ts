@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { BulletinEntity, ComponentType, SelectOption } from '../types';
+import { BulletinEntity, ComponentType, ReadableBulletinEntity, SelectOption } from '../types';
 
 @Injectable({
     providedIn: 'root'
@@ -781,14 +781,17 @@ export class NiFiCommon {
      * Determines the most severe bulletin from a list of bulletins.
      * Severity order: ERROR > WARNING > INFO > DEBUG > TRACE
      */
-    public getMostSevereBulletin(bulletins: BulletinEntity[]): BulletinEntity | null {
-        if (bulletins && bulletins.length > 0) {
-            const mostSevere = bulletins.reduce((previous, current) => {
+    public getMostSevereBulletin(bulletins: BulletinEntity[]): ReadableBulletinEntity | null {
+        if (!bulletins?.length) {
+            return null;
+        }
+        const readableBulletins = bulletins.filter(
+            (bulletin): bulletin is ReadableBulletinEntity => bulletin.bulletin !== undefined
+        );
+        if (readableBulletins.length > 0) {
+            return readableBulletins.reduce((previous, current) => {
                 return this.getHigherSeverityBulletinLevel(previous, current);
             });
-            if (mostSevere.bulletin) {
-                return mostSevere;
-            }
         }
         return null;
     }
@@ -797,7 +800,10 @@ export class NiFiCommon {
      * Helper method to determine which bulletin has higher severity.
      * Uses numeric mapping for severity comparison.
      */
-    private getHigherSeverityBulletinLevel(left: BulletinEntity, right: BulletinEntity): BulletinEntity {
+    private getHigherSeverityBulletinLevel(
+        left: ReadableBulletinEntity,
+        right: ReadableBulletinEntity
+    ): ReadableBulletinEntity {
         const bulletinSeverityMap: { [key: string]: number } = {
             TRACE: 0,
             DEBUG: 1,
@@ -805,14 +811,8 @@ export class NiFiCommon {
             WARNING: 3,
             ERROR: 4
         };
-        let mappedLeft = 0;
-        let mappedRight = 0;
-        if (left.bulletin) {
-            mappedLeft = bulletinSeverityMap[left.bulletin.level.toUpperCase()] || 0;
-        }
-        if (right.bulletin) {
-            mappedRight = bulletinSeverityMap[right.bulletin.level.toUpperCase()] || 0;
-        }
+        const mappedLeft = bulletinSeverityMap[left.bulletin.level.toUpperCase()] || 0;
+        const mappedRight = bulletinSeverityMap[right.bulletin.level.toUpperCase()] || 0;
 
         return mappedLeft >= mappedRight ? left : right;
     }

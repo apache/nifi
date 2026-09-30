@@ -17,7 +17,7 @@
 
 import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
 import { CanvasState } from '../../state';
-import { Position } from '../../state/shared';
+import { Position } from '@nifi/shared';
 import { Store } from '@ngrx/store';
 import {
     centerSelectedComponents,

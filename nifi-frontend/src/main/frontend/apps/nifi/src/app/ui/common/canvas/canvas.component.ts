@@ -43,7 +43,8 @@ import {
     isScaleInBound,
     MAX_ABS_COORD,
     MAX_ABS_TRANSLATE,
-    NiFiCommon
+    NiFiCommon,
+    Position
 } from '@nifi/shared';
 import { DocumentedType, RegistryClientEntity } from '../../../state/shared';
 import { NiFiState } from '../../../state';
@@ -56,7 +57,6 @@ import {
     CanvasProcessGroup,
     CanvasConnection,
     CanvasComponent as CanvasComponentType,
-    Position,
     Dimension,
     ContextMenuContext
 } from './canvas.types';

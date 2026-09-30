@@ -19,7 +19,7 @@ import * as d3 from 'd3';
 import { TextEllipsisUtils } from '../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../canvas-format-utils.service';
 import { CanvasComponentUtils } from '../canvas-component-utils.service';
-import { NiFiCommon } from '@nifi/shared';
+import { NiFiCommon, Position } from '@nifi/shared';
 import { DocumentedType, RegistryClientEntity } from '../../../../state/shared';
 import {
     CanvasLabel,
@@ -28,8 +28,7 @@ import {
     CanvasPort,
     CanvasRemoteProcessGroup,
     CanvasProcessGroup,
-    CanvasConnection,
-    Position
+    CanvasConnection
 } from '../canvas.types';
 
 export interface BaseRenderContext {

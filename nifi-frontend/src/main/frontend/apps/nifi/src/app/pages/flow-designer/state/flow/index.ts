@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Position } from '../shared';
+import { Position } from '@nifi/shared';
 import {
     BacklogRequestEntity,
     BreadcrumbEntity,

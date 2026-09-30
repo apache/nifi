@@ -16,7 +16,8 @@
  */
 
 import * as d3 from 'd3';
-import { CanvasConnection, Position } from '../../canvas.types';
+import { Position } from '@nifi/shared';
+import { CanvasConnection } from '../../canvas.types';
 import { ConnectionRenderContext } from '../render-context.types';
 import { CanvasConstants } from '../../canvas.constants';
 import { UnorderedListTip } from '../../../tooltips/unordered-list-tip/unordered-list-tip.component';

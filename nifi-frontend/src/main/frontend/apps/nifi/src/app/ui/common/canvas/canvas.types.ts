@@ -15,12 +15,7 @@
  * limitations under the License.
  */
 
-import { ComponentType } from '@nifi/shared';
-
-export interface Position {
-    x: number;
-    y: number;
-}
+import { ComponentType, Position } from '@nifi/shared';
 
 export interface Dimension {
     width: number;

@@ -22,7 +22,7 @@ import { HttpClient } from '@angular/common/http';
 import { Dimensions, PasteRequest, PasteRequestContext, PasteRequestEntity } from '../state/flow';
 import { Observable } from 'rxjs';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
-import { Position } from '../state/shared';
+import { Position } from '@nifi/shared';
 import { CanvasView } from './canvas-view.service';
 import { CopyRequestContext, CopyResponseEntity, PasteRequestStrategy } from '../../../state/copy';
 import { Store } from '@ngrx/store';

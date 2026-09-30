@@ -15,11 +15,13 @@
  * limitations under the License.
  */
 
-import { Position } from '@nifi/shared';
+import { PositionableComponentDTO, PositionableComponentEntityBase } from './component-entity';
 
-export const transformFeatureKey = 'transform';
+/**
+ * @nifi-source: nifi-framework-bundle/nifi-framework/nifi-client-dto/src/main/java/org/apache/nifi/web/api/entity/FunnelEntity.java
+ * @nifi-revision: eefa952edddc (2026-09-29)
+ * @vetted: 2026-09-29
+ */
+export type FunnelEntity = PositionableComponentEntityBase<FunnelDTO>;
 
-export interface CanvasTransform {
-    translate: Position;
-    scale: number;
-}
+export type FunnelDTO = PositionableComponentDTO;

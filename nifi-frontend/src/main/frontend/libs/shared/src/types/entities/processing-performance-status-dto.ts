@@ -15,11 +15,16 @@
  * limitations under the License.
  */
 
-import { Position } from '@nifi/shared';
-
-export const transformFeatureKey = 'transform';
-
-export interface CanvasTransform {
-    translate: Position;
-    scale: number;
+/**
+ * @nifi-source: nifi-framework-bundle/nifi-framework/nifi-client-dto/src/main/java/org/apache/nifi/web/api/dto/status/ProcessingPerformanceStatusDTO.java
+ * @nifi-revision: eefa952edddc (2026-09-29)
+ * @vetted: 2026-09-29
+ */
+export interface ProcessingPerformanceStatusDTO {
+    identifier: string;
+    cpuDuration: number;
+    contentReadDuration: number;
+    contentWriteDuration: number;
+    sessionCommitDuration: number;
+    garbageCollectionDuration: number;
 }
