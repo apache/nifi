@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, OnInit, Output, Signal, inject } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, inject, Input, OnInit, Output, Signal } from '@angular/core';
 import {
     MAT_DIALOG_DATA,
     MatDialogActions,
@@ -27,22 +27,28 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { MatButton } from '@angular/material/button';
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatOption, MatSelect } from '@angular/material/select';
-import { Observable, of, take } from 'rxjs';
+import { catchError, EMPTY, map, Observable, of, Subject, switchMap, take } from 'rxjs';
 import { BranchEntity, BucketEntity, RegistryClientEntity } from '../../../../../../../state/shared';
 import { SaveVersionDialogRequest, SaveVersionRequest } from '../../../../../state/flow';
 import { VersionControlInformation } from '../../../../../../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 import {
-    TextTip,
+    CloseOnEscapeDialog,
     NiFiCommon,
     NifiSpinnerDirective,
     NifiTooltipDirective,
-    CloseOnEscapeDialog,
-    SelectOption
+    SelectOption,
+    TextTip
 } from '@nifi/shared';
 
 import { MatInput } from '@angular/material/input';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+interface LoadBucketsRequest {
+    registryId: string;
+    branch: string | null;
+}
 
 @Component({
     selector: 'save-version-dialog',
@@ -70,6 +76,7 @@ export class SaveVersionDialog extends CloseOnEscapeDialog implements OnInit {
     private dialogRequest = inject<SaveVersionDialogRequest>(MAT_DIALOG_DATA);
     private formBuilder = inject(FormBuilder);
     private nifiCommon = inject(NiFiCommon);
+    private destroyRef = inject(DestroyRef);
 
     @Input() getBranches: (registryId: string) => Observable<BranchEntity[]> = () => of([]);
     @Input() getBuckets: (registryId: string, branch?: string | null) => Observable<BucketEntity[]> = () => of([]);
@@ -86,6 +93,9 @@ export class SaveVersionDialog extends CloseOnEscapeDialog implements OnInit {
     supportsBranching = false;
 
     private clientBranchingSupportMap: Map<string, boolean> = new Map<string, boolean>();
+
+    private loadBranchesRequest = new Subject<string | null>();
+    private loadBucketsRequest = new Subject<LoadBucketsRequest | null>();
 
     constructor() {
         super();
@@ -123,6 +133,8 @@ export class SaveVersionDialog extends CloseOnEscapeDialog implements OnInit {
                 flowDescription: new FormControl(null),
                 comments: new FormControl(null)
             });
+
+            this.wireRegistryResourceRequests();
         } else {
             this.saveVersionForm = formBuilder.group({
                 comments: new FormControl('')
@@ -135,89 +147,107 @@ export class SaveVersionDialog extends CloseOnEscapeDialog implements OnInit {
             const selectedRegistryId: string | null = this.saveVersionForm.get('registry')?.value;
 
             if (selectedRegistryId) {
-                this.supportsBranching = this.clientBranchingSupportMap.get(selectedRegistryId) || false;
-                if (this.supportsBranching) {
-                    this.loadBranches(selectedRegistryId);
-                } else {
-                    this.loadBuckets(selectedRegistryId);
-                }
+                this.registrySelected(selectedRegistryId);
             }
         }
+    }
+
+    private wireRegistryResourceRequests(): void {
+        this.loadBranchesRequest
+            .pipe(
+                switchMap((registryId: string | null) => {
+                    if (!registryId) {
+                        return EMPTY;
+                    }
+                    this.branchOptions = [];
+                    return this.getBranches(registryId).pipe(
+                        take(1),
+                        map((branches: BranchEntity[]) => ({ registryId, branches })),
+                        catchError(() => EMPTY)
+                    );
+                }),
+                takeUntilDestroyed(this.destroyRef)
+            )
+            .subscribe(({ registryId, branches }) => {
+                branches.forEach((entity: BranchEntity) => {
+                    this.branchOptions.push({
+                        text: entity.branch.name,
+                        value: entity.branch.name
+                    });
+                });
+
+                const branch = this.branchOptions[0]?.value;
+                if (branch) {
+                    this.saveVersionForm.get('branch')?.setValue(branch);
+                    this.loadBucketsRequest.next({ registryId, branch });
+                }
+            });
+
+        this.loadBucketsRequest
+            .pipe(
+                switchMap((request: LoadBucketsRequest | null) => {
+                    if (!request) {
+                        return EMPTY;
+                    }
+                    this.bucketOptions = [];
+                    return this.getBuckets(request.registryId, request.branch).pipe(
+                        take(1),
+                        catchError(() => EMPTY)
+                    );
+                }),
+                takeUntilDestroyed(this.destroyRef)
+            )
+            .subscribe((buckets: BucketEntity[]) => {
+                buckets.forEach((entity: BucketEntity) => {
+                    // only allow buckets to be selectable if the user can read and write to them
+                    if (entity.permissions.canRead && entity.permissions.canWrite) {
+                        this.bucketOptions.push({
+                            text: entity.bucket.name,
+                            value: entity.id,
+                            description: entity.bucket.description
+                        });
+                    }
+                });
+
+                const bucketId = this.bucketOptions[0]?.value;
+                if (bucketId) {
+                    this.saveVersionForm.get('bucket')?.setValue(bucketId);
+                }
+            });
     }
 
     private clearBranches(): void {
         this.branchOptions = [];
         this.saveVersionForm.get('branch')?.setValue(null);
+        this.loadBranchesRequest.next(null);
         this.clearBuckets();
-    }
-
-    loadBranches(registryId: string): void {
-        this.clearBranches();
-
-        this.getBranches(registryId)
-            .pipe(take(1))
-            .subscribe((branches: BranchEntity[]) => {
-                if (branches.length > 0) {
-                    branches.forEach((entity: BranchEntity) => {
-                        this.branchOptions.push({
-                            text: entity.branch.name,
-                            value: entity.branch.name
-                        });
-                    });
-
-                    const branchId = this.branchOptions[0].value;
-                    if (branchId) {
-                        this.saveVersionForm.get('branch')?.setValue(branchId);
-                        this.loadBuckets(registryId, branchId);
-                    }
-                }
-            });
     }
 
     private clearBuckets(): void {
         this.bucketOptions = [];
         this.saveVersionForm.get('bucket')?.setValue(null);
-    }
-
-    loadBuckets(registryId: string, branch?: string | null): void {
-        this.clearBuckets();
-
-        this.getBuckets(registryId, branch)
-            .pipe(take(1))
-            .subscribe((buckets: BucketEntity[]) => {
-                if (buckets.length > 0) {
-                    buckets.forEach((entity: BucketEntity) => {
-                        // only allow buckets to be selectable if the user can read and write to them
-                        if (entity.permissions.canRead && entity.permissions.canWrite) {
-                            this.bucketOptions.push({
-                                text: entity.bucket.name,
-                                value: entity.id,
-                                description: entity.bucket.description
-                            });
-                        }
-                    });
-
-                    const bucketId = this.bucketOptions[0].value;
-                    if (bucketId) {
-                        this.saveVersionForm.get('bucket')?.setValue(bucketId);
-                    }
-                }
-            });
+        this.loadBucketsRequest.next(null);
     }
 
     registryChanged(registryId: string): void {
+        this.registrySelected(registryId);
+    }
+
+    private registrySelected(registryId: string): void {
         this.supportsBranching = this.clientBranchingSupportMap.get(registryId) || false;
+        this.clearBranches();
         if (this.supportsBranching) {
-            this.loadBranches(registryId);
+            this.loadBranchesRequest.next(registryId);
         } else {
-            this.loadBuckets(registryId);
+            this.loadBucketsRequest.next({ registryId, branch: null });
         }
     }
 
     branchChanged(branch: string): void {
         const selectedRegistryId: string | null = this.saveVersionForm.get('registry')?.value;
         if (selectedRegistryId) {
-            this.loadBuckets(selectedRegistryId, branch);
+            this.clearBuckets();
+            this.loadBucketsRequest.next({ registryId: selectedRegistryId, branch });
         }
     }
 
