@@ -32,7 +32,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Tags({"git", "gitlab", "registry", "flow"})
-@CapabilityDescription("Flow Registry Client that uses the GitLab REST API to version control flows in a GitLab Project.")
+@CapabilityDescription("Flow Registry Client that uses the GitLab REST API to version control flows in a GitLab Project. "
+        + "Note that for a given flow, the registry client will retrieve at most the last 10 commits to limit API calls.")
 public class GitLabFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     static final PropertyDescriptor GITLAB_API_URL = new PropertyDescriptor.Builder()
