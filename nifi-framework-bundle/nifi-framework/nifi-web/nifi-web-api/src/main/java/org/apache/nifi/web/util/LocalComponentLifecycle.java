@@ -27,10 +27,10 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
-import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
@@ -47,7 +47,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -136,24 +135,15 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
             continuePolling = pause.pause();
         }
 
-        logger.warn("Removed connection drain queue wait ended with remaining queues {}", queuedFlowFilesByConnection);
         return false;
     }
 
     private Integer getQueuedFlowFiles(final String connectionId) {
-        final String requestId = UUID.randomUUID().toString();
-        try {
-            final ListingRequestDTO listingRequest = serviceFacade.createFlowFileListingRequest(connectionId, requestId);
-            final Integer queuedFlowFiles = listingRequest == null || listingRequest.getQueueSize() == null
-                    ? null : listingRequest.getQueueSize().getObjectCount();
-            logger.debug("Removed connection drain queue poll [connectionId={}, queuedFlowFiles={}]", connectionId, queuedFlowFiles);
-            return queuedFlowFiles;
-        } finally {
-            try {
-                serviceFacade.deleteFlowFileListingRequest(connectionId, requestId);
-            } catch (final Exception ignored) {
-            }
-        }
+        final ConnectionEntity connectionEntity = serviceFacade.getConnection(connectionId);
+        final Integer queuedFlowFiles = connectionEntity == null || connectionEntity.getStatus() == null || connectionEntity.getStatus().getAggregateSnapshot() == null
+                ? null : connectionEntity.getStatus().getAggregateSnapshot().getFlowFilesQueued();
+        logger.debug("Removed connection drain queue poll [connectionId={}, queuedFlowFiles={}]", connectionId, queuedFlowFiles);
+        return queuedFlowFiles;
     }
 
     private void startComponents(final String processGroupId, final Map<String, Revision> componentRevisions, final Map<String, AffectedComponentEntity> affectedComponents, final Pause pause,

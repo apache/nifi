@@ -46,12 +46,15 @@ public class StandardAsynchronousWebRequestTest {
     @Test
     public void testCancelInvokesCancelCallback() {
         final StandardAsynchronousWebRequest<String, String> request = createRequest();
-        final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
-        request.setCancelCallback(() -> callbackInvoked.set(true));
+        final AtomicBoolean firstCallbackInvoked = new AtomicBoolean(false);
+        final AtomicBoolean secondCallbackInvoked = new AtomicBoolean(false);
+        request.setCancelCallback(() -> firstCallbackInvoked.set(true));
+        request.setCancelCallback(() -> secondCallbackInvoked.set(true));
 
         request.cancel();
 
-        assertTrue(callbackInvoked.get());
+        assertFalse(firstCallbackInvoked.get());
+        assertTrue(secondCallbackInvoked.get());
         assertEquals("Request cancelled by user", request.getFailureReason());
     }
 

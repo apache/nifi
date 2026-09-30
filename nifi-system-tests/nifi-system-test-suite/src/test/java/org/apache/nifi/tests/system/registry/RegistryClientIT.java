@@ -22,6 +22,7 @@ import org.apache.nifi.tests.system.NiFiClientUtil;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
+import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
@@ -56,12 +57,43 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RegistryClientIT extends NiFiSystemIT {
     public static final String TEST_FLOWS_BUCKET = "test-flows";
 
     public static final String FIRST_FLOW_ID = "first-flow";
+
+    private static final String SOURCE_DATA_DENIED_TEST = "testChangeVersionDrainsWithoutReadSourceData()";
+
+    @Override
+    protected Map<String, String> getNifiPropertiesOverrides() {
+        return SOURCE_DATA_DENIED_TEST.equals(getTestName())
+                ? Map.of("nifi.security.user.authorizer", "source-data-denied-authorizer") : Map.of();
+    }
+
+    @Test
+    public void testChangeVersionDrainsWithoutReadSourceData() throws Exception {
+        final Path gateFile = Path.of(System.getProperty("java.io.tmpdir"), "nifi-denied-source-data-drain-" + System.nanoTime());
+        final RemovedConnectionFixture fixture = createRemovedConnectionFixture(gateFile, false, true);
+        final NiFiClientException denial = assertThrows(NiFiClientException.class,
+                () -> getNifiClient().getConnectionClient().listQueue(fixture.connectionId()));
+        assertTrue(denial.getMessage().contains("Read Source Data is not granted"));
+        getNifiClient().getConnectionClient().getConnection(fixture.connectionId());
+
+        final VersionedFlowUpdateRequestEntity initiated = getClientUtil().initiateFlowVersionChange(fixture.groupId(), "2");
+        final String requestId = initiated.getRequest().getRequestId();
+        waitFor(() -> "Draining Removed Connections".equals(getNifiClient().getVersionsClient().getUpdateRequest(requestId).getRequest().getState()));
+        assertDrainStateOnEachNode(fixture);
+        Files.createFile(gateFile);
+
+        final VersionedFlowUpdateRequestEntity completed = getClientUtil().waitForVersionFlowUpdateComplete(requestId, true);
+        assertNull(completed.getRequest().getFailureReason());
+        assertEquals("2", completed.getRequest().getVersionControlInformation().getVersion());
+        assertTrue(getConnections(fixture.groupId()).stream().noneMatch(connection -> fixture.connectionId().equals(connection.getId())));
+        Files.deleteIfExists(gateFile);
+    }
 
     @Test
     public void testChangeVersionDrainsRemovedConnectionBeforeUpdate() throws Exception {
@@ -80,6 +112,7 @@ public class RegistryClientIT extends NiFiSystemIT {
                     .toList();
             assertEquals(List.of(0, 1), queuedByNode);
         }
+        assertDrainStateOnEachNode(fixture);
         assertEquals("1", getNifiClient().getProcessGroupClient().getProcessGroup(fixture.groupId())
                 .getComponent().getVersionControlInformation().getVersion());
 
@@ -904,10 +937,9 @@ public class RegistryClientIT extends NiFiSystemIT {
             util.updateProcessorExecutionNode(generate, ExecutionNode.PRIMARY);
         }
 
-        final ProcessorEntity gated = util.createProcessor("GatedPassThrough", group.getId());
+        final ProcessorEntity gated = renameProcessor(util.createProcessor("TerminateFlowFile", group.getId()), "Gated TerminateFlowFile");
         util.updateProcessorProperties(gated, Map.of("Gate File", gateFile.toString()));
-        util.setAutoTerminatedRelationships(gated, "success");
-        final ProcessorEntity terminate = util.createProcessor("TerminateFlowFile", group.getId());
+        final ProcessorEntity terminate = renameProcessor(util.createProcessor("TerminateFlowFile", group.getId()), "Version 2 TerminateFlowFile");
         final ConnectionEntity removedConnection = util.createConnection(generate, gated, "success");
 
         final VersionControlInformationEntity v1 = util.startVersionControl(group, clientEntity, TEST_FLOWS_BUCKET, "removed-connection-" + System.nanoTime());
@@ -920,7 +952,7 @@ public class RegistryClientIT extends NiFiSystemIT {
         util.changeFlowVersion(group.getId(), "1");
         final ConnectionEntity restoredConnection = getConnections(group.getId()).stream()
                 .filter(connection -> "GenerateFlowFile".equals(connection.getComponent().getSource().getName()))
-                .filter(connection -> "GatedPassThrough".equals(connection.getComponent().getDestination().getName()))
+                .filter(connection -> "Gated TerminateFlowFile".equals(connection.getComponent().getDestination().getName()))
                 .findFirst()
                 .orElseThrow();
         final String restoredConnectionId = restoredConnection.getId();
@@ -936,6 +968,48 @@ public class RegistryClientIT extends NiFiSystemIT {
         }
 
         return new RemovedConnectionFixture(group.getId(), restoredSourceId, restoredDestinationId, restoredConnectionId);
+    }
+
+    private void assertDrainStateOnEachNode(final RemovedConnectionFixture fixture) throws Exception {
+        if (getNumberOfNodes() == 1) {
+            waitFor(() -> hasExpectedDrainState(fixture), 100L, "standalone producer stopped while destination remains running");
+            return;
+        }
+
+        for (int nodeIndex = 1; nodeIndex <= getNumberOfNodes(); nodeIndex++) {
+            switchClientToNode(nodeIndex);
+            try {
+                waitFor(() -> hasExpectedDrainState(fixture), 100L,
+                        "node " + nodeIndex + " to stop " + fixture.sourceId() + " while keeping " + fixture.destinationId() + " running");
+
+                final ProcessorEntity source = getNifiClient().getProcessorClient(DO_NOT_REPLICATE).getProcessor(fixture.sourceId());
+                final ProcessorEntity destination = getNifiClient().getProcessorClient(DO_NOT_REPLICATE).getProcessor(fixture.destinationId());
+                assertEquals("STOPPED", source.getComponent().getState());
+                assertEquals("RUNNING", destination.getComponent().getState());
+            } finally {
+                switchClientToNode(1);
+            }
+        }
+    }
+
+    private boolean hasExpectedDrainState(final RemovedConnectionFixture fixture) throws NiFiClientException, IOException {
+        final ProcessorEntity source = getNifiClient().getProcessorClient(DO_NOT_REPLICATE).getProcessor(fixture.sourceId());
+        final ProcessorEntity destination = getNifiClient().getProcessorClient(DO_NOT_REPLICATE).getProcessor(fixture.destinationId());
+        return "STOPPED".equals(source.getComponent().getState()) && "RUNNING".equals(destination.getComponent().getState());
+    }
+
+    private ProcessorEntity renameProcessor(final ProcessorEntity currentEntity, final String name) throws NiFiClientException, IOException {
+        final ProcessorDTO processor = new ProcessorDTO();
+        processor.setId(currentEntity.getId());
+        processor.setName(name);
+        processor.setConfig(new ProcessorConfigDTO());
+
+        final ProcessorEntity updatedEntity = new ProcessorEntity();
+        updatedEntity.setId(currentEntity.getId());
+        updatedEntity.setRevision(currentEntity.getRevision());
+        updatedEntity.setComponent(processor);
+        updatedEntity.setDisconnectedNodeAcknowledged(true);
+        return getNifiClient().getProcessorClient().updateProcessor(updatedEntity);
     }
 
     private Set<ConnectionEntity> getConnections(final String groupId) throws NiFiClientException, IOException {

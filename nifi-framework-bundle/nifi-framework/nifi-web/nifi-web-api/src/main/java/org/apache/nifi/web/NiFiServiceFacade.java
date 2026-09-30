@@ -2089,6 +2089,12 @@ public interface NiFiServiceFacade {
      */
     FlowUpdateImpact getFlowUpdateImpact(String processGroupId, RegisteredFlowSnapshot updatedSnapshot);
 
+    /**
+     * Returns a live view of connections, connectables, and Process Groups used to classify removed connections.
+     * Callers must read queue and component state again when needed; the view does not snapshot runtime state.
+     *
+     * @return the current flow context for removed-connection drain classification
+     */
     RemovedConnectionDrainClassifier.Context getRemovedConnectionDrainContext();
 
     /**
