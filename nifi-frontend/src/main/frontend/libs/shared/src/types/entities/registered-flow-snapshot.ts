@@ -312,7 +312,7 @@ export interface VersionedListenPortDefinition {
 
 export interface VersionedComponentState {
     clusterState?: Record<string, string>;
-    localNodeStates?: VersionedNodeState[];
+    localNodeStates?: Array<VersionedNodeState | null>;
 }
 
 export interface VersionedNodeState {

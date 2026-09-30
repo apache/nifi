@@ -50,7 +50,7 @@ import {
     ProcessorStatusSnapshotEntity
 } from './processor-entity';
 import { AllowableValueDTO, AllowableValueEntity, PropertyDescriptorDTO } from './property-descriptor-dto';
-import { VersionedProcessGroup } from './registered-flow-snapshot';
+import { VersionedComponentState, VersionedNodeState, VersionedProcessGroup } from './registered-flow-snapshot';
 import {
     RemoteProcessGroupDTO,
     RemoteProcessGroupEntity,
@@ -774,6 +774,10 @@ describe('canonical response entity contracts', () => {
     });
 
     it('preserves Java-vetted required response fields', () => {
+        const clusteredComponentState: VersionedComponentState = {
+            localNodeStates: [null, { state: { key: 'value' } }]
+        };
+
         expectTypeOf<LabelDTO['style']>().toEqualTypeOf<Record<string, string>>();
         expectTypeOf<LabelDTO['width']>().toEqualTypeOf<number>();
         expectTypeOf<LabelDTO['height']>().toEqualTypeOf<number>();
@@ -816,6 +820,14 @@ describe('canonical response entity contracts', () => {
         expectTypeOf<VersionedProcessGroup['statelessFlowFileContentInMemoryHeapPercentage']>().toEqualTypeOf<
             number | undefined
         >();
+        expectTypeOf<NonNullable<VersionedComponentState['localNodeStates']>>().toEqualTypeOf<
+            Array<VersionedNodeState | null>
+        >();
+        expectTypeOf(clusteredComponentState.localNodeStates).toEqualTypeOf<
+            Array<VersionedNodeState | null> | undefined
+        >();
+        expect(clusteredComponentState.localNodeStates?.[0]).toBeNull();
+        expect(clusteredComponentState.localNodeStates?.[1]?.state).toEqual({ key: 'value' });
         expectTypeOf<ProcessGroupEntity['processGroupUpdateStrategy']>().toEqualTypeOf<
             'DIRECT_CHILDREN' | 'ALL_DESCENDANTS' | undefined
         >();
