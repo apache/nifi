@@ -148,9 +148,12 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/test-versioned-flow-snapshot.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/test-versioned-flow-snapshot.json</inputExclude>
+                        <inputExclude>src/test/resources/keys/*.pem</inputExclude>
+                        <inputExclude>src/main/resources/banner.txt</inputExclude>
+                        <inputExclude>src/test/resources/banner.txt</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

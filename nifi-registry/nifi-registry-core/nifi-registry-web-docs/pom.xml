@@ -28,9 +28,9 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/main/webapp/js/jquery.min.js</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/main/webapp/js/jquery.min.js</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

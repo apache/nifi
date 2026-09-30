@@ -310,18 +310,18 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/conf/0bytes.xml</exclude>
-                        <exclude>src/test/resources/conf/termination-only.xml</exclude>
-                        <exclude>src/test/resources/hello.txt</exclude>
-                        <exclude>src/test/resources/bye.txt</exclude>
-                        <exclude>src/test/resources/old-swap-file.swap</exclude>
-                        <exclude>src/test/resources/xxe_template.xml</exclude>
-                        <exclude>src/test/resources/swap/444-old-swap-file.swap</exclude>
-                        <exclude>src/test/resources/colors.txt</exclude>
-                        <exclude>src/test/resources/TestRuntimeManifest/nifi-test-components-nar/META-INF/docs/steps/org.example.TestConnector/Another_Test_Step.md</exclude>
-                        <exclude>src/test/resources/TestRuntimeManifest/nifi-test-components-nar/META-INF/docs/steps/org.example.TestConnector/Test_Step.md</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/conf/0bytes.xml</inputExclude>
+                        <inputExclude>src/test/resources/conf/termination-only.xml</inputExclude>
+                        <inputExclude>src/test/resources/hello.txt</inputExclude>
+                        <inputExclude>src/test/resources/bye.txt</inputExclude>
+                        <inputExclude>src/test/resources/old-swap-file.swap</inputExclude>
+                        <inputExclude>src/test/resources/xxe_template.xml</inputExclude>
+                        <inputExclude>src/test/resources/swap/444-old-swap-file.swap</inputExclude>
+                        <inputExclude>src/test/resources/colors.txt</inputExclude>
+                        <inputExclude>src/test/resources/TestRuntimeManifest/nifi-test-components-nar/META-INF/docs/steps/org.example.TestConnector/Another_Test_Step.md</inputExclude>
+                        <inputExclude>src/test/resources/TestRuntimeManifest/nifi-test-components-nar/META-INF/docs/steps/org.example.TestConnector/Test_Step.md</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

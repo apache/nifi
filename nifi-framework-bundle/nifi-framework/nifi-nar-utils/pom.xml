@@ -45,12 +45,12 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/nars/nar-with-versioning/META-INF/MANIFEST.MF</exclude>
-                        <exclude>src/test/resources/nars/nar-without-versioning/META-INF/MANIFEST.MF</exclude>
-                        <exclude>src/test/resources/nars/nar-without-dependency/META-INF/MANIFEST.MF</exclude>
-                        <exclude>src/test/resources/nars/nar-requires-cloning/META-INF/MANIFEST.MF</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/nars/nar-with-versioning/META-INF/MANIFEST.MF</inputExclude>
+                        <inputExclude>src/test/resources/nars/nar-without-versioning/META-INF/MANIFEST.MF</inputExclude>
+                        <inputExclude>src/test/resources/nars/nar-without-dependency/META-INF/MANIFEST.MF</inputExclude>
+                        <inputExclude>src/test/resources/nars/nar-requires-cloning/META-INF/MANIFEST.MF</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
             <plugin>

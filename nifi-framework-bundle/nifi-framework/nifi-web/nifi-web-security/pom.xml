@@ -46,9 +46,9 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/saml/sso-circle-meta.xml</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/saml/sso-circle-meta.xml</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

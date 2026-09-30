@@ -73,40 +73,40 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/TestJoltTransformRecord/input.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/chainrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/chainrSpecWithSingleLineComment.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/customChainrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/chainrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/cardrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/cardrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/defaultrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/defaultrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/flattenSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/flattenedOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/shiftrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/shiftrSpecMultipleOutputRecords.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/sortrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/shiftrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/shiftrOutputMultipleOutputRecords.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/removrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/removrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/defaultrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/defaultrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/defaultrELSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/defaultrELOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/modifierDefaultSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/modifierDefaultOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/modifierDefineSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/modifierDefineOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/modifierOverwriteSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/modifierOverwriteOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/multipleChainrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/multipleChainrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/multipleToMultipleChainrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformRecord/multipleToMultipleChainrSpec.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/input.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/chainrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/chainrSpecWithSingleLineComment.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/customChainrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/chainrOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/cardrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/cardrOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/defaultrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/defaultrOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/flattenSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/flattenedOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/shiftrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/shiftrSpecMultipleOutputRecords.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/sortrOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/shiftrOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/shiftrOutputMultipleOutputRecords.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/removrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/removrOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/defaultrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/defaultrOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/defaultrELSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/defaultrELOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/modifierDefaultSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/modifierDefaultOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/modifierDefineSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/modifierDefineOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/modifierOverwriteSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/modifierOverwriteOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/multipleChainrOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/multipleChainrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/multipleToMultipleChainrOutput.json</inputExclude>
+                        <inputExclude>src/test/resources/TestJoltTransformRecord/multipleToMultipleChainrSpec.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

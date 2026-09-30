@@ -39,10 +39,10 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes>
-                        <exclude>**/resources/*-banner.txt</exclude>
-                        <exclude>README.md</exclude>
-                    </excludes>
+                    <inputExcludes>
+                        <inputExclude>**/resources/*-banner.txt</inputExclude>
+                        <inputExclude>README.md</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

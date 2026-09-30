@@ -102,10 +102,10 @@ limitations under the License.
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>**/expected.json</exclude>
-                        <exclude>**/config.application.json.*</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>**/expected.json</inputExclude>
+                        <inputExclude>**/config.application.json.*</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

@@ -102,12 +102,12 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/testAttributes.json</exclude>
-                        <exclude>src/test/resources/testComplexFlowFile.json</exclude>
-                        <exclude>src/test/resources/testFlowFileContent.json</exclude>
-                        <exclude>src/test/resources/testFlowFileList.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/testAttributes.json</inputExclude>
+                        <inputExclude>src/test/resources/testComplexFlowFile.json</inputExclude>
+                        <inputExclude>src/test/resources/testFlowFileContent.json</inputExclude>
+                        <inputExclude>src/test/resources/testFlowFileList.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

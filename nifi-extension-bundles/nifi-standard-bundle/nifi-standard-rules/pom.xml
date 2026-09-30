@@ -37,12 +37,12 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/RestrictBackpressureSettings/RestrictBackpressureSettings_noViolation.json</exclude>
-                        <exclude>src/test/resources/RestrictBackpressureSettings/RestrictBackpressureSettings.json</exclude>
-                        <exclude>src/test/resources/RestrictFlowFileExpiration/RestrictFlowFileExpiration_noViolation.json</exclude>
-                        <exclude>src/test/resources/RestrictFlowFileExpiration/RestrictFlowFileExpiration.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/RestrictBackpressureSettings/RestrictBackpressureSettings_noViolation.json</inputExclude>
+                        <inputExclude>src/test/resources/RestrictBackpressureSettings/RestrictBackpressureSettings.json</inputExclude>
+                        <inputExclude>src/test/resources/RestrictFlowFileExpiration/RestrictFlowFileExpiration_noViolation.json</inputExclude>
+                        <inputExclude>src/test/resources/RestrictFlowFileExpiration/RestrictFlowFileExpiration.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

@@ -51,10 +51,10 @@ language governing permissions and limitations under the License. -->
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/user.avsc</exclude>
-                        <exclude>src/test/resources/array.avsc</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/user.avsc</inputExclude>
+                        <inputExclude>src/test/resources/array.avsc</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

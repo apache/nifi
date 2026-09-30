@@ -27,18 +27,18 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/excel/collegeScorecard.xlsx</exclude>
-                        <exclude>src/test/resources/excel/dataformatting.xlsx</exclude>
-                        <exclude>src/test/resources/excel/dataWithSharedFormula.xlsx</exclude>
-                        <exclude>src/test/resources/excel/dates.xlsx</exclude>
-                        <exclude>src/test/resources/excel/notExcel.txt</exclude>
-                        <exclude>src/test/resources/excel/numbers.xlsx</exclude>
-                        <exclude>src/test/resources/excel/olderFormat.xls</exclude>
-                        <exclude>src/test/resources/excel/sheetsWithEmptySheet.xlsx</exclude>
-                        <exclude>src/test/resources/excel/simpleDataFormatting.xlsx</exclude>
-                        <exclude>src/test/resources/excel/twoSheets.xlsx</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/excel/collegeScorecard.xlsx</inputExclude>
+                        <inputExclude>src/test/resources/excel/dataformatting.xlsx</inputExclude>
+                        <inputExclude>src/test/resources/excel/dataWithSharedFormula.xlsx</inputExclude>
+                        <inputExclude>src/test/resources/excel/dates.xlsx</inputExclude>
+                        <inputExclude>src/test/resources/excel/notExcel.txt</inputExclude>
+                        <inputExclude>src/test/resources/excel/numbers.xlsx</inputExclude>
+                        <inputExclude>src/test/resources/excel/olderFormat.xls</inputExclude>
+                        <inputExclude>src/test/resources/excel/sheetsWithEmptySheet.xlsx</inputExclude>
+                        <inputExclude>src/test/resources/excel/simpleDataFormatting.xlsx</inputExclude>
+                        <inputExclude>src/test/resources/excel/twoSheets.xlsx</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

@@ -123,10 +123,10 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <!-- MIT license confirmed.  Excluding due to parse error-->
-                        <exclude>src/main/asciidoc/asciidoc-mod.css</exclude>
-                    </excludes>
+                    <!-- MIT license confirmed.  Excluding due to parse error-->
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/main/asciidoc/asciidoc-mod.css</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
             <plugin>

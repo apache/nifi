@@ -104,12 +104,12 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/simple.avsc</exclude>
-                        <exclude>src/test/resources/test.csv</exclude>
-                        <exclude>src/test/resources/test.properties</exclude>
-                        <exclude>src/test/resources/test.xml</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/simple.avsc</inputExclude>
+                        <inputExclude>src/test/resources/test.csv</inputExclude>
+                        <inputExclude>src/test/resources/test.properties</inputExclude>
+                        <inputExclude>src/test/resources/test.xml</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

@@ -99,18 +99,18 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/simple.avsc</exclude>
-                        <exclude>src/test/resources/test.csv</exclude>
-                        <exclude>src/test/resources/test.properties</exclude>
-                        <exclude>src/test/resources/test.xml</exclude>
-                        <exclude>src/test/resources/neo4j/ssl/bolt/trusted/public.crt</exclude>
-                        <exclude>src/test/resources/neo4j/ssl/bolt/public.crt</exclude>
-                        <exclude>src/test/resources/neo4j/ssl/bolt/private.key</exclude>
-                        <exclude>src/test/resources/neo4j/ssl/https/trusted/public.crt</exclude>
-                        <exclude>src/test/resources/neo4j/ssl/https/public.crt</exclude>
-                        <exclude>src/test/resources/neo4j/ssl/https/private.key</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/simple.avsc</inputExclude>
+                        <inputExclude>src/test/resources/test.csv</inputExclude>
+                        <inputExclude>src/test/resources/test.properties</inputExclude>
+                        <inputExclude>src/test/resources/test.xml</inputExclude>
+                        <inputExclude>src/test/resources/neo4j/ssl/bolt/trusted/public.crt</inputExclude>
+                        <inputExclude>src/test/resources/neo4j/ssl/bolt/public.crt</inputExclude>
+                        <inputExclude>src/test/resources/neo4j/ssl/bolt/private.key</inputExclude>
+                        <inputExclude>src/test/resources/neo4j/ssl/https/trusted/public.crt</inputExclude>
+                        <inputExclude>src/test/resources/neo4j/ssl/https/public.crt</inputExclude>
+                        <inputExclude>src/test/resources/neo4j/ssl/https/private.key</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

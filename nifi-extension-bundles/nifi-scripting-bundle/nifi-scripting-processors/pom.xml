@@ -118,9 +118,9 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/xmlRecord.xml</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/xmlRecord.xml</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
             <plugin>

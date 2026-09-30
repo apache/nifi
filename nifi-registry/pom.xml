@@ -36,7 +36,7 @@
     </modules>
     <properties>
         <spring.boot.version>4.1.1</spring.boot.version>
-        <flyway.version>13.8.0</flyway.version>
+        <flyway.version>13.8.1</flyway.version>
         <flyway.tests.version>10.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
         <jgit.version>7.8.0.202609011348-r</jgit.version>
@@ -304,21 +304,21 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes>
-                        <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
-                        <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
-                        <exclude>DEPENDENCIES
-                        </exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
-                        <exclude>.github/PULL_REQUEST_TEMPLATE.md
-                        </exclude> <!-- PR Template for GitHub that does not have a mechanism of including comments -->
-                        <exclude>**/resources/banner.txt
-                        </exclude> <!-- Console banner text that does not have a mechanism of including comments -->
-                        <exclude>src/main/resources/swagger/security-definitions.json
-                        </exclude> <!-- A maven-swagger-plugin input file that does not have a mechanism of including comments -->
-			            <exclude>.travis-output-filters</exclude> <!-- grep patterns to exclude from travis output -->
-                        <exclude>src/test/resources/descriptors/*</exclude>
-                        <exclude>checkstyle.xml</exclude>
-                    </excludes>
+                    <inputExcludes>
+                        <inputExclude>nb-configuration.xml</inputExclude> <!-- courtesy excludes for netbeans users -->
+                        <inputExclude>nbactions.xml</inputExclude> <!-- courtesy excludes for netbeans users -->
+                        <inputExclude>DEPENDENCIES
+                        </inputExclude> <!-- auto generated file by apache's maven config while building sources.zip -->
+                        <inputExclude>.github/PULL_REQUEST_TEMPLATE.md
+                        </inputExclude> <!-- PR Template for GitHub that does not have a mechanism of including comments -->
+                        <inputExclude>**/resources/banner.txt
+                        </inputExclude> <!-- Console banner text that does not have a mechanism of including comments -->
+                        <inputExclude>src/main/resources/swagger/security-definitions.json
+                        </inputExclude> <!-- A maven-swagger-plugin input file that does not have a mechanism of including comments -->
+                        <inputExclude>.travis-output-filters</inputExclude> <!-- grep patterns to exclude from travis output -->
+                        <inputExclude>src/test/resources/descriptors/*</inputExclude>
+                        <inputExclude>checkstyle.xml</inputExclude>
+                    </inputExcludes>
                 </configuration>
                 <dependencies>
                     <!-- workaround for RAT-158 -->

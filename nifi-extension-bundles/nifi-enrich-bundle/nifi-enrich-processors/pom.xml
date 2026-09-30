@@ -120,12 +120,12 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/avro/record_schema.avsc</exclude>
-                        <exclude>src/test/resources/json/one_record.json</exclude>
-                        <exclude>src/test/resources/json/one_record_no_geo.json</exclude>
-                        <exclude>src/test/resources/json/two_records_for_split.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/avro/record_schema.avsc</inputExclude>
+                        <inputExclude>src/test/resources/json/one_record.json</inputExclude>
+                        <inputExclude>src/test/resources/json/one_record_no_geo.json</inputExclude>
+                        <inputExclude>src/test/resources/json/two_records_for_split.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

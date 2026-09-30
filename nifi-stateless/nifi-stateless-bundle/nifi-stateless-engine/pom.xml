@@ -139,9 +139,9 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/flow-snapshot.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/flow-snapshot.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

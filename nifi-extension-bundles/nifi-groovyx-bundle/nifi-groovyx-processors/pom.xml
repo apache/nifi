@@ -84,9 +84,9 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/groovy/test_sql_04_insert_and_json.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/groovy/test_sql_04_insert_and_json.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>
