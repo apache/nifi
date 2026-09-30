@@ -98,9 +98,9 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/dummy.conf</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/dummy.conf</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

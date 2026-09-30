@@ -190,9 +190,9 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/flows/GenerateFlowFile.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/flows/GenerateFlowFile.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

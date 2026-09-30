@@ -423,26 +423,26 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/main/frontend/coverage/**/*</exclude>
-                        <exclude>src/main/frontend/node_modules/**/*</exclude>
-                        <exclude>src/main/frontend/libs/shared/src/assets/fonts/**/*</exclude>
-                        <exclude>src/main/frontend/.editorconfig</exclude>
-                        <exclude>src/main/frontend/.build.env</exclude>
-                        <exclude>src/main/frontend/README.md</exclude>
-                        <exclude>src/main/frontend/DESIGN.md</exclude>
-                        <exclude>src/main/frontend/.prettierrc</exclude>
-                        <exclude>src/main/frontend/.prettierignore</exclude>
-                        <exclude>src/main/frontend/.npmrc</exclude>
-                        <exclude>src/main/frontend/.nvmrc</exclude>
-                        <exclude>src/main/frontend/.nxignore</exclude>
-                        <exclude>src/main/frontend/.tool-versions</exclude>
-                        <exclude>src/main/frontend/dist/**/*</exclude>
-                        <exclude>src/main/frontend/.angular/**/*</exclude>
-                        <exclude>src/main/frontend/.nx/**/*</exclude>
-                        <exclude>src/main/frontend/libs/shared/src/services/codemirror-nifi-language/nfel/nfel.grammar</exclude>
-                        <exclude>src/main/frontend/libs/shared/src/services/codemirror-nifi-language/nfel/README.md</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/main/frontend/coverage/**/*</inputExclude>
+                        <inputExclude>src/main/frontend/node_modules/**/*</inputExclude>
+                        <inputExclude>src/main/frontend/libs/shared/src/assets/fonts/**/*</inputExclude>
+                        <inputExclude>src/main/frontend/.editorconfig</inputExclude>
+                        <inputExclude>src/main/frontend/.build.env</inputExclude>
+                        <inputExclude>src/main/frontend/README.md</inputExclude>
+                        <inputExclude>src/main/frontend/DESIGN.md</inputExclude>
+                        <inputExclude>src/main/frontend/.prettierrc</inputExclude>
+                        <inputExclude>src/main/frontend/.prettierignore</inputExclude>
+                        <inputExclude>src/main/frontend/.npmrc</inputExclude>
+                        <inputExclude>src/main/frontend/.nvmrc</inputExclude>
+                        <inputExclude>src/main/frontend/.nxignore</inputExclude>
+                        <inputExclude>src/main/frontend/.tool-versions</inputExclude>
+                        <inputExclude>src/main/frontend/dist/**/*</inputExclude>
+                        <inputExclude>src/main/frontend/.angular/**/*</inputExclude>
+                        <inputExclude>src/main/frontend/.nx/**/*</inputExclude>
+                        <inputExclude>src/main/frontend/libs/shared/src/services/codemirror-nifi-language/nfel/nfel.grammar</inputExclude>
+                        <inputExclude>src/main/frontend/libs/shared/src/services/codemirror-nifi-language/nfel/README.md</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

@@ -103,12 +103,12 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/main/resources/schema-metrics.avsc</exclude>
-                        <exclude>src/main/resources/schema-bulletins.avsc</exclude>
-                        <exclude>src/main/resources/schema-provenance.avsc</exclude>
-                        <exclude>src/main/resources/schema-status.avsc</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/main/resources/schema-metrics.avsc</inputExclude>
+                        <inputExclude>src/main/resources/schema-bulletins.avsc</inputExclude>
+                        <inputExclude>src/main/resources/schema-provenance.avsc</inputExclude>
+                        <inputExclude>src/main/resources/schema-status.avsc</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

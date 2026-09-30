@@ -115,14 +115,14 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/avro/user.avsc</exclude>
-                        <exclude>src/test/resources/avro/user-with-array.avsc</exclude>
-                        <exclude>src/test/resources/avro/user-with-nullable-array.avsc</exclude>
-                        <exclude>src/test/resources/avro/user-with-fixed-decimal.avsc</exclude>
-                        <exclude>src/test/resources/avro/all-minus-enum.avsc</exclude>
-                        <exclude>src/test/resources/avro/TestParquetReader.parquet</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/avro/user.avsc</inputExclude>
+                        <inputExclude>src/test/resources/avro/user-with-array.avsc</inputExclude>
+                        <inputExclude>src/test/resources/avro/user-with-nullable-array.avsc</inputExclude>
+                        <inputExclude>src/test/resources/avro/user-with-fixed-decimal.avsc</inputExclude>
+                        <inputExclude>src/test/resources/avro/all-minus-enum.avsc</inputExclude>
+                        <inputExclude>src/test/resources/avro/TestParquetReader.parquet</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

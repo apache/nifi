@@ -63,10 +63,10 @@ language governing permissions and limitations under the License. -->
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes>
-                        <!-- test data -->
-                        <exclude>src/test/resources/testdata/*</exclude>
-                    </excludes>
+                    <!-- test data -->
+                    <inputExcludes>
+                        <inputExclude>src/test/resources/testdata/*</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
             <plugin>

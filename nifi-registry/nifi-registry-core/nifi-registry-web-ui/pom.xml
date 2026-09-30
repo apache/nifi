@@ -274,17 +274,17 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>nbactions.xml</exclude>
-                        <exclude>src/main/package.json</exclude>
-                        <exclude>src/main/package-lock.json</exclude>
-                        <exclude>src/main/platform/core/README.md</exclude>
-                        <exclude>src/main/karma-test-shim.js</exclude>
-                        <exclude>src/main/node_modules/**/*</exclude>
-                        <exclude>src/main/**/*.min.*</exclude>
-                        <exclude>src/main/coverage/**/*</exclude>
-                        <exclude>src/main/.eslintignore</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>nbactions.xml</inputExclude>
+                        <inputExclude>src/main/package.json</inputExclude>
+                        <inputExclude>src/main/package-lock.json</inputExclude>
+                        <inputExclude>src/main/platform/core/README.md</inputExclude>
+                        <inputExclude>src/main/karma-test-shim.js</inputExclude>
+                        <inputExclude>src/main/node_modules/**/*</inputExclude>
+                        <inputExclude>src/main/**/*.min.*</inputExclude>
+                        <inputExclude>src/main/coverage/**/*</inputExclude>
+                        <inputExclude>src/main/.eslintignore</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

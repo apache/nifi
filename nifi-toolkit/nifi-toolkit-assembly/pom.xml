@@ -25,10 +25,10 @@ language governing permissions and limitations under the License. -->
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/main/resources/conf/config-client.json</exclude>
-                        <exclude>src/main/resources/conf/config-server.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/main/resources/conf/config-client.json</inputExclude>
+                        <inputExclude>src/main/resources/conf/config-server.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
             <plugin>

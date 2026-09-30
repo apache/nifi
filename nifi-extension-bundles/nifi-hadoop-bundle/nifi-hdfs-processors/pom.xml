@@ -130,16 +130,16 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/testdata/.dotfile</exclude>
-                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-mydir.json</exclude>
-                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRunWithPermissionsExceptionContent.json</exclude>
-                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-regDir.json</exclude>
-                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-dir1.json</exclude>
-                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-dir2.json</exclude>
-                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupAllToAttributes.json</exclude>
-                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-regDir2.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/testdata/.dotfile</inputExclude>
+                        <inputExclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-mydir.json</inputExclude>
+                        <inputExclude>src/test/resources/TestGetHDFSFileInfo/testRunWithPermissionsExceptionContent.json</inputExclude>
+                        <inputExclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-regDir.json</inputExclude>
+                        <inputExclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-dir1.json</inputExclude>
+                        <inputExclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-dir2.json</inputExclude>
+                        <inputExclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupAllToAttributes.json</inputExclude>
+                        <inputExclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-regDir2.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

@@ -137,16 +137,16 @@ language governing permissions and limitations under the License. -->
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/*.json</exclude>
-                        <exclude>src/test/resources/AbstractByQueryElasticsearchTest/*.json</exclude>
-                        <exclude>src/test/resources/AbstractJsonQueryElasticsearchTest/*.json</exclude>
-                        <exclude>src/test/resources/AbstractPaginatedJsonQueryElasticsearchTest/*.json</exclude>
-                        <exclude>src/test/resources/common/*.json</exclude>
-                        <exclude>src/test/resources/PutElasticsearchJsonTest/*.json</exclude>
-                        <exclude>src/test/resources/PutElasticsearchRecordTest/*.json</exclude>
-                        <exclude>src/test/resources/TestElasticsearchClientService/*.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/*.json</inputExclude>
+                        <inputExclude>src/test/resources/AbstractByQueryElasticsearchTest/*.json</inputExclude>
+                        <inputExclude>src/test/resources/AbstractJsonQueryElasticsearchTest/*.json</inputExclude>
+                        <inputExclude>src/test/resources/AbstractPaginatedJsonQueryElasticsearchTest/*.json</inputExclude>
+                        <inputExclude>src/test/resources/common/*.json</inputExclude>
+                        <inputExclude>src/test/resources/PutElasticsearchJsonTest/*.json</inputExclude>
+                        <inputExclude>src/test/resources/PutElasticsearchRecordTest/*.json</inputExclude>
+                        <inputExclude>src/test/resources/TestElasticsearchClientService/*.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

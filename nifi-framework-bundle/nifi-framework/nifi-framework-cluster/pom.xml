@@ -212,10 +212,10 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/org/apache/nifi/cluster/firewall/impl/empty.txt</exclude>
-                        <exclude>src/test/resources/org/apache/nifi/cluster/firewall/impl/ips.txt</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/org/apache/nifi/cluster/firewall/impl/empty.txt</inputExclude>
+                        <inputExclude>src/test/resources/org/apache/nifi/cluster/firewall/impl/ips.txt</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
             <plugin>

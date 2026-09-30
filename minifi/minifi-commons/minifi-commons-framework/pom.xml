@@ -86,10 +86,10 @@ limitations under the License.
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>**/org.mockito.plugins.MockMaker</exclude>
-                        <exclude>**/default_flow.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>**/org.mockito.plugins.MockMaker</inputExclude>
+                        <inputExclude>**/default_flow.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

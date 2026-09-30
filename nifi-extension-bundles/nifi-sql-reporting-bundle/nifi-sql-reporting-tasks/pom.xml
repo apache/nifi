@@ -94,10 +94,10 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/test_diagnostics.json</exclude>
-                        <exclude>src/test/resources/test_diagnostics.yml</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/test_diagnostics.json</inputExclude>
+                        <inputExclude>src/test/resources/test_diagnostics.yml</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

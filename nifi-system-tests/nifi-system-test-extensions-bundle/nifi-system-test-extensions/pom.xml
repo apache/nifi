@@ -68,10 +68,10 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <!-- Connector flow definition; JSON cannot carry an Apache license header -->
-                        <exclude>src/main/resources/flows/method-signature-verify-connector.json</exclude>
-                    </excludes>
+                    <!-- Connector flow definition; JSON cannot carry an Apache license header -->
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/main/resources/flows/method-signature-verify-connector.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

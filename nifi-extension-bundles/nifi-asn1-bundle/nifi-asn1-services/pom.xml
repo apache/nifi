@@ -121,28 +121,28 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes>
-                        <exclude>checkstyle-suppressions.xml</exclude>
-                        <exclude>src/test/resources/test.asn</exclude>
-                        <exclude>src/test/resources/example.asn</exclude>
-                        <exclude>src/test/resources/simple_types.asn</exclude>
-                        <exclude>src/test/resources/complex_types.asn</exclude>
-                        <exclude>src/test/resources/tbcd_string.asn</exclude>
-                        <exclude>src/test/resources/cant_parse.asn</exclude>
-                        <exclude>src/test/resources/cant_compile.asn</exclude>
-                        <exclude>src/test/resources/cant_compile_mac_windows.asn</exclude>
-                        <exclude>src/test/resources/examples/basic-types.dat</exclude>
-                        <exclude>src/test/resources/examples/composite.dat</exclude>
-                        <exclude>src/test/resources/examples/tbcd-string.dat</exclude>
-                        <exclude>src/test/resources/test_hugging_comment.asn</exclude>
-                        <exclude>src/test/resources/test_version_bracket.asn</exclude>
-                        <exclude>src/test/resources/test_constraints.asn</exclude>
-                        <exclude>src/test/resources/test_complex_for_preprocessing.asn</exclude>
-                        <exclude>src/test/resources/preprocessed_test_hugging_comment.asn</exclude>
-                        <exclude>src/test/resources/preprocessed_test_version_bracket.asn</exclude>
-                        <exclude>src/test/resources/preprocessed_test_constraints.asn</exclude>
-                        <exclude>src/test/resources/preprocessed_test_complex_for_preprocessing.asn</exclude>
-                    </excludes>
+                    <inputExcludes>
+                        <inputExclude>checkstyle-suppressions.xml</inputExclude>
+                        <inputExclude>src/test/resources/test.asn</inputExclude>
+                        <inputExclude>src/test/resources/example.asn</inputExclude>
+                        <inputExclude>src/test/resources/simple_types.asn</inputExclude>
+                        <inputExclude>src/test/resources/complex_types.asn</inputExclude>
+                        <inputExclude>src/test/resources/tbcd_string.asn</inputExclude>
+                        <inputExclude>src/test/resources/cant_parse.asn</inputExclude>
+                        <inputExclude>src/test/resources/cant_compile.asn</inputExclude>
+                        <inputExclude>src/test/resources/cant_compile_mac_windows.asn</inputExclude>
+                        <inputExclude>src/test/resources/examples/basic-types.dat</inputExclude>
+                        <inputExclude>src/test/resources/examples/composite.dat</inputExclude>
+                        <inputExclude>src/test/resources/examples/tbcd-string.dat</inputExclude>
+                        <inputExclude>src/test/resources/test_hugging_comment.asn</inputExclude>
+                        <inputExclude>src/test/resources/test_version_bracket.asn</inputExclude>
+                        <inputExclude>src/test/resources/test_constraints.asn</inputExclude>
+                        <inputExclude>src/test/resources/test_complex_for_preprocessing.asn</inputExclude>
+                        <inputExclude>src/test/resources/preprocessed_test_hugging_comment.asn</inputExclude>
+                        <inputExclude>src/test/resources/preprocessed_test_version_bracket.asn</inputExclude>
+                        <inputExclude>src/test/resources/preprocessed_test_constraints.asn</inputExclude>
+                        <inputExclude>src/test/resources/preprocessed_test_complex_for_preprocessing.asn</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
             <plugin>

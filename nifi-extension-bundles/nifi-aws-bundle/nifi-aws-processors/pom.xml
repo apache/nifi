@@ -325,14 +325,14 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/hello.txt</exclude>
-                        <exclude>src/test/resources/mock-aws-credentials.properties</exclude>
-                        <exclude>src/test/resources/dynamodb/multipleChunks.json</exclude>
-                        <exclude>src/test/resources/dynamodb/multipleInputs.json</exclude>
-                        <exclude>src/test/resources/dynamodb/nonRecordOriented.txt</exclude>
-                        <exclude>src/test/resources/dynamodb/singleInput.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/hello.txt</inputExclude>
+                        <inputExclude>src/test/resources/mock-aws-credentials.properties</inputExclude>
+                        <inputExclude>src/test/resources/dynamodb/multipleChunks.json</inputExclude>
+                        <inputExclude>src/test/resources/dynamodb/multipleInputs.json</inputExclude>
+                        <inputExclude>src/test/resources/dynamodb/nonRecordOriented.txt</inputExclude>
+                        <inputExclude>src/test/resources/dynamodb/singleInput.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

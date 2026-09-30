@@ -54,17 +54,17 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/TestTransformFactory/chainrSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformFactory/cardrSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformFactory/defaultrSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformFactory/shiftrSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformFactory/removrSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformFactory/defaultrSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformFactory/modifierDefaultSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformFactory/modifierDefineSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformFactory/modifierOverwriteSpec.json</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/TestTransformFactory/chainrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestTransformFactory/cardrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestTransformFactory/defaultrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestTransformFactory/shiftrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestTransformFactory/removrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestTransformFactory/defaultrSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestTransformFactory/modifierDefaultSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestTransformFactory/modifierDefineSpec.json</inputExclude>
+                        <inputExclude>src/test/resources/TestTransformFactory/modifierOverwriteSpec.json</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
             <plugin>

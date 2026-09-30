@@ -117,16 +117,16 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/flows/mismatched-flows/flow1.json.gz</exclude>
-                        <exclude>src/test/resources/flows/mismatched-flows/flow2.json.gz</exclude>
-                        <exclude>src/test/resources/flows/missing-connection/with-connection.json.gz</exclude>
-                        <exclude>src/test/resources/flows/missing-connection/without-connection.json.gz</exclude>
-                        <exclude>src/test/resources/keystore.jks</exclude>
-                        <exclude>src/test/resources/truststore.jks</exclude>
-                        <exclude>src/test/resources/sample-assets/helloworld.txt</exclude>
-                        <exclude>src/test/resources/sample-assets/helloworld2.txt</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/flows/mismatched-flows/flow1.json.gz</inputExclude>
+                        <inputExclude>src/test/resources/flows/mismatched-flows/flow2.json.gz</inputExclude>
+                        <inputExclude>src/test/resources/flows/missing-connection/with-connection.json.gz</inputExclude>
+                        <inputExclude>src/test/resources/flows/missing-connection/without-connection.json.gz</inputExclude>
+                        <inputExclude>src/test/resources/keystore.jks</inputExclude>
+                        <inputExclude>src/test/resources/truststore.jks</inputExclude>
+                        <inputExclude>src/test/resources/sample-assets/helloworld.txt</inputExclude>
+                        <inputExclude>src/test/resources/sample-assets/helloworld2.txt</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
         </plugins>

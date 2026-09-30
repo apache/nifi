@@ -180,24 +180,24 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/mockito-extensions/org.mockito.plugins.MockMaker</exclude>
-                        <exclude>src/test/resources/mock-gcp-service-account.json</exclude>
-                        <exclude>src/test/resources/mock-gcp-application-default-credentials.json</exclude>
-                        <exclude>src/test/resources/external-account-credentials.json</exclude>
-                        <exclude>src/test/resources/bigquery/avrodecimal.avsc</exclude>
-                        <exclude>src/test/resources/bigquery/avrodecimal.avro</exclude>
-                        <exclude>src/test/resources/bigquery/avrofloat.avsc</exclude>
-                        <exclude>src/test/resources/bigquery/avrofloat.avro</exclude>
-                        <exclude>src/test/resources/bigquery/avroint.avsc</exclude>
-                        <exclude>src/test/resources/bigquery/avroint.avro</exclude>
-                        <exclude>src/test/resources/bigquery/streaming-bad-data.json</exclude>
-                        <exclude>src/test/resources/bigquery/streaming-correct-data.json</exclude>
-                        <exclude>src/test/resources/bigquery/schema-correct-data-with-date.avsc</exclude>
-                        <exclude>src/test/resources/bigquery/streaming-correct-data-with-date.json</exclude>
-                        <exclude>src/test/resources/bigquery/streaming-correct-data-with-date-formatted.json</exclude>
-                        <exclude>src/test/resources/pubsub/records.avro</exclude>
-                    </excludes>
+                    <inputExcludes combine.children="append">
+                        <inputExclude>src/test/resources/mockito-extensions/org.mockito.plugins.MockMaker</inputExclude>
+                        <inputExclude>src/test/resources/mock-gcp-service-account.json</inputExclude>
+                        <inputExclude>src/test/resources/mock-gcp-application-default-credentials.json</inputExclude>
+                        <inputExclude>src/test/resources/external-account-credentials.json</inputExclude>
+                        <inputExclude>src/test/resources/bigquery/avrodecimal.avsc</inputExclude>
+                        <inputExclude>src/test/resources/bigquery/avrodecimal.avro</inputExclude>
+                        <inputExclude>src/test/resources/bigquery/avrofloat.avsc</inputExclude>
+                        <inputExclude>src/test/resources/bigquery/avrofloat.avro</inputExclude>
+                        <inputExclude>src/test/resources/bigquery/avroint.avsc</inputExclude>
+                        <inputExclude>src/test/resources/bigquery/avroint.avro</inputExclude>
+                        <inputExclude>src/test/resources/bigquery/streaming-bad-data.json</inputExclude>
+                        <inputExclude>src/test/resources/bigquery/streaming-correct-data.json</inputExclude>
+                        <inputExclude>src/test/resources/bigquery/schema-correct-data-with-date.avsc</inputExclude>
+                        <inputExclude>src/test/resources/bigquery/streaming-correct-data-with-date.json</inputExclude>
+                        <inputExclude>src/test/resources/bigquery/streaming-correct-data-with-date-formatted.json</inputExclude>
+                        <inputExclude>src/test/resources/pubsub/records.avro</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
             <plugin>

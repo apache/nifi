@@ -1102,13 +1102,12 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <consoleOutput>true</consoleOutput>
-                    <useIdeaDefaultExcludes>true</useIdeaDefaultExcludes>
-                    <excludes>
-                        <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
-                        <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
-                        <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
-                        <exclude>.cursor/rules/**</exclude>
-                    </excludes>
+                    <inputExcludes>
+                        <inputExclude>nb-configuration.xml</inputExclude> <!-- courtesy excludes for netbeans users -->
+                        <inputExclude>nbactions.xml</inputExclude> <!-- courtesy excludes for netbeans users -->
+                        <inputExclude>DEPENDENCIES</inputExclude> <!-- auto generated file by apache's maven config while building sources.zip -->
+                        <inputExclude>.cursor/rules/**</inputExclude>
+                    </inputExcludes>
                 </configuration>
             </plugin>
             <plugin>
