@@ -591,24 +591,24 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(componentScheduler, times(0)).startComponent(any(Connectable.class));
     }
 
+    /**
+     * Synchronization is used to load the flow on startup and when joining a cluster, so a Processor configured with a scheduling
+     * strategy that its implementation does not support must still be created and updated. Validation marks such a Processor invalid.
+     */
     @Test
-    void testSynchronizeRejectsUnresolvedAutomaticProcessorCreateBeforeMutation() {
-        final VersionedProcessor versionedProcessor = createUnsupportedAutomaticVersionedProcessor();
-
-        assertThrows(IllegalStateException.class, () -> synchronizer.synchronize(null, versionedProcessor, group, synchronizationOptions));
-        verify(componentScheduler, never()).pause();
-        verify(flowManager, never()).createProcessor(anyString(), anyString(), any(BundleCoordinate.class), anyBoolean());
-    }
-
-    @Test
-    void testSynchronizeRejectsUnsupportedAutomaticProcessorUpdateBeforeMutation() {
-        final VersionedProcessor versionedProcessor = createUnsupportedAutomaticVersionedProcessor();
+    void testSynchronizeAppliesAutoSchedulingToProcessorWithoutAutoScheduling() throws FlowSynchronizationException, TimeoutException, InterruptedException {
+        final VersionedProcessor versionedProcessor = createVersionedProcessorWithoutAutoScheduling();
         final BundleCoordinate coordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
-        when(extensionManager.getTempComponent(versionedProcessor.getType(), coordinate)).thenReturn(mock(UnsupportedAutomaticProcessor.class));
+        when(extensionManager.getTempComponent(versionedProcessor.getType(), coordinate)).thenReturn(mock(ProcessorWithoutAutoScheduling.class));
+        final ProcessorNode processorNode = createMockProcessor();
+        when(flowManager.createProcessor(any(), any(), any(), eq(true))).thenReturn(processorNode);
 
-        assertThrows(IllegalStateException.class, () -> synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions));
-        verify(componentScheduler, never()).pause();
-        verify(processorA, never()).setSchedulingStrategy(any(SchedulingStrategy.class));
+        synchronizer.synchronize(null, versionedProcessor, group, synchronizationOptions);
+        verify(flowManager).createProcessor(eq(versionedProcessor.getType()), anyString(), any(BundleCoordinate.class), eq(true));
+        verify(processorNode).setSchedulingStrategy(SchedulingStrategy.AUTO);
+
+        synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions);
+        verify(processorA).setSchedulingStrategy(SchedulingStrategy.AUTO);
     }
 
     @Test
@@ -2123,9 +2123,9 @@ public class StandardVersionedComponentSynchronizerTest {
         return versionedProcessor;
     }
 
-    private VersionedProcessor createUnsupportedAutomaticVersionedProcessor() {
+    private VersionedProcessor createVersionedProcessorWithoutAutoScheduling() {
         final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
-        versionedProcessor.setType(UnsupportedAutomaticProcessor.class.getName());
+        versionedProcessor.setType(ProcessorWithoutAutoScheduling.class.getName());
         versionedProcessor.setSchedulingStrategy(SchedulingStrategy.AUTO.name());
         return versionedProcessor;
     }
@@ -2222,7 +2222,7 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     @AllowsAutoScheduling(false)
-    private abstract static class UnsupportedAutomaticProcessor implements Processor {
+    private abstract static class ProcessorWithoutAutoScheduling implements Processor {
     }
 
     private record ControllerServiceStateUpdate(ControllerServiceNode controllerService, ControllerServiceState state) {
