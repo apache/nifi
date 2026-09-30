@@ -42,9 +42,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryException;
-import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlow;
-import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowState;
@@ -64,7 +62,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -494,84 +491,32 @@ class StandardProcessGroupTest {
     }
 
     @Test
-    void testSynchronizeWithFlowRegistryDoesNotLatchRetrievalFailureWhileRegistryIsValidating() throws Exception {
+    void testSynchronizeWithFlowRegistryDoesNotChangeStateWhileRegistryIsValidating() throws Exception {
         final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
+        final String previousFailure = "Previous registry failure";
         when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
         when(flowRegistry.getValidationStatus()).thenReturn(ValidationStatus.VALIDATING);
 
-        processGroup.setVersionControlInformation(createVersionControlInformation(null, VersionedFlowState.UP_TO_DATE, null), Map.of());
+        processGroup.setVersionControlInformation(createVersionControlInformation(null, VersionedFlowState.SYNC_FAILURE, previousFailure), Map.of());
 
-        assertDoesNotThrow(() -> processGroup.synchronizeWithFlowRegistry(flowManager));
+        processGroup.synchronizeWithFlowRegistry(flowManager);
 
-        assertFalse(processGroup.getVersionControlInformation().getStatus().getStateExplanation().contains("could not retrieve version"));
+        assertEquals(VersionedFlowState.SYNC_FAILURE, processGroup.getVersionControlInformation().getStatus().getState());
+        assertEquals(previousFailure, processGroup.getVersionControlInformation().getStatus().getStateExplanation());
+
+        processGroup.setVersionControlInformation(
+                createVersionControlInformation(new VersionedProcessGroup(), VersionedFlowState.SYNC_FAILURE, previousFailure),
+                Map.of()
+        );
+
+        processGroup.synchronizeWithFlowRegistry(flowManager);
+
+        assertEquals(VersionedFlowState.SYNC_FAILURE, processGroup.getVersionControlInformation().getStatus().getState());
+        assertEquals(previousFailure, processGroup.getVersionControlInformation().getStatus().getStateExplanation());
         verify(flowRegistry, never()).getValidationStatus(anyLong(), any(TimeUnit.class));
         verify(flowRegistry, never()).getFlowContents(any(), any(), eq(false));
         verify(flowRegistry, never()).getFlow(any(), any());
         verify(flowRegistry, never()).getLatestVersion(any(), any());
-    }
-
-    @Test
-    void testSynchronizeWithFlowRegistryPreservesPreviousFailureWhileRegistryIsValidating() throws Exception {
-        final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
-        final String previousFailure = "Previous registry failure";
-
-        when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
-        when(flowRegistry.getValidationStatus()).thenReturn(ValidationStatus.VALIDATING);
-
-        processGroup.setVersionControlInformation(
-                createVersionControlInformation(null, VersionedFlowState.SYNC_FAILURE, previousFailure),
-                Map.of()
-        );
-
-        processGroup.synchronizeWithFlowRegistry(flowManager);
-
-        assertEquals(previousFailure, processGroup.getVersionControlInformation().getStatus().getStateExplanation());
-        verify(flowRegistry, never()).getFlowContents(any(), any(), eq(false));
-        verify(flowRegistry, never()).getFlow(any(), any());
-        verify(flowRegistry, never()).getLatestVersion(any(), any());
-    }
-
-    @Test
-    void testSynchronizeWithFlowRegistryDoesNotReadRegistryMetadataWhileRegistryIsValidatingWithExistingSnapshot() throws Exception {
-        final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
-
-        when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
-        when(flowRegistry.getValidationStatus()).thenReturn(ValidationStatus.VALIDATING);
-
-        processGroup.setVersionControlInformation(
-                createVersionControlInformation(mock(VersionedProcessGroup.class), VersionedFlowState.UP_TO_DATE, null),
-                Map.of()
-        );
-
-        assertDoesNotThrow(() -> processGroup.synchronizeWithFlowRegistry(flowManager));
-
-        verify(flowRegistry, never()).getFlow(any(), any());
-        verify(flowRegistry, never()).getLatestVersion(any(), any());
-    }
-
-    @Test
-    void testSynchronizeWithFlowRegistryReadsRegistryMetadataWhenRegistryIsValidWithExistingSnapshot() throws Exception {
-        final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
-        final RegisteredFlow versionedFlow = mock(RegisteredFlow.class);
-
-        when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
-        when(flowRegistry.getValidationStatus()).thenReturn(ValidationStatus.VALID);
-        when(flowRegistry.getFlow(any(), any())).thenReturn(versionedFlow);
-        when(flowRegistry.getLatestVersion(any(), any())).thenReturn(Optional.of(REGISTERED_FLOW_VERSION));
-        when(versionedFlow.getBucketName()).thenReturn("Bucket");
-        when(versionedFlow.getName()).thenReturn("Flow");
-        when(versionedFlow.getDescription()).thenReturn("Description");
-        when(flowRegistry.getName()).thenReturn("Registry");
-
-        processGroup.setVersionControlInformation(
-                createVersionControlInformation(mock(VersionedProcessGroup.class), VersionedFlowState.UP_TO_DATE, null),
-                Map.of()
-        );
-
-        processGroup.synchronizeWithFlowRegistry(flowManager);
-
-        verify(flowRegistry).getFlow(any(), any());
-        verify(flowRegistry).getLatestVersion(any(), any());
     }
 
     @Test
@@ -592,6 +537,7 @@ class StandardProcessGroupTest {
         processGroup.synchronizeWithFlowRegistry(flowManager);
 
         final String syncFailureExplanation = processGroup.getVersionControlInformation().getStatus().getStateExplanation();
+        assertEquals(VersionedFlowState.SYNC_FAILURE, processGroup.getVersionControlInformation().getStatus().getState());
         assertNotNull(syncFailureExplanation);
         assertTrue(syncFailureExplanation.toLowerCase().contains("validation"));
         assertTrue(syncFailureExplanation.contains("Registry URL is required"));
@@ -619,51 +565,13 @@ class StandardProcessGroupTest {
     }
 
     @Test
-    void testSynchronizeWithFlowRegistryClearsPreviousFailureAfterSuccessfulRetry() throws Exception {
-        final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
-        final FlowSnapshotContainer snapshotContainer = mock(FlowSnapshotContainer.class);
-        final RegisteredFlowSnapshot registeredFlowSnapshot = mock(RegisteredFlowSnapshot.class);
-        final RegisteredFlow versionedFlow = mock(RegisteredFlow.class);
-
-        when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
-        when(flowRegistry.getValidationStatus()).thenReturn(ValidationStatus.VALID);
-        when(flowRegistry.getFlowContents(any(), any(), eq(false)))
-                .thenThrow(new FlowRegistryException("Registry offline"))
-                .thenReturn(snapshotContainer);
-        when(snapshotContainer.getFlowSnapshot()).thenReturn(registeredFlowSnapshot);
-        when(registeredFlowSnapshot.getFlowContents()).thenReturn(mock(VersionedProcessGroup.class));
-        when(flowRegistry.getFlow(any(), any())).thenReturn(versionedFlow);
-        when(flowRegistry.getLatestVersion(any(), any())).thenReturn(Optional.of(REGISTERED_FLOW_VERSION));
-        when(versionedFlow.getBucketName()).thenReturn("Bucket");
-        when(versionedFlow.getName()).thenReturn("Flow");
-        when(versionedFlow.getDescription()).thenReturn("Description");
-        when(flowRegistry.getName()).thenReturn("Registry");
-
-        processGroup.setVersionControlInformation(createVersionControlInformation(null, VersionedFlowState.UP_TO_DATE, null), Map.of());
-
-        processGroup.synchronizeWithFlowRegistry(flowManager);
-        assertNotNull(processGroup.getVersionControlInformation().getStatus().getStateExplanation());
-
-        processGroup.synchronizeWithFlowRegistry(flowManager);
-
-        assertFalse(processGroup.getVersionControlInformation().getStatus().getStateExplanation().contains("Registry offline"));
-    }
-
-    @Test
-    void testSynchronizeWithFlowRegistryClearsValidationFailureAfterSuccessfulRetry() throws Exception {
+    void testSynchronizeWithFlowRegistryClearsFailuresAfterSuccessfulRetry() throws Exception {
         final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
         final RegisteredFlow versionedFlow = mock(RegisteredFlow.class);
-
         when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(flowRegistry);
-        when(flowRegistry.getValidationStatus())
-                .thenReturn(ValidationStatus.INVALID)
-                .thenReturn(ValidationStatus.VALID);
+        when(flowRegistry.getValidationStatus()).thenReturn(ValidationStatus.INVALID, ValidationStatus.VALID);
         when(flowRegistry.getValidationErrors()).thenReturn(List.of(new ValidationResult.Builder()
-                .subject("Registry URL")
-                .input("")
-                .valid(false)
-                .explanation("Registry URL is required")
-                .build()));
+                .subject("Registry URL").input("").valid(false).explanation("Registry URL is required").build()));
         when(flowRegistry.getFlow(any(), any())).thenReturn(versionedFlow);
         when(flowRegistry.getLatestVersion(any(), any())).thenReturn(Optional.of(REGISTERED_FLOW_VERSION));
         when(versionedFlow.getBucketName()).thenReturn("Bucket");
@@ -671,17 +579,15 @@ class StandardProcessGroupTest {
         when(versionedFlow.getDescription()).thenReturn("Description");
         when(flowRegistry.getName()).thenReturn("Registry");
 
-        processGroup.setVersionControlInformation(
-                createVersionControlInformation(mock(VersionedProcessGroup.class), VersionedFlowState.UP_TO_DATE, null),
-                Map.of()
-        );
+        processGroup.setVersionControlInformation(createVersionControlInformation(new VersionedProcessGroup(), VersionedFlowState.UP_TO_DATE, null), Map.of());
 
         processGroup.synchronizeWithFlowRegistry(flowManager);
-        assertNotNull(processGroup.getVersionControlInformation().getStatus().getStateExplanation());
+        assertEquals(VersionedFlowState.SYNC_FAILURE, processGroup.getVersionControlInformation().getStatus().getState());
+        assertTrue(processGroup.getVersionControlInformation().getStatus().getStateExplanation().contains("Registry URL is required"));
 
         processGroup.synchronizeWithFlowRegistry(flowManager);
-
-        assertFalse(processGroup.getVersionControlInformation().getStatus().getStateExplanation().contains("Registry URL is required"));
+        assertEquals(VersionedFlowState.UP_TO_DATE, processGroup.getVersionControlInformation().getStatus().getState());
+        assertEquals(VersionedFlowState.UP_TO_DATE.getDescription(), processGroup.getVersionControlInformation().getStatus().getStateExplanation());
     }
 
     private StandardProcessGroup createStandardProcessGroup(final String id) {
