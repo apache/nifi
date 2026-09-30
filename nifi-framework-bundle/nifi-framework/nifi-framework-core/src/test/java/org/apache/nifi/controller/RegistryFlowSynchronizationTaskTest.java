@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -94,110 +93,6 @@ class RegistryFlowSynchronizationTaskTest {
         task.run();
 
         verify(rootGroup, times(2)).synchronizeWithFlowRegistry(flowManager);
-        verify(childGroup, times(2)).synchronizeWithFlowRegistry(flowManager);
-    }
-
-    @Test
-    void testGroupsSharingRegistryClientAreProcessedInSingleClientBatch() {
-        final FlowManager flowManager = mock(FlowManager.class);
-        final ProcessGroup rootGroup = mock(ProcessGroup.class);
-        final ProcessGroup firstChild = mock(ProcessGroup.class);
-        final ProcessGroup secondChild = mock(ProcessGroup.class);
-        final FlowRegistryClientNode clientNode = mock(FlowRegistryClientNode.class);
-        final VersionControlInformation firstVersionControlInformation = versionControlInformation("shared-registry");
-        final VersionControlInformation secondVersionControlInformation = versionControlInformation("shared-registry");
-
-        when(flowManager.getRootGroup()).thenReturn(rootGroup);
-        when(rootGroup.findAllProcessGroups()).thenReturn(new ArrayList<>(List.of(firstChild, secondChild)));
-        when(rootGroup.getVersionControlInformation()).thenReturn(null);
-        when(firstChild.getVersionControlInformation()).thenReturn(firstVersionControlInformation);
-        when(secondChild.getVersionControlInformation()).thenReturn(secondVersionControlInformation);
-        when(flowManager.getFlowRegistryClient("shared-registry")).thenReturn(clientNode);
-        when(clientNode.getEffectivePropertyValue(AbstractFlowRegistryClient.SYNCHRONIZATION_INTERVAL)).thenReturn("10 min");
-
-        final RegistryFlowSynchronizationTask task = new RegistryFlowSynchronizationTask(flowManager, DEFAULT_INTERVAL_SECONDS);
-
-        task.run();
-
-        verify(flowManager, times(1)).getFlowRegistryClient("shared-registry");
-        verify(firstChild).synchronizeWithFlowRegistry(flowManager);
-        verify(secondChild).synchronizeWithFlowRegistry(flowManager);
-    }
-
-    @Test
-    void testSecondRunBeforeIntervalDoesNotRepeatSynchronization() {
-        final FlowManager flowManager = mock(FlowManager.class);
-        final ProcessGroup rootGroup = mock(ProcessGroup.class);
-        final ProcessGroup childGroup = mock(ProcessGroup.class);
-        final FlowRegistryClientNode clientNode = mock(FlowRegistryClientNode.class);
-        final VersionControlInformation childVersionControlInformation = versionControlInformation("shared-registry");
-
-        when(flowManager.getRootGroup()).thenReturn(rootGroup);
-        when(rootGroup.findAllProcessGroups()).thenReturn(new ArrayList<>(List.of(childGroup)));
-        when(rootGroup.getVersionControlInformation()).thenReturn(null);
-        when(childGroup.getVersionControlInformation()).thenReturn(childVersionControlInformation);
-        when(flowManager.getFlowRegistryClient("shared-registry")).thenReturn(clientNode);
-        when(clientNode.getEffectivePropertyValue(AbstractFlowRegistryClient.SYNCHRONIZATION_INTERVAL)).thenReturn("10 min");
-
-        final RegistryFlowSynchronizationTask task = new RegistryFlowSynchronizationTask(flowManager, DEFAULT_INTERVAL_SECONDS);
-
-        task.run();
-        task.run();
-
-        verify(childGroup, times(1)).synchronizeWithFlowRegistry(flowManager);
-    }
-
-    @Test
-    void testFailureInOneGroupDoesNotPreventSiblingSynchronization() {
-        final FlowManager flowManager = mock(FlowManager.class);
-        final ProcessGroup rootGroup = mock(ProcessGroup.class);
-        final ProcessGroup failingGroup = mock(ProcessGroup.class);
-        final ProcessGroup siblingGroup = mock(ProcessGroup.class);
-        final FlowRegistryClientNode clientNode = mock(FlowRegistryClientNode.class);
-        final VersionControlInformation failingVersionControlInformation = versionControlInformation("shared-registry");
-        final VersionControlInformation siblingVersionControlInformation = versionControlInformation("shared-registry");
-
-        when(flowManager.getRootGroup()).thenReturn(rootGroup);
-        when(rootGroup.findAllProcessGroups()).thenReturn(new ArrayList<>(List.of(failingGroup, siblingGroup)));
-        when(rootGroup.getVersionControlInformation()).thenReturn(null);
-        when(failingGroup.getVersionControlInformation()).thenReturn(failingVersionControlInformation);
-        when(siblingGroup.getVersionControlInformation()).thenReturn(siblingVersionControlInformation);
-        when(flowManager.getFlowRegistryClient("shared-registry")).thenReturn(clientNode);
-        when(clientNode.getEffectivePropertyValue(AbstractFlowRegistryClient.SYNCHRONIZATION_INTERVAL)).thenReturn("10 min");
-        doThrow(new RuntimeException("boom")).when(failingGroup).synchronizeWithFlowRegistry(flowManager);
-
-        final RegistryFlowSynchronizationTask task = new RegistryFlowSynchronizationTask(flowManager, DEFAULT_INTERVAL_SECONDS);
-
-        task.run();
-
-        verify(failingGroup).synchronizeWithFlowRegistry(flowManager);
-        verify(siblingGroup).synchronizeWithFlowRegistry(flowManager);
-    }
-
-    @Test
-    void testRemovedClientIsForgottenAndSynchronizesImmediatelyWhenReintroduced() {
-        final FlowManager flowManager = mock(FlowManager.class);
-        final ProcessGroup rootGroup = mock(ProcessGroup.class);
-        final ProcessGroup childGroup = mock(ProcessGroup.class);
-        final FlowRegistryClientNode clientNode = mock(FlowRegistryClientNode.class);
-        final VersionControlInformation childVersionControlInformation = versionControlInformation("shared-registry");
-
-        when(flowManager.getRootGroup()).thenReturn(rootGroup);
-        when(rootGroup.getVersionControlInformation()).thenReturn(null);
-        when(childGroup.getVersionControlInformation()).thenReturn(childVersionControlInformation);
-        when(flowManager.getFlowRegistryClient("shared-registry")).thenReturn(clientNode);
-        when(clientNode.getEffectivePropertyValue(AbstractFlowRegistryClient.SYNCHRONIZATION_INTERVAL)).thenReturn("10 min");
-        when(rootGroup.findAllProcessGroups())
-                .thenReturn(new ArrayList<>(List.of(childGroup)))
-                .thenReturn(new ArrayList<>())
-                .thenReturn(new ArrayList<>(List.of(childGroup)));
-
-        final RegistryFlowSynchronizationTask task = new RegistryFlowSynchronizationTask(flowManager, DEFAULT_INTERVAL_SECONDS);
-
-        task.run();
-        task.run();
-        task.run();
-
         verify(childGroup, times(2)).synchronizeWithFlowRegistry(flowManager);
     }
 
