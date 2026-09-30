@@ -21,7 +21,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <guava.version>33.7.1-jre</guava.version>
+        <guava.version>33.7.2-jre</guava.version>
         <protobuf.version>4.36.2</protobuf.version>
         <grpc.version>1.84.0</grpc.version>
         <snowflake-jdbc-thin.version>4.3.4</snowflake-jdbc-thin.version>

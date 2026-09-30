@@ -27,7 +27,7 @@
 
     <properties>
         <protobuf.version>4.36.2</protobuf.version>
-        <wire.version>7.0.4</wire.version>
+        <wire.version>7.1.0</wire.version>
     </properties>
 
     <dependencies>
