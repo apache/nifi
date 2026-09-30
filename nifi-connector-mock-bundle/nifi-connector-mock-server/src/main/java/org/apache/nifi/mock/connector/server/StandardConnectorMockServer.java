@@ -129,7 +129,10 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
 
     @Override
     public void start() {
-        extensionManager = new MockExtensionDiscoveringManager();
+        final String narWorkingDirectory = nifiProperties.getProperty(NiFiProperties.NAR_WORKING_DIRECTORY);
+        extensionManager = narWorkingDirectory == null
+                ? new MockExtensionDiscoveringManager()
+                : new MockExtensionDiscoveringManager(new File(nifiProperties.getExtensionsWorkingDirectory(), "mock-bundle"));
         extensionManager.discoverExtensions(systemBundle, bundles);
         extensionManager.logClassLoaderMapping();
 
@@ -565,7 +568,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
         stop();
     }
 
-    private void startJettyServer() {
+    void startJettyServer() {
         final String httpPortValue = nifiProperties.getProperty(NiFiProperties.WEB_HTTP_PORT);
         if (httpPortValue == null || httpPortValue.isBlank()) {
             logger.debug("No HTTP port configured; skipping Jetty server startup");
@@ -596,6 +599,15 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
 
             final WebAppContext webAppContext = new WebAppContext(warFile.getPath(), contextPath);
             webAppContext.setClassLoader(new WebAppClassLoader(bundle.getClassLoader(), webAppContext));
+            if (nifiProperties.getProperty(NiFiProperties.NAR_WORKING_DIRECTORY) != null) {
+                try {
+                    final Path webWorkingDirectory = nifiProperties.getWebWorkingDirectory().toPath();
+                    Files.createDirectories(webWorkingDirectory);
+                    webAppContext.setTempDirectory(Files.createTempDirectory(webWorkingDirectory, "webapp-").toFile());
+                } catch (final IOException e) {
+                    throw new RuntimeException("Failed to create Jetty working directory", e);
+                }
+            }
 
             handlers.addHandler(webAppContext);
             webAppContexts.add(webAppContext);

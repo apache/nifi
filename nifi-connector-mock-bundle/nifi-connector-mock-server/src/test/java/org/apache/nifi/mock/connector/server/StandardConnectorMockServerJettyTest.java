@@ -20,6 +20,7 @@ package org.apache.nifi.mock.connector.server;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -29,11 +30,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StandardConnectorMockServerJettyTest {
@@ -154,6 +158,53 @@ class StandardConnectorMockServerJettyTest {
         final StandardConnectorMockServer server = new StandardConnectorMockServer();
         final Map<File, Bundle> wars = server.findWars(Set.of());
         assertTrue(wars.isEmpty());
+    }
+
+    @Test
+    void testJettyServersUseIndependentWorkingDirectoriesAndPorts() throws Exception {
+        final Path bundleWorkingDirectory = tempDir.resolve("test-bundle");
+        final Path dependenciesDirectory = bundleWorkingDirectory.resolve(NAR_DEPENDENCIES_PATH);
+        Files.createDirectories(dependenciesDirectory);
+        createConnectorWar(dependenciesDirectory.resolve("connector.war"));
+        final Bundle bundle = createBundle(bundleWorkingDirectory);
+
+        final Path firstInstanceDirectory = tempDir.resolve("first");
+        final Path secondInstanceDirectory = tempDir.resolve("second");
+        final StandardConnectorMockServer firstServer = createServer(bundle, firstInstanceDirectory);
+        final StandardConnectorMockServer secondServer = createServer(bundle, secondInstanceDirectory);
+
+        try {
+            firstServer.startJettyServer();
+            secondServer.startJettyServer();
+
+            assertTrue(firstServer.getHttpPort() > 0);
+            assertTrue(secondServer.getHttpPort() > 0);
+            assertNotEquals(firstServer.getHttpPort(), secondServer.getHttpPort());
+            assertWebAppWorkingDirectoryCreated(firstInstanceDirectory);
+            assertWebAppWorkingDirectoryCreated(secondInstanceDirectory);
+        } finally {
+            firstServer.stop();
+            secondServer.stop();
+        }
+    }
+
+    private static StandardConnectorMockServer createServer(final Bundle bundle, final Path instanceDirectory) {
+        final Properties additionalProperties = new Properties();
+        additionalProperties.setProperty(NiFiProperties.WEB_HTTP_PORT, "0");
+        additionalProperties.setProperty(NiFiProperties.NAR_WORKING_DIRECTORY, instanceDirectory.resolve("work").toString());
+        additionalProperties.setProperty(NiFiProperties.WEB_WORKING_DIR, instanceDirectory.resolve("work/jetty").toString());
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties((String) null, additionalProperties);
+
+        final StandardConnectorMockServer server = new StandardConnectorMockServer();
+        server.initialize(properties, null, Set.of(bundle), null);
+        return server;
+    }
+
+    private static void assertWebAppWorkingDirectoryCreated(final Path instanceDirectory) throws IOException {
+        final Path jettyWorkingDirectory = instanceDirectory.resolve("work/jetty");
+        try (final Stream<Path> paths = Files.list(jettyWorkingDirectory)) {
+            assertTrue(paths.anyMatch(path -> Files.isDirectory(path) && path.getFileName().toString().startsWith("webapp-")));
+        }
     }
 
     private static void createConnectorWar(final Path warPath) throws IOException {
