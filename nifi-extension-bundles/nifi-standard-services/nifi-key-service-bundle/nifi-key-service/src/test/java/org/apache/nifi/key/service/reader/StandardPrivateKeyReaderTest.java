@@ -75,8 +75,6 @@ class StandardPrivateKeyReaderTest {
 
     private static final String PBES2_HMAC_SHA512_256_AES_256 = "PBEWithHmacSHA512/256AndAES_256";
 
-    private static final String PBES1_MD5_DES = "PBEWithMD5AndDES";
-
     private static final String PBE_SHA1_DESEDE = "PBEWithSHA1AndDESede";
 
     private static final String PBES2_ALGORITHM = "PBES2";
@@ -196,7 +194,6 @@ class StandardPrivateKeyReaderTest {
                 Arguments.of("PBES2 HMAC-SHA256 DES-EDE3-CBC RSA", getPbes2DesEde3Pem(rsaPrivateKey), KEY_PASSWORD, rsaPrivateKey),
                 Arguments.of("PBES2 HMAC-SHA256 AES-256-CBC EC P-384", getEncryptedPkcs8Pem(ecCurveP384PrivateKey, PBES2_HMAC_SHA256_AES_256), KEY_PASSWORD, ecCurveP384PrivateKey),
                 Arguments.of("PBES2 HMAC-SHA256 AES-256-CBC Ed25519", getEncryptedPkcs8Pem(ed25519PrivateKey, PBES2_HMAC_SHA256_AES_256), KEY_PASSWORD, ed25519PrivateKey),
-                Arguments.of("PBES1 PBE-MD5-DES RSA", getEncryptedPkcs8Pem(rsaPrivateKey, PBES1_MD5_DES), KEY_PASSWORD, rsaPrivateKey),
                 Arguments.of("PBE-SHA1-3DES RSA", getEncryptedPkcs8Pem(rsaPrivateKey, PBE_SHA1_DESEDE), KEY_PASSWORD, rsaPrivateKey),
                 Arguments.of("RSA with preceding Bag Attributes", BAG_ATTRIBUTES + getPkcs8Pem(rsaPrivateKey), EMPTY_KEY_PASSWORD, rsaPrivateKey),
                 Arguments.of("RSA with preceding Certificate", getPem(CERTIFICATE_TYPE, CONTENT) + getPkcs8Pem(rsaPrivateKey), EMPTY_KEY_PASSWORD, rsaPrivateKey)

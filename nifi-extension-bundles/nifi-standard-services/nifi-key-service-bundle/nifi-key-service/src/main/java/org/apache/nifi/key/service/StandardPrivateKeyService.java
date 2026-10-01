@@ -52,7 +52,14 @@ import java.util.concurrent.atomic.AtomicReference;
  * Standard implementation of Private Key Service supporting encrypted or unencrypted sources
  */
 @Tags({"PEM", "PKCS8"})
-@CapabilityDescription("Private Key Service provides access to a Private Key loaded from configured sources")
+@CapabilityDescription(
+    """
+    Private Key Service provides access to a Private Key loaded from configured sources.
+    Supports PKCS8 Private Keys with PEM encoding and optional password-based encryption.
+    Encryption support is targeted to PBES2 and PBKDF2 as described in RFC 8018 Section 6.2.
+    Encryption support for PBES1 is not guaranteed and depends on the configured Java Security Provider.
+    """
+)
 public class StandardPrivateKeyService extends AbstractControllerService implements PrivateKeyService {
     public static final PropertyDescriptor KEY_FILE = new PropertyDescriptor.Builder()
             .name("Key File")
