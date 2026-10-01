@@ -198,10 +198,17 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
 
     @Override
     public CompletableFuture<Void> startProcessors(final ComponentHierarchyScope scope) {
-        final boolean recursive = (scope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS);
-        final Collection<ProcessorNode> processors = recursive ? processGroup.findAllProcessors() : processGroup.getProcessors();
+        if (processGroup.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
+            return CompletableFuture.completedFuture(null);
+        }
+
         final List<CompletableFuture<Void>> startFutures = new ArrayList<>();
-        for (final ProcessorNode processor : processors) {
+        startProcessors(processGroup, scope, startFutures);
+        return CompletableFuture.allOf(startFutures.toArray(new CompletableFuture[0]));
+    }
+
+    private void startProcessors(final ProcessGroup startGroup, final ComponentHierarchyScope scope, final List<CompletableFuture<Void>> startFutures) {
+        for (final ProcessorNode processor : startGroup.getProcessors()) {
             // If Processor is not valid, perform validation again to ensure that the status is up to date.
             final ValidationStatus validationStatus = processor.getValidationStatus();
             if (validationStatus != ValidationStatus.VALID) {
@@ -213,10 +220,18 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
                 continue;
             }
 
-            startFutures.add(processor.getProcessGroup().startProcessor(processor, true));
+            startFutures.add(startGroup.startProcessor(processor, true));
         }
 
-        return CompletableFuture.allOf(startFutures.toArray(new CompletableFuture[0]));
+        if (scope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS) {
+            for (final ProcessGroup childGroup : startGroup.getProcessGroups()) {
+                if (childGroup.getExecutionEngine() == ExecutionEngine.STATELESS) {
+                    continue;
+                }
+
+                startProcessors(childGroup, ComponentHierarchyScope.INCLUDE_CHILD_GROUPS, startFutures);
+            }
+        }
     }
 
     @Override

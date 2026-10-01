@@ -74,9 +74,13 @@ import java.util.function.Predicate;
 public class MockProcessGroup implements ProcessGroup {
     private final Map<String, ControllerServiceNode> serviceMap = new HashMap<>();
     private final Map<String, ProcessorNode> processorMap = new HashMap<>();
+    private final Map<String, ProcessGroup> processGroupMap = new HashMap<>();
     private final Map<String, Port> inputPortMap = new HashMap<>();
     private final Map<String, Port> outputPortMap = new HashMap<>();
     private final FlowManager flowManager;
+    private final String identifier;
+    private ProcessGroup parent;
+    private ExecutionEngine executionEngine = ExecutionEngine.STANDARD;
     private VersionControlInformation versionControlInfo;
     private ParameterContext parameterContext;
     private String defaultFlowfileExpiration;
@@ -84,7 +88,12 @@ public class MockProcessGroup implements ProcessGroup {
     private String defaultBackPressureDataSizeThreshold;
 
     public MockProcessGroup(final FlowManager flowManager) {
+        this(flowManager, "unit test group id");
+    }
+
+    public MockProcessGroup(final FlowManager flowManager, final String identifier) {
         this.flowManager = flowManager;
+        this.identifier = identifier;
     }
 
     @Override
@@ -99,7 +108,7 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public ProcessGroup getParent() {
-        return null;
+        return parent;
     }
 
     @Override
@@ -109,12 +118,12 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public void setParent(final ProcessGroup group) {
-
+        parent = group;
     }
 
     @Override
     public String getIdentifier() {
-        return "unit test group id";
+        return identifier;
     }
 
     @Override
@@ -192,6 +201,7 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public void setExecutionEngine(final ExecutionEngine executionEngine) {
+        this.executionEngine = executionEngine;
     }
 
     @Override
@@ -335,22 +345,23 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public void addProcessGroup(final ProcessGroup group) {
-
+        group.setParent(this);
+        processGroupMap.put(group.getIdentifier(), group);
     }
 
     @Override
     public ProcessGroup getProcessGroup(final String id) {
-        return null;
+        return processGroupMap.get(id);
     }
 
     @Override
     public Set<ProcessGroup> getProcessGroups() {
-        return null;
+        return new HashSet<>(processGroupMap.values());
     }
 
     @Override
     public void removeProcessGroup(final ProcessGroup group) {
-
+        processGroupMap.remove(group.getIdentifier());
     }
 
     @Override
@@ -527,7 +538,12 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public List<ProcessorNode> findAllProcessors() {
-        return new ArrayList<>(processorMap.values());
+        final List<ProcessorNode> processors = new ArrayList<>(processorMap.values());
+        for (final ProcessGroup processGroup : processGroupMap.values()) {
+            processors.addAll(processGroup.findAllProcessors());
+        }
+
+        return processors;
     }
 
     @Override
@@ -875,12 +891,16 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public ExecutionEngine getExecutionEngine() {
-        return ExecutionEngine.STANDARD;
+        return executionEngine;
     }
 
     @Override
     public ExecutionEngine resolveExecutionEngine() {
-        return ExecutionEngine.STANDARD;
+        if (executionEngine == ExecutionEngine.INHERITED) {
+            return parent == null ? ExecutionEngine.STANDARD : parent.resolveExecutionEngine();
+        }
+
+        return executionEngine;
     }
 
     @Override
