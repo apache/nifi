@@ -40,6 +40,7 @@ import {
     LARGE_DIALOG,
     MEDIUM_DIALOG,
     NiFiCommon,
+    Position,
     sanitizePosition,
     XL_DIALOG
 } from '@nifi/shared';
@@ -829,18 +830,21 @@ export class ConnectorCanvasEffects {
                 warnedIds: this.warnedPositionIds
             })
         });
+        const sanitizeBends = (entityId: string, bends: Position[] | undefined): Position[] | undefined =>
+            bends?.map((bend: Position, index: number) =>
+                sanitizePosition(bend, {
+                    componentId: `${entityId}:bend:${index}`,
+                    componentKind: 'Connection bend',
+                    warnedIds: this.warnedPositionIds
+                })
+            );
         const sanitizeConnection = (entity: any) => ({
             ...entity,
+            bends: sanitizeBends(entity.id, entity.bends),
             component: entity.component
                 ? {
                       ...entity.component,
-                      bends: entity.component.bends?.map((bend: any, index: number) =>
-                          sanitizePosition(bend, {
-                              componentId: `${entity.id}:bend:${index}`,
-                              componentKind: 'Connection bend',
-                              warnedIds: this.warnedPositionIds
-                          })
-                      )
+                      bends: sanitizeBends(entity.id, entity.component.bends)
                   }
                 : entity.component
         });
