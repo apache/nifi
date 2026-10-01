@@ -22,13 +22,6 @@ import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import org.bouncycastle.openssl.jcajce.JcaPKCS8Generator;
-import org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.OutputEncryptor;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,25 +29,27 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
-import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.AlgorithmParameters;
+import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
+import javax.crypto.Cipher;
+import javax.crypto.EncryptedPrivateKeyInfo;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 
-import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.AES_256_CBC;
-import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.DES3_CBC;
-import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.PBE_SHA1_3DES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class StandardPrivateKeyServiceTest {
     private static final String SERVICE_ID = StandardPrivateKeyServiceTest.class.getSimpleName();
-
-    private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
 
     private static final String PATH_NOT_FOUND = "/path/not/found";
 
@@ -62,7 +57,23 @@ class StandardPrivateKeyServiceTest {
 
     private static final String RSA_ALGORITHM = "RSA";
 
-    private static final OutputEncryptor DISABLED_ENCRYPTOR = null;
+    private static final String PBES2_HMAC_SHA256_AES_256 = "PBEWithHmacSHA256AndAES_256";
+
+    private static final String PBES2_HMAC_SHA512_AES_128 = "PBEWithHmacSHA512AndAES_128";
+
+    private static final String PBE_SHA1_DESEDE = "PBEWithSHA1AndDESede";
+
+    private static final String PBES2_ALGORITHM = "PBES2";
+
+    private static final String PBES2_CIPHER_PREFIX = "PBEWithHmac";
+
+    private static final String PRIVATE_KEY_TYPE = "PRIVATE KEY";
+
+    private static final String ENCRYPTED_PRIVATE_KEY_TYPE = "ENCRYPTED PRIVATE KEY";
+
+    private static final String PEM_FORMAT = "-----BEGIN %s-----\n%s\n-----END %s-----\n";
+
+    private static final Base64.Encoder ENCODER = Base64.getMimeEncoder();
 
     private static PrivateKey generatedPrivateKey;
 
@@ -102,8 +113,8 @@ class StandardPrivateKeyServiceTest {
     }
 
     @Test
-    void testGetPrivateKeyEncodedKey() throws Exception {
-        final String encodedPrivateKey = getEncodedPrivateKey(generatedPrivateKey, DISABLED_ENCRYPTOR);
+    void testGetPrivateKeyEncodedKey() {
+        final String encodedPrivateKey = getPem(PRIVATE_KEY_TYPE, generatedPrivateKey.getEncoded());
 
         runner.setProperty(service, StandardPrivateKeyService.KEY, encodedPrivateKey);
         runner.enableControllerService(service);
@@ -116,8 +127,7 @@ class StandardPrivateKeyServiceTest {
     @MethodSource("encryptionAlgorithms")
     void testGetPrivateKeyEncryptedKey(final String encryptionAlgorithm) throws Exception {
         final String password = UUID.randomUUID().toString();
-        final OutputEncryptor outputEncryptor = getOutputEncryptor(encryptionAlgorithm, password);
-        final String encryptedPrivateKey = getEncodedPrivateKey(generatedPrivateKey, outputEncryptor);
+        final String encryptedPrivateKey = getEncryptedPrivateKey(generatedPrivateKey, encryptionAlgorithm, password);
         final Path keyPath = writeKey(encryptedPrivateKey);
 
         runner.setProperty(service, StandardPrivateKeyService.KEY_FILE, keyPath.toString());
@@ -148,9 +158,9 @@ class StandardPrivateKeyServiceTest {
 
     private static String[] encryptionAlgorithms() {
         return new String[] {
-                AES_256_CBC,
-                DES3_CBC,
-                PBE_SHA1_3DES
+                PBES2_HMAC_SHA256_AES_256,
+                PBES2_HMAC_SHA512_AES_128,
+                PBE_SHA1_DESEDE
         };
     }
 
@@ -162,19 +172,35 @@ class StandardPrivateKeyServiceTest {
         return keyPath;
     }
 
-    private String getEncodedPrivateKey(final PrivateKey privateKey, final OutputEncryptor outputEncryptor) throws Exception {
-        final StringWriter stringWriter = new StringWriter();
-        try (final JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
-            final JcaPKCS8Generator generator = new JcaPKCS8Generator(privateKey, outputEncryptor);
-            pemWriter.writeObject(generator);
-        }
-        return stringWriter.toString();
+    private String getEncryptedPrivateKey(final PrivateKey privateKey, final String encryptionAlgorithm, final String password) throws GeneralSecurityException, IOException {
+        final SecretKey secretKey = SecretKeyFactory.getInstance(encryptionAlgorithm).generateSecret(new PBEKeySpec(password.toCharArray()));
+        final Cipher cipher = Cipher.getInstance(encryptionAlgorithm);
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        final byte[] encrypted = cipher.doFinal(privateKey.getEncoded());
+
+        final EncryptedPrivateKeyInfo encryptedPrivateKeyInfo = new EncryptedPrivateKeyInfo(getEncryptionParameters(cipher), encrypted);
+        return getPem(ENCRYPTED_PRIVATE_KEY_TYPE, encryptedPrivateKeyInfo.getEncoded());
     }
 
-    private OutputEncryptor getOutputEncryptor(final String encryptionAlgorithm, final String password) throws OperatorCreationException {
-        return new JceOpenSSLPKCS8EncryptorBuilder(new ASN1ObjectIdentifier(encryptionAlgorithm))
-                .setProvider(BOUNCY_CASTLE_PROVIDER)
-                .setPassword(password.toCharArray())
-                .build();
+    /**
+     * Get encryption parameters with an algorithm name that EncryptedPrivateKeyInfo can resolve to an Object Identifier,
+     * which requires PBES2 instead of cipher names such as PBEWithHmacSHA256AndAES_256
+     */
+    private AlgorithmParameters getEncryptionParameters(final Cipher cipher) throws GeneralSecurityException, IOException {
+        final AlgorithmParameters cipherParameters = cipher.getParameters();
+
+        final AlgorithmParameters encryptionParameters;
+        if (cipherParameters.getAlgorithm().startsWith(PBES2_CIPHER_PREFIX)) {
+            encryptionParameters = AlgorithmParameters.getInstance(PBES2_ALGORITHM);
+            encryptionParameters.init(cipherParameters.getEncoded());
+        } else {
+            encryptionParameters = cipherParameters;
+        }
+
+        return encryptionParameters;
+    }
+
+    private String getPem(final String type, final byte[] encoded) {
+        return PEM_FORMAT.formatted(type, ENCODER.encodeToString(encoded), type);
     }
 }

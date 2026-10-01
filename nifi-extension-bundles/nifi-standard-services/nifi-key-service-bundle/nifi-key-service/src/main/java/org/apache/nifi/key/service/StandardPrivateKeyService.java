@@ -30,8 +30,8 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.key.service.api.PrivateKeyService;
-import org.apache.nifi.key.service.reader.BouncyCastlePrivateKeyReader;
 import org.apache.nifi.key.service.reader.PrivateKeyReader;
+import org.apache.nifi.key.service.reader.StandardPrivateKeyReader;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -52,7 +52,14 @@ import java.util.concurrent.atomic.AtomicReference;
  * Standard implementation of Private Key Service supporting encrypted or unencrypted sources
  */
 @Tags({"PEM", "PKCS8"})
-@CapabilityDescription("Private Key Service provides access to a Private Key loaded from configured sources")
+@CapabilityDescription(
+    """
+    Private Key Service provides access to a Private Key loaded from configured sources.
+    Supports PKCS8 Private Keys with PEM encoding and optional password-based encryption.
+    Encryption support is targeted to PBES2 and PBKDF2 as described in RFC 8018 Section 6.2.
+    Encryption support for PBES1 is not guaranteed and depends on the configured Java Security Provider.
+    """
+)
 public class StandardPrivateKeyService extends AbstractControllerService implements PrivateKeyService {
     public static final PropertyDescriptor KEY_FILE = new PropertyDescriptor.Builder()
             .name("Key File")
@@ -85,7 +92,7 @@ public class StandardPrivateKeyService extends AbstractControllerService impleme
 
     private static final Charset KEY_CHARACTER_SET = StandardCharsets.US_ASCII;
 
-    private static final PrivateKeyReader PRIVATE_KEY_READER = new BouncyCastlePrivateKeyReader();
+    private static final PrivateKeyReader PRIVATE_KEY_READER = new StandardPrivateKeyReader();
 
     private final AtomicReference<PrivateKey> keyReference = new AtomicReference<>();
 
