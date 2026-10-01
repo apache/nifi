@@ -5075,6 +5075,7 @@ export class FlowEffects {
      */
     private sanitizeFlowPositions(flow: ProcessGroupFlowEntity): ProcessGroupFlowEntity {
         const f = flow.processGroupFlow.flow;
+        type ConnectionWithBends = ConnectionEntity & { bends?: Position[] };
         const sanitize = (entity: ComponentEntity, kind: string): ComponentEntity => ({
             ...entity,
             position: sanitizePosition(entity.position, {
@@ -5083,23 +5084,21 @@ export class FlowEffects {
                 warnedIds: this.warnedPositionIds
             })
         });
-        const sanitizeConnection = (entity: ConnectionEntity): ConnectionEntity => ({
+        const sanitizeBends = (entityId: string, bends: Position[] | undefined): Position[] | undefined =>
+            bends?.map((bend: Position, index: number) =>
+                sanitizePosition(bend, {
+                    componentId: `${entityId}:bend:${index}`,
+                    componentKind: 'Connection bend',
+                    warnedIds: this.warnedPositionIds
+                })
+            );
+        const sanitizeConnection = (entity: ConnectionWithBends): ConnectionWithBends => ({
             ...entity,
-            position: sanitizePosition(entity.position, {
-                componentId: entity.id,
-                componentKind: 'Connection',
-                warnedIds: this.warnedPositionIds
-            }),
+            bends: sanitizeBends(entity.id, entity.bends),
             component: entity.component
                 ? {
                       ...entity.component,
-                      bends: entity.component.bends?.map((bend: Position, index: number) =>
-                          sanitizePosition(bend, {
-                              componentId: `${entity.id}:bend:${index}`,
-                              componentKind: 'Connection bend',
-                              warnedIds: this.warnedPositionIds
-                          })
-                      )
+                      bends: sanitizeBends(entity.id, entity.component.bends)
                   }
                 : entity.component
         });
