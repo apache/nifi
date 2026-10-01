@@ -3114,19 +3114,14 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     @Override
     public NodeConnectionState getNodeConnectionState() {
+        final NodeConnectionStatus localConnectionStatus = connectionStatus;
         final NodeConnectionState nodeConnectionState;
-
-        readLock.lock();
-        try {
-            if (!configuredForClustering) {
-                nodeConnectionState = NodeConnectionState.STANDALONE;
-            } else if (connectionStatus == null) {
-                nodeConnectionState = NodeConnectionState.DISCONNECTED;
-            } else {
-                nodeConnectionState = mapNodeConnectionState(connectionStatus.getState());
-            }
-        } finally {
-            readLock.unlock("getNodeConnectionState");
+        if (!configuredForClustering) {
+            nodeConnectionState = NodeConnectionState.STANDALONE;
+        } else if (localConnectionStatus == null) {
+            nodeConnectionState = NodeConnectionState.DISCONNECTED;
+        } else {
+            nodeConnectionState = mapNodeConnectionState(localConnectionStatus.getState());
         }
 
         return nodeConnectionState;
