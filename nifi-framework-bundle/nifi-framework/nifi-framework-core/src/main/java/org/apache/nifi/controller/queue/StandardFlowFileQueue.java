@@ -35,6 +35,7 @@ import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.util.concurrency.TimedLock;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -97,6 +98,7 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     @Override
     public void setPriorities(final List<FlowFilePrioritizer> newPriorities) {
         queue.setPriorities(newPriorities);
+        notifySchedulingListeners();
     }
 
     @Override
@@ -117,33 +119,51 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     @Override
     public void put(final FlowFileRecord file) {
         queue.put(file);
+        notifySchedulingListeners();
     }
 
     @Override
     public void putAll(final Collection<FlowFileRecord> files) {
         queue.putAll(files);
+        if (!files.isEmpty()) {
+            notifySchedulingListeners();
+        }
     }
 
     @Override
     public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         // First check if we have any records Pre-Fetched.
         final long expirationMillis = getFlowFileExpiration(TimeUnit.MILLISECONDS);
-        return queue.poll(expiredRecords, expirationMillis, pollStrategy);
+        final FlowFileRecord flowFile = queue.poll(expiredRecords, expirationMillis, pollStrategy);
+        if (flowFile != null || !expiredRecords.isEmpty()) {
+            notifySchedulingListeners();
+        }
+
+        return flowFile;
     }
 
     @Override
     public List<FlowFileRecord> poll(int maxResults, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
-        return queue.poll(maxResults, expiredRecords, getFlowFileExpiration(TimeUnit.MILLISECONDS), pollStrategy);
+        final List<FlowFileRecord> flowFiles = queue.poll(maxResults, expiredRecords, getFlowFileExpiration(TimeUnit.MILLISECONDS), pollStrategy);
+        if (!flowFiles.isEmpty() || !expiredRecords.isEmpty()) {
+            notifySchedulingListeners();
+        }
+
+        return flowFiles;
     }
 
     @Override
     public void acknowledge(final FlowFileRecord flowFile) {
         queue.acknowledge(flowFile);
+        notifySchedulingListeners();
     }
 
     @Override
     public void acknowledge(final Collection<FlowFileRecord> flowFiles) {
         queue.acknowledge(flowFiles);
+        if (!flowFiles.isEmpty()) {
+            notifySchedulingListeners();
+        }
     }
 
     @Override
@@ -182,6 +202,11 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     }
 
     @Override
+    public Instant getNextFlowFileAvailabilityTime() {
+        return queue.getNextFlowFileAvailabilityTime();
+    }
+
+    @Override
     public boolean isActiveQueueEmpty() {
         final FlowFileQueueSize queueSize = queue.getFlowFileQueueSize();
         return queueSize.getActiveCount() == 0 && queueSize.getSwappedCount() == 0;
@@ -189,7 +214,12 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
 
     @Override
     public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
-        return queue.poll(filter, expiredRecords, getFlowFileExpiration(TimeUnit.MILLISECONDS), pollStrategy);
+        final List<FlowFileRecord> flowFiles = queue.poll(filter, expiredRecords, getFlowFileExpiration(TimeUnit.MILLISECONDS), pollStrategy);
+        if (!flowFiles.isEmpty() || !expiredRecords.isEmpty()) {
+            notifySchedulingListeners();
+        }
+
+        return flowFiles;
     }
 
     @Override
@@ -215,54 +245,62 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     @Override
     protected void dropFlowFiles(final DropFlowFileRequest dropRequest, final String requestor) {
         queue.dropFlowFiles(dropRequest, requestor);
+        notifySchedulingListeners();
     }
 
     @Override
     public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
+        final DropFlowFileSummary summary;
         lock();
         try {
             // Perform the selective drop on the queue, which returns the dropped FlowFiles and swap location updates
             final SelectiveDropResult dropResult = queue.dropFlowFiles(predicate);
 
             if (dropResult.getDroppedCount() == 0) {
-                return new DropFlowFileSummary(0, 0L);
-            }
+                summary = new DropFlowFileSummary(0, 0L);
+            } else {
+                // Create repository records for the dropped FlowFiles
+                final List<FlowFileRecord> droppedFlowFiles = dropResult.getDroppedFlowFiles();
+                final List<RepositoryRecord> repositoryRecords = new ArrayList<>(createDeleteRepositoryRecords(droppedFlowFiles));
 
-            // Create repository records for the dropped FlowFiles
-            final List<FlowFileRecord> droppedFlowFiles = dropResult.getDroppedFlowFiles();
-            final List<RepositoryRecord> repositoryRecords = new ArrayList<>(createDeleteRepositoryRecords(droppedFlowFiles));
+                // Create repository records for swap file changes so the FlowFile Repository can track valid swap locations
+                for (final Map.Entry<String, String> entry : dropResult.getSwapLocationUpdates().entrySet()) {
+                    final String oldSwapLocation = entry.getKey();
+                    final String newSwapLocation = entry.getValue();
 
-            // Create repository records for swap file changes so the FlowFile Repository can track valid swap locations
-            for (final Map.Entry<String, String> entry : dropResult.getSwapLocationUpdates().entrySet()) {
-                final String oldSwapLocation = entry.getKey();
-                final String newSwapLocation = entry.getValue();
-
-                final StandardRepositoryRecord swapRecord = new StandardRepositoryRecord(this);
-                if (newSwapLocation == null) {
-                    swapRecord.setSwapLocation(oldSwapLocation, RepositoryRecordType.SWAP_FILE_DELETED);
-                } else {
-                    swapRecord.setSwapFileRenamed(oldSwapLocation, newSwapLocation);
+                    final StandardRepositoryRecord swapRecord = new StandardRepositoryRecord(this);
+                    if (newSwapLocation == null) {
+                        swapRecord.setSwapLocation(oldSwapLocation, RepositoryRecordType.SWAP_FILE_DELETED);
+                    } else {
+                        swapRecord.setSwapFileRenamed(oldSwapLocation, newSwapLocation);
+                    }
+                    repositoryRecords.add(swapRecord);
                 }
-                repositoryRecords.add(swapRecord);
+
+                // Update the FlowFile Repository
+                getFlowFileRepository().updateRepository(repositoryRecords);
+
+                // Create and register provenance events
+                final List<ProvenanceEventRecord> provenanceEvents = createDropProvenanceEvents(droppedFlowFiles, "Selective drop by predicate");
+                getProvenanceRepository().registerEvents(provenanceEvents);
+
+                // Delete old swap files that were replaced
+                for (final Map.Entry<String, String> entry : dropResult.getSwapLocationUpdates().entrySet()) {
+                    final String oldSwapLocation = entry.getKey();
+                    swapManager.deleteSwapFile(oldSwapLocation);
+                }
+
+                summary = new DropFlowFileSummary(dropResult.getDroppedCount(), dropResult.getDroppedBytes());
             }
-
-            // Update the FlowFile Repository
-            getFlowFileRepository().updateRepository(repositoryRecords);
-
-            // Create and register provenance events
-            final List<ProvenanceEventRecord> provenanceEvents = createDropProvenanceEvents(droppedFlowFiles, "Selective drop by predicate");
-            getProvenanceRepository().registerEvents(provenanceEvents);
-
-            // Delete old swap files that were replaced
-            for (final Map.Entry<String, String> entry : dropResult.getSwapLocationUpdates().entrySet()) {
-                final String oldSwapLocation = entry.getKey();
-                swapManager.deleteSwapFile(oldSwapLocation);
-            }
-
-            return new DropFlowFileSummary(dropResult.getDroppedCount(), dropResult.getDroppedBytes());
         } finally {
             unlock();
         }
+
+        if (summary.getDroppedCount() > 0) {
+            notifySchedulingListeners();
+        }
+
+        return summary;
     }
 
     /**

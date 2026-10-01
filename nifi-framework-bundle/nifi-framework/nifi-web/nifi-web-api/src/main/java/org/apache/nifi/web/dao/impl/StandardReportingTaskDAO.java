@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -215,8 +214,12 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                 // this will be the new scheduling strategy so use it
                 schedulingStrategy = SchedulingStrategy.valueOf(reportingTaskDTO.getSchedulingStrategy());
             } catch (IllegalArgumentException iae) {
-                validationErrors.add(String.format("Scheduling strategy: Value must be one of [%s]", StringUtils.join(SchedulingStrategy.values(), ", ")));
+                validationErrors.add("Scheduling strategy: Value must be one of [TIMER_DRIVEN, CRON_DRIVEN]");
             }
+        }
+
+        if (schedulingStrategy == SchedulingStrategy.AUTO) {
+            validationErrors.add("Scheduling strategy AUTO is not supported by Reporting Tasks");
         }
 
         // validate the scheduling period based on the scheduling strategy
@@ -234,6 +237,8 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                     } catch (final Exception e) {
                         throw new IllegalArgumentException(String.format("Scheduling Period '%s' is not a valid cron expression: %s", reportingTaskDTO.getSchedulingPeriod(), e.getMessage()));
                     }
+                    break;
+                case AUTO:
                     break;
             }
         }

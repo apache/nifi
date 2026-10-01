@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.annotation.behavior.AllowsAutoScheduling;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -38,6 +39,7 @@ public class ProcessorDetails {
     private final boolean triggeredSerially;
     private final boolean triggerWhenAnyDestinationAvailable;
     private final boolean batchSupported;
+    private final boolean autoSchedulingSupported;
     private final boolean executionNodeRestricted;
     private final InputRequirement.Requirement inputRequirement;
     private final TerminationAwareLogger componentLog;
@@ -52,6 +54,7 @@ public class ProcessorDetails {
         this.triggerWhenEmpty = procClass.isAnnotationPresent(TriggerWhenEmpty.class);
         this.sideEffectFree = procClass.isAnnotationPresent(SideEffectFree.class);
         this.batchSupported = procClass.isAnnotationPresent(SupportsBatching.class);
+        this.autoSchedulingSupported = isAutoSchedulingSupported(procClass);
         this.triggeredSerially = procClass.isAnnotationPresent(TriggerSerially.class);
         this.triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class);
         this.executionNodeRestricted = procClass.isAnnotationPresent(PrimaryNodeOnly.class);
@@ -90,6 +93,15 @@ public class ProcessorDetails {
 
     public boolean isBatchSupported() {
         return batchSupported;
+    }
+
+    public boolean isAutoSchedulingSupported() {
+        return autoSchedulingSupported;
+    }
+
+    public static boolean isAutoSchedulingSupported(final Class<?> processorClass) {
+        final AllowsAutoScheduling allowsAutoScheduling = processorClass.getAnnotation(AllowsAutoScheduling.class);
+        return allowsAutoScheduling == null || allowsAutoScheduling.value();
     }
 
     public boolean isExecutionNodeRestricted() {

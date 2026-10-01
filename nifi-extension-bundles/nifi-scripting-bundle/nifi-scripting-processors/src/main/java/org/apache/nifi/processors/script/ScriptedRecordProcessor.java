@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.script;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.behavior.AllowsAutoScheduling;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -49,6 +50,8 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 
+// Script engines are created eagerly for every ProcessContext concurrency slot.
+@AllowsAutoScheduling(false)
 abstract class ScriptedRecordProcessor extends AbstractProcessor implements Searchable {
     protected static final Set<String> SCRIPT_OPTIONS = ScriptingComponentUtils.getAvailableEngines();
 

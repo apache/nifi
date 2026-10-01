@@ -38,6 +38,7 @@ import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -85,6 +86,11 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     @Override
     public boolean isUnacknowledgedFlowFile() {
         return priorityQueue.isUnacknowledgedFlowFile();
+    }
+
+    @Override
+    public Instant getNextFlowFileAvailabilityTime() {
+        return priorityQueue.getNextFlowFileAvailabilityTime();
     }
 
     @Override

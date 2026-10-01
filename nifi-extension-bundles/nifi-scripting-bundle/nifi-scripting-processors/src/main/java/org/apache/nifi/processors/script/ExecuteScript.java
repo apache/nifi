@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.script;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.behavior.AllowsAutoScheduling;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -61,6 +62,8 @@ import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.SimpleBindings;
 
+// Script engines are created eagerly for every ProcessContext concurrency slot.
+@AllowsAutoScheduling(false)
 @Tags({"script", "execute", "groovy", "clojure"})
 @CapabilityDescription("Experimental - Executes a script given the flow file and a process session.  The script is responsible for "
         + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any FlowFiles created by "
