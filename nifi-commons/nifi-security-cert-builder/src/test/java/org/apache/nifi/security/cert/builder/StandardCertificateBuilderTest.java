@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.security.cert.builder;
 
-import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -58,7 +58,13 @@ class StandardCertificateBuilderTest {
 
     private static final int STANDARD_CONSTRAINTS = -1;
 
-    private static final List<String> EXTENDED_KEY_USAGE = Arrays.asList(KeyPurposeId.id_kp_clientAuth.toString(), KeyPurposeId.id_kp_serverAuth.toString());
+    private static final String KEY_USAGE_OID = "2.5.29.15";
+
+    private static final String CLIENT_AUTHENTICATION_OID = "1.3.6.1.5.5.7.3.2";
+
+    private static final String SERVER_AUTHENTICATION_OID = "1.3.6.1.5.5.7.3.1";
+
+    private static final List<String> EXTENDED_KEY_USAGE = Arrays.asList(CLIENT_AUTHENTICATION_OID, SERVER_AUTHENTICATION_OID);
 
     private static final boolean[] AUTHORITY_KEY_USAGE = new boolean[]{true, true, true, true, true, true, true, false, false};
 
@@ -86,7 +92,7 @@ class StandardCertificateBuilderTest {
     }
 
     @Test
-    void testBuildSelfSigned() throws CertificateParsingException {
+    void testBuildSelfSigned() throws GeneralSecurityException {
         final StandardCertificateBuilder builder = new StandardCertificateBuilder(issuerKeyPair, ISSUER, VALIDITY_PERIOD);
 
         final X509Certificate certificate = builder.build();
@@ -101,7 +107,7 @@ class StandardCertificateBuilderTest {
     }
 
     @Test
-    void testBuildSelfSignedSubjectAlternativeNames() throws CertificateParsingException {
+    void testBuildSelfSignedSubjectAlternativeNames() throws GeneralSecurityException {
         final StandardCertificateBuilder builder = new StandardCertificateBuilder(issuerKeyPair, ISSUER, VALIDITY_PERIOD);
 
         final X509Certificate certificate = builder.setDnsSubjectAlternativeNames(Collections.singletonList(DNS_NAME)).build();
@@ -117,7 +123,7 @@ class StandardCertificateBuilderTest {
     }
 
     @Test
-    void testBuildIssued() throws CertificateParsingException {
+    void testBuildIssued() throws GeneralSecurityException {
         final StandardCertificateBuilder builder = new StandardCertificateBuilder(issuerKeyPair, ISSUER, VALIDITY_PERIOD);
         final PublicKey subjectPublicKey = subjectKeyPair.getPublic();
 
@@ -131,8 +137,11 @@ class StandardCertificateBuilderTest {
         assertFirstSubjectAlternativeNameEquals(SUBJECT_COMMON_NAME, certificate);
     }
 
-    private void assertPropertiesFound(final X509Certificate certificate) throws CertificateParsingException {
+    private void assertPropertiesFound(final X509Certificate certificate) throws GeneralSecurityException {
         assertNotNull(certificate);
+
+        certificate.verify(issuerKeyPair.getPublic());
+        assertEquals(Collections.singleton(KEY_USAGE_OID), certificate.getCriticalExtensionOIDs());
 
         assertEquals(ISSUER, certificate.getIssuerX500Principal());
 
