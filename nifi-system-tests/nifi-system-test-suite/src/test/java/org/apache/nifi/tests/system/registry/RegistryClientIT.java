@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -57,6 +58,18 @@ public class RegistryClientIT extends NiFiSystemIT {
     public static final String TEST_FLOWS_BUCKET = "test-flows";
 
     public static final String FIRST_FLOW_ID = "first-flow";
+    private static final String RESTART_SYNCHRONIZATION_TEST_NAME = "testVersionControlledProcessGroupSynchronizesAfterRestart()";
+    private static final long VERSION_CONTROL_SYNC_TIMEOUT_SECONDS = 55;
+
+    @Override
+    protected boolean isAllowFactoryReuse() {
+        return !RESTART_SYNCHRONIZATION_TEST_NAME.equals(getTestName()) && super.isAllowFactoryReuse();
+    }
+
+    @Override
+    protected boolean isDestroyEnvironmentAfterEachTest() {
+        return RESTART_SYNCHRONIZATION_TEST_NAME.equals(getTestName()) || super.isDestroyEnvironmentAfterEachTest();
+    }
 
     /**
      * Test a scenario where we have Parent Process Group with a child process group. The child group is under Version Control.
@@ -362,6 +375,24 @@ public class RegistryClientIT extends NiFiSystemIT {
 
         versionedFlowState = getClientUtil().getVersionedFlowState(group.getId(), "root");
         assertEquals("UP_TO_DATE", versionedFlowState);
+    }
+
+    @Test
+    public void testVersionControlledProcessGroupSynchronizesAfterRestart() throws Exception {
+        final FlowRegistryClientEntity registryClient = registerClient();
+        final ProcessGroupEntity processGroup = getClientUtil().createProcessGroup("Versioned Process Group", "root");
+        getClientUtil().createProcessor("TerminateFlowFile", processGroup.getId());
+        getClientUtil().startVersionControl(processGroup, registryClient, TEST_FLOWS_BUCKET, "restart-flow");
+
+        assertEquals(VersionControlInformationDTO.UP_TO_DATE, getClientUtil().getVersionControlState(processGroup.getId()));
+
+        getClientUtil().updateRegistryClientProperties(registryClient, Collections.singletonMap("Validate Sleep Time", "15 sec"));
+
+        getNiFiInstance().stop();
+        getNiFiInstance().start();
+        setupClient();
+
+        waitForVersionControlState(processGroup.getId(), VersionControlInformationDTO.UP_TO_DATE);
     }
 
     /**
@@ -738,5 +769,26 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertEquals(vci.getVersionControlInformation().getFlowId(), groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getFlowId());
         assertEquals(vci.getVersionControlInformation().getVersion(), groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getVersion());
         assertEquals("UP_TO_DATE", groupAfterSetVersionInfo.getComponent().getVersionControlInformation().getState());
+    }
+
+    private void waitForVersionControlState(final String processGroupId, final String expectedState) throws InterruptedException {
+        final long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(VERSION_CONTROL_SYNC_TIMEOUT_SECONDS);
+        String observedState = null;
+
+        while (System.currentTimeMillis() < deadline) {
+            observedState = getClientUtil().getVersionControlState(processGroupId);
+            if (expectedState.equals(observedState)) {
+                return;
+            }
+
+            if (VersionControlInformationDTO.LOCALLY_MODIFIED.equals(observedState) || "LOCALLY_MODIFIED_AND_STALE".equals(observedState)) {
+                throw new AssertionError(String.format("Process Group [%s] should not become locally modified during restart synchronization; observed state [%s]", processGroupId, observedState));
+            }
+
+            Thread.sleep(100L);
+        }
+
+        throw new AssertionError(String.format("Timed out after %d seconds waiting for Process Group [%s] Version Control state [%s]; last observed state [%s]",
+                VERSION_CONTROL_SYNC_TIMEOUT_SECONDS, processGroupId, expectedState, observedState));
     }
 }

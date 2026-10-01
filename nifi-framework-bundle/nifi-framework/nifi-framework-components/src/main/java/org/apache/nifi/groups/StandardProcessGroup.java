@@ -28,6 +28,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -3880,16 +3881,26 @@ public final class StandardProcessGroup implements ProcessGroup {
             return;
         }
 
+        final ValidationStatus validationStatus = flowRegistry.getValidationStatus();
+
+        if (validationStatus == ValidationStatus.VALIDATING) {
+            LOG.debug("Skipping synchronization of {} with Flow Registry Client {} because validation is in progress", this, flowRegistry);
+            return;
+        }
+
+        if (validationStatus == ValidationStatus.INVALID) {
+            final String message = buildValidationFailureExplanation(flowRegistry);
+            versionControlFields.setSyncFailureExplanation(message);
+
+            LOG.error("{} for {}", message, this);
+            return;
+        }
+
         final VersionedProcessGroup snapshot = vci.getFlowSnapshot();
         if (snapshot == null && vci.getVersion() != null) {
             // We have not yet obtained the snapshot from the Flow Registry, so we need to request the snapshot of our local version of the flow from the Flow Registry.
             // This allows us to know whether or not the flow has been modified since it was last synced with the Flow Registry.
             try {
-                final ValidationStatus validationStatus = flowRegistry.getValidationStatus(10, TimeUnit.SECONDS);
-                if (validationStatus == ValidationStatus.VALIDATING) {
-                    throw new FlowRegistryException(flowRegistry + " cannot currently be used to synchronize with Flow Registry because it is currently validating");
-                }
-
                 final FlowVersionLocation flowVersionLocation = new FlowVersionLocation(vci.getBranch(), vci.getBucketIdentifier(), vci.getFlowIdentifier(), vci.getVersion());
                 final FlowSnapshotContainer registrySnapshotContainer = flowRegistry.getFlowContents(
                         FlowRegistryClientContextFactory.getAnonymousContext(), flowVersionLocation, false);
@@ -3897,8 +3908,9 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final VersionedProcessGroup registryFlow = registrySnapshot.getFlowContents();
                 vci.setFlowSnapshot(registryFlow);
             } catch (final IOException | FlowRegistryException e) {
-                final String message = String.format("Failed to synchronize Process Group with Flow Registry because could not retrieve version %s of flow with identifier %s in bucket %s",
-                    vci.getVersion(), vci.getFlowIdentifier(), vci.getBucketIdentifier());
+                final String message = appendExceptionMessage(String.format(
+                    "Failed to synchronize Process Group with Flow Registry because could not retrieve version %s of flow with identifier %s in bucket %s",
+                    vci.getVersion(), vci.getFlowIdentifier(), vci.getBucketIdentifier()), e);
                 versionControlFields.setSyncFailureExplanation(message);
 
                 final String logErrorMessage = "Failed to synchronize {} with Flow Registry because could not retrieve version {} of flow with identifier {} in bucket {}";
@@ -3943,6 +3955,30 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             LOG.error("Failed to synchronize {} with Flow Registry because could not determine the most recent version of the Flow in the Flow Registry", this, e);
         }
+    }
+
+    private String buildValidationFailureExplanation(final FlowRegistryClientNode flowRegistry) {
+        final Collection<ValidationResult> validationResults = flowRegistry.getValidationErrors();
+        final String validationErrors = validationResults == null ? null : validationResults.stream()
+            .map(validationResult -> StringUtils.isNotBlank(validationResult.getExplanation()) ? validationResult.getExplanation() : validationResult.toString())
+            .filter(StringUtils::isNotBlank)
+            .collect(Collectors.joining("; "));
+
+        final String message = "Failed to synchronize Process Group with Flow Registry because the Flow Registry failed validation";
+        if (StringUtils.isBlank(validationErrors)) {
+            return message;
+        }
+
+        return message + ": " + validationErrors;
+    }
+
+    private String appendExceptionMessage(final String message, final Exception exception) {
+        final String exceptionMessage = exception.getMessage();
+        if (StringUtils.isBlank(exceptionMessage)) {
+            return message;
+        }
+
+        return message + ": " + exceptionMessage;
     }
 
     @Override
