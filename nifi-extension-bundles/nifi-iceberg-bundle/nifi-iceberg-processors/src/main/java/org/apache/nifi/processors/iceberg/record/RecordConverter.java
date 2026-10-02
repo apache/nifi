@@ -18,13 +18,16 @@ package org.apache.nifi.processors.iceberg.record;
 
 import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
+import org.apache.iceberg.util.ByteBuffers;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -64,7 +67,7 @@ class RecordConverter {
         final Record convertedRecord;
 
         final RecordSchema recordSchema = inputRecord.getSchema();
-        if (isConversionRequired(recordSchema)) {
+        if (isConversionRequired(recordSchema) || isUuidConversionRequired(struct)) {
             final Map<String, Object> values = inputRecord.toMap();
             final Map<String, Object> convertedValues = new LinkedHashMap<>(values.size());
             for (final Map.Entry<String, Object> entry : values.entrySet()) {
@@ -86,7 +89,7 @@ class RecordConverter {
             case Timestamp timestamp -> convertTimestamp(timestamp, icebergType);
             case Date date -> date.toLocalDate();
             case Time time -> time.toLocalTime();
-            // Recursively convert complex types against the matching Iceberg type
+            // Recursively convert complex types and convert binary and UUID values against the matching Iceberg type
             case null, default -> convertComplexValue(value, icebergType);
         };
     }
@@ -120,12 +123,13 @@ class RecordConverter {
     }
 
     /**
-     * Recursively convert array, collection, nested record, and map values against the matching Iceberg type
+     * Recursively convert array, collection, nested record, and map values against the matching Iceberg type, and convert
+     * values for Iceberg primitive types that require specific Java types
      *
      * @param value Field value to be converted
      * @param icebergType Iceberg Type describing the target field type (may be null when not resolved)
-     * @return Converted value or the input value when the Iceberg Type is unknown or does not describe a complex
-     * type matching the value
+     * @return Converted value or the input value when the Iceberg Type is unknown or does not require conversion of the
+     * value
      */
     private static Object convertComplexValue(final Object value, final Type icebergType) {
         final Object convertedValue;
@@ -139,7 +143,7 @@ class RecordConverter {
         } else if (icebergType.isMapType() && value instanceof Map<?, ?> map) {
             convertedValue = convertMap(map, icebergType.asMapType());
         } else {
-            convertedValue = value;
+            convertedValue = convertPrimitiveValue(value, icebergType);
         }
 
         return convertedValue;
@@ -181,6 +185,47 @@ class RecordConverter {
         return converted;
     }
 
+    /**
+     * Convert byte array and UUID values to the Java types that Apache Iceberg requires for the matching primitive type.
+     * Record Readers provide bytes as byte arrays or as Object arrays of Byte elements, and UUIDs as Strings or byte arrays.
+     *
+     * @param value Field value to be converted
+     * @param icebergType Iceberg Type describing the target field type
+     * @return ByteBuffer for binary, geometry, and geography types, byte array for fixed types, UUID for uuid types, or the
+     * input value when the Iceberg Type does not require conversion of the value
+     */
+    private static Object convertPrimitiveValue(final Object value, final Type icebergType) {
+        return switch (icebergType.typeId()) {
+            // Geometry and geography values are encoded as Well-Known Binary
+            case BINARY, GEOMETRY, GEOGRAPHY -> switch (value) {
+                case byte[] bytes -> ByteBuffer.wrap(bytes);
+                case Object[] array -> ByteBuffer.wrap(toByteArray(array));
+                case null, default -> value;
+            };
+            case FIXED -> switch (value) {
+                case Object[] array -> toByteArray(array);
+                case ByteBuffer buffer -> ByteBuffers.toByteArray(buffer);
+                case null, default -> value;
+            };
+            case UUID -> switch (value) {
+                case String string -> DataTypeUtils.toUUID(string);
+                case byte[] bytes -> DataTypeUtils.toUUID(bytes);
+                case Object[] array -> DataTypeUtils.toUUID(toByteArray(array));
+                case null, default -> value;
+            };
+            default -> value;
+        };
+    }
+
+    private static byte[] toByteArray(final Object[] array) {
+        final byte[] bytes = new byte[array.length];
+        for (int index = 0; index < array.length; index++) {
+            bytes[index] = (Byte) array[index];
+        }
+
+        return bytes;
+    }
+
     private static Type fieldType(final Types.StructType struct, final String fieldName) {
         final Types.NestedField nestedField = struct == null ? null : struct.field(fieldName);
         return nestedField == null ? null : nestedField.type();
@@ -191,5 +236,18 @@ class RecordConverter {
                 .map(RecordField::getDataType)
                 .map(DataType::getFieldType)
                 .anyMatch(CONVERSION_REQUIRED_FIELD_TYPES::contains);
+    }
+
+    /**
+     * Determine whether the Iceberg Struct Type contains uuid fields, which require conversion of String values that do
+     * not otherwise require Record conversion
+     *
+     * @param struct Iceberg Struct Type describing the target field types (may be null for scalar-only conversion)
+     * @return UUID conversion required status
+     */
+    private static boolean isUuidConversionRequired(final Types.StructType struct) {
+        return struct != null && struct.fields().stream()
+                .map(Types.NestedField::type)
+                .anyMatch(type -> type.typeId() == Type.TypeID.UUID);
     }
 }
