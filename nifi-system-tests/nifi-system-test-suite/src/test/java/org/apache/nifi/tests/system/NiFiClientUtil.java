@@ -2912,6 +2912,7 @@ public class NiFiClientUtil {
         final ProcessGroupEntity current = nifiClient.getProcessGroupClient().getProcessGroup(group.getId());
         current.getComponent().setStatelessFlowFileContentInMemoryMax(inMemoryContentMax);
         current.getComponent().setStatelessFlowFileContentInMemoryHeapPercentage("");
+        current.getComponent().setVersionControlInformation(null);
         return nifiClient.getProcessGroupClient().updateProcessGroup(current);
     }
 

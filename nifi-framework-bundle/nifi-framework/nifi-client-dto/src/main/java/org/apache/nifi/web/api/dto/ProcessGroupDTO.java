@@ -449,7 +449,8 @@ public class ProcessGroupDTO extends ComponentDTO {
     }
 
     @Schema(description = "The maximum percentage of the Java heap to use for buffering FlowFile content when the flow is run using the Stateless Engine. " +
-        "The value must be greater than 0 and no more than 90. An empty value means this limit is not configured. When both this value and the in-memory content maximum data size " +
+        "The value must be at least 0 and no more than 90. A value of 0 means zero percent. An empty value means this limit is not configured. " +
+        "When both this value and the in-memory content maximum data size " +
         "are set, the smaller of the two limits is used.")
     public String getStatelessFlowFileContentInMemoryHeapPercentage() {
         return statelessFlowFileContentInMemoryHeapPercentage;

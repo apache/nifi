@@ -333,7 +333,7 @@ export class EditProcessGroup extends TabbedDialog {
         }
 
         const percentage = Number(control.value);
-        if (!Number.isInteger(percentage) || percentage <= 0 || percentage > EditProcessGroup.MAXIMUM_HEAP_PERCENTAGE) {
+        if (!Number.isInteger(percentage) || percentage < 0 || percentage > EditProcessGroup.MAXIMUM_HEAP_PERCENTAGE) {
             return { heapPercentage: true };
         }
 

@@ -594,8 +594,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         if (heapPercentage != null && !heapPercentage.isBlank()) {
             try {
                 final int parsedHeapPercentage = Integer.parseInt(heapPercentage.trim());
-                if (parsedHeapPercentage <= 0 || parsedHeapPercentage > 90) {
-                    throw new IllegalArgumentException("Max In-Memory Heap Percentage must be greater than 0 and no more than 90: " + heapPercentage);
+                if (parsedHeapPercentage < 0 || parsedHeapPercentage > 90) {
+                    throw new IllegalArgumentException("Max In-Memory Heap Percentage must be at least 0 and no more than 90: " + heapPercentage);
                 }
             } catch (final NumberFormatException e) {
                 throw new IllegalArgumentException("Max In-Memory Heap Percentage must be a whole number: " + heapPercentage);

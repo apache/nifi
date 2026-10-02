@@ -4881,8 +4881,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private static void validateHeapPercentage(final Integer heapPercentage) {
-        if (heapPercentage != null && (heapPercentage <= 0 || heapPercentage > MAX_HEAP_PERCENTAGE)) {
-            throw new IllegalArgumentException("Heap percentage must be greater than 0 and no more than " + MAX_HEAP_PERCENTAGE + ": " + heapPercentage);
+        if (heapPercentage != null && (heapPercentage < 0 || heapPercentage > MAX_HEAP_PERCENTAGE)) {
+            throw new IllegalArgumentException("Heap percentage must be at least 0 and no more than " + MAX_HEAP_PERCENTAGE + ": " + heapPercentage);
         }
     }
 
