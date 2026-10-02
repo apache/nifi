@@ -16,7 +16,7 @@
  */
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { selectRouteParams } from '@nifi/shared';
+import { ConnectionEntity, Position, selectRouteParams } from '@nifi/shared';
 import { ConnectorCanvasState, connectorCanvasFeatureKey } from './index';
 
 export const selectConnectorCanvasState = createFeatureSelector<ConnectorCanvasState>(connectorCanvasFeatureKey);
@@ -55,9 +55,9 @@ export const selectProcessGroups = createSelector(selectConnectorCanvasState, (s
 
 export const selectConnections = createSelector(selectConnectorCanvasState, (state) =>
     // Deep copy connections to prevent state mutation
-    state.connections.map((conn: any) => ({
+    state.connections.map((conn: ConnectionEntity) => ({
         ...conn,
-        bends: conn.bends ? [...conn.bends.map((b: any) => ({ ...b }))] : []
+        bends: conn.bends ? [...conn.bends.map((bend: Position) => ({ ...bend }))] : []
     }))
 );
 
@@ -87,22 +87,26 @@ export const selectConnectorParameterContext = createSelector(
 
 // Entity-by-id factory selectors for provenance eligibility checks
 export const selectProcessor = (id: string) =>
-    createSelector(selectProcessors, (processors) => processors.find((p: any) => p.id === id));
+    createSelector(selectProcessors, (processors) => processors.find((processor) => processor.id === id));
 
 export const selectInputPort = (id: string) =>
-    createSelector(selectInputPorts, (ports) => ports.find((p: any) => p.id === id));
+    createSelector(selectInputPorts, (ports) => ports.find((port) => port.id === id));
 
 export const selectOutputPort = (id: string) =>
-    createSelector(selectOutputPorts, (ports) => ports.find((p: any) => p.id === id));
+    createSelector(selectOutputPorts, (ports) => ports.find((port) => port.id === id));
 
 export const selectConnection = (id: string) =>
-    createSelector(selectConnections, (connections) => connections.find((c: any) => c.id === id));
+    createSelector(selectConnections, (connections) => connections.find((connection) => connection.id === id));
 
 export const selectRemoteProcessGroup = (id: string) =>
-    createSelector(selectRemoteProcessGroups, (rpgs) => rpgs.find((r: any) => r.id === id));
+    createSelector(selectRemoteProcessGroups, (remoteProcessGroups) =>
+        remoteProcessGroups.find((remoteProcessGroup) => remoteProcessGroup.id === id)
+    );
 
 export const selectProcessGroup = (id: string) =>
-    createSelector(selectProcessGroups, (pgs) => pgs.find((pg: any) => pg.id === id));
+    createSelector(selectProcessGroups, (processGroups) =>
+        processGroups.find((processGroup) => processGroup.id === id)
+    );
 
 export const selectFunnel = (id: string) =>
-    createSelector(selectFunnels, (funnels) => funnels.find((f: any) => f.id === id));
+    createSelector(selectFunnels, (funnels) => funnels.find((funnel) => funnel.id === id));

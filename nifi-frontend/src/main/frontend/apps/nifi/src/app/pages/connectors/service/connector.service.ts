@@ -23,7 +23,12 @@ import { Client } from '../../../service/client.service';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import { ConnectorsResponse, CreateConnectorRequest } from '../state';
 import { ConnectorEntity } from '@nifi/shared';
-import { ControllerServiceEntity, ParameterContextEntity, SearchResultsEntity } from '../../../state/shared';
+import {
+    ControllerServiceEntity,
+    ParameterContextEntity,
+    ProcessGroupFlowEntity,
+    SearchResultsEntity
+} from '../../../state/shared';
 import { DropRequestEntity } from '../../../state/empty-queue';
 
 @Injectable({ providedIn: 'root' })
@@ -112,8 +117,8 @@ export class ConnectorService {
         });
     }
 
-    getConnectorFlow(connectorId: string, processGroupId: string): Observable<any> {
-        return this.httpClient.get(
+    getConnectorFlow(connectorId: string, processGroupId: string): Observable<ProcessGroupFlowEntity> {
+        return this.httpClient.get<ProcessGroupFlowEntity>(
             `${ConnectorService.API}/connectors/${connectorId}/flow/process-groups/${processGroupId}`
         );
     }
