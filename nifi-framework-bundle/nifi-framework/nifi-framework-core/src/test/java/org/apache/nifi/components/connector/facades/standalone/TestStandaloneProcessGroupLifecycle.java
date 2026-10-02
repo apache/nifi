@@ -21,11 +21,16 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.connector.components.ComponentHierarchyScope;
 import org.apache.nifi.components.connector.components.StatelessGroupLifecycle;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.mock.MockProcessGroup;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +38,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -46,11 +53,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class TestStandaloneProcessGroupLifecycle {
 
     private static final String SERVICE_ID = "service-1";
@@ -94,7 +104,43 @@ class TestStandaloneProcessGroupLifecycle {
     @BeforeEach
     void setUp() {
         lifecycle = new StandaloneProcessGroupLifecycle(processGroup, controllerServiceProvider, statelessGroupLifecycle, id -> null);
-        lenient().when(processGroup.getProcessGroups()).thenReturn(Collections.emptySet());
+        when(processGroup.getProcessGroups()).thenReturn(Collections.emptySet());
+    }
+
+    @Test
+    void testStartProcessorsIncludesStandardGroupsOnly() throws Exception {
+        final MockProcessGroup rootGroup = spy(new MockProcessGroup(null, "root"));
+        final MockProcessGroup standardChildGroup = spy(new MockProcessGroup(null, "standard"));
+        final MockProcessGroup statelessChildGroup = spy(new MockProcessGroup(null, "stateless"));
+        final MockProcessGroup inheritedStatelessChildGroup = spy(new MockProcessGroup(null, "inherited-stateless"));
+        final ProcessorNode rootProcessor = createStartableProcessor(rootGroup);
+        final ProcessorNode standardChildProcessor = createStartableProcessor(standardChildGroup);
+        final ProcessorNode statelessChildProcessor = createStartableProcessor(statelessChildGroup);
+        final ProcessorNode inheritedStatelessChildProcessor = createStartableProcessor(inheritedStatelessChildGroup);
+
+        rootGroup.setExecutionEngine(ExecutionEngine.STANDARD);
+        standardChildGroup.setExecutionEngine(ExecutionEngine.INHERITED);
+        statelessChildGroup.setExecutionEngine(ExecutionEngine.STATELESS);
+        inheritedStatelessChildGroup.setExecutionEngine(ExecutionEngine.INHERITED);
+
+        rootGroup.addProcessor(rootProcessor);
+        standardChildGroup.addProcessor(standardChildProcessor);
+        statelessChildGroup.addProcessor(statelessChildProcessor);
+        inheritedStatelessChildGroup.addProcessor(inheritedStatelessChildProcessor);
+        statelessChildGroup.addProcessGroup(inheritedStatelessChildGroup);
+        rootGroup.addProcessGroup(standardChildGroup);
+        rootGroup.addProcessGroup(statelessChildGroup);
+
+        final StandaloneProcessGroupLifecycle rootLifecycle = new StandaloneProcessGroupLifecycle(
+            rootGroup, controllerServiceProvider, statelessGroupLifecycle, id -> null);
+
+        rootLifecycle.startProcessors(ComponentHierarchyScope.INCLUDE_CHILD_GROUPS).get();
+
+        verify(rootGroup).startProcessor(rootProcessor, true);
+        verify(standardChildGroup).startProcessor(standardChildProcessor, true);
+        verify(statelessChildGroup, never()).startProcessor(statelessChildProcessor, true);
+        verify(inheritedStatelessChildGroup, never()).startProcessor(inheritedStatelessChildProcessor, true);
+        verify(rootGroup, never()).findAllProcessors();
     }
 
     @Test
@@ -244,6 +290,16 @@ class TestStandaloneProcessGroupLifecycle {
         assertEquals(1, result.size());
     }
 
+    private ProcessorNode createStartableProcessor(final ProcessGroup owningGroup) {
+        final ProcessorNode processor = mock(ProcessorNode.class);
+        final String processorIdentifier = owningGroup.getIdentifier() + "-processor";
+        when(processor.getIdentifier()).thenReturn(processorIdentifier);
+        when(processor.getValidationStatus()).thenReturn(ValidationStatus.VALID);
+        when(processor.getScheduledState()).thenReturn(ScheduledState.STOPPED);
+        when(processor.getProcessGroup()).thenReturn(owningGroup);
+        return processor;
+    }
+
     /**
      * Creates a mock ProcessorNode with the given property descriptors and effective property values.
      * The mock is configured with a ValidationContext whose isDependencySatisfied calls the real default
@@ -255,8 +311,8 @@ class TestStandaloneProcessGroupLifecycle {
         when(processor.getPropertyDescriptors()).thenReturn(descriptors);
 
         for (final PropertyDescriptor descriptor : descriptors) {
-            lenient().when(processor.getPropertyDescriptor(descriptor.getName())).thenReturn(descriptor);
-            lenient().when(processor.getEffectivePropertyValue(descriptor)).thenReturn(effectiveValues.get(descriptor));
+            when(processor.getPropertyDescriptor(descriptor.getName())).thenReturn(descriptor);
+            when(processor.getEffectivePropertyValue(descriptor)).thenReturn(effectiveValues.get(descriptor));
         }
 
         // Build the effective property value map for creating the validation context
@@ -278,13 +334,13 @@ class TestStandaloneProcessGroupLifecycle {
             final String value = effectiveValues.get(descriptor);
             if (value != null) {
                 final PropertyValue propertyValue = mock(PropertyValue.class);
-                lenient().when(propertyValue.getValue()).thenReturn(value);
-                lenient().when(validationContext.getProperty(descriptor)).thenReturn(propertyValue);
+                when(propertyValue.getValue()).thenReturn(value);
+                when(validationContext.getProperty(descriptor)).thenReturn(propertyValue);
             }
         }
 
-        lenient().when(processor.getAnnotationData()).thenReturn(null);
-        lenient().when(processor.getParameterLookup()).thenReturn(ParameterLookup.EMPTY);
+        when(processor.getAnnotationData()).thenReturn(null);
+        when(processor.getParameterLookup()).thenReturn(ParameterLookup.EMPTY);
         when(processor.createValidationContext(any(Map.class), any(), any(ParameterLookup.class), anyBoolean())).thenReturn(validationContext);
 
         return processor;
