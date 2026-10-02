@@ -21,6 +21,7 @@ import org.apache.nifi.toolkit.cli.impl.command.AbstractCommandGroup;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.access.GetAccessToken;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.access.GetAccessTokenSpnego;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.access.LogoutAccessToken;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.connectors.ChangeVersionConnector;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.cs.CreateControllerService;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.cs.DisableControllerServices;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.cs.EnableControllerServices;
@@ -234,6 +235,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new GetControllerConfiguration());
         commands.add(new UpdateControllerConfiguration());
         commands.add(new ChangeVersionProcessor());
+        commands.add(new ChangeVersionConnector());
         commands.add(new ProcessorStart());
         commands.add(new ProcessorRunOnce());
         commands.add(new ProcessorClearState());

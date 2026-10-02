@@ -23,18 +23,31 @@ import { ConnectorsListingEffects } from './connectors-listing.effects';
 import { ConnectorService } from '../../service/connector.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { Client } from '../../../../service/client.service';
+import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CreateConnector } from '../../ui/create-connector/create-connector.component';
-import { ConnectorAction, ConnectorActionName, ConnectorEntity, ConnectorStatus, YesNoDialog } from '@nifi/shared';
+import {
+    Bundle,
+    ConnectorAction,
+    ConnectorActionName,
+    ConnectorEntity,
+    ConnectorStatus,
+    YesNoDialog
+} from '@nifi/shared';
+import { ChangeConnectorVersionRequest } from '../index';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorContextKey } from '../../../../state/error';
 import { selectLoadedTimestamp, selectSaving } from './connectors-listing.selectors';
+import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import {
     cancelConnectorDrain,
     cancelConnectorDrainSuccess,
+    changeConnectorVersion,
+    changeConnectorVersionApiError,
+    changeConnectorVersionSuccess,
     connectorsListingBannerApiError,
     createConnector,
     createConnectorSuccess,
@@ -48,6 +61,7 @@ import {
     loadConnectorsListingError,
     loadConnectorsListingSuccess,
     navigateToConfigureConnector,
+    openChangeConnectorVersionDialog,
     openNewConnectorDialog,
     promptConnectorDeletion,
     promptDiscardConnectorConfig,
@@ -110,8 +124,25 @@ describe('ConnectorsListingEffects', () => {
         };
     }
 
+    function createChangeVersionRequest(
+        connector: ConnectorEntity,
+        bundle: Bundle = connector.component.bundle
+    ): ChangeConnectorVersionRequest {
+        return {
+            id: connector.id,
+            uri: connector.uri,
+            payload: {
+                revision: connector.revision,
+                component: {
+                    id: connector.id,
+                    bundle
+                }
+            }
+        };
+    }
+
     function createMockDialogRef(data: Record<string, Observable<unknown> | Subject<unknown>> = {}) {
-        return { componentInstance: data, afterClosed: () => new Subject<void>() };
+        return { componentInstance: data, afterClosed: () => new Subject<void>(), close: vi.fn() };
     }
 
     async function setup(
@@ -127,6 +158,7 @@ describe('ConnectorsListingEffects', () => {
             createConnector: vi.fn(),
             deleteConnector: vi.fn(),
             updateConnector: vi.fn(),
+            changeConnectorVersion: vi.fn(),
             updateConnectorRunStatus: vi.fn(),
             discardConnectorWorkingConfiguration: vi.fn(),
             drainConnector: vi.fn(),
@@ -151,6 +183,10 @@ describe('ConnectorsListingEffects', () => {
             navigate: vi.fn()
         };
 
+        const mockExtensionTypesService = {
+            getConnectorVersionsForType: vi.fn()
+        };
+
         await TestBed.configureTestingModule({
             providers: [
                 ConnectorsListingEffects,
@@ -166,7 +202,8 @@ describe('ConnectorsListingEffects', () => {
                 { provide: ErrorHelper, useValue: mockErrorHelper },
                 { provide: Client, useValue: mockClient },
                 { provide: MatDialog, useValue: mockDialog },
-                { provide: Router, useValue: mockRouter }
+                { provide: Router, useValue: mockRouter },
+                { provide: ExtensionTypesService, useValue: mockExtensionTypesService }
             ]
         }).compileComponents();
 
@@ -183,7 +220,8 @@ describe('ConnectorsListingEffects', () => {
             mockErrorHelper,
             mockClient,
             mockDialog,
-            mockRouter
+            mockRouter,
+            mockExtensionTypesService
         };
     }
 
@@ -564,6 +602,132 @@ describe('ConnectorsListingEffects', () => {
 
                     effects.renameConnector$.subscribe((action) => {
                         expect(action).toEqual(renameConnectorApiError({ error: 'Error message' }));
+                        resolve();
+                    });
+                });
+            }));
+    });
+
+    describe('openChangeConnectorVersionDialog$', () => {
+        it('should open the dialog and dispatch the selected version', () =>
+            new Promise<void>((resolve) => {
+                setup().then(({ effects, store, actions$, mockDialog, mockExtensionTypesService }) => {
+                    const connector = createMockConnector();
+                    const request = {
+                        id: connector.id,
+                        uri: connector.uri,
+                        revision: connector.revision,
+                        type: connector.component.type,
+                        bundle: connector.component.bundle
+                    };
+                    const selectedBundle = {
+                        group: 'org.apache.nifi',
+                        artifact: 'nifi-test-nar',
+                        version: '2.0.0'
+                    };
+                    const changeVersion = new Subject<{ bundle: typeof selectedBundle }>();
+                    const dialogRef = createMockDialogRef({ changeVersion });
+                    (mockExtensionTypesService.getConnectorVersionsForType as Mock).mockReturnValue(
+                        of({ connectorTypes: [] })
+                    );
+                    (mockDialog.open as Mock).mockReturnValue(dialogRef);
+                    const dispatchSpy = vi.spyOn(store, 'dispatch');
+                    actions$(of(openChangeConnectorVersionDialog({ request })));
+
+                    effects.openChangeConnectorVersionDialog$.subscribe(() => {
+                        expect(mockExtensionTypesService.getConnectorVersionsForType).toHaveBeenCalledWith(
+                            request.type,
+                            request.bundle
+                        );
+                        expect(mockDialog.open).toHaveBeenCalledWith(
+                            ChangeComponentVersionDialog,
+                            expect.objectContaining({
+                                data: {
+                                    fetchRequest: request,
+                                    componentVersions: []
+                                }
+                            })
+                        );
+
+                        changeVersion.next({ bundle: selectedBundle });
+                        expect(dispatchSpy).toHaveBeenCalledWith(
+                            changeConnectorVersion({
+                                request: {
+                                    id: request.id,
+                                    uri: request.uri,
+                                    payload: {
+                                        component: {
+                                            bundle: selectedBundle,
+                                            id: request.id
+                                        },
+                                        revision: request.revision
+                                    }
+                                }
+                            })
+                        );
+                        expect(dialogRef.close).toHaveBeenCalled();
+                        resolve();
+                    });
+                });
+            }));
+    });
+
+    describe('changeConnectorVersion$', () => {
+        it('should change connector version successfully', () =>
+            new Promise<void>((resolve) => {
+                setup().then(({ effects, actions$, mockConnectorService }) => {
+                    const mockConnector = createMockConnector();
+                    const updatedConnector = {
+                        ...mockConnector,
+                        component: {
+                            ...mockConnector.component,
+                            bundle: {
+                                group: 'org.apache.nifi',
+                                artifact: 'nifi-test-nar',
+                                version: '2.0.0'
+                            }
+                        }
+                    };
+                    const request = createChangeVersionRequest(mockConnector);
+                    (mockConnectorService.changeConnectorVersion as Mock).mockReturnValue(of(updatedConnector));
+                    actions$(of(changeConnectorVersion({ request })));
+
+                    effects.changeConnectorVersion$.subscribe((action) => {
+                        expect(mockConnectorService.changeConnectorVersion).toHaveBeenCalledWith(request);
+                        expect(action).toEqual(
+                            changeConnectorVersionSuccess({ response: { connector: updatedConnector } })
+                        );
+                        resolve();
+                    });
+                });
+            }));
+
+        it('should handle error when changing connector version', () =>
+            new Promise<void>((resolve) => {
+                setup().then(({ effects, actions$, mockConnectorService }) => {
+                    const mockConnector = createMockConnector();
+                    const errorResponse = new HttpErrorResponse({ error: 'Error', status: 500, statusText: 'ISE' });
+                    (mockConnectorService.changeConnectorVersion as Mock).mockReturnValue(
+                        throwError(() => errorResponse)
+                    );
+                    actions$(of(changeConnectorVersion({ request: createChangeVersionRequest(mockConnector) })));
+
+                    effects.changeConnectorVersion$.subscribe((action) => {
+                        expect(action).toEqual(changeConnectorVersionApiError({ error: 'Error message' }));
+                        resolve();
+                    });
+                });
+            }));
+    });
+
+    describe('changeConnectorVersionApiError$', () => {
+        it('should dispatch snackbar error', () =>
+            new Promise<void>((resolve) => {
+                setup().then(({ effects, actions$ }) => {
+                    actions$(of(changeConnectorVersionApiError({ error: 'Version change failed' })));
+
+                    effects.changeConnectorVersionApiError$.subscribe((action) => {
+                        expect(action).toEqual(ErrorActions.snackBarError({ error: 'Version change failed' }));
                         resolve();
                     });
                 });

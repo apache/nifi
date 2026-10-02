@@ -19,6 +19,7 @@ import { createAction, props } from '@ngrx/store';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
     CancelDrainConnectorRequest,
+    ChangeConnectorVersionRequest,
     ConfigureConnectorRequest,
     ConnectorActionSuccess,
     CreateConnectorRequest,
@@ -38,6 +39,7 @@ import {
     ViewConnectorRequest
 } from '../index';
 import { ConnectorEntity } from '@nifi/shared';
+import { FetchComponentVersionsRequest } from '../../../../state/shared';
 
 export const resetConnectorsListingState = createAction('[Connectors Listing] Reset Connectors Listing State');
 
@@ -147,6 +149,26 @@ export const renameConnectorSuccess = createAction(
 
 export const renameConnectorApiError = createAction(
     '[Connectors Listing] Rename Connector Api Error',
+    props<{ error: string }>()
+);
+
+export const openChangeConnectorVersionDialog = createAction(
+    '[Connectors Listing] Open Change Connector Version Dialog',
+    props<{ request: FetchComponentVersionsRequest }>()
+);
+
+export const changeConnectorVersion = createAction(
+    '[Connectors Listing] Change Connector Version',
+    props<{ request: ChangeConnectorVersionRequest }>()
+);
+
+export const changeConnectorVersionSuccess = createAction(
+    '[Connectors Listing] Change Connector Version Success',
+    props<{ response: ConnectorActionSuccess }>()
+);
+
+export const changeConnectorVersionApiError = createAction(
+    '[Connectors Listing] Change Connector Version Api Error',
     props<{ error: string }>()
 );
 

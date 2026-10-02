@@ -17,7 +17,14 @@
 
 import { TestBed } from '@angular/core/testing';
 import { ConnectorTable } from './connector-table.component';
-import { ConnectorAction, ConnectorActionName, ConnectorEntity, ConnectorStatus, NiFiCommon } from '@nifi/shared';
+import {
+    ConnectorAction,
+    ConnectorActionName,
+    ConnectorEntity,
+    ConnectorState,
+    ConnectorStatus,
+    NiFiCommon
+} from '@nifi/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
 import { FlowConfiguration } from '../../../../state/flow-configuration';
@@ -49,6 +56,8 @@ describe('ConnectorTable', () => {
             validationErrors?: string[];
             validationStatus?: string;
             availableActions?: ConnectorAction[];
+            multipleVersionsAvailable?: boolean;
+            activeThreadCount?: number;
         } = {}
     ): ConnectorEntity {
         const defaultActions: ConnectorAction[] = options.availableActions ?? [
@@ -80,10 +89,14 @@ describe('ConnectorTable', () => {
                 managedProcessGroupId: options.managedProcessGroupId ?? 'pg-root-default',
                 validationErrors: options.validationErrors,
                 validationStatus: options.validationStatus,
-                availableActions: defaultActions
+                availableActions: defaultActions,
+                multipleVersionsAvailable: options.multipleVersionsAvailable
             },
             status: {
-                runStatus: options.state || 'STOPPED'
+                runStatus: options.state || 'STOPPED',
+                aggregateSnapshot: {
+                    activeThreadCount: options.activeThreadCount ?? 0
+                }
             } as ConnectorStatus
         };
 
@@ -344,6 +357,31 @@ describe('ConnectorTable', () => {
                 component.canStop(createMockConnector({ availableActions: [createMockAction('STOP', false)] }))
             ).toBe(false);
         });
+
+        it.each([
+            [true, true, true, ConnectorState.STOPPED, 1, false, true],
+            [false, true, true, ConnectorState.STOPPED, 0, false, false],
+            [true, false, true, ConnectorState.STOPPED, 0, false, false],
+            [true, true, false, ConnectorState.STOPPED, 0, false, false],
+            [true, true, true, ConnectorState.STOPPED, 0, true, false],
+            [true, true, true, ConnectorState.RUNNING, 0, false, false],
+            [true, true, true, ConnectorState.UPDATING, 0, false, false],
+            [true, true, true, ConnectorState.UPDATED, 0, false, true],
+            [true, true, true, ConnectorState.UPDATED, 1, false, false],
+            [true, true, true, ConnectorState.UPDATE_FAILED, 0, false, true],
+            [true, true, true, ConnectorState.UPDATE_FAILED, 1, false, false]
+        ])(
+            'should evaluate version change eligibility',
+            async (canRead, canWrite, multipleVersionsAvailable, state, activeThreadCount, saving, expected) => {
+                const { component } = await setup();
+                component.saving = saving;
+                expect(
+                    component.canChangeVersion(
+                        createMockConnector({ canRead, canWrite, multipleVersionsAvailable, state, activeThreadCount })
+                    )
+                ).toBe(expected);
+            }
+        );
 
         it('should check canDiscardConfig', async () => {
             const { component } = await setup();

@@ -17,9 +17,14 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AsyncLoadedProcessor;
+import org.apache.nifi.components.connector.Connector;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.GhostConnector;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.controller.exception.ConnectorInstantiationException;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
 import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
@@ -29,9 +34,11 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.GroupedComponent;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.PythonBundle;
 import org.apache.nifi.parameter.ParameterProvider;
@@ -46,6 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
+import java.util.Collections;
 import java.util.Set;
 
 public class StandardReloadComponent implements ReloadComponent {
@@ -376,5 +384,66 @@ public class StandardReloadComponent implements ReloadComponent {
         existingNode.resetValidationState();
         flowController.getValidationTrigger().triggerAsync(existingNode);
 
+    }
+
+    @Override
+    public void reload(final ConnectorNode existingNode, final String newType, final BundleCoordinate bundleCoordinate) throws ConnectorInstantiationException {
+        if (existingNode == null) {
+            throw new IllegalStateException("Existing ConnectorNode cannot be null");
+        }
+
+        existingNode.verifyCanReload();
+        existingNode.verifyCanUpdateBundle(bundleCoordinate);
+
+        final String id = existingNode.getIdentifier();
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+        final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
+        if (bundle == null) {
+            throw new ConnectorInstantiationException("Unable to find bundle " + bundleCoordinate.getCoordinate());
+        }
+
+        final InstanceClassLoader candidateClassLoader = extensionManager.createInstanceClassLoader(newType, id, bundle, Collections.emptySet(), false, null);
+        final Connector connector = createConnector(newType, id, candidateClassLoader, extensionManager);
+        final boolean extensionMissing = connector instanceof GhostConnector;
+
+        final StandardLoggingContext loggingContext = new StandardLoggingContext();
+        if (existingNode instanceof final GroupedComponent groupedComponent) {
+            loggingContext.setComponent(groupedComponent);
+        }
+
+        final ComponentLog componentLog = new TerminationAwareLogger(new StandardComponentLog(id, connector, loggingContext));
+        try {
+            existingNode.replaceConnector(connector, bundleCoordinate, componentLog);
+        } catch (final Exception | LinkageError e) {
+            if (!extensionMissing) {
+                extensionManager.closeURLClassLoader(id, candidateClassLoader);
+            }
+
+            throw new ConnectorInstantiationException("Failed to reload Connector of type " + newType, e);
+        }
+
+        extensionManager.removeInstanceClassLoader(id);
+        if (!extensionMissing) {
+            extensionManager.registerInstanceClassLoader(id, candidateClassLoader);
+        }
+
+        LogRepositoryFactory.getRepository(id).setLogger(componentLog);
+        existingNode.resetValidationState();
+        logger.info("Reloaded {} using bundle {}", existingNode, bundleCoordinate);
+    }
+
+    private Connector createConnector(final String type, final String identifier, final InstanceClassLoader instanceClassLoader, final ExtensionManager extensionManager) {
+        final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            final Class<?> connectorClass = Class.forName(type, true, instanceClassLoader);
+            Thread.currentThread().setContextClassLoader(instanceClassLoader);
+            return (Connector) connectorClass.getDeclaredConstructor().newInstance();
+        } catch (final Exception | LinkageError e) {
+            extensionManager.closeURLClassLoader(identifier, instanceClassLoader);
+            final Exception cause = e instanceof final Exception exception ? exception : new ConnectorInstantiationException("Failed to create Connector of type " + type, e);
+            return new GhostConnector(identifier, type, cause);
+        } finally {
+            Thread.currentThread().setContextClassLoader(contextClassLoader);
+        }
     }
 }

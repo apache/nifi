@@ -259,6 +259,17 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
     }
 
     @Override
+    public void removeStep(final String stepName) {
+        writeLock.lock();
+        try {
+            propertyConfigurations.remove(stepName);
+            resolvedPropertyConfigurations.remove(stepName);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
     public void resolvePropertyValues() {
         writeLock.lock();
         try {

@@ -101,6 +101,14 @@ public class ConnectorEntityMerger {
             return;
         }
 
+        for (final ConnectorDTO nodeConnector : dtoMap.values()) {
+            if (nodeConnector != null) {
+                if (clientDto.getMultipleVersionsAvailable() == null || !Boolean.TRUE.equals(nodeConnector.getMultipleVersionsAvailable())) {
+                    clientDto.setMultipleVersionsAvailable(Boolean.FALSE);
+                }
+            }
+        }
+
         mergeState(clientDto, dtoMap);
 
         // Merge configuration steps to handle dynamic property descriptors
