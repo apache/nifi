@@ -108,7 +108,9 @@ public class CryptographicHashContent extends AbstractProcessor {
     public void onScheduled(final ProcessContext context) {
         final HashAlgorithm algorithm = HashAlgorithm.fromName(context.getProperty(HASH_ALGORITHM).getValue());
         if (algorithm.isBlake2()) {
-            deprecationLogger.warn("{} is deprecated for removal", algorithm.getName());
+            final String algorithmName = algorithm.getName();
+            deprecationLogger.warn("{} is deprecated for removal", algorithmName);
+            getLogger().warn("{} is deprecated for removal", algorithmName);
         }
     }
 
