@@ -104,6 +104,16 @@ public enum DifferenceType {
     TIMEOUT_CHANGED("Timeout Changed"),
 
     /**
+     * The Process Group has a different maximum amount of in-memory FlowFile content for the Stateless Engine
+     */
+    STATELESS_IN_MEMORY_CONTENT_MAX_CHANGED("Stateless In-Memory Content Maximum Changed"),
+
+    /**
+     * The Process Group has a different maximum in-memory FlowFile content heap percentage for the Stateless Engine
+     */
+    STATELESS_IN_MEMORY_HEAP_PERCENTAGE_CHANGED("Stateless In-Memory Heap Percentage Changed"),
+
+    /**
      * The component has a different run schedule in each of the flows
      */
     RUN_SCHEDULE_CHANGED("Run Schedule Changed"),

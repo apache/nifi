@@ -28,6 +28,7 @@ import org.apache.nifi.controller.ClusterTopologyProvider;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.DropFlowFileState;
@@ -48,6 +49,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -56,6 +59,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -474,6 +478,120 @@ class StandardProcessGroupTest {
         pendingDrop.setState(DropFlowFileState.COMPLETE);
 
         assertTrue(completionFuture.isDone());
+    }
+
+    @Test
+    void testStatelessContentMaxHeapDefaultsToZeroBytesWithUnsetLimits() {
+        assertNull(processGroup.getStatelessContentMaxHeap());
+        assertNull(processGroup.getStatelessContentMaxHeapPercentage());
+        assertEquals(0L, processGroup.resolveStatelessContentMaxHeap());
+    }
+
+    @Test
+    void testSetStatelessContentMaxHeapParsesDataSize() {
+        processGroup.setStatelessContentMaxHeapPercentage(null);
+        processGroup.setStatelessContentMaxHeap("100 MB");
+        assertEquals("100 MB", processGroup.getStatelessContentMaxHeap());
+        assertEquals(100L * 1024 * 1024, processGroup.resolveStatelessContentMaxHeap());
+
+        processGroup.setStatelessContentMaxHeap("1 KB");
+        assertEquals(1024L, processGroup.resolveStatelessContentMaxHeap());
+
+        processGroup.setStatelessContentMaxHeap("1.5 kb");
+        assertEquals(1536L, processGroup.resolveStatelessContentMaxHeap());
+
+        processGroup.setStatelessContentMaxHeap("0 B");
+        assertEquals("0 B", processGroup.getStatelessContentMaxHeap());
+        assertEquals(0L, processGroup.resolveStatelessContentMaxHeap());
+
+        processGroup.setStatelessContentMaxHeap("   ");
+        assertNull(processGroup.getStatelessContentMaxHeap());
+        assertEquals(0L, processGroup.resolveStatelessContentMaxHeap());
+    }
+
+    @Test
+    void testSetStatelessContentMaxHeapPercentage() {
+        processGroup.setStatelessContentMaxHeapPercentage(50);
+        assertEquals(50, processGroup.getStatelessContentMaxHeapPercentage());
+        assertEquals(Runtime.getRuntime().maxMemory() / 2, processGroup.resolveStatelessContentMaxHeap());
+
+        processGroup.setStatelessContentMaxHeapPercentage(90);
+        final long expectedNinetyPercent = new BigDecimal("90")
+            .multiply(BigDecimal.valueOf(Runtime.getRuntime().maxMemory()))
+            .divide(BigDecimal.valueOf(100), 0, RoundingMode.DOWN)
+            .longValue();
+        assertEquals(expectedNinetyPercent, processGroup.resolveStatelessContentMaxHeap());
+    }
+
+    @Test
+    void testResolveStatelessContentMaxHeapUsesTheSmallerLimitWhenBothAreSet() {
+        processGroup.setStatelessContentMaxHeap("1 B");
+        processGroup.setStatelessContentMaxHeapPercentage(90);
+        assertEquals(1L, processGroup.resolveStatelessContentMaxHeap());
+
+        processGroup.setStatelessContentMaxHeap(Runtime.getRuntime().maxMemory() + " B");
+        processGroup.setStatelessContentMaxHeapPercentage(50);
+        assertEquals(Runtime.getRuntime().maxMemory() / 2, processGroup.resolveStatelessContentMaxHeap());
+    }
+
+    @Test
+    void testSetStatelessContentMaxHeapRejectsInvalidLimits() {
+        processGroup.setStatelessContentMaxHeapPercentage(null);
+        processGroup.setStatelessContentMaxHeap("1 MB");
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("not a size"));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("-1 MB"));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("limit 1 MB"));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("0.9 B"));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("999999999999999999999999999999999999999999999 TB"));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("50%"));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeapPercentage(0));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeapPercentage(91));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeapPercentage(-1));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.verifyCanSetStatelessContentMaxHeap("not a size"));
+        assertThrows(IllegalArgumentException.class, () -> processGroup.verifyCanSetStatelessContentMaxHeapPercentage(0));
+        assertEquals("1 MB", processGroup.getStatelessContentMaxHeap());
+        assertNull(processGroup.getStatelessContentMaxHeapPercentage());
+        assertEquals(1024L * 1024L, processGroup.resolveStatelessContentMaxHeap());
+    }
+
+    @Test
+    void testSetStatelessContentMaxHeapWhileRunningAllowsSameByteCount() {
+        final StatelessGroupNode statelessGroupNode = mock(StatelessGroupNode.class);
+        when(statelessGroupNodeFactory.createStatelessGroupNode(any())).thenReturn(statelessGroupNode);
+        final StandardProcessGroup runningGroup = createStandardProcessGroup("running");
+        runningGroup.setStatelessContentMaxHeapPercentage(null);
+        runningGroup.setStatelessContentMaxHeap("1 MB");
+        runningGroup.setExecutionEngine(ExecutionEngine.STATELESS);
+        when(statelessGroupNode.getCurrentState()).thenReturn(ScheduledState.RUNNING);
+
+        runningGroup.verifyCanSetStatelessContentMaxHeap("1024 KB");
+        runningGroup.setStatelessContentMaxHeap("1024 KB");
+        assertEquals("1024 KB", runningGroup.getStatelessContentMaxHeap());
+        assertThrows(IllegalStateException.class, () -> runningGroup.verifyCanSetStatelessContentMaxHeap("2 MB"));
+        assertThrows(IllegalStateException.class, () -> runningGroup.setStatelessContentMaxHeap("2 MB"));
+        assertEquals(1024L * 1024L, runningGroup.resolveStatelessContentMaxHeap());
+
+        final StandardProcessGroup childGroup = createStandardProcessGroup("child");
+        childGroup.setName("Child");
+        runningGroup.addProcessGroup(childGroup);
+        assertThrows(IllegalStateException.class, () -> childGroup.verifyCanSetStatelessContentMaxHeap("2 MB"));
+        assertThrows(IllegalStateException.class, () -> childGroup.setStatelessContentMaxHeap("2 MB"));
+
+        when(statelessGroupNode.getCurrentState()).thenReturn(ScheduledState.STOPPED);
+        runningGroup.setStatelessContentMaxHeap("2 MB");
+        assertEquals(2L * 1024L * 1024L, runningGroup.resolveStatelessContentMaxHeap());
+        runningGroup.setStatelessContentMaxHeap(null);
+        runningGroup.setStatelessContentMaxHeapPercentage(90);
+
+        when(statelessGroupNode.getCurrentState()).thenReturn(ScheduledState.RUNNING);
+        runningGroup.verifyCanSetStatelessContentMaxHeapPercentage(90);
+        runningGroup.setStatelessContentMaxHeapPercentage(90);
+        assertThrows(IllegalStateException.class, () -> runningGroup.verifyCanSetStatelessContentMaxHeapPercentage(50));
+        assertThrows(IllegalStateException.class, () -> runningGroup.setStatelessContentMaxHeapPercentage(50));
+
+        when(statelessGroupNode.getCurrentState()).thenReturn(ScheduledState.STOPPED);
+        runningGroup.setStatelessContentMaxHeapPercentage(50);
+        assertEquals(50, runningGroup.getStatelessContentMaxHeapPercentage());
     }
 
     private StandardProcessGroup createStandardProcessGroup(final String id) {

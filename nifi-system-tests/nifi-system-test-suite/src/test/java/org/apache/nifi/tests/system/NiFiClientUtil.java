@@ -1287,6 +1287,12 @@ public class NiFiClientUtil {
         return updateProcessorConfig(currentEntity, config);
     }
 
+    public ProcessorEntity updateProcessorYieldDuration(final ProcessorEntity currentEntity, final String yieldDuration) throws NiFiClientException, IOException {
+        final ProcessorConfigDTO config = new ProcessorConfigDTO();
+        config.setYieldDuration(yieldDuration);
+        return updateProcessorConfig(currentEntity, config);
+    }
+
     public ProcessorEntity updateProcessorSchedulingPeriod(final ProcessorEntity currentEntity, final String schedulingPeriod) throws NiFiClientException, IOException {
         final ProcessorConfigDTO config = new ProcessorConfigDTO();
         config.setSchedulingPeriod(schedulingPeriod);
@@ -2890,4 +2896,23 @@ public class NiFiClientUtil {
 
         return nifiClient.getProcessGroupClient().updateProcessGroup(group);
     }
+
+    public ProcessGroupEntity markStateless(final ProcessGroupEntity group, final String timeout, final String inMemoryContentMax)
+            throws NiFiClientException, IOException {
+        group.getComponent().setStatelessFlowTimeout(timeout);
+        group.getComponent().setExecutionEngine("STATELESS");
+        group.getComponent().setStatelessFlowFileContentInMemoryMax(inMemoryContentMax);
+        group.getComponent().setStatelessFlowFileContentInMemoryHeapPercentage("");
+
+        return nifiClient.getProcessGroupClient().updateProcessGroup(group);
+    }
+
+    public ProcessGroupEntity setStatelessFlowFileContentInMemoryMax(final ProcessGroupEntity group, final String inMemoryContentMax)
+            throws NiFiClientException, IOException {
+        final ProcessGroupEntity current = nifiClient.getProcessGroupClient().getProcessGroup(group.getId());
+        current.getComponent().setStatelessFlowFileContentInMemoryMax(inMemoryContentMax);
+        current.getComponent().setStatelessFlowFileContentInMemoryHeapPercentage("");
+        return nifiClient.getProcessGroupClient().updateProcessGroup(current);
+    }
+
 }

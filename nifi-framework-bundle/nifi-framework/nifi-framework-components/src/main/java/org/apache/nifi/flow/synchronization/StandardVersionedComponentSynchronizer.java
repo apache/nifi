@@ -501,6 +501,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         if (statelessTimeout != null) {
             group.setStatelessFlowTimeout(statelessTimeout);
         }
+        final String statelessFlowFileContentInMemoryMax = proposed.getStatelessFlowFileContentInMemoryMax();
+        group.setStatelessContentMaxHeap(statelessFlowFileContentInMemoryMax);
+        group.setStatelessContentMaxHeapPercentage(proposed.getStatelessFlowFileContentInMemoryHeapPercentage());
         if (proposed.getScheduledState() != null && ScheduledState.RUNNING.name().equals(proposed.getScheduledState().name())) {
             context.getComponentScheduler().startStatelessGroup(group);
         }
