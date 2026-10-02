@@ -23,7 +23,10 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
@@ -89,6 +92,8 @@ public class CryptographicHashContent extends AbstractProcessor {
             REL_SUCCESS
     );
 
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(CryptographicHashContent.class);
+
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
@@ -97,6 +102,14 @@ public class CryptographicHashContent extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        final HashAlgorithm algorithm = HashAlgorithm.fromName(context.getProperty(HASH_ALGORITHM).getValue());
+        if (algorithm.isBlake2()) {
+            deprecationLogger.warn("{} is deprecated for removal", algorithm.getName());
+        }
     }
 
     @Override

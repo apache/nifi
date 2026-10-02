@@ -37,10 +37,10 @@ public enum HashAlgorithm {
     SHA3_256("SHA3-256", 32, "Keccak-based SHA3 family"),
     SHA3_384("SHA3-384", 48, "Keccak-based SHA3 family"),
     SHA3_512("SHA3-512", 64, "Keccak-based SHA3 family"),
-    BLAKE2_160("BLAKE2-160", 20, "Also known as Blake2b"),
-    BLAKE2_256("BLAKE2-256", 32, "Also known as Blake2b"),
-    BLAKE2_384("BLAKE2-384", 48, "Also known as Blake2b"),
-    BLAKE2_512("BLAKE2-512", 64, "Also known as Blake2b");
+    BLAKE2_160("BLAKE2-160", 20, "Deprecated for removal. Also known as Blake2b"),
+    BLAKE2_256("BLAKE2-256", 32, "Deprecated for removal. Also known as Blake2b"),
+    BLAKE2_384("BLAKE2-384", 48, "Deprecated for removal. Also known as Blake2b"),
+    BLAKE2_512("BLAKE2-512", 64, "Deprecated for removal. Also known as Blake2b");
 
     private final String name;
     private final int digestBytesLength;
