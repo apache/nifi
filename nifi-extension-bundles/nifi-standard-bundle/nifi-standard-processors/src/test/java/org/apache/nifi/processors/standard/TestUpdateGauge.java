@@ -22,9 +22,11 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestUpdateGauge {
     private static final String GAUGE_NAME = TestUpdateGauge.class.getSimpleName();
@@ -57,6 +59,22 @@ class TestUpdateGauge {
         runner.setProperty(UpdateGauge.GAUGE_VALUE, "${literal('')}");
 
         assertGaugeValueRecorded(INVALID_GAUGE_VALUE);
+    }
+
+    @Test
+    void testRunRecordGaugeAttributes() {
+        runner.setProperty(UpdateGauge.GAUGE_NAME, GAUGE_NAME);
+        runner.setProperty(UpdateGauge.GAUGE_VALUE, "${value}");
+        runner.setProperty("service", "payments");
+        runner.setProperty("region", "${region}");
+
+        runner.enqueue(new byte[]{}, Map.of("value", Double.toString(GAUGE_VALUE), "region", "us-west"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateGauge.SUCCESS);
+        final Map<String, String> gaugeAttributes = Map.of("service", "payments", "region", "us-west");
+        assertEquals(List.of(GAUGE_VALUE), runner.getGaugeValues(GAUGE_NAME, gaugeAttributes));
+        assertTrue(runner.getGaugeValues(GAUGE_NAME, Map.of()).isEmpty());
     }
 
     private void assertGaugeValueRecorded(final double expectedGaugeValue) {
