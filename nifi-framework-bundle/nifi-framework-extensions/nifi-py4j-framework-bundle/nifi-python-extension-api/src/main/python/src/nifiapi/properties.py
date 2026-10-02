@@ -406,11 +406,11 @@ class PropertyContext:
         el_present = java_property_value.isExpressionLanguagePresent()
         referenced_attribute = None
         if el_present:
-            trivial_match = self.__trivial_attribute_reference__.match(string_value)
+            trivial_match = self.__trivial_attribute_reference__.fullmatch(string_value)
             if trivial_match is not None:
                 referenced_attribute = trivial_match.group(1)
             else:
-                escaped_match = self.__escaped_attribute_reference__.match(string_value)
+                escaped_match = self.__escaped_attribute_reference__.fullmatch(string_value)
                 if escaped_match is not None:
                     referenced_attribute = escaped_match.group(1)
 
