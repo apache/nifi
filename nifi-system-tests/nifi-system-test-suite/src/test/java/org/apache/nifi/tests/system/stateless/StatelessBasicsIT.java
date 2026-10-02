@@ -786,6 +786,7 @@ public class StatelessBasicsIT extends NiFiSystemIT {
     @Test
     public void testChangeFlowVersion() throws NiFiClientException, IOException, InterruptedException {
         createFlowShell();
+        statelessGroup = getClientUtil().setStatelessFlowFileContentInMemoryMax(statelessGroup, "1 MB");
         final ConnectionEntity inputToOutput = getClientUtil().createConnection(inputPort, outputPort, statelessGroup.getId());
 
         final FlowRegistryClientEntity registryClient = registerClient();
@@ -800,9 +801,15 @@ public class StatelessBasicsIT extends NiFiSystemIT {
         final ProcessorEntity reverseContents = getClientUtil().createProcessor(REVERSE_CONTENTS, statelessGroup.getId());
         getClientUtil().createConnection(inputPort, reverseContents, statelessGroup.getId());
         getClientUtil().createConnection(reverseContents, outputPort, SUCCESS, statelessGroup.getId());
+        statelessGroup = getClientUtil().setStatelessFlowFileContentInMemoryMax(statelessGroup, "2 MB");
 
         // Save v2 of the flow
-        getClientUtil().saveFlowVersion(statelessGroup, registryClient, vci);
+        final VersionControlInformationEntity secondVersionInformation = getClientUtil().saveFlowVersion(statelessGroup, registryClient, vci);
+        waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getClientUtil().getVersionControlState(statelessGroup.getId())));
+
+        // Save v3 with only the in-memory limit changed
+        statelessGroup = getClientUtil().setStatelessFlowFileContentInMemoryMax(statelessGroup, "3 MB");
+        getClientUtil().saveFlowVersion(statelessGroup, registryClient, secondVersionInformation);
         waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getClientUtil().getVersionControlState(statelessGroup.getId())));
 
         // Let a FlowFile go through and verify the results
@@ -815,6 +822,7 @@ public class StatelessBasicsIT extends NiFiSystemIT {
 
         // Switch back to v1 while flow is running
         getClientUtil().changeFlowVersion(statelessGroup.getId(), "1");
+        assertEquals("1 MB", getNifiClient().getProcessGroupClient().getProcessGroup(statelessGroup.getId()).getComponent().getStatelessFlowFileContentInMemoryMax());
         getClientUtil().startProcessor(generate);
         waitForQueueCount(outputToTerminate, 2);
         assertEquals(HELLO_WORLD, getClientUtil().getFlowFileContentAsUtf8(outputToTerminate.getId(), 1));
@@ -822,8 +830,17 @@ public class StatelessBasicsIT extends NiFiSystemIT {
 
         // Switch back to v2 while flow is running
         getClientUtil().changeFlowVersion(statelessGroup.getId(), "2");
+        assertEquals("2 MB", getNifiClient().getProcessGroupClient().getProcessGroup(statelessGroup.getId()).getComponent().getStatelessFlowFileContentInMemoryMax());
         getClientUtil().startProcessor(generate);
         waitForQueueCount(outputToTerminate, 3);
         assertEquals(HELLO_WORLD_REVERSED, getClientUtil().getFlowFileContentAsUtf8(outputToTerminate.getId(), 2));
+        getClientUtil().stopProcessor(generate);
+
+        // Switch to v3 while the flow is running. Only the in-memory limit differs from v2.
+        getClientUtil().changeFlowVersion(statelessGroup.getId(), "3");
+        assertEquals("3 MB", getNifiClient().getProcessGroupClient().getProcessGroup(statelessGroup.getId()).getComponent().getStatelessFlowFileContentInMemoryMax());
+        getClientUtil().startProcessor(generate);
+        waitForQueueCount(outputToTerminate, 4);
+        assertEquals(HELLO_WORLD_REVERSED, getClientUtil().getFlowFileContentAsUtf8(outputToTerminate.getId(), 3));
     }
 }

@@ -1340,13 +1340,13 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
 
     /**
      * @return the configured maximum percentage of the Java heap to use for buffering FlowFile content when this Process Group is run using the Stateless
-     * Execution Engine. The value is greater than 0 and no more than 90. A null value means this limit is not configured.
+     * Execution Engine. The value is at least 0 and no more than 90. A value of 0 means zero percent. A null value means this limit is not configured.
      */
     Integer getStatelessContentMaxHeapPercentage();
 
     /**
      * Sets the maximum percentage of the Java heap to use for buffering FlowFile content when this Process Group is run using the Stateless Execution Engine
-     * @param heapPercentage the maximum heap percentage, greater than 0 and no more than 90. A null value means this limit is not configured.
+     * @param heapPercentage the maximum heap percentage, at least 0 and no more than 90. A null value means this limit is not configured.
      */
     void setStatelessContentMaxHeapPercentage(Integer heapPercentage);
 
@@ -1367,7 +1367,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
 
     /**
      * Verifies that the maximum in-memory FlowFile content heap percentage can be set to the given value.
-     * @param heapPercentage the maximum heap percentage, greater than 0 and no more than 90. A null value means this limit is not configured.
+     * @param heapPercentage the maximum heap percentage, at least 0 and no more than 90. A null value means this limit is not configured.
      * @throws IllegalArgumentException if the value is outside the allowed range
      * @throws IllegalStateException if the value cannot be set because the Stateless flow is running
      */

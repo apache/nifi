@@ -511,6 +511,10 @@ class StandardProcessGroupTest {
 
     @Test
     void testSetStatelessContentMaxHeapPercentage() {
+        processGroup.setStatelessContentMaxHeapPercentage(0);
+        assertEquals(0, processGroup.getStatelessContentMaxHeapPercentage());
+        assertEquals(0L, processGroup.resolveStatelessContentMaxHeap());
+
         processGroup.setStatelessContentMaxHeapPercentage(50);
         assertEquals(50, processGroup.getStatelessContentMaxHeapPercentage());
         assertEquals(Runtime.getRuntime().maxMemory() / 2, processGroup.resolveStatelessContentMaxHeap());
@@ -544,11 +548,10 @@ class StandardProcessGroupTest {
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("0.9 B"));
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("999999999999999999999999999999999999999999999 TB"));
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeap("50%"));
-        assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeapPercentage(0));
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeapPercentage(91));
         assertThrows(IllegalArgumentException.class, () -> processGroup.setStatelessContentMaxHeapPercentage(-1));
         assertThrows(IllegalArgumentException.class, () -> processGroup.verifyCanSetStatelessContentMaxHeap("not a size"));
-        assertThrows(IllegalArgumentException.class, () -> processGroup.verifyCanSetStatelessContentMaxHeapPercentage(0));
+        processGroup.verifyCanSetStatelessContentMaxHeapPercentage(0);
         assertEquals("1 MB", processGroup.getStatelessContentMaxHeap());
         assertNull(processGroup.getStatelessContentMaxHeapPercentage());
         assertEquals(1024L * 1024L, processGroup.resolveStatelessContentMaxHeap());

@@ -85,6 +85,7 @@ import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.groups.ComponentAdditions;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
@@ -130,6 +131,7 @@ import org.apache.nifi.util.MockBulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolation;
 import org.apache.nifi.validation.RuleViolationsManager;
+import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.BacklogDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
@@ -406,14 +408,16 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
-    public void testGetComponentsAffectedByFlowUpdate_WithNewStatelessProcessGroup_ReproducesNPE() {
+    public void testGetComponentsAffectedByFlowUpdateForStatelessGroups() {
         final String groupId = UUID.randomUUID().toString();
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
         final FlowManager flowManager = mock(FlowManager.class);
         final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        final ControllerServiceProvider controllerServiceProvider = mock(ControllerServiceProvider.class);
         when(flowController.getFlowManager()).thenReturn(flowManager);
         when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
 
         final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
         final VersionedComponentFlowMapper flowMapper = mock(VersionedComponentFlowMapper.class);
@@ -423,7 +427,6 @@ public class StandardNiFiServiceFacadeTest {
         when(flowMapper.mapProcessGroup(any(ProcessGroup.class), any(ControllerServiceProvider.class), any(FlowManager.class), eq(true)))
                 .thenReturn(localRoot);
 
-        // Build proposed (updated) flow with a NEW child Process Group configured with Stateless Execution Engine
         final VersionedProcessGroup proposedRoot = new VersionedProcessGroup();
         proposedRoot.setIdentifier("root");
         proposedRoot.setName("root");
@@ -450,16 +453,44 @@ public class StandardNiFiServiceFacadeTest {
 
         final FlowComparison comparison = flowComparator.compare();
         final boolean hasExecEngineChange = comparison.getDifferences().stream()
-                .anyMatch(d -> d.getDifferenceType() == DifferenceType.EXECUTION_ENGINE_CHANGED
-                        && d.getComponentA() == null
-                        && d.getComponentB() instanceof VersionedProcessGroup
-                        && "child".equals(d.getComponentB().getIdentifier()));
-        assertTrue(hasExecEngineChange, "Expected EXECUTION_ENGINE_CHANGED difference for Stateless child group");
+                .anyMatch(difference -> difference.getDifferenceType() == DifferenceType.EXECUTION_ENGINE_CHANGED
+                        && difference.getComponentA() == null
+                        && difference.getComponentB() instanceof VersionedProcessGroup
+                        && "child".equals(difference.getComponentB().getIdentifier()));
+        assertTrue(hasExecEngineChange);
 
-        // Act: Should not throw after fix; no local components are affected by a new Stateless child group
-        final Set<AffectedComponentEntity> affected = serviceFacadeSpy.getComponentsAffectedByFlowUpdate(groupId, updatedSnapshot);
-        assertNotNull(affected);
-        assertTrue(affected.isEmpty(), "No local components should be affected for added Stateless group");
+        final Set<AffectedComponentEntity> affectedByAddedGroup = serviceFacadeSpy.getComponentsAffectedByFlowUpdate(groupId, updatedSnapshot);
+        assertNotNull(affectedByAddedGroup);
+        assertTrue(affectedByAddedGroup.isEmpty());
+
+        final InstantiatedVersionedProcessGroup localStatelessGroup = new InstantiatedVersionedProcessGroup(groupId, "parent");
+        localStatelessGroup.setIdentifier("root");
+        localStatelessGroup.setName("root");
+        localStatelessGroup.setExecutionEngine(ExecutionEngine.STATELESS);
+        localStatelessGroup.setStatelessFlowFileContentInMemoryHeapPercentage(10);
+        when(flowMapper.mapProcessGroup(any(ProcessGroup.class), any(ControllerServiceProvider.class), any(FlowManager.class), eq(true)))
+                .thenReturn(localStatelessGroup);
+
+        final VersionedProcessGroup proposedStatelessGroup = new VersionedProcessGroup();
+        proposedStatelessGroup.setIdentifier("root");
+        proposedStatelessGroup.setName("root");
+        proposedStatelessGroup.setExecutionEngine(ExecutionEngine.STATELESS);
+        proposedStatelessGroup.setStatelessFlowFileContentInMemoryHeapPercentage(20);
+        updatedSnapshot.setFlowContents(proposedStatelessGroup);
+
+        when(processGroup.getIdentifier()).thenReturn(groupId);
+        when(processGroup.getProcessGroupIdentifier()).thenReturn("parent");
+        when(processGroup.resolveExecutionEngine()).thenReturn(ExecutionEngine.STATELESS);
+        when(processGroup.getStatelessScheduledState()).thenReturn(StatelessGroupScheduledState.RUNNING);
+        serviceFacadeSpy.setRevisionManager(new NaiveRevisionManager());
+        serviceFacadeSpy.setDtoFactory(mock(DtoFactory.class));
+        serviceFacadeSpy.setAuthorizableLookup(mock(AuthorizableLookup.class, Answers.RETURNS_DEEP_STUBS));
+
+        final Set<AffectedComponentEntity> affectedByLimitChange = serviceFacadeSpy.getComponentsAffectedByFlowUpdate(groupId, updatedSnapshot);
+        assertEquals(1, affectedByLimitChange.size());
+        final AffectedComponentEntity affectedGroup = affectedByLimitChange.iterator().next();
+        assertEquals(AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP, affectedGroup.getComponent().getReferenceType());
+        assertEquals(StatelessGroupScheduledState.RUNNING.name(), affectedGroup.getComponent().getState());
     }
 
     private FlowChangeAction getAction(final Integer actionId, final String processorId) {

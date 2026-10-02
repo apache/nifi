@@ -7311,6 +7311,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                                 state = outputPort.getScheduledState().name();
                             }
                             break;
+                        case PROCESS_GROUP:
+                            localGroup = processGroupDAO.getProcessGroup(localComponent.getInstanceIdentifier());
+                            state = localGroup.getStatelessScheduledState().name();
+                            break;
                         default:
                             state = null;
                             localGroup = null;
