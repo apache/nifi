@@ -21,15 +21,5 @@
     </parent>
     <artifactId>nifi-security-cert-builder</artifactId>
     <description>Shared X.509 certificate builder components</description>
-    <dependencies>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpkix-jdk18on</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk18on</artifactId>
-        </dependency>
-    </dependencies>
 </project>
 

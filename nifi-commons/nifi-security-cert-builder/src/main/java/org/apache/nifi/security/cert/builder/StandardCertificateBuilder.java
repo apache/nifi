@@ -16,64 +16,67 @@
  */
 package org.apache.nifi.security.cert.builder;
 
-import org.bouncycastle.asn1.ASN1Encodable;
-import org.bouncycastle.asn1.x500.RDN;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x500.style.IETFUtils;
-import org.bouncycastle.asn1.x500.style.RFC4519Style;
-import org.bouncycastle.asn1.x509.BasicConstraints;
-import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.asn1.x509.GeneralNames;
-import org.bouncycastle.asn1.x509.KeyPurposeId;
-import org.bouncycastle.asn1.x509.KeyUsage;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.cert.CertIOException;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-
+import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
+import java.net.IDN;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Signature;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import javax.security.auth.x500.X500Principal;
 
 /**
- * Standard X.509 Certificate Builder using Bouncy Castle components
+ * Standard X.509 Certificate Builder
  */
 public class StandardCertificateBuilder implements CertificateBuilder {
-    private static final String SIGNING_ALGORITHM = "SHA256withRSA";
-
+    private static final String SIGNATURE_ALGORITHM = "SHA256withRSA";
+    private static final String SIGNATURE_ALGORITHM_OID = "1.2.840.113549.1.1.11";
+    private static final String CERTIFICATE_TYPE = "X.509";
+    private static final String COMMON_NAME_TYPE = "CN";
     private static final String LOCALHOST = "localhost";
-
+    private static final String BASIC_CONSTRAINTS_OID = "2.5.29.19";
+    private static final String KEY_USAGE_OID = "2.5.29.15";
+    private static final String SUBJECT_KEY_IDENTIFIER_OID = "2.5.29.14";
+    private static final String AUTHORITY_KEY_IDENTIFIER_OID = "2.5.29.35";
+    private static final String EXTENDED_KEY_USAGE_OID = "2.5.29.37";
+    private static final String SUBJECT_ALTERNATIVE_NAME_OID = "2.5.29.17";
+    private static final String CLIENT_AUTHENTICATION_OID = "1.3.6.1.5.5.7.3.2";
+    private static final String SERVER_AUTHENTICATION_OID = "1.3.6.1.5.5.7.3.1";
+    private static final int NO_UNUSED_BITS = 0;
+    private static final int VERSION_TAG = 0;
+    private static final int EXTENSIONS_TAG = 3;
+    private static final int DNS_NAME_TAG = 2;
+    private static final int VERSION_3 = 2;
+    private static final int ASCII_LIMIT = 128;
+    private static final int LEAF_KEY_USAGE_UNUSED_BITS = 3;
+    private static final byte LEAF_KEY_USAGE = (byte) 0xF8;
+    private static final int AUTHORITY_KEY_USAGE_UNUSED_BITS = 1;
+    private static final byte AUTHORITY_KEY_USAGE = (byte) 0xFE;
     private static final boolean CRITICAL = true;
-
     private static final boolean NOT_CRITICAL = false;
-
-    private static final int STANDARD_KEY_USAGE = KeyUsage.digitalSignature
-            | KeyUsage.keyEncipherment
-            | KeyUsage.dataEncipherment
-            | KeyUsage.keyAgreement
-            | KeyUsage.nonRepudiation;
-
-    private static final int AUTHORITY_KEY_USAGE = STANDARD_KEY_USAGE | KeyUsage.cRLSign | KeyUsage.keyCertSign;
+    private static final byte[] SIGNATURE_ALGORITHM_IDENTIFIER = DerEncoder.sequence(
+            DerEncoder.objectIdentifier(SIGNATURE_ALGORITHM_OID),
+            DerEncoder.nullValue()
+    );
 
     private final BigInteger serialNumber = BigInteger.valueOf(System.nanoTime());
 
@@ -111,12 +114,14 @@ public class StandardCertificateBuilder implements CertificateBuilder {
      */
     @Override
     public X509Certificate build() {
-        final X509CertificateHolder certificateHolder = getCertificateHolder();
-        final JcaX509CertificateConverter certificateConverter = new JcaX509CertificateConverter();
         try {
-            return certificateConverter.getCertificate(certificateHolder);
+            final byte[] encodedCertificate = getEncodedCertificate();
+            final CertificateFactory certificateFactory = CertificateFactory.getInstance(CERTIFICATE_TYPE);
+            return (X509Certificate) certificateFactory.generateCertificate(new ByteArrayInputStream(encodedCertificate));
         } catch (final CertificateException e) {
             throw new IllegalArgumentException("X.509 Certificate conversion failed", e);
+        } catch (final GeneralSecurityException e) {
+            throw new IllegalArgumentException("Certificate Signer creation failed", e);
         }
     }
 
@@ -149,115 +154,151 @@ public class StandardCertificateBuilder implements CertificateBuilder {
      * @return Builder
      */
     public StandardCertificateBuilder setDnsSubjectAlternativeNames(final Collection<String> dnsSubjectAlternativeNames) {
-        this.dnsSubjectAlternativeNames = new LinkedHashSet<>(Objects.requireNonNull(dnsSubjectAlternativeNames, "DNS Names required"));
+        final Collection<String> requiredDnsNames = Objects.requireNonNull(dnsSubjectAlternativeNames, "DNS Names required");
+        this.dnsSubjectAlternativeNames = new LinkedHashSet<>(requiredDnsNames);
         return this;
     }
 
-    private void setExtensions(final X509v3CertificateBuilder certificateBuilder) {
-        final JcaX509ExtensionUtils extensionUtils = getExtensionUtils();
-
-        try {
-            final BasicConstraints basicConstraints = getBasicConstraints();
-            certificateBuilder.addExtension(Extension.basicConstraints, NOT_CRITICAL, basicConstraints);
-
-            final KeyUsage keyUsage = getKeyUsage(basicConstraints.isCA());
-            certificateBuilder.addExtension(Extension.keyUsage, CRITICAL, keyUsage);
-
-            certificateBuilder.addExtension(Extension.subjectKeyIdentifier, NOT_CRITICAL, extensionUtils.createSubjectKeyIdentifier(subjectPublicKey));
-
-            final PublicKey issuerPublicKey = issuerKeyPair.getPublic();
-            certificateBuilder.addExtension(Extension.authorityKeyIdentifier, NOT_CRITICAL, extensionUtils.createAuthorityKeyIdentifier(issuerPublicKey));
-
-            final KeyPurposeId[] keyPurposes = {KeyPurposeId.id_kp_clientAuth, KeyPurposeId.id_kp_serverAuth};
-            final ExtendedKeyUsage extendedKeyUsage = new ExtendedKeyUsage(keyPurposes);
-            certificateBuilder.addExtension(Extension.extendedKeyUsage, NOT_CRITICAL, extendedKeyUsage);
-
-            final GeneralNames subjectAlternativeNames = getSubjectAlternativeNames();
-            certificateBuilder.addExtension(Extension.subjectAlternativeName, NOT_CRITICAL, subjectAlternativeNames);
-        } catch (final CertIOException e) {
-            throw new IllegalArgumentException("Certificate Extension addition failed", e);
-        }
+    private byte[] getEncodedCertificate() throws GeneralSecurityException {
+        final byte[] tbsCertificate = getTbsCertificate();
+        final Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
+        final PrivateKey issuerPrivateKey = issuerKeyPair.getPrivate();
+        signature.initSign(issuerPrivateKey);
+        signature.update(tbsCertificate);
+        final byte[] signatureBytes = signature.sign();
+        final byte[] signatureValue = DerEncoder.bitString(NO_UNUSED_BITS, signatureBytes);
+        return DerEncoder.sequence(tbsCertificate, SIGNATURE_ALGORITHM_IDENTIFIER, signatureValue);
     }
 
-    private BasicConstraints getBasicConstraints() {
+    private byte[] getTbsCertificate() {
+        final Date notBefore = new Date();
+        final Instant notBeforeInstant = notBefore.toInstant();
+        final Instant notAfterInstant = notBeforeInstant.plus(validityPeriod);
+        final Date notAfter = Date.from(notAfterInstant);
+        final byte[] notBeforeEncoded = DerEncoder.time(notBefore);
+        final byte[] notAfterEncoded = DerEncoder.time(notAfter);
+        final byte[] validity = DerEncoder.sequence(notBeforeEncoded, notAfterEncoded);
+        final BigInteger versionNumber = BigInteger.valueOf(VERSION_3);
+        final byte[] versionEncoded = DerEncoder.integer(versionNumber);
+        final byte[] version = DerEncoder.explicit(VERSION_TAG, versionEncoded);
+        final byte[] serialNumberEncoded = DerEncoder.integer(serialNumber);
+        final byte[] issuerEncoded = issuer.getEncoded();
+        final byte[] subjectEncoded = subject.getEncoded();
+        final byte[] subjectPublicKeyEncoded = subjectPublicKey.getEncoded();
+        final byte[] extensionsEncoded = getExtensions();
+        final byte[] extensions = DerEncoder.explicit(EXTENSIONS_TAG, extensionsEncoded);
+        return DerEncoder.sequence(
+                version,
+                serialNumberEncoded,
+                SIGNATURE_ALGORITHM_IDENTIFIER,
+                issuerEncoded,
+                validity,
+                subjectEncoded,
+                subjectPublicKeyEncoded,
+                extensions
+        );
+    }
+
+    private byte[] getExtensions() {
         final PublicKey issuerPublicKey = issuerKeyPair.getPublic();
         final boolean certificateAuthority = subjectPublicKey.equals(issuerPublicKey);
-        return new BasicConstraints(certificateAuthority);
-    }
-
-    private KeyUsage getKeyUsage(final boolean certificateAuthority) {
-        final int keyUsage = certificateAuthority ? AUTHORITY_KEY_USAGE : STANDARD_KEY_USAGE;
-        return new KeyUsage(keyUsage);
-    }
-
-    private GeneralNames getSubjectAlternativeNames() {
-        final Set<GeneralName> generalNames = new LinkedHashSet<>();
-
-        final String subjectCommonName = getSubjectCommonName();
-        final GeneralName subjectGeneralName = new GeneralName(GeneralName.dNSName, subjectCommonName);
-        generalNames.add(subjectGeneralName);
-
-        for (final String dnsSubjectAlternativeName : dnsSubjectAlternativeNames) {
-            final GeneralName generalName = new GeneralName(GeneralName.dNSName, dnsSubjectAlternativeName);
-            generalNames.add(generalName);
+        final byte[] basicConstraints;
+        if (certificateAuthority) {
+            basicConstraints = DerEncoder.sequence(DerEncoder.booleanTrue());
+        } else {
+            basicConstraints = DerEncoder.sequence();
         }
 
-        return new GeneralNames(generalNames.toArray(new GeneralName[]{}));
+        final int keyUsageUnusedBits = certificateAuthority ? AUTHORITY_KEY_USAGE_UNUSED_BITS : LEAF_KEY_USAGE_UNUSED_BITS;
+        final byte keyUsageByte = certificateAuthority ? AUTHORITY_KEY_USAGE : LEAF_KEY_USAGE;
+        final byte[] keyUsageBits = new byte[] {keyUsageByte};
+        final byte[] keyUsage = DerEncoder.bitString(keyUsageUnusedBits, keyUsageBits);
+        final byte[] clientAuthentication = DerEncoder.objectIdentifier(CLIENT_AUTHENTICATION_OID);
+        final byte[] serverAuthentication = DerEncoder.objectIdentifier(SERVER_AUTHENTICATION_OID);
+        final byte[] extendedKeyUsage = DerEncoder.sequence(clientAuthentication, serverAuthentication);
+        final byte[] subjectPublicKeyEncoded = subjectPublicKey.getEncoded();
+        final byte[] subjectKeyIdentifier = DerEncoder.subjectKeyIdentifier(subjectPublicKeyEncoded);
+        final byte[] issuerPublicKeyEncoded = issuerPublicKey.getEncoded();
+        final byte[] authorityKeyIdentifier = DerEncoder.authorityKeyIdentifier(issuerPublicKeyEncoded);
+        final byte[] subjectAlternativeNames = getSubjectAlternativeNames();
+        return DerEncoder.sequence(
+                extension(BASIC_CONSTRAINTS_OID, NOT_CRITICAL, basicConstraints),
+                extension(KEY_USAGE_OID, CRITICAL, keyUsage),
+                extension(SUBJECT_KEY_IDENTIFIER_OID, NOT_CRITICAL, subjectKeyIdentifier),
+                extension(AUTHORITY_KEY_IDENTIFIER_OID, NOT_CRITICAL, authorityKeyIdentifier),
+                extension(EXTENDED_KEY_USAGE_OID, NOT_CRITICAL, extendedKeyUsage),
+                extension(SUBJECT_ALTERNATIVE_NAME_OID, NOT_CRITICAL, subjectAlternativeNames)
+        );
+    }
+
+    private byte[] extension(final String extensionOid, final boolean critical, final byte[] extensionValue) {
+        final byte[] encodedObjectIdentifier = DerEncoder.objectIdentifier(extensionOid);
+        final byte[] encodedValue = DerEncoder.octetString(extensionValue);
+        if (critical) {
+            return DerEncoder.sequence(encodedObjectIdentifier, DerEncoder.booleanTrue(), encodedValue);
+        }
+
+        return DerEncoder.sequence(encodedObjectIdentifier, encodedValue);
+    }
+
+    private byte[] getSubjectAlternativeNames() {
+        final List<byte[]> encodedDnsNames = new ArrayList<>();
+        final String subjectCommonName = getSubjectCommonName();
+        final byte[] subjectCommonNameEncoded = getDnsNameEncoded(subjectCommonName);
+        encodedDnsNames.add(subjectCommonNameEncoded);
+        for (final String dnsSubjectAlternativeName : dnsSubjectAlternativeNames) {
+            final byte[] dnsNameEncoded = getDnsNameEncoded(dnsSubjectAlternativeName);
+            boolean encodedDnsNameFound = false;
+            for (final byte[] encodedDnsName : encodedDnsNames) {
+                if (Arrays.equals(encodedDnsName, dnsNameEncoded)) {
+                    encodedDnsNameFound = true;
+                    break;
+                }
+            }
+
+            if (encodedDnsNameFound) {
+                continue;
+            }
+
+            encodedDnsNames.add(dnsNameEncoded);
+        }
+
+        final byte[][] generalNames = new byte[encodedDnsNames.size()][];
+        int index = 0;
+        for (final byte[] dnsNameEncoded : encodedDnsNames) {
+            final byte[] generalName = DerEncoder.implicit(DNS_NAME_TAG, dnsNameEncoded);
+            generalNames[index++] = generalName;
+        }
+
+        return DerEncoder.sequence(generalNames);
+    }
+
+    private byte[] getDnsNameEncoded(final String dnsName) {
+        for (int i = 0; i < dnsName.length(); i++) {
+            if (dnsName.charAt(i) >= ASCII_LIMIT) {
+                final String asciiDnsName = IDN.toASCII(dnsName);
+                return asciiDnsName.getBytes(StandardCharsets.US_ASCII);
+            }
+        }
+
+        return dnsName.getBytes(StandardCharsets.US_ASCII);
     }
 
     private String getSubjectCommonName() {
-        final X500Name subjectName = getName(subject);
-        final RDN[] commonNames = subjectName.getRDNs(BCStyle.CN);
-
-        final String subjectCommonName;
-        if (commonNames.length == 0) {
-            subjectCommonName = LOCALHOST;
-        } else {
-            final RDN commonName = commonNames[0];
-            final ASN1Encodable commonNameEncoded = commonName.getFirst().getValue();
-            subjectCommonName = IETFUtils.valueToString(commonNameEncoded);
-        }
-
-        return subjectCommonName;
-    }
-
-    private X509CertificateHolder getCertificateHolder() {
-        final X509v3CertificateBuilder certificateBuilder = getCertificateBuilder();
-        setExtensions(certificateBuilder);
-
-        final ContentSigner contentSigner = getContentSigner();
-        return certificateBuilder.build(contentSigner);
-    }
-
-    private X509v3CertificateBuilder getCertificateBuilder() {
-        final X500Name issuerName = getName(issuer);
-        final Date notBefore = new Date();
-        final Date notAfter = Date.from(notBefore.toInstant().plus(validityPeriod));
-        final X500Name subjectName = getName(subject);
-        final SubjectPublicKeyInfo subjectPublicKeyInfo = SubjectPublicKeyInfo.getInstance(subjectPublicKey.getEncoded());
-        return new X509v3CertificateBuilder(issuerName, serialNumber, notBefore, notAfter, subjectName, subjectPublicKeyInfo);
-    }
-
-    private ContentSigner getContentSigner() {
-        final JcaContentSignerBuilder contentSignerBuilder = new JcaContentSignerBuilder(SIGNING_ALGORITHM);
-
-        final PrivateKey issuerPrivateKey = issuerKeyPair.getPrivate();
         try {
-            return contentSignerBuilder.build(issuerPrivateKey);
-        } catch (final OperatorCreationException e) {
-            throw new IllegalArgumentException("Certificate Signer creation failed", e);
+            final String subjectDistinguishedName = subject.getName();
+            final LdapName subjectName = new LdapName(subjectDistinguishedName);
+            for (final Rdn relativeDistinguishedName : subjectName.getRdns()) {
+                final String attributeType = relativeDistinguishedName.getType();
+                if (COMMON_NAME_TYPE.equalsIgnoreCase(attributeType)) {
+                    final Object commonName = relativeDistinguishedName.getValue();
+                    return commonName.toString();
+                }
+            }
+        } catch (final InvalidNameException e) {
+            throw new IllegalArgumentException("Subject common name parsing failed", e);
         }
-    }
 
-    private JcaX509ExtensionUtils getExtensionUtils() {
-        try {
-            return new JcaX509ExtensionUtils();
-        } catch (final NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Certificate Extension Utilities creation failed", e);
-        }
-    }
-
-    private X500Name getName(final X500Principal principal) {
-        return new X500Name(RFC4519Style.INSTANCE, principal.getName());
+        return LOCALHOST;
     }
 }
