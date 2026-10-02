@@ -23,9 +23,11 @@ import {
     BulletinEntity,
     Bundle,
     ComponentType,
+    FlowDTO,
     Parameter,
     ParameterContextReferenceEntity,
     Permissions,
+    ResolvedExecutionEngine,
     Revision,
     SelectOption
 } from '@nifi/shared';
@@ -273,6 +275,36 @@ export interface BreadcrumbEntity {
     versionedFlowState: string;
     breadcrumb: Breadcrumb;
     parentBreadcrumb?: BreadcrumbEntity;
+}
+
+/**
+ * The flow rooted at a process group and its breadcrumb trail.
+ *
+ * @nifi-source: nifi-framework-bundle/nifi-framework/nifi-client-dto/src/main/java/org/apache/nifi/web/api/dto/flow/ProcessGroupFlowDTO.java
+ *
+ * `uri`, `lastRefreshed`, and `parameterContext` are omitted because current
+ * connector consumers do not read them.
+ */
+export interface ProcessGroupFlowDTO {
+    id: string;
+    parentGroupId?: string;
+    breadcrumb: BreadcrumbEntity;
+    flow: FlowDTO;
+    resolvedExecutionEngine: ResolvedExecutionEngine;
+}
+
+/**
+ * Response body for connector-scoped process group flow requests.
+ *
+ * @nifi-source: nifi-framework-bundle/nifi-framework/nifi-client-dto/src/main/java/org/apache/nifi/web/api/entity/ProcessGroupFlowEntity.java
+ *
+ * Flow designer maintains a separate, looser contract in its feature state.
+ * Consolidating that contract is outside the connector canvas migration.
+ */
+export interface ProcessGroupFlowEntity {
+    permissions: Permissions;
+    revision: Revision;
+    processGroupFlow: ProcessGroupFlowDTO;
 }
 
 export interface Relationship {

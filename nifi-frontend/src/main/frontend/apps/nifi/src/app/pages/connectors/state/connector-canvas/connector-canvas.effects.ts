@@ -37,9 +37,13 @@ import {
 import {
     ComponentType,
     ComponentTypeNamePipe,
+    ConnectionEntity,
+    FlowDTO,
     LARGE_DIALOG,
     MEDIUM_DIALOG,
     NiFiCommon,
+    Permissions,
+    PortEntity,
     Position,
     sanitizePosition,
     XL_DIALOG
@@ -85,6 +89,23 @@ import {
 } from './connector-canvas.selectors';
 import { selectDocumentVisibilityState } from '../../../../state/document-visibility/document-visibility.selectors';
 import { DocumentVisibility } from '../../../../state/document-visibility';
+import type { ConnectorCanvasComponentEntity } from './index';
+
+/**
+ * Shallow-copies `entity` with `permissions.canWrite` forced to false.
+ * `operatePermissions.canWrite` is rewritten only when that field is already
+ * present. Connection, label, funnel, and process group entities do not
+ * declare it, and a read-only dialog must not invent the field.
+ */
+function withReadonlyPermissions<E extends { permissions: Permissions; operatePermissions?: Permissions }>(
+    entity: E
+): E {
+    return {
+        ...entity,
+        permissions: { ...entity.permissions, canWrite: false },
+        ...(entity.operatePermissions ? { operatePermissions: { ...entity.operatePermissions, canWrite: false } } : {})
+    };
+}
 
 @Injectable()
 export class ConnectorCanvasEffects {
@@ -692,12 +713,11 @@ export class ConnectorCanvasEffects {
      * configuration in a strictly read-only mode, so the entity permissions are
      * forced to readable-only-without-write before being passed to the dialog.
      */
-    private buildDialogRequest(entity: any, componentType: ComponentType): EditComponentDialogRequest {
-        const readOnlyEntity = {
-            ...entity,
-            permissions: { ...entity?.permissions, canWrite: false },
-            operatePermissions: { ...entity?.operatePermissions, canWrite: false }
-        };
+    private buildDialogRequest(
+        entity: ConnectorCanvasComponentEntity,
+        componentType: ComponentType
+    ): EditComponentDialogRequest {
+        const readOnlyEntity = withReadonlyPermissions(entity);
         return {
             type: componentType,
             uri: readOnlyEntity.uri,
@@ -747,22 +767,22 @@ export class ConnectorCanvasEffects {
         instance.saving$ = of(false);
         instance.availablePrioritizers$ = this.store.select(selectPrioritizerTypes);
         instance.breadcrumbs$ = this.store.select(selectBreadcrumbs);
-        instance.getChildOutputPorts = (groupId: string): Observable<any> =>
+        instance.getChildOutputPorts = (groupId: string): Observable<PortEntity[]> =>
             this.store.select(selectConnectorIdFromRoute).pipe(
                 take(1),
                 switchMap((connectorId) =>
                     this.connectorService
                         .getConnectorFlow(connectorId!, groupId)
-                        .pipe(map((response: any) => response.processGroupFlow.flow.outputPorts))
+                        .pipe(map((response) => response.processGroupFlow.flow.outputPorts))
                 )
             );
-        instance.getChildInputPorts = (groupId: string): Observable<any> =>
+        instance.getChildInputPorts = (groupId: string): Observable<PortEntity[]> =>
             this.store.select(selectConnectorIdFromRoute).pipe(
                 take(1),
                 switchMap((connectorId) =>
                     this.connectorService
                         .getConnectorFlow(connectorId!, groupId)
-                        .pipe(map((response: any) => response.processGroupFlow.flow.inputPorts))
+                        .pipe(map((response) => response.processGroupFlow.flow.inputPorts))
                 )
             );
         instance.selectProcessor = (id: string) => this.store.select(selectProcessor(id));
@@ -812,52 +832,48 @@ export class ConnectorCanvasEffects {
      * Even though the connector canvas is read-only, it renders via the same reusable canvas
      * component, so out-of-range coordinates must be clamped here to prevent SVG overflow.
      */
-    private sanitizeConnectorFlowPositions(flow: any): {
-        labels: any[];
-        funnels: any[];
-        inputPorts: any[];
-        outputPorts: any[];
-        remoteProcessGroups: any[];
-        processGroups: any[];
-        processors: any[];
-        connections: any[];
-    } {
-        const sanitize = (entity: any, kind: string) => ({
-            ...entity,
-            position: sanitizePosition(entity.position, {
-                componentId: entity.id,
-                componentKind: kind,
-                warnedIds: this.warnedPositionIds
-            })
-        });
-        const sanitizeBends = (entityId: string, bends: Position[] | undefined): Position[] | undefined =>
-            bends?.map((bend: Position, index: number) =>
+    private sanitizeConnectorFlowPositions(flow: FlowDTO | undefined): FlowDTO {
+        const sanitizeCollectionPositions = <E extends { id: string; position: Position }>(
+            entities: readonly E[],
+            componentKind: string
+        ): E[] =>
+            entities.map((entity) => ({
+                ...entity,
+                position: sanitizePosition(entity.position, {
+                    componentId: entity.id,
+                    componentKind,
+                    warnedIds: this.warnedPositionIds
+                })
+            }));
+        const sanitizeBends = (entityId: string, bends: readonly Position[] | null | undefined): Position[] =>
+            (bends ?? []).map((bend, index) =>
                 sanitizePosition(bend, {
                     componentId: `${entityId}:bend:${index}`,
                     componentKind: 'Connection bend',
                     warnedIds: this.warnedPositionIds
                 })
             );
-        const sanitizeConnection = (entity: any) => ({
-            ...entity,
-            bends: sanitizeBends(entity.id, entity.bends),
-            component: entity.component
-                ? {
-                      ...entity.component,
-                      bends: sanitizeBends(entity.id, entity.component.bends)
-                  }
-                : entity.component
-        });
+        const sanitizeConnections = (connections: readonly ConnectionEntity[]): ConnectionEntity[] =>
+            connections.map((entity) => ({
+                ...entity,
+                bends: sanitizeBends(entity.id, entity.bends),
+                component: entity.component
+                    ? {
+                          ...entity.component,
+                          bends: sanitizeBends(entity.id, entity.component.bends)
+                      }
+                    : entity.component
+            }));
 
         return {
-            labels: (flow?.labels || []).map((e: any) => sanitize(e, 'Label')),
-            funnels: (flow?.funnels || []).map((e: any) => sanitize(e, 'Funnel')),
-            inputPorts: (flow?.inputPorts || []).map((e: any) => sanitize(e, 'Input Port')),
-            outputPorts: (flow?.outputPorts || []).map((e: any) => sanitize(e, 'Output Port')),
-            remoteProcessGroups: (flow?.remoteProcessGroups || []).map((e: any) => sanitize(e, 'Remote Process Group')),
-            processGroups: (flow?.processGroups || []).map((e: any) => sanitize(e, 'Process Group')),
-            processors: (flow?.processors || []).map((e: any) => sanitize(e, 'Processor')),
-            connections: (flow?.connections || []).map(sanitizeConnection)
+            labels: sanitizeCollectionPositions(flow?.labels ?? [], 'Label'),
+            funnels: sanitizeCollectionPositions(flow?.funnels ?? [], 'Funnel'),
+            inputPorts: sanitizeCollectionPositions(flow?.inputPorts ?? [], 'Input Port'),
+            outputPorts: sanitizeCollectionPositions(flow?.outputPorts ?? [], 'Output Port'),
+            remoteProcessGroups: sanitizeCollectionPositions(flow?.remoteProcessGroups ?? [], 'Remote Process Group'),
+            processGroups: sanitizeCollectionPositions(flow?.processGroups ?? [], 'Process Group'),
+            processors: sanitizeCollectionPositions(flow?.processors ?? [], 'Processor'),
+            connections: sanitizeConnections(flow?.connections ?? [])
         };
     }
 }

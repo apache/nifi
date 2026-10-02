@@ -86,6 +86,7 @@ import {
     selectConnectorProvenanceEvents,
     selectConnectorProvenanceStatus
 } from '../../state/connector-provenance-preview/connector-provenance-preview.selectors';
+import { makeProcessor } from '../../testing/connector-canvas-entity-fixtures';
 
 // Mock components to avoid loading complex real components
 @Component({
@@ -1739,7 +1740,7 @@ describe('ConnectorCanvasComponent', () => {
             it('should dispatch viewComponentConfiguration with the supplied entity and componentType', () => {
                 const { component, dispatchSpy } = setup();
                 dispatchSpy.mockClear();
-                const entity = { id: 'proc-1', permissions: { canRead: true } };
+                const entity = makeProcessor('proc-1');
 
                 component.viewConfigurationAction(entity, ComponentType.Processor);
 
@@ -1755,7 +1756,7 @@ describe('ConnectorCanvasComponent', () => {
             it('should dispatch viewComponentConfiguration when entity is readable', () => {
                 const { component, dispatchSpy } = setup();
                 dispatchSpy.mockClear();
-                const entity = { id: 'proc-1', permissions: { canRead: true } };
+                const entity = makeProcessor('proc-1');
 
                 component.onComponentDoubleClick({ entity, componentType: ComponentType.Processor });
 
@@ -1769,7 +1770,9 @@ describe('ConnectorCanvasComponent', () => {
             it('should not dispatch when entity is not readable', () => {
                 const { component, dispatchSpy } = setup();
                 dispatchSpy.mockClear();
-                const entity = { id: 'proc-1', permissions: { canRead: false } };
+                const entity = makeProcessor('proc-1', {
+                    permissions: { canRead: false, canWrite: false }
+                });
 
                 component.onComponentDoubleClick({ entity, componentType: ComponentType.Processor });
 

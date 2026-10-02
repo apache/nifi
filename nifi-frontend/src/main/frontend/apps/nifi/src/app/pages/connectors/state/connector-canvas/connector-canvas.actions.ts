@@ -16,9 +16,19 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { ComponentType } from '@nifi/shared';
+import {
+    ComponentType,
+    ConnectionEntity,
+    FunnelEntity,
+    LabelEntity,
+    PortEntity,
+    ProcessGroupEntity,
+    ProcessorEntity,
+    RemoteProcessGroupEntity
+} from '@nifi/shared';
 import { BreadcrumbEntity, ParameterContextEntity } from '../../../../state/shared';
 import { ErrorContext, ErrorContextKey } from '../../../../state/error';
+import type { ConnectorCanvasComponentEntity } from './index';
 
 /**
  * Selected component for route-based selection
@@ -47,14 +57,14 @@ export const loadConnectorFlowSuccess = createAction(
         processGroupId: string | null;
         parentProcessGroupId: string | null;
         breadcrumb: BreadcrumbEntity | null;
-        labels: any[];
-        funnels: any[];
-        inputPorts: any[];
-        outputPorts: any[];
-        remoteProcessGroups: any[];
-        processGroups: any[];
-        processors: any[];
-        connections: any[];
+        labels: LabelEntity[];
+        funnels: FunnelEntity[];
+        inputPorts: PortEntity[];
+        outputPorts: PortEntity[];
+        remoteProcessGroups: RemoteProcessGroupEntity[];
+        processGroups: ProcessGroupEntity[];
+        processors: ProcessorEntity[];
+        connections: ConnectionEntity[];
     }>()
 );
 
@@ -193,7 +203,7 @@ export const navigateToQueueListing = createAction(
  */
 export const viewComponentConfiguration = createAction(
     '[Connector Canvas] View Component Configuration',
-    props<{ request: { entity: any; componentType: ComponentType } }>()
+    props<{ request: { entity: ConnectorCanvasComponentEntity; componentType: ComponentType } }>()
 );
 
 export const resetConnectorCanvasState = createAction('[Connector Canvas] Reset State');
