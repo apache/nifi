@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestUpdateCounter {
     private TestRunner runner;
@@ -59,6 +60,25 @@ public class TestUpdateCounter {
         runner.run();
         Long counter = runner.getCounterValue("test");
         assertEquals(Optional.ofNullable(counter), Optional.of(40L));
+        runner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);
+    }
+
+    @Test
+    public void testAttributes() {
+        runner.setProperty(UpdateCounter.COUNTER_NAME, "firewall");
+        runner.setProperty(UpdateCounter.DELTA, "${num}");
+        runner.setProperty("service", "payments");
+        runner.setProperty("region", "${region}");
+
+        final Map<String, String> attributes = Map.of(
+                "num", "5",
+                "region", "us-west"
+        );
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        assertEquals(5L, runner.getCounterValue("firewall", Map.of("service", "payments", "region", "us-west")));
+        assertNull(runner.getCounterValue("firewall", Map.of()));
         runner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);
     }
 
