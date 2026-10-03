@@ -24,6 +24,7 @@ import org.apache.nifi.toolkit.client.ControllerServicesClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
@@ -253,6 +254,19 @@ public class JerseyControllerServicesClient extends AbstractJerseyClient impleme
                     .queryParam("sensitive", sensitive);
 
             return getRequestBuilder(target).get(PropertyDescriptorEntity.class);
+        });
+    }
+
+    @Override
+    public ComponentStateEntity getControllerServiceState(final String serviceId) throws NiFiClientException, IOException {
+        Objects.requireNonNull(serviceId, "Service ID required");
+
+        return executeAction("Error getting state of the Controller Service", () -> {
+            final WebTarget target = controllerServicesTarget
+                    .path("{id}/state")
+                    .resolveTemplate("id", serviceId);
+
+            return getRequestBuilder(target).get(ComponentStateEntity.class);
         });
     }
 }

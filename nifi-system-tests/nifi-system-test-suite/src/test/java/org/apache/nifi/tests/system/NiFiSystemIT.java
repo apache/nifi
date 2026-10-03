@@ -85,6 +85,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     public static final int STANDALONE_CLIENT_API_BASE_PORT = 5670;
     public static final String NIFI_GROUP_ID = "org.apache.nifi";
     public static final String TEST_EXTENSIONS_ARTIFACT_ID = "nifi-system-test-extensions-nar";
+    public static final String TEST_FLOW_REGISTRY_ARTIFACT_ID = "nifi-system-test-flow-registry-nar";
     public static final String TEST_EXTENSIONS_SERVICES_ARTIFACT_ID = "nifi-system-test-extensions-services-nar";
     public static final String TEST_PYTHON_EXTENSIONS_ARTIFACT_ID = "python-extensions";
     public static final String TEST_PARAM_PROVIDERS_PACKAGE = "org.apache.nifi.parameter.tests.system";
