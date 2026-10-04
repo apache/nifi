@@ -495,6 +495,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -3859,12 +3861,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConnectorEntity scheduleConnector(final Revision revision, final String id, final ScheduledState state) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final RevisionClaim claim = new StandardRevisionClaim(revision);
-
         final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
-            switch (state) {
+            final Future<Void> lifecycleFuture = switch (state) {
                 case RUNNING -> connectorDAO.startConnector(id);
                 case STOPPED -> connectorDAO.stopConnector(id);
                 default -> throw new IllegalArgumentException("Unsupported scheduled state for Connector: " + state);
+            };
+
+            if (lifecycleFuture != null) {
+                try {
+                    lifecycleFuture.get();
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.warn("Thread interrupted while waiting for connector {} to transition to state {}", id, state, e);
+                } catch (final ExecutionException e) {
+                    logger.error("Failed to transition connector {} to state {}", id, state, e.getCause());
+                }
             }
             controllerFacade.save();
 

@@ -63,6 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
@@ -163,15 +164,15 @@ public class StandardConnectorDAO implements ConnectorDAO {
     }
 
     @Override
-    public void startConnector(final String id) {
+    public Future<Void> startConnector(final String id) {
         final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
-        getConnectorRepository().startConnector(connector);
+        return getConnectorRepository().startConnector(connector);
     }
 
     @Override
-    public void stopConnector(final String id) {
+    public Future<Void> stopConnector(final String id) {
         final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
-        getConnectorRepository().stopConnector(connector);
+        return getConnectorRepository().stopConnector(connector);
     }
 
     @Override

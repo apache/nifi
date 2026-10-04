@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Future;
 import java.util.function.BooleanSupplier;
 
 public interface ConnectorDAO {
@@ -54,9 +55,9 @@ public interface ConnectorDAO {
 
     void deleteConnector(String id);
 
-    void startConnector(String id);
+    Future<Void> startConnector(String id);
 
-    void stopConnector(String id);
+    Future<Void> stopConnector(String id);
 
     void drainFlowFiles(String id);
 

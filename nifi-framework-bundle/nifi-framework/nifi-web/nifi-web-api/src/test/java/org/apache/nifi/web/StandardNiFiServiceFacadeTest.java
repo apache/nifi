@@ -218,6 +218,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -3538,6 +3539,56 @@ public class StandardNiFiServiceFacadeTest {
         final ProcessGroup group = sourceProcessGroup(List.of(sourceProcessor, downstream), List.of(remoteProcessGroup), List.of(publicInput, localInput));
 
         assertEquals(Set.of("source-processor", "remote-output", "public-input"), serviceFacade.findSourceComponentIds(group));
+    }
+
+    @Test
+    public void testScheduleConnectorStopAwaitsFuture() throws Exception {
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        final String connectorId = "connector-1";
+        final Revision revision = new Revision(1L, "client-1", connectorId);
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final RevisionManager revisionManager = mock(RevisionManager.class);
+        serviceFacade.setRevisionManager(revisionManager);
+        when(revisionManager.updateRevision(any(RevisionClaim.class), any(), any(UpdateRevisionTask.class)))
+                .thenAnswer(invocation -> {
+                    UpdateRevisionTask<?> task = invocation.getArgument(2);
+                    return task.update();
+                });
+
+        final DtoFactory dtoFactory = mock(DtoFactory.class);
+        serviceFacade.setDtoFactory(dtoFactory);
+
+        final ConnectorDTO connectorDto = new ConnectorDTO();
+        connectorDto.setId(connectorId);
+        when(dtoFactory.createConnectorDto(any())).thenReturn(connectorDto);
+        when(dtoFactory.createPermissionsDto(any(Authorizable.class))).thenReturn(mock());
+        when(dtoFactory.createRevisionDTO(any(FlowModification.class))).thenReturn(new RevisionDTO());
+
+        // Setup connectorNode stubs for createConnectorStatusDto
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(connectorNode.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.getIdentifier()).thenReturn("managed-pg-id");
+
+        when(connectorDAO.getConnector(eq(connectorId), any())).thenReturn(connectorNode);
+
+        final CompletableFuture<Void> stopFuture = new CompletableFuture<>();
+        when(connectorDAO.stopConnector(connectorId)).thenReturn(stopFuture);
+        stopFuture.complete(null);
+
+        final ConnectorEntity resultEntity = serviceFacade.scheduleConnector(revision, connectorId, ScheduledState.STOPPED);
+
+        verify(connectorDAO).stopConnector(connectorId);
+        assertNotNull(resultEntity);
     }
 
     private static ProcessGroup sourceProcessGroup(final List<ProcessorNode> processors, final List<RemoteProcessGroup> remoteProcessGroups, final List<Port> inputPorts) {
