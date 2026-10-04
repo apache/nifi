@@ -57,3 +57,8 @@ The processor uses the Initial Age Filter as a specific timestamp that sets the 
 which processing builds the initial query. The format must adhere to the Salesforce SOQL standards (see Salesforce
 documentation). The Age Delay moves the time of the records to be processed earlier than the current run time if
 necessary.
+
+The 'sObject Name' and 'Field Names' properties can reference attributes of an incoming flowfile. When the Age Field
+property is set, the processor stores the end of the last time window separately for each queried sObject, so the same
+processor can incrementally query several objects. The Age Field must be a datetime field that exists on every object
+that is queried, as the name is shared across them.

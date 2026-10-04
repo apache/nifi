@@ -23,6 +23,7 @@ import org.apache.nifi.processors.salesforce.QuerySalesforceObject;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -32,8 +33,11 @@ public class IncrementalContext {
     private final String initialAgeFilter;
     private final String ageFilterUpper;
     private final String ageFilterLower;
+    private final String ageFilterStateKey;
 
-    public IncrementalContext(ProcessContext context, StateMap state) {
+    public IncrementalContext(ProcessContext context, StateMap state, String sObject) {
+        ageFilterStateKey = QuerySalesforceObject.LAST_AGE_FILTER + "." + sObject.toLowerCase(Locale.ROOT);
+
         ageField = context.getProperty(QuerySalesforceObject.AGE_FIELD).evaluateAttributeExpressions().getValue();
 
         if (ageField == null) {
@@ -42,8 +46,10 @@ public class IncrementalContext {
             ageFilterUpper = null;
         } else {
             initialAgeFilter = context.getProperty(QuerySalesforceObject.INITIAL_AGE_FILTER).evaluateAttributeExpressions().getValue();
-            ageFilterLower = state.get(QuerySalesforceObject.LAST_AGE_FILTER);
-            Optional<Long> ageDelayMs = Optional.ofNullable(context.getProperty(QuerySalesforceObject.AGE_DELAY).asTimePeriod(TimeUnit.MILLISECONDS));
+            // State written before the age filter was tracked per sObject is kept under the plain key and is picked up once
+            ageFilterLower = Optional.ofNullable(state.get(ageFilterStateKey))
+                    .orElseGet(() -> state.get(QuerySalesforceObject.LAST_AGE_FILTER));
+            Optional<Long> ageDelayMs = Optional.ofNullable(context.getProperty(QuerySalesforceObject.AGE_DELAY).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS));
             OffsetDateTime ageFilterUpperTime = ageDelayMs
                     .map(delay -> OffsetDateTime.now().minus(delay, ChronoUnit.MILLIS))
                     .orElse(OffsetDateTime.now());
@@ -65,5 +71,9 @@ public class IncrementalContext {
 
     public String getAgeFilterLower() {
         return ageFilterLower;
+    }
+
+    public String getAgeFilterStateKey() {
+        return ageFilterStateKey;
     }
 }
