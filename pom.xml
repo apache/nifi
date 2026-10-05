@@ -952,7 +952,7 @@
                                     </plugins>
                                 </requireSameVersions>
                                 <requireMavenVersion>
-                                    <version>3.9.16</version>
+                                    <version>3.10.0</version>
                                 </requireMavenVersion>
                                 <requireReleaseDeps>
                                     <message>Dependencies outside of Apache NiFi must not use SNAPSHOT versions</message>
