@@ -18,7 +18,6 @@ package org.apache.nifi.processors.splunk;
 
 import com.splunk.RequestMessage;
 import com.splunk.ResponseMessage;
-import com.splunk.SSLSecurityProtocol;
 import com.splunk.Service;
 import com.splunk.ServiceArgs;
 import org.apache.nifi.flowfile.FlowFile;
@@ -46,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 
@@ -86,21 +86,15 @@ public class TestPutSplunkHTTP {
 
     private MockedPutSplunkHTTP processor;
     private TestRunner testRunner;
-
-    private SSLSecurityProtocol splunkSecurityProtocol;
     private SSLSocketFactory splunkSocketFactory;
 
-    // The Splunk Service holds the Security Protocol and the Socket Factory in static state shared by every test running in the
-    // same JVM, so both are captured and restored around each test.
     @BeforeEach
     public void captureSplunkTlsConfiguration() {
-        splunkSecurityProtocol = Service.getSslSecurityProtocol();
         splunkSocketFactory = Service.getSSLSocketFactory();
     }
 
     @AfterEach
     public void restoreSplunkTlsConfiguration() {
-        Service.setSslSecurityProtocol(splunkSecurityProtocol);
         Service.setSSLSocketFactory(splunkSocketFactory);
     }
 
@@ -231,10 +225,6 @@ public class TestPutSplunkHTTP {
 
     @Test
     public void testSslContextServiceProvidesSplunkSocketFactory() throws InitializationException {
-        // Splunk discards the configured Socket Factory when the static Security Protocol changes, so the Processor is configured with
-        // a protocol other than the one applied here to confirm the Socket Factory survives connecting the Splunk Service.
-        Service.setSslSecurityProtocol(SSLSecurityProtocol.TLSv1_1);
-
         final SSLSocketFactory socketFactory = Mockito.mock(SSLSocketFactory.class);
         final SSLContext sslContext = Mockito.mock(SSLContext.class);
         Mockito.when(sslContext.getSocketFactory()).thenReturn(socketFactory);
@@ -248,14 +238,12 @@ public class TestPutSplunkHTTP {
         connectingRunner.enableControllerService(sslContextProvider);
         connectingRunner.setProperty(SplunkAPICall.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
         connectingRunner.setProperty(SplunkAPICall.SCHEME, "https");
-        connectingRunner.setProperty(SplunkAPICall.SECURITY_PROTOCOL, SSLSecurityProtocol.TLSv1_2.name());
         connectingRunner.setProperty(SplunkAPICall.TOKEN, "Splunk 888c5a81-8777-49a0-a3af-f76e050ab5d9");
         connectingRunner.setProperty(SplunkAPICall.REQUEST_CHANNEL, "22bd7414-0d77-4c73-936d-c8f5d1b21862");
 
         connectingRunner.run();
 
         assertSame(socketFactory, Service.getSSLSocketFactory());
-        assertEquals(SSLSecurityProtocol.TLSv1_2, Service.getSslSecurityProtocol());
     }
 
     @Test
@@ -292,6 +280,7 @@ public class TestPutSplunkHTTP {
 
         final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+        assertEquals(Set.of("Security Protocol"), propertyMigrationResult.getPropertiesRemoved());
     }
 
     private MockFlowFile givenFlowFile() {

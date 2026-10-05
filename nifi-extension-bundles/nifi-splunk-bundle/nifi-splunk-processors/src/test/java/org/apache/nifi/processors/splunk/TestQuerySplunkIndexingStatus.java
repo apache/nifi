@@ -39,6 +39,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -158,6 +159,7 @@ public class TestQuerySplunkIndexingStatus {
 
         final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+        assertEquals(Set.of("Security Protocol"), propertyMigrationResult.getPropertiesRemoved());
     }
 
     private void givenSplunkReturns(final Map<Integer, Boolean> acks) {

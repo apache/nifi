@@ -21,13 +21,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.splunk.HttpException;
 import com.splunk.RequestMessage;
 import com.splunk.ResponseMessage;
-import com.splunk.SSLSecurityProtocol;
 import com.splunk.Service;
 import com.splunk.ServiceArgs;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
@@ -50,10 +48,7 @@ abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIso
     private static final String HTTP_SCHEME = "http";
     private static final String HTTPS_SCHEME = "https";
 
-    private static final AllowableValue TLS_1_2_VALUE = new AllowableValue(SSLSecurityProtocol.TLSv1_2.name(), SSLSecurityProtocol.TLSv1_2.name());
-    private static final AllowableValue TLS_1_1_VALUE = new AllowableValue(SSLSecurityProtocol.TLSv1_1.name(), SSLSecurityProtocol.TLSv1_1.name());
-    private static final AllowableValue TLS_1_VALUE = new AllowableValue(SSLSecurityProtocol.TLSv1.name(), SSLSecurityProtocol.TLSv1.name());
-    private static final AllowableValue SSL_3_VALUE = new AllowableValue(SSLSecurityProtocol.SSLv3.name(), SSLSecurityProtocol.SSLv3.name());
+    private static final String OBSOLETE_SECURITY_PROTOCOL = "Security Protocol";
 
     static final String ACKNOWLEDGEMENT_ID_ATTRIBUTE = "splunk.acknowledgement.id";
     static final String RESPONDED_AT_ATTRIBUTE = "splunk.responded.at";
@@ -82,14 +77,6 @@ abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIso
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .defaultValue("8088")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .build();
-
-    static final PropertyDescriptor SECURITY_PROTOCOL = new PropertyDescriptor.Builder()
-            .name("Security Protocol")
-            .description("The security protocol to use for communicating with Splunk.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .allowableValues(TLS_1_2_VALUE, TLS_1_1_VALUE, TLS_1_VALUE, SSL_3_VALUE)
-            .defaultValue(TLS_1_2_VALUE.getValue())
             .build();
 
     static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -143,7 +130,6 @@ abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIso
             SCHEME,
             HOSTNAME,
             PORT,
-            SECURITY_PROTOCOL,
             SSL_CONTEXT_SERVICE,
             OWNER,
             TOKEN,
@@ -187,13 +173,8 @@ abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIso
             return;
         }
 
-        // Constructing a Splunk Service applies the Security Protocol to static configuration, and changing the protocol discards the
-        // current Socket Factory. Applying the protocol first leaves the configured Socket Factory in place once the Service connects.
-        final SSLSecurityProtocol securityProtocol = getSecurityProtocol(context);
-        if (securityProtocol != null) {
-            Service.setSslSecurityProtocol(securityProtocol);
-        }
-
+        // Service construction reapplies the static security protocol and replaces the Socket Factory when that protocol changes.
+        // Leaving the protocol unchanged keeps the Socket Factory supplied by the SSL Context Service.
         Service.setSSLSocketFactory(sslContextProvider.createContext().getSocketFactory());
     }
 
@@ -220,24 +201,7 @@ abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIso
             splunkServiceArguments.setPassword(context.getProperty(PASSWORD).getValue());
         }
 
-        final SSLSecurityProtocol securityProtocol = getSecurityProtocol(context);
-        if (securityProtocol != null) {
-            splunkServiceArguments.setSSLSecurityProtocol(securityProtocol);
-        }
-
         return splunkServiceArguments;
-    }
-
-    private SSLSecurityProtocol getSecurityProtocol(final ProcessContext context) {
-        final SSLSecurityProtocol sslSecurityProtocol;
-
-        if (HTTPS_SCHEME.equals(context.getProperty(SCHEME).getValue()) && context.getProperty(SECURITY_PROTOCOL).isSet()) {
-            sslSecurityProtocol = SSLSecurityProtocol.valueOf(context.getProperty(SECURITY_PROTOCOL).getValue());
-        } else {
-            sslSecurityProtocol = null;
-        }
-
-        return sslSecurityProtocol;
     }
 
     protected Service getSplunkService(final ServiceArgs splunkServiceArguments) {
@@ -278,6 +242,7 @@ abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIso
         config.renameProperty("Port", PORT.getName());
         config.renameProperty("Token", TOKEN.getName());
         config.renameProperty("request-channel", REQUEST_CHANNEL.getName());
+        config.removeProperty(OBSOLETE_SECURITY_PROTOCOL);
     }
 
     protected String getTransitBaseUri() {

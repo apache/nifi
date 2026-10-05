@@ -18,7 +18,6 @@ package org.apache.nifi.processors.splunk;
 
 import com.splunk.HttpException;
 import com.splunk.JobExportArgs;
-import com.splunk.SSLSecurityProtocol;
 import com.splunk.Service;
 import com.splunk.ServiceArgs;
 import org.apache.commons.io.IOUtils;
@@ -45,6 +44,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -263,18 +263,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
             .required(true)
             .build();
 
-    public static final AllowableValue TLS_1_2_VALUE = new AllowableValue(SSLSecurityProtocol.TLSv1_2.name(), SSLSecurityProtocol.TLSv1_2.name());
-    public static final AllowableValue TLS_1_1_VALUE = new AllowableValue(SSLSecurityProtocol.TLSv1_1.name(), SSLSecurityProtocol.TLSv1_1.name());
-    public static final AllowableValue TLS_1_VALUE = new AllowableValue(SSLSecurityProtocol.TLSv1.name(), SSLSecurityProtocol.TLSv1.name());
-    public static final AllowableValue SSL_3_VALUE = new AllowableValue(SSLSecurityProtocol.SSLv3.name(), SSLSecurityProtocol.SSLv3.name());
-
-    public static final PropertyDescriptor SECURITY_PROTOCOL = new PropertyDescriptor.Builder()
-            .name("Security Protocol")
-            .description("The security protocol to use for communicating with Splunk.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .allowableValues(TLS_1_2_VALUE, TLS_1_1_VALUE, TLS_1_VALUE, SSL_3_VALUE)
-            .defaultValue(TLS_1_2_VALUE.getValue())
-            .build();
+    private static final String OBSOLETE_SECURITY_PROTOCOL = "Security Protocol";
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
@@ -318,7 +307,6 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
             TOKEN,
             USERNAME,
             PASSWORD,
-            SECURITY_PROTOCOL,
             OUTPUT_MODE,
             SSL_CONTEXT_SERVICE);
 
@@ -340,15 +328,6 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final Collection<ValidationResult> results = new ArrayList<>();
-
-        final String scheme = validationContext.getProperty(SCHEME).getValue();
-        final String secProtocol = validationContext.getProperty(SECURITY_PROTOCOL).getValue();
-
-        if (HTTPS_SCHEME.equals(scheme) && StringUtils.isBlank(secProtocol)) {
-            results.add(new ValidationResult.Builder()
-                    .explanation("Security Protocol must be specified when using HTTPS")
-                    .valid(false).subject("Security Protocol").build());
-        }
 
         final String username = validationContext.getProperty(USERNAME).getValue();
         final String password = validationContext.getProperty(PASSWORD).getValue();
@@ -594,20 +573,10 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
             serviceArgs.setPassword(password);
         }
 
-        final String secProtocol = context.getProperty(SECURITY_PROTOCOL).getValue();
-        final SSLSecurityProtocol securityProtocol = (!StringUtils.isBlank(secProtocol) && HTTPS_SCHEME.equals(scheme)) ? SSLSecurityProtocol.valueOf(secProtocol) : null;
-        if (securityProtocol != null) {
-            serviceArgs.setSSLSecurityProtocol(securityProtocol);
-        }
-
         final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
         if (sslContextProvider != null) {
-            // Constructing a Splunk Service applies the Security Protocol to static configuration, and changing the protocol discards the
-            // current Socket Factory. Applying the protocol first leaves the configured Socket Factory in place once the Service connects.
-            if (securityProtocol != null) {
-                Service.setSslSecurityProtocol(securityProtocol);
-            }
-
+            // Service construction reapplies the static security protocol and replaces the Socket Factory when that protocol changes.
+            // Leaving the protocol unchanged keeps the Socket Factory supplied by the SSL Context Service.
             Service.setSSLSocketFactory(sslContextProvider.createContext().getSocketFactory());
         }
 
@@ -648,6 +617,11 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         } else {
             return new TimeRange(earliest, latest);
         }
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.removeProperty(OBSOLETE_SECURITY_PROTOCOL);
     }
 
     @Override
