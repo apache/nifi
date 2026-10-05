@@ -22,10 +22,29 @@ import { Router } from '@angular/router';
 import { firstValueFrom, Observable, of, Subject, throwError } from 'rxjs';
 import { toArray } from 'rxjs/operators';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ComponentType, ComponentTypeNamePipe } from '@nifi/shared';
+import {
+    ComponentType,
+    ComponentTypeNamePipe,
+    ConnectionDTO,
+    ConnectionEntity,
+    Position,
+    ProcessorEntity
+} from '@nifi/shared';
 import { MatDialog } from '@angular/material/dialog';
-import { ParameterContextEntity } from '../../../../state/shared';
+import { ParameterContextEntity, ProcessGroupFlowEntity } from '../../../../state/shared';
 import { createParameterContextFixture } from '../../testing/parameter-context-fixture';
+import {
+    makeConnection as makeConnectionEntity,
+    makeConnectionDto,
+    makeFunnel,
+    makeLabel,
+    makeLabelDto,
+    makeProcessGroup,
+    makeProcessor,
+    makeProcessorDto
+} from '../../testing/connector-canvas-entity-fixtures';
+import { expectActionOfType } from '../../testing/expect-action-of-type';
+import type { ConnectorCanvasComponentEntity } from './index';
 import { ConnectorCanvasEffects } from './connector-canvas.effects';
 import { ConnectorService } from '../../service/connector.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
@@ -124,12 +143,11 @@ describe('ConnectorCanvasEffects', () => {
 
         const afterClosed$ = new Subject<unknown>();
         const mockDialogRef = {
-            componentInstance: {} as {
+            componentInstance: {} as Record<string, unknown> & {
                 parameterContext?: ParameterContextEntity | null;
                 supportsParameters?: boolean;
                 goToParameter?: (parameter: string) => void;
                 goToService: (serviceId: string) => void;
-                [key: string]: any;
             },
             afterClosed: () => afterClosed$.asObservable(),
             close: vi.fn()
@@ -194,13 +212,14 @@ describe('ConnectorCanvasEffects', () => {
     describe('loadConnectorFlow$', () => {
         it('should call getConnectorFlow and dispatch loadConnectorFlowSuccess', async () => {
             const { effects, actions$, mockConnectorService } = await setup();
+            const label = makeLabel('l1', { position: { x: 10, y: 20 } });
             const flowResponse = {
                 processGroupFlow: {
                     id: 'pg-123',
                     parentGroupId: 'parent-456',
                     breadcrumb: null,
                     flow: {
-                        labels: [{ id: 'l1', position: { x: 10, y: 20 } }],
+                        labels: [label],
                         funnels: [],
                         inputPorts: [],
                         outputPorts: [],
@@ -229,7 +248,7 @@ describe('ConnectorCanvasEffects', () => {
                     processGroupId: 'pg-123',
                     parentProcessGroupId: 'parent-456',
                     breadcrumb: null,
-                    labels: [{ id: 'l1', position: { x: 10, y: 20 } }],
+                    labels: [label],
                     funnels: [],
                     inputPorts: [],
                     outputPorts: [],
@@ -497,15 +516,11 @@ describe('ConnectorCanvasEffects', () => {
     });
 
     describe('viewComponentConfiguration$', () => {
-        const baseEntity = {
-            id: 'comp-1',
-            uri: 'https://localhost/nifi-api/processors/comp-1',
-            permissions: { canRead: true, canWrite: true },
-            operatePermissions: { canRead: true, canWrite: true },
-            component: { name: 'My Component' }
-        };
+        const baseEntity = makeProcessor('comp-1', {
+            component: makeProcessorDto({ id: 'comp-1', name: 'My Component' })
+        });
 
-        async function dispatchView(componentType: ComponentType, entity: any = baseEntity) {
+        async function dispatchView(componentType: ComponentType, entity: ConnectorCanvasComponentEntity = baseEntity) {
             const { effects, actions$, mockDialog } = await setup();
             actions$(of(viewComponentConfiguration({ request: { entity, componentType } })));
             await firstValueFrom(effects.viewComponentConfiguration$);
@@ -527,7 +542,7 @@ describe('ConnectorCanvasEffects', () => {
 
         it('opens the connection dialog with the breadcrumbs observable wired', async () => {
             const { effects, actions$, mockDialog } = await setup();
-            const componentInstance: any = {};
+            const componentInstance: Record<string, unknown> = {};
             (mockDialog.open as Mock).mockReturnValue({ componentInstance });
             actions$(
                 of(
@@ -540,10 +555,10 @@ describe('ConnectorCanvasEffects', () => {
 
             const [, config] = (mockDialog.open as Mock).mock.calls[0];
             expect(config.data.type).toBe(ComponentType.Connection);
-            expect(componentInstance.breadcrumbs$).toBeDefined();
-            expect(componentInstance.availablePrioritizers$).toBeDefined();
-            expect(componentInstance.getChildInputPorts).toBeInstanceOf(Function);
-            expect(componentInstance.getChildOutputPorts).toBeInstanceOf(Function);
+            expect(componentInstance['breadcrumbs$']).toBeDefined();
+            expect(componentInstance['availablePrioritizers$']).toBeDefined();
+            expect(componentInstance['getChildInputPorts']).toBeInstanceOf(Function);
+            expect(componentInstance['getChildOutputPorts']).toBeInstanceOf(Function);
         });
 
         it('opens the input port dialog with read-only permissions', async () => {
@@ -569,7 +584,7 @@ describe('ConnectorCanvasEffects', () => {
 
         it('opens the process group dialog with the current user observable wired', async () => {
             const { effects, actions$, mockDialog } = await setup();
-            const componentInstance: any = {};
+            const componentInstance: Record<string, unknown> = {};
             (mockDialog.open as Mock).mockReturnValue({ componentInstance });
             actions$(
                 of(
@@ -582,8 +597,8 @@ describe('ConnectorCanvasEffects', () => {
 
             const [, config] = (mockDialog.open as Mock).mock.calls[0];
             expect(config.data.type).toBe(ComponentType.ProcessGroup);
-            expect(componentInstance.currentUser$).toBeDefined();
-            expect(componentInstance.parameterContexts).toEqual([]);
+            expect(componentInstance['currentUser$']).toBeDefined();
+            expect(componentInstance['parameterContexts']).toEqual([]);
         });
 
         it('opens the remote process group dialog with read-only permissions', async () => {
@@ -598,17 +613,17 @@ describe('ConnectorCanvasEffects', () => {
             expect(mockDialog.open).not.toHaveBeenCalled();
         });
 
-        it('handles entities without operatePermissions by forcing operatePermissions.canWrite to false', async () => {
-            const entityWithoutOperatePermissions = {
-                id: 'comp-1',
-                uri: 'https://localhost/nifi-api/processors/comp-1',
-                permissions: { canRead: true, canWrite: true },
-                component: { name: 'My Component' }
-            };
-            const { mockDialog } = await dispatchView(ComponentType.Processor, entityWithoutOperatePermissions);
+        it.each([
+            ['connection', ComponentType.Connection, makeConnectionEntity('comp-1')],
+            ['label', ComponentType.Label, makeLabel('comp-1', { component: makeLabelDto({ id: 'comp-1' }) })],
+            ['process group', ComponentType.ProcessGroup, makeProcessGroup('comp-1')],
+            // Funnel has no configuration dialog, so the processor dialog carries the entity.
+            ['funnel', ComponentType.Processor, makeFunnel('comp-1')]
+        ] as const)('does not fabricate operatePermissions on a %s', async (_kind, componentType, entity) => {
+            const { mockDialog } = await dispatchView(componentType, entity);
             const [, config] = (mockDialog.open as Mock).mock.calls[0];
-            expect(config.data.entity.operatePermissions).toBeDefined();
-            expect(config.data.entity.operatePermissions.canWrite).toBe(false);
+            expect(config.data.entity.operatePermissions).toBeUndefined();
+            expect(config.data.entity.permissions.canWrite).toBe(false);
         });
 
         it('wires parameter context onto the EditProcessor dialog when one is bound', async () => {
@@ -1542,38 +1557,41 @@ describe('ConnectorCanvasEffects', () => {
     });
 
     describe('loadConnectorFlow$ — position sanitization (NIFI-16025)', () => {
-        function makeEntity(id: string, x: number, y: number): any {
-            return {
-                id,
-                permissions: { canRead: true, canWrite: true },
-                revision: { version: 0 },
+        function makeEntity(id: string, x: number, y: number, readable = true): ProcessorEntity {
+            return makeProcessor(id, {
                 position: { x, y },
-                component: {}
-            };
+                component: readable ? makeProcessorDto({ id, position: { x, y } }) : undefined
+            });
         }
 
-        function makeConnection(
+        function makeConnectionWithBends(
             id: string,
             bendX: number,
             bendY: number,
             componentBendX = bendX,
             componentBendY = bendY
-        ): any {
-            return {
-                id,
-                permissions: { canRead: true, canWrite: true },
-                revision: { version: 0 },
+        ): ConnectionEntity {
+            return makeConnectionEntity(id, {
                 bends: [{ x: bendX, y: bendY }],
-                component: { bends: [{ x: componentBendX, y: componentBendY }] }
-            };
+                component: makeConnectionDto({ id, bends: [{ x: componentBendX, y: componentBendY }] })
+            });
         }
 
-        function makeFlowResponse(overrides: { processors?: any[]; connections?: any[] } = {}): any {
+        function makeFlowResponse(
+            overrides: { processors?: ProcessorEntity[]; connections?: ConnectionEntity[] } = {}
+        ): ProcessGroupFlowEntity {
             return {
+                permissions: { canRead: true, canWrite: true },
+                revision: { version: 0 },
                 processGroupFlow: {
                     id: 'pg-123',
-                    parentGroupId: null,
-                    breadcrumb: null,
+                    breadcrumb: {
+                        id: 'pg-123',
+                        permissions: { canRead: true, canWrite: true },
+                        versionedFlowState: '',
+                        breadcrumb: { id: 'pg-123', name: 'Process Group' }
+                    },
+                    resolvedExecutionEngine: 'STANDARD',
                     flow: {
                         labels: [],
                         funnels: [],
@@ -1596,7 +1614,26 @@ describe('ConnectorCanvasEffects', () => {
             );
             actions$(of(loadConnectorFlow({ connectorId: 'c-1', processGroupId: 'pg-1' })));
 
-            const action: any = await firstValueFrom(effects.loadConnectorFlow$);
+            const action = expectActionOfType(
+                await firstValueFrom(effects.loadConnectorFlow$),
+                loadConnectorFlowSuccess
+            );
+            expect(action.processors[0].position).toEqual({ x: 100, y: 200 });
+        });
+
+        it('preserves an unreadable processor without adding a component body', async () => {
+            const { effects, actions$, mockConnectorService } = await setup();
+            const entity = makeEntity('p-unreadable', 100, 200, false);
+            (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(
+                of(makeFlowResponse({ processors: [entity] }))
+            );
+            actions$(of(loadConnectorFlow({ connectorId: 'c-1', processGroupId: 'pg-1' })));
+
+            const action = expectActionOfType(
+                await firstValueFrom(effects.loadConnectorFlow$),
+                loadConnectorFlowSuccess
+            );
+            expect(action.processors[0].component).toBeUndefined();
             expect(action.processors[0].position).toEqual({ x: 100, y: 200 });
         });
 
@@ -1610,7 +1647,10 @@ describe('ConnectorCanvasEffects', () => {
             const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
             actions$(of(loadConnectorFlow({ connectorId: 'c-1', processGroupId: 'pg-1' })));
 
-            const action: any = await firstValueFrom(effects.loadConnectorFlow$);
+            const action = expectActionOfType(
+                await firstValueFrom(effects.loadConnectorFlow$),
+                loadConnectorFlowSuccess
+            );
             expect(action.processors[0].position).toEqual({ x: 0, y: 0 });
             expect(warnSpy).toHaveBeenCalled();
             warnSpy.mockRestore();
@@ -1618,7 +1658,7 @@ describe('ConnectorCanvasEffects', () => {
 
         it('does not sanitize a nonexistent connection position', async () => {
             const { effects, actions$, mockConnectorService } = await setup();
-            const connection = makeConnection('conn-valid', 100, 200, 300, 400);
+            const connection = makeConnectionWithBends('conn-valid', 100, 200, 300, 400);
             (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(
                 of(makeFlowResponse({ connections: [connection] }))
             );
@@ -1626,18 +1666,21 @@ describe('ConnectorCanvasEffects', () => {
             const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
             actions$(of(loadConnectorFlow({ connectorId: 'c-1', processGroupId: 'pg-1' })));
 
-            const action: any = await firstValueFrom(effects.loadConnectorFlow$);
+            const action = expectActionOfType(
+                await firstValueFrom(effects.loadConnectorFlow$),
+                loadConnectorFlowSuccess
+            );
             expect(action.connections[0]).not.toHaveProperty('position');
             expect(action.connections[0].bends[0]).toEqual({ x: 100, y: 200 });
-            expect(action.connections[0].component.bends[0]).toEqual({ x: 300, y: 400 });
+            expect(action.connections[0].component!.bends[0]).toEqual({ x: 300, y: 400 });
             expect(warnSpy).not.toHaveBeenCalled();
             warnSpy.mockRestore();
         });
 
         it('clamps top-level and nested catastrophic-finite connection bends to (0, 0)', async () => {
             const { effects, actions$, mockConnectorService } = await setup();
-            const connection = {
-                ...makeConnection('conn-bad', 9e307, 0, 0, 8e307),
+            const connection: ConnectionEntity & { position: Position } = {
+                ...makeConnectionWithBends('conn-bad', 9e307, 0, 0, 8e307),
                 position: { x: 7e307, y: 0 }
             };
             (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(
@@ -1647,10 +1690,16 @@ describe('ConnectorCanvasEffects', () => {
             const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
             actions$(of(loadConnectorFlow({ connectorId: 'c-1', processGroupId: 'pg-1' })));
 
-            const action: any = await firstValueFrom(effects.loadConnectorFlow$);
+            const action = expectActionOfType(
+                await firstValueFrom(effects.loadConnectorFlow$),
+                loadConnectorFlowSuccess
+            );
             expect(action.connections[0].bends[0]).toEqual({ x: 0, y: 0 });
-            expect(action.connections[0].component.bends[0]).toEqual({ x: 0, y: 0 });
-            expect(action.connections[0].position).toEqual({ x: 7e307, y: 0 });
+            expect(action.connections[0].component!.bends[0]).toEqual({ x: 0, y: 0 });
+            expect((action.connections[0] as ConnectionEntity & { position: Position }).position).toEqual({
+                x: 7e307,
+                y: 0
+            });
             expect(warnSpy).toHaveBeenCalledTimes(1);
             expect(warnSpy).toHaveBeenCalledWith(
                 expect.stringContaining('Component Connection bend conn-bad:bend:0 has an out-of-range position'),
@@ -1658,6 +1707,69 @@ describe('ConnectorCanvasEffects', () => {
                 expect.stringContaining('falling back to (0, 0)')
             );
             warnSpy.mockRestore();
+        });
+
+        it('clamps entity bends on an unreadable connection and leaves component unset', async () => {
+            const { effects, actions$, mockConnectorService } = await setup();
+            const connection = makeConnectionEntity('conn-unreadable', {
+                permissions: { canRead: false, canWrite: false },
+                bends: [{ x: 9e307, y: 0 }],
+                component: undefined
+            });
+            (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(
+                of(makeFlowResponse({ connections: [connection] }))
+            );
+
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+            actions$(of(loadConnectorFlow({ connectorId: 'c-1', processGroupId: 'pg-1' })));
+
+            const action = expectActionOfType(
+                await firstValueFrom(effects.loadConnectorFlow$),
+                loadConnectorFlowSuccess
+            );
+            expect(action.connections[0].component).toBeUndefined();
+            expect(action.connections[0].bends[0]).toEqual({ x: 0, y: 0 });
+            expect(warnSpy).toHaveBeenCalledTimes(1);
+            warnSpy.mockRestore();
+        });
+
+        it('treats an omitted connection bends list as empty', async () => {
+            const { effects, actions$, mockConnectorService } = await setup();
+            const { bends: _omitted, ...connectionWithoutBends } = makeConnectionEntity('conn-missing-bends', {
+                component: makeConnectionDto({ id: 'conn-missing-bends', bends: [{ x: 5, y: 6 }] })
+            });
+            (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(
+                of(makeFlowResponse({ connections: [connectionWithoutBends as ConnectionEntity] }))
+            );
+            actions$(of(loadConnectorFlow({ connectorId: 'c-1', processGroupId: 'pg-1' })));
+
+            const action = expectActionOfType(
+                await firstValueFrom(effects.loadConnectorFlow$),
+                loadConnectorFlowSuccess
+            );
+            expect(action.connections[0].bends).toEqual([]);
+            expect(action.connections[0].component!.bends[0]).toEqual({ x: 5, y: 6 });
+        });
+
+        it('treats an omitted component bends list as empty', async () => {
+            const { effects, actions$, mockConnectorService } = await setup();
+            const dto = makeConnectionDto({ id: 'conn-missing-component-bends' });
+            const { bends: _omitted, ...dtoWithoutBends } = dto;
+            const connection = makeConnectionEntity('conn-missing-component-bends', {
+                bends: [{ x: 10, y: 20 }],
+                component: dtoWithoutBends as ConnectionDTO
+            });
+            (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(
+                of(makeFlowResponse({ connections: [connection] }))
+            );
+            actions$(of(loadConnectorFlow({ connectorId: 'c-1', processGroupId: 'pg-1' })));
+
+            const action = expectActionOfType(
+                await firstValueFrom(effects.loadConnectorFlow$),
+                loadConnectorFlowSuccess
+            );
+            expect(action.connections[0].bends[0]).toEqual({ x: 10, y: 20 });
+            expect(action.connections[0].component!.bends).toEqual([]);
         });
     });
 });

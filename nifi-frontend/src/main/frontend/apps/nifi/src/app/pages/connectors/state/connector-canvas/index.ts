@@ -15,23 +15,44 @@
  * limitations under the License.
  */
 
+import {
+    ConnectionEntity,
+    FunnelEntity,
+    LabelEntity,
+    PortEntity,
+    ProcessGroupEntity,
+    ProcessorEntity,
+    RemoteProcessGroupEntity
+} from '@nifi/shared';
 import { BreadcrumbEntity, ParameterContextEntity, RegistryClientEntity } from '../../../../state/shared';
 
 export const connectorCanvasFeatureKey = 'connectorCanvas';
+
+export type ConnectorCanvasComponentEntity =
+    | ProcessorEntity
+    | PortEntity
+    | ProcessGroupEntity
+    | RemoteProcessGroupEntity
+    | (FunnelEntity & {
+          dimensions?: never;
+          zIndex?: never;
+      })
+    | ConnectionEntity
+    | LabelEntity;
 
 export interface ConnectorCanvasState {
     connectorId: string;
     processGroupId: string | null;
     parentProcessGroupId: string | null;
     breadcrumb: BreadcrumbEntity | null;
-    labels: any[];
-    funnels: any[];
-    inputPorts: any[];
-    outputPorts: any[];
-    remoteProcessGroups: any[];
-    processGroups: any[];
-    processors: any[];
-    connections: any[];
+    labels: LabelEntity[];
+    funnels: FunnelEntity[];
+    inputPorts: PortEntity[];
+    outputPorts: PortEntity[];
+    remoteProcessGroups: RemoteProcessGroupEntity[];
+    processGroups: ProcessGroupEntity[];
+    processors: ProcessorEntity[];
+    connections: ConnectionEntity[];
     registryClients: RegistryClientEntity[];
     skipTransform: boolean;
     loadingStatus: 'pending' | 'loading' | 'success' | 'error';

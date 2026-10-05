@@ -20,6 +20,15 @@ import { ConnectorCanvasState, initialConnectorCanvasState } from './index';
 import * as ConnectorCanvasActions from './connector-canvas.actions';
 import { ErrorContextKey } from '../../../../state/error';
 import { createParameterContextFixture } from '../../testing/parameter-context-fixture';
+import {
+    makeConnection,
+    makeFunnel,
+    makeLabel,
+    makePort,
+    makeProcessGroup,
+    makeProcessor,
+    makeRemoteProcessGroup
+} from '../../testing/connector-canvas-entity-fixtures';
 
 describe('connectorCanvasReducer', () => {
     function createPopulatedState(overrides: Partial<ConnectorCanvasState> = {}): ConnectorCanvasState {
@@ -34,14 +43,14 @@ describe('connectorCanvasReducer', () => {
                 breadcrumb: { id: 'pg-current', name: 'Current PG' },
                 versionedFlowState: ''
             },
-            labels: [{ id: 'label-1' }],
-            funnels: [{ id: 'funnel-1' }],
-            inputPorts: [{ id: 'input-1' }],
-            outputPorts: [{ id: 'output-1' }],
-            remoteProcessGroups: [{ id: 'rpg-1' }],
-            processGroups: [{ id: 'pg-child-1' }],
-            processors: [{ id: 'proc-1' }, { id: 'proc-2' }],
-            connections: [{ id: 'conn-1' }],
+            labels: [makeLabel('label-1')],
+            funnels: [makeFunnel('funnel-1')],
+            inputPorts: [makePort('input-1')],
+            outputPorts: [makePort('output-1', { portType: 'OUTPUT_PORT' })],
+            remoteProcessGroups: [makeRemoteProcessGroup('rpg-1')],
+            processGroups: [makeProcessGroup('pg-child-1')],
+            processors: [makeProcessor('proc-1'), makeProcessor('proc-2')],
+            connections: [makeConnection('conn-1')],
             registryClients: [],
             skipTransform: false,
             loadingStatus: 'success',
@@ -124,9 +133,9 @@ describe('connectorCanvasReducer', () => {
 
     describe('loadConnectorFlowSuccess', () => {
         it('should populate state with flow data', () => {
-            const processors = [{ id: 'proc-new' }];
-            const connections = [{ id: 'conn-new' }];
-            const labels = [{ id: 'label-new' }];
+            const processors = [makeProcessor('proc-new')];
+            const connections = [makeConnection('conn-new')];
+            const labels = [makeLabel('label-new')];
 
             const result = connectorCanvasReducer(
                 initialConnectorCanvasState,
