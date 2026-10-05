@@ -47,6 +47,12 @@
                                         <image>
                                             <name>apache/nifi</name>
                                             <build>
+                                                <buildx>
+                                                    <builderName>default</builderName>
+                                                    <platforms>
+                                                        <platform>${docker.build.platform}</platform>
+                                                    </platforms>
+                                                </buildx>
                                                 <tags>
                                                     <tag>${project.version}-maven</tag>
                                                 </tags>

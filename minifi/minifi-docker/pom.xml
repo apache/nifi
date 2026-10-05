@@ -89,6 +89,12 @@ limitations under the License.
                                         <image>
                                             <name>apache/nifi-minifi</name>
                                             <build>
+                                                <buildx>
+                                                    <builderName>default</builderName>
+                                                    <platforms>
+                                                        <platform>${docker.build.platform}</platform>
+                                                    </platforms>
+                                                </buildx>
                                                 <tags>
                                                     <tag>${minifi.version}-maven</tag>
                                                 </tags>

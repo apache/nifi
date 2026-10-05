@@ -112,6 +112,10 @@
         <docker.image.tag>21</docker.image.tag>
         <docker.jdk.image.name>bellsoft/liberica-openjdk-debian</docker.jdk.image.name>
         <docker.jre.image.name>bellsoft/liberica-openjre-debian</docker.jre.image.name>
+        <!-- Platform the container images are built for. Must name a platform: docker-maven-plugin
+             only uses BuildKit when one is set, and uses the Docker Engine API otherwise. The
+             docker-platform-arm64 profile below overrides this on arm64 hosts. -->
+        <docker.build.platform>linux/amd64</docker.build.platform>
 
         <!-- Frontend tooling -->
         <frontend.mvn.plugin.version>2.0.2</frontend.mvn.plugin.version>
@@ -1136,6 +1140,19 @@
             </activation>
             <properties>
                 <surefire.opts>${env.SUREFIRE_OPTS}</surefire.opts>
+            </properties>
+        </profile>
+
+        <!-- Build container images for the host architecture instead of the linux/amd64 default -->
+        <profile>
+            <id>docker-platform-arm64</id>
+            <activation>
+                <os>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <docker.build.platform>linux/arm64</docker.build.platform>
             </properties>
         </profile>
 
