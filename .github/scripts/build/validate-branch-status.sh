@@ -18,9 +18,14 @@ set -e
 
 git fetch origin "${TARGET_BRANCH}"
 
+MAX_COMMITS_BEHIND=10
+COMMITS_BEHIND=$(git rev-list --count --first-parent "HEAD...origin/${TARGET_BRANCH}")
+
 if git merge-base --is-ancestor "origin/${TARGET_BRANCH}" HEAD; then
   echo "Branch is up to date with origin/${TARGET_BRANCH}"
+elif [ "${COMMITS_BEHIND}" -le "${MAX_COMMITS_BEHIND}" ]; then
+  echo "Branch is ${COMMITS_BEHIND} commits behind origin/${TARGET_BRANCH}"
 else
-  echo "::error::Branch is not up to date with origin/${TARGET_BRANCH}. Rebase the branch with the latest changes from ${TARGET_BRANCH}."
+  echo "::error::Branch is ${COMMITS_BEHIND} commits behind origin/${TARGET_BRANCH}. Rebase the branch with the latest changes from ${TARGET_BRANCH}."
   exit 1
 fi
