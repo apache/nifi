@@ -67,6 +67,7 @@ class TestUpdateGauge {
         runner.setProperty(UpdateGauge.GAUGE_VALUE, "${value}");
         runner.setProperty("service", "payments");
         runner.setProperty("region", "${region}");
+        runner.setProperty("emptyAttribute", "${missingAttribute}");
 
         runner.enqueue(new byte[]{}, Map.of("value", Double.toString(GAUGE_VALUE), "region", "us-west"));
         runner.run();

@@ -69,6 +69,7 @@ public class TestUpdateCounter {
         runner.setProperty(UpdateCounter.DELTA, "${num}");
         runner.setProperty("service", "payments");
         runner.setProperty("region", "${region}");
+        runner.setProperty("emptyAttribute", "${missingAttribute}");
 
         final Map<String, String> attributes = Map.of(
                 "num", "5",

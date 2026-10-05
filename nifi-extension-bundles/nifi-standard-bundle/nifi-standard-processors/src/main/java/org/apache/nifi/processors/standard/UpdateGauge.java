@@ -143,7 +143,7 @@ public class UpdateGauge extends AbstractProcessor {
             }
 
             final String attributeValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
-            if (attributeValue != null) {
+            if (attributeValue != null && !attributeValue.isBlank()) {
                 metricAttributes.put(descriptor.getName(), attributeValue);
             }
         }
