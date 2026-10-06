@@ -332,12 +332,20 @@ public abstract class ApplicationResource {
         }
 
         final URI requestUri = RequestUriBuilder.fromHttpServletRequest(httpServletRequest).build();
-        // Set Proxy Headers based on resolved URI from supported values
+        // Resolved proxy headers replace inbound values. The header map is case-sensitive, so a differently
+        // cased name would otherwise remain beside the canonical name.
+        removeHeaderIgnoreCase(result, ProxyHeader.PROXY_SCHEME.getHeader());
+        removeHeaderIgnoreCase(result, ProxyHeader.PROXY_HOST.getHeader());
+        removeHeaderIgnoreCase(result, ProxyHeader.PROXY_PORT.getHeader());
         result.put(ProxyHeader.PROXY_SCHEME.getHeader(), requestUri.getScheme());
         result.put(ProxyHeader.PROXY_HOST.getHeader(), requestUri.getHost());
         result.put(ProxyHeader.PROXY_PORT.getHeader(), Integer.toString(requestUri.getPort()));
 
         return result;
+    }
+
+    private static void removeHeaderIgnoreCase(final Map<String, String> headers, final String headerName) {
+        headers.keySet().removeIf(headerName::equalsIgnoreCase);
     }
 
     /**

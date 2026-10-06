@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -36,12 +38,14 @@ class TestReplicationHeaderUtils {
     private static final String TEST_USER_IDENTITY = "alice";
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String AUTHORIZATION_HEADER_UPPER = "AUTHORIZATION";
     private static final String AUTHORIZATION_VALUE = "Bearer secret";
 
     private static final String CUSTOM_HEADER = "X-Custom-Token";
     private static final String CUSTOM_HEADER_VALUE = "custom-token-123";
 
     private static final String COOKIE_HEADER = "Cookie";
+    private static final String COOKIE_HEADER_LOWER = "cookie";
     private static final String HOST_HEADER = "Host";
     private static final String HOST_VALUE = "original-host:8080";
 
@@ -54,6 +58,17 @@ class TestReplicationHeaderUtils {
 
     private static final String SPOOFED_VALUE = "spoofed";
     private static final String SHOULD_SURVIVE_VALUE = "should-survive";
+
+    private static final String PROXIED_ENTITIES_CHAIN_UPPER = "X-PROXIEDENTITIESCHAIN";
+    private static final String PROXIED_ENTITIES_CHAIN_LOWER = "x-proxiedentitieschain";
+    private static final String PROXIED_ENTITY_GROUPS_UPPER = "X-PROXIEDENTITYGROUPS";
+    private static final String PROXIED_ENTITY_GROUPS_LOWER = "x-proxiedentitygroups";
+
+    private static final String OTHER_IDENTITY = "other-user";
+    private static final String ANOTHER_IDENTITY = "another-user";
+    private static final String IDENTITY_PROVIDER_GROUP = "analysts";
+    private static final String OTHER_GROUP = "other-group";
+    private static final String ANOTHER_GROUP = "another-group";
 
     @Test
     void testApplyUserProxyAndStripCredentialsSetsProxiedEntities() {
@@ -81,6 +96,53 @@ class TestReplicationHeaderUtils {
         assertNull(headers.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN));
         assertNull(headers.get(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS));
         assertNull(headers.get(AUTHORIZATION_HEADER));
+    }
+
+    @Test
+    void testApplyUserProxyReplacesCaseVariantProxiedEntityHeaders() {
+        final NiFiUser user = new StandardNiFiUser.Builder()
+                .identity(TEST_USER_IDENTITY)
+                .identityProviderGroups(Set.of(IDENTITY_PROVIDER_GROUP))
+                .build();
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(PROXIED_ENTITIES_CHAIN_UPPER, formatEntities(OTHER_IDENTITY));
+        headers.put(PROXIED_ENTITIES_CHAIN_LOWER, formatEntities(ANOTHER_IDENTITY));
+        headers.put(PROXIED_ENTITY_GROUPS_UPPER, formatEntities(OTHER_GROUP));
+        headers.put(PROXIED_ENTITY_GROUPS_LOWER, formatEntities(ANOTHER_GROUP));
+
+        ReplicationHeaderUtils.applyUserProxyAndStripCredentials(headers, user);
+
+        assertEquals(Set.of(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN), matchingHeaderNames(headers, ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN));
+        assertEquals(Set.of(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS), matchingHeaderNames(headers, ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS));
+        assertTrue(headers.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains(TEST_USER_IDENTITY));
+        assertTrue(headers.get(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS).contains(IDENTITY_PROVIDER_GROUP));
+        assertFalse(headers.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains(OTHER_IDENTITY));
+        assertFalse(headers.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains(ANOTHER_IDENTITY));
+        assertFalse(headers.get(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS).contains(OTHER_GROUP));
+        assertFalse(headers.get(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS).contains(ANOTHER_GROUP));
+    }
+
+    @Test
+    void testApplyUserProxyWithNullUserRemovesExistingProxiedEntityHeaders() {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(PROXIED_ENTITIES_CHAIN_UPPER, formatEntities(OTHER_IDENTITY));
+        headers.put(PROXIED_ENTITY_GROUPS_LOWER, formatEntities(OTHER_GROUP));
+
+        ReplicationHeaderUtils.applyUserProxyAndStripCredentials(headers, null);
+
+        assertTrue(matchingHeaderNames(headers, ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).isEmpty());
+        assertTrue(matchingHeaderNames(headers, ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS).isEmpty());
+    }
+
+    @Test
+    void testApplyUserProxyRemovesAllAuthorizationCaseVariants() {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(AUTHORIZATION_HEADER, AUTHORIZATION_VALUE);
+        headers.put(AUTHORIZATION_HEADER_UPPER, AUTHORIZATION_VALUE);
+
+        ReplicationHeaderUtils.applyUserProxyAndStripCredentials(headers, null);
+
+        assertTrue(matchingHeaderNames(headers, AUTHORIZATION_HEADER).isEmpty());
     }
 
     @Test
@@ -130,8 +192,8 @@ class TestReplicationHeaderUtils {
     @Test
     void testStripReplicationMarkerHeadersCaseInsensitive() {
         final Map<String, String> headers = new HashMap<>();
-        headers.put("Request-Replicated", "true");
-        headers.put("Request-Forwarded-To-Coordinator", "true");
+        headers.put("Request-Replicated", Boolean.TRUE.toString());
+        headers.put("Request-Forwarded-To-Coordinator", Boolean.TRUE.toString());
         headers.put("Replication-Target-Id", SHOULD_SURVIVE_VALUE);
 
         ReplicationHeaderUtils.stripReplicationMarkerHeaders(headers);
@@ -144,13 +206,26 @@ class TestReplicationHeaderUtils {
     @Test
     void testStripRequestReplicationHeadersCaseInsensitive() {
         final Map<String, String> headers = new HashMap<>();
-        headers.put("Request-Replicated", "true");
-        headers.put("EXECUTION-CONTINUE", "true");
+        headers.put("Request-Replicated", Boolean.TRUE.toString());
+        headers.put("EXECUTION-CONTINUE", Boolean.TRUE.toString());
 
         ReplicationHeaderUtils.stripRequestReplicationHeaders(headers);
 
         assertFalse(headers.containsKey("Request-Replicated"));
         assertFalse(headers.containsKey("EXECUTION-CONTINUE"));
+    }
+
+    @Test
+    void testStripRequestReplicationHeadersRemovesEveryCaseVariant() {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put("Request-Replicated", Boolean.TRUE.toString());
+        headers.put("request-replicated", Boolean.FALSE.toString());
+        headers.put("EXECUTION-CONTINUE", Boolean.TRUE.toString());
+        headers.put("execution-continue", Boolean.FALSE.toString());
+
+        ReplicationHeaderUtils.stripRequestReplicationHeaders(headers);
+
+        assertTrue(headers.isEmpty());
     }
 
     @Test
@@ -181,6 +256,7 @@ class TestReplicationHeaderUtils {
     void testStripAuthCookies() {
         final Map<String, String> headers = new HashMap<>();
         headers.put(COOKIE_HEADER, "__Secure-Authorization-Bearer=token123; __Secure-Request-Token=rt456; other=value");
+        headers.put(COOKIE_HEADER_LOWER, "__Secure-Authorization-Bearer=other-token; keep=yes");
 
         ReplicationHeaderUtils.applyUserProxyAndStripCredentials(headers, null);
 
@@ -189,6 +265,11 @@ class TestReplicationHeaderUtils {
         assertFalse(remaining.contains("__Secure-Authorization-Bearer"));
         assertFalse(remaining.contains("__Secure-Request-Token"));
         assertTrue(remaining.contains("other=value"));
+
+        final String lowerCaseCookies = headers.get(COOKIE_HEADER_LOWER);
+        assertNotNull(lowerCaseCookies);
+        assertFalse(lowerCaseCookies.contains("__Secure-Authorization-Bearer"));
+        assertTrue(lowerCaseCookies.contains("keep=yes"));
     }
 
     @Test
@@ -201,5 +282,19 @@ class TestReplicationHeaderUtils {
 
         assertNull(headers.get(HOST_HEADER));
         assertEquals(SHOULD_SURVIVE_VALUE, headers.get(CUSTOM_HEADER));
+    }
+
+    private static Set<String> matchingHeaderNames(final Map<String, String> headers, final String headerName) {
+        return headers.keySet().stream()
+                .filter(headerName::equalsIgnoreCase)
+                .collect(Collectors.toSet());
+    }
+
+    private static String formatEntities(final String... entities) {
+        final StringBuilder formattedEntities = new StringBuilder();
+        for (final String entity : entities) {
+            formattedEntities.append('<').append(entity).append('>');
+        }
+        return formattedEntities.toString();
     }
 }

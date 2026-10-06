@@ -83,6 +83,12 @@ class TestStandardUploadRequestReplicatorHeaders {
     private static final String SPOOFED_VALUE = "spoofed";
     private static final String SPOOFED_TX_VALUE = "spoofed-tx";
 
+    private static final String PROXIED_ENTITIES_CHAIN_UPPER = "X-PROXIEDENTITIESCHAIN";
+    private static final String PROXIED_ENTITIES_CHAIN_LOWER = "x-proxiedentitieschain";
+    private static final String PROXIED_ENTITY_GROUPS_UPPER = "X-PROXIEDENTITYGROUPS";
+    private static final String PROXIED_ENTITY_GROUPS_LOWER = "x-proxiedentitygroups";
+    private static final String FORWARDED_GROUP = "admins";
+
     private StandardUploadRequestReplicator replicator;
 
     @BeforeEach
@@ -318,7 +324,7 @@ class TestStandardUploadRequestReplicatorHeaders {
                 .filename(TEST_FILENAME)
                 .identifier(TEST_IDENTIFIER)
                 .contents(new ByteArrayInputStream(new byte[0]))
-                .header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, "<" + EVIL_USER_IDENTITY + ">")
+                .header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, formatEntities(EVIL_USER_IDENTITY))
                 .exampleRequestUri(TEST_REQUEST_URI)
                 .responseClass(String.class)
                 .successfulResponseStatus(SUCCESS_STATUS)
@@ -328,6 +334,31 @@ class TestStandardUploadRequestReplicatorHeaders {
 
         assertFalse(result.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains(EVIL_USER_IDENTITY));
         assertTrue(result.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains(REAL_USER_IDENTITY));
+    }
+
+    @Test
+    void testForwardedProxiedEntityCaseVariantsReplacedWithAuthenticatedUser() {
+        final Map<String, String> forwarded = new HashMap<>();
+        forwarded.put(PROXIED_ENTITIES_CHAIN_UPPER, formatEntities(EVIL_USER_IDENTITY));
+        forwarded.put(PROXIED_ENTITIES_CHAIN_LOWER, formatEntities(EVIL_USER_IDENTITY));
+        forwarded.put(PROXIED_ENTITY_GROUPS_UPPER, formatEntities(FORWARDED_GROUP));
+        forwarded.put(PROXIED_ENTITY_GROUPS_LOWER, formatEntities(FORWARDED_GROUP));
+
+        final UploadRequest<String> request = buildUploadRequest(forwarded);
+        final Map<String, String> result = replicator.buildOutboundHeaders(request);
+
+        final List<String> chainKeys = result.keySet().stream()
+                .filter(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN::equalsIgnoreCase)
+                .toList();
+        assertEquals(List.of(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN), chainKeys);
+        assertTrue(result.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains(TEST_USER_IDENTITY));
+        assertFalse(result.get(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN).contains(EVIL_USER_IDENTITY));
+
+        final List<String> groupKeys = result.keySet().stream()
+                .filter(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS::equalsIgnoreCase)
+                .toList();
+        assertEquals(List.of(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS), groupKeys);
+        assertFalse(result.get(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS).contains(FORWARDED_GROUP));
     }
 
     @Test
@@ -391,5 +422,13 @@ class TestStandardUploadRequestReplicatorHeaders {
                 .responseClass(String.class)
                 .successfulResponseStatus(SUCCESS_STATUS)
                 .build();
+    }
+
+    private static String formatEntities(final String... entities) {
+        final StringBuilder formattedEntities = new StringBuilder();
+        for (final String entity : entities) {
+            formattedEntities.append('<').append(entity).append('>');
+        }
+        return formattedEntities.toString();
     }
 }

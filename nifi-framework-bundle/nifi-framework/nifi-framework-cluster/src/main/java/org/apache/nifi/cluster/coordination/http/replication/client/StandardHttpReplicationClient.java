@@ -165,6 +165,11 @@ public class StandardHttpReplicationClient implements HttpReplicationClient {
             }
 
             final String headerValue = header.getValue();
+            final String preparedHeaderValue = preparedHeaders.get(headerName);
+            if (preparedHeaders.containsKey(headerName) && !Objects.equals(preparedHeaderValue, headerValue)) {
+                throw new IllegalArgumentException("Conflicting values for HTTP header [%s]".formatted(headerName));
+            }
+
             preparedHeaders.put(headerName, headerValue);
         }
 

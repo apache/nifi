@@ -535,15 +535,20 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
                         try {
                             final Map<String, String> cancelLockHeaders = new HashMap<>(headers);
-                            cancelLockHeaders.put(RequestReplicationHeader.CANCEL_TRANSACTION.getHeader(), "true");
+                            ReplicationHeaderUtils.removeHeader(cancelLockHeaders, RequestReplicationHeader.CANCEL_TRANSACTION.getHeader());
+                            cancelLockHeaders.put(RequestReplicationHeader.CANCEL_TRANSACTION.getHeader(), Boolean.TRUE.toString());
                             final Thread cancelLockThread = new Thread(() -> {
-                                logger.debug("Found {} dissenting nodes for {} {}; canceling claim request", dissentingCount, method, uri.getPath());
+                                try {
+                                    logger.debug("Found {} dissenting nodes for {} {}; canceling claim request", dissentingCount, method, uri.getPath());
 
-                                final PreparedRequest request = httpClient.prepareRequest(method, cancelLockHeaders, entity);
-                                final Function<NodeIdentifier, NodeHttpRequest> requestFactory =
-                                    nodeId -> new NodeHttpRequest(request, nodeId, createURI(uri, nodeId), null, clusterResponse);
+                                    final PreparedRequest request = httpClient.prepareRequest(method, cancelLockHeaders, entity);
+                                    final Function<NodeIdentifier, NodeHttpRequest> requestFactory =
+                                        nodeId -> new NodeHttpRequest(request, nodeId, createURI(uri, nodeId), null, clusterResponse);
 
-                                submitAsyncRequest(nodeIds, requestFactory);
+                                    submitAsyncRequest(nodeIds, requestFactory);
+                                } catch (final Exception e) {
+                                    logger.error("Failed to cancel transaction for {} {}", method, uri.getPath(), e);
+                                }
                             });
                             cancelLockThread.setName("Cancel Flow Locks");
                             cancelLockThread.start();

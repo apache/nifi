@@ -35,6 +35,7 @@ import org.springframework.stereotype.Component;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
+import java.util.Enumeration;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -108,6 +109,8 @@ public class X509IdentityProvider implements IdentityProvider {
             return null;
         }
 
+        rejectMultipleHeaderValues(servletRequest, ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN);
+
         // extract the principal
         final Object certificatePrincipal = principalExtractor.extractPrincipal(certificates[0]);
         final String principal = certificatePrincipal.toString();
@@ -169,6 +172,19 @@ public class X509IdentityProvider implements IdentityProvider {
 
     private void validateClientCertificate(X509Certificate certificate) throws CertificateExpiredException, CertificateNotYetValidException {
         certificate.checkValidity();
+    }
+
+    private static void rejectMultipleHeaderValues(final HttpServletRequest request, final String headerName) {
+        final Enumeration<String> headerValues = request.getHeaders(headerName);
+        int valueCount = 0;
+        while (headerValues.hasMoreElements()) {
+            headerValues.nextElement();
+            valueCount++;
+        }
+
+        if (valueCount > 1) {
+            throw new InvalidCredentialsException("Request provided multiple values for header %s".formatted(headerName));
+        }
     }
 
 }
