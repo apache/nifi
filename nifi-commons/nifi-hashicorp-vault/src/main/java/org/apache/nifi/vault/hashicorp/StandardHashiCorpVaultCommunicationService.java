@@ -217,8 +217,20 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
 
     @Override
     public List<String> listKeyValueSecrets(final String keyValuePath, final String version) {
+        return listKeyValueSecrets(keyValuePath, version, "");
+    }
+
+    @Override
+    public List<String> listKeyValueSecrets(final String keyValuePath, final String version, final String secretPathPrefix) {
         final VaultKeyValueOperations keyValueOperations = vaultTemplate.opsForKeyValue(keyValuePath, KeyValueBackend.valueOf(version));
-        return listKeyValueSecrets(keyValueOperations, "");
+        String path = secretPathPrefix == null ? "" : secretPathPrefix;
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+        if (!path.isEmpty() && !path.endsWith("/")) {
+            path = path + "/";
+        }
+        return listKeyValueSecrets(keyValueOperations, path);
     }
 
     private List<String> listKeyValueSecrets(final VaultKeyValueOperations keyValueOperations, final String path) {

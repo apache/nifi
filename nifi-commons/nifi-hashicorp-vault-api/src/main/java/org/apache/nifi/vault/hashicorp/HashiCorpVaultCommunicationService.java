@@ -114,4 +114,19 @@ public interface HashiCorpVaultCommunicationService {
      * @return The list of secret names
      */
     List<String> listKeyValueSecrets(String keyValuePath, String version);
+
+    /**
+     * Lists the secrets under the given path in the Key/Value Secrets Engine.
+     * @param keyValuePath The mount path of the Key/Value Secrets Engine
+     * @param version the Key/Value Secrets engine version
+     * @param secretPathPrefix The path within the Key/Value Secrets Engine mount to list
+     * @return The list of secret names
+     * @throws UnsupportedOperationException if a non-empty prefix is not supported by the implementation
+     */
+    default List<String> listKeyValueSecrets(final String keyValuePath, final String version, final String secretPathPrefix) {
+        if (secretPathPrefix == null || secretPathPrefix.isEmpty()) {
+            return listKeyValueSecrets(keyValuePath, version);
+        }
+        throw new UnsupportedOperationException("Secret path prefixes are not supported by this implementation");
+    }
 }

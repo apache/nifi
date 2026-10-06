@@ -20,7 +20,10 @@ import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mockito;
+import org.springframework.vault.VaultException;
 import org.springframework.vault.core.VaultKeyValueOperations;
 import org.springframework.vault.core.VaultKeyValueOperationsSupport.KeyValueBackend;
 import org.springframework.vault.core.VaultTemplate;
@@ -34,6 +37,10 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.when;
 
 public class TestStandardHashiCorpVaultCommunicationService {
@@ -60,6 +67,17 @@ public class TestStandardHashiCorpVaultCommunicationService {
 
     private StandardHashiCorpVaultCommunicationService configureService() {
         return new StandardHashiCorpVaultCommunicationService(properties);
+    }
+
+    @Test
+    public void testDefaultSecretPathPrefixMethodPreservesExistingImplementations() {
+        final HashiCorpVaultCommunicationService communicationService = Mockito.mock(HashiCorpVaultCommunicationService.class);
+        when(communicationService.listKeyValueSecrets("kv", KeyValueBackend.KV_1.name())).thenReturn(List.of("secret"));
+        doCallRealMethod().when(communicationService).listKeyValueSecrets(eq("kv"), eq(KeyValueBackend.KV_1.name()), anyString());
+
+        assertEquals(List.of("secret"), communicationService.listKeyValueSecrets("kv", KeyValueBackend.KV_1.name(), ""));
+        assertThrows(UnsupportedOperationException.class,
+                () -> communicationService.listKeyValueSecrets("kv", KeyValueBackend.KV_1.name(), "nested"));
     }
 
     @Test
@@ -105,6 +123,134 @@ public class TestStandardHashiCorpVaultCommunicationService {
 
             final List<String> secrets = service.listKeyValueSecrets("kv", keyValueBackend.name());
             assertEquals(Arrays.asList("test", "nested/nifi"), secrets);
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(KeyValueBackend.class)
+    public void testListKeyValueSecretsStartsAtSecretPathPrefix(final KeyValueBackend backend) throws Exception {
+        when(properties.getKvVersion()).thenReturn(backend == KeyValueBackend.KV_1 ? 1 : 2);
+
+        try (StandardHashiCorpVaultCommunicationService service = this.configureService()) {
+
+            final VaultTemplate vaultTemplate = Mockito.mock(VaultTemplate.class);
+            final VaultKeyValueOperations keyValueOperations = Mockito.mock(VaultKeyValueOperations.class);
+
+            final Field vaultTemplateField = StandardHashiCorpVaultCommunicationService.class.getDeclaredField("vaultTemplate");
+            vaultTemplateField.setAccessible(true);
+            vaultTemplateField.set(service, vaultTemplate);
+
+            final Field keyValueBackendField = StandardHashiCorpVaultCommunicationService.class.getDeclaredField("keyValueBackend");
+            keyValueBackendField.setAccessible(true);
+            final KeyValueBackend keyValueBackend = (KeyValueBackend) keyValueBackendField.get(service);
+
+            when(vaultTemplate.opsForKeyValue("kv", keyValueBackend)).thenReturn(keyValueOperations);
+            when(keyValueOperations.list("groups/my-group/")).thenReturn(Arrays.asList("app", "nested/"));
+            when(keyValueOperations.list("groups/my-group/nested/")).thenReturn(List.of("nifi"));
+
+            final List<String> secrets = service.listKeyValueSecrets("kv", keyValueBackend.name(), "groups/my-group");
+            assertEquals(Arrays.asList("groups/my-group/app", "groups/my-group/nested/nifi"), secrets);
+            Mockito.verify(keyValueOperations, Mockito.never()).list("/");
+            Mockito.verify(keyValueOperations, Mockito.never()).list("groups/");
+            Mockito.verify(keyValueOperations).list("groups/my-group/");
+            Mockito.verify(keyValueOperations).list("groups/my-group/nested/");
+            Mockito.verifyNoMoreInteractions(keyValueOperations);
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(KeyValueBackend.class)
+    public void testListKeyValueSecretsNormalizesSecretPathPrefixSlashes(final KeyValueBackend backend) throws Exception {
+        when(properties.getKvVersion()).thenReturn(backend == KeyValueBackend.KV_1 ? 1 : 2);
+
+        try (StandardHashiCorpVaultCommunicationService service = this.configureService()) {
+
+            final VaultTemplate vaultTemplate = Mockito.mock(VaultTemplate.class);
+            final VaultKeyValueOperations keyValueOperations = Mockito.mock(VaultKeyValueOperations.class);
+
+            final Field vaultTemplateField = StandardHashiCorpVaultCommunicationService.class.getDeclaredField("vaultTemplate");
+            vaultTemplateField.setAccessible(true);
+            vaultTemplateField.set(service, vaultTemplate);
+
+            final Field keyValueBackendField = StandardHashiCorpVaultCommunicationService.class.getDeclaredField("keyValueBackend");
+            keyValueBackendField.setAccessible(true);
+            final KeyValueBackend keyValueBackend = (KeyValueBackend) keyValueBackendField.get(service);
+
+            when(vaultTemplate.opsForKeyValue("kv", keyValueBackend)).thenReturn(keyValueOperations);
+            when(keyValueOperations.list("groups/my-group/")).thenReturn(List.of("app"));
+
+            for (final String prefix : List.of("groups/my-group", "groups/my-group/", "/groups/my-group", "/groups/my-group/")) {
+                assertEquals(List.of("groups/my-group/app"), service.listKeyValueSecrets("kv", keyValueBackend.name(), prefix));
+            }
+        }
+    }
+
+    @Test
+    public void testListKeyValueSecretsBlankSecretPathPrefixListsRoot() throws Exception {
+        try (StandardHashiCorpVaultCommunicationService service = this.configureService()) {
+
+            final VaultTemplate vaultTemplate = Mockito.mock(VaultTemplate.class);
+            final VaultKeyValueOperations keyValueOperations = Mockito.mock(VaultKeyValueOperations.class);
+
+            final Field vaultTemplateField = StandardHashiCorpVaultCommunicationService.class.getDeclaredField("vaultTemplate");
+            vaultTemplateField.setAccessible(true);
+            vaultTemplateField.set(service, vaultTemplate);
+
+            final Field keyValueBackendField = StandardHashiCorpVaultCommunicationService.class.getDeclaredField("keyValueBackend");
+            keyValueBackendField.setAccessible(true);
+            final KeyValueBackend keyValueBackend = (KeyValueBackend) keyValueBackendField.get(service);
+
+            when(vaultTemplate.opsForKeyValue("kv", keyValueBackend)).thenReturn(keyValueOperations);
+            when(keyValueOperations.list("/")).thenReturn(List.of("test"));
+
+            assertEquals(List.of("test"), service.listKeyValueSecrets("kv", keyValueBackend.name(), null));
+            assertEquals(List.of("test"), service.listKeyValueSecrets("kv", keyValueBackend.name(), ""));
+            assertEquals(List.of("test"), service.listKeyValueSecrets("kv", keyValueBackend.name(), "/"));
+        }
+    }
+
+    @Test
+    public void testListKeyValueSecretsMissingSecretPathPrefixReturnsEmpty() throws Exception {
+        try (StandardHashiCorpVaultCommunicationService service = this.configureService()) {
+
+            final VaultTemplate vaultTemplate = Mockito.mock(VaultTemplate.class);
+            final VaultKeyValueOperations keyValueOperations = Mockito.mock(VaultKeyValueOperations.class);
+
+            final Field vaultTemplateField = StandardHashiCorpVaultCommunicationService.class.getDeclaredField("vaultTemplate");
+            vaultTemplateField.setAccessible(true);
+            vaultTemplateField.set(service, vaultTemplate);
+
+            final Field keyValueBackendField = StandardHashiCorpVaultCommunicationService.class.getDeclaredField("keyValueBackend");
+            keyValueBackendField.setAccessible(true);
+            final KeyValueBackend keyValueBackend = (KeyValueBackend) keyValueBackendField.get(service);
+
+            when(vaultTemplate.opsForKeyValue("kv", keyValueBackend)).thenReturn(keyValueOperations);
+            when(keyValueOperations.list("groups/unknown/")).thenReturn(null);
+
+            assertEquals(List.of(), service.listKeyValueSecrets("kv", keyValueBackend.name(), "groups/unknown"));
+        }
+    }
+
+    @Test
+    public void testListKeyValueSecretsDeniedSecretPathPrefixDoesNotFallBackToRoot() throws Exception {
+        try (StandardHashiCorpVaultCommunicationService service = this.configureService()) {
+            final VaultTemplate vaultTemplate = Mockito.mock(VaultTemplate.class);
+            final VaultKeyValueOperations keyValueOperations = Mockito.mock(VaultKeyValueOperations.class);
+
+            final Field vaultTemplateField = StandardHashiCorpVaultCommunicationService.class.getDeclaredField("vaultTemplate");
+            vaultTemplateField.setAccessible(true);
+            vaultTemplateField.set(service, vaultTemplate);
+
+            final Field keyValueBackendField = StandardHashiCorpVaultCommunicationService.class.getDeclaredField("keyValueBackend");
+            keyValueBackendField.setAccessible(true);
+            final KeyValueBackend keyValueBackend = (KeyValueBackend) keyValueBackendField.get(service);
+
+            when(vaultTemplate.opsForKeyValue("kv", keyValueBackend)).thenReturn(keyValueOperations);
+            when(keyValueOperations.list("groups/my-group/")).thenThrow(new VaultException("Permission denied"));
+
+            assertThrows(VaultException.class, () -> service.listKeyValueSecrets("kv", keyValueBackend.name(), "groups/my-group"));
+            Mockito.verify(keyValueOperations).list("groups/my-group/");
+            Mockito.verifyNoMoreInteractions(keyValueOperations);
         }
     }
 }
