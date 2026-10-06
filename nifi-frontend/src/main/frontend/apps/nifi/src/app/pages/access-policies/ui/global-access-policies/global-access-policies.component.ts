@@ -39,10 +39,7 @@ import { distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { ComponentType, isDefinedAndNotNull, NiFiCommon, SelectOption, TextTip } from '@nifi/shared';
-import { RequiredPermission } from '../../../../state/shared';
 import { AccessPolicyEntity, Action, PolicyStatus } from '../../state/shared';
-import { loadExtensionTypesForPolicies } from '../../../../state/extension-types/extension-types.actions';
-import { selectRequiredPermissions } from '../../../../state/extension-types/extension-types.selectors';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { AccessPoliciesState } from '../../state';
 import { loadTenants, resetTenantsState } from '../../state/tenants/tenants.actions';
@@ -71,9 +68,7 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
 
     policyForm: FormGroup;
     resourceOptions: SelectOption[];
-    requiredPermissionOptions!: SelectOption[];
     supportsReadWriteAction = false;
-    supportsResourceIdentifier = false;
     supportsConnectorActions = false;
 
     // Extended action options for connectors policy
@@ -110,7 +105,7 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
     @ViewChild('inheritedFromConnectors') inheritedFromConnectors!: TemplateRef<any>;
     @ViewChild('inheritedFromConnectorData') inheritedFromConnectorData!: TemplateRef<any>;
     @ViewChild('inheritedFromConnectorProvenance') inheritedFromConnectorProvenance!: TemplateRef<any>;
-    @ViewChild('inheritedFromNoRestrictions') inheritedFromNoRestrictions!: TemplateRef<any>;
+    @ViewChild('inheritedFromPolicy') inheritedFromPolicy!: TemplateRef<any>;
 
     constructor() {
         this.resourceOptions = this.nifiCommon.getAllPolicyTypeListing();
@@ -119,43 +114,6 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
             resource: new FormControl(null, Validators.required),
             action: new FormControl(null, Validators.required)
         });
-
-        this.store
-            .select(selectRequiredPermissions)
-            .pipe(takeUntilDestroyed())
-            .subscribe((requiredPermissions: RequiredPermission[]) => {
-                const regardlessOfRestrictions = 'regardless of restrictions';
-
-                const options: SelectOption[] = [
-                    {
-                        text: regardlessOfRestrictions,
-                        value: '',
-                        description:
-                            'Allows users to create/modify all restricted components regardless of restrictions.'
-                    }
-                ];
-
-                options.push(
-                    ...requiredPermissions.map((requiredPermission) => ({
-                        text: "requiring '" + requiredPermission.label + "'",
-                        value: requiredPermission.id,
-                        description:
-                            "Allows users to create/modify restricted components requiring '" +
-                            requiredPermission.label +
-                            "'"
-                    }))
-                );
-
-                this.requiredPermissionOptions = options.sort((a: SelectOption, b: SelectOption): number => {
-                    if (a.text === regardlessOfRestrictions) {
-                        return -1;
-                    } else if (b.text === regardlessOfRestrictions) {
-                        return 1;
-                    }
-
-                    return this.nifiCommon.compareString(a.text, b.text);
-                });
-            });
 
         this.store
             .select(selectGlobalResourceActionFromRoute)
@@ -179,12 +137,6 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
 
                     this.policyForm.get('resource')?.setValue(mappedState.resource);
                     this.policyForm.get('action')?.setValue(mappedState.action);
-
-                    this.updateResourceIdentifierVisibility(mappedState.resource);
-
-                    if (resourceAction.resource === 'restricted-components' && resourceAction.resourceIdentifier) {
-                        this.policyForm.get('resourceIdentifier')?.setValue(resourceAction.resourceIdentifier);
-                    }
 
                     this.store.dispatch(
                         setAccessPolicy({
@@ -238,7 +190,6 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         this.store.dispatch(loadTenants());
-        this.store.dispatch(loadExtensionTypesForPolicies());
     }
 
     isInitialLoading(state: AccessPolicyState): boolean {
@@ -250,11 +201,9 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
 
         if (this.supportsConnectorActions) {
             this.supportsReadWriteAction = true;
-            this.supportsResourceIdentifier = false;
             this.policyForm.get('action')?.setValue('read');
         } else if (this.globalPolicySupportsReadWrite(value)) {
             this.supportsReadWriteAction = true;
-            this.supportsResourceIdentifier = false;
 
             // reset the action
             this.policyForm.get('action')?.setValue(Action.Read);
@@ -263,8 +212,6 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
 
             // since this resource does not support read and write, update the form with the appropriate action this resource does support
             this.policyForm.get('action')?.setValue(this.globalPolicySupportsWrite(value) ? Action.Write : Action.Read);
-
-            this.updateResourceIdentifierVisibility(value);
         }
 
         this.dispatchPolicySelection();
@@ -281,17 +228,7 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
     }
 
     private globalPolicySupportsWrite(resource: string): boolean {
-        return resource === 'proxy' || resource === 'restricted-components';
-    }
-
-    private updateResourceIdentifierVisibility(resource: string): void {
-        if (resource === 'restricted-components') {
-            this.supportsResourceIdentifier = true;
-            this.policyForm.addControl('resourceIdentifier', new FormControl(''));
-        } else {
-            this.supportsResourceIdentifier = false;
-            this.policyForm.removeControl('resourceIdentifier');
-        }
+        return resource === 'proxy';
     }
 
     actionChanged(): void {
@@ -309,7 +246,7 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
 
         const resource = selectedResource;
         let action = selectedAction;
-        let resourceIdentifier = this.policyForm.get('resourceIdentifier')?.value;
+        let resourceIdentifier: string | undefined;
 
         if (selectedResource === 'connectors') {
             switch (selectedAction) {
@@ -349,20 +286,6 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
         );
     }
 
-    resourceIdentifierChanged(): void {
-        this.store.dispatch(
-            selectGlobalAccessPolicy({
-                request: {
-                    resourceAction: {
-                        resource: this.policyForm.get('resource')?.value,
-                        action: this.policyForm.get('action')?.value,
-                        resourceIdentifier: this.policyForm.get('resourceIdentifier')?.value
-                    }
-                }
-            })
-        );
-    }
-
     getTemplateForInheritedPolicy(policy: AccessPolicyEntity): TemplateRef<any> {
         if (policy.component.resource === '/policies') {
             return this.inheritedFromPolicies;
@@ -376,7 +299,7 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
             return this.inheritedFromConnectors;
         }
 
-        return this.inheritedFromNoRestrictions;
+        return this.inheritedFromPolicy;
     }
 
     createNewPolicy(): void {

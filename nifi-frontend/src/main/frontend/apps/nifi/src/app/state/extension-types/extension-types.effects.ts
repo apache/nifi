@@ -89,43 +89,6 @@ export class ExtensionTypesEffects {
         )
     );
 
-    loadExtensionTypesForPolicies$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(ExtensionTypesActions.loadExtensionTypesForPolicies),
-            switchMap(() =>
-                combineLatest([
-                    this.extensionTypesService.getProcessorTypes(),
-                    this.extensionTypesService.getControllerServiceTypes(),
-                    this.extensionTypesService.getReportingTaskTypes(),
-                    this.extensionTypesService.getParameterProviderTypes(),
-                    this.extensionTypesService.getFlowAnalysisRuleTypes()
-                ]).pipe(
-                    map(
-                        ([
-                            processorTypes,
-                            controllerServiceTypes,
-                            reportingTaskTypes,
-                            parameterProviderTypes,
-                            flowAnalysisRuleTypes
-                        ]) =>
-                            ExtensionTypesActions.loadExtensionTypesForPoliciesSuccess({
-                                response: {
-                                    processorTypes: processorTypes.processorTypes,
-                                    controllerServiceTypes: controllerServiceTypes.controllerServiceTypes,
-                                    reportingTaskTypes: reportingTaskTypes.reportingTaskTypes,
-                                    parameterProviderTypes: parameterProviderTypes.parameterProviderTypes,
-                                    flowAnalysisRuleTypes: flowAnalysisRuleTypes.flowAnalysisRuleTypes
-                                }
-                            })
-                    ),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(ExtensionTypesActions.extensionTypesApiError({ error: errorResponse }))
-                    )
-                )
-            )
-        )
-    );
-
     loadExtensionTypesForConnectors$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ExtensionTypesActions.loadExtensionTypesForConnectors),

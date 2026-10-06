@@ -37,10 +37,8 @@ export const initialState: CurrentUserState = {
         connectorsPermissions: NO_PERMISSIONS,
         policiesPermissions: NO_PERMISSIONS,
         provenancePermissions: NO_PERMISSIONS,
-        restrictedComponentsPermissions: NO_PERMISSIONS,
         systemPermissions: NO_PERMISSIONS,
-        tenantsPermissions: NO_PERMISSIONS,
-        componentRestrictionPermissions: []
+        tenantsPermissions: NO_PERMISSIONS
     },
     status: 'pending'
 };
