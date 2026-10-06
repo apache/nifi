@@ -52,7 +52,6 @@ import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_PRECISION;
 import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
 import static org.apache.nifi.util.db.JdbcProperties.NORMALIZE_NAMES_FOR_AVRO;
 import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -641,32 +640,25 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
                 Map.entry(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, DEFAULT_SCALE.getName())
         );
 
-        assertAll(
-                () -> assertEquals("1000", AbstractExecuteSQL.FETCH_SIZE.getDefaultValue()),
-                () -> {
-                    final ValidationResult zeroFetchSize = runner.setProperty(AbstractExecuteSQL.FETCH_SIZE, "0");
-                    assertFalse(zeroFetchSize.isValid());
-                },
-                () -> {
-                    runner.setProperty(AbstractExecuteSQL.FETCH_SIZE, "0");
-                    final PropertyMigrationResult zeroResult = runner.migrateProperties();
-                    assertEquals(expectedRenamed, zeroResult.getPropertiesRenamed());
-                    assertEquals("1000", runner.getProcessContext().getAllProperties().get(AbstractExecuteSQL.FETCH_SIZE.getName()));
-                    assertTrue(zeroResult.getPropertiesUpdated().contains(AbstractExecuteSQL.FETCH_SIZE.getName()));
-                },
-                () -> {
-                    runner.setProperty("esql-fetch-size", "0");
-                    final PropertyMigrationResult renamedZeroResult = runner.migrateProperties();
-                    assertEquals("1000", runner.getProcessContext().getAllProperties().get(AbstractExecuteSQL.FETCH_SIZE.getName()));
-                    assertTrue(renamedZeroResult.getPropertiesUpdated().contains(AbstractExecuteSQL.FETCH_SIZE.getName()));
-                },
-                () -> {
-                    runner.setProperty(AbstractExecuteSQL.FETCH_SIZE, "${fetch.size}");
-                    final PropertyMigrationResult expressionResult = runner.migrateProperties();
-                    assertEquals("${fetch.size}", runner.getProcessContext().getAllProperties().get(AbstractExecuteSQL.FETCH_SIZE.getName()));
-                    assertFalse(expressionResult.getPropertiesUpdated().contains(AbstractExecuteSQL.FETCH_SIZE.getName()));
-                }
-        );
+        assertEquals("1000", AbstractExecuteSQL.FETCH_SIZE.getDefaultValue());
+
+        final ValidationResult zeroFetchSize = runner.setProperty(AbstractExecuteSQL.FETCH_SIZE, "0");
+        assertFalse(zeroFetchSize.isValid());
+
+        final PropertyMigrationResult zeroResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, zeroResult.getPropertiesRenamed());
+        assertEquals("1000", runner.getProcessContext().getAllProperties().get(AbstractExecuteSQL.FETCH_SIZE.getName()));
+        assertTrue(zeroResult.getPropertiesUpdated().contains(AbstractExecuteSQL.FETCH_SIZE.getName()));
+
+        runner.setProperty("esql-fetch-size", "0");
+        final PropertyMigrationResult renamedZeroResult = runner.migrateProperties();
+        assertEquals("1000", runner.getProcessContext().getAllProperties().get(AbstractExecuteSQL.FETCH_SIZE.getName()));
+        assertTrue(renamedZeroResult.getPropertiesUpdated().contains(AbstractExecuteSQL.FETCH_SIZE.getName()));
+
+        runner.setProperty(AbstractExecuteSQL.FETCH_SIZE, "${fetch.size}");
+        final PropertyMigrationResult expressionResult = runner.migrateProperties();
+        assertEquals("${fetch.size}", runner.getProcessContext().getAllProperties().get(AbstractExecuteSQL.FETCH_SIZE.getName()));
+        assertFalse(expressionResult.getPropertiesUpdated().contains(AbstractExecuteSQL.FETCH_SIZE.getName()));
     }
 
     private void insertRecords() throws SQLException {
