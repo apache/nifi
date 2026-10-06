@@ -640,19 +640,19 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
                 Map.entry(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, DEFAULT_SCALE.getName())
         );
 
-        assertEquals("1000", AbstractExecuteSQL.FETCH_SIZE.getDefaultValue());
+        assertEquals(AbstractExecuteSQL.DEFAULT_FETCH_SIZE, AbstractExecuteSQL.FETCH_SIZE.getDefaultValue());
 
         final ValidationResult zeroFetchSize = runner.setProperty(AbstractExecuteSQL.FETCH_SIZE, "0");
         assertFalse(zeroFetchSize.isValid());
 
         final PropertyMigrationResult zeroResult = runner.migrateProperties();
         assertEquals(expectedRenamed, zeroResult.getPropertiesRenamed());
-        assertEquals("1000", runner.getProcessContext().getAllProperties().get(AbstractExecuteSQL.FETCH_SIZE.getName()));
+        assertEquals(AbstractExecuteSQL.DEFAULT_FETCH_SIZE, runner.getProcessContext().getAllProperties().get(AbstractExecuteSQL.FETCH_SIZE.getName()));
         assertTrue(zeroResult.getPropertiesUpdated().contains(AbstractExecuteSQL.FETCH_SIZE.getName()));
 
         runner.setProperty("esql-fetch-size", "0");
         final PropertyMigrationResult renamedZeroResult = runner.migrateProperties();
-        assertEquals("1000", runner.getProcessContext().getAllProperties().get(AbstractExecuteSQL.FETCH_SIZE.getName()));
+        assertEquals(AbstractExecuteSQL.DEFAULT_FETCH_SIZE, runner.getProcessContext().getAllProperties().get(AbstractExecuteSQL.FETCH_SIZE.getName()));
         assertTrue(renamedZeroResult.getPropertiesUpdated().contains(AbstractExecuteSQL.FETCH_SIZE.getName()));
 
         runner.setProperty(AbstractExecuteSQL.FETCH_SIZE, "${fetch.size}");

@@ -61,6 +61,7 @@ import java.util.stream.Collectors;
 
 public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
+    public static final String DEFAULT_FETCH_SIZE = "1000";
     public static final String RESULT_ROW_COUNT = "executesql.row.count";
     public static final String RESULT_QUERY_DURATION = "executesql.query.duration";
     public static final String RESULT_QUERY_EXECUTION_TIME = "executesql.query.executiontime";
@@ -168,7 +169,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .name("Fetch Size")
             .description("The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be "
                     + "honored and/or exact. The value must be greater than zero.")
-            .defaultValue("1000")
+            .defaultValue(DEFAULT_FETCH_SIZE)
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -223,7 +224,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         config.renameProperty("esql-fetch-size", FETCH_SIZE.getName());
         final Optional<String> configuredFetchSize = config.getRawPropertyValue(FETCH_SIZE.getName());
         if (configuredFetchSize.isPresent() && "0".equals(configuredFetchSize.get())) {
-            config.setProperty(FETCH_SIZE.getName(), "1000");
+            config.setProperty(FETCH_SIZE.getName(), DEFAULT_FETCH_SIZE);
         }
 
         config.renameProperty("esql-auto-commit", AUTO_COMMIT.getName());
