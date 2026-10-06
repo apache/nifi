@@ -70,6 +70,13 @@ public class HashiCorpVaultParameterProvider extends AbstractParameterProvider i
             .allowableValues(KV_1, KV_2)
             .defaultValue(KV_1)
             .build();
+    public static final PropertyDescriptor SECRET_PATH_PREFIX = new PropertyDescriptor.Builder()
+            .name("secret-path-prefix")
+            .displayName("Secret Path Prefix")
+            .description("Optional path prefix relative to the Key/Value Secrets Engine mount. When set, only secrets under this path are listed (for example, 'nested/path').")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .build();
     public static final PropertyDescriptor SECRET_NAME_PATTERN = new PropertyDescriptor.Builder()
             .name("secret-name-pattern")
             .displayName("Secret Name Pattern")
@@ -83,6 +90,7 @@ public class HashiCorpVaultParameterProvider extends AbstractParameterProvider i
             VAULT_CLIENT_SERVICE,
             KV_PATH,
             KV_VERSION,
+            SECRET_PATH_PREFIX,
             SECRET_NAME_PATTERN
     );
 
@@ -104,8 +112,9 @@ public class HashiCorpVaultParameterProvider extends AbstractParameterProvider i
                                                             final ConfigurationContext context) {
         final String kvPath = context.getProperty(KV_PATH).getValue();
         final String kvVersion = context.getProperty(KV_VERSION).getValue();
+        final String secretPathPrefix = context.getProperty(SECRET_PATH_PREFIX).getValue();
         final String secretIncludeRegex = context.getProperty(SECRET_NAME_PATTERN).getValue();
-        final List<String> allSecretNames = vaultCommunicationService.listKeyValueSecrets(kvPath, kvVersion);
+        final List<String> allSecretNames = vaultCommunicationService.listKeyValueSecrets(kvPath, kvVersion, secretPathPrefix);
         final List<String> secretNames = allSecretNames.stream()
                 .filter(name -> name.matches(secretIncludeRegex))
                 .collect(Collectors.toList());
