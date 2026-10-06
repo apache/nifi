@@ -25,8 +25,8 @@ import org.apache.nifi.web.security.http.SecurityHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -66,9 +66,10 @@ public final class ReplicationHeaderUtils {
     /**
      * Prepares headers for a replicated request. When a non-null user is provided, the
      * {@code X-ProxiedEntitiesChain} and {@code X-ProxiedEntityGroups} headers are set so the
-     * receiving node knows the request is on behalf of that user. When user is {@code null},
-     * these headers are omitted, indicating the request is made directly by the cluster node
-     * itself (e.g. for background connector state polling).
+     * receiving node knows the request is on behalf of that user. Existing values for those
+     * header names are removed first, regardless of letter case, so the framework value is the
+     * only one present. When user is {@code null}, these headers are omitted, indicating the
+     * request is made directly by the cluster node itself (e.g. for background connector state polling).
      *
      * <p>In all cases the {@code Authorization} header, auth-related cookies, and the
      * {@code Host} header are removed because the replicated call uses mTLS for transport
@@ -78,6 +79,9 @@ public final class ReplicationHeaderUtils {
      * @param user    the user on whose behalf the request is being made, or {@code null} for direct node requests
      */
     public static void applyUserProxyAndStripCredentials(final Map<String, String> headers, final NiFiUser user) {
+        removeHeader(headers, ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN);
+        removeHeader(headers, ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS);
+
         if (user == null) {
             logger.debug("No user provided: omitting proxied entities header from request");
         } else {
@@ -133,14 +137,19 @@ public final class ReplicationHeaderUtils {
     }
 
     static void removeHeader(final Map<String, String> headers, final String headerNameSearch) {
-        findHeaderName(headers, headerNameSearch).ifPresent(headers::remove);
+        if (headerNameSearch == null || headerNameSearch.isBlank()) {
+            return;
+        }
+
+        headers.keySet().removeIf(headerNameSearch::equalsIgnoreCase);
     }
 
     static void removeCookie(final Map<String, String> headers, final String cookieName) {
-        final Optional<String> cookieHeaderNameFound = findHeaderName(headers, COOKIE_HEADER);
+        final List<String> cookieHeaderNames = headers.keySet().stream()
+                .filter(COOKIE_HEADER::equalsIgnoreCase)
+                .toList();
 
-        if (cookieHeaderNameFound.isPresent()) {
-            final String cookieHeaderName = cookieHeaderNameFound.get();
+        for (final String cookieHeaderName : cookieHeaderNames) {
             final String rawCookies = headers.get(cookieHeaderName);
             final String[] rawCookieParts = rawCookies.split(";");
             final Set<String> filteredCookieParts = Stream.of(rawCookieParts)
@@ -154,18 +163,5 @@ public final class ReplicationHeaderUtils {
                 headers.put(cookieHeaderName, StringUtils.join(filteredCookieParts, "; "));
             }
         }
-    }
-
-    /**
-     * Find an HTTP header name in a map regardless of case, since HTTP/1.1 capitalises headers
-     * but HTTP/2 returns lowercased headers.
-     */
-    static Optional<String> findHeaderName(final Map<String, String> headers, final String headerName) {
-        if (headerName == null || headerName.isBlank()) {
-            return Optional.empty();
-        }
-        return headers.keySet().stream()
-                .filter(headerName::equalsIgnoreCase)
-                .findFirst();
     }
 }

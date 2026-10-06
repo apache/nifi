@@ -17,6 +17,7 @@
 package org.apache.nifi.web.security.x509;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.slf4j.Logger;
@@ -25,6 +26,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
 import java.security.cert.X509Certificate;
+import java.util.Enumeration;
 
 /**
  * Custom X509 filter that will inspect the HTTP headers for a proxied user before extracting the user details from the client certificate.
@@ -49,6 +51,9 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
             return null;
         }
 
+        rejectMultipleHeaderValues(request, ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN);
+        rejectMultipleHeaderValues(request, ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS);
+
         final String proxiedEntitiesChain = request.getHeader(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN);
         logger.debug("Raw {} - {}", ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
 
@@ -71,6 +76,19 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
 
     public void setPrincipalExtractor(X509PrincipalExtractor principalExtractor) {
         this.principalExtractor = principalExtractor;
+    }
+
+    private static void rejectMultipleHeaderValues(final HttpServletRequest request, final String headerName) {
+        final Enumeration<String> headerValues = request.getHeaders(headerName);
+        int valueCount = 0;
+        while (headerValues.hasMoreElements()) {
+            headerValues.nextElement();
+            valueCount++;
+        }
+
+        if (valueCount > 1) {
+            throw new InvalidAuthenticationException("Request provided multiple values for header [%s]".formatted(headerName));
+        }
     }
 
 }

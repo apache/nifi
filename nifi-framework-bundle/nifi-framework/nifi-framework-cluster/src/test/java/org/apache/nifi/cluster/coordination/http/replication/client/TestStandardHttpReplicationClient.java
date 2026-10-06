@@ -38,6 +38,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -96,6 +97,11 @@ class TestStandardHttpReplicationClient {
 
     private static final String STATUS_PSEUDO_HEADER = ":status";
 
+    private static final String CUSTOM_HEADER = "X-Custom";
+    private static final String CUSTOM_HEADER_LOWER = "x-custom";
+    private static final String CUSTOM_HEADER_VALUE = "same";
+    private static final String CUSTOM_HEADER_OTHER_VALUE = "other";
+
     @Mock
     private WebClientService webClientService;
 
@@ -136,6 +142,27 @@ class TestStandardHttpReplicationClient {
 
         final StandardPreparedRequest standardPreparedRequest = (StandardPreparedRequest) preparedRequest;
         assertArrayEquals(EMPTY_MAP_SERIALIZED, standardPreparedRequest.requestBody());
+    }
+
+    @Test
+    void testPrepareRequestRejectsConflictingHeaderValues() {
+        final Map<String, String> headers = new LinkedHashMap<>();
+        headers.put(CUSTOM_HEADER, CUSTOM_HEADER_VALUE);
+        headers.put(CUSTOM_HEADER_LOWER, CUSTOM_HEADER_OTHER_VALUE);
+
+        assertThrows(IllegalArgumentException.class, () -> client.prepareRequest(GET_METHOD, headers, Collections.emptyMap()));
+    }
+
+    @Test
+    void testPrepareRequestCollapsesIdenticalHeaderValues() {
+        final Map<String, String> headers = new LinkedHashMap<>();
+        headers.put(CUSTOM_HEADER, CUSTOM_HEADER_VALUE);
+        headers.put(CUSTOM_HEADER_LOWER, CUSTOM_HEADER_VALUE);
+
+        final PreparedRequest preparedRequest = client.prepareRequest(GET_METHOD, headers, Collections.emptyMap());
+
+        assertEquals(CUSTOM_HEADER_VALUE, preparedRequest.getHeaders().get(CUSTOM_HEADER_LOWER));
+        assertNull(preparedRequest.getHeaders().get(CUSTOM_HEADER));
     }
 
     @Test

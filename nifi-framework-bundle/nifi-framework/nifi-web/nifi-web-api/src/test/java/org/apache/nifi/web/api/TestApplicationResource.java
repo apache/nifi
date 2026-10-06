@@ -101,6 +101,50 @@ public class TestApplicationResource {
     }
 
     @Test
+    public void testGetHeadersReplacesCaseVariantProxyHeaders() {
+        final String proxyHostLower = "x-proxyhost";
+        final String proxySchemeLower = "x-proxyscheme";
+        final String proxyPortLower = "x-proxyport";
+        final String acceptHeader = "Accept";
+        final String acceptValue = "application/json";
+        final String inboundScheme = "http";
+        final String inboundPort = "443";
+        final String proxyHostWithPort = HOST + ":" + PORT;
+
+        when(request.getHeaderNames()).thenReturn(Collections.enumeration(List.of(proxyHostLower, proxySchemeLower, proxyPortLower, acceptHeader)));
+        when(request.getHeader(anyString())).thenAnswer(invocation -> {
+            final String headerName = invocation.getArgument(0, String.class);
+            if (ProxyHeader.PROXY_HOST.getHeader().equalsIgnoreCase(headerName)) {
+                return proxyHostWithPort;
+            }
+
+            if (ProxyHeader.PROXY_SCHEME.getHeader().equalsIgnoreCase(headerName)) {
+                return inboundScheme;
+            }
+
+            if (ProxyHeader.PROXY_PORT.getHeader().equalsIgnoreCase(headerName)) {
+                return inboundPort;
+            }
+
+            if (acceptHeader.equalsIgnoreCase(headerName)) {
+                return acceptValue;
+            }
+
+            return null;
+        });
+
+        final Map<String, String> headers = resource.getHeaders();
+
+        assertEquals(HOST, headers.get(ProxyHeader.PROXY_HOST.getHeader()));
+        assertEquals(inboundScheme, headers.get(ProxyHeader.PROXY_SCHEME.getHeader()));
+        assertEquals(Integer.toString(PORT), headers.get(ProxyHeader.PROXY_PORT.getHeader()));
+        assertEquals(acceptValue, headers.get(acceptHeader));
+        assertEquals(1, headers.keySet().stream().filter(ProxyHeader.PROXY_HOST.getHeader()::equalsIgnoreCase).count());
+        assertEquals(1, headers.keySet().stream().filter(ProxyHeader.PROXY_SCHEME.getHeader()::equalsIgnoreCase).count());
+        assertEquals(1, headers.keySet().stream().filter(ProxyHeader.PROXY_PORT.getHeader()::equalsIgnoreCase).count());
+    }
+
+    @Test
     public void testGenerateUriShouldBlockProxyContextPathHeaderIfNotInAllowList() {
         when(request.getHeader(anyString())).thenAnswer(new RequestAnswer());
         assertThrows(IllegalArgumentException.class, () -> resource.generateResourceUri(ACTUAL_RESOURCE));
