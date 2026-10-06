@@ -149,6 +149,12 @@ language governing permissions and limitations under the License. -->
                                         <image>
                                             <name>apache/nifi-toolkit</name>
                                             <build>
+                                                <buildx>
+                                                    <builderName>default</builderName>
+                                                    <platforms>
+                                                        <platform>${docker.build.platform}</platform>
+                                                    </platforms>
+                                                </buildx>
                                                 <tags>
                                                     <tag>${project.version}-maven</tag>
                                                 </tags>
