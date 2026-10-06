@@ -119,8 +119,9 @@ import static org.apache.nifi.processors.salesforce.util.CommonSalesforcePropert
         + " The processor can accept an optional input FlowFile and reference the FlowFile attributes in the query."
         + " When 'Include Deleted Records' is true, the processor will include deleted records (soft-deletes) in the results by using the 'queryAll' API."
         + " The 'IsDeleted' field will be automatically included in the results when querying deleted records.")
-@Stateful(scopes = Scope.CLUSTER, description = "When 'Age Field' is set, after performing a query the time of execution is stored. Subsequent queries will be augmented"
-        + " with an additional condition so that only records that are newer than the stored execution time (adjusted with the optional value of 'Age Delay') will be retrieved."
+@Stateful(scopes = Scope.CLUSTER, description = "When 'Age Field' is set, after performing a query the time of execution is stored for the queried sObject."
+        + " Subsequent queries of the same sObject will be augmented with an additional condition so that only records that are newer than the stored execution time"
+        + " (adjusted with the optional value of 'Age Delay') will be retrieved."
         + " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected,"
         + " the new node can pick up where the previous node left off, without duplicating the data.")
 @WritesAttributes({
@@ -156,7 +157,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .name("sObject Name")
             .description("The Salesforce sObject to be queried")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
@@ -165,7 +166,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .name("Field Names")
             .description("Comma-separated list of field names requested from the sObject to be queried. When this field is left empty, all fields are queried.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
@@ -395,15 +396,15 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
     private void processQuery(ProcessContext context, ProcessSession session, FlowFile originalFlowFile) {
         AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
-        String sObject = context.getProperty(SOBJECT_NAME).evaluateAttributeExpressions().getValue();
-        String fields = context.getProperty(FIELD_NAMES).evaluateAttributeExpressions().getValue();
+        String sObject = context.getProperty(SOBJECT_NAME).evaluateAttributeExpressions(originalFlowFile).getValue();
+        String fields = context.getProperty(FIELD_NAMES).evaluateAttributeExpressions(originalFlowFile).getValue();
         String customWhereClause = context.getProperty(CUSTOM_WHERE_CONDITION).evaluateAttributeExpressions(originalFlowFile).getValue();
         RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         boolean createZeroRecordFlowFiles = context.getProperty(CREATE_ZERO_RECORD_FILES).asBoolean();
         boolean includeDeletedRecords = context.getProperty(INCLUDE_DELETED_RECORDS).asBoolean();
 
         StateMap state = getState(session);
-        IncrementalContext incrementalContext = new IncrementalContext(context, state);
+        IncrementalContext incrementalContext = new IncrementalContext(context, state, sObject);
         SalesforceSchemaHolder salesForceSchemaHolder = getConvertedSalesforceSchema(sObject, fields, includeDeletedRecords);
 
         if (StringUtils.isBlank(fields)) {
@@ -479,7 +480,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
                 if (incrementalContext.getAgeFilterUpper() != null) {
                     Map<String, String> newState = new HashMap<>(state.toMap());
-                    newState.put(LAST_AGE_FILTER, incrementalContext.getAgeFilterUpper());
+                    newState.remove(LAST_AGE_FILTER);
+                    newState.put(incrementalContext.getAgeFilterStateKey(), incrementalContext.getAgeFilterUpper());
                     updateState(session, newState);
                 }
             } catch (Exception e) {

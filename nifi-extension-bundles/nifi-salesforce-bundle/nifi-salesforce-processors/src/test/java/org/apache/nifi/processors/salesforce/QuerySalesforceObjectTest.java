@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.salesforce;
 
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processors.salesforce.rest.SalesforceConfiguration;
 import org.apache.nifi.processors.salesforce.rest.SalesforceRestClient;
@@ -28,6 +29,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -37,11 +39,18 @@ import java.time.OffsetTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,6 +58,8 @@ class QuerySalesforceObjectTest {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSSX");
+    private static final String AGE_FIELD = "LastModifiedDate";
+    private static final String ACCOUNT_STATE_KEY = QuerySalesforceObject.LAST_AGE_FILTER + ".account";
 
     private TestRunner testRunner;
 
@@ -86,13 +97,7 @@ class QuerySalesforceObjectTest {
         String sObjectName = "TestObject";
         testRunner.setProperty(QuerySalesforceObject.SOBJECT_NAME, sObjectName);
 
-        String recordWriterServiceId = "record_writer_service";
-        RecordSetWriterFactory recordWriterService = MockCsvRecordWriter.builder()
-                .quoteValues(false)
-                .build();
-        testRunner.addControllerService(recordWriterServiceId, recordWriterService);
-        testRunner.enableControllerService(recordWriterService);
-        testRunner.setProperty(QuerySalesforceObject.RECORD_WRITER, recordWriterServiceId);
+        setUpRecordWriter();
 
         when(mockSalesforceRestClient.describeSObject(sObjectName)).thenReturn(getResourceAsStream("query/describe_sobject.json"));
         when(mockSalesforceRestClient.query(any())).thenReturn(getResourceAsStream("query/query_sobject.json"));
@@ -123,6 +128,108 @@ class QuerySalesforceObjectTest {
                 .withZoneSameInstant(ZoneId.systemDefault())
                 .format(TIME_FORMATTER);
         assertEquals(expectedTime, fields[3].trim());
+    }
+
+    @Test
+    void testSObjectNameEvaluatedWithFlowFileAttributes() throws Exception {
+        String sObjectName = "TestObject";
+        testRunner.setProperty(QuerySalesforceObject.SOBJECT_NAME, "${object}");
+        setUpRecordWriter();
+
+        when(mockSalesforceRestClient.describeSObject(sObjectName)).thenReturn(getResourceAsStream("query/describe_sobject.json"));
+        when(mockSalesforceRestClient.query(any())).thenReturn(getResourceAsStream("query/query_sobject.json"));
+
+        testRunner.enqueue("", Map.of("object", sObjectName));
+        testRunner.run();
+
+        testRunner.assertTransferCount(QuerySalesforceObject.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(QuerySalesforceObject.REL_ORIGINAL, 1);
+        testRunner.assertTransferCount(QuerySalesforceObject.REL_FAILURE, 0);
+        verify(mockSalesforceRestClient).describeSObject(sObjectName);
+    }
+
+    @Test
+    void testFieldNamesEvaluatedWithFlowFileAttributes() throws Exception {
+        testRunner.setProperty(QuerySalesforceObject.SOBJECT_NAME, "TestObject");
+        testRunner.setProperty(QuerySalesforceObject.FIELD_NAMES, "${fields}");
+        setUpRecordWriter();
+
+        when(mockSalesforceRestClient.describeSObject("TestObject")).thenReturn(getResourceAsStream("query/describe_sobject.json"));
+        when(mockSalesforceRestClient.query(any())).thenReturn(getResourceAsStream("query/query_sobject.json"));
+
+        testRunner.enqueue("", Map.of("fields", "id__c,date__c"));
+        testRunner.run();
+
+        ArgumentCaptor<String> query = ArgumentCaptor.forClass(String.class);
+        verify(mockSalesforceRestClient).query(query.capture());
+        assertEquals("SELECT id__c,date__c FROM TestObject", query.getValue());
+        testRunner.assertTransferCount(QuerySalesforceObject.REL_SUCCESS, 1);
+    }
+
+    @Test
+    void testAgeFilterStoredSeparatelyForEachSObject() throws Exception {
+        testRunner.setProperty(QuerySalesforceObject.SOBJECT_NAME, "${object}");
+        testRunner.setProperty(QuerySalesforceObject.AGE_FIELD, AGE_FIELD);
+        setUpRecordWriter();
+
+        when(mockSalesforceRestClient.describeSObject(any())).thenAnswer(invocation -> getResourceAsStream("query/describe_sobject.json"));
+        when(mockSalesforceRestClient.query(any())).thenAnswer(invocation -> getResourceAsStream("query/query_sobject.json"));
+
+        testRunner.enqueue("", Map.of("object", "Account"));
+        testRunner.run();
+        String accountAgeFilter = testRunner.getStateManager().getState(Scope.CLUSTER).get(ACCOUNT_STATE_KEY);
+        assertNotNull(accountAgeFilter);
+
+        testRunner.enqueue("", Map.of("object", "Contact"));
+        testRunner.run();
+
+        testRunner.enqueue("", Map.of("object", "Account"));
+        testRunner.run();
+
+        ArgumentCaptor<String> queries = ArgumentCaptor.forClass(String.class);
+        verify(mockSalesforceRestClient, times(3)).query(queries.capture());
+        List<String> executedQueries = queries.getAllValues();
+
+        assertFalse(executedQueries.get(0).contains(AGE_FIELD + " >= "));
+        assertFalse(executedQueries.get(1).contains(AGE_FIELD + " >= "), "Contact must not use the age filter stored for Account");
+        assertTrue(executedQueries.get(2).contains(AGE_FIELD + " >= " + accountAgeFilter));
+
+        Map<String, String> state = testRunner.getStateManager().getState(Scope.CLUSTER).toMap();
+        assertNotNull(state.get(ACCOUNT_STATE_KEY));
+        assertNotNull(state.get(QuerySalesforceObject.LAST_AGE_FILTER + ".contact"));
+        assertNull(state.get(QuerySalesforceObject.LAST_AGE_FILTER));
+    }
+
+    @Test
+    void testAgeFilterStoredWithoutSObjectIsMigrated() throws Exception {
+        String previousAgeFilter = "2020-01-01T00:00:00.000+0000";
+        testRunner.setProperty(QuerySalesforceObject.SOBJECT_NAME, "Account");
+        testRunner.setProperty(QuerySalesforceObject.AGE_FIELD, AGE_FIELD);
+        setUpRecordWriter();
+        testRunner.getStateManager().setState(Map.of(QuerySalesforceObject.LAST_AGE_FILTER, previousAgeFilter), Scope.CLUSTER);
+
+        when(mockSalesforceRestClient.describeSObject("Account")).thenReturn(getResourceAsStream("query/describe_sobject.json"));
+        when(mockSalesforceRestClient.query(any())).thenReturn(getResourceAsStream("query/query_sobject.json"));
+
+        testRunner.run();
+
+        ArgumentCaptor<String> query = ArgumentCaptor.forClass(String.class);
+        verify(mockSalesforceRestClient).query(query.capture());
+        assertTrue(query.getValue().contains(AGE_FIELD + " >= " + previousAgeFilter));
+
+        Map<String, String> state = testRunner.getStateManager().getState(Scope.CLUSTER).toMap();
+        assertNotNull(state.get(ACCOUNT_STATE_KEY));
+        assertNull(state.get(QuerySalesforceObject.LAST_AGE_FILTER));
+    }
+
+    private void setUpRecordWriter() throws Exception {
+        String recordWriterServiceId = "record_writer_service";
+        RecordSetWriterFactory recordWriterService = MockCsvRecordWriter.builder()
+                .quoteValues(false)
+                .build();
+        testRunner.addControllerService(recordWriterServiceId, recordWriterService);
+        testRunner.enableControllerService(recordWriterService);
+        testRunner.setProperty(QuerySalesforceObject.RECORD_WRITER, recordWriterServiceId);
     }
 
     private InputStream getResourceAsStream(String resourceName) {
