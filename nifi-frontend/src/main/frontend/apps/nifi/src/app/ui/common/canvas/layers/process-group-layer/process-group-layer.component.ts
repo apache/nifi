@@ -19,6 +19,7 @@ import {
     Component,
     AfterViewInit,
     ElementRef,
+    DestroyRef,
     inject,
     input,
     output,
@@ -27,14 +28,15 @@ import {
     ChangeDetectionStrategy
 } from '@angular/core';
 import * as d3 from 'd3';
-import { CanvasProcessGroup } from '../../canvas.types';
+import { CanvasProcessGroup, CanvasRootResolver, CanvasRootSelection, CanvasSelection } from '../../canvas.types';
 import { ProcessGroupRenderer } from './process-group-renderer';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../../canvas-format-utils.service';
 import { CanvasComponentUtils } from '../../canvas-component-utils.service';
-import { NiFiCommon } from '@nifi/shared';
+import { NiFiCommon, Position } from '@nifi/shared';
 import { RegistryClientEntity } from '../../../../../state/shared';
 import { ProcessGroupRenderContext } from '../render-context.types';
+import { ConnectableBehaviorHelper } from '../../connectable-behavior.helper';
 
 /**
  * ProcessGroupLayerComponent
@@ -69,6 +71,7 @@ import { ProcessGroupRenderContext } from '../render-context.types';
 })
 export class ProcessGroupLayerComponent implements AfterViewInit {
     private elementRef = inject(ElementRef);
+    private destroyRef = inject(DestroyRef);
 
     /**
      * Process group data to render
@@ -129,6 +132,9 @@ export class ProcessGroupLayerComponent implements AfterViewInit {
      * Registry clients for version control tooltip
      */
     registryClients = input<RegistryClientEntity[]>([]);
+    connectableBehavior = input<ConnectableBehaviorHelper | null>(null);
+    canvasRootResolver = input<CanvasRootResolver | null>(null);
+    isDropAllowed = input<() => boolean>(() => true);
 
     /**
      * Emitted when PG is clicked
@@ -143,31 +149,47 @@ export class ProcessGroupLayerComponent implements AfterViewInit {
     /**
      * Emitted when PG drag ends
      */
-    processGroupDragEnd = output<{
-        pg: CanvasProcessGroup;
-        newPosition: { x: number; y: number };
-        previousPosition: { x: number; y: number };
-    }>();
+    dragEnd = output<{ delta: Position; movingIds: Set<string> }>();
 
     /**
      * D3 selection of the layer group
      */
-    private containerSelection: d3.Selection<any, any, any, any> | null = null;
+    private containerSelection: CanvasRootSelection | null = null;
+
+    constructor() {
+        this.destroyRef.onDestroy(() => {
+            const helper = this.connectableBehavior();
+            if (helper && this.containerSelection) {
+                helper.deactivate(
+                    this.containerSelection.selectAll<SVGGElement, CanvasProcessGroup>('g.process-group')
+                );
+            }
+        });
+    }
+
+    private readonly defaultCanvasRootResolver: CanvasRootResolver = () => {
+        const node = this.containerSelection?.node();
+        const canvasNode = (node?.closest('g.canvas') as SVGGElement | null) ?? node;
+        return canvasNode
+            ? d3.select<SVGGElement, unknown>(canvasNode)
+            : d3.select<SVGGElement, unknown>(null as unknown as SVGGElement);
+    };
 
     /**
      * Stable callback object to prevent unnecessary D3 event handler re-binding
      */
-    private readonly callbacks = {
-        onClick: (pg: any, event: MouseEvent) => {
+    private readonly callbacks: ProcessGroupRenderContext['callbacks'] = {
+        onClick: (pg, event) => {
             this.processGroupClick.emit({ pg, event });
         },
-        onDoubleClick: (pg: any, event: MouseEvent) => {
+        onDoubleClick: (pg, event) => {
             this.processGroupDoubleClick.emit({ pg, event });
         },
-        onDragEnd: (pg: any, newPosition: any, previousPosition: any) => {
-            this.processGroupDragEnd.emit({ pg, newPosition, previousPosition });
+        onDragEnd: (delta, movingIds) => {
+            this.dragEnd.emit({ delta, movingIds });
         }
     };
+    private selectedIdsSet = computed(() => new Set(this.selectedIds()));
 
     /**
      * Computed render context - encapsulates all data needed by ProcessGroupRenderer
@@ -178,9 +200,14 @@ export class ProcessGroupLayerComponent implements AfterViewInit {
         formatUtils: this.formatUtils(),
         nifiCommon: this.nifiCommon(),
         getCanEdit: () => this.canEdit(),
+        getCanSelect: () => this.canSelect(),
+        getSelectedIds: () => this.selectedIdsSet(),
         componentUtils: this.componentUtils(),
         processGroups: this.processGroups(),
         disabledProcessGroupIds: this.disabledProcessGroupIds(),
+        getDisabledProcessGroupIds: () => this.disabledProcessGroupIds(),
+        getIsDropAllowed: this.isDropAllowed(),
+        canvasRootResolver: this.canvasRootResolver() ?? this.defaultCanvasRootResolver,
         registryClients: this.registryClients(),
         canSelect: this.canSelect(),
         callbacks: this.callbacks
@@ -205,9 +232,34 @@ export class ProcessGroupLayerComponent implements AfterViewInit {
         this.applySelectionStyling();
     });
 
+    /**
+     * Attach or detach the connection handle when the helper, canEdit, or
+     * process group set changes. activate is idempotent, so a data refresh
+     * rewires newly entered groups without tearing down an in-flight connection.
+     * deactivate runs only when editing is turned off.
+     */
+    private connectableEffect = effect((onCleanup) => {
+        this.processGroups();
+        this.renderTrigger();
+        const helper = this.connectableBehavior();
+        const canEdit = this.canEdit();
+        if (!this.containerSelection) return;
+        const groups = this.containerSelection.selectAll<SVGGElement, CanvasProcessGroup>('g.process-group');
+        if (helper && canEdit) {
+            helper.activate(groups);
+            onCleanup(() => {
+                if (this.connectableBehavior() !== helper || !this.canEdit()) {
+                    helper.deactivate(groups);
+                }
+            });
+        } else if (helper) {
+            helper.deactivate(groups);
+        }
+    });
+
     ngAfterViewInit(): void {
         const nativeElement = this.elementRef.nativeElement;
-        this.containerSelection = d3.select(nativeElement);
+        this.containerSelection = d3.select<SVGGElement, unknown>(nativeElement);
 
         // Initial render if data arrived before view was ready
         if (this.processGroups().length > 0) {
@@ -245,7 +297,7 @@ export class ProcessGroupLayerComponent implements AfterViewInit {
     /**
      * Pan update for entering/leaving PGs (called from canvas during zoom/pan)
      */
-    public pan(selection: d3.Selection<any, CanvasProcessGroup, any, any>): void {
+    public pan(selection: CanvasSelection<CanvasProcessGroup>): void {
         ProcessGroupRenderer.pan(selection, this.renderContext());
         this.applySelectionStyling();
     }

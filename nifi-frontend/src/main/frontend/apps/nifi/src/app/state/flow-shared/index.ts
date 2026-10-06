@@ -22,14 +22,56 @@ import {
     ConnectionEntity,
     CreateRevisionRequest,
     FunnelDTO,
+    FunnelEntity,
     LabelDTO,
+    LabelEntity,
     PortDTO,
+    PortEntity,
     PositionableComponentEntityBase,
     ProcessGroupDTO,
+    ProcessGroupEntity,
     ProcessorDTO,
+    ProcessorEntity,
     RemoteProcessGroupDTO,
+    RemoteProcessGroupEntity,
     RevisionRequest
 } from '@nifi/shared';
+
+/**
+ * Lightweight reference to a canvas component.
+ */
+export interface CanvasComponentRef {
+    id: string;
+    type: ComponentType;
+}
+
+/**
+ * Canonical entity kinds that can participate in a connection gesture.
+ * Connections and labels cannot be connection sources or destinations.
+ */
+export type CanvasConnectableEntity =
+    | ProcessorEntity
+    | PortEntity
+    | ProcessGroupEntity
+    | RemoteProcessGroupEntity
+    | (FunnelEntity & {
+          dimensions?: never;
+          zIndex?: never;
+      });
+
+/**
+ * Union of every canonical entity kind rendered on the reusable canvas.
+ */
+export type CanvasComponentEntity = CanvasConnectableEntity | ConnectionEntity | LabelEntity;
+
+/**
+ * Destination selected by an endpoint reconnect gesture.
+ */
+export interface ConnectionEndpointReconnectDestination {
+    id: string;
+    componentType: ComponentType;
+    entity: CanvasConnectableEntity;
+}
 
 /**
  * Common mutable-entity request envelope used by NiFi component endpoints.

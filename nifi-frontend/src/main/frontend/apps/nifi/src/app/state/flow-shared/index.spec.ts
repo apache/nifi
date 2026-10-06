@@ -16,13 +16,27 @@
  */
 
 import { ComponentType } from '@nifi/shared';
-import type { CreateRevisionRequest, RevisionRequest } from '@nifi/shared';
+import type {
+    ConnectionEntity,
+    CreateRevisionRequest,
+    FunnelEntity,
+    LabelEntity,
+    PortEntity,
+    ProcessGroupEntity,
+    ProcessorEntity,
+    RemoteProcessGroupEntity,
+    RevisionRequest
+} from '@nifi/shared';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import type {
+    CanvasComponentEntity,
+    CanvasComponentRef,
+    CanvasConnectableEntity,
     ComponentRunStatusRequest,
     ConnectionCreateBody,
     ConnectionCreateRequest,
     ConnectionDestinationUpdate,
+    ConnectionEndpointReconnectDestination,
     ConnectionGeometryUpdate,
     FunnelCreateRequest,
     LabelCreateBody,
@@ -42,6 +56,35 @@ import type {
 const revision: RevisionRequest = { version: 3, clientId: 'client-id' };
 const createRevision: CreateRevisionRequest = { version: 0, clientId: 'client-id' };
 const position = { x: 10, y: 20 };
+
+describe('canvas contracts', () => {
+    it('represents lightweight component and reconnect references', () => {
+        const component: CanvasComponentRef = { id: 'processor', type: ComponentType.Processor };
+        const entity = {} as ProcessorEntity;
+        const destination: ConnectionEndpointReconnectDestination = {
+            id: 'processor',
+            componentType: ComponentType.Processor,
+            entity
+        };
+
+        expect(component).toEqual({ id: 'processor', type: ComponentType.Processor });
+        expect(destination.entity).toBe(entity);
+    });
+
+    it('keeps canvas and connectable entity unions discriminated', () => {
+        expectTypeOf<ProcessorEntity>().toExtend<CanvasConnectableEntity>();
+        expectTypeOf<PortEntity>().toExtend<CanvasConnectableEntity>();
+        expectTypeOf<ProcessGroupEntity>().toExtend<CanvasConnectableEntity>();
+        expectTypeOf<RemoteProcessGroupEntity>().toExtend<CanvasConnectableEntity>();
+        expectTypeOf<FunnelEntity>().toExtend<CanvasConnectableEntity>();
+        expectTypeOf<LabelEntity>().not.toExtend<CanvasConnectableEntity>();
+        expectTypeOf<ConnectionEntity>().not.toExtend<CanvasConnectableEntity>();
+
+        expectTypeOf<CanvasConnectableEntity>().toExtend<CanvasComponentEntity>();
+        expectTypeOf<LabelEntity>().toExtend<CanvasComponentEntity>();
+        expectTypeOf<ConnectionEntity>().toExtend<CanvasComponentEntity>();
+    });
+});
 
 function snippetRevisionMaps(): SnippetRevisionMaps {
     return {

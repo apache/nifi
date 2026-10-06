@@ -19,7 +19,7 @@ import * as d3 from 'd3';
 import { PortRenderer } from './port-renderer';
 import { PortRenderContext } from '../render-context.types';
 import { CanvasPort } from '../../canvas.types';
-import { ComponentType } from '@nifi/shared';
+import { BulletinEntity, ComponentType } from '@nifi/shared';
 
 /**
  * Test setup options for PortRenderer tests
@@ -53,7 +53,7 @@ function createMockPort(
                 };
                 transmitting?: boolean;
             };
-            bulletins?: any[];
+            bulletins?: BulletinEntity[];
         };
         ui?: {
             componentType?: ComponentType.InputPort | ComponentType.OutputPort;
@@ -119,15 +119,15 @@ function createMockContext(options: SetupOptions = {}): PortRenderContext {
             applyEllipsis: vi.fn((selection, text, _className) => {
                 selection.text(text);
             })
-        } as any,
-        formatUtils: {} as any,
+        } as unknown as PortRenderContext['textEllipsis'],
+        formatUtils: {} as unknown as PortRenderContext['formatUtils'],
         componentUtils: {
             bulletins: vi.fn(),
             activeThreadCount: vi.fn(),
             comments: vi.fn(),
             canvasTooltip: vi.fn(),
             resetCanvasTooltip: vi.fn()
-        } as any,
+        } as unknown as PortRenderContext['componentUtils'],
         callbacks: {
             onClick: options.callbacks?.onClick,
             onDoubleClick: options.callbacks?.onDoubleClick,

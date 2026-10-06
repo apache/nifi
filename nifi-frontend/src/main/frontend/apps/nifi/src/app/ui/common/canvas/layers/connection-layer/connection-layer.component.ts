@@ -27,13 +27,14 @@ import {
     ChangeDetectionStrategy
 } from '@angular/core';
 import * as d3 from 'd3';
-import { CanvasConnection } from '../../canvas.types';
+import { CanvasConnection, CanvasRootResolver, CanvasRootSelection, CanvasSelection } from '../../canvas.types';
 import { ConnectionRenderer } from './connection-renderer';
-import { ConnectionRenderContext } from '../render-context.types';
+import { ConnectionReconnectContext, ConnectionRenderContext } from '../render-context.types';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../../canvas-format-utils.service';
 import { CanvasComponentUtils } from '../../canvas-component-utils.service';
 import { NiFiCommon } from '@nifi/shared';
+import { ConnectionEndpointReconnectDestination } from '../../../../../state/flow-shared';
 
 /**
  * ConnectionLayerComponent
@@ -129,6 +130,8 @@ export class ConnectionLayerComponent implements AfterViewInit {
      * Set of connection IDs that are disabled (e.g., while saving bend points)
      */
     disabledConnectionIds = input<Set<string>>(new Set());
+    canvasRootResolver = input<CanvasRootResolver | null>(null);
+    reconnect = input<ConnectionReconnectContext | null>(null);
 
     /**
      * Emitted when connection is clicked
@@ -159,33 +162,49 @@ export class ConnectionLayerComponent implements AfterViewInit {
      * Emitted when a connection label is dragged to a new bend point
      */
     labelDragEnd = output<{ connection: CanvasConnection; labelIndex: number }>();
+    endpointReconnect = output<{
+        connection: CanvasConnection;
+        newDestination: ConnectionEndpointReconnectDestination;
+        bends?: Array<{ x: number; y: number }>;
+    }>();
 
     /**
      * D3 selection of the layer group
      */
-    private containerSelection: d3.Selection<any, any, any, any> | null = null;
+    private containerSelection: CanvasRootSelection | null = null;
+    private readonly defaultCanvasRootResolver: CanvasRootResolver = () => {
+        const node = this.containerSelection?.node();
+        const canvasNode = (node?.closest('g.canvas') as SVGGElement | null) ?? node;
+        return canvasNode
+            ? d3.select<SVGGElement, unknown>(canvasNode)
+            : d3.select<SVGGElement, unknown>(null as unknown as SVGGElement);
+    };
+    private selectedIdsSet = computed(() => new Set(this.selectedIds()));
 
     /**
      * Stable callback object to prevent unnecessary D3 event handler re-binding
      */
-    private readonly callbacks = {
-        onClick: (connection: any, event: MouseEvent) => {
+    private readonly callbacks: ConnectionRenderContext['callbacks'] = {
+        onClick: (connection, event) => {
             this.connectionClick.emit({ connection, event });
         },
-        onDoubleClick: (connection: any, event: MouseEvent) => {
+        onDoubleClick: (connection, event) => {
             this.connectionDoubleClick.emit({ connection, event });
         },
-        onBendPointDragEnd: (connection: any, bends: Array<{ x: number; y: number }>) => {
+        onBendPointDragEnd: (connection, bends: Array<{ x: number; y: number }>) => {
             this.bendPointDragEnd.emit({ connection, bends });
         },
-        onBendPointAdd: (connection: any, point: { x: number; y: number; index: number }) => {
+        onBendPointAdd: (connection, point: { x: number; y: number; index: number }) => {
             this.bendPointAdd.emit({ connection, point });
         },
-        onBendPointRemove: (connection: any, index: number) => {
+        onBendPointRemove: (connection, index: number) => {
             this.bendPointRemove.emit({ connection, index });
         },
-        onLabelDragEnd: (connection: any, labelIndex: number) => {
+        onLabelDragEnd: (connection, labelIndex: number) => {
             this.labelDragEnd.emit({ connection, labelIndex });
+        },
+        onEndpointReconnect: (connection, newDestination, bends) => {
+            this.endpointReconnect.emit({ connection, newDestination, bends });
         }
     };
 
@@ -199,10 +218,16 @@ export class ConnectionLayerComponent implements AfterViewInit {
         nifiCommon: this.nifiCommon(),
         componentUtils: this.componentUtils(),
         getCanEdit: () => this.canEdit(),
+        getCanSelect: () => this.canSelect(),
+        getSelectedIds: () => this.selectedIdsSet(),
+        canvasRootResolver: this.canvasRootResolver() ?? this.defaultCanvasRootResolver,
         connections: this.connections(),
         processGroupId: this.processGroupId(),
         canSelect: this.canSelect(),
         disabledConnectionIds: this.disabledConnectionIds(),
+        getDisabledConnectionIds: () => this.disabledConnectionIds(),
+        reconnect: this.reconnect() ?? undefined,
+        getReconnect: () => this.reconnect() ?? undefined,
         callbacks: this.callbacks
     }));
 
@@ -229,7 +254,7 @@ export class ConnectionLayerComponent implements AfterViewInit {
 
     ngAfterViewInit(): void {
         const nativeElement = this.elementRef.nativeElement;
-        this.containerSelection = d3.select(nativeElement);
+        this.containerSelection = d3.select<SVGGElement, unknown>(nativeElement);
 
         // Initial render if data arrived before view was ready
         if (this.connections().length > 0) {
@@ -291,7 +316,7 @@ export class ConnectionLayerComponent implements AfterViewInit {
     /**
      * Pan update for entering/leaving connections (called from canvas during zoom/pan)
      */
-    public pan(selection: d3.Selection<any, any, any, any>): void {
+    public pan(selection: CanvasSelection<CanvasConnection>): void {
         ConnectionRenderer.pan(selection, this.renderContext());
         this.applySelectionStyling();
     }

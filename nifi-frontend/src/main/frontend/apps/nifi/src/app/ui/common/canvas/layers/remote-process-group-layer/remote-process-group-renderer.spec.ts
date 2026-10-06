@@ -18,8 +18,9 @@
 import * as d3 from 'd3';
 import { RemoteProcessGroupRenderer } from './remote-process-group-renderer';
 import { RemoteProcessGroupRenderContext } from '../render-context.types';
+import { createBaseRenderContextFixture } from '../render-context-fixtures';
 import { CanvasRemoteProcessGroup } from '../../canvas.types';
-import { ComponentType } from '@nifi/shared';
+import { BulletinEntity, ComponentType } from '@nifi/shared';
 
 /**
  * Test setup options for RemoteProcessGroupRenderer tests
@@ -58,7 +59,7 @@ function createMockRemoteProcessGroup(
                     received?: string;
                 };
             };
-            bulletins?: any[];
+            bulletins?: BulletinEntity[];
             inputPortCount?: number;
             outputPortCount?: number;
         };
@@ -124,28 +125,30 @@ function createMockContext(options: SetupOptions = {}): RemoteProcessGroupRender
         canSelect: options.canSelect ?? true,
         disabledRemoteProcessGroupIds: options.disabledRemoteProcessGroupIds,
         getCanEdit: () => options.canEdit ?? true,
-        textEllipsis: {
-            applyEllipsis: vi.fn((selection, text, _className) => {
-                selection.text(text);
-            })
-        } as any,
-        formatUtils: {
-            formatQueuedStats: vi.fn((str) => {
-                const match = str.match(/^(\d+)\s*\((.+)\)$/);
-                if (match) {
-                    return { count: match[1], size: ` (${match[2]})` };
-                }
-                return { count: str, size: '' };
-            })
-        } as any,
-        nifiCommon: {} as any,
+        ...createBaseRenderContextFixture({
+            textEllipsis: {
+                applyEllipsis: vi.fn((selection, text, _className) => {
+                    selection.text(text);
+                })
+            },
+            formatUtils: {
+                formatQueuedStats: vi.fn((str) => {
+                    const match = str.match(/^(\d+)\s*\((.+)\)$/);
+                    if (match) {
+                        return { count: match[1], size: ` (${match[2]})` };
+                    }
+                    return { count: str, size: '' };
+                })
+            },
+            nifiCommon: {}
+        }),
         componentUtils: {
             bulletins: vi.fn(),
             activeThreadCount: vi.fn(),
             comments: vi.fn(),
             canvasTooltip: vi.fn(),
             resetCanvasTooltip: vi.fn()
-        } as any,
+        } as unknown as RemoteProcessGroupRenderContext['componentUtils'],
         callbacks: {
             onClick: options.callbacks?.onClick,
             onDoubleClick: options.callbacks?.onDoubleClick,
@@ -711,7 +714,7 @@ describe('RemoteProcessGroupRenderer', () => {
             it('should display "Remote flow not current" when flowRefreshed is not set', async () => {
                 const rpg = createMockRemoteProcessGroup();
                 // Explicitly set flowRefreshed to undefined to test the fallback
-                (rpg.entity.component as any).flowRefreshed = undefined;
+                delete rpg.entity.component?.flowRefreshed;
                 const { context, getRpgElements, cleanup } = await setup({
                     remoteProcessGroups: [rpg]
                 });

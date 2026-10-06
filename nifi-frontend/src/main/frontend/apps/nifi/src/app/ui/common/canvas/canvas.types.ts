@@ -15,53 +15,74 @@
  * limitations under the License.
  */
 
-import { ComponentType, Position } from '@nifi/shared';
+import * as d3 from 'd3';
+import {
+    ComponentType,
+    ConnectionEntity,
+    FunnelEntity,
+    LabelEntity,
+    PortEntity,
+    Position,
+    ProcessGroupEntity,
+    ProcessorEntity,
+    RemoteProcessGroupEntity,
+    Revision,
+    RevisionRequest
+} from '@nifi/shared';
+
+/**
+ * Typed selection of the canvas root group.
+ */
+export type CanvasRootSelection = d3.Selection<SVGGElement, unknown, d3.BaseType, unknown>;
+
+/**
+ * Resolves the live canvas root group for an interaction event.
+ */
+export type CanvasRootResolver = () => CanvasRootSelection;
 
 export interface Dimension {
     width: number;
     height: number;
 }
 
-export interface LabelUiState {
+interface DragUiState {
+    dragDelta?: Position;
+    dragMovingIds?: Set<string>;
+    dragStartPosition?: Position;
+    currentPosition?: Position;
+    dragStartEntity?: CanvasEntity;
+}
+
+export interface LabelUiState extends DragUiState {
     componentType: ComponentType.Label;
     dimensions: Dimension;
-    dragStartPosition?: Position; // Stored during drag for potential revert on error
-    currentPosition?: Position; // Optimistic position during drag (before API confirmation)
+    dragStartRevision?: Revision;
 }
 
-export interface ProcessorUiState {
+export interface ProcessorUiState extends DragUiState {
     componentType: ComponentType.Processor;
     dimensions: Dimension;
-    dragStartPosition?: Position; // Stored during drag for potential revert on error
-    currentPosition?: Position; // Current position during drag (overrides entity.position)
+    preview?: boolean;
 }
 
-export interface FunnelUiState {
+export interface FunnelUiState extends DragUiState {
     componentType: ComponentType.Funnel;
     dimensions: Dimension;
-    dragStartPosition?: Position; // Stored during drag for potential revert on error
-    currentPosition?: Position; // Optimistic position during drag (before API confirmation)
 }
 
-export interface PortUiState {
+export interface PortUiState extends DragUiState {
     componentType: ComponentType.InputPort | ComponentType.OutputPort;
     dimensions: Dimension;
-    dragStartPosition?: Position; // Stored during drag for potential revert on error
-    currentPosition?: Position; // Optimistic position during drag (before API confirmation)
 }
 
-export interface RemoteProcessGroupUiState {
+export interface RemoteProcessGroupUiState extends DragUiState {
     componentType: ComponentType.RemoteProcessGroup;
     dimensions: Dimension;
-    dragStartPosition?: Position; // Stored during drag for potential revert on error
-    currentPosition?: Position; // Optimistic position during drag (before API confirmation)
 }
 
-export interface ProcessGroupUiState {
+export interface ProcessGroupUiState extends DragUiState {
     componentType: ComponentType.ProcessGroup;
     dimensions: Dimension;
-    dragStartPosition?: Position; // Stored during drag for potential revert on error
-    currentPosition?: Position; // Optimistic position during drag (before API confirmation)
 }
 
 export interface ConnectionUiState {
@@ -71,48 +92,53 @@ export interface ConnectionUiState {
     end: Position;
     // Bend points - initialized from entity.bends, used for rendering (allows optimistic updates)
     bends?: Position[];
+    dragStartBends?: Position[];
     // Drag state for bend points and label
     dragging?: boolean;
+    endPointDragging?: boolean;
+    reconnectDestinationId?: string;
     // Temporary label index during label drag (before save)
     tempLabelIndex?: number;
+    dragStartEntity?: CanvasEntity;
+    dragStartRevision?: Revision;
 }
 
 export interface CanvasLabel {
-    entity: any; // TODO: Import LabelEntity type from flow state
+    entity: LabelEntity;
     ui: LabelUiState;
 }
 
 export interface CanvasProcessor {
-    entity: any; // TODO: Import ProcessorEntity type from flow state
+    entity: ProcessorEntity;
     ui: ProcessorUiState;
 }
 
 export interface CanvasFunnel {
-    entity: any; // TODO: Import FunnelEntity type from flow state
+    entity: FunnelEntity;
     ui: FunnelUiState;
 }
 
 export interface CanvasPort {
-    entity: any; // TODO: Import InputPortEntity/OutputPortEntity type from flow state
+    entity: PortEntity;
     ui: PortUiState;
 }
 
 export interface CanvasRemoteProcessGroup {
-    entity: any; // TODO: Import RemoteProcessGroupEntity type from flow state
+    entity: RemoteProcessGroupEntity;
     ui: RemoteProcessGroupUiState;
 }
 
 export interface CanvasProcessGroup {
-    entity: any; // TODO: Import ProcessGroupEntity type from flow state
+    entity: ProcessGroupEntity;
     ui: ProcessGroupUiState;
 }
 
 export interface CanvasConnection {
-    entity: any; // TODO: Import ConnectionEntity type from flow state
+    entity: ConnectionEntity;
     ui: ConnectionUiState;
 }
 
-export type CanvasComponent =
+export type CanvasDatum =
     | CanvasLabel
     | CanvasProcessor
     | CanvasFunnel
@@ -121,10 +147,69 @@ export type CanvasComponent =
     | CanvasProcessGroup
     | CanvasConnection;
 
+/**
+ * Compatibility name retained for existing reusable-canvas consumers.
+ */
+export type CanvasComponent = CanvasDatum;
+
+export function isProcessorDatum(datum: CanvasDatum): datum is CanvasProcessor {
+    return datum.ui.componentType === ComponentType.Processor;
+}
+
+export function isConnectionDatum(datum: CanvasDatum): datum is CanvasConnection {
+    return datum.ui.componentType === ComponentType.Connection;
+}
+
+export type ActiveThreadCountDatum = CanvasProcessor | CanvasPort | CanvasProcessGroup | CanvasRemoteProcessGroup;
+
+export type CanvasSelection<TDatum extends CanvasDatum = CanvasDatum> = d3.Selection<
+    SVGGElement,
+    TDatum,
+    d3.BaseType,
+    unknown
+>;
+
+export type CanvasEntity =
+    | LabelEntity
+    | ProcessorEntity
+    | FunnelEntity
+    | PortEntity
+    | RemoteProcessGroupEntity
+    | ProcessGroupEntity
+    | ConnectionEntity;
+
+export type ComponentDoubleClickEvent =
+    | { entity: ProcessorEntity; componentType: ComponentType.Processor }
+    | { entity: PortEntity; componentType: ComponentType.InputPort | ComponentType.OutputPort }
+    | { entity: RemoteProcessGroupEntity; componentType: ComponentType.RemoteProcessGroup }
+    | { entity: ConnectionEntity; componentType: ComponentType.Connection };
+
+export type DragEndBaselineItem =
+    | {
+          id: string;
+          type:
+              | ComponentType.Processor
+              | ComponentType.Funnel
+              | ComponentType.InputPort
+              | ComponentType.OutputPort
+              | ComponentType.ProcessGroup
+              | ComponentType.RemoteProcessGroup
+              | ComponentType.Label;
+          position: Position;
+          revision: RevisionRequest;
+      }
+    | {
+          id: string;
+          type: ComponentType.Connection;
+          bends: Position[];
+          revision: RevisionRequest;
+          labelIndex?: number;
+      };
+
 export interface ContextMenuContext {
     processGroupId: string | null;
     targetType: 'canvas' | 'component';
-    selectedComponents: CanvasComponent[];
-    clickedComponent?: CanvasComponent;
+    selectedComponents: CanvasDatum[];
+    clickedComponent?: CanvasDatum;
     allConnections: CanvasConnection[];
 }

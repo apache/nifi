@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-import * as d3 from 'd3';
 import { TextEllipsisUtils } from '../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../canvas-format-utils.service';
 import { CanvasComponentUtils } from '../canvas-component-utils.service';
@@ -28,27 +27,48 @@ import {
     CanvasPort,
     CanvasRemoteProcessGroup,
     CanvasProcessGroup,
-    CanvasConnection
+    CanvasConnection,
+    CanvasRootResolver,
+    CanvasRootSelection
 } from '../canvas.types';
+import { ConnectableComponentSelection } from '../connectable-behavior.helper';
+import { ConnectionEndpointReconnectDestination } from '../../../../state/flow-shared';
+
+export type ComponentRenderCallbacks<T> = {
+    onClick?: (component: T, event: MouseEvent) => void;
+    onDoubleClick?: (component: T, event: MouseEvent) => void;
+};
+
+export type ComponentDragEndCallback<T> = (component: T, newPosition: Position, previousPosition: Position) => void;
+
+/**
+ * Shared callback contract for the typed component-drag gesture seam.
+ *
+ * The moving ID snapshot is captured when the gesture starts so consumers do
+ * not need to re-read selection state after the drag has completed.
+ */
+export type LayerDragEndCallback = (delta: Position, movingIds: Set<string>) => void;
 
 export interface BaseRenderContext {
-    containerSelection: d3.Selection<any, any, any, any>;
+    containerSelection: CanvasRootSelection;
     textEllipsis: TextEllipsisUtils;
     formatUtils: CanvasFormatUtils;
     nifiCommon: NiFiCommon;
     getCanEdit: () => boolean;
+    getCanSelect: () => boolean;
+    getSelectedIds: () => Set<string>;
+    canvasRootResolver: CanvasRootResolver;
 }
 
 export interface LabelRenderContext extends BaseRenderContext {
     scale: number;
     labels: CanvasLabel[];
     disabledLabelIds?: Set<string>;
+    getDisabledLabelIds: () => Set<string>;
     canSelect: boolean;
-    callbacks: {
-        onClick?: (label: CanvasLabel, event: MouseEvent) => void;
-        onDoubleClick?: (label: CanvasLabel, event: MouseEvent) => void;
+    callbacks: ComponentRenderCallbacks<CanvasLabel> & {
         onResizeEnd?: (label: CanvasLabel, dimensions: { width: number; height: number }) => void;
-        onDragEnd?: (label: CanvasLabel, newPosition: Position, previousPosition: Position) => void;
+        onDragEnd?: LayerDragEndCallback;
     };
 }
 
@@ -57,58 +77,48 @@ export interface ProcessorRenderContext extends BaseRenderContext {
     processors: CanvasProcessor[];
     previewExtensions: DocumentedType[];
     disabledProcessorIds?: Set<string>;
+    getDisabledProcessorIds: () => Set<string>;
     canSelect: boolean;
-    callbacks: {
-        onClick?: (processor: CanvasProcessor, event: MouseEvent) => void;
-        onDoubleClick?: (processor: CanvasProcessor, event: MouseEvent) => void;
-        onDragEnd?: (processor: CanvasProcessor, newPosition: Position, previousPosition: Position) => void;
+    callbacks: ComponentRenderCallbacks<CanvasProcessor> & {
+        onDragEnd?: LayerDragEndCallback;
     };
 }
 
-export interface FunnelRenderContext {
-    containerSelection: d3.Selection<any, any, any, any>;
+export interface FunnelRenderContext extends BaseRenderContext {
+    containerSelection: CanvasRootSelection;
     textEllipsis: TextEllipsisUtils;
     formatUtils: CanvasFormatUtils;
     funnels: CanvasFunnel[];
     canSelect: boolean;
-    getCanEdit: () => boolean;
     disabledFunnelIds?: Set<string>;
-    callbacks: {
-        onClick?: (funnel: CanvasFunnel, event: MouseEvent) => void;
-        onDoubleClick?: (funnel: CanvasFunnel, event: MouseEvent) => void;
-        onDragEnd?: (funnel: CanvasFunnel, newPosition: Position, previousPosition: Position) => void;
+    getDisabledFunnelIds: () => Set<string>;
+    callbacks: ComponentRenderCallbacks<CanvasFunnel> & {
+        onDragEnd?: LayerDragEndCallback;
     };
 }
 
-export interface PortRenderContext {
-    containerSelection: d3.Selection<any, any, any, any>;
+export interface PortRenderContext extends BaseRenderContext {
+    containerSelection: CanvasRootSelection;
     textEllipsis: TextEllipsisUtils;
     formatUtils: CanvasFormatUtils;
     componentUtils: CanvasComponentUtils;
     ports: CanvasPort[];
     disabledPortIds?: Set<string>;
     canSelect: boolean;
-    getCanEdit: () => boolean;
-    callbacks: {
-        onClick?: (port: CanvasPort, event: MouseEvent) => void;
-        onDoubleClick?: (port: CanvasPort, event: MouseEvent) => void;
-        onDragEnd?: (port: CanvasPort, newPosition: Position, previousPosition: Position) => void;
+    callbacks: ComponentRenderCallbacks<CanvasPort> & {
+        onDragEnd?: LayerDragEndCallback;
     };
+    getDisabledPortIds: () => Set<string>;
 }
 
 export interface RemoteProcessGroupRenderContext extends BaseRenderContext {
     componentUtils: CanvasComponentUtils;
     remoteProcessGroups: CanvasRemoteProcessGroup[];
     disabledRemoteProcessGroupIds?: Set<string>;
+    getDisabledRemoteProcessGroupIds: () => Set<string>;
     canSelect: boolean;
-    callbacks: {
-        onClick?: (remoteProcessGroup: CanvasRemoteProcessGroup, event: MouseEvent) => void;
-        onDoubleClick?: (remoteProcessGroup: CanvasRemoteProcessGroup, event: MouseEvent) => void;
-        onDragEnd?: (
-            remoteProcessGroup: CanvasRemoteProcessGroup,
-            newPosition: Position,
-            previousPosition: Position
-        ) => void;
+    callbacks: ComponentRenderCallbacks<CanvasRemoteProcessGroup> & {
+        onDragEnd?: LayerDragEndCallback;
     };
 }
 
@@ -116,13 +126,20 @@ export interface ProcessGroupRenderContext extends BaseRenderContext {
     componentUtils: CanvasComponentUtils;
     processGroups: CanvasProcessGroup[];
     disabledProcessGroupIds?: Set<string>;
+    getDisabledProcessGroupIds: () => Set<string>;
+    getIsDropAllowed: () => boolean;
     registryClients: RegistryClientEntity[];
     canSelect: boolean;
-    callbacks: {
-        onClick?: (processGroup: CanvasProcessGroup, event: MouseEvent) => void;
-        onDoubleClick?: (processGroup: CanvasProcessGroup, event: MouseEvent) => void;
-        onDragEnd?: (processGroup: CanvasProcessGroup, newPosition: Position, previousPosition: Position) => void;
+    callbacks: ComponentRenderCallbacks<CanvasProcessGroup> & {
+        onDragEnd?: LayerDragEndCallback;
     };
+}
+
+export interface ConnectionReconnectContext {
+    isValidConnectionDestination: (selection: ConnectableComponentSelection) => boolean;
+    getPerimeterPoint: (point: Position, bounds: { x: number; y: number; width: number; height: number }) => Position;
+    selfLoopXOffset: number;
+    selfLoopYOffset: number;
 }
 
 export interface ConnectionRenderContext extends BaseRenderContext {
@@ -130,13 +147,19 @@ export interface ConnectionRenderContext extends BaseRenderContext {
     processGroupId: string | null;
     canSelect: boolean;
     disabledConnectionIds?: Set<string>;
+    getDisabledConnectionIds: () => Set<string>;
     componentUtils: CanvasComponentUtils;
-    callbacks: {
-        onClick?: (connection: CanvasConnection, event: MouseEvent) => void;
-        onDoubleClick?: (connection: CanvasConnection, event: MouseEvent) => void;
+    reconnect?: ConnectionReconnectContext;
+    getReconnect: () => ConnectionReconnectContext | undefined;
+    callbacks: ComponentRenderCallbacks<CanvasConnection> & {
         onBendPointDragEnd?: (connection: CanvasConnection, bends: Array<{ x: number; y: number }>) => void;
         onBendPointAdd?: (connection: CanvasConnection, point: { x: number; y: number; index: number }) => void;
         onBendPointRemove?: (connection: CanvasConnection, index: number) => void;
         onLabelDragEnd?: (connection: CanvasConnection, labelIndex: number) => void;
+        onEndpointReconnect?: (
+            connection: CanvasConnection,
+            destination: ConnectionEndpointReconnectDestination,
+            bends?: Position[]
+        ) => void;
     };
 }

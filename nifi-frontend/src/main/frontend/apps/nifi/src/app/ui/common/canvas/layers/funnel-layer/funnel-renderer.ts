@@ -16,10 +16,9 @@
  */
 
 import * as d3 from 'd3';
-import { CanvasFunnel } from '../../canvas.types';
+import { CanvasFunnel, CanvasSelection } from '../../canvas.types';
 import { FunnelRenderContext } from '../render-context.types';
-import { ConnectionRenderer } from '../connection-layer/connection-renderer';
-import { CanvasConstants } from '../../canvas.constants';
+import { DragUtils } from '../../utils/drag.utils';
 
 export class FunnelRenderer {
     public static render(context: FunnelRenderContext): void {
@@ -31,11 +30,11 @@ export class FunnelRenderer {
             .data(funnels, (d: CanvasFunnel) => d.entity.id);
 
         // Enter: create new funnel elements
-        const entered: any = selection.enter();
-        const appendedGroups: any = FunnelRenderer.appendFunnelElements(entered);
+        const entered = selection.enter();
+        const appendedGroups = FunnelRenderer.appendFunnelElements(entered);
 
         // Update existing and newly entered funnels
-        const merged: any = selection.merge(appendedGroups);
+        const merged = selection.merge(appendedGroups);
         FunnelRenderer.updateFunnelElements(merged, context);
 
         // Attach event listeners if interactive
@@ -66,13 +65,10 @@ export class FunnelRenderer {
         }
 
         // Exit: remove funnels that are no longer in data
-        const exited: any = selection.exit();
-        FunnelRenderer.removeFunnelElements(exited);
+        selection.exit().remove();
     }
 
-    private static appendFunnelElements(
-        entered: d3.Selection<any, CanvasFunnel, any, any>
-    ): d3.Selection<any, CanvasFunnel, any, any> {
+    private static appendFunnelElements(entered: d3.Selection<d3.EnterElement, CanvasFunnel, SVGGElement, unknown>) {
         // Create group for each funnel
         const funnelGroups = entered
             .append('g')
@@ -110,10 +106,7 @@ export class FunnelRenderer {
         return funnelGroups;
     }
 
-    private static updateFunnelElements(
-        selection: d3.Selection<any, CanvasFunnel, any, any>,
-        context: FunnelRenderContext
-    ): void {
+    private static updateFunnelElements(selection: CanvasSelection<CanvasFunnel>, context: FunnelRenderContext): void {
         // Update transform for position (use currentPosition if dragging, otherwise entity position)
         selection.attr('transform', (d) => {
             const pos = d.ui.currentPosition || d.entity.position;
@@ -140,139 +133,22 @@ export class FunnelRenderer {
         selection.select('rect.body').classed('unauthorized', (d) => d.entity.permissions.canRead === false);
     }
 
-    private static removeFunnelElements(exited: d3.Selection<any, any, any, any>): void {
+    private static removeFunnelElements(exited: CanvasSelection<CanvasFunnel>): void {
         exited.remove();
     }
 
-    private static attachDragBehavior(
-        selection: d3.Selection<SVGGElement, CanvasFunnel, any, any>,
-        context: FunnelRenderContext
-    ): void {
-        const drag = d3
-            .drag<SVGGElement, CanvasFunnel>()
-            .filter(function (event, d) {
-                // Match D3's default filter: block right-click and Ctrl+click (Mac right-click)
-                if (event.ctrlKey || event.button !== 0) {
-                    return false;
-                }
-                // Block drag if editing is disabled
-                if (!context.getCanEdit()) {
-                    return false;
-                }
-                // Block drag if funnel is disabled (saving)
-                if (context.disabledFunnelIds?.has(d.entity.id)) {
-                    return false;
-                }
-                return true;
-            })
-            .clickDistance(4) // Minimum distance in pixels before drag starts (prevents accidental drags during clicks)
-            .on('start', function (event: d3.D3DragEvent<SVGGElement, CanvasFunnel, CanvasFunnel>, d: CanvasFunnel) {
-                const funnelGroup = d3.select(this as SVGGElement);
-
-                if (!funnelGroup.classed('selected') && context.callbacks.onClick) {
-                    context.callbacks.onClick(d, event.sourceEvent as MouseEvent);
-                }
-
-                // Stop propagation to prevent canvas pan
-                event.sourceEvent.stopPropagation();
-
-                // Store original position for potential revert
-                d.ui.dragStartPosition = { ...d.entity.position };
-                // Initialize current position in UI state
-                d.ui.currentPosition = { ...d.entity.position };
-            })
-            .on('drag', function (event: d3.D3DragEvent<SVGGElement, CanvasFunnel, CanvasFunnel>, d: CanvasFunnel) {
-                // Update current position in UI state (entity is read-only from store)
-                if (d.ui.currentPosition) {
-                    // Apply snap-to-grid unless shift key is held
-                    const snapEnabled = !event.sourceEvent.shiftKey;
-
-                    d.ui.currentPosition.x += event.dx;
-                    d.ui.currentPosition.y += event.dy;
-
-                    // Apply snap alignment if enabled
-                    const displayX = snapEnabled
-                        ? Math.round(d.ui.currentPosition.x / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                          CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                        : d.ui.currentPosition.x;
-                    const displayY = snapEnabled
-                        ? Math.round(d.ui.currentPosition.y / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                          CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                        : d.ui.currentPosition.y;
-
-                    // Update visual position immediately with snapped coordinates
-                    d3.select(this).attr('transform', `translate(${displayX}, ${displayY})`);
-
-                    // Update attached connections by recalculating their paths
-                    d3.selectAll('g.connection').each(function () {
-                        const connectionData: any = d3.select(this).datum();
-
-                        // Check if this connection is attached to the dragged funnel
-                        if (
-                            connectionData?.entity?.sourceId === d.entity.id ||
-                            connectionData?.entity?.destinationId === d.entity.id
-                        ) {
-                            const connectionGroup = d3.select(this);
-
-                            // Recalculate path using ConnectionRenderer
-                            const newPath = ConnectionRenderer.calculatePath(connectionData);
-
-                            // Update all path elements with the new path
-                            connectionGroup.selectAll('path').attr('d', newPath);
-
-                            // Update connection label position
-                            const labelPosition = ConnectionRenderer.getLabelPosition(connectionData);
-                            connectionGroup
-                                .select('g.connection-label-container')
-                                .attr('transform', `translate(${labelPosition.x}, ${labelPosition.y})`);
-                        }
-                    });
-                }
-            })
-            .on('end', function (event: d3.D3DragEvent<SVGGElement, CanvasFunnel, CanvasFunnel>, d: CanvasFunnel) {
-                if (!d.ui.dragStartPosition || !d.ui.currentPosition) {
-                    return;
-                }
-
-                // Apply final snap alignment (respecting shift key)
-                const snapEnabled = !event.sourceEvent.shiftKey;
-                const finalX = snapEnabled
-                    ? Math.round(d.ui.currentPosition.x / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                      CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                    : d.ui.currentPosition.x;
-                const finalY = snapEnabled
-                    ? Math.round(d.ui.currentPosition.y / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                      CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                    : d.ui.currentPosition.y;
-
-                // Update currentPosition to final snapped position
-                d.ui.currentPosition.x = finalX;
-                d.ui.currentPosition.y = finalY;
-
-                const newPosition = { ...d.ui.currentPosition };
-                const previousPosition = { ...d.ui.dragStartPosition };
-
-                // Check if position actually changed (prevent API calls on clicks)
-                const moved = newPosition.x !== previousPosition.x || newPosition.y !== previousPosition.y;
-
-                // Clean up drag start position only
-                // Keep currentPosition until API call completes (for disabled treatment)
-                delete d.ui.dragStartPosition;
-
-                // Only emit drag end if position actually changed
-                if (moved && context.callbacks.onDragEnd) {
-                    context.callbacks.onDragEnd(d, newPosition, previousPosition);
-                }
-            });
-
-        // Remove drag behavior to prevent stale closures
-        selection.on('.drag', null);
-
-        // Apply drag behavior to funnels with write permissions
-        selection.filter((d: CanvasFunnel) => d.entity.permissions.canWrite && d.entity.permissions.canRead).call(drag);
+    private static attachDragBehavior(selection: CanvasSelection<CanvasFunnel>, context: FunnelRenderContext): void {
+        DragUtils.attachComponentDrag(selection, {
+            resolveCanvasRoot: context.canvasRootResolver,
+            getCanEdit: context.getCanEdit,
+            getCanSelect: context.getCanSelect,
+            getDisabledIds: context.getDisabledFunnelIds,
+            getSelectedIds: context.getSelectedIds,
+            onDragEnd: context.callbacks.onDragEnd!
+        });
     }
 
-    public static pan(selection: d3.Selection<any, CanvasFunnel, any, any>, context: FunnelRenderContext): void {
+    public static pan(selection: CanvasSelection<CanvasFunnel>, context: FunnelRenderContext): void {
         // Simply delegate to updateFunnelElements which handles all updates
         // Funnels are simple and don't have details to create/remove like ports or processors
         FunnelRenderer.updateFunnelElements(selection, context);

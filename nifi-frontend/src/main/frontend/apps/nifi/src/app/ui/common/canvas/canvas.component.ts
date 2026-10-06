@@ -44,7 +44,15 @@ import {
     MAX_ABS_COORD,
     MAX_ABS_TRANSLATE,
     NiFiCommon,
-    Position
+    Position,
+    ConnectionEntity,
+    FunnelEntity,
+    LabelEntity,
+    PortEntity,
+    ProcessGroupEntity,
+    ProcessorEntity,
+    RemoteProcessGroupEntity,
+    RevisionRequest
 } from '@nifi/shared';
 import { DocumentedType, RegistryClientEntity } from '../../../state/shared';
 import { NiFiState } from '../../../state';
@@ -56,9 +64,15 @@ import {
     CanvasRemoteProcessGroup,
     CanvasProcessGroup,
     CanvasConnection,
-    CanvasComponent as CanvasComponentType,
+    CanvasDatum,
+    CanvasEntity,
+    CanvasRootResolver,
+    CanvasRootSelection,
+    ComponentDoubleClickEvent,
+    DragEndBaselineItem,
     Dimension,
-    ContextMenuContext
+    ContextMenuContext,
+    isConnectionDatum
 } from './canvas.types';
 import { CdkContextMenuTrigger } from '@angular/cdk/menu';
 import { ContextMenu, ContextMenuDefinitionProvider } from '../context-menu/context-menu.component';
@@ -83,6 +97,15 @@ import {
     wouldRemovalCauseOverlap
 } from '../overlap-detection.utils';
 import { BirdseyeComponentData, BirdseyeTransform } from '../birdseye/birdseye.types';
+import { CanvasComponentRef, ConnectionEndpointReconnectDestination } from '../../../state/flow-shared';
+import {
+    ConnectableBehaviorHelper,
+    ConnectablePolicy,
+    CreateConnectionPayload,
+    DEFAULT_GEOMETRY
+} from './connectable-behavior.helper';
+import { ConnectionReconnectContext } from './layers/render-context.types';
+import { DragUtils } from './utils/drag.utils';
 
 /**
  * Interface for viewport transform storage
@@ -91,6 +114,25 @@ interface StorageTransform {
     scale: number;
     translateX: number;
     translateY: number;
+}
+
+interface SelectionBoxData {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+interface ComponentDragStateCarrier {
+    entity: { id: string };
+    ui: {
+        dragDelta?: Position;
+        dragMovingIds?: Set<string>;
+        dragStartPosition?: Position;
+        currentPosition?: Position;
+        dragStartEntity?: CanvasEntity;
+        dragStartRevision?: RevisionRequest;
+    };
 }
 
 /**
@@ -182,6 +224,21 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         }
     }
 
+    private static preserveComponentDragState<T extends ComponentDragStateCarrier>(previous: T[], next: T[]): void {
+        for (const item of next) {
+            const existing = previous.find((candidate) => candidate.entity.id === item.entity.id);
+            if (!existing?.ui.dragStartEntity) {
+                continue;
+            }
+            item.ui.dragStartEntity = existing.ui.dragStartEntity;
+            item.ui.dragDelta = existing.ui.dragDelta;
+            item.ui.dragMovingIds = existing.ui.dragMovingIds;
+            item.ui.dragStartPosition = existing.ui.dragStartPosition;
+            item.ui.currentPosition = existing.ui.currentPosition;
+            item.ui.dragStartRevision = existing.ui.dragStartRevision;
+        }
+    }
+
     private store = inject<Store<NiFiState>>(Store);
     private elementRef = inject(ElementRef);
     private cdr = inject(ChangeDetectorRef);
@@ -209,13 +266,13 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     private snackBar = inject(MatSnackBar);
 
     // Flow data inputs (raw backend entities provided by parent) - using signals
-    labels = input<any[]>([]); // TODO: Type as LabelEntity[] once imported
-    processors = input<any[]>([]); // TODO: Type as ProcessorEntity[] once imported
-    funnels = input<any[]>([]); // TODO: Type as FunnelEntity[] once imported
-    ports = input<any[]>([]); // TODO: Type as (InputPortEntity | OutputPortEntity)[] once imported
-    remoteProcessGroups = input<any[]>([]); // TODO: Type as RemoteProcessGroupEntity[] once imported
-    processGroups = input<any[]>([]); // TODO: Type as ProcessGroupEntity[] once imported
-    connections = input<any[]>([]); // TODO: Type as ConnectionEntity[] once imported
+    labels = input<LabelEntity[]>([]);
+    processors = input<ProcessorEntity[]>([]);
+    funnels = input<FunnelEntity[]>([]);
+    ports = input<PortEntity[]>([]);
+    remoteProcessGroups = input<RemoteProcessGroupEntity[]>([]);
+    processGroups = input<ProcessGroupEntity[]>([]);
+    connections = input<ConnectionEntity[]>([]);
 
     // Preview extensions (processors with Preview tag)
     previewExtensions = input<DocumentedType[]>([]);
@@ -245,6 +302,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     // Context menu provider - if provided, enables context menu functionality
     // Parent provides a ContextMenuDefinitionProvider implementation
     menuProvider = input<ContextMenuDefinitionProvider | undefined>(undefined);
+
+    connectable = input<ConnectablePolicy | null>(null);
 
     // Render trigger - incremented to force layer re-rendering (e.g., after fonts load)
     private renderTriggerValue = signal(0);
@@ -277,6 +336,46 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     private savingPorts = signal<Set<string>>(new Set());
     disabledPortIds = computed(() => this.savingPorts());
 
+    connectableBehavior = computed<ConnectableBehaviorHelper | null>(() => {
+        const policy = this.connectable();
+        if (!policy) {
+            return null;
+        }
+        return new ConnectableBehaviorHelper(
+            policy,
+            {
+                onSelectSource: (source) => this.selectComponents.emit([source]),
+                onConnectionRequested: (payload) => this.createConnectionRequested.emit(payload),
+                isDisabled: (id) =>
+                    this.disabledProcessorIds().has(id) ||
+                    this.disabledFunnelIds().has(id) ||
+                    this.disabledPortIds().has(id) ||
+                    this.disabledProcessGroupIds().has(id) ||
+                    this.disabledRemoteProcessGroupIds().has(id)
+            },
+            this.canvasRootResolver
+        );
+    });
+
+    connectionReconnect = computed<ConnectionReconnectContext | null>(() => {
+        const policy = this.connectable();
+        if (!policy) {
+            return null;
+        }
+        const geometry = { ...DEFAULT_GEOMETRY, ...policy.geometry };
+        return {
+            isValidConnectionDestination: (selection) => policy.isValidConnectionDestination(selection),
+            getPerimeterPoint: geometry.getPerimeterPoint,
+            selfLoopXOffset: geometry.selfLoopXOffset,
+            selfLoopYOffset: geometry.selfLoopYOffset
+        };
+    });
+
+    readonly canvasRootResolver: CanvasRootResolver = () =>
+        this.canvasGroup ?? d3.select<SVGGElement, unknown>(null as unknown as SVGGElement);
+
+    readonly isDropAllowedFn = (): boolean => true;
+
     // Track which remote process groups are currently saving position (disabled during save)
     private savingRemoteProcessGroups = signal<Set<string>>(new Set());
     disabledRemoteProcessGroupIds = computed(() => this.savingRemoteProcessGroups());
@@ -292,23 +391,36 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     // Selection events (for parent to handle routing) - using output signals
     // Canvas handles multi-select logic and emits high-level selection intent
     // Parent updates routes → parent reads route → parent passes selection as @Input
-    selectComponents = output<Array<{ id: string; type: ComponentType }>>();
+    selectComponents = output<CanvasComponentRef[]>();
     deselectAll = output<void>();
 
     // Process group navigation event (for parent to handle routing)
     processGroupDoubleClick = output<{ processGroupId: string }>();
 
     // Label resize events
-    labelResizeEnd = output<{ id: string; dimensions: Dimension }>();
+    labelResizeEnd = output<{ id: string; dimensions: Dimension; revision: RevisionRequest }>();
 
     // Connection bend point update event (unified for drag, add, remove)
-    connectionBendPointsUpdate = output<{ id: string; bends: Position[] }>();
+    connectionBendPointsUpdate = output<{
+        id: string;
+        bends: Position[];
+        labelIndex?: number;
+        revision: RevisionRequest;
+    }>();
 
     // Connection label drag event (when label is moved between bend points)
-    connectionLabelDragEnd = output<{ id: string; labelIndex: number }>();
+    connectionLabelDragEnd = output<{ id: string; labelIndex: number; revision: RevisionRequest }>();
 
     // Component position drag event (for processors, ports, process groups, funnels, labels, remote process groups)
+    componentsDragEnd = output<{ items: DragEndBaselineItem[]; delta: Position; targetGroupId?: string }>();
     componentDragEnd = output<{ id: string; type: ComponentType; position: Position }>();
+    createConnectionRequested = output<CreateConnectionPayload>();
+    connectionDestinationChangeRequested = output<{
+        id: string;
+        revision: RevisionRequest;
+        newDestination: ConnectionEndpointReconnectDestination;
+        bends?: Position[];
+    }>();
 
     // Transform change event (for birdseye synchronization)
     transformChange = output<{ translate: { x: number; y: number }; scale: number }>();
@@ -322,7 +434,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     contextMenuOpened = output<ContextMenuContext>();
 
     // Emitted when a configurable component is double-clicked (Processor, Port, Connection, RPG)
-    componentDoubleClick = output<{ entity: any; componentType: ComponentType }>();
+    componentDoubleClick = output<ComponentDoubleClickEvent>();
     contextMenuComponent = viewChild<ContextMenu>('contextMenuComponent');
 
     overlappingConnectionGroups = computed<OverlappingConnectionGroup[]>(() => {
@@ -359,7 +471,9 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
         if (labelsChanged) {
             // Labels changed (added/removed) - create new array
+            const previous = this._internalLabels;
             this._internalLabels = this.mapLabels(inputLabels);
+            CanvasComponent.preserveComponentDragState(previous, this._internalLabels);
         } else {
             // Same labels - update entity data by matching IDs (not array index)
             inputLabels.forEach((inputEntity) => {
@@ -367,11 +481,12 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
                 if (existingLabel) {
                     existingLabel.entity = inputEntity;
 
-                    // Update ui.dimensions from entity (entity is source of truth after save)
-                    existingLabel.ui.dimensions = {
-                        width: inputEntity.dimensions?.width || 148,
-                        height: inputEntity.dimensions?.height || 148
-                    };
+                    if (existingLabel.ui.dragStartRevision === undefined && !this.savingLabels().has(inputEntity.id)) {
+                        existingLabel.ui.dimensions = {
+                            width: inputEntity.dimensions?.width || 148,
+                            height: inputEntity.dimensions?.height || 148
+                        };
+                    }
                 }
             });
             // Return new array reference to trigger re-render of layers
@@ -392,7 +507,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         const inputProcessors = this.processors();
 
         // Check if processors array changed (by comparing IDs as sets)
-        const inputIdSet = new Set(inputProcessors.map((p: any) => p.id));
+        const inputIdSet = new Set(inputProcessors.map((p) => p.id));
         const currentIdSet = new Set(this._internalProcessors.map((p) => p.entity.id));
 
         const processorsChanged =
@@ -400,10 +515,12 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
         if (processorsChanged) {
             // Processors changed (added/removed) - create new array
+            const previous = this._internalProcessors;
             this._internalProcessors = this.mapProcessors(inputProcessors);
+            CanvasComponent.preserveComponentDragState(previous, this._internalProcessors);
         } else {
             // Same processors - update entity data by matching IDs (not array index)
-            inputProcessors.forEach((inputEntity: any) => {
+            inputProcessors.forEach((inputEntity) => {
                 const existingProcessor = this._internalProcessors.find((p) => p.entity.id === inputEntity.id);
                 if (existingProcessor) {
                     existingProcessor.entity = inputEntity;
@@ -431,16 +548,18 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     private _internalFunnels: CanvasFunnel[] = [];
     internalFunnels = computed(() => {
         const inputFunnels = this.funnels();
-        const inputIdSet = new Set(inputFunnels.map((f: any) => f.id));
+        const inputIdSet = new Set(inputFunnels.map((f) => f.id));
         const currentIdSet = new Set(this._internalFunnels.map((f) => f.entity.id));
 
         const funnelsChanged =
             inputIdSet.size !== currentIdSet.size || !Array.from(inputIdSet).every((id) => currentIdSet.has(id));
 
         if (funnelsChanged) {
+            const previous = this._internalFunnels;
             this._internalFunnels = this.mapFunnels(inputFunnels);
+            CanvasComponent.preserveComponentDragState(previous, this._internalFunnels);
         } else {
-            inputFunnels.forEach((inputEntity: any) => {
+            inputFunnels.forEach((inputEntity) => {
                 const existingFunnel = this._internalFunnels.find((f) => f.entity.id === inputEntity.id);
                 if (existingFunnel) {
                     existingFunnel.entity = inputEntity;
@@ -463,16 +582,18 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     private _internalPorts: CanvasPort[] = [];
     internalPorts = computed(() => {
         const inputPorts = this.ports();
-        const inputIdSet = new Set(inputPorts.map((p: any) => p.id));
+        const inputIdSet = new Set(inputPorts.map((p) => p.id));
         const currentIdSet = new Set(this._internalPorts.map((p) => p.entity.id));
 
         const portsChanged =
             inputIdSet.size !== currentIdSet.size || !Array.from(inputIdSet).every((id) => currentIdSet.has(id));
 
         if (portsChanged) {
+            const previous = this._internalPorts;
             this._internalPorts = this.mapPorts(inputPorts);
+            CanvasComponent.preserveComponentDragState(previous, this._internalPorts);
         } else {
-            inputPorts.forEach((inputEntity: any) => {
+            inputPorts.forEach((inputEntity) => {
                 const existingPort = this._internalPorts.find((p) => p.entity.id === inputEntity.id);
                 if (existingPort) {
                     existingPort.entity = inputEntity;
@@ -494,16 +615,18 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     private _internalRemoteProcessGroups: CanvasRemoteProcessGroup[] = [];
     internalRemoteProcessGroups = computed(() => {
         const inputRpgs = this.remoteProcessGroups();
-        const inputIdSet = new Set(inputRpgs.map((r: any) => r.id));
+        const inputIdSet = new Set(inputRpgs.map((r) => r.id));
         const currentIdSet = new Set(this._internalRemoteProcessGroups.map((r) => r.entity.id));
 
         const rpgsChanged =
             inputIdSet.size !== currentIdSet.size || !Array.from(inputIdSet).every((id) => currentIdSet.has(id));
 
         if (rpgsChanged) {
+            const previous = this._internalRemoteProcessGroups;
             this._internalRemoteProcessGroups = this.mapRemoteProcessGroups(inputRpgs);
+            CanvasComponent.preserveComponentDragState(previous, this._internalRemoteProcessGroups);
         } else {
-            inputRpgs.forEach((inputEntity: any) => {
+            inputRpgs.forEach((inputEntity) => {
                 const existingRpg = this._internalRemoteProcessGroups.find((r) => r.entity.id === inputEntity.id);
                 if (existingRpg) {
                     existingRpg.entity = inputEntity;
@@ -525,16 +648,18 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     private _internalProcessGroups: CanvasProcessGroup[] = [];
     internalProcessGroups = computed(() => {
         const inputPgs = this.processGroups();
-        const inputIdSet = new Set(inputPgs.map((pg: any) => pg.id));
+        const inputIdSet = new Set(inputPgs.map((pg) => pg.id));
         const currentIdSet = new Set(this._internalProcessGroups.map((pg) => pg.entity.id));
 
         const pgsChanged =
             inputIdSet.size !== currentIdSet.size || !Array.from(inputIdSet).every((id) => currentIdSet.has(id));
 
         if (pgsChanged) {
+            const previous = this._internalProcessGroups;
             this._internalProcessGroups = this.mapProcessGroups(inputPgs);
+            CanvasComponent.preserveComponentDragState(previous, this._internalProcessGroups);
         } else {
-            inputPgs.forEach((inputEntity: any) => {
+            inputPgs.forEach((inputEntity) => {
                 const existingPg = this._internalProcessGroups.find((pg) => pg.entity.id === inputEntity.id);
                 if (existingPg) {
                     existingPg.entity = inputEntity;
@@ -566,7 +691,19 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
         if (connectionsChanged) {
             // Connections changed (added/removed) - create new array
+            const previous = this._internalConnections;
             this._internalConnections = this.mapConnections(inputConnections);
+            for (const connection of this._internalConnections) {
+                const existing = previous.find((item) => item.entity.id === connection.entity.id);
+                if (!existing) continue;
+                connection.ui.dragStartEntity = existing.ui.dragStartEntity;
+                connection.ui.dragStartRevision = existing.ui.dragStartRevision;
+                connection.ui.dragStartBends = existing.ui.dragStartBends;
+                connection.ui.dragging = existing.ui.dragging;
+                connection.ui.bends = existing.ui.bends;
+                connection.ui.tempLabelIndex = existing.ui.tempLabelIndex;
+                connection.ui.reconnectDestinationId = existing.ui.reconnectDestinationId;
+            }
         } else {
             // Same connections - update entity data by matching IDs (not array index)
             // Create a new array reference so layers detect the change and re-render
@@ -585,10 +722,10 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
     private destroy$ = new Subject<void>();
     private destroyed = false; // Flag to prevent emitting after component is destroyed
-    private zoom: any; // D3 zoom behavior
+    private zoom!: d3.ZoomBehavior<SVGSVGElement, unknown>;
     private zoomInitialized = signal(false); // Signal to track when zoom is initialized
-    private svg: any; // D3 selection of SVG element (needed for zoom actions)
-    private canvasGroup: any; // D3 selection of the canvas group (for appending selection box)
+    private svg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+    private canvasGroup!: CanvasRootSelection;
     private currentScale = 1; // Track current scale for selection box stroke width
     private x = 0; // Current transform x (for dispatching to store)
     private y = 0; // Current transform y (for dispatching to store)
@@ -791,7 +928,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
      * Mapping methods: Convert raw backend entities to Canvas* types with UI metadata
      */
 
-    private mapLabels(labelEntities: any[]): CanvasLabel[] {
+    private mapLabels(labelEntities: LabelEntity[]): CanvasLabel[] {
         return labelEntities.map((entity) => ({
             entity,
             ui: {
@@ -804,7 +941,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         }));
     }
 
-    private mapProcessors(processorEntities: any[]): CanvasProcessor[] {
+    private mapProcessors(processorEntities: ProcessorEntity[]): CanvasProcessor[] {
         return processorEntities.map((entity) => ({
             entity,
             ui: {
@@ -814,7 +951,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         }));
     }
 
-    private mapFunnels(funnelEntities: any[]): CanvasFunnel[] {
+    private mapFunnels(funnelEntities: FunnelEntity[]): CanvasFunnel[] {
         return funnelEntities.map((entity) => ({
             entity,
             ui: {
@@ -824,9 +961,9 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         }));
     }
 
-    private mapPorts(portEntities: any[]): CanvasPort[] {
+    private mapPorts(portEntities: PortEntity[]): CanvasPort[] {
         return portEntities.map((entity) => {
-            const isInputPort = entity.portType === 'INPUT_PORT' || entity.type === 'INPUT_PORT';
+            const isInputPort = entity.portType === 'INPUT_PORT';
             const dimensions = entity.allowRemoteAccess
                 ? { ...CanvasConstants.REMOTE_PORT }
                 : { ...CanvasConstants.PORT };
@@ -840,7 +977,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         });
     }
 
-    private mapRemoteProcessGroups(rpgEntities: any[]): CanvasRemoteProcessGroup[] {
+    private mapRemoteProcessGroups(rpgEntities: RemoteProcessGroupEntity[]): CanvasRemoteProcessGroup[] {
         return rpgEntities.map((entity) => {
             return {
                 entity,
@@ -852,7 +989,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         });
     }
 
-    private mapProcessGroups(pgEntities: any[]): CanvasProcessGroup[] {
+    private mapProcessGroups(pgEntities: ProcessGroupEntity[]): CanvasProcessGroup[] {
         return pgEntities.map((entity) => ({
             entity,
             ui: {
@@ -862,7 +999,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         }));
     }
 
-    private mapConnections(connectionEntities: any[]): CanvasConnection[] {
+    private mapConnections(connectionEntities: ConnectionEntity[]): CanvasConnection[] {
         return connectionEntities.map((entity) => ({
             entity,
             ui: {
@@ -993,7 +1130,10 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
      */
     public updateCanvasVisibility(): void {
         // Helper to update visibility classes for a single component
-        const updateVisibility = (selection: d3.Selection<any, any, any, any>, isVisible: boolean) => {
+        const updateVisibility = (
+            selection: d3.Selection<SVGGElement, unknown, d3.BaseType, unknown>,
+            isVisible: boolean
+        ) => {
             const wasVisible = selection.classed('visible');
             selection
                 .classed('visible', isVisible)
@@ -1073,7 +1213,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
      * Get the position where a connection label would be centered
      * Matches existing CanvasUtils.getPositionForCenteringConnection logic
      */
-    private getConnectionLabelPosition(connection: any): { x: number; y: number } {
+    private getConnectionLabelPosition(connection: CanvasConnection): Position {
         const bends = connection.ui?.bends || connection.entity?.bends || [];
         const labelIndex = connection.entity?.component?.labelIndex || 0;
 
@@ -1119,21 +1259,25 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         const canvasGroup = d3.select(this.elementRef.nativeElement).select('g.canvas');
 
         // Collect all entering/leaving selections for each component type
-        const enteringLeavingLabels = canvasGroup.selectAll<SVGGElement, any>('g.label.entering, g.label.leaving');
-        const enteringLeavingProcessors = canvasGroup.selectAll<SVGGElement, any>(
+        const enteringLeavingLabels = canvasGroup.selectAll<SVGGElement, CanvasLabel>(
+            'g.label.entering, g.label.leaving'
+        );
+        const enteringLeavingProcessors = canvasGroup.selectAll<SVGGElement, CanvasProcessor>(
             'g.processor.entering, g.processor.leaving'
         );
-        const enteringLeavingPorts = canvasGroup.selectAll<SVGGElement, any>(
+        const enteringLeavingPorts = canvasGroup.selectAll<SVGGElement, CanvasPort>(
             'g.input-port.entering, g.input-port.leaving, g.output-port.entering, g.output-port.leaving'
         );
-        const enteringLeavingFunnels = canvasGroup.selectAll<SVGGElement, any>('g.funnel.entering, g.funnel.leaving');
-        const enteringLeavingRPGs = canvasGroup.selectAll<SVGGElement, any>(
+        const enteringLeavingFunnels = canvasGroup.selectAll<SVGGElement, CanvasFunnel>(
+            'g.funnel.entering, g.funnel.leaving'
+        );
+        const enteringLeavingRPGs = canvasGroup.selectAll<SVGGElement, CanvasRemoteProcessGroup>(
             'g.remote-process-group.entering, g.remote-process-group.leaving'
         );
-        const enteringLeavingPGs = canvasGroup.selectAll<SVGGElement, any>(
+        const enteringLeavingPGs = canvasGroup.selectAll<SVGGElement, CanvasProcessGroup>(
             'g.process-group.entering, g.process-group.leaving'
         );
-        const enteringLeavingConnections = canvasGroup.selectAll<SVGGElement, any>(
+        const enteringLeavingConnections = canvasGroup.selectAll<SVGGElement, CanvasConnection>(
             'g.connection.entering, g.connection.leaving'
         );
 
@@ -1183,7 +1327,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     private setupD3Zoom(): void {
         // Create D3 zoom behavior (svg and canvasGroup already initialized in ngAfterViewInit)
         this.zoom = d3
-            .zoom()
+            .zoom<SVGSVGElement, unknown>()
             .scaleExtent([0.2, 8]) // Min/max zoom levels
             .filter((event) => {
                 // Prevent zoom/pan when:
@@ -1363,7 +1507,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             // Check for both .component (processors, PGs, etc.) and .connection
             const componentElement = target.closest('.component') || target.closest('g.connection');
 
-            let clickedComponent: CanvasComponentType | undefined;
+            let clickedComponent: CanvasDatum | undefined;
             let targetType: 'canvas' | 'component' = 'canvas';
 
             if (componentElement) {
@@ -1371,7 +1515,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
                 targetType = 'component';
 
                 // Get the component from D3 datum
-                const datum = d3.select(componentElement).datum() as CanvasComponentType | undefined;
+                const datum = d3.select(componentElement).datum() as CanvasDatum | undefined;
                 if (datum) {
                     clickedComponent = datum;
 
@@ -1390,7 +1534,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
             // Build array of selected components with full data
             const selectedIds = this.selectedComponentIds();
-            const selectedComponents: CanvasComponentType[] = [];
+            const selectedComponents: CanvasDatum[] = [];
 
             // Gather selected components from all internal arrays
             this.internalLabels().forEach((c) => {
@@ -1447,7 +1591,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
                 // Show selection box if shift is held down
                 if (event.shiftKey) {
-                    const position: any = d3.pointer(event, this.canvasGroup.node());
+                    const position: [number, number] = d3.pointer(event, this.canvasGroup.node());
                     this.canvasGroup
                         .append('rect')
                         .attr('rx', 6)
@@ -1471,12 +1615,12 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             .on('mousemove.selection', (event: MouseEvent) => {
                 // Update selection box if shift is held down
                 if (event.shiftKey) {
-                    const selectionBox: any = d3.select('rect.component-selection');
+                    const selectionBox = this.canvasGroup.select<SVGRectElement>('rect.component-selection');
                     if (!selectionBox.empty()) {
-                        const originalPosition: any = selectionBox.datum();
-                        const position: any = d3.pointer(event, this.canvasGroup.node());
+                        const originalPosition = selectionBox.datum() as [number, number];
+                        const position: [number, number] = d3.pointer(event, this.canvasGroup.node());
 
-                        const d: any = {};
+                        const d: SelectionBoxData = { x: 0, y: 0, width: 0, height: 0 };
                         if (originalPosition[0] < position[0]) {
                             d.x = originalPosition[0];
                             d.width = position[0] - originalPosition[0];
@@ -1511,7 +1655,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
                 this.canvasClicked = false;
 
                 // Get the selection box
-                const selectionBox: any = d3.select('rect.component-selection');
+                const selectionBox = this.canvasGroup.select<SVGRectElement>('rect.component-selection');
                 if (!selectionBox.empty()) {
                     const selectionBoundingBox = {
                         x: parseInt(selectionBox.attr('x'), 10),
@@ -1756,8 +1900,10 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         // Emit to parent for server save
         this.labelResizeEnd.emit({
             id: labelId,
-            dimensions: event.dimensions
+            dimensions: event.dimensions,
+            revision: event.label.ui.dragStartRevision ?? event.label.entity.revision
         });
+        delete event.label.ui.dragStartRevision;
     }
 
     /**
@@ -2081,8 +2227,10 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         // Emit to parent for server save
         this.connectionBendPointsUpdate.emit({
             id: connectionId,
-            bends: event.bends
+            bends: event.bends,
+            revision: event.connection.ui.dragStartRevision ?? event.connection.entity.revision
         });
+        delete event.connection.ui.dragStartRevision;
     }
 
     /**
@@ -2101,7 +2249,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         // Emit current ui.bends to parent for server save (unified event)
         this.connectionBendPointsUpdate.emit({
             id: connectionId,
-            bends: event.connection.ui.bends || []
+            bends: event.connection.ui.bends || [],
+            revision: event.connection.entity.revision
         });
     }
 
@@ -2140,7 +2289,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
         this.connectionBendPointsUpdate.emit({
             id: connectionId,
-            bends: currentBends
+            bends: currentBends,
+            revision: event.connection.entity.revision
         });
     }
 
@@ -2156,8 +2306,64 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         // Emit label index change to parent for server save
         this.connectionLabelDragEnd.emit({
             id: connectionId,
-            labelIndex: event.labelIndex
+            labelIndex: event.labelIndex,
+            revision: event.connection.ui.dragStartRevision ?? event.connection.entity.revision
         });
+        delete event.connection.ui.dragStartRevision;
+    }
+
+    onConnectionEndpointReconnect(event: {
+        connection: CanvasConnection;
+        newDestination: ConnectionEndpointReconnectDestination;
+        bends?: Position[];
+    }): void {
+        const connectionId = event.connection.entity.id;
+        this.savingConnections.update((connections) => new Set(connections).add(connectionId));
+        const revision = event.connection.ui.dragStartRevision ?? event.connection.entity.revision;
+        delete event.connection.ui.dragStartRevision;
+
+        if (event.bends) {
+            event.connection.ui.bends = event.bends.map((bend) => ({ ...bend }));
+        }
+        event.connection.ui.reconnectDestinationId = event.newDestination.id;
+
+        this.connectionDestinationChangeRequested.emit({
+            id: connectionId,
+            revision,
+            newDestination: event.newDestination,
+            bends: event.bends
+        });
+    }
+
+    public confirmConnectionDestination(connectionId: string): void {
+        this.savingConnections.update((connections) => {
+            const updatedConnections = new Set(connections);
+            updatedConnections.delete(connectionId);
+            return updatedConnections;
+        });
+
+        const connection = this._internalConnections.find((item) => item.entity.id === connectionId);
+        if (connection) {
+            connection.ui.bends = undefined;
+            delete connection.ui.reconnectDestinationId;
+        }
+    }
+
+    public revertConnectionDestination(connectionId: string): void {
+        this.savingConnections.update((connections) => {
+            const updatedConnections = new Set(connections);
+            updatedConnections.delete(connectionId);
+            return updatedConnections;
+        });
+
+        const connection = this._internalConnections.find((item) => item.entity.id === connectionId);
+        if (connection) {
+            connection.ui.bends = undefined;
+            delete connection.ui.endPointDragging;
+            delete connection.ui.reconnectDestinationId;
+        }
+
+        this.renderTriggerValue.update((value) => value + 1);
     }
 
     /**
@@ -2265,6 +2471,160 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
      */
     onProcessorDoubleClick({ processor }: { processor: CanvasProcessor; event: MouseEvent }): void {
         this.componentDoubleClick.emit({ entity: processor.entity, componentType: ComponentType.Processor });
+    }
+
+    onDragEnd({ delta, movingIds }: { delta: Position; movingIds: Set<string> }): void {
+        const targetGroupId = DragUtils.readDropTarget(this.canvasGroup) ?? undefined;
+        if (delta.x === 0 && delta.y === 0 && !targetGroupId) {
+            this.clearNoOpDragState(movingIds);
+            return;
+        }
+
+        const items: DragEndBaselineItem[] = [];
+        const includedIds = new Set<string>();
+        for (const id of movingIds) {
+            const type = this.componentTypeMap().get(id);
+            if (type === undefined) {
+                continue;
+            }
+            const wrapper = this.findWrapperByType(id, type);
+            if (!wrapper) {
+                continue;
+            }
+            const source = wrapper.ui.dragStartEntity ?? wrapper.entity;
+            items.push(this.projectBaselineItem(id, type as DragEndBaselineItem['type'], source));
+            includedIds.add(id);
+            delete wrapper.ui.dragStartEntity;
+        }
+        for (const connection of this.internalConnections()) {
+            const entity = connection.entity;
+            if (
+                entity.sourceId === entity.destinationId &&
+                movingIds.has(entity.sourceId) &&
+                !includedIds.has(entity.id)
+            ) {
+                const source = connection.ui.dragStartEntity ?? entity;
+                items.push(this.projectBaselineItem(entity.id, ComponentType.Connection, source));
+                delete connection.ui.dragStartEntity;
+            }
+        }
+
+        if (items.length === 0) {
+            return;
+        }
+        this.markItemsSaving(items);
+        this.componentsDragEnd.emit(targetGroupId ? { items, delta, targetGroupId } : { items, delta });
+    }
+
+    private clearNoOpDragState(movingIds: Set<string>): void {
+        for (const id of movingIds) {
+            const type = this.componentTypeMap().get(id);
+            if (type === undefined) {
+                continue;
+            }
+            const wrapper = this.findWrapperByType(id, type);
+            if (!wrapper) {
+                continue;
+            }
+            delete wrapper.ui.dragStartEntity;
+            if (!isConnectionDatum(wrapper)) {
+                delete wrapper.ui.dragDelta;
+                delete wrapper.ui.dragMovingIds;
+                delete wrapper.ui.dragStartPosition;
+                delete wrapper.ui.currentPosition;
+            } else {
+                delete wrapper.ui.dragStartBends;
+                wrapper.ui.bends = (wrapper.entity.bends ?? []).map((bend) => ({ ...bend }));
+            }
+        }
+
+        for (const connection of this.internalConnections()) {
+            if (
+                connection.entity.sourceId === connection.entity.destinationId &&
+                movingIds.has(connection.entity.sourceId)
+            ) {
+                delete connection.ui.dragStartEntity;
+                delete connection.ui.dragStartBends;
+                connection.ui.bends = (connection.entity.bends ?? []).map((bend) => ({ ...bend }));
+            }
+        }
+    }
+
+    private projectBaselineItem(
+        id: string,
+        type: DragEndBaselineItem['type'],
+        source: CanvasEntity
+    ): DragEndBaselineItem {
+        const revision: RevisionRequest = {
+            version: source.revision.version,
+            ...(source.revision.clientId !== undefined && { clientId: source.revision.clientId })
+        };
+        if (type === ComponentType.Connection) {
+            const connection = source as ConnectionEntity;
+            return {
+                id,
+                type,
+                bends: (connection.bends ?? []).map((bend) => ({ ...bend })),
+                revision,
+                ...(connection.component?.labelIndex !== undefined && {
+                    labelIndex: connection.component.labelIndex
+                })
+            };
+        }
+        const position = 'position' in source ? source.position : { x: 0, y: 0 };
+        return { id, type, position: { ...position }, revision };
+    }
+
+    private findWrapperByType(id: string, type: ComponentType): CanvasDatum | undefined {
+        switch (type) {
+            case ComponentType.Processor:
+                return this._internalProcessors.find((item) => item.entity.id === id);
+            case ComponentType.Funnel:
+                return this._internalFunnels.find((item) => item.entity.id === id);
+            case ComponentType.InputPort:
+            case ComponentType.OutputPort:
+                return this._internalPorts.find((item) => item.entity.id === id);
+            case ComponentType.ProcessGroup:
+                return this._internalProcessGroups.find((item) => item.entity.id === id);
+            case ComponentType.RemoteProcessGroup:
+                return this._internalRemoteProcessGroups.find((item) => item.entity.id === id);
+            case ComponentType.Label:
+                return this._internalLabels.find((item) => item.entity.id === id);
+            case ComponentType.Connection:
+                return this._internalConnections.find((item) => item.entity.id === id);
+            default:
+                return undefined;
+        }
+    }
+
+    private markItemsSaving(items: CanvasComponentRef[]): void {
+        for (const item of items) {
+            const update = (value: Set<string>) => new Set(value).add(item.id);
+            switch (item.type) {
+                case ComponentType.Processor:
+                    this.savingProcessors.update(update);
+                    break;
+                case ComponentType.Funnel:
+                    this.savingFunnels.update(update);
+                    break;
+                case ComponentType.InputPort:
+                case ComponentType.OutputPort:
+                    this.savingPorts.update(update);
+                    break;
+                case ComponentType.ProcessGroup:
+                    this.savingProcessGroups.update(update);
+                    break;
+                case ComponentType.RemoteProcessGroup:
+                    this.savingRemoteProcessGroups.update(update);
+                    break;
+                case ComponentType.Label:
+                    this.savingLabels.update(update);
+                    break;
+                case ComponentType.Connection:
+                    this.savingConnections.update(update);
+                    break;
+            }
+        }
     }
 
     /**
@@ -2835,7 +3195,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
      * Get center point of a connection
      * Uses the midpoint of the connection path
      */
-    private getConnectionCenterPoint(connection: any): Position {
+    private getConnectionCenterPoint(connection: CanvasConnection): Position {
         const bends = connection.ui.bends || [];
 
         if (bends.length === 0) {

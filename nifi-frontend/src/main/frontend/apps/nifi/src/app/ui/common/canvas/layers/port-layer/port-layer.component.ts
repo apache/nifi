@@ -19,6 +19,7 @@ import {
     Component,
     AfterViewInit,
     ElementRef,
+    DestroyRef,
     inject,
     input,
     output,
@@ -27,12 +28,14 @@ import {
     ChangeDetectionStrategy
 } from '@angular/core';
 import * as d3 from 'd3';
-import { CanvasPort } from '../../canvas.types';
+import { CanvasPort, CanvasRootResolver, CanvasRootSelection, CanvasSelection } from '../../canvas.types';
 import { PortRenderer } from './port-renderer';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../../canvas-format-utils.service';
 import { CanvasComponentUtils } from '../../canvas-component-utils.service';
 import { PortRenderContext } from '../render-context.types';
+import { NiFiCommon, Position } from '@nifi/shared';
+import { ConnectableBehaviorHelper } from '../../connectable-behavior.helper';
 
 @Component({
     // Attribute selector required: this component renders as an SVG <g> element, not a custom HTML element
@@ -47,6 +50,7 @@ import { PortRenderContext } from '../render-context.types';
 })
 export class PortLayerComponent implements AfterViewInit {
     private elementRef = inject(ElementRef);
+    private destroyRef = inject(DestroyRef);
 
     ports = input<CanvasPort[]>([]);
     scale = input<number>(1);
@@ -54,40 +58,64 @@ export class PortLayerComponent implements AfterViewInit {
     textEllipsis = input.required<TextEllipsisUtils>();
     formatUtils = input.required<CanvasFormatUtils>();
     componentUtils = input.required<CanvasComponentUtils>();
+    nifiCommon = input.required<NiFiCommon>();
     canEdit = input<boolean>(true);
     disabledPortIds = input<Set<string>>(new Set());
     canSelect = input<boolean>(true);
+    connectableBehavior = input<ConnectableBehaviorHelper | null>(null);
+    canvasRootResolver = input<CanvasRootResolver | null>(null);
 
     portClick = output<{ port: CanvasPort; event: MouseEvent }>();
     portDoubleClick = output<{ port: CanvasPort; event: MouseEvent }>();
-    portDragEnd = output<{
-        port: CanvasPort;
-        newPosition: { x: number; y: number };
-        previousPosition: { x: number; y: number };
-    }>();
+    dragEnd = output<{ delta: Position; movingIds: Set<string> }>();
 
-    private containerSelection: d3.Selection<any, any, any, any> | null = null;
+    private containerSelection: CanvasRootSelection | null = null;
 
-    private readonly callbacks = {
-        onClick: (port: any, event: MouseEvent) => {
+    constructor() {
+        this.destroyRef.onDestroy(() => {
+            const helper = this.connectableBehavior();
+            if (helper && this.containerSelection) {
+                helper.deactivate(
+                    this.containerSelection.selectAll<SVGGElement, CanvasPort>('g.input-port, g.output-port')
+                );
+            }
+        });
+    }
+
+    private readonly defaultCanvasRootResolver: CanvasRootResolver = () => {
+        const node = this.containerSelection?.node();
+        const canvasNode = (node?.closest('g.canvas') as SVGGElement | null) ?? node;
+        return canvasNode
+            ? d3.select<SVGGElement, unknown>(canvasNode)
+            : d3.select<SVGGElement, unknown>(null as unknown as SVGGElement);
+    };
+
+    private readonly callbacks: PortRenderContext['callbacks'] = {
+        onClick: (port, event) => {
             this.portClick.emit({ port, event });
         },
-        onDoubleClick: (port: any, event: MouseEvent) => {
+        onDoubleClick: (port, event) => {
             this.portDoubleClick.emit({ port, event });
         },
-        onDragEnd: (port: any, newPosition: any, previousPosition: any) => {
-            this.portDragEnd.emit({ port, newPosition, previousPosition });
+        onDragEnd: (delta, movingIds) => {
+            this.dragEnd.emit({ delta, movingIds });
         }
     };
+    private selectedIdsSet = computed(() => new Set(this.selectedIds()));
 
     private renderContext = computed<PortRenderContext>(() => ({
         containerSelection: this.containerSelection!,
         textEllipsis: this.textEllipsis(),
         formatUtils: this.formatUtils(),
+        nifiCommon: this.nifiCommon(),
         componentUtils: this.componentUtils(),
         getCanEdit: () => this.canEdit(),
+        getCanSelect: () => this.canSelect(),
+        getSelectedIds: () => this.selectedIdsSet(),
         ports: this.ports(),
         disabledPortIds: this.disabledPortIds(),
+        getDisabledPortIds: () => this.disabledPortIds(),
+        canvasRootResolver: this.canvasRootResolver() ?? this.defaultCanvasRootResolver,
         canSelect: this.canSelect(),
         callbacks: this.callbacks
     }));
@@ -104,9 +132,33 @@ export class PortLayerComponent implements AfterViewInit {
         this.applySelectionStyling();
     });
 
+    /**
+     * Attach or detach the connection handle when the helper, canEdit, or
+     * port set changes. activate is idempotent, so a data refresh rewires
+     * newly entered ports without tearing down an in-flight connection.
+     * deactivate runs only when editing is turned off.
+     */
+    private connectableEffect = effect((onCleanup) => {
+        this.ports();
+        const helper = this.connectableBehavior();
+        const canEdit = this.canEdit();
+        if (!this.containerSelection) return;
+        const groups = this.containerSelection.selectAll<SVGGElement, CanvasPort>('g.input-port, g.output-port');
+        if (helper && canEdit) {
+            helper.activate(groups);
+            onCleanup(() => {
+                if (this.connectableBehavior() !== helper || !this.canEdit()) {
+                    helper.deactivate(groups);
+                }
+            });
+        } else if (helper) {
+            helper.deactivate(groups);
+        }
+    });
+
     ngAfterViewInit(): void {
         const nativeElement = this.elementRef.nativeElement;
-        this.containerSelection = d3.select(nativeElement);
+        this.containerSelection = d3.select<SVGGElement, unknown>(nativeElement);
 
         // Initial render if data arrived before view was ready
         if (this.ports().length > 0) {
@@ -135,7 +187,7 @@ export class PortLayerComponent implements AfterViewInit {
         this.applySelectionStyling();
     }
 
-    public pan(selection: d3.Selection<any, any, any, any>): void {
+    public pan(selection: CanvasSelection<CanvasPort>): void {
         PortRenderer.pan(selection, this.renderContext());
         this.applySelectionStyling();
     }

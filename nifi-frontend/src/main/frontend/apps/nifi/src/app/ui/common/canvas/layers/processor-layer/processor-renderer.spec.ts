@@ -18,8 +18,9 @@
 import * as d3 from 'd3';
 import { ProcessorRenderer } from './processor-renderer';
 import { ProcessorRenderContext } from '../render-context.types';
+import { createBaseRenderContextFixture } from '../render-context-fixtures';
 import { CanvasProcessor } from '../../canvas.types';
-import { ComponentType } from '@nifi/shared';
+import { BulletinEntity, ComponentType } from '@nifi/shared';
 
 /**
  * Test setup options for ProcessorRenderer tests
@@ -29,7 +30,7 @@ interface SetupOptions {
     canSelect?: boolean;
     canEdit?: boolean;
     disabledProcessorIds?: Set<string>;
-    previewExtensions?: any[];
+    previewExtensions?: ProcessorRenderContext['previewExtensions'];
     callbacks?: Partial<ProcessorRenderContext['callbacks']>;
 }
 
@@ -63,7 +64,7 @@ function createMockProcessor(
                     executionNode?: string;
                 };
             };
-            bulletins?: any[];
+            bulletins?: BulletinEntity[];
         };
         ui?: {
             dimensions?: { width: number; height: number };
@@ -136,29 +137,31 @@ function createMockContext(options: SetupOptions = {}): ProcessorRenderContext {
         disabledProcessorIds: options.disabledProcessorIds,
         previewExtensions: options.previewExtensions || [],
         getCanEdit: () => options.canEdit ?? true,
-        textEllipsis: {
-            applyEllipsis: vi.fn((selection, text, _className) => {
-                selection.text(text);
-            }),
-            determineContrastColor: vi.fn(() => '#ffffff')
-        } as any,
-        formatUtils: {
-            formatQueuedStats: vi.fn((str) => {
-                const match = str.match(/^(\d+)\s*\((.+)\)$/);
-                if (match) {
-                    return { count: match[1], size: ` (${match[2]})` };
-                }
-                return { count: str, size: '' };
-            })
-        } as any,
-        nifiCommon: {} as any,
+        ...createBaseRenderContextFixture({
+            textEllipsis: {
+                applyEllipsis: vi.fn((selection, text, _className) => {
+                    selection.text(text);
+                }),
+                determineContrastColor: vi.fn(() => '#ffffff')
+            },
+            formatUtils: {
+                formatQueuedStats: vi.fn((str) => {
+                    const match = str.match(/^(\d+)\s*\((.+)\)$/);
+                    if (match) {
+                        return { count: match[1], size: ` (${match[2]})` };
+                    }
+                    return { count: str, size: '' };
+                })
+            },
+            nifiCommon: {}
+        }),
         componentUtils: {
             bulletins: vi.fn(),
             activeThreadCount: vi.fn(),
             comments: vi.fn(),
             canvasTooltip: vi.fn(),
             resetCanvasTooltip: vi.fn()
-        } as any,
+        } as unknown as ProcessorRenderContext['componentUtils'],
         callbacks: {
             onClick: options.callbacks?.onClick,
             onDoubleClick: options.callbacks?.onDoubleClick,
@@ -1178,6 +1181,65 @@ describe('ProcessorRenderer', () => {
             expect(context.componentUtils.comments).toHaveBeenCalledWith(expect.anything(), 'Test comment');
 
             cleanup();
+        });
+    });
+
+    describe('drag permission lifecycle', () => {
+        it('detaches drag when write permission is revoked between renders', () => {
+            const processor = createMockProcessor({
+                entity: { permissions: { canRead: true, canWrite: true } }
+            });
+            const context = createMockContext({
+                processors: [processor],
+                callbacks: { onDragEnd: vi.fn() }
+            });
+
+            ProcessorRenderer.render(context);
+            const element = context.containerSelection.select<SVGGElement>('g.processor');
+            expect(element.classed('moveable')).toBe(true);
+            expect(element.on('mousedown.drag')).toBeTruthy();
+
+            processor.entity.permissions.canWrite = false;
+            ProcessorRenderer.render(context);
+
+            expect(element.classed('moveable')).toBe(false);
+            expect(element.on('mousedown.drag')).toBeFalsy();
+        });
+
+        it('attaches drag when write permission is granted between renders', () => {
+            const processor = createMockProcessor({
+                entity: { permissions: { canRead: true, canWrite: false } }
+            });
+            const context = createMockContext({
+                processors: [processor],
+                callbacks: { onDragEnd: vi.fn() }
+            });
+
+            ProcessorRenderer.render(context);
+            const element = context.containerSelection.select<SVGGElement>('g.processor');
+            expect(element.classed('moveable')).toBe(false);
+
+            processor.entity.permissions.canWrite = true;
+            ProcessorRenderer.render(context);
+
+            expect(element.classed('moveable')).toBe(true);
+            expect(element.on('mousedown.drag')).toBeTruthy();
+        });
+
+        it('does not replace the drag listener on a steady-state render', () => {
+            const processor = createMockProcessor();
+            const context = createMockContext({
+                processors: [processor],
+                callbacks: { onDragEnd: vi.fn() }
+            });
+
+            ProcessorRenderer.render(context);
+            const element = context.containerSelection.select<SVGGElement>('g.processor');
+            const initialHandler = element.on('mousedown.drag');
+
+            ProcessorRenderer.render(context);
+
+            expect(element.on('mousedown.drag')).toBe(initialHandler);
         });
     });
 });
