@@ -23,7 +23,6 @@ import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.web.client.StandardWebClientService;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.ssl.TlsContext;
-import org.jspecify.annotations.NonNull;
 
 import java.net.http.HttpClient;
 import java.util.Map;
@@ -57,7 +56,7 @@ final class SplunkWebClients {
         return service;
     }
 
-    private static @NonNull StandardWebClientService getClient(SSLContext sslContext, X509ExtendedTrustManager trustManager, Optional<X509KeyManager> keyManager) {
+    private static StandardWebClientService getClient(SSLContext sslContext, X509ExtendedTrustManager trustManager, Optional<X509KeyManager> keyManager) {
         final TlsContext tlsContext = new TlsContext() {
             @Override
             public String getProtocol() {

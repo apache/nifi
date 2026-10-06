@@ -108,15 +108,22 @@ class ConfiguredHostTrustManager extends X509ExtendedTrustManager {
 
     @Override
     public void checkServerTrusted(final X509Certificate[] chain, final String authType, final SSLEngine engine) throws CertificateException {
-        final String peerHost = engine == null ? null : engine.getPeerHost();
-        if (peerHost == null) {
-            logger.debug("Peer Host not provided from SSLEngine");
-            delegate.checkServerTrusted(chain, authType);
-        } else if (configuredHost.contentEquals(peerHost)) {
-            logger.debug("Peer Host [{}] matches Configured Host [{}]", peerHost, configuredHost);
-            delegate.checkServerTrusted(chain, authType);
-        } else if (delegate instanceof final X509ExtendedTrustManager extendedTrustManager) {
-            extendedTrustManager.checkServerTrusted(chain, authType, engine);
+        if (delegate instanceof final X509ExtendedTrustManager extendedTrustManager) {
+            try {
+                extendedTrustManager.checkServerTrusted(chain, authType, engine);
+            } catch (final CertificateException e) {
+                final String peerHost = engine == null ? null : engine.getPeerHost();
+                if (peerHost == null) {
+                    // Throw CertificateException when no further evaluation is possible based on lack of peer host address
+                    throw e;
+                } else {
+                    if (configuredHost.contentEquals(peerHost)) {
+                        logger.debug("Peer Host [{}] matches Configured Host [{}]", peerHost, configuredHost);
+                    } else {
+                        throw new CertificateException("Peer Host [%s] does not match Configured Host [%s]".formatted(peerHost, configuredHost), e);
+                    }
+                }
+            }
         } else {
             delegate.checkServerTrusted(chain, authType);
         }
