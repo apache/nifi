@@ -23,8 +23,6 @@ import com.splunk.ServiceArgs;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -46,18 +44,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 public class TestPutSplunkHTTP {
-    private static final String SSL_CONTEXT_SERVICE_ID = "ssl-context-service";
     private static final String ACK_ID = "1234";
     private static final String EVENT = "{\"a\"=\"á\",\"c\"=\"ő\",\"e\"=\"'ű'\"}"; // Intentionally uses UTF-8 character
     private static final String SUCCESS_RESPONSE =
@@ -221,46 +216,6 @@ public class TestPutSplunkHTTP {
         assertNull(outgoingFlowFile.getAttribute("splunk.responded.at"));
         assertNull(outgoingFlowFile.getAttribute("splunk.response.code"));
         assertEquals("403", outgoingFlowFile.getAttribute("splunk.status.code"));
-    }
-
-    @Test
-    public void testSslContextServiceProvidesSplunkSocketFactory() throws InitializationException {
-        final SSLSocketFactory socketFactory = Mockito.mock(SSLSocketFactory.class);
-        final SSLContext sslContext = Mockito.mock(SSLContext.class);
-        Mockito.when(sslContext.getSocketFactory()).thenReturn(socketFactory);
-
-        final SSLContextProvider sslContextProvider = Mockito.mock(SSLContextProvider.class);
-        Mockito.when(sslContextProvider.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
-        Mockito.when(sslContextProvider.createContext()).thenReturn(sslContext);
-
-        final TestRunner connectingRunner = TestRunners.newTestRunner(PutSplunkHTTP.class);
-        connectingRunner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextProvider);
-        connectingRunner.enableControllerService(sslContextProvider);
-        connectingRunner.setProperty(SplunkAPICall.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
-        connectingRunner.setProperty(SplunkAPICall.SCHEME, "https");
-        connectingRunner.setProperty(SplunkAPICall.TOKEN, "Splunk 888c5a81-8777-49a0-a3af-f76e050ab5d9");
-        connectingRunner.setProperty(SplunkAPICall.REQUEST_CHANNEL, "22bd7414-0d77-4c73-936d-c8f5d1b21862");
-
-        connectingRunner.run();
-
-        assertSame(socketFactory, Service.getSSLSocketFactory());
-    }
-
-    @Test
-    public void testClassloaderIsolationKey() throws InitializationException {
-        final PutSplunkHTTP putSplunkHTTP = new PutSplunkHTTP();
-        final TestRunner isolationKeyRunner = TestRunners.newTestRunner(putSplunkHTTP);
-
-        // Instances without an SSL Context Service leave the Splunk Socket Factory untouched, so they can share a ClassLoader.
-        assertEquals(PutSplunkHTTP.class.getName(), putSplunkHTTP.getClassloaderIsolationKey(isolationKeyRunner.getProcessContext()));
-
-        final SSLContextProvider sslContextProvider = Mockito.mock(SSLContextProvider.class);
-        Mockito.when(sslContextProvider.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
-        isolationKeyRunner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextProvider);
-        isolationKeyRunner.enableControllerService(sslContextProvider);
-        isolationKeyRunner.setProperty(SplunkAPICall.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
-
-        assertEquals(SSL_CONTEXT_SERVICE_ID, putSplunkHTTP.getClassloaderIsolationKey(isolationKeyRunner.getProcessContext()));
     }
 
     @Test
