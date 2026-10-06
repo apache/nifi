@@ -52,6 +52,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -60,6 +61,7 @@ import java.util.stream.Collectors;
 
 public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
+    public static final String DEFAULT_FETCH_SIZE = "1000";
     public static final String RESULT_ROW_COUNT = "executesql.row.count";
     public static final String RESULT_QUERY_DURATION = "executesql.query.duration";
     public static final String RESULT_QUERY_EXECUTION_TIME = "executesql.query.executiontime";
@@ -166,10 +168,10 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("Fetch Size")
             .description("The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be "
-                    + "honored and/or exact. If the value specified is zero, then the hint is ignored.")
-            .defaultValue("0")
+                    + "honored and/or exact. The value must be greater than zero.")
+            .defaultValue(DEFAULT_FETCH_SIZE)
             .required(true)
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
@@ -220,6 +222,11 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         config.renameProperty("sql-post-query", SQL_POST_QUERY.getName());
         config.renameProperty("esql-output-batch-size", OUTPUT_BATCH_SIZE.getName());
         config.renameProperty("esql-fetch-size", FETCH_SIZE.getName());
+        final Optional<String> configuredFetchSize = config.getRawPropertyValue(FETCH_SIZE.getName());
+        if (configuredFetchSize.isPresent() && "0".equals(configuredFetchSize.get())) {
+            config.setProperty(FETCH_SIZE.getName(), DEFAULT_FETCH_SIZE);
+        }
+
         config.renameProperty("esql-auto-commit", AUTO_COMMIT.getName());
         OBSOLETE_MAX_ROWS_PER_FLOW_FILE.forEach(obsoleteName -> config.renameProperty(obsoleteName, MAX_ROWS_PER_FLOW_FILE.getName()));
     }
