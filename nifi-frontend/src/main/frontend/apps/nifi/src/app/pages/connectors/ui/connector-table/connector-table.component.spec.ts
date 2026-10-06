@@ -21,7 +21,6 @@ import {
     ConnectorAction,
     ConnectorActionName,
     ConnectorEntity,
-    ConnectorState,
     ConnectorStatus,
     NiFiCommon
 } from '@nifi/shared';
@@ -359,25 +358,25 @@ describe('ConnectorTable', () => {
         });
 
         it.each([
-            [true, true, true, ConnectorState.STOPPED, 1, false, true],
-            [false, true, true, ConnectorState.STOPPED, 0, false, false],
-            [true, false, true, ConnectorState.STOPPED, 0, false, false],
-            [true, true, false, ConnectorState.STOPPED, 0, false, false],
-            [true, true, true, ConnectorState.STOPPED, 0, true, false],
-            [true, true, true, ConnectorState.RUNNING, 0, false, false],
-            [true, true, true, ConnectorState.UPDATING, 0, false, false],
-            [true, true, true, ConnectorState.UPDATED, 0, false, true],
-            [true, true, true, ConnectorState.UPDATED, 1, false, false],
-            [true, true, true, ConnectorState.UPDATE_FAILED, 0, false, true],
-            [true, true, true, ConnectorState.UPDATE_FAILED, 1, false, false]
+            [true, true, true, true, false, true],
+            [false, true, true, true, false, false],
+            [true, false, true, true, false, false],
+            [true, true, false, true, false, false],
+            [true, true, true, true, true, false],
+            [true, true, true, false, false, false]
         ])(
             'should evaluate version change eligibility',
-            async (canRead, canWrite, multipleVersionsAvailable, state, activeThreadCount, saving, expected) => {
+            async (canRead, canWrite, multipleVersionsAvailable, changeVersionAllowed, saving, expected) => {
                 const { component } = await setup();
                 component.saving = saving;
                 expect(
                     component.canChangeVersion(
-                        createMockConnector({ canRead, canWrite, multipleVersionsAvailable, state, activeThreadCount })
+                        createMockConnector({
+                            canRead,
+                            canWrite,
+                            multipleVersionsAvailable,
+                            availableActions: [createMockAction('CHANGE_VERSION', changeVersionAllowed)]
+                        })
                     )
                 ).toBe(expected);
             }

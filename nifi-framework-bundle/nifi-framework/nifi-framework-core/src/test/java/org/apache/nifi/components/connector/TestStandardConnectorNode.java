@@ -77,7 +77,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -340,6 +342,39 @@ public class TestStandardConnectorNode {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
         connectorNode.verifyCanStart();
+    }
+
+    @Test
+    public void testChangeVersionAllowedWhenReloadWouldSucceed() throws FlowUpdateException {
+        final StandardConnectorStateTransition stateTransition = new StandardConnectorStateTransition("TestConnectorNode");
+        final StandardConnectorNode connectorNode = createConnectorNode(new SleepingConnector(Duration.ofMillis(1)), stateTransition);
+
+        ConnectorAction changeVersionAction = findChangeVersionAction(connectorNode);
+        connectorNode.verifyCanReload();
+        assertTrue(changeVersionAction.isAllowed());
+        assertNull(changeVersionAction.getReasonNotAllowed());
+
+        stateTransition.setCurrentState(ConnectorState.RUNNING);
+        changeVersionAction = findChangeVersionAction(connectorNode);
+        assertFalse(changeVersionAction.isAllowed());
+        assertEquals("Connector must be stopped", changeVersionAction.getReasonNotAllowed());
+        assertThrows(IllegalStateException.class, connectorNode::verifyCanReload);
+
+        when(managedProcessGroup.getProcessors()).thenReturn(List.<ProcessorNode>of());
+        when(managedProcessGroup.getProcessGroups()).thenReturn(Set.<ProcessGroup>of());
+        stateTransition.setCurrentState(ConnectorState.UPDATED);
+        changeVersionAction = findChangeVersionAction(connectorNode);
+        connectorNode.verifyCanReload();
+        assertTrue(changeVersionAction.isAllowed());
+        assertNull(changeVersionAction.getReasonNotAllowed());
+
+        final ProcessorNode activeProcessor = mock(ProcessorNode.class);
+        when(activeProcessor.getActiveThreadCount()).thenReturn(1);
+        when(managedProcessGroup.getProcessors()).thenReturn(List.of(activeProcessor));
+        changeVersionAction = findChangeVersionAction(connectorNode);
+        assertFalse(changeVersionAction.isAllowed());
+        assertEquals("Connector must be stopped", changeVersionAction.getReasonNotAllowed());
+        assertThrows(IllegalStateException.class, connectorNode::verifyCanReload);
     }
 
     @Test
@@ -1731,6 +1766,19 @@ public class TestStandardConnectorNode {
             public void onComponentRemoved(final String componentId) {
             }
         };
+    }
+
+    private ConnectorAction findChangeVersionAction(final StandardConnectorNode connectorNode) {
+        ConnectorAction changeVersionAction = null;
+        for (final ConnectorAction action : connectorNode.getAvailableActions()) {
+            if ("CHANGE_VERSION".equals(action.getName())) {
+                changeVersionAction = action;
+                break;
+            }
+        }
+
+        assertNotNull(changeVersionAction);
+        return changeVersionAction;
     }
 
     private StandardConnectorNode createConnectorNode() throws FlowUpdateException {

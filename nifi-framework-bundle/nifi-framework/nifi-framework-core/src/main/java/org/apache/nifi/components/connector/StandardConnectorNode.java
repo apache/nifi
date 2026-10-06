@@ -2397,6 +2397,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         actions.add(createCancelDrainFlowFilesAction(currentState == ConnectorState.DRAINING));
         actions.add(createApplyUpdatesAction(currentState, troubleshooting));
         actions.add(createMigrateAction(stopped && !troubleshooting));
+        actions.add(createChangeVersionAction(stopped));
         actions.add(createDeleteAction(stopped && !troubleshooting, dataQueued));
         actions.add(createEnterTroubleshootingAction(currentState));
         actions.add(createEndTroubleshootingAction());
@@ -2423,6 +2424,14 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         }
 
         return new StandardConnectorAction("MIGRATE", "Migrate a Versioned flow's assets and configuration into this Connector", allowed, reason);
+    }
+
+    private ConnectorAction createChangeVersionAction(final boolean stopped) {
+        if (stopped) {
+            return new StandardConnectorAction("CHANGE_VERSION", "Change the connector version", true, null);
+        }
+
+        return new StandardConnectorAction("CHANGE_VERSION", "Change the connector version", false, "Connector must be stopped");
     }
 
     private boolean isStopped() {
