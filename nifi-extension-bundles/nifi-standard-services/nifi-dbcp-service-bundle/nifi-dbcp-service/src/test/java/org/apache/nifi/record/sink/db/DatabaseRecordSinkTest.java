@@ -90,7 +90,7 @@ public class DatabaseRecordSinkTest {
     private static final String SERVICE_ID = DBCPConnectionPool.class.getName();
 
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
-    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%1$s/nifi_test_db;hsqldb.tmpdir=%1$s;shutdown=true";
+    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%1$s/nifi_test_db;hsqldb.tmpdir=%1$s;hsqldb.lock_file=false;shutdown=true";
 
     private String connectionUrl;
     private DBCPConnectionPool dbcpService;
