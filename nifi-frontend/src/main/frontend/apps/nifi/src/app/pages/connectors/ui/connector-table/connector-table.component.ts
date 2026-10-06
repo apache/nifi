@@ -24,7 +24,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import {
     ConnectorEntity,
     ConnectorActionName,
-    ConnectorState,
     NifiTooltipDirective,
     NiFiCommon,
     StatusBadge,
@@ -161,20 +160,12 @@ export class ConnectorTable {
     }
 
     canChangeVersion(entity: ConnectorEntity): boolean {
-        const versionChangeEligibleStates = [
-            ConnectorState.STOPPED,
-            ConnectorState.UPDATED,
-            ConnectorState.UPDATE_FAILED
-        ];
-        const state = entity.component.state as ConnectorState;
-        const noActiveThreads = entity.status?.aggregateSnapshot?.activeThreadCount === 0;
         return (
             this.canRead(entity) &&
             this.canModify(entity) &&
             !this.saving &&
-            versionChangeEligibleStates.includes(state) &&
-            (state === ConnectorState.STOPPED || noActiveThreads) &&
-            entity.component.multipleVersionsAvailable === true
+            entity.component.multipleVersionsAvailable === true &&
+            isConnectorActionAllowed(entity, 'CHANGE_VERSION')
         );
     }
 
