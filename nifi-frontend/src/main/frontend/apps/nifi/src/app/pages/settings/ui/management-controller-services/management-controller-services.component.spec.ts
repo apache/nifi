@@ -131,11 +131,6 @@ describe('ManagementControllerServices', () => {
                 canRead: true,
                 canWrite: true
             },
-            restrictedComponentsPermissions: {
-                canRead: true,
-                canWrite: true
-            },
-            componentRestrictionPermissions: [],
             canVersionFlows: true
         } as CurrentUser;
     }

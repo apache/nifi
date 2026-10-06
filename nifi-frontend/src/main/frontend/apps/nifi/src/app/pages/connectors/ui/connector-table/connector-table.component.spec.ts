@@ -138,9 +138,7 @@ describe('ConnectorTable', () => {
             policiesPermissions: { canRead: true, canWrite: false },
             systemPermissions: { canRead: true, canWrite: false },
             parameterContextPermissions: { canRead: true, canWrite: false },
-            restrictedComponentsPermissions: { canRead: true, canWrite: false },
-            connectorsPermissions: { canRead: true, canWrite: true },
-            componentRestrictionPermissions: []
+            connectorsPermissions: { canRead: true, canWrite: true }
         };
     }
 
