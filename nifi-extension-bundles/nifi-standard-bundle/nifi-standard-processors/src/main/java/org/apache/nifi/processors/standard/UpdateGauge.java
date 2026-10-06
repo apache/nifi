@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -34,7 +35,9 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.metrics.CommitTiming;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @SideEffectFree
@@ -45,7 +48,14 @@ import java.util.Set;
         """
         Record the configured value of the named Gauge for each FlowFile processed.
         Supports instrumentation, debugging, and troubleshooting using Expression Language with FlowFile attributes.
+        Dynamic properties are recorded as attributes of the Gauge.
         """
+)
+@DynamicProperty(
+    name = "Gauge attribute name",
+    value = "Gauge attribute value",
+    description = "Specifies an attribute recorded with the Gauge.",
+    expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES
 )
 public class UpdateGauge extends AbstractProcessor {
 
@@ -94,6 +104,20 @@ public class UpdateGauge extends AbstractProcessor {
     }
 
     @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .description("Value of the Gauge attribute identified by the property name. Supports Expression Language using FlowFile attributes.")
+                .required(false)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                .dynamic(true)
+                .build();
+    }
+
+    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
@@ -103,10 +127,28 @@ public class UpdateGauge extends AbstractProcessor {
         final String gaugeName = context.getProperty(GAUGE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final PropertyValue gaugeValueProperty = context.getProperty(GAUGE_VALUE).evaluateAttributeExpressions(flowFile);
         final double gaugeValue = getGaugeValue(gaugeValueProperty);
+        final Map<String, String> gaugeAttributes = getMetricAttributes(context, flowFile);
 
-        session.recordGauge(gaugeName, gaugeValue, CommitTiming.SESSION_COMMITTED);
+        session.recordGauge(gaugeName, gaugeValue, gaugeAttributes, CommitTiming.SESSION_COMMITTED);
 
         session.transfer(flowFile, SUCCESS);
+    }
+
+    private Map<String, String> getMetricAttributes(final ProcessContext context, final FlowFile flowFile) {
+        final Map<String, String> metricAttributes = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (!descriptor.isDynamic()) {
+                continue;
+            }
+
+            final String attributeValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
+            if (attributeValue != null && !attributeValue.isBlank()) {
+                metricAttributes.put(descriptor.getName(), attributeValue);
+            }
+        }
+
+        return metricAttributes;
     }
 
     private double getGaugeValue(final PropertyValue gaugeValueProperty) {

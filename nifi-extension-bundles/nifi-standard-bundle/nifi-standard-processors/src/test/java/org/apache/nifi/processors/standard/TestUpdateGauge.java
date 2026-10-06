@@ -21,10 +21,13 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestUpdateGauge {
     private static final String GAUGE_NAME = TestUpdateGauge.class.getSimpleName();
@@ -32,6 +35,17 @@ class TestUpdateGauge {
     private static final double GAUGE_VALUE = 1.2345;
 
     private static final double INVALID_GAUGE_VALUE = 0;
+
+    private static final String VALUE_ATTRIBUTE = "value";
+
+    private static final String FILENAME_ATTRIBUTE = "filename";
+    private static final String FILENAME_VALUE = "test";
+
+    private static final String SERVICE_ATTRIBUTE = "service";
+    private static final String SERVICE_VALUE = "payments";
+
+    private static final String EMPTY_ATTRIBUTE = "emptyAttribute";
+    private static final String EMPTY_VALUE = "emptyValue";
 
     private final TestRunner runner = TestRunners.newTestRunner(UpdateGauge.class);
 
@@ -46,7 +60,7 @@ class TestUpdateGauge {
     @Test
     void testRunRecordGaugeExpressionLanguageConfigured() {
         runner.setProperty(UpdateGauge.GAUGE_NAME, "${literal('%s')}".formatted(GAUGE_NAME));
-        runner.setProperty(UpdateGauge.GAUGE_VALUE, "${literal(1.2345)}");
+        runner.setProperty(UpdateGauge.GAUGE_VALUE, "${literal(%s)}".formatted(GAUGE_VALUE));
 
         assertGaugeValueRecorded(GAUGE_VALUE);
     }
@@ -57,6 +71,27 @@ class TestUpdateGauge {
         runner.setProperty(UpdateGauge.GAUGE_VALUE, "${literal('')}");
 
         assertGaugeValueRecorded(INVALID_GAUGE_VALUE);
+    }
+
+    @Test
+    void testRunRecordGaugeAttributes() {
+        runner.setProperty(UpdateGauge.GAUGE_NAME, GAUGE_NAME);
+        runner.setProperty(UpdateGauge.GAUGE_VALUE, "${%s}".formatted(VALUE_ATTRIBUTE));
+        runner.setProperty(FILENAME_ATTRIBUTE, "${%s}".formatted(FILENAME_ATTRIBUTE));
+        runner.setProperty(EMPTY_ATTRIBUTE, "${%s}".formatted(EMPTY_VALUE));
+        runner.setProperty(SERVICE_ATTRIBUTE, SERVICE_VALUE);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(VALUE_ATTRIBUTE, Double.toString(GAUGE_VALUE));
+        attributes.put(FILENAME_ATTRIBUTE, FILENAME_VALUE);
+
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateGauge.SUCCESS);
+        final Map<String, String> gaugeAttributes = Map.of(FILENAME_ATTRIBUTE, FILENAME_VALUE, SERVICE_ATTRIBUTE, SERVICE_VALUE);
+        assertEquals(List.of(GAUGE_VALUE), runner.getGaugeValues(GAUGE_NAME, gaugeAttributes));
+        assertTrue(runner.getGaugeValues(GAUGE_NAME, Map.of()).isEmpty());
     }
 
     private void assertGaugeValueRecorded(final double expectedGaugeValue) {

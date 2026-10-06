@@ -24,11 +24,28 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
+import static java.util.Collections.emptyMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestUpdateCounter {
+
+    private static final String COUNTER_NAME = "firewall";
+    private static final String DELTA = "1";
+
+    private static final String FILENAME_ATTRIBUTE = "filename";
+    private static final String FILENAME_VALUE = "test";
+
+    private static final String NUM_ATTRIBUTE = "num";
+    private static final String NUM_ATTRIBUTES_VALUE = "5";
+
+    private static final String EMPTY_ATTRIBUTE = "emptyAttribute";
+    private static final String EMPTY_VALUE = "emptyValue";
+
+    private static final String LEGACY_COUNTER_NAME_PROPERTY = "counter-name";
+    private static final String LEGACY_DELTA_PROPERTY = "delta";
+
     private TestRunner runner;
 
     @BeforeEach
@@ -37,36 +54,60 @@ public class TestUpdateCounter {
     }
 
     @Test
-    public void testwithFileName() {
-        runner.setProperty(UpdateCounter.COUNTER_NAME, "firewall");
-        runner.setProperty(UpdateCounter.DELTA, "1");
-        Map<String, String> attributes = new HashMap<>();
-        runner.enqueue("", attributes);
+    public void testBaseScenario() {
+        runner.setProperty(UpdateCounter.COUNTER_NAME, COUNTER_NAME);
+        runner.setProperty(UpdateCounter.DELTA, DELTA);
+
+        runner.enqueue(new byte[0], emptyMap());
         runner.run();
+
+        final Long counterValue = runner.getCounterValue(COUNTER_NAME);
+        assertEquals(counterValue, Long.valueOf(DELTA));
         runner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);
     }
 
     @Test
     public void testExpressionLanguage() {
-        runner.setProperty(UpdateCounter.COUNTER_NAME, "${filename}");
-        runner.setProperty(UpdateCounter.DELTA, "${num}");
+        runner.setProperty(UpdateCounter.COUNTER_NAME, "${%s}".formatted(FILENAME_ATTRIBUTE));
+        runner.setProperty(UpdateCounter.DELTA, "${%s}".formatted(NUM_ATTRIBUTE));
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put("filename", "test");
-        attributes.put("num", "40");
+        attributes.put(FILENAME_ATTRIBUTE, FILENAME_VALUE);
+        attributes.put(NUM_ATTRIBUTE, NUM_ATTRIBUTES_VALUE);
 
         runner.enqueue(new byte[0], attributes);
         runner.run();
-        Long counter = runner.getCounterValue("test");
-        assertEquals(Optional.ofNullable(counter), Optional.of(40L));
+
+        final Long counterValue = runner.getCounterValue(FILENAME_VALUE);
+        assertEquals(counterValue, Long.valueOf(NUM_ATTRIBUTES_VALUE));
+        runner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);
+    }
+
+    @Test
+    public void testAttributes() {
+        runner.setProperty(UpdateCounter.COUNTER_NAME, COUNTER_NAME);
+        runner.setProperty(UpdateCounter.DELTA, DELTA);
+        runner.setProperty(FILENAME_ATTRIBUTE, "${%s}".formatted(FILENAME_ATTRIBUTE));
+        runner.setProperty(EMPTY_ATTRIBUTE, "${%s}".formatted(EMPTY_VALUE));
+        runner.setProperty(NUM_ATTRIBUTE, NUM_ATTRIBUTES_VALUE);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(FILENAME_ATTRIBUTE, FILENAME_VALUE);
+
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        final Long counterValue = runner.getCounterValue(COUNTER_NAME, Map.of(FILENAME_ATTRIBUTE, FILENAME_VALUE, NUM_ATTRIBUTE, NUM_ATTRIBUTES_VALUE));
+        assertEquals(Long.valueOf(DELTA), counterValue);
+        assertNull(runner.getCounterValue(COUNTER_NAME, Map.of()));
         runner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);
     }
 
     @Test
     void testMigrateProperties() {
         final Map<String, String> expectedRenamed = Map.of(
-                "counter-name", UpdateCounter.COUNTER_NAME.getName(),
-                "delta", UpdateCounter.DELTA.getName()
+                LEGACY_COUNTER_NAME_PROPERTY, UpdateCounter.COUNTER_NAME.getName(),
+                LEGACY_DELTA_PROPERTY, UpdateCounter.DELTA.getName()
         );
 
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();

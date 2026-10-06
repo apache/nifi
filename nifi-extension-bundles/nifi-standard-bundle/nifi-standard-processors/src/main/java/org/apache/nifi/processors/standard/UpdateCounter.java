@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -31,9 +32,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.metrics.CommitTiming;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @SideEffectFree
@@ -41,6 +45,12 @@ import java.util.Set;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"counter", "debug", "instrumentation"})
 @CapabilityDescription("This processor allows users to set specific counters and key points in their flow. It is useful for debugging and basic counting functions.")
+@DynamicProperty(
+    name = "Counter attribute name",
+    value = "Counter attribute value",
+    description = "Specifies an attribute recorded with the Counter.",
+    expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES
+)
 public class UpdateCounter extends AbstractProcessor {
 
     static final PropertyDescriptor COUNTER_NAME = new PropertyDescriptor.Builder()
@@ -87,16 +97,31 @@ public class UpdateCounter extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .description("Value of the Counter attribute identified by the property name. Supports Expression Language using FlowFile attributes.")
+                .required(false)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                .dynamic(true)
+                .build();
+    }
+
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
-        session.adjustCounter(context.getProperty(COUNTER_NAME).evaluateAttributeExpressions(flowFile).getValue(),
-                Long.parseLong(context.getProperty(DELTA).evaluateAttributeExpressions(flowFile).getValue()),
-                false
-        );
+        final String counterName = context.getProperty(COUNTER_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final long delta = Long.parseLong(context.getProperty(DELTA).evaluateAttributeExpressions(flowFile).getValue());
+        final Map<String, String> counterAttributes = getMetricAttributes(context, flowFile);
+
+        session.adjustCounter(counterName, delta, counterAttributes, CommitTiming.SESSION_COMMITTED);
         session.transfer(flowFile, SUCCESS);
     }
 
@@ -104,5 +129,22 @@ public class UpdateCounter extends AbstractProcessor {
     public void migrateProperties(PropertyConfiguration config) {
         config.renameProperty("counter-name", COUNTER_NAME.getName());
         config.renameProperty("delta", DELTA.getName());
+    }
+
+    private Map<String, String> getMetricAttributes(final ProcessContext context, final FlowFile flowFile) {
+        final Map<String, String> metricAttributes = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (!descriptor.isDynamic()) {
+                continue;
+            }
+
+            final String attributeValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
+            if (attributeValue != null && !attributeValue.isBlank()) {
+                metricAttributes.put(descriptor.getName(), attributeValue);
+            }
+        }
+
+        return metricAttributes;
     }
 }
