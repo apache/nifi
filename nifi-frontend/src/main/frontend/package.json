@@ -70,7 +70,7 @@
         "@angular-eslint/eslint-plugin-template": "21.3.0",
         "@angular-eslint/template-parser": "21.3.0",
         "@angular/build": "21.2.24",
-        "@angular/cli": "21.2.24",
+        "@angular/cli": "22.2.1",
         "@angular/compiler-cli": "21.2.24",
         "@eslint/eslintrc": "^3.3.5",
         "@eslint/js": "^10.0.1",
