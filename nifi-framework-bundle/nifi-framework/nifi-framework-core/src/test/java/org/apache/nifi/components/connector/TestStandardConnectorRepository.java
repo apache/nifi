@@ -536,6 +536,7 @@ public class TestStandardConnectorRepository {
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getConfigurationSteps()).thenReturn(List.of(declaredConfigurationStep("step1", "prop1")));
         repository.addConnector(connector);
 
         when(provider.load("connector-1")).thenReturn(Optional.empty());
@@ -567,6 +568,7 @@ public class TestStandardConnectorRepository {
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getConfigurationSteps()).thenReturn(List.of(declaredConfigurationStep("step1", "prop1")));
         repository.addConnector(connector);
 
         when(provider.load("connector-1")).thenReturn(Optional.empty());
@@ -585,6 +587,7 @@ public class TestStandardConnectorRepository {
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getConfigurationSteps()).thenReturn(List.of(declaredConfigurationStep("step1", "propA", "propB", "propC")));
         repository.addConnector(connector);
 
         final VersionedConfigurationStep existingStep = createVersionedStep("step1",
@@ -615,6 +618,46 @@ public class TestStandardConnectorRepository {
         assertEquals("new-C", savedProps.get("propC").getValue());
 
         verify(connector).setConfiguration("step1", incomingConfig);
+    }
+
+    @Test
+    public void testConfigureConnectorDropsUndeclaredExternalProperties() throws FlowUpdateException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getConfigurationSteps()).thenReturn(List.of(declaredConfigurationStep("step1", "propA", "propC")));
+        repository.addConnector(connector);
+
+        final VersionedConfigurationStep existingStep = createVersionedStep("step1",
+            Map.of("propA", createStringLiteralRef("old-A"), "propB", createStringLiteralRef("old-B"), "propC", createStringLiteralRef("old-C")));
+        final VersionedConfigurationStep undeclaredStep = createVersionedStep("legacy",
+            Map.of("obsolete", createStringLiteralRef("gone")));
+        final ConnectorWorkingConfiguration existingConfig = new ConnectorWorkingConfiguration();
+        existingConfig.setName("Test Connector");
+        existingConfig.setWorkingFlowConfiguration(new ArrayList<>(List.of(existingStep, undeclaredStep)));
+        when(provider.load("connector-1")).thenReturn(Optional.of(existingConfig));
+
+        final Map<String, ConnectorValueReference> incomingProps = new HashMap<>();
+        incomingProps.put("propA", new StringLiteralValue("new-A"));
+        incomingProps.put("propD", new StringLiteralValue("not-declared"));
+        final StepConfiguration incomingConfig = new StepConfiguration(incomingProps);
+
+        repository.configureConnector(connector, "step1", incomingConfig);
+
+        final ArgumentCaptor<ConnectorWorkingConfiguration> configCaptor = ArgumentCaptor.forClass(ConnectorWorkingConfiguration.class);
+        verify(provider).save(eq("connector-1"), configCaptor.capture());
+
+        final ConnectorWorkingConfiguration savedConfig = configCaptor.getValue();
+        assertEquals(1, savedConfig.getWorkingFlowConfiguration().size());
+        final VersionedConfigurationStep savedStep = savedConfig.getWorkingFlowConfiguration().getFirst();
+        assertEquals("step1", savedStep.getName());
+
+        final Map<String, VersionedConnectorValueReference> savedProps = savedStep.getProperties();
+        assertEquals("new-A", savedProps.get("propA").getValue());
+        assertEquals("old-C", savedProps.get("propC").getValue());
+        assertFalse(savedProps.containsKey("propB"));
+        assertFalse(savedProps.containsKey("propD"));
     }
 
     @Test
@@ -2008,6 +2051,26 @@ public class TestStandardConnectorRepository {
         when(connector.getActiveFlowContext()).thenReturn(activeFlowContext);
 
         return connector;
+    }
+
+    private ConfigurationStep declaredConfigurationStep(final String stepName, final String... propertyNames) {
+        final List<ConnectorPropertyDescriptor> descriptors = new ArrayList<>();
+        for (final String propertyName : propertyNames) {
+            descriptors.add(new ConnectorPropertyDescriptor.Builder()
+                .name(propertyName)
+                .description(propertyName)
+                .required(false)
+                .build());
+        }
+
+        return new ConfigurationStep.Builder()
+            .name(stepName)
+            .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                .name("Properties")
+                .description("Declared properties")
+                .properties(descriptors)
+                .build()))
+            .build();
     }
 
     private VersionedConfigurationStep createVersionedStep(final String name, final Map<String, VersionedConnectorValueReference> properties) {
