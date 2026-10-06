@@ -26,7 +26,7 @@ import java.sql.SQLException;
 
 abstract class AbstractConnectionTest {
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
-    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%1$s/nifi_test_db;hsqldb.tmpdir=%1$s;shutdown=true";
+    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%1$s/nifi_test_db;hsqldb.tmpdir=%1$s;hsqldb.lock_file=false;shutdown=true";
 
     private static String connectionUrl;
 
