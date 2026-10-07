@@ -117,6 +117,9 @@ class ConfiguredHostTrustManager extends X509ExtendedTrustManager {
                     // Throw CertificateException when no further evaluation is possible based on lack of peer host address
                     throw e;
                 } else {
+                    // Check Server Trusted without SSLEngine for standard validation before evaluating host match
+                    extendedTrustManager.checkServerTrusted(chain, authType);
+
                     if (configuredHost.contentEquals(peerHost)) {
                         logger.debug("Peer Host [{}] matches Configured Host [{}]", peerHost, configuredHost);
                     } else {
