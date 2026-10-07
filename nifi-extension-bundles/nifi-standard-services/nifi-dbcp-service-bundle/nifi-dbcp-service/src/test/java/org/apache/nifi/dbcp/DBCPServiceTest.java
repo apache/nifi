@@ -32,13 +32,11 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.opentest4j.AssertionFailedError;
 
 import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -49,6 +47,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -63,19 +62,21 @@ public class DBCPServiceTest {
     private static final String NON_JDBC_URL = "http://localhost:3306/database";
 
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
-    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%1$s/nifi_test_db;hsqldb.tmpdir=%1$s;hsqldb.lock_file=false;hsqldb.log_data=false;shutdown=true";
+    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:mem:%s;shutdown=true";
 
     private TestRunner runner;
 
     private DBCPConnectionPool service;
 
     @BeforeEach
-    public void setService(@TempDir final Path tempDir) throws InitializationException {
+    public void setService() throws InitializationException {
         service = new DBCPConnectionPool();
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService(SERVICE_ID, service);
 
-        final String url = CONNECTION_URL_FORMAT.formatted(tempDir);
+        // Each test instance gets its own independent database context path
+        final String uniqueDbName = UUID.randomUUID().toString();
+        final String url = CONNECTION_URL_FORMAT.formatted(uniqueDbName);
         runner.setProperty(service, DBCPProperties.DATABASE_URL, url);
         runner.setProperty(service, DBCPProperties.DB_USER, String.class.getSimpleName());
         runner.setProperty(service, DBCPProperties.DB_PASSWORD, String.class.getName());
