@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.mqtt.adapters;
 
+import com.hivemq.client.mqtt.MqttGlobalPublishFilter;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
@@ -38,8 +39,6 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedKeyManager;
@@ -128,30 +127,31 @@ public class HiveMqV5ClientAdapter implements MqttClient {
     }
 
     @Override
-    public void subscribe(String topicFilter, int qos, ReceivedMqttMessageHandler handler) {
+    public void subscribe(String topicFilter, int qos) {
         logger.debug("Subscribing to {} with QoS: {}", topicFilter, qos);
 
-        CompletableFuture<Mqtt5SubAck> futureAck = mqtt5BlockingClient.toAsync().subscribeWith()
-                .topicFilter(topicFilter)
-                .qos(Objects.requireNonNull(MqttQos.fromCode(qos)))
-                .callback(mqtt5Publish -> {
-                    final ReceivedMqttMessage receivedMessage = new ReceivedMqttMessage(
-                            mqtt5Publish.getPayloadAsBytes(),
-                            mqtt5Publish.getQos().getCode(),
-                            mqtt5Publish.isRetain(),
-                            mqtt5Publish.getTopic().toString());
-                    handler.handleReceivedMessage(receivedMessage);
-                })
-                .send();
-
-        // Setting "listener" callback is only possible with async client, though sending subscribe message
-        // should happen in a blocking way to make sure the processor is blocked until ack is not arrived.
         try {
-            final Mqtt5SubAck ack = futureAck.get(clientProperties.getConnectionTimeout(), TimeUnit.SECONDS);
+            Mqtt5SubAck ack = mqtt5BlockingClient.subscribeWith()
+                    .topicFilter(topicFilter)
+                    .qos(Objects.requireNonNull(MqttQos.fromCode(qos)))
+                    .send();
+
             logger.debug("Received mqtt5 subscribe ack: {}", ack);
         } catch (Exception e) {
             throw new MqttException("An error has occurred during sending subscribe message to broker", e);
         }
+    }
+
+    @Override
+    public void setReceivedMessageHandler(ReceivedMqttMessageHandler handler) {
+        mqtt5BlockingClient.toAsync().publishes(MqttGlobalPublishFilter.ALL, mqtt5Publish -> {
+            final ReceivedMqttMessage receivedMessage = new ReceivedMqttMessage(
+                    mqtt5Publish.getPayloadAsBytes(),
+                    mqtt5Publish.getQos().getCode(),
+                    mqtt5Publish.isRetain(),
+                    mqtt5Publish.getTopic().toString());
+            handler.handleReceivedMessage(receivedMessage);
+        });
     }
 
     private static Mqtt5BlockingClient createClient(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
