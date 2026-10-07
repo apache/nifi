@@ -121,8 +121,17 @@ class SmbjClientService implements SmbClientService {
             return stream(directory::spliterator, 0, false)
                     .map(entity -> buildSmbListableEntity(entity, path, serviceLocation))
                     .filter(entity -> !specialDirectory(entity))
-                    .flatMap(listable -> listable.isDirectory() && recursive ? listFiles(listable.getPathWithName(), recursive)
-                            : Stream.of(listable))
+                    .flatMap(listable -> {
+                        if (listable.isDirectory()) {
+                            if (recursive) {
+                                return listFiles(listable.getPathWithName(), true);
+                            } else {
+                                return Stream.empty();
+                            }
+                        } else {
+                            return Stream.of(listable);
+                        }
+                    })
                     .onClose(directory::close);
         });
     }

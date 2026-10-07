@@ -193,7 +193,23 @@ class SmbjClientServiceTest {
         setupFileInfo(fileInfo, "file.txt", 0L);
         when(subDirectory.spliterator()).thenReturn(List.of(fileInfo).spliterator());
 
-        assertEquals(1, underTest.listFiles("root", true).count());
+        List<SmbListableEntity> listedFiles = underTest.listFiles("root", true).toList();
+        assertEquals(1, listedFiles.size());
+        assertEquals("file.txt", listedFiles.getFirst().getName());
+    }
+
+    @Test
+    void listFilesShouldSkipSubdirectoriesWhenNonRecursive() {
+        when(share.openDirectory(eq("root"), any(), any(), any(), any(), any())).thenReturn(directory);
+        setupFileInfo(subdirInfo, "subdir", FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue());
+        setupFileInfo(fileInfo, "file.txt", 0L);
+        when(directory.spliterator()).thenReturn(List.of(subdirInfo, fileInfo).spliterator());
+
+        List<SmbListableEntity> listedFiles = underTest.listFiles("root", false).toList();
+        assertEquals(1, listedFiles.size());
+        assertEquals("file.txt", listedFiles.getFirst().getName());
+
+        verify(share, never()).openDirectory(eq("root/subdir"), any(), any(), any(), any(), any());
     }
 
     @Test
