@@ -23,26 +23,23 @@ import com.splunk.RequestMessage;
 import com.splunk.ResponseMessage;
 import com.splunk.Service;
 import com.splunk.ServiceArgs;
-import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextProvider;
+import org.apache.nifi.web.client.StandardWebClientService;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-@RequiresInstanceClassLoading(cloneAncestorResources = true)
 @SuppressWarnings("PMD.LooseCoupling")
-abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIsolationKeyProvider {
+abstract class SplunkAPICall extends AbstractProcessor {
     private static final String REQUEST_CHANNEL_HEADER_NAME = "X-Splunk-Request-Channel";
 
     private static final String HTTP_SCHEME = "http";
@@ -143,6 +140,7 @@ abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIso
 
     private volatile ServiceArgs splunkServiceArguments;
     private volatile Service splunkService;
+    private volatile StandardWebClientService webClientService;
     private volatile String requestChannel;
     private volatile String transitBaseUri;
 
@@ -157,7 +155,13 @@ abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIso
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        configureSocketFactory(context);
+        closeWebClientService();
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider != null) {
+            final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
+            webClientService = SplunkWebClients.create(sslContextProvider, hostname, getLogger());
+        }
+
         splunkServiceArguments = getSplunkServiceArgs(context);
         splunkService = getSplunkService(splunkServiceArguments);
         requestChannel = context.getProperty(REQUEST_CHANNEL).evaluateAttributeExpressions().getValue();
@@ -165,17 +169,6 @@ abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIso
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         transitBaseUri = "%s://%s:%d".formatted(scheme, hostname, port);
-    }
-
-    private void configureSocketFactory(final ProcessContext context) {
-        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
-        if (sslContextProvider == null) {
-            return;
-        }
-
-        // Service construction reapplies the static security protocol and replaces the Socket Factory when that protocol changes.
-        // Leaving the protocol unchanged keeps the Socket Factory supplied by the SSL Context Service.
-        Service.setSSLSocketFactory(sslContextProvider.createContext().getSocketFactory());
     }
 
     private ServiceArgs getSplunkServiceArgs(final ProcessContext context) {
@@ -205,7 +198,7 @@ abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIso
     }
 
     protected Service getSplunkService(final ServiceArgs splunkServiceArguments) {
-        return Service.connect(splunkServiceArguments);
+        return SplunkWebClients.connect(splunkServiceArguments, webClientService);
     }
 
     @OnStopped
@@ -215,26 +208,10 @@ abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIso
             splunkService = null;
         }
 
+        closeWebClientService();
         requestChannel = null;
         splunkServiceArguments = null;
         transitBaseUri = null;
-    }
-
-    @Override
-    public String getClassloaderIsolationKey(final PropertyContext context) {
-        final String isolationKey;
-
-        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
-        if (sslContextProvider == null) {
-            // Instances that do not configure an SSL Context Service leave the Socket Factory untouched and can share a ClassLoader.
-            isolationKey = getClass().getName();
-        } else {
-            // Service.setSSLSocketFactory changes the Socket Factory for every Splunk Service loaded by a given ClassLoader, so instances
-            // are isolated by the identifier of the SSL Context Service supplying that Socket Factory.
-            isolationKey = sslContextProvider.getIdentifier();
-        }
-
-        return isolationKey;
     }
 
     @Override
@@ -269,5 +246,12 @@ abstract class SplunkAPICall extends AbstractProcessor implements ClassloaderIso
 
     protected String marshalRequest(final Object request) throws IOException {
         return jsonObjectMapper.writeValueAsString(request);
+    }
+
+    private void closeWebClientService() {
+        if (webClientService != null) {
+            webClientService.close();
+            webClientService = null;
+        }
     }
 }
