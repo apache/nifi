@@ -533,8 +533,10 @@ export class ConnectionRenderer {
                     ConnectionRenderer.cancelEndpointReconnect(group, root, context.processGroupId);
                     return;
                 }
-                point.x = event.x;
-                point.y = event.y;
+                // Keep the 8px endpoint handle clear of the pointer so it cannot
+                // win hit-testing over a potential reconnect destination.
+                point.x = event.x - 8;
+                point.y = event.y - 8;
                 connection.ui.end = { x: point.x, y: point.y };
 
                 root.selectAll('g.component').classed('connectable-destination', false);

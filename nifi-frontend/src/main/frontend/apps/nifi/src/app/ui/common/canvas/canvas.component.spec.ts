@@ -57,6 +57,7 @@ type CanvasTestAccess = {
     y: number;
     elementRef: { nativeElement: HTMLElement };
     internalCanvasReady: WritableSignal<boolean>;
+    savingConnections: WritableSignal<Set<string>>;
     applyTransform(x: number, y: number, scale: number, transition?: boolean): void;
 };
 
@@ -680,6 +681,52 @@ describe('CanvasComponent', () => {
             // Component should still function correctly
             const data = component.getBirdseyeComponentData();
             expect(data.length).toBe(1);
+        });
+
+        it('should preserve the viewport when polling toggles dataReady for the same process group', async () => {
+            const { fixture, component } = await setup({
+                dataReady: true,
+                selectedComponentIds: ['proc-1'],
+                processors: [createMockProcessor({ id: 'proc-1' })]
+            });
+            await fixture.whenStable();
+
+            const centerSpy = vi.spyOn(component, 'centerOnSelection');
+            const restoreSpy = vi.spyOn(component, 'restoreViewportFromStorage');
+
+            fixture.componentRef.setInput('dataReady', false);
+            fixture.detectChanges();
+            fixture.componentRef.setInput('dataReady', true);
+            fixture.detectChanges();
+            await fixture.whenStable();
+
+            expect(centerSpy).not.toHaveBeenCalled();
+            expect(restoreSpy).not.toHaveBeenCalled();
+        });
+
+        it('should reinitialize the viewport when the process group changes', async () => {
+            vi.useFakeTimers();
+            try {
+                const { fixture, component } = await setup({
+                    dataReady: true,
+                    processors: [createMockProcessor({ id: 'proc-1' })]
+                });
+
+                asPrivate(component).internalCanvasReady.set(true);
+                fixture.detectChanges();
+                vi.runAllTimers();
+                fixture.detectChanges();
+
+                const restoreSpy = vi.spyOn(component, 'restoreViewportFromStorage');
+
+                fixture.componentRef.setInput('processGroupId', 'different-pg-id');
+                fixture.detectChanges();
+                vi.runAllTimers();
+
+                expect(restoreSpy).toHaveBeenCalled();
+            } finally {
+                vi.useRealTimers();
+            }
         });
     });
 
@@ -1756,6 +1803,90 @@ describe('CanvasComponent', () => {
             expect(connectionDatum.ui.dragStartEntity).toBeUndefined();
             expect(connectionDatum.ui.dragStartBends).toBeUndefined();
             expect(connectionDatum.ui.bends).toEqual(connection.bends);
+        });
+
+        it('refreshes idle connection bends from a same-id entity update', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 1 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [{ x: 10, y: 20 }],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const { fixture, component } = await setup({ connections: [connection] });
+            const wrapper = component.internalConnections()[0];
+            wrapper.ui.bends = [{ x: 10, y: 20 }];
+            const updatedConnection = {
+                ...connection,
+                revision: { version: 2 },
+                bends: [{ x: 30, y: 40 }]
+            };
+
+            fixture.componentRef.setInput('connections', [updatedConnection]);
+            fixture.detectChanges();
+
+            expect(component.internalConnections()[0].entity).toBe(updatedConnection);
+            expect(component.internalConnections()[0].ui.bends).toEqual([{ x: 30, y: 40 }]);
+            expect(component.internalConnections()[0].ui.bends).not.toBe(updatedConnection.bends);
+        });
+
+        it('preserves optimistic connection bends during an active drag', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 1 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [{ x: 10, y: 20 }],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const { fixture, component } = await setup({ connections: [connection] });
+            const wrapper = component.internalConnections()[0];
+            wrapper.ui.dragging = true;
+            wrapper.ui.bends = [{ x: 50, y: 60 }];
+            const updatedConnection = {
+                ...connection,
+                revision: { version: 2 },
+                bends: [{ x: 30, y: 40 }]
+            };
+
+            fixture.componentRef.setInput('connections', [updatedConnection]);
+            fixture.detectChanges();
+
+            expect(component.internalConnections()[0].entity).toBe(updatedConnection);
+            expect(component.internalConnections()[0].ui.bends).toEqual([{ x: 50, y: 60 }]);
+        });
+
+        it('preserves optimistic connection bends while a save is pending', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 1 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [{ x: 10, y: 20 }],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const { fixture, component } = await setup({ connections: [connection] });
+            const wrapper = component.internalConnections()[0];
+            wrapper.ui.bends = [{ x: 50, y: 60 }];
+            asPrivate(component).savingConnections.set(new Set(['connection-1']));
+            const updatedConnection = {
+                ...connection,
+                revision: { version: 2 },
+                bends: [{ x: 30, y: 40 }]
+            };
+
+            fixture.componentRef.setInput('connections', [updatedConnection]);
+            fixture.detectChanges();
+
+            expect(component.internalConnections()[0].entity).toBe(updatedConnection);
+            expect(component.internalConnections()[0].ui.bends).toEqual([{ x: 50, y: 60 }]);
         });
 
         it('preserves optimistic reconnect state across wrapper rebuilds and confirms it', async () => {

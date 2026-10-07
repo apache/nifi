@@ -1078,6 +1078,62 @@ describe('ConnectionRenderer', () => {
             cleanup();
         });
 
+        it('offsets the dragged endpoint handle from the pointer', async () => {
+            const connection = createMockConnection();
+            const { getConnectionElements, cleanup } = await setup({
+                connections: [connection],
+                callbacks: { onEndpointReconnect: vi.fn() },
+                reconnect: {
+                    isValidConnectionDestination: () => true,
+                    getPerimeterPoint: (point) => point,
+                    selfLoopXOffset: 20,
+                    selfLoopYOffset: 10
+                },
+                sourceComponent: { id: 'source-1', position: { x: 0, y: 0 }, dimensions: { width: 184, height: 52 } },
+                destComponent: { id: 'dest-1', position: { x: 300, y: 0 }, dimensions: { width: 184, height: 52 } }
+            });
+            const endpoint = getConnectionElements().select<SVGRectElement>('rect.endpoint').node()!;
+            const connectionElement = endpoint.parentNode as SVGGElement;
+            Object.defineProperty(connectionElement, 'clientLeft', { value: 0, configurable: true });
+            Object.defineProperty(connectionElement, 'clientTop', { value: 0, configurable: true });
+            connectionElement.getBoundingClientRect = () =>
+                ({
+                    left: 0,
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: 0,
+                    height: 0,
+                    x: 0,
+                    y: 0,
+                    toJSON: () => ({})
+                }) as DOMRect;
+
+            endpoint.dispatchEvent(
+                new MouseEvent('mousedown', {
+                    bubbles: true,
+                    button: 0,
+                    clientX: connection.ui.end.x,
+                    clientY: connection.ui.end.y,
+                    view: window
+                })
+            );
+            window.dispatchEvent(
+                new MouseEvent('mousemove', {
+                    bubbles: true,
+                    buttons: 1,
+                    clientX: 450,
+                    clientY: 100,
+                    view: window
+                })
+            );
+
+            expect(connection.ui.end).toEqual({ x: 442, y: 92 });
+
+            window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0, view: window }));
+            cleanup();
+        });
+
         it('treats a nested-port source group as the source when reconnecting a self-loop', async () => {
             const onEndpointReconnect = vi.fn();
             const connection = createMockConnection({

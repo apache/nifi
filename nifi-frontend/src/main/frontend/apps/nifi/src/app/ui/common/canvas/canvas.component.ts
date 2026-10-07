@@ -312,9 +312,10 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     // Internal canvas ready state (set after fonts load and initial render)
     private internalCanvasReady = signal(false);
 
-    // Track if we've already initialized for the current data load
-    // Reset when dataReady goes from true to false (new data loading)
+    // Track if we've already initialized for the current process group.
+    // Polling flips dataReady false -> true, but must not reset the viewport.
     private hasInitialized = signal(false);
+    private initProcessGroupId = signal<string | null>(null);
 
     // Controls canvas content visibility during PG transitions to prevent
     // a brief flash of components at the wrong viewport position
@@ -705,12 +706,19 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
                 connection.ui.reconnectDestinationId = existing.ui.reconnectDestinationId;
             }
         } else {
-            // Same connections - update entity data by matching IDs (not array index)
+            // Same connections - update entity data and refresh persisted bends while idle.
+            // Active gestures and pending saves retain their optimistic UI geometry until
+            // the corresponding completion path confirms or reverts it.
             // Create a new array reference so layers detect the change and re-render
             inputConnections.forEach((inputEntity) => {
                 const existingConnection = this._internalConnections.find((c) => c.entity.id === inputEntity.id);
                 if (existingConnection) {
                     existingConnection.entity = inputEntity;
+                    const inFlight =
+                        existingConnection.ui.dragging === true || this.savingConnections().has(inputEntity.id);
+                    if (!inFlight) {
+                        existingConnection.ui.bends = (inputEntity.bends ?? []).map((bend) => ({ ...bend }));
+                    }
                 }
             });
             // Return new array reference to trigger re-render of layers
@@ -791,37 +799,35 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         effect(() => {
             const canvasReady = this.internalCanvasReady();
             const dataReady = this.dataReady();
-            const hasInitialized = this.hasInitialized();
+            const processGroupId = this.processGroupId();
+            const previousProcessGroupId = untracked(() => this.initProcessGroupId());
 
-            // Reset initialization state when new data starts loading
-            // This allows re-initialization when navigating to a different connector/process group
-            if (!dataReady && hasInitialized) {
+            if (processGroupId !== previousProcessGroupId) {
                 untracked(() => {
+                    this.initProcessGroupId.set(processGroupId);
                     this.hasInitialized.set(false);
                     this.viewportReady.set(false);
                 });
+            }
+
+            const hasInitialized = untracked(() => this.hasInitialized());
+            if (!canvasReady || !dataReady || hasInitialized) {
                 return;
             }
 
-            // Initialize when both canvas DOM and data are ready
-            if (canvasReady && dataReady && !hasInitialized) {
-                // Mark as initialized immediately to prevent duplicate initialization
-                untracked(() => {
-                    this.hasInitialized.set(true);
-                });
+            untracked(() => this.hasInitialized.set(true));
 
-                // Defer to next microtask to ensure Angular has propagated data to child components
-                setTimeout(() => {
-                    this.updateCanvasVisibility();
-                    if (this.selectedComponentIds().length > 0 && !this.skipInitialCenter()) {
-                        this.centerOnSelection(false);
-                    } else {
-                        this.restoreViewportFromStorage();
-                    }
-                    this.viewportReady.set(true);
-                    this.initialized.emit();
-                }, 0);
-            }
+            // Defer to next microtask to ensure Angular has propagated data to child components
+            setTimeout(() => {
+                this.updateCanvasVisibility();
+                if (this.selectedComponentIds().length > 0 && !this.skipInitialCenter()) {
+                    this.centerOnSelection(false);
+                } else {
+                    this.restoreViewportFromStorage();
+                }
+                this.viewportReady.set(true);
+                this.initialized.emit();
+            }, 0);
         });
     }
 
