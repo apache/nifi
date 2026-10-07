@@ -408,7 +408,16 @@ public final class StandardProcessScheduler implements ProcessScheduler {
      */
     @Override
     public synchronized CompletableFuture<Void> startProcessor(final ProcessorNode procNode, final boolean failIfStopping) {
-        final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true, false);
+        requireNonNull(procNode);
+        final CompletableFuture<Void> pendingStart = processorStartFutures.get(procNode.getIdentifier());
+        if (pendingStart != null) {
+            return pendingStart;
+        }
+        if (procNode.getPhysicalScheduledState() == ScheduledState.RUNNING) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        final LifecycleState lifecycleState = getLifecycleState(procNode, true, false);
 
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
             getStateManager(procNode), lifecycleState::isTerminated, nodeTypeProvider);

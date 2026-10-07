@@ -102,7 +102,8 @@ public class StandardConnectorInitializationContext implements FrameworkConnecto
         return frameworkFlowContext;
     }
 
-    protected void resolveBundles(final VersionedProcessGroup group, final BundleCompatibility bundleCompatability) {
+    @Override
+    public void resolveBundles(final VersionedProcessGroup group, final BundleCompatibility bundleCompatability) {
         if (bundleCompatability == BundleCompatibility.REQUIRE_EXACT_BUNDLE) {
             return;
         }

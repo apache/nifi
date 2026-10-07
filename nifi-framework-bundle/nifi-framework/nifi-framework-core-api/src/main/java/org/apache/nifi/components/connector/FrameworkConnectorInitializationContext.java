@@ -21,6 +21,7 @@ import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedProcessGroup;
 
 public interface FrameworkConnectorInitializationContext extends ConnectorInitializationContext {
 
@@ -43,4 +44,15 @@ public interface FrameworkConnectorInitializationContext extends ConnectorInitia
      * @throws FlowUpdateException if the flow update would not be allowed
      */
     void verifyUpdateFlow(FlowContext flowContext, VersionedExternalFlow versionedExternalFlow, BundleCompatibility bundleCompatability) throws FlowUpdateException;
+
+    /**
+     * Rewrites processor and controller service bundles in the supplied group, including nested groups, according to
+     * the given compatibility. An exact installed coordinate is kept. {@link BundleCompatibility#RESOLVE_BUNDLE}
+     * selects the only other installed bundle for that type, and leaves the coordinate unchanged when none or several
+     * are installed.
+     *
+     * @param group the persisted or proposed group whose component bundles may be rewritten
+     * @param bundleCompatibility the strategy to use when an exact bundle is not installed
+     */
+    void resolveBundles(VersionedProcessGroup group, BundleCompatibility bundleCompatibility);
 }

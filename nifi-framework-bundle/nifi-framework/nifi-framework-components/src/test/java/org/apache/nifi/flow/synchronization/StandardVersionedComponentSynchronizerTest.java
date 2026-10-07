@@ -850,6 +850,43 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     @Test
+    public void testVerifyCanSynchronizeRejectsChangedSourceWithQueuedData() {
+        queuesWithData.add(connectionAB.getIdentifier());
+        final VersionedProcessGroup proposedGroup = createProposedGroup("connection-ab", "processor-c", "processor-b");
+
+        final IllegalStateException failure = assertThrows(IllegalStateException.class,
+            () -> synchronizer.verifyCanSynchronize(group, proposedGroup, true));
+        assertTrue(failure.getMessage().contains("changes the source"), failure.getMessage());
+        assertTrue(failure.getMessage().contains("data in the queue"), failure.getMessage());
+        assertTrue(failure.getMessage().contains(connectionAB.toString()), failure.getMessage());
+    }
+
+    @Test
+    public void testVerifyCanSynchronizeAllowsChangedSourceWithEmptyQueue() {
+        final VersionedProcessGroup proposedGroup = createProposedGroup("connection-ab", "processor-c", "processor-b");
+        synchronizer.verifyCanSynchronize(group, proposedGroup, true);
+    }
+
+    @Test
+    public void testVerifyCanSynchronizeAllowsChangedDestinationWithQueuedData() {
+        queuesWithData.add(connectionAB.getIdentifier());
+        final VersionedProcessGroup proposedGroup = createProposedGroup("connection-ab", "processor-a", "processor-c");
+        synchronizer.verifyCanSynchronize(group, proposedGroup, true);
+    }
+
+    @Test
+    public void testVerifyCanSynchronizeRejectsRemovedConnectionWithQueuedData() {
+        queuesWithData.add(connectionAB.getIdentifier());
+        when(connectionAB.getVersionedComponentId()).thenReturn(Optional.of("connection-ab"));
+
+        final IllegalStateException failure = assertThrows(IllegalStateException.class,
+            () -> synchronizer.verifyCanSynchronize(group, new VersionedProcessGroup(), true));
+        assertTrue(failure.getMessage().contains("does not contain a match"), failure.getMessage());
+        assertTrue(failure.getMessage().contains("data in the queue"), failure.getMessage());
+        assertTrue(failure.getMessage().contains(connectionAB.toString()), failure.getMessage());
+    }
+
+    @Test
     public void testUpdateConnectionStopsSource() throws FlowSynchronizationException, TimeoutException {
         startProcessor(processorA);
 
@@ -2070,6 +2107,24 @@ public class StandardVersionedComponentSynchronizerTest {
         versionedConnection.setzIndex(0L);
 
         return versionedConnection;
+    }
+
+    private VersionedProcessGroup createProposedGroup(final String connectionId, final String sourceId, final String destinationId) {
+        when(processorA.getVersionedComponentId()).thenReturn(Optional.of("processor-a"));
+        when(processorB.getVersionedComponentId()).thenReturn(Optional.of("processor-b"));
+        when(connectionAB.getVersionedComponentId()).thenReturn(Optional.of(connectionId));
+
+        final ProcessorNode processorC = createMockProcessor();
+        when(processorC.getVersionedComponentId()).thenReturn(Optional.of("processor-c"));
+
+        final VersionedConnection proposedConnection = createMinimalVersionedConnection(processorA, processorB);
+        proposedConnection.setIdentifier(connectionId);
+        proposedConnection.getSource().setId(sourceId);
+        proposedConnection.getDestination().setId(destinationId);
+
+        final VersionedProcessGroup proposedGroup = new VersionedProcessGroup();
+        proposedGroup.setConnections(Collections.singleton(proposedConnection));
+        return proposedGroup;
     }
 
     private ConnectableComponent createConnectableComponent(final ProcessorNode processor) {

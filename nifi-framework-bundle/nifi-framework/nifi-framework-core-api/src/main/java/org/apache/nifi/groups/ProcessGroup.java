@@ -977,6 +977,16 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void restoreFlowPreservingIdentifiers(VersionedExternalFlow proposedSnapshot);
 
     /**
+     * Restores a previously persisted flow while controlling whether components resume their captured scheduled state.
+     * When {@code resumeComponentState} is false, the flow structure is restored so queued FlowFiles can reattach, but
+     * no component is started or enabled.
+     *
+     * @param proposedSnapshot the proposed flow whose Instance Identifiers should be used as runtime identifiers
+     * @param resumeComponentState whether components should resume the running or enabled state captured in the snapshot
+     */
+    void restoreFlowPreservingIdentifiers(VersionedExternalFlow proposedSnapshot, boolean resumeComponentState);
+
+    /**
      * Updates the Process Group to match the proposed flow
      *
      * @param proposedSnapshot the proposed flow

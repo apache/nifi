@@ -25,6 +25,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
+import org.apache.nifi.components.connector.ConnectorFlowSnapshot;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorValueReference;
@@ -161,6 +162,23 @@ public class VersionedComponentFlowMapper {
         } else {
             this.parameterValueMapper = new FilterSensitiveParameterValueMapper();
         }
+    }
+
+    public static VersionedComponentFlowMapper forPersistedFlow(final ExtensionManager extensionManager,
+            final PropertyEncryptionProvider propertyEncryptionProvider, final VersionedComponentStateLookup stateLookup) {
+        final FlowMappingOptions mappingOptions = new FlowMappingOptions.Builder()
+            .mapSensitiveConfiguration(true)
+            .mapPropertyDescriptors(false)
+            .stateLookup(stateLookup)
+            .propertyEncryptionProvider(propertyEncryptionProvider)
+            .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
+            .mapInstanceIdentifiers(true)
+            .mapControllerServiceReferencesToVersionedId(false)
+            .mapFlowRegistryClientId(true)
+            .mapAssetReferences(true)
+            .build();
+
+        return new VersionedComponentFlowMapper(extensionManager, mappingOptions);
     }
 
     /**
@@ -1102,13 +1120,14 @@ public class VersionedComponentFlowMapper {
     }
 
     /**
-     * Map the given ConnectorNode to a VersionedConnector. When the Connector is in Troubleshooting state, the Connector's
-     * Managed Process Group is also serialized into the VersionedConnector so that any user modifications made while in
-     * Troubleshooting mode survive a restart. The provided ControllerServiceProvider is required for mapping the Managed
-     * Process Group; if {@code null}, the Managed Process Group is not serialized even if the Connector is in Troubleshooting.
+     * Map the given ConnectorNode to a VersionedConnector. The parameter context, managed-flow bundle, and active
+     * configuration are written from the node's atomic snapshot. While the connector is in Troubleshooting, the live
+     * managed group is written so the user's edits survive a restart; otherwise the managed group comes from that
+     * snapshot. The provided ControllerServiceProvider is required for the live mapping; if {@code null} while
+     * Troubleshooting, the managed group is omitted.
      *
      * @param connectorNode the connector node to map
-     * @param controllerServiceProvider the controller service provider used when mapping the Managed Process Group; may be null
+     * @param controllerServiceProvider the controller service provider used when mapping the live Managed Process Group; may be null
      * @return the mapped VersionedConnector
      */
     public VersionedConnector mapConnector(final ConnectorNode connectorNode, final ControllerServiceProvider controllerServiceProvider) {
@@ -1117,18 +1136,32 @@ public class VersionedComponentFlowMapper {
         versionedConnector.setName(connectorNode.getName());
         versionedConnector.setScheduledState(mapConnectorState(connectorNode.getDesiredState()));
         versionedConnector.setType(connectorNode.getCanonicalClassName());
+
+        final ConnectorFlowSnapshot authoritativeSnapshot = connectorNode.getAuthoritativeFlowSnapshot();
+        final FrameworkFlowContext activeFlowContext = connectorNode.getActiveFlowContext();
         versionedConnector.setBundle(mapBundle(connectorNode.getBundleCoordinate()));
 
-        final List<VersionedConfigurationStep> activeFlowConfiguration = createVersionedConfigurationSteps(connectorNode.getActiveFlowContext());
+        final ConnectorConfiguration activeConfiguration = authoritativeSnapshot == null
+                ? activeFlowContext.getConfigurationContext().toConnectorConfiguration()
+                : authoritativeSnapshot.activeConfiguration();
+        final List<VersionedConfigurationStep> activeFlowConfiguration = createVersionedConfigurationSteps(activeConfiguration);
         versionedConnector.setActiveFlowConfiguration(activeFlowConfiguration);
 
         final List<VersionedConfigurationStep> workingFlowConfiguration = createVersionedConfigurationSteps(connectorNode.getWorkingFlowContext());
         versionedConnector.setWorkingFlowConfiguration(workingFlowConfiguration);
 
+        if (authoritativeSnapshot != null) {
+            versionedConnector.setManagedParameterContext(authoritativeSnapshot.parameterContext());
+            versionedConnector.setManagedParameterSecretReferences(
+                mapParameterSecretReferences(authoritativeSnapshot.parameterSecretReferences()));
+            versionedConnector.setManagedFlowBundle(authoritativeSnapshot.bundle());
+        }
+
         if (connectorNode.getCurrentState() == ConnectorState.TROUBLESHOOTING && controllerServiceProvider != null) {
             final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
-            final VersionedProcessGroup versionedManagedGroup = mapNonVersionedProcessGroup(managedGroup, controllerServiceProvider);
-            versionedConnector.setManagedProcessGroup(versionedManagedGroup);
+            versionedConnector.setManagedProcessGroup(mapNonVersionedProcessGroup(managedGroup, controllerServiceProvider));
+        } else if (authoritativeSnapshot != null) {
+            versionedConnector.setManagedProcessGroup(authoritativeSnapshot.flow());
         }
 
         return versionedConnector;
@@ -1140,6 +1173,10 @@ public class VersionedComponentFlowMapper {
         }
 
         final ConnectorConfiguration configuration = flowContext.getConfigurationContext().toConnectorConfiguration();
+        return createVersionedConfigurationSteps(configuration);
+    }
+
+    private List<VersionedConfigurationStep> createVersionedConfigurationSteps(final ConnectorConfiguration configuration) {
         final List<VersionedConfigurationStep> configurationSteps = new ArrayList<>();
 
         for (final NamedStepConfiguration stepConfiguration : configuration.getNamedStepConfigurations()) {
@@ -1161,24 +1198,42 @@ public class VersionedComponentFlowMapper {
                 continue;
             }
 
-            final VersionedConnectorValueReference versionedReference = new VersionedConnectorValueReference();
-            versionedReference.setValueType(valueReference.getValueType().name());
-
-            switch (valueReference) {
-                case StringLiteralValue stringLiteral -> versionedReference.setValue(stringLiteral.getValue());
-                case AssetReference assetRef -> versionedReference.setAssetIds(assetRef.getAssetIdentifiers());
-                case SecretReference secretRef -> {
-                    versionedReference.setProviderId(secretRef.getProviderId());
-                    versionedReference.setProviderName(secretRef.getProviderName());
-                    versionedReference.setSecretName(secretRef.getSecretName());
-                    versionedReference.setFullyQualifiedSecretName(secretRef.getFullyQualifiedName());
-                }
-            }
-
-            versionedProperties.put(entry.getKey(), versionedReference);
+            versionedProperties.put(entry.getKey(), mapValueReference(valueReference));
         }
 
         return versionedProperties;
+    }
+
+    private Map<String, VersionedConnectorValueReference> mapParameterSecretReferences(final Map<String, SecretReference> parameterSecretReferences) {
+        if (parameterSecretReferences == null || parameterSecretReferences.isEmpty()) {
+            return null;
+        }
+
+        final Map<String, VersionedConnectorValueReference> versionedReferences = new HashMap<>();
+        for (final Map.Entry<String, SecretReference> entry : parameterSecretReferences.entrySet()) {
+            if (entry.getValue() != null) {
+                versionedReferences.put(entry.getKey(), mapValueReference(entry.getValue()));
+            }
+        }
+        return versionedReferences.isEmpty() ? null : versionedReferences;
+    }
+
+    private VersionedConnectorValueReference mapValueReference(final ConnectorValueReference valueReference) {
+        final VersionedConnectorValueReference versionedReference = new VersionedConnectorValueReference();
+        versionedReference.setValueType(valueReference.getValueType().name());
+
+        switch (valueReference) {
+            case StringLiteralValue stringLiteral -> versionedReference.setValue(stringLiteral.getValue());
+            case AssetReference assetRef -> versionedReference.setAssetIds(assetRef.getAssetIdentifiers());
+            case SecretReference secretRef -> {
+                versionedReference.setProviderId(secretRef.getProviderId());
+                versionedReference.setProviderName(secretRef.getProviderName());
+                versionedReference.setSecretName(secretRef.getSecretName());
+                versionedReference.setFullyQualifiedSecretName(secretRef.getFullyQualifiedName());
+            }
+        }
+
+        return versionedReference;
     }
 
     private VersionedConnectorState mapConnectorState(final ConnectorState connectorState) {

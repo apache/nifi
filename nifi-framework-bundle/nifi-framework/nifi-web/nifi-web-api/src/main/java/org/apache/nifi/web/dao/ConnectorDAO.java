@@ -54,7 +54,7 @@ public interface ConnectorDAO {
 
     void deleteConnector(String id);
 
-    void startConnector(String id);
+    void startConnector(String id, ConnectorUpdateContext persistenceContext);
 
     void stopConnector(String id);
 

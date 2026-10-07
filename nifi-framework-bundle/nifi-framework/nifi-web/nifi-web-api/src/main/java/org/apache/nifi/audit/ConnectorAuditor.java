@@ -121,8 +121,8 @@ public class ConnectorAuditor extends NiFiAuditor {
      * @throws Throwable if an error occurs
      */
     @Around("within(org.apache.nifi.web.dao.ConnectorDAO+) && "
-            + "execution(void startConnector(java.lang.String)) && "
-            + "args(connectorId) && "
+            + "execution(void startConnector(java.lang.String, ..)) && "
+            + "args(connectorId, ..) && "
             + "target(connectorDAO)")
     public void startConnectorAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String connectorId, final ConnectorDAO connectorDAO) throws Throwable {
         final ConnectorNode connector = connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);

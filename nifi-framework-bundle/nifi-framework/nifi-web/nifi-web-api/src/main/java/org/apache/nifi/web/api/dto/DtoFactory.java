@@ -77,6 +77,7 @@ import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorValueReference;
+import org.apache.nifi.components.connector.FlowEvolutionStatus;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.NamedStepConfiguration;
 import org.apache.nifi.components.connector.Secret;
@@ -5434,6 +5435,8 @@ public final class DtoFactory {
 
         dto.setBundle(createBundleDto(bundleCoordinate));
         dto.setState(connector.getCurrentState().name());
+        final FlowEvolutionStatus flowEvolutionStatus = connector.getFlowEvolutionStatus();
+        dto.setFlowEvolutionStatus(flowEvolutionStatus == null ? FlowEvolutionStatus.INACTIVE.name() : flowEvolutionStatus.name());
 
         final FrameworkFlowContext activeFlowContext = connector.getActiveFlowContext();
         dto.setManagedProcessGroupId(activeFlowContext.getManagedProcessGroup().getIdentifier());
