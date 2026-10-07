@@ -18,6 +18,7 @@ package org.apache.nifi.processors.iceberg.record;
 
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
@@ -26,6 +27,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -35,7 +37,9 @@ import java.time.LocalTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -60,6 +64,13 @@ class DelegatedRecordTest {
     private static final int ID = 7;
     private static final int ID_MODIFIED = 99;
     private static final BigDecimal AMOUNT = new BigDecimal("12.34");
+
+    private static final String DATA_FIELD = "data";
+    private static final String DIGEST_FIELD = "digest";
+    private static final String IDENTIFIER_FIELD = "identifier";
+    private static final byte[] DATA = new byte[] {1, 2, 3, 4};
+    private static final Object[] DATA_ELEMENTS = new Object[] {(byte) 1, (byte) 2, (byte) 3, (byte) 4};
+    private static final UUID IDENTIFIER = UUID.fromString("0f8fad5b-d9cb-469f-a165-70867728950e");
 
     private static final Types.StructType TABLE_STRUCT = Types.StructType.of(
             Types.NestedField.required(1, ID_FIELD, Types.IntegerType.get()),
@@ -150,6 +161,39 @@ class DelegatedRecordTest {
 
         final Object stopped = delegatedRecord.getField(STOPPED_FIELD);
         assertEquals(STOPPED_CONVERTED, stopped);
+    }
+
+    /**
+     * Record Readers provide bytes as Object arrays of Byte elements and UUIDs as Strings, while Iceberg writers require
+     * ByteBuffer values for binary columns, byte arrays for fixed columns, and UUID values for uuid columns.
+     */
+    @Test
+    void testGetBinaryFixedUuidFields() {
+        final DataType bytesDataType = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
+        final RecordSchema recordSchema = new SimpleRecordSchema(
+                List.of(
+                        new RecordField(DATA_FIELD, bytesDataType),
+                        new RecordField(DIGEST_FIELD, bytesDataType),
+                        new RecordField(IDENTIFIER_FIELD, RecordFieldType.STRING.getDataType())
+                )
+        );
+        final Map<String, Object> values = new LinkedHashMap<>();
+        values.put(DATA_FIELD, DATA_ELEMENTS);
+        values.put(DIGEST_FIELD, DATA_ELEMENTS);
+        values.put(IDENTIFIER_FIELD, IDENTIFIER.toString());
+
+        final Record record = new MapRecord(recordSchema, values);
+
+        final Types.StructType structType = Types.StructType.of(
+                Types.NestedField.optional(1, DATA_FIELD, Types.BinaryType.get()),
+                Types.NestedField.optional(2, DIGEST_FIELD, Types.FixedType.ofLength(DATA.length)),
+                Types.NestedField.optional(3, IDENTIFIER_FIELD, Types.UUIDType.get())
+        );
+        final DelegatedRecord delegatedRecord = new DelegatedRecord(record, structType);
+
+        assertEquals(ByteBuffer.wrap(DATA), delegatedRecord.get(0, ByteBuffer.class));
+        assertArrayEquals(DATA, delegatedRecord.get(1, byte[].class));
+        assertEquals(IDENTIFIER, delegatedRecord.get(2, UUID.class));
     }
 
     /**

@@ -21,15 +21,22 @@ import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.PartitionData;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
+import org.apache.iceberg.SnapshotSummary;
 import org.apache.iceberg.StructLike;
 import org.apache.iceberg.Table;
+import org.apache.iceberg.TableProperties;
+import org.apache.iceberg.catalog.Namespace;
+import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.encryption.EncryptedOutputFile;
 import org.apache.iceberg.encryption.EncryptionManager;
+import org.apache.iceberg.geospatial.GeospatialBound;
+import org.apache.iceberg.inmemory.InMemoryCatalog;
 import org.apache.iceberg.inmemory.InMemoryOutputFile;
 import org.apache.iceberg.io.FileIO;
 import org.apache.iceberg.io.LocationProvider;
 import org.apache.iceberg.io.OutputFile;
+import org.apache.iceberg.types.Conversions;
 import org.apache.iceberg.types.Types;
 import org.apache.iceberg.util.DateTimeUtil;
 import org.apache.nifi.reporting.InitializationException;
@@ -44,11 +51,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -95,6 +105,48 @@ class ParquetIcebergWriterTest {
     private static final List<String> TAGS_FIELD_VALUE = List.of("a", "b");
 
     private static final Map<String, String> ATTRIBUTES_FIELD_VALUE = Map.of("k", "v");
+
+    private static final int DATA_FIELD_ID = 1;
+
+    private static final String DATA_FIELD_NAME = "data";
+
+    private static final int DIGEST_FIELD_ID = 2;
+
+    private static final String DIGEST_FIELD_NAME = "digest";
+
+    private static final int IDENTIFIER_FIELD_ID = 3;
+
+    private static final String IDENTIFIER_FIELD_NAME = "identifier";
+
+    private static final int GEOMETRY_FIELD_ID = 1;
+
+    private static final String GEOMETRY_FIELD_NAME = "geometry";
+
+    private static final int GEOGRAPHY_FIELD_ID = 2;
+
+    private static final String GEOGRAPHY_FIELD_NAME = "geography";
+
+    private static final byte[] DATA_FIELD_VALUE = new byte[] {1, 2, 3, 4};
+
+    private static final UUID IDENTIFIER_FIELD_VALUE = UUID.fromString("0f8fad5b-d9cb-469f-a165-70867728950e");
+
+    private static final double POINT_LONGITUDE = 24.9384;
+
+    private static final double POINT_LATITUDE = 60.1699;
+
+    // Well-Known Binary encoding of a Point with little-endian byte order, Point geometry type, and X and Y coordinates
+    private static final byte[] POINT_FIELD_VALUE = ByteBuffer.allocate(21).order(ByteOrder.LITTLE_ENDIAN)
+            .put((byte) 1)
+            .putInt(1)
+            .putDouble(POINT_LONGITUDE)
+            .putDouble(POINT_LATITUDE)
+            .array();
+
+    private static final String CATALOG_NAME = "memory";
+
+    private static final TableIdentifier GEOSPATIAL_TABLE_IDENTIFIER = TableIdentifier.of(Namespace.of("default"), "geospatial");
+
+    private static final String FORMAT_VERSION_3 = "3";
 
     private ParquetIcebergWriter parquetIcebergWriter;
 
@@ -249,6 +301,84 @@ class ParquetIcebergWriterTest {
         final DataFile[] dataFiles = rowWriter.dataFiles();
         final byte[] serialized = outputFile.toByteArray();
         assertDataFilesFound(dataFiles, serialized);
+    }
+
+    /**
+     * Iceberg Parquet writers require ByteBuffer values for binary columns, byte arrays for fixed columns, and UUID values
+     * for uuid columns, and record the written values as column bounds.
+     */
+    @Test
+    void testWriteDataFilesBinaryFixedUuidTypes() throws IOException {
+        runner.enableControllerService(parquetIcebergWriter);
+
+        final Types.FixedType fixedType = Types.FixedType.ofLength(DATA_FIELD_VALUE.length);
+        final Schema schema = new Schema(
+                Types.NestedField.optional(DATA_FIELD_ID, DATA_FIELD_NAME, Types.BinaryType.get()),
+                Types.NestedField.optional(DIGEST_FIELD_ID, DIGEST_FIELD_NAME, fixedType),
+                Types.NestedField.optional(IDENTIFIER_FIELD_ID, IDENTIFIER_FIELD_NAME, Types.UUIDType.get())
+        );
+        final InMemoryOutputFile outputFile = new InMemoryOutputFile();
+        final PartitionSpec partitionSpec = PartitionSpec.unpartitioned();
+        setTable(schema, partitionSpec, outputFile);
+        when(locationProvider.newDataLocation(anyString())).thenReturn(LOCATION);
+
+        final IcebergRowWriter rowWriter = parquetIcebergWriter.getRowWriter(table);
+
+        final GenericRecord row = GenericRecord.create(schema);
+        row.setField(DATA_FIELD_NAME, ByteBuffer.wrap(DATA_FIELD_VALUE));
+        row.setField(DIGEST_FIELD_NAME, DATA_FIELD_VALUE);
+        row.setField(IDENTIFIER_FIELD_NAME, IDENTIFIER_FIELD_VALUE);
+        rowWriter.write(row);
+
+        final DataFile[] dataFiles = rowWriter.dataFiles();
+        final byte[] serialized = outputFile.toByteArray();
+        assertDataFilesFound(dataFiles, serialized);
+
+        final Map<Integer, ByteBuffer> lowerBounds = dataFiles[0].lowerBounds();
+        assertEquals(ByteBuffer.wrap(DATA_FIELD_VALUE), Conversions.fromByteBuffer(Types.BinaryType.get(), lowerBounds.get(DATA_FIELD_ID)));
+        assertEquals(ByteBuffer.wrap(DATA_FIELD_VALUE), Conversions.fromByteBuffer(fixedType, lowerBounds.get(DIGEST_FIELD_ID)));
+        assertEquals(IDENTIFIER_FIELD_VALUE, Conversions.fromByteBuffer(Types.UUIDType.get(), lowerBounds.get(IDENTIFIER_FIELD_ID)));
+    }
+
+    /**
+     * Iceberg geometry and geography types require table format version 3, and Iceberg Parquet writers require Well-Known
+     * Binary values in ByteBuffers for both types, recording the bounding box of geometry values as column bounds.
+     */
+    @Test
+    void testWriteDataFilesGeospatialTypes() throws IOException {
+        runner.enableControllerService(parquetIcebergWriter);
+
+        final Types.GeometryType geometryType = Types.GeometryType.crs84();
+        final Schema schema = new Schema(
+                Types.NestedField.optional(GEOMETRY_FIELD_ID, GEOMETRY_FIELD_NAME, geometryType),
+                Types.NestedField.optional(GEOGRAPHY_FIELD_ID, GEOGRAPHY_FIELD_NAME, Types.GeographyType.crs84())
+        );
+
+        try (InMemoryCatalog catalog = new InMemoryCatalog()) {
+            catalog.initialize(CATALOG_NAME, Map.of());
+            catalog.createNamespace(GEOSPATIAL_TABLE_IDENTIFIER.namespace());
+            final Table geospatialTable = catalog.buildTable(GEOSPATIAL_TABLE_IDENTIFIER, schema)
+                    .withProperty(TableProperties.FORMAT_VERSION, FORMAT_VERSION_3)
+                    .create();
+
+            final IcebergRowWriter rowWriter = parquetIcebergWriter.getRowWriter(geospatialTable);
+
+            final GenericRecord row = GenericRecord.create(schema);
+            row.setField(GEOMETRY_FIELD_NAME, ByteBuffer.wrap(POINT_FIELD_VALUE));
+            row.setField(GEOGRAPHY_FIELD_NAME, ByteBuffer.wrap(POINT_FIELD_VALUE));
+            rowWriter.write(row);
+
+            final DataFile[] dataFiles = rowWriter.dataFiles();
+            assertEquals(1, dataFiles.length);
+
+            final DataFile dataFile = dataFiles[0];
+            final GeospatialBound pointBound = GeospatialBound.createXY(POINT_LONGITUDE, POINT_LATITUDE);
+            assertEquals(pointBound, Conversions.fromByteBuffer(geometryType, dataFile.lowerBounds().get(GEOMETRY_FIELD_ID)));
+            assertEquals(pointBound, Conversions.fromByteBuffer(geometryType, dataFile.upperBounds().get(GEOMETRY_FIELD_ID)));
+
+            geospatialTable.newAppend().appendFile(dataFile).commit();
+            assertEquals("1", geospatialTable.currentSnapshot().summary().get(SnapshotSummary.ADDED_RECORDS_PROP));
+        }
     }
 
     private void writeRow(final Schema schema, final IcebergRowWriter rowWriter) throws IOException {
