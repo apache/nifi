@@ -23,7 +23,17 @@ import java.io.IOException;
 
 public interface ConnectorRequestReplicator {
 
+    /**
+     * @throws ConnectorClusterUnavailableException if no cluster node is connected yet
+     * @throws IOException if the Connector state cannot be retrieved
+     */
     ConnectorState getState(String connectorId) throws IOException;
+
+    /**
+     * @throws ConnectorClusterUnavailableException if no cluster node is connected yet
+     * @throws IOException if the flow evolution status cannot be retrieved
+     */
+    FlowEvolutionStatus getFlowEvolutionStatus(String connectorId) throws IOException;
 
     void setFlowManager(FlowManager flowManager);
 

@@ -2700,6 +2700,60 @@ The following command is used to generate a standard binary distribution of Apac
 
 `mvn clean install -Pcontrib-check`
 
+[[connector_flow_evolution]]
+== Connector Flow Evolution
+
+A Connector's managed flow is the set of processors, controller services, and connections that the Connector builds from its bundle. Whenever NiFi saves the flow, it records the bundle version that built the managed flow. That recorded version is kept separately from the bundle version the Connector is currently loaded from.
+
+If the loaded bundle version differs from the recorded one, the managed flow must be evolved to match the new version before the Connector runs. This is called flow evolution. It is pending while the two versions differ, and it runs on the next START of the Connector.
+
+=== When the flow is saved
+
+There is no explicit save action. NiFi writes the flow to its flow file, `flow.json.gz` by default, as each change completes. Changes made close together are written as one update, after the delay set by `nifi.flowservice.writedelay.interval`, which defaults to `500 ms`.
+
+Any user action that modifies the flow saves it. Changing a Connector's version records the new Connector bundle, but the managed flow keeps the bundle it was built from until flow evolution saves.
+
+NiFi also saves the flow without a user action in these cases:
+
+* During flow evolution, once, after the upgraded flow is applied. The Connector is recorded as running, because only a START runs an evolution. A failed evolution is not saved.
+* When a node reconnects to a cluster and writes the flow it inherited from the cluster.
+
+=== How evolution runs
+
+On the next START, the framework calls `prepareForFlowEvolution(FlowEvolutionContext)` on the Connector. The context describes the outgoing flow and the upgraded bundle. The Connector returns a `CompletableFuture` that completes when the outgoing flow is ready. The framework waits for that future, stops the processors in the outgoing flow, and then applies the upgraded flow as described in <<connector_applying_upgraded_flow>>.
+
+When NiFi restarts with an evolution pending, it restores the outgoing flow with its components stopped, whatever state they were saved in. The Connector's recorded state decides whether the evolution starts, and the hook starts what it needs to drain. A Connector recorded in Troubleshooting mode keeps the saved component states.
+
+The framework does not call `prepareForFlowEvolution` when a Connector leaves the Troubleshooting state. In that case the managed flow must already be empty.
+
+=== Draining in prepareForFlowEvolution
+
+The default implementation of `prepareForFlowEvolution` does nothing and returns a completed future. The framework does not drain FlowFiles for the Connector, so a Connector that removes connections must empty them in its own hook.
+
+* If any connection that the upgraded flow removes still holds FlowFiles, the Connector must drain. The hook must finish with every such connection empty, or the upgrade fails.
+* The Connector does not need to drain when every connection that the upgraded flow removes is already empty. A connection that the upgraded flow keeps, with the same identifier, is updated in place and keeps its queue, so it never requires a drain.
+* The framework stops the outgoing processors only after the hook's future completes. The hook can start them so that queues empty, and the processors are stopped afterward.
+* The framework can cancel the future, for example when the Connector is stopped or the evolution timeout is reached. Stop any work promptly when the future is cancelled. The framework does not wait for code that ignores cancellation.
+
+[[connector_applying_upgraded_flow]]
+=== Applying the upgraded flow
+
+Once every node that still has the outgoing flow has drained it, the framework checks again that no connection the upgraded flow removes holds FlowFiles. If one does, the evolution fails and the outgoing flow is kept. Otherwise the framework runs the same `prepareForUpdate` and `applyUpdate` process as a configuration update, saves the resulting flow, and starts the Connector.
+
+Each node prepares on its own. Every node has already finished the hook, so the framework does not wait for the other nodes to reach `UPDATING`.
+
+`prepareForUpdate` and `applyUpdate` must be safe to run again. If either fails, the Connector is left `UPDATE_FAILED`, and the next START calls both again without running the hook. `applyUpdate` therefore has to work on a flow that it has already partly updated.
+
+=== What operators see
+
+In a cluster, each node drains its own Connector. No node applies the upgraded flow until every node that still has the outgoing flow has drained it, so the Connector reports `DRAINING` while the nodes wait for one another. A node that has already applied the upgraded flow has nothing to drain and does not hold back the others. A node that disconnects after applying the upgraded flow does not block the others either: the connected nodes start. `nifi.connector.flow.evolution.timeout` limits only the local drain in `prepareForFlowEvolution`. See <<administration-guide.adoc#connector_properties,Connector Properties>> in the Administration Guide.
+
+If evolution fails before the upgraded flow is applied, including while a node waits for the others to drain, the Connector remains stopped and still pending, and the next START runs the hook again. Stopping the Connector while it drains cancels the attempt. The failure is not saved, so after a restart the Connector comes back in the state that was last saved.
+
+A failure while applying the upgraded flow leaves the Connector `UPDATE_FAILED`. The failure is not saved, so the Connector must be corrected and started again. On a node where `prepareForUpdate` or `applyUpdate` failed, the Connector is still pending and the next START retries both without the hook. On a node where the upgraded flow was applied, the Connector is no longer pending and the next START runs the new flow.
+
+If the upgraded Connector fails to start, the upgraded flow has already been saved, and the Connector is handled like any other Connector that fails to start.
+
 == Supporting migration from a Versioned Process Group
 
 Connectors can implement a one-time migration flow that uses a source Versioned Process Group as a reference for populating a freshly created Connector.

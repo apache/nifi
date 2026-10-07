@@ -208,6 +208,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         if (clusterCoordinator != null) {
             clusterCoordinator.setFlowService(this);
         }
+
+        controller.setFlowService(this);
         this.revisionManager = revisionManager;
         this.narManager = narManager;
         this.parameterContextAssetSynchronizer = parameterContextAssetSynchronizer;

@@ -127,6 +127,7 @@
         <nifi.asset.manager.properties.directory>./assets</nifi.asset.manager.properties.directory>
         <nifi.connector.asset.manager.implementation>org.apache.nifi.asset.StandardConnectorAssetManager</nifi.connector.asset.manager.implementation>
         <nifi.connector.asset.manager.properties.directory>./connector_assets</nifi.connector.asset.manager.properties.directory>
+        <nifi.connector.flow.evolution.timeout>30 mins</nifi.connector.flow.evolution.timeout>
 
         <!-- nifi.properties: web properties -->
         <nifi.web.http.host />

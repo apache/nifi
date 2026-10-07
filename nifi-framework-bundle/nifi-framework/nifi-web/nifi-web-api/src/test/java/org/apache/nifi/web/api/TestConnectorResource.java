@@ -18,6 +18,7 @@ package org.apache.nifi.web.api;
 
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
@@ -41,6 +42,7 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AllowableValueDTO;
 import org.apache.nifi.web.api.dto.BacklogDTO;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
@@ -111,6 +113,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -534,6 +537,8 @@ public class TestConnectorResource {
             assertEquals(responseEntity, response.getEntity());
         }
 
+        assertNull(requestEntity.getExpectedBundle());
+        verify(serviceFacade, never()).getConnector(CONNECTOR_ID);
         verify(serviceFacade).verifyUpdateConnector(any(ConnectorDTO.class));
         verify(serviceFacade).scheduleConnector(any(Revision.class), eq(CONNECTOR_ID), eq(ScheduledState.RUNNING));
     }
@@ -568,6 +573,49 @@ public class TestConnectorResource {
             connectorResource.updateRunStatus(CONNECTOR_ID, requestEntity));
 
         verify(serviceFacade, never()).scheduleConnector(any(Revision.class), anyString(), any(ScheduledState.class));
+    }
+
+    @Test
+    public void testUpdateRunStatusReplicateFillsExpectedBundleForClusterStart() {
+        final ConnectorRunStatusEntity requestEntity = createConnectorRunStatusEntity();
+        final ConnectorEntity localConnector = createConnectorEntity();
+        final BundleDTO localBundle = new BundleDTO("org.apache.nifi", "nifi-test-nar", "1.0.0");
+        localConnector.getComponent().setBundle(localBundle);
+        final Response replicatedResponse = Response.ok().build();
+
+        final ConnectorResource spyResource = spy(connectorResource);
+        doReturn(true).when(spyResource).isReplicateRequest();
+        doReturn(ApplicationResource.ReplicationTarget.CLUSTER_NODES).when(spyResource).getReplicationTarget();
+        doReturn(replicatedResponse).when(spyResource).replicate(eq(HttpMethod.PUT), any(ConnectorRunStatusEntity.class));
+        when(serviceFacade.getConnector(CONNECTOR_ID)).thenReturn(localConnector);
+
+        try (Response response = spyResource.updateRunStatus(CONNECTOR_ID, requestEntity)) {
+            assertEquals(200, response.getStatus());
+        }
+
+        assertEquals(localBundle, requestEntity.getExpectedBundle());
+        verify(serviceFacade).getConnector(CONNECTOR_ID);
+        verify(spyResource).replicate(eq(HttpMethod.PUT), same(requestEntity));
+        verify(serviceFacade, never()).scheduleConnector(any(Revision.class), anyString(), any(ScheduledState.class));
+    }
+
+    @Test
+    public void testUpdateRunStatusReplicateDoesNotFillExpectedBundleForStop() {
+        final ConnectorRunStatusEntity requestEntity = createConnectorRunStatusEntity();
+        requestEntity.setState("STOPPED");
+        final Response replicatedResponse = Response.ok().build();
+
+        final ConnectorResource spyResource = spy(connectorResource);
+        doReturn(true).when(spyResource).isReplicateRequest();
+        doReturn(replicatedResponse).when(spyResource).replicate(eq(HttpMethod.PUT), any(ConnectorRunStatusEntity.class));
+
+        try (Response response = spyResource.updateRunStatus(CONNECTOR_ID, requestEntity)) {
+            assertEquals(200, response.getStatus());
+        }
+
+        assertNull(requestEntity.getExpectedBundle());
+        verify(serviceFacade, never()).getConnector(CONNECTOR_ID);
+        verify(spyResource, never()).getReplicationTarget();
     }
 
     @Test

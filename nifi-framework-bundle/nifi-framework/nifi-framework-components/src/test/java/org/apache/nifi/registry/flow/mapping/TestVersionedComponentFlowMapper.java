@@ -214,6 +214,25 @@ public class TestVersionedComponentFlowMapper {
         testControllerServicesMapsToProperId(false);
     }
 
+    @Test
+    public void testPersistedFlowMappingUsesInstanceIdForControllerServiceReferences() {
+        final VersionedComponentFlowMapper mapper = VersionedComponentFlowMapper.forPersistedFlow(
+                mock(ExtensionManager.class), new RecordingPropertyEncryptionProvider(), VersionedComponentStateLookup.IDENTITY_LOOKUP);
+
+        final ControllerServiceNode mockServiceNode = mock(ControllerServiceNode.class);
+        when(mockServiceNode.getIdentifier()).thenReturn("1234");
+        when(mockServiceNode.getVersionedComponentId()).thenReturn(Optional.of("versioned"));
+
+        final ControllerServiceProvider serviceProvider = mock(ControllerServiceProvider.class);
+        when(serviceProvider.getControllerServiceNode("1234")).thenReturn(mockServiceNode);
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("Service A", "1234");
+
+        final ProcessorNode procNode = createProcessorNode(properties);
+        final VersionedProcessor versionedProcessor = mapper.mapProcessor(procNode, serviceProvider, Collections.emptySet(), Collections.emptyMap());
+        assertEquals("1234", versionedProcessor.getProperties().get("Service A"));
+    }
+
     private void testControllerServicesMapsToProperId(final boolean useVersionedId) {
         final ExtensionManager extensionManager = mock(ExtensionManager.class);
         final FlowMappingOptions mappingOptions = new FlowMappingOptions.Builder()

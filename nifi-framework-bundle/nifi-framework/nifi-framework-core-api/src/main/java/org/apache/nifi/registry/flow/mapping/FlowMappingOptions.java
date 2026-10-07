@@ -278,6 +278,24 @@ public class FlowMappingOptions {
     }
 
     /**
+     * Options used when mapping a live Process Group to the snapshot that is persisted in the flow definition.
+     */
+    public static FlowMappingOptions forPersistedFlow(final PropertyEncryptionProvider propertyEncryptionProvider,
+            final VersionedComponentStateLookup stateLookup) {
+        return new Builder()
+            .mapSensitiveConfiguration(true)
+            .mapPropertyDescriptors(false)
+            .stateLookup(stateLookup)
+            .propertyEncryptionProvider(propertyEncryptionProvider)
+            .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
+            .mapInstanceIdentifiers(true)
+            .mapControllerServiceReferencesToVersionedId(false)
+            .mapFlowRegistryClientId(true)
+            .mapAssetReferences(true)
+            .build();
+    }
+
+    /**
      * The Default Options are acceptable for sharing a dataflow externally (outside of a given nifi instance or cluster), such as sharing
      * a dataflow to a NiFi Registry.
      */
