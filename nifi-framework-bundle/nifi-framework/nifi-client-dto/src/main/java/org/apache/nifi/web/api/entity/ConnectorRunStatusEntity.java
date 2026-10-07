@@ -18,10 +18,13 @@ package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlType;
+import org.apache.nifi.web.api.dto.BundleDTO;
 
 @XmlType(name = "connectorRunStatus")
 public class ConnectorRunStatusEntity extends ComponentRunStatusEntity {
     private static final String[] SUPPORTED_STATE = {"RUNNING", "STOPPED", "DISABLED"};
+
+    private BundleDTO expectedBundle;
 
     @Override
     protected String[] getSupportedState() {
@@ -32,6 +35,16 @@ public class ConnectorRunStatusEntity extends ComponentRunStatusEntity {
     @Override
     public String getState() {
         return super.getState();
+    }
+
+    @Schema(description = "The Connector bundle the cluster coordinator has loaded. When set on a START, each node "
+            + "rejects the request in the validation phase if its loaded bundle differs.")
+    public BundleDTO getExpectedBundle() {
+        return expectedBundle;
+    }
+
+    public void setExpectedBundle(final BundleDTO expectedBundle) {
+        this.expectedBundle = expectedBundle;
     }
 }
 

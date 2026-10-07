@@ -51,9 +51,11 @@ import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedConfigurationStep;
+import org.apache.nifi.flow.VersionedConnector;
 import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.groups.ProcessGroup;
@@ -86,7 +88,10 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -96,6 +101,8 @@ import java.util.stream.Collectors;
 
 public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectorNode.class);
+
+    static final String FLOW_EVOLUTION_VALIDATION_SUBJECT = "Flow Evolution";
 
     private static final Set<org.apache.nifi.controller.ScheduledState> STOPPED_STATES =
             EnumSet.of(org.apache.nifi.controller.ScheduledState.STOPPED, org.apache.nifi.controller.ScheduledState.DISABLED);
@@ -112,14 +119,26 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     private final ConnectorStateTransition stateTransition;
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final FlowContextFactory flowContextFactory;
-    private final FrameworkFlowContext activeFlowContext;
+    private final ConnectorFlowSnapshotMapper snapshotMapper;
+    private volatile FrameworkFlowContext activeFlowContext;
+    private final AtomicReference<FlowEvolutionProgress> flowEvolutionProgress = new AtomicReference<>(FlowEvolutionProgress.NONE);
+    private volatile ConnectorFlowSnapshot authoritativeFlowSnapshot;
+    private final Object flowEvolutionLock = new Object();
+    // Written while holding flowEvolutionLock; null when no attempt has begun while the evolution is pending.
+    private volatile FlowEvolutionAttempt flowEvolutionAttempt;
 
     private final AtomicReference<ValidationState> validationState = new AtomicReference<>(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
     private final ConnectorValidationTrigger validationTrigger;
     private volatile boolean extensionMissing;
+    /**
+     * Set when a ghost Connector fails to install its persisted managed flow at startup. Cleared only by a process restart.
+     * While set, START is rejected after the Connector becomes loadable so queued FlowFiles can rejoin on the next startup.
+     */
+    private volatile boolean managedFlowMissingAtStartup;
     private volatile boolean triggerValidation = true;
     private final AtomicReference<CompletableFuture<Void>> drainFutureRef = new AtomicReference<>();
     private volatile ValidationResult unresolvedBundleValidationResult = null;
+    private volatile Map<String, SecretReference> unresolvedParameterSecretReferences = Map.of();
 
     private final Object workingFlowContextLock = new Object();
     private volatile WorkingFlowContextState workingFlowContextState = new WorkingFlowContextState(null);
@@ -137,9 +156,8 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     public StandardConnectorNode(final String identifier, final FlowManager flowManager, final ExtensionManager extensionManager,
         final StateManagerProvider stateManagerProvider, final Authorizable parentAuthorizable, final ConnectorDetails connectorDetails,
         final String componentType, final String componentCanonicalClass, final MutableConnectorConfigurationContext configurationContext,
-        final ConnectorStateTransition stateTransition, final FlowContextFactory flowContextFactory,
+        final ConnectorStateTransition stateTransition, final FlowContextFactory flowContextFactory, final ConnectorFlowSnapshotMapper snapshotMapper,
         final ConnectorValidationTrigger validationTrigger, final boolean extensionMissing) {
-
         this.identifier = identifier;
         this.flowManager = flowManager;
         this.extensionManager = extensionManager;
@@ -151,6 +169,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         this.bundleCoordinate = connectorDetails.getBundleCoordinate();
         this.stateTransition = stateTransition;
         this.flowContextFactory = flowContextFactory;
+        this.snapshotMapper = snapshotMapper;
         this.validationTrigger = validationTrigger;
         this.extensionMissing = extensionMissing;
 
@@ -296,8 +315,11 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             throw new IllegalStateException("Cannot prepare update for " + this + " because its state is currently " + getCurrentState()
                                             + "; it must be PREPARING_FOR_UPDATE.");
         }
-        if (getDesiredState() != ConnectorState.UPDATING) {
-            throw new IllegalStateException("Cannot prepare update for " + this + " because its desired state is currently " + getDesiredState()
+        // An evolution is applied with the connector desired RUNNING, because only a start request begins an evolution.
+        final ConnectorState desiredState = getDesiredState();
+        final boolean evolving = desiredState == ConnectorState.RUNNING && hasCompletedFlowEvolutionHookProgress() && !hasFlowEvolutionFailed();
+        if (desiredState != ConnectorState.UPDATING && !evolving) {
+            throw new IllegalStateException("Cannot prepare update for " + this + " because its desired state is currently " + desiredState
                                             + "; it must be UPDATING.");
         }
 
@@ -425,6 +447,29 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         }
 
         logger.debug("Successfully inherited configuration for {}", this);
+    }
+
+    /**
+     * Loads migrated active and working configuration without calling {@code applyUpdate}, so a restored pre-upgrade
+     * flow is not replaced by the upgraded connector's flow.
+     */
+    private void loadConfigurationsWithoutRebuildingFlow(final List<VersionedConfigurationStep> activeConfig, final List<VersionedConfigurationStep> workingConfig)
+            throws FlowUpdateException {
+        final Map<String, StepConfiguration> migratedActiveProperties = migrateProperties(activeConfig);
+        final Map<String, StepConfiguration> migratedWorkingProperties = migrateProperties(workingConfig);
+        for (final Map.Entry<String, StepConfiguration> step : migratedActiveProperties.entrySet()) {
+            activeFlowContext.getConfigurationContext().replaceProperties(step.getKey(), step.getValue());
+        }
+        final MutableConnectorConfigurationContext workingConfigContext = createConfigurationContext(migratedWorkingProperties);
+        final WorkingFlowContextState independentWorkingContextState = installReplacementWorkingFlowContext(workingConfigContext, loadedBundle(), true);
+        try {
+            for (final String stepName : migratedWorkingProperties.keySet()) {
+                notifyStepConfigured(stepName, independentWorkingContextState.getContext());
+            }
+        } finally {
+            releaseWorkingFlowContext(independentWorkingContextState);
+        }
+        resetValidationState();
     }
 
     /**
@@ -702,6 +747,9 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                                             + "; it must be UPDATING.");
         }
 
+        // Read before the snapshot is captured, because capturing it ends the evolution.
+        final boolean evolving = hasCompletedFlowEvolutionHookProgress() && !hasFlowEvolutionFailed();
+
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             getConnector().applyUpdate(contextToInherit, activeFlowContext);
 
@@ -715,6 +763,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             activeFlowContext.getConfigurationContext().replaceConfiguration(inheritedConfiguration);
 
             getComponentLog().info("Working Context has been applied to Active Context");
+            captureAuthoritativeSnapshot();
 
             // The update has been completed. Tear down and recreate the working flow context to ensure it is in a clean state.
             resetValidationState();
@@ -728,7 +777,11 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         }
 
         stateTransition.setCurrentState(ConnectorState.UPDATED);
-        stateTransition.setDesiredState(ConnectorState.UPDATED);
+        // An evolved connector stays desired RUNNING so that the flow saved after the apply records it as running.
+        if (!evolving) {
+            stateTransition.setDesiredState(ConnectorState.UPDATED);
+        }
+
         logger.info("Successfully applied update for {}", this);
     }
 
@@ -766,6 +819,11 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
     @Override
     public void abortUpdate(final Throwable cause) {
+        if (isFlowEvolutionInProgress() || hasFlowEvolutionFailed()) {
+            failFlowEvolution(cause == null ? null : cause.getMessage(), cause);
+            return;
+        }
+
         stateTransition.setCurrentState(ConnectorState.UPDATE_FAILED);
         stateTransition.setDesiredState(ConnectorState.UPDATE_FAILED);
 
@@ -923,7 +981,6 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         return stateTransition.getDesiredState();
     }
 
-
     @Override
     public Optional<Duration> getIdleDuration() {
         final ProcessGroup processGroup = getActiveFlowContext().getManagedProcessGroup();
@@ -979,7 +1036,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                         stateTransition.addPendingStartFuture(startCompleteFuture);
                         return;
                     }
-                    case STOPPED, PREPARING_FOR_UPDATE, UPDATED -> {
+                    case STOPPED, PREPARING_FOR_UPDATE, UPDATED, UPDATE_FAILED -> {
                         startScheduled = stateTransition.trySetCurrentState(currentState, ConnectorState.STARTING);
                         if (startScheduled) {
                             logger.info("Starting {}", this);
@@ -1008,8 +1065,11 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
         logger.info("Stopping {}", this);
         final CompletableFuture<Void> stopCompleteFuture = new CompletableFuture<>();
-
         stateTransition.setDesiredState(ConnectorState.STOPPED);
+
+        if (prepareFlowEvolutionStop(stopCompleteFuture)) {
+            return stopCompleteFuture;
+        }
 
         boolean stateUpdated = false;
         while (!stateUpdated) {
@@ -1039,6 +1099,19 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         scheduler.schedule(() -> stopComponent(scheduler, stopCompleteFuture), 0, TimeUnit.SECONDS);
 
         return stopCompleteFuture;
+    }
+
+    private boolean prepareFlowEvolutionStop(final CompletableFuture<Void> stopCompleteFuture) {
+        synchronized (flowEvolutionLock) {
+            if (!isFlowEvolutionInProgress()) {
+                return false;
+            }
+
+            stateTransition.addPendingStopFuture(stopCompleteFuture);
+        }
+
+        abortFlowEvolution();
+        return true;
     }
 
     private void stopManagedProcessGroup(final FlowEngine scheduler) {
@@ -1107,6 +1180,19 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
     @Override
     public void cancelDrainFlowFiles() {
+        final boolean flowEvolutionActive;
+        synchronized (flowEvolutionLock) {
+            flowEvolutionActive = isFlowEvolutionInProgress();
+            if (flowEvolutionActive) {
+                stateTransition.setDesiredState(ConnectorState.STOPPED);
+            }
+        }
+
+        if (flowEvolutionActive) {
+            abortFlowEvolution();
+            return;
+        }
+
         final Future<Void> future = this.drainFutureRef.getAndSet(null);
         if (future == null) {
             logger.debug("No active drain to cancel for {}; drain may have already completed", this);
@@ -1115,6 +1201,11 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
         future.cancel(true);
         logger.info("Cancelled draining of FlowFiles for {}", this);
+    }
+
+    private void abortFlowEvolution() {
+        closeCurrentFlowEvolution();
+        publishFlowEvolutionFailure("Flow evolution was cancelled", null);
     }
 
     @Override
@@ -1219,9 +1310,19 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         componentLifecycleLock.lock();
         try {
             logger.debug("Starting component for {}", this);
+            // A retry scheduled by an earlier failed start can outlive that start: a stop, or a stop followed by a newer start, moves
+            // the current state away from STARTING, and that newer start owns the Connector from then on. The superseded start
+            // succeeds if the Connector is already running, and fails otherwise.
             final ConnectorState desiredState = getDesiredState();
-            if (desiredState != ConnectorState.RUNNING) {
-                logger.info("Will not start {} because the desired state is no longer RUNNING but is now {}", this, desiredState);
+            final ConnectorState currentState = getCurrentState();
+            if (desiredState == ConnectorState.RUNNING && currentState == ConnectorState.RUNNING) {
+                logger.debug("{} is already running, so this start has nothing left to do", this);
+                startCompleteFuture.complete(null);
+                return;
+            }
+            if (desiredState != ConnectorState.RUNNING || currentState != ConnectorState.STARTING) {
+                logger.info("Will not start {} because its desired state is now {} and its current state is now {}", this, desiredState, currentState);
+                startCompleteFuture.completeExceptionally(new IllegalStateException("Start of " + this + " was superseded by a later stop or start request"));
                 completeDeferredStop(scheduler);
                 return;
             }
@@ -1234,6 +1335,9 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             } catch (final Exception e) {
                 if (getCurrentState() == ConnectorState.STOPPING) {
                     logger.error("Failed to start {} and a stop has since been requested, so the Connector will be stopped instead of started", this, e);
+                    final IllegalStateException superseded = new IllegalStateException("Start of " + this + " was superseded by a stop request");
+                    superseded.addSuppressed(e);
+                    startCompleteFuture.completeExceptionally(superseded);
                     completeDeferredStop(scheduler);
                 } else {
                     logger.error("Failed to start {} retrying in 10 seconds", this, e);
@@ -1302,10 +1406,30 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         if (getCurrentState() == ConnectorState.TROUBLESHOOTING) {
             throw new IllegalStateException("Cannot start " + this + " because it is in Troubleshooting mode.");
         }
+        if (isExtensionMissing()) {
+            throw new IllegalStateException("Cannot start " + this + " because its extension is missing.");
+        }
+        if (managedFlowMissingAtStartup) {
+            throw new IllegalStateException(getManagedFlowMissingAtStartupReason());
+        }
         final ValidationState state = performValidation();
-        if (state.getStatus() != ValidationStatus.VALID) {
+        final boolean blockingFailure = state.getValidationErrors().stream().anyMatch(StandardConnectorNode::isBlockingValidationFailure);
+        if (blockingFailure) {
             throw new IllegalStateException("Cannot start " + this + " because it is not valid: " + state.getValidationErrors());
         }
+    }
+
+    void markManagedFlowMissingAtStartup() {
+        managedFlowMissingAtStartup = true;
+    }
+
+    boolean isManagedFlowMissingAtStartup() {
+        return managedFlowMissingAtStartup;
+    }
+
+    private String getManagedFlowMissingAtStartupReason() {
+        return "Cannot start " + this + " because its managed flow was not installed while it was ghosted; "
+            + "restart NiFi so queued FlowFiles rejoin the restored connections before starting";
     }
 
     @Override
@@ -1340,8 +1464,19 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             return quickReason;
         }
 
-        // After confirming all components are stopped or disabled, check if the managed flow can be safely reverted to the
-        // Connector's authoritative flow. This mirrors exactly what endTroubleshooting() will do so that any problem
+        // A pending upgrade does not run prepareForFlowEvolution. The user owns the flow while Troubleshooting, so every
+        // queue must already be empty before the upgraded flow is installed. This check comes before the flow comparison
+        // so a queue that the upgraded flow would keep is still rejected.
+        if (isPendingFlowEvolution()) {
+            final int queuedFlowFiles = getActiveFlowContext().getManagedProcessGroup().getQueueSize().getObjectCount();
+            if (queuedFlowFiles > 0) {
+                return Optional.of("The managed flow holds " + queuedFlowFiles
+                    + " FlowFiles; empty every queue before leaving Troubleshooting while an upgrade is pending");
+            }
+        }
+
+        // After confirming all components are stopped or disabled, check if the managed flow can be safely replaced by
+        // the Connector's authoritative flow. This mirrors exactly what endTroubleshooting() will do so that any problem
         // (e.g. a Connection whose contents cannot be preserved or a component that cannot be replaced) is reported
         // synchronously rather than surfacing halfway through the state change. This check is intentionally not run by
         // createEndTroubleshootingAction (which is called on every GET of the Connector entity) because it requires
@@ -1443,6 +1578,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         // Troubleshooting remain running; the user may stop individual components as needed in order to edit them, and
         // they must all be stopped/disabled before the Connector can leave Troubleshooting mode (enforced in
         // verifyCanEndTroubleshooting).
+        ensureAuthoritativeFlowSnapshot();
         stateTransition.setDesiredState(ConnectorState.TROUBLESHOOTING);
         stateTransition.setCurrentState(ConnectorState.TROUBLESHOOTING);
     }
@@ -1465,7 +1601,10 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         // authoritative flow are resolved against the currently-available bundles. This mirrors how the initial flow
         // is applied in initializeConnector and avoids failing validation when the Connector hard-codes a bundle
         // version that differs from the currently-installed NAR (which is common in test Connectors).
+        // A pending upgrade installs this flow directly. prepareForFlowEvolution is not called: the queues were
+        // required to be empty, and the loaded bundle is captured so the evolution is no longer pending.
         initializationContext.updateFlow(activeFlowContext, flowToApply, BundleCompatibility.RESOLVE_BUNDLE);
+        installAuthoritativeSnapshot(createAuthoritativeSnapshot());
 
         stateTransition.setDesiredState(ConnectorState.STOPPED);
         stateTransition.setCurrentState(ConnectorState.STOPPED);
@@ -1510,10 +1649,19 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             replacement.initialize(replacementInitializationContext);
         }
 
+        // The snapshot keeps the outgoing flow, Parameter Context and managed-flow bundle across version changes, so a
+        // change to a different version leaves the flow evolution pending and a change back to the snapshot bundle clears it.
+        final ConnectorFlowSnapshot outgoingSnapshot = authoritativeFlowSnapshot;
+        final boolean replacementMissing = replacement instanceof GhostConnector;
+        final boolean restoreSnapshotFlow = extensionMissing && !replacementMissing && outgoingSnapshot != null && outgoingSnapshot.flow() != null;
+
         final WorkingFlowContextState workingContextState = acquireWorkingFlowContext();
         final FrameworkFlowContext workingContext = workingContextState.getContext();
         final MutableConnectorConfigurationContext originalWorkingConfigurationContext = workingContext == null ? null : workingContext.getConfigurationContext();
-        final Map<String, StepConfiguration> originalActiveConfiguration = toConfigurationMap(activeFlowContext.getConfigurationContext().toConnectorConfiguration());
+        final ConnectorConfiguration outgoingActiveConfiguration = restoreSnapshotFlow && outgoingSnapshot.activeConfiguration() != null
+            ? outgoingSnapshot.activeConfiguration()
+            : activeFlowContext.getConfigurationContext().toConnectorConfiguration();
+        final Map<String, StepConfiguration> originalActiveConfiguration = toConfigurationMap(outgoingActiveConfiguration);
         final Map<String, StepConfiguration> originalWorkingConfiguration = originalWorkingConfigurationContext == null ? originalActiveConfiguration
             : toConfigurationMap(originalWorkingConfigurationContext.toConnectorConfiguration());
         boolean workingContextReleased = false;
@@ -1533,13 +1681,28 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                 }
             }
 
+            if (restoreSnapshotFlow) {
+                // A missing Connector leaves the managed group empty, so the persisted flow is restored to reattach its queues
+                restorePersistedFlow(outgoingSnapshot.flow(), outgoingSnapshot.parameterContext(),
+                    outgoingSnapshot.parameterSecretReferences(), true);
+            }
+
             activeFlowContext.reload(bundle, replacementLog, replacementActiveConfiguration);
 
             connectorDetails = new ConnectorDetails(replacement, replacementCoordinate, replacementLog);
             bundleCoordinate = replacementCoordinate;
-            extensionMissing = replacement instanceof GhostConnector;
+            extensionMissing = replacementMissing;
             componentType = extensionMissing ? "(Missing) " + getSimpleClassName(componentCanonicalClass) : replacement.getClass().getSimpleName();
             initializationContext = replacementInitializationContext;
+
+            // The loaded bundle and whether the extension is missing have changed, so the snapshot is installed again even when it is kept.
+            synchronized (flowEvolutionLock) {
+                final ConnectorFlowSnapshot replacementSnapshot = outgoingSnapshot == null || replacementMissing
+                    ? authoritativeFlowSnapshot
+                    : new ConnectorFlowSnapshot(outgoingSnapshot.flow(), outgoingSnapshot.parameterContext(), outgoingSnapshot.parameterSecretReferences(),
+                        outgoingSnapshot.bundle(), replacementActiveConfiguration.toConnectorConfiguration());
+                installAuthoritativeSnapshot(replacementSnapshot);
+            }
         } catch (final Throwable failure) {
             if (workingContextModified) {
                 releaseWorkingFlowContext(workingContextState);
@@ -1617,6 +1780,694 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     @Override
     public boolean isExtensionMissing() {
         return extensionMissing;
+    }
+
+    @Override
+    public boolean isPendingFlowEvolution() {
+        synchronized (flowEvolutionLock) {
+            if (extensionMissing) {
+                return false;
+            }
+
+            final ConnectorFlowSnapshot snapshot = authoritativeFlowSnapshot;
+            final Bundle snapshotBundle = snapshot == null ? null : snapshot.bundle();
+            return snapshotBundle != null && !sameBundle(snapshotBundle, bundleCoordinate);
+        }
+    }
+
+    @Override
+    public FlowEvolutionStatus getReportedFlowEvolutionStatus() {
+        return flowEvolutionProgress.get().reportedStatus();
+    }
+
+    private boolean hasCompletedFlowEvolutionHookProgress() {
+        return flowEvolutionProgress.get().drainStatus() == FlowEvolutionStatus.EVOLVE_DRAIN_COMPLETE;
+    }
+
+    boolean hasFlowEvolutionFailed() {
+        return flowEvolutionProgress.get().failureExplanation() != null;
+    }
+
+    private VersionedProcessGroup getAuthoritativeManagedProcessGroup() {
+        final ConnectorFlowSnapshot snapshot = authoritativeFlowSnapshot;
+        return snapshot == null ? null : snapshot.flow();
+    }
+
+    @Override
+    public ConnectorFlowSnapshot getAuthoritativeFlowSnapshot() {
+        return authoritativeFlowSnapshot;
+    }
+
+    @Override
+    public boolean restorePendingFlowEvolution(final VersionedConnector persisted, final List<VersionedConfigurationStep> activeConfiguration,
+            final List<VersionedConfigurationStep> workingConfiguration) throws FlowUpdateException {
+        final Bundle managedFlowBundle = resolveManagedFlowBundle(persisted);
+        final VersionedProcessGroup persistedManagedGroup = persisted.getManagedProcessGroup();
+        final Map<String, SecretReference> parameterSecretReferences = ParameterSecretReferences.convertManagedParameterSecretReferences(persisted);
+        // Components in the persisted group may name NAR versions that are no longer installed. A missing coordinate
+        // is rewritten only when exactly one compatible bundle is installed. A ghost has no initialization context,
+        // and its coordinates have to stay as persisted.
+        if (!extensionMissing) {
+            resolvePersistedBundles(persistedManagedGroup);
+        }
+
+        if (extensionMissing && persistedManagedGroup != null) {
+            // Adopt before inheritConfiguration. A flow save with no snapshot omits the managed group, and inherit
+            // rebuilds the live group before the persisted one is installed below.
+            adoptAuthoritativeSnapshot(persistedManagedGroup, persisted.getManagedParameterContext(), parameterSecretReferences, managedFlowBundle);
+            return false;
+        }
+
+        if (!extensionMissing && !sameManagedBundle(managedFlowBundle) && persistedManagedGroup != null) {
+            // Skip inheritConfiguration. Its applyUpdate would replace the pre-upgrade group with the new bundle's
+            // flow. The restored group keeps the previous bundle, so the next start evolves it.
+            restorePersistedFlow(persistedManagedGroup, persisted.getManagedParameterContext(), parameterSecretReferences, true);
+            loadConfigurationsWithoutRebuildingFlow(activeConfiguration, workingConfiguration);
+            adoptAuthoritativeSnapshot(persistedManagedGroup, persisted.getManagedParameterContext(), parameterSecretReferences, managedFlowBundle);
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public void restorePersistedManagedFlow(final VersionedConnector persisted) {
+        if (!extensionMissing) {
+            throw new IllegalStateException("Cannot restore the persisted managed flow for " + this + " because its extension is not missing");
+        }
+
+        final VersionedProcessGroup persistedManagedGroup = persisted.getManagedProcessGroup();
+        if (persistedManagedGroup == null) {
+            return;
+        }
+
+        final Bundle managedFlowBundle = resolveManagedFlowBundle(persisted);
+        final Map<String, SecretReference> parameterSecretReferences = ParameterSecretReferences.convertManagedParameterSecretReferences(persisted);
+
+        // Install the persisted flow while ghosted so queues exist before the FlowFile repository recovers.
+        // Components stay stopped: a ghost cannot start, and resuming would run them under a missing extension.
+        try {
+            restorePersistedFlow(persistedManagedGroup, persisted.getManagedParameterContext(), parameterSecretReferences, false);
+        } catch (final Exception e) {
+            logger.error("{} failed to restore the persisted managed flow while ghosted; "
+                    + "queued FlowFiles may not rejoin until NiFi restarts after the Connector becomes loadable again", this, e);
+            markManagedFlowMissingAtStartup();
+        }
+        adoptAuthoritativeSnapshot(persistedManagedGroup, persisted.getManagedParameterContext(), parameterSecretReferences, managedFlowBundle);
+    }
+
+    @Override
+    public void restoreTroubleshootingManagedFlow(final VersionedConnector persisted) throws FlowUpdateException {
+        final Bundle managedFlowBundle = resolveManagedFlowBundle(persisted);
+        final VersionedProcessGroup persistedManagedGroup = persisted.getManagedProcessGroup();
+        final Map<String, SecretReference> parameterSecretReferences = ParameterSecretReferences.convertManagedParameterSecretReferences(persisted);
+
+        if (extensionMissing && persistedManagedGroup != null) {
+            adoptAuthoritativeSnapshot(persistedManagedGroup, persisted.getManagedParameterContext(), parameterSecretReferences, managedFlowBundle);
+            restoreTroubleshootingFlow(persistedManagedGroup, persisted.getManagedParameterContext(), parameterSecretReferences);
+            return;
+        }
+
+        if (sameManagedBundle(managedFlowBundle) && persistedManagedGroup != null) {
+            try {
+                restorePersistedFlow(persistedManagedGroup, null, Map.of(), true);
+                adoptAuthoritativeSnapshot(persistedManagedGroup, persisted.getManagedParameterContext(), parameterSecretReferences, managedFlowBundle);
+            } catch (final Exception e) {
+                logger.error("{} failed to restore the managed flow while restoring Troubleshooting", this, e);
+                throw new FlowUpdateException("Failed to restore Managed Process Group from persisted flow: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    @Override
+    public void ensureAuthoritativeFlowSnapshot() {
+        if (getAuthoritativeManagedProcessGroup() != null || extensionMissing) {
+            return;
+        }
+
+        // Without a snapshot, a later NAR upgrade has no pre-upgrade flow to evolve.
+        verifyCanCaptureAuthoritativeSnapshot();
+        final ConnectorFlowSnapshot snapshot = createAuthoritativeSnapshot();
+
+        synchronized (flowEvolutionLock) {
+            // Another thread may have installed a snapshot, such as the pre-upgrade flow, while the live flow was being captured
+            if (getAuthoritativeManagedProcessGroup() != null) {
+                return;
+            }
+
+            verifyCanCaptureAuthoritativeSnapshot();
+            installAuthoritativeSnapshot(snapshot);
+        }
+    }
+
+    private void restoreTroubleshootingFlow(final VersionedProcessGroup persistedManagedGroup, final VersionedParameterContext parameterContext,
+            final Map<String, SecretReference> parameterSecretReferences) throws FlowUpdateException {
+        logger.info("{} was persisted in Troubleshooting mode; restoring Managed Process Group from persisted snapshot", this);
+        try {
+            restorePersistedFlow(persistedManagedGroup, parameterContext, parameterSecretReferences, false);
+        } catch (final Exception e) {
+            logger.error("{} failed to restore the managed flow while restoring Troubleshooting", this, e);
+            throw new FlowUpdateException("Failed to restore Managed Process Group from persisted flow: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * A group saved before managedFlowBundle existed is attributed to the connector bundle stored in the flow definition.
+     */
+    private static Bundle resolveManagedFlowBundle(final VersionedConnector versionedConnector) {
+        if (versionedConnector.getManagedFlowBundle() != null) {
+            return versionedConnector.getManagedFlowBundle();
+        }
+        if (versionedConnector.getManagedProcessGroup() != null) {
+            return versionedConnector.getBundle();
+        }
+        return null;
+    }
+
+    private boolean sameManagedBundle(final Bundle managedFlowBundle) {
+        if (managedFlowBundle == null || bundleCoordinate == null) {
+            return true;
+        }
+        return sameBundle(managedFlowBundle, bundleCoordinate);
+    }
+
+    /**
+     * Rewrites processor and controller service bundles in a persisted group to the only installed alternative when
+     * the exact coordinate is missing. A ghost Connector keeps the snapshot exactly as persisted.
+     */
+    void resolvePersistedBundles(final VersionedProcessGroup group) {
+        if (extensionMissing || group == null || initializationContext == null) {
+            return;
+        }
+
+        initializationContext.resolveBundles(group, BundleCompatibility.RESOLVE_BUNDLE);
+    }
+
+    void adoptAuthoritativeSnapshot(final VersionedProcessGroup flow, final VersionedParameterContext parameterContext,
+            final Map<String, SecretReference> parameterSecretReferences, final Bundle managedFlowBundle) {
+        installAuthoritativeSnapshot(new ConnectorFlowSnapshot(flow, parameterContext, parameterSecretReferences, managedFlowBundle,
+                activeFlowContext.getConfigurationContext().toConnectorConfiguration()));
+    }
+
+    void restorePersistedFlow(final VersionedProcessGroup flow, final VersionedParameterContext parameterContext,
+            final Map<String, SecretReference> parameterSecretReferences, final boolean resumeComponents) {
+        final ParameterSecretReferences.Resolution resolution = resolvePersistedParameterSecrets(parameterContext, parameterSecretReferences);
+        if (!resolution.undecryptableParameters().isEmpty()) {
+            logger.warn("{} could not decrypt the persisted values of sensitive parameters {}; components are left stopped", this, resolution.undecryptableParameters());
+        }
+
+        if (resumeComponents && unresolvedParameterSecretReferences.isEmpty() && resolution.undecryptableParameters().isEmpty()) {
+            activeFlowContext.restorePersistedFlow(flow, resolution.parameterContext());
+        } else {
+            activeFlowContext.restorePersistedFlow(flow, resolution.parameterContext(), false);
+        }
+    }
+
+    private ParameterSecretReferences.Resolution resolvePersistedParameterSecrets(final VersionedParameterContext parameterContext,
+            final Map<String, SecretReference> parameterSecretReferences) {
+        final ParameterSecretReferences.Resolution resolution = snapshotMapper.resolve(parameterContext, parameterSecretReferences, initializationContext.getSecretsManager());
+        unresolvedParameterSecretReferences = Map.copyOf(resolution.unresolvedReferences());
+        return resolution;
+    }
+
+    @Override
+    public void prepareFlowEvolution() {
+        synchronized (flowEvolutionLock) {
+            if (!isPendingFlowEvolution()) {
+                throw new IllegalStateException("Cannot prepare flow evolution for " + this + " because no evolution is pending");
+            }
+            // Hook progress outlives an attempt only once every node has drained, so the outgoing flow is no longer needed.
+            final boolean drainCompletedInEarlierAttempt = hasCompletedFlowEvolutionHookProgress();
+            if (!stateTransition.trySetCurrentState(ConnectorState.STOPPED, ConnectorState.DRAINING)
+                    && !stateTransition.trySetCurrentState(ConnectorState.UPDATE_FAILED, ConnectorState.DRAINING)) {
+                throw new IllegalStateException("Cannot prepare flow evolution for " + this + " from state " + getCurrentState());
+            }
+
+            flowEvolutionProgress.set(new FlowEvolutionProgress(drainCompletedInEarlierAttempt
+                    ? FlowEvolutionStatus.EVOLVE_DRAIN_COMPLETE
+                    : FlowEvolutionStatus.EVOLVE_DRAIN_PENDING, null));
+            final Bundle postUpgradeBundle = loadedBundle();
+            final ConnectorFlowSnapshot outgoingSnapshot = authoritativeFlowSnapshot;
+            final Bundle preUpgradeBundle = outgoingSnapshot == null || outgoingSnapshot.bundle() == null ? postUpgradeBundle : outgoingSnapshot.bundle();
+            final StandardFlowEvolutionContext context = new StandardFlowEvolutionContext(new PreUpgradeFlowContext(activeFlowContext, preUpgradeBundle), postUpgradeBundle);
+            flowEvolutionAttempt = new FlowEvolutionAttempt(context, drainCompletedInEarlierAttempt);
+            // Only a start request begins an evolution, so the connector is desired RUNNING while it drains and once the
+            // upgraded flow is applied. A node that joins while this connector is draining inherits the flow mapped from the
+            // desired state, so it also starts and enters the same evolution.
+            stateTransition.setDesiredState(ConnectorState.RUNNING);
+        }
+    }
+
+    private boolean isFlowEvolutionInProgress() {
+        synchronized (flowEvolutionLock) {
+            // Desired state cannot say this. stop() sets the desired state to STOPPED before it aborts the evolution.
+            // The drain status cannot say this either, because a pending evolution reports EVOLVE_DRAIN_PENDING before its attempt
+            // begins, while a user-requested drain may also be running.
+            final StandardFlowEvolutionContext context = currentFlowEvolutionContext();
+            return getCurrentState() == ConnectorState.DRAINING
+                    && context != null
+                    && !context.isFailed()
+                    && !hasFlowEvolutionFailed();
+        }
+    }
+
+    private void runFlowEvolutionPreflight(final StandardFlowEvolutionContext context) throws FlowUpdateException {
+        verifyFlowEvolutionContext(context);
+        if (!hasCompletedFlowEvolutionHookProgress()) {
+            refreshPreUpgradeParameterSecrets(context);
+        }
+
+        final List<ValidationResult> ghostResults = new ArrayList<>();
+        validateManagedFlowComponents(ghostResults);
+        if (!ghostResults.isEmpty()) {
+            final String explanation = ghostResults.getFirst().getExplanation();
+            failFlowEvolution(context, explanation, null);
+            throw new FlowUpdateException(explanation);
+        }
+
+        verifyFlowEvolutionContext(context);
+    }
+
+    private void refreshPreUpgradeParameterSecrets(final StandardFlowEvolutionContext context) throws FlowUpdateException {
+        final ConnectorFlowSnapshot snapshot = authoritativeFlowSnapshot;
+        if (snapshot == null || snapshot.parameterContext() == null) {
+            verifyFlowEvolutionContext(context);
+            unresolvedParameterSecretReferences = Map.of();
+            return;
+        }
+
+        final ParameterSecretReferences.Resolution resolution = snapshotMapper.resolve(
+            snapshot.parameterContext(), snapshot.parameterSecretReferences(), initializationContext.getSecretsManager());
+        if (!resolution.unresolvedReferences().isEmpty()) {
+            final Map.Entry<String, SecretReference> unresolved = resolution.unresolvedReferences().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .findFirst()
+                .orElseThrow();
+            final SecretReference reference = unresolved.getValue();
+            final String secretName = reference.getFullyQualifiedName() == null ? reference.getSecretName() : reference.getFullyQualifiedName();
+            final String explanation = "Flow evolution cannot start: secret [%s] used by parameter [%s] could not be resolved. "
+                .formatted(secretName, unresolved.getKey())
+                + "Restore the secret in its provider, then start the Connector to resume the upgrade.";
+            verifyFlowEvolutionContext(context);
+            unresolvedParameterSecretReferences = Map.copyOf(resolution.unresolvedReferences());
+            failFlowEvolution(context, explanation, null);
+            throw new FlowUpdateException(explanation);
+        }
+
+        verifyFlowEvolutionContext(context);
+        unresolvedParameterSecretReferences = Map.of();
+        if (!resolution.parameterValues().isEmpty()) {
+            activeFlowContext.getParameterContext().updateParameters(resolution.parameterValues());
+        }
+    }
+
+    @Override
+    public Future<Void> evolveFlow(final ExecutorService executor) throws FlowUpdateException {
+        Objects.requireNonNull(executor, "Executor Service is required");
+
+        synchronized (flowEvolutionLock) {
+            final StandardFlowEvolutionContext context = currentFlowEvolutionContext();
+            verifyFlowEvolutionContext(context);
+            final FlowEvolutionAttempt attempt = flowEvolutionAttempt;
+            if (attempt.evolveFuture != null) {
+                return attempt.evolveFuture;
+            }
+
+            attempt.evolveFuture = executor.submit(() -> {
+                runEvolveDrainPhase(context);
+                return null;
+            });
+            return attempt.evolveFuture;
+        }
+    }
+
+    private void runEvolveDrainPhase(final StandardFlowEvolutionContext context) throws FlowUpdateException {
+        runFlowEvolutionPreflight(context);
+        if (hasCompletedFlowEvolutionHookProgress()) {
+            return;
+        }
+
+        verifyFlowEvolutionContext(context);
+        final CompletableFuture<Void> connectorFuture;
+        try {
+            connectorFuture = invokeFlowEvolutionHook(context);
+        } catch (final FlowUpdateException e) {
+            failFlowEvolution(context, e.getMessage(), e);
+            throw e;
+        }
+
+        try {
+            synchronized (flowEvolutionLock) {
+                verifyFlowEvolutionContext(context);
+                flowEvolutionAttempt.prepareFuture = connectorFuture;
+            }
+        } catch (final FlowUpdateException e) {
+            connectorFuture.cancel(true);
+            throw e;
+        }
+
+        try {
+            connectorFuture.get();
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new FlowUpdateException("Interrupted while waiting for flow evolution hook for " + this, e);
+        } catch (final CancellationException e) {
+            throw new FlowUpdateException("Flow evolution hook was cancelled for " + this, e);
+        } catch (final ExecutionException e) {
+            final Throwable cause = e.getCause() == null ? e : e.getCause();
+            failFlowEvolution(context, cause.getMessage(), cause);
+            throw new FlowUpdateException("Flow evolution hook failed for " + this, cause);
+        }
+
+        completeEvolveDrainPhase(context);
+    }
+
+    private void completeEvolveDrainPhase(final StandardFlowEvolutionContext context) throws FlowUpdateException {
+        // The hook may start processors so queues can empty. Those processors must be stopped before the upgraded
+        // flow is verified, so no FlowFile reaches a connection the upgraded flow removes after it has been checked.
+        verifyFlowEvolutionContext(context);
+        if (!stopPreUpgradeFlow()) {
+            failFlowEvolution(context, "Failed to stop the pre-upgrade flow", null);
+            throw new FlowUpdateException("Failed to stop the pre-upgrade flow for " + this);
+        }
+
+        verifyUpgradedFlow(context);
+
+        synchronized (flowEvolutionLock) {
+            verifyFlowEvolutionContext(context);
+            flowEvolutionProgress.updateAndGet(progress -> progress.withDrainStatus(FlowEvolutionStatus.EVOLVE_DRAIN_COMPLETE));
+        }
+    }
+
+    /**
+     * Fails the evolution if the upgraded flow cannot replace the active flow, for example because it removes a
+     * connection that still holds FlowFiles.
+     */
+    private void verifyUpgradedFlow(final StandardFlowEvolutionContext context) throws FlowUpdateException {
+        verifyFlowEvolutionContext(context);
+        final VersionedExternalFlow proposedFlow;
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getConnector().getClass().getClassLoader())) {
+            proposedFlow = getConnector().getActiveFlow(getWorkingFlowContext());
+        } catch (final Exception failure) {
+            failFlowEvolution(context, failure.getMessage(), failure);
+            throw new FlowUpdateException("Failed to determine the upgraded flow for " + this, failure);
+        }
+        if (proposedFlow == null || proposedFlow.getFlowContents() == null) {
+            failFlowEvolution(context, "Upgraded flow was not returned", null);
+            throw new FlowUpdateException("Upgraded flow was not returned for " + this);
+        }
+
+        verifyFlowEvolutionContext(context);
+        try {
+            activeFlowContext.verifyUpdateFlow(proposedFlow);
+        } catch (final FlowUpdateException e) {
+            failFlowEvolution(context, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    private void verifyFlowEvolutionContext(final StandardFlowEvolutionContext context) throws FlowUpdateException {
+        if (currentFlowEvolutionContext() != context || context == null || context.isFailed() || hasFlowEvolutionFailed() || getCurrentState() != ConnectorState.DRAINING) {
+            throw new FlowUpdateException("Flow evolution was cancelled for " + this);
+        }
+    }
+
+    /**
+     * @return the context of the current or most recent attempt, or null when no attempt has begun while the evolution is pending
+     */
+    private StandardFlowEvolutionContext currentFlowEvolutionContext() {
+        final FlowEvolutionAttempt attempt = flowEvolutionAttempt;
+        return attempt == null ? null : attempt.context;
+    }
+
+    private CompletableFuture<Void> invokeFlowEvolutionHook(final FlowEvolutionContext evolutionContext) throws FlowUpdateException {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getConnector().getClass().getClassLoader())) {
+            return Objects.requireNonNull(
+                    getConnector().prepareForFlowEvolution(evolutionContext),
+                    "Connector prepareForFlowEvolution must return a CompletableFuture");
+        }
+    }
+
+    /**
+     * {@link Connector#applyUpdate} must be safe to run again on a flow it has already partly updated, because a start
+     * after a failed apply resumes after the hook and applies again.
+     */
+    @Override
+    public void beginEvolvedFlowUpdate() throws FlowUpdateException {
+        // Checked again after the drain barrier because an attempt that resumes after the hook skips the evolve-drain phase, and the
+        // persisted flow is replaced once the upgraded flow is applied.
+        verifyUpgradedFlow(currentFlowEvolutionContext());
+
+        synchronized (flowEvolutionLock) {
+            if (!isFlowEvolutionInProgress() || !hasCompletedFlowEvolutionHookProgress()) {
+                throw new FlowUpdateException("Cannot apply the upgraded flow for " + this + " because the evolve-drain phase is not complete");
+            }
+
+            // Leaving DRAINING closes the evolution attempt, and prepareForUpdate follows as for any configuration update.
+            // The status stays EVOLVE_DRAIN_COMPLETE until the upgraded flow is applied so a peer still waiting on the drain
+            // barrier passes it. The desired state stays RUNNING, because only a start request begins an evolution.
+            stateTransition.setCurrentState(ConnectorState.PREPARING_FOR_UPDATE);
+        }
+    }
+
+    /**
+     * Marks this evolution failed and cancels its hook after releasing the evolution lock. The hook future is copied
+     * under the lock so a newer evolution is not cancelled. This does not cancel the evolve-drain task, because it runs
+     * on that task and cancelling it would interrupt the task before it stops the pre-upgrade flow.
+     *
+     * @param expectedContext the evolution to close
+     * @return false when the context is already closed or has been replaced
+     */
+    private boolean closeFlowEvolutionContext(final StandardFlowEvolutionContext expectedContext) {
+        final CompletableFuture<Void> prepareFuture;
+        synchronized (flowEvolutionLock) {
+            final FlowEvolutionAttempt attempt = flowEvolutionAttempt;
+            if (attempt == null || attempt.context.isFailed() || attempt.context != expectedContext) {
+                return false;
+            }
+
+            attempt.context.fail();
+            prepareFuture = attempt.prepareFuture;
+        }
+
+        cancel(prepareFuture);
+        return true;
+    }
+
+    /**
+     * Marks the current evolution failed and cancels its hook and evolve-drain task. The futures are copied under the
+     * evolution lock so a newer evolution started after this close is not cancelled.
+     */
+    private void closeCurrentFlowEvolution() {
+        final CompletableFuture<Void> prepareFuture;
+        final Future<Void> evolveDrainTask;
+        synchronized (flowEvolutionLock) {
+            final FlowEvolutionAttempt attempt = flowEvolutionAttempt;
+            if (attempt == null || attempt.context.isFailed()) {
+                return;
+            }
+
+            attempt.context.fail();
+            prepareFuture = attempt.prepareFuture;
+            evolveDrainTask = attempt.evolveFuture;
+        }
+
+        cancel(prepareFuture);
+        cancel(evolveDrainTask);
+    }
+
+    private void cancel(final Future<?> future) {
+        if (future != null) {
+            future.cancel(true);
+        }
+    }
+
+    private void failFlowEvolution(final StandardFlowEvolutionContext context, final String explanation, final Throwable cause) {
+        if (!closeFlowEvolutionContext(context)) {
+            return;
+        }
+
+        finishFlowEvolutionFailure(explanation, cause);
+    }
+
+    void failFlowEvolution(final String explanation, final Throwable cause) {
+        closeCurrentFlowEvolution();
+        finishFlowEvolutionFailure(explanation, cause);
+    }
+
+    /**
+     * Retries stopping the pre-upgrade flow after {@link #finishFlowEvolutionFailure} left the connector STOPPING.
+     * Completes pending stop futures and honors a desired RUNNING state when the stop succeeds.
+     */
+    void retryPreUpgradeStop(final FlowEngine scheduler) {
+        if (getCurrentState() != ConnectorState.STOPPING) {
+            return;
+        }
+
+        scheduler.schedule(() -> retryPreUpgradeStop(scheduler, 0), 0, TimeUnit.SECONDS);
+    }
+
+    private void retryPreUpgradeStop(final FlowEngine scheduler, final int attempt) {
+        if (getCurrentState() != ConnectorState.STOPPING) {
+            return;
+        }
+
+        if (stopPreUpgradeFlow()) {
+            synchronized (flowEvolutionLock) {
+                if (getCurrentState() != ConnectorState.STOPPING) {
+                    return;
+                }
+                stateTransition.setCurrentState(ConnectorState.STOPPED);
+            }
+            logger.info("Successfully stopped the pre-upgrade flow for {} after a failed evolution", this);
+
+            final ConnectorState desiredState = getDesiredState();
+            if (desiredState == ConnectorState.RUNNING) {
+                logger.info("{} was requested to be RUNNING while stopping the pre-upgrade flow so will attempt to start again", this);
+                start(scheduler, new CompletableFuture<>());
+            }
+            return;
+        }
+
+        final long delaySeconds = Math.min(60L, 1L << Math.min(attempt, 5));
+        logger.warn("Failed to stop the pre-upgrade flow for {}. Will try again in {} seconds", this, delaySeconds);
+        scheduler.schedule(() -> retryPreUpgradeStop(scheduler, attempt + 1), delaySeconds, TimeUnit.SECONDS);
+    }
+
+    private void finishFlowEvolutionFailure(final String explanation, final Throwable cause) {
+        if (!hasCompletedFlowEvolutionHookProgress() && !stopPreUpgradeFlow()) {
+            publishFlowEvolutionFailure(explanation, cause);
+            synchronized (flowEvolutionLock) {
+                stateTransition.setDesiredState(ConnectorState.STOPPED);
+                stateTransition.setCurrentState(ConnectorState.STOPPING);
+            }
+            return;
+        }
+
+        publishFlowEvolutionFailure(explanation, cause);
+        synchronized (flowEvolutionLock) {
+            stateTransition.setDesiredState(ConnectorState.STOPPED);
+            stateTransition.setCurrentState(ConnectorState.STOPPED);
+            // A peer may not have drained yet, so the next attempt drains again. An attempt that started after this
+            // node's drain had already completed keeps that progress, because the drain barrier may already have passed
+            // and the upgraded flow may have been partly applied.
+            final FlowEvolutionAttempt attempt = flowEvolutionAttempt;
+            if (attempt == null || !attempt.drainCompletedInEarlierAttempt) {
+                flowEvolutionProgress.updateAndGet(progress -> progress.drainStatus() == FlowEvolutionStatus.EVOLVE_DRAIN_COMPLETE
+                        ? progress.withDrainStatus(FlowEvolutionStatus.EVOLVE_DRAIN_PENDING)
+                        : progress);
+            }
+        }
+    }
+
+    private void publishFlowEvolutionFailure(final String explanation, final Throwable cause) {
+        final String concreteExplanation = explanation == null || explanation.isBlank()
+                ? cause == null ? "Unknown flow evolution failure" : cause.getClass().getSimpleName()
+                : explanation;
+        final FlowEvolutionProgress previous = flowEvolutionProgress.getAndUpdate(progress -> progress.failureExplanation() == null
+                ? new FlowEvolutionProgress(progress.drainStatus(), concreteExplanation)
+                : progress);
+        final boolean published = previous.failureExplanation() == null;
+        if (published) {
+            getComponentLog().error("Flow evolution failed: {}", concreteExplanation, cause);
+        }
+    }
+
+    private static boolean isBlockingValidationFailure(final ValidationResult result) {
+        return !result.isValid() && !isFlowEvolutionFailure(result);
+    }
+
+    private static boolean isFlowEvolutionFailure(final ValidationResult result) {
+        return FLOW_EVOLUTION_VALIDATION_SUBJECT.equals(result.getSubject());
+    }
+
+    private static ValidationResult createFlowEvolutionFailure(final String explanation) {
+        return new ValidationResult.Builder()
+            .subject(FLOW_EVOLUTION_VALIDATION_SUBJECT)
+            .valid(false)
+            .explanation(explanation)
+            .build();
+    }
+
+    /**
+     * @return whether the pre-upgrade flow stopped
+     */
+    private boolean stopPreUpgradeFlow() {
+        try {
+            final CompletableFuture<Void> stopped = activeFlowContext.getRootGroup().getLifecycle().stop();
+            if (stopped != null) {
+                stopped.get(1, TimeUnit.MINUTES);
+            }
+            return true;
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn("Interrupted while stopping the pre-upgrade flow for {}", this, e);
+            return false;
+        } catch (final Exception e) {
+            logger.warn("Failed to stop the pre-upgrade flow for {}", this, e);
+            return false;
+        }
+    }
+
+    /**
+     * Captures the live flow outside the evolution lock, because capturing resolves secrets, then installs it under the lock
+     * after checking again that it may be installed.
+     */
+    void captureAuthoritativeSnapshot() {
+        verifyCanCaptureAuthoritativeSnapshot();
+        final ConnectorFlowSnapshot snapshot = createAuthoritativeSnapshot();
+
+        synchronized (flowEvolutionLock) {
+            verifyCanCaptureAuthoritativeSnapshot();
+            installAuthoritativeSnapshot(snapshot);
+        }
+    }
+
+    private void verifyCanCaptureAuthoritativeSnapshot() {
+        // Applying the upgraded flow after the evolve-drain phase records the new bundle, which is what ends the pending evolution.
+        if (isPendingFlowEvolution() && !hasCompletedFlowEvolutionHookProgress()) {
+            throw new IllegalStateException("Cannot capture an authoritative snapshot for " + this + " while flow evolution is pending");
+        }
+    }
+
+    /**
+     * Installs the snapshot and brings the drain status in line with whether an evolution is now pending. This is the only
+     * writer of the snapshot. It must also be called, with the current snapshot, whenever the loaded bundle or whether the
+     * extension is missing changes.
+     */
+    private void installAuthoritativeSnapshot(final ConnectorFlowSnapshot snapshot) {
+        synchronized (flowEvolutionLock) {
+            authoritativeFlowSnapshot = snapshot;
+
+            // Once the snapshot records the loaded bundle no evolution is pending, so no attempt is open and neither its drain progress
+            // nor its failure applies.
+            if (!isPendingFlowEvolution()) {
+                flowEvolutionProgress.set(FlowEvolutionProgress.NONE);
+                flowEvolutionAttempt = null;
+                return;
+            }
+
+            // A node that still has the outgoing flow reports it as pending even before its own attempt begins, so a peer
+            // does not apply the upgraded flow while this node may still need to drain.
+            flowEvolutionProgress.updateAndGet(progress -> progress.drainStatus() == FlowEvolutionStatus.INACTIVE
+                    ? progress.withDrainStatus(FlowEvolutionStatus.EVOLVE_DRAIN_PENDING)
+                    : progress);
+        }
+    }
+
+    private ConnectorFlowSnapshot createAuthoritativeSnapshot() {
+        return snapshotMapper.capture(activeFlowContext, loadedBundle(), initializationContext.getSecretsManager());
+    }
+
+    private Bundle loadedBundle() {
+        return new Bundle(bundleCoordinate.getGroup(), bundleCoordinate.getId(), bundleCoordinate.getVersion());
+    }
+
+    private static boolean sameBundle(final Bundle bundle, final BundleCoordinate coordinate) {
+        return coordinate != null
+                && Objects.equals(bundle.getGroup(), coordinate.getGroup())
+                && Objects.equals(bundle.getArtifact(), coordinate.getId())
+                && Objects.equals(bundle.getVersion(), coordinate.getVersion());
     }
 
     @Override
@@ -2556,14 +3407,22 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         } else if (!stopped) {
             allowed = false;
             reason = "Connector is not stopped";
+        } else if (isExtensionMissing()) {
+            allowed = false;
+            reason = "Connector's extension is missing";
+        } else if (managedFlowMissingAtStartup) {
+            allowed = false;
+            reason = getManagedFlowMissingAtStartupReason();
         } else {
             final Collection<ValidationResult> validationResults = getValidationErrors();
-            if (validationResults.isEmpty()) {
+            final boolean blockingFailure = validationResults.stream().anyMatch(StandardConnectorNode::isBlockingValidationFailure);
+            if (!blockingFailure) {
                 allowed = true;
                 reason = null;
             } else {
                 allowed = false;
                 reason = "Connector is not valid: " + validationResults.stream()
+                    .filter(StandardConnectorNode::isBlockingValidationFailure)
                     .map(ValidationResult::getExplanation)
                     .collect(Collectors.joining("; "));
             }
@@ -2787,18 +3646,25 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
     @Override
     public ValidationStatus getValidationStatus() {
-        return validationState.get().getStatus();
+        return getValidationState().getStatus();
     }
 
     @Override
     public ValidationState getValidationState() {
-        return validationState.get();
+        final ValidationState current = validationState.get();
+        final String failureExplanation = flowEvolutionProgress.get().failureExplanation();
+        if (failureExplanation == null) {
+            return current;
+        }
+
+        final List<ValidationResult> errors = new ArrayList<>(current.getValidationErrors());
+        errors.add(createFlowEvolutionFailure(failureExplanation));
+        return new ValidationState(ValidationStatus.INVALID, errors);
     }
 
     @Override
     public Collection<ValidationResult> getValidationErrors() {
-        final ValidationState state = validationState.get();
-        return state.getValidationErrors();
+        return getValidationState().getValidationErrors();
     }
 
     @Override
@@ -2849,17 +3715,18 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             }
 
             validationState.set(resultState);
+            final ValidationState published = getValidationState();
 
-            if (resultState.getStatus() == ValidationStatus.VALID) {
+            if (published.getStatus() == ValidationStatus.VALID) {
                 logger.info("Validation completed for {}. Connector is valid.", this);
             } else {
                 logger.info("Validation completed for {}. Connector is invalid: {}", this,
-                    resultState.getValidationErrors().stream()
+                    published.getValidationErrors().stream()
                         .map(ValidationResult::getExplanation)
                         .collect(Collectors.joining("; ")));
             }
 
-            return resultState;
+            return published;
         }
     }
 
@@ -3049,6 +3916,42 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         }
 
         return allowableValues;
+    }
+
+    /**
+     * Progress through a pending flow evolution. The drain status is kept when the evolution fails, so a retry knows whether
+     * this node has already drained the outgoing flow.
+     *
+     * @param drainStatus {@link FlowEvolutionStatus#INACTIVE} when no evolution is pending, otherwise this node's evolve-drain progress
+     * @param failureExplanation why the evolution failed, or null when it has not failed
+     */
+    private record FlowEvolutionProgress(FlowEvolutionStatus drainStatus, String failureExplanation) {
+        private static final FlowEvolutionProgress NONE = new FlowEvolutionProgress(FlowEvolutionStatus.INACTIVE, null);
+
+        FlowEvolutionStatus reportedStatus() {
+            return failureExplanation == null ? drainStatus : FlowEvolutionStatus.FAILED;
+        }
+
+        FlowEvolutionProgress withDrainStatus(final FlowEvolutionStatus status) {
+            return new FlowEvolutionProgress(status, failureExplanation);
+        }
+    }
+
+    /**
+     * One attempt at a pending flow evolution. The futures are each set at most once per attempt, and are read and written
+     * only while holding the evolution lock, so closing the attempt cancels this attempt's work and never a newer attempt's.
+     */
+    private static final class FlowEvolutionAttempt {
+        private final StandardFlowEvolutionContext context;
+        // Whether this node had already drained the outgoing flow when the attempt began
+        private final boolean drainCompletedInEarlierAttempt;
+        private CompletableFuture<Void> prepareFuture;
+        private Future<Void> evolveFuture;
+
+        private FlowEvolutionAttempt(final StandardFlowEvolutionContext context, final boolean drainCompletedInEarlierAttempt) {
+            this.context = context;
+            this.drainCompletedInEarlierAttempt = drainCompletedInEarlierAttempt;
+        }
     }
 
     private static final class WorkingFlowContextState {

@@ -17,6 +17,7 @@
 
 package org.apache.nifi.tests.system.connectors;
 
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
@@ -108,6 +109,20 @@ public class ConnectorParameterContextIT extends NiFiSystemIT {
 
         assertEquals(SENSITIVE_SECRET_VALUE, sensitiveContent, "Sensitive output file should contain the secret value");
         assertEquals(ASSET_FILE_CONTENT, assetContent, "Asset output file should contain the asset file contents");
+
+        // A same-bundle restart resumes the Connector with its sensitive and asset parameters still resolved
+        getNiFiInstance().stop();
+        assertTrue(sensitiveOutputFile.delete());
+        assertTrue(assetOutputFile.delete());
+        getNiFiInstance().start();
+        if (getNumberOfNodes() > 1) {
+            waitForAllNodesConnected();
+        }
+
+        getClientUtil().waitForConnectorState(connectorId, ConnectorState.RUNNING);
+        waitFor(() -> sensitiveOutputFile.exists() && assetOutputFile.exists());
+        assertEquals(SENSITIVE_SECRET_VALUE, Files.readString(sensitiveOutputFile.toPath()).trim());
+        assertEquals(ASSET_FILE_CONTENT, Files.readString(assetOutputFile.toPath()).trim());
     }
 
     private ConnectorValueReferenceDTO createStringLiteralRef(final String value) {

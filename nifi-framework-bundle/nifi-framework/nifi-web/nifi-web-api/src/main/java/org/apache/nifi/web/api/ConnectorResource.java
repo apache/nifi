@@ -696,6 +696,9 @@ public class ConnectorResource extends ApplicationResource {
         requestRunStatus.validateState();
 
         if (isReplicateRequest()) {
+            if (ScheduledState.RUNNING.name().equals(requestRunStatus.getState()) && getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                populateExpectedBundle(id, requestRunStatus);
+            }
             return replicate(HttpMethod.PUT, requestRunStatus);
         } else if (isDisconnectedFromCluster()) {
             verifyDisconnectedNodeModification(requestRunStatus.isDisconnectedNodeAcknowledged());
@@ -713,7 +716,7 @@ public class ConnectorResource extends ApplicationResource {
                     final Authorizable connector = lookup.getConnector(id);
                     OperationAuthorizable.authorizeOperation(connector, authorizer, user);
                 },
-                () -> serviceFacade.verifyUpdateConnector(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
+                () -> serviceFacade.verifyUpdateConnector(createDTOWithDesiredRunStatus(id, requestRunStatus.getState(), requestRunStatus.getExpectedBundle())),
                 (revision, runStatusEntity) -> {
                     // update the connector
                     final ScheduledState scheduledState = ScheduledState.valueOf(runStatusEntity.getState());
@@ -723,6 +726,19 @@ public class ConnectorResource extends ApplicationResource {
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    /**
+     * Fills the coordinator's loaded bundle onto the run-status request so each node can reject a START in the
+     * validation phase when its own loaded bundle differs. Avoids an extra replicated GET.
+     */
+    private void populateExpectedBundle(final String connectorId, final ConnectorRunStatusEntity requestRunStatus) {
+        final ConnectorEntity localConnector = serviceFacade.getConnector(connectorId);
+        if (localConnector == null || localConnector.getComponent() == null || localConnector.getComponent().getBundle() == null) {
+            return;
+        }
+
+        requestRunStatus.setExpectedBundle(localConnector.getComponent().getBundle());
     }
 
     /**
@@ -1793,10 +1809,11 @@ public class ConnectorResource extends ApplicationResource {
         return noCache(Response.ok(entity)).build();
     }
 
-    private ConnectorDTO createDTOWithDesiredRunStatus(final String id, final String runStatus) {
+    private ConnectorDTO createDTOWithDesiredRunStatus(final String id, final String runStatus, final BundleDTO expectedBundle) {
         final ConnectorDTO dto = new ConnectorDTO();
         dto.setId(id);
         dto.setState(runStatus);
+        dto.setExpectedBundle(expectedBundle);
         return dto;
     }
 

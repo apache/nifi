@@ -23,6 +23,7 @@ import org.apache.nifi.components.connector.components.ParameterContextFacade;
 import org.apache.nifi.components.connector.components.ProcessGroupFacade;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
@@ -33,6 +34,7 @@ import java.util.Map;
 
 public class StandardFlowContext implements FrameworkFlowContext {
     private final ProcessGroup managedProcessGroup;
+    private final AssetManager assetManager;
     private final ProcessGroupFacadeFactory groupFacadeFactory;
     private final ParameterContextFacadeFactory parameterContextFacadeFactory;
     private final FlowContextType flowContextType;
@@ -44,8 +46,14 @@ public class StandardFlowContext implements FrameworkFlowContext {
                 final ProcessGroupFacadeFactory groupFacadeFactory, final ParameterContextFacadeFactory parameterContextFacadeFactory,
                 final ComponentLog connectorLog, final FlowContextType flowContextType,
                 final Bundle bundle) {
+        this(managedProcessGroup, configurationContext, null, groupFacadeFactory, parameterContextFacadeFactory, connectorLog, flowContextType, bundle);
+    }
 
+    public StandardFlowContext(final ProcessGroup managedProcessGroup, final MutableConnectorConfigurationContext configurationContext, final AssetManager assetManager,
+                final ProcessGroupFacadeFactory groupFacadeFactory, final ParameterContextFacadeFactory parameterContextFacadeFactory, final ComponentLog connectorLog,
+                final FlowContextType flowContextType, final Bundle bundle) {
         this.managedProcessGroup = managedProcessGroup;
+        this.assetManager = assetManager;
         this.groupFacadeFactory = groupFacadeFactory;
         this.parameterContextFacadeFactory = parameterContextFacadeFactory;
         this.flowContextType = flowContextType;
@@ -79,7 +87,7 @@ public class StandardFlowContext implements FrameworkFlowContext {
         try {
             managedProcessGroup.verifyCanUpdate(versionedExternalFlow, true, false);
         } catch (final IllegalStateException e) {
-            throw new FlowUpdateException("Flow is not in a state that allows the requested update", e);
+            throw new FlowUpdateException("Flow is not in a state that allows the requested update: " + e.getMessage(), e);
         }
     }
 
@@ -105,23 +113,55 @@ public class StandardFlowContext implements FrameworkFlowContext {
         parameterContext = parameterContextFacadeFactory.create(managedProcessGroup);
     }
 
+    /**
+     * Restores a persisted flow into the managed process group, keeping component identifiers so queued FlowFiles
+     * reattach. When {@code parameterContext} is non-null its values are applied to the managed parameter context.
+     * Components resume according to the Process Group's auto-resume setting.
+     */
     @Override
-    public void restoreTroubleshootingFlow(final VersionedProcessGroup troubleshootingProcessGroup) {
+    public void restorePersistedFlow(final VersionedProcessGroup persistedFlow, final VersionedParameterContext parameterContext) {
+        final VersionedExternalFlow externalFlow = toExternalFlow(persistedFlow, parameterContext);
+        managedProcessGroup.restoreFlowPreservingIdentifiers(externalFlow);
+        finishRestorePersistedFlow(externalFlow, parameterContext);
+    }
+
+    /**
+     * Restores a persisted flow into the managed process group, keeping component identifiers so queued FlowFiles
+     * reattach. When {@code resumeComponentState} is false, components are left stopped.
+     */
+    @Override
+    public void restorePersistedFlow(final VersionedProcessGroup persistedFlow, final VersionedParameterContext parameterContext, final boolean resumeComponentState) {
+        final VersionedExternalFlow externalFlow = toExternalFlow(persistedFlow, parameterContext);
+        managedProcessGroup.restoreFlowPreservingIdentifiers(externalFlow, resumeComponentState);
+        finishRestorePersistedFlow(externalFlow, parameterContext);
+    }
+
+    private VersionedExternalFlow toExternalFlow(final VersionedProcessGroup persistedFlow, final VersionedParameterContext parameterContext) {
         final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
-        externalFlow.setFlowContents(troubleshootingProcessGroup);
-        externalFlow.setParameterContexts(Map.of());
+        externalFlow.setFlowContents(persistedFlow);
+        if (parameterContext == null) {
+            externalFlow.setParameterContexts(Map.of());
+        } else {
+            externalFlow.setParameterContexts(Map.of(parameterContext.getIdentifier(), parameterContext));
+        }
 
         final ParameterContext managedGroupParameterContext = managedProcessGroup.getParameterContext();
         if (managedGroupParameterContext != null) {
-            updateParameterContextNames(troubleshootingProcessGroup, managedGroupParameterContext.getName());
+            updateParameterContextNames(persistedFlow, managedGroupParameterContext.getName());
         }
+        return externalFlow;
+    }
 
-        managedProcessGroup.restoreFlowPreservingIdentifiers(externalFlow);
-
+    private void finishRestorePersistedFlow(final VersionedExternalFlow externalFlow, final VersionedParameterContext parameterContext) {
         final ReloadableState currentState = reloadableState;
         final ProcessGroupFacade rootGroup = groupFacadeFactory.create(managedProcessGroup, currentState.connectorLog());
         reloadableState = new ReloadableState(currentState.configurationContext(), currentState.connectorLog(), currentState.bundle(), rootGroup);
-        parameterContext = parameterContextFacadeFactory.create(managedProcessGroup);
+        this.parameterContext = parameterContextFacadeFactory.create(managedProcessGroup);
+
+        if (parameterContext != null && parameterContext.getParameters() != null) {
+            final ConnectorParameterLookup parameterLookup = new ConnectorParameterLookup(externalFlow.getParameterContexts().values(), assetManager);
+            getParameterContext().updateParameters(parameterLookup.getParameterValues());
+        }
     }
 
     private void updateParameterContextNames(final VersionedProcessGroup group, final String parameterContextName) {

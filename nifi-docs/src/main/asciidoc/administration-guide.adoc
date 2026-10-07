@@ -3920,6 +3920,16 @@ The NiFi Registry NAR provider retrieves NARs from a NiFi Registry instance. In 
 |`nifi.nar.library.provider.nifi-registry.url`| The URL of the NiFi Registry instance, such as `http://localhost:18080`. If the URL begins with `https`, then the NiFi keystore and truststore will be used to make the TLS connection.
 |====
 
+[[connector_properties]]
+=== Connector Properties
+
+These properties configure how NiFi manages Connectors. For what flow evolution is and how it runs, see <<developer-guide.adoc#connector_flow_evolution,Connector Flow Evolution>> in the Developer's Guide.
+
+|====
+|*Property*|*Description*
+|`nifi.connector.flow.evolution.timeout`|How long a Connector may spend draining its outgoing flow in `prepareForFlowEvolution`. Waiting for other cluster nodes to finish their drain is not limited by this timeout. Accepts any NiFi time duration value such as `30 mins`. The default value is `30 mins`. A timeout leaves the Connector stopped and still pending.
+|====
+
 [[secrets_manager_properties]]
 === Secrets Manager Properties
 

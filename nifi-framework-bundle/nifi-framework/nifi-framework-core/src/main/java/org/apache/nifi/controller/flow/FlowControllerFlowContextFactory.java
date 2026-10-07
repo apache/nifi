@@ -71,8 +71,8 @@ public class FlowControllerFlowContextFactory implements FlowContextFactory {
 
     @Override
     public FrameworkFlowContext createActiveFlowContext(final String connectorId, final ComponentLog connectorLogger, final Bundle bundle) {
-        return new StandardFlowContext(activeManagedProcessGroup, activeConfigurationContext, processGroupFacadeFactory,
-            parameterContextFacadeFactory, connectorLogger, FlowContextType.ACTIVE, bundle);
+        return new StandardFlowContext(activeManagedProcessGroup, activeConfigurationContext, flowController.getConnectorAssetManager(),
+            processGroupFacadeFactory, parameterContextFacadeFactory, connectorLogger, FlowContextType.ACTIVE, bundle);
     }
 
     @Override
@@ -85,8 +85,8 @@ public class FlowControllerFlowContextFactory implements FlowContextFactory {
 
         final MutableConnectorConfigurationContext workingConfigurationContext = activeConfigurationContext.clone();
 
-        return new StandardFlowContext(processGroup, workingConfigurationContext, processGroupFacadeFactory,
-            parameterContextFacadeFactory, connectorLogger, FlowContextType.WORKING, bundle);
+        return new StandardFlowContext(processGroup, workingConfigurationContext, flowController.getConnectorAssetManager(),
+            processGroupFacadeFactory, parameterContextFacadeFactory, connectorLogger, FlowContextType.WORKING, bundle);
     }
 
     private void copyGroupContents(final ProcessGroup sourceGroup, final ProcessGroup destinationGroup, final String componentIdSeed) {
