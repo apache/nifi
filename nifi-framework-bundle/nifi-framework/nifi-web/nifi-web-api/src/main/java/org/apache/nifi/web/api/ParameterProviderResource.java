@@ -46,6 +46,7 @@ import org.apache.nifi.authorization.AuthorizeComponentAnalysis;
 import org.apache.nifi.authorization.AuthorizeComponentReference;
 import org.apache.nifi.authorization.AuthorizeConfigVerification;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.AuthorizeParameterProviderApply;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
@@ -915,6 +916,9 @@ public class ParameterProviderResource extends AbstractParameterResource {
             security = {
                     @SecurityRequirement(name = "Read - /parameter-providers/{parameterProviderId}"),
                     @SecurityRequirement(name = "Write - /parameter-providers/{parameterProviderId}"),
+                    @SecurityRequirement(name = "Write - /parameter-contexts - when applying creates a new Parameter Context"),
+                    @SecurityRequirement(name = "Read - for every Parameter Context that is affected by the update"),
+                    @SecurityRequirement(name = "Write - for every Parameter Context that is affected by the update"),
                     @SecurityRequirement(name = "Read - for every component that is affected by the update"),
                     @SecurityRequirement(name = "Write - for every component that is affected by the update")
             }
@@ -952,35 +956,30 @@ public class ParameterProviderResource extends AbstractParameterResource {
         // 1. Determine which components will be affected and are enabled/running
         // 2. Verify READ and WRITE permissions for user, for every component that is affected
         // 3. Verify READ and WRITE permissions for user, for each referenced Parameter Context
-        // 4. Stop all Processors that are affected.
-        // 5. Wait for all of the Processors to finish stopping.
-        // 6. Disable all Controller Services that are affected.
-        // 7. Wait for all Controller Services to finish disabling.
-        // 8. Update Parameter Contexts with fetched parameters from the Parameter Provider
-        // 9. Re-Enable all affected Controller Services
-        // 10. Re-Start all Processors
+        // 4. Verify WRITE permission for Parameter Contexts when a new Parameter Context must be created
+        // 5. Create any required Parameter Contexts
+        // 6. Stop all Processors that are affected.
+        // 7. Wait for all of the Processors to finish stopping.
+        // 8. Disable all Controller Services that are affected.
+        // 9. Wait for all Controller Services to finish disabling.
+        // 10. Update Parameter Contexts with fetched parameters from the Parameter Provider
+        // 11. Re-Enable all affected Controller Services
+        // 12. Re-Start all Processors
 
         final Collection<ParameterGroupConfiguration> parameterGroupConfigurations = getParameterGroupConfigurations(requestEntity.getParameterGroupConfigurations());
         validateParameterGroupConfigurations(parameterProviderId, parameterGroupConfigurations, user);
-        parameterGroupConfigurations.stream()
-                .filter(parameterGroupConfiguration -> requiresNewParameterContext(parameterGroupConfiguration, user))
-                .forEach(parameterGroupConfiguration -> {
-                    final ParameterContextEntity newParameterContext = getNewParameterContextEntity(parameterProviderId, parameterGroupConfiguration);
-                    try {
-                        performParameterContextCreate(user, getAbsolutePath(), replicateRequest, newParameterContext);
-                    } catch (final LifecycleManagementException e) {
-                        throw new RuntimeException("Failed to create Parameter Context " + parameterGroupConfiguration.getGroupName(), e);
-                    }
-                });
 
-        // Get a list of parameter context entities representing changes needed in order to apply the fetched parameters
+        final boolean requiresParameterContextCreation = parameterGroupConfigurations.stream()
+                .anyMatch(parameterGroupConfiguration -> requiresNewParameterContext(parameterGroupConfiguration, user));
+
+        // Preliminary updates for Parameter Contexts that already exist. New Parameter Contexts are created only after authorization.
         final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, parameterGroupConfigurations);
 
         final Set<AffectedComponentEntity> affectedComponents = getAffectedComponentEntities(parameterContextUpdates);
         logger.debug("Received Apply Request for Parameter Provider: {}; the following {} components will be affected: {}", requestEntity, affectedComponents.size(), affectedComponents);
 
         final InitiateParameterProviderApplyParametersRequestWrapper requestWrapper = new InitiateParameterProviderApplyParametersRequestWrapper(parameterProviderId,
-                parameterContextUpdates, componentLifecycle, getAbsolutePath(), affectedComponents, replicateRequest, user);
+                parameterGroupConfigurations, componentLifecycle, getAbsolutePath(), replicateRequest, user);
 
         final Revision requestRevision = getRevision(requestEntity.getRevision(), parameterProviderId);
         return withWriteLock(
@@ -988,15 +987,13 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 requestWrapper,
                 requestRevision,
                 lookup -> {
-                    // Verify READ permissions for user, for the Parameter Provider itself
-                    final ComponentAuthorizable parameterProvider = lookup.getParameterProvider(parameterProviderId);
-                    parameterProvider.getAuthorizable().authorize(authorizer, RequestAction.READ, user);
-
-                    parameterContextUpdates.forEach(context -> {
-                        final Authorizable parameterContext = lookup.getParameterContext(context.getComponent().getId());
-                        parameterContext.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-                        parameterContext.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                    });
+                    AuthorizeParameterProviderApply.authorizeApplyParameters(
+                            parameterProviderId,
+                            requiresParameterContextCreation,
+                            parameterContextUpdates,
+                            authorizer,
+                            lookup, user
+                    );
 
                     // Verify READ and WRITE permissions for user, for every component that is affected
                     affectedComponents.forEach(component -> parameterUpdateManager.authorizeAffectedComponent(component, lookup, user, true, true));
@@ -1584,19 +1581,49 @@ public class ParameterProviderResource extends AbstractParameterResource {
     }
 
     private Response submitApplyRequest(final Revision requestRevision, final InitiateParameterProviderApplyParametersRequestWrapper requestWrapper) {
+        final String parameterProviderId = requestWrapper.getParameterProviderId();
+        final NiFiUser user = requestWrapper.getUser();
+        final Collection<ParameterGroupConfiguration> parameterGroupConfigurations = requestWrapper.getParameterGroupConfigurations();
+
+        final List<ParameterGroupConfiguration> parameterGroupConfigurationsToCreate = parameterGroupConfigurations.stream()
+                .filter(parameterGroupConfiguration -> requiresNewParameterContext(parameterGroupConfiguration, user))
+                .toList();
+
+        // Authorize Parameter Context creation against the current flow state before creating, then create.
+        if (!parameterGroupConfigurationsToCreate.isEmpty()) {
+            serviceFacade.authorizeAccess(lookup -> lookup.getParameterContexts().authorize(authorizer, RequestAction.WRITE, user));
+
+            for (final ParameterGroupConfiguration parameterGroupConfiguration : parameterGroupConfigurationsToCreate) {
+                final ParameterContextEntity newParameterContext = getNewParameterContextEntity(parameterProviderId, parameterGroupConfiguration);
+                try {
+                    performParameterContextCreate(user, requestWrapper.getExampleUri(), requestWrapper.isReplicateRequest(), newParameterContext);
+                } catch (final LifecycleManagementException e) {
+                    throw new RuntimeException("Failed to create Parameter Context " + parameterGroupConfiguration.getGroupName(), e);
+                }
+            }
+        }
+
+        final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, parameterGroupConfigurations);
+        final Set<AffectedComponentEntity> affectedComponents = getAffectedComponentEntities(parameterContextUpdates);
+
+        // Authorize the Parameter Contexts and affected components that will actually be updated after any creates.
+        serviceFacade.authorizeAccess(lookup -> {
+            AuthorizeParameterProviderApply.authorizeApplyParameters(parameterProviderId, false, parameterContextUpdates, authorizer, lookup, user);
+            affectedComponents.forEach(component -> parameterUpdateManager.authorizeAffectedComponent(component, lookup, user, true, true));
+        });
+
         // Create an asynchronous request that will occur in the background, because this request may
         // result in stopping components, which can take an indeterminate amount of time.
         final String requestId = UUID.randomUUID().toString();
-        final String parameterProviderId = requestWrapper.getParameterProviderId();
 
         final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> request = new StandardAsynchronousWebRequest<>(
-                requestId, requestWrapper.getParameterContextEntities(), parameterProviderId, requestWrapper.getUser(), getUpdateSteps());
+                requestId, parameterContextUpdates, parameterProviderId, user, getUpdateSteps());
 
         // Submit the request to be performed in the background
         final Consumer<AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>>> updateTask = asyncRequest -> {
             try {
                 final List<ParameterContextEntity> updatedParameterContextEntities = parameterUpdateManager.updateParameterContexts(asyncRequest, requestWrapper.getComponentLifecycle(),
-                        requestWrapper.getExampleUri(), requestWrapper.getReferencingComponents(), requestWrapper.isReplicateRequest(), requestRevision, requestWrapper.getParameterContextEntities());
+                        requestWrapper.getExampleUri(), affectedComponents, requestWrapper.isReplicateRequest(), requestRevision, parameterContextUpdates);
 
                 asyncRequest.markStepComplete(updatedParameterContextEntities);
             } catch (final ResumeFlowException rfe) {
@@ -1697,22 +1724,21 @@ public class ParameterProviderResource extends AbstractParameterResource {
 
     private static class InitiateParameterProviderApplyParametersRequestWrapper extends Entity {
         private final String parameterProviderId;
-        private final List<ParameterContextEntity> parameterContextEntities;
+        private final Collection<ParameterGroupConfiguration> parameterGroupConfigurations;
         private final ComponentLifecycle componentLifecycle;
         private final URI exampleUri;
-        private final Set<AffectedComponentEntity> affectedComponents;
         private final boolean replicateRequest;
         private final NiFiUser nifiUser;
 
-        public InitiateParameterProviderApplyParametersRequestWrapper(final String parameterProviderId, final List<ParameterContextEntity> parameterContextEntities,
+        public InitiateParameterProviderApplyParametersRequestWrapper(final String parameterProviderId,
+                                                                      final Collection<ParameterGroupConfiguration> parameterGroupConfigurations,
                                                                       final ComponentLifecycle componentLifecycle,
-                                                                      final URI exampleUri, final Set<AffectedComponentEntity> affectedComponents, final boolean replicateRequest,
+                                                                      final URI exampleUri, final boolean replicateRequest,
                                                                       final NiFiUser nifiUser) {
             this.parameterProviderId = parameterProviderId;
-            this.parameterContextEntities = parameterContextEntities;
+            this.parameterGroupConfigurations = parameterGroupConfigurations;
             this.componentLifecycle = componentLifecycle;
             this.exampleUri = exampleUri;
-            this.affectedComponents = affectedComponents;
             this.replicateRequest = replicateRequest;
             this.nifiUser = nifiUser;
         }
@@ -1721,8 +1747,8 @@ public class ParameterProviderResource extends AbstractParameterResource {
             return parameterProviderId;
         }
 
-        public List<ParameterContextEntity> getParameterContextEntities() {
-            return parameterContextEntities;
+        public Collection<ParameterGroupConfiguration> getParameterGroupConfigurations() {
+            return parameterGroupConfigurations;
         }
 
         public ComponentLifecycle getComponentLifecycle() {
@@ -1731,10 +1757,6 @@ public class ParameterProviderResource extends AbstractParameterResource {
 
         public URI getExampleUri() {
             return exampleUri;
-        }
-
-        public Set<AffectedComponentEntity> getReferencingComponents() {
-            return affectedComponents;
         }
 
         public boolean isReplicateRequest() {
