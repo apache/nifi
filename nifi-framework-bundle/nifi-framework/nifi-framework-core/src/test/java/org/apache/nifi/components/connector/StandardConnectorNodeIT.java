@@ -82,6 +82,7 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolationsManager;
 import org.junit.jupiter.api.AfterEach;
@@ -173,6 +174,7 @@ public class StandardConnectorNodeIT {
         when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
         when(flowController.getValidationTrigger()).thenReturn(mock(ValidationTrigger.class));
         when(flowController.getConnectorValidationTrigger()).thenReturn(mock(ConnectorValidationTrigger.class));
+        when(flowController.getPropertyEncryptionProvider()).thenReturn(new InternalPassThroughPropertyEncryptionProvider());
 
         doAnswer(invocation -> {
             return createConnection(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2), invocation.getArgument(3), invocation.getArgument(4));

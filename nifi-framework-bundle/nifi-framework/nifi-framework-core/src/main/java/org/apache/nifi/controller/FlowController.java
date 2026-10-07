@@ -424,6 +424,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     private volatile boolean shutdown = false;
 
+    private volatile FlowService flowService;
+
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final TimedLock readLock = new TimedLock(rwLock.readLock(), "FlowControllerReadLock", 1);
     private final TimedLock writeLock = new TimedLock(rwLock.writeLock(), "FlowControllerWriteLock", 1);
@@ -971,6 +973,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final String syncTimeoutValue = properties.getProperty(NiFiProperties.CONNECTOR_SYNC_TIMEOUT, NiFiProperties.DEFAULT_CONNECTOR_SYNC_TIMEOUT);
             final long syncTimeoutMillis = FormatUtils.getTimeDuration(syncTimeoutValue, TimeUnit.MILLISECONDS);
             final Duration connectorSyncTimeout = Duration.ofMillis(syncTimeoutMillis);
+            final String evolutionTimeoutValue = properties.getProperty(NiFiProperties.CONNECTOR_FLOW_EVOLUTION_TIMEOUT, NiFiProperties.DEFAULT_CONNECTOR_FLOW_EVOLUTION_TIMEOUT);
+            final long evolutionTimeoutMillis = FormatUtils.getTimeDuration(evolutionTimeoutValue, TimeUnit.MILLISECONDS);
 
             final ConnectorRepositoryInitializationContext initializationContext = new StandardConnectorRepoInitializationContext(
                 flowManager,
@@ -980,7 +984,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 nodeTypeProvider,
                 requestReplicator,
                 connectorConfigurationProvider,
-                connectorSyncTimeout
+                connectorSyncTimeout,
+                Duration.ofMillis(evolutionTimeoutMillis)
             );
 
             synchronized (created) {
@@ -1606,7 +1611,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                             continue;
                         }
 
-                        connectorRepository.startConnector(connectorNode);
+                        connectorRepository.startConnector(connectorNode, this::saveFlowAfterConnectorEvolution);
                     } catch (final Throwable t) {
                         LOG.error("Unable to start {}", connectorNode, t);
                     }
@@ -2049,6 +2054,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             if (loadBalanceClientRegistry != null) {
                 loadBalanceClientRegistry.stop();
             }
+
+            connectorRepository.shutdown();
 
             if (processScheduler != null) {
                 processScheduler.shutdown();
@@ -2520,17 +2527,30 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
     }
 
+    public void setFlowService(final FlowService flowService) {
+        this.flowService = flowService;
+    }
+
     public void startConnector(final ConnectorNode connectorNode) {
         writeLock.lock();
         try {
             if (initialized.get()) {
-                connectorRepository.startConnector(connectorNode);
+                connectorRepository.startConnector(connectorNode, this::saveFlowAfterConnectorEvolution);
             } else {
                 startConnectorsAfterInitialization.add(connectorNode);
             }
         } finally {
             writeLock.unlock("startConnector");
         }
+    }
+
+    private void saveFlowAfterConnectorEvolution() throws IOException {
+        final FlowService currentFlowService = flowService;
+        if (currentFlowService == null) {
+            throw new IllegalStateException("Cannot persist the flow because the Flow Service is not set");
+        }
+
+        currentFlowService.saveFlowChanges();
     }
 
     public boolean isInitialized() {

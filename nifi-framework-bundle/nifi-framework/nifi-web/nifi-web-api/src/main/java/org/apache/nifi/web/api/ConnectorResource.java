@@ -42,8 +42,10 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
+import jakarta.ws.rs.core.UriBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.asset.Asset;
@@ -61,6 +63,7 @@ import org.apache.nifi.cluster.coordination.http.replication.RequestReplicationH
 import org.apache.nifi.cluster.coordination.http.replication.UploadRequest;
 import org.apache.nifi.cluster.coordination.http.replication.UploadRequestReplicator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.manager.ConnectorEntityMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ScheduledState;
@@ -87,6 +90,7 @@ import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
+import org.apache.nifi.web.api.dto.ConnectorActionDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.MigrationPayloadDTO;
@@ -696,6 +700,9 @@ public class ConnectorResource extends ApplicationResource {
         requestRunStatus.validateState();
 
         if (isReplicateRequest()) {
+            if (ScheduledState.RUNNING.name().equals(requestRunStatus.getState()) && getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                verifyClusterLoadsSameBundle();
+            }
             return replicate(HttpMethod.PUT, requestRunStatus);
         } else if (isDisconnectedFromCluster()) {
             verifyDisconnectedNodeModification(requestRunStatus.isDisconnectedNodeAcknowledged());
@@ -723,6 +730,36 @@ public class ConnectorResource extends ApplicationResource {
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    /**
+     * Each node verifies a START against its own Connector only, so the merged Connector entity is consulted to reject a START
+     * while the nodes load different Connector versions.
+     */
+    private void verifyClusterLoadsSameBundle() {
+        final URI runStatusUri = getAbsolutePath();
+        final String runStatusPath = runStatusUri.getPath();
+        final URI connectorUri = UriBuilder.fromUri(runStatusUri).replacePath(runStatusPath.substring(0, runStatusPath.lastIndexOf('/'))).build();
+
+        final NodeResponse nodeResponse;
+        try {
+            nodeResponse = replicateNodeResponse(connectorUri, HttpMethod.GET, new MultivaluedHashMap<>(), null);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while verifying the Connector version on each cluster node", e);
+        }
+
+        if (!(nodeResponse.getUpdatedEntity() instanceof final ConnectorEntity connectorEntity) || connectorEntity.getComponent() == null
+                || connectorEntity.getComponent().getAvailableActions() == null) {
+            return;
+        }
+
+        for (final ConnectorActionDTO action : connectorEntity.getComponent().getAvailableActions()) {
+            final String reason = action.getReasonNotAllowed();
+            if (reason != null && reason.startsWith(ConnectorEntityMerger.LOADED_BUNDLE_MISMATCH_REASON)) {
+                throw new IllegalStateException("Cannot start Connector " + connectorEntity.getId() + ". " + reason);
+            }
+        }
     }
 
     /**

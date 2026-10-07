@@ -14,3 +14,6 @@
 # limitations under the License.
 
 org.apache.nifi.processors.tests.system.FakeGenericProcessor
+org.apache.nifi.processors.tests.system.UpgradeDrainGenerate
+org.apache.nifi.processors.tests.system.UpgradeDrainRelay
+org.apache.nifi.processors.tests.system.UpgradeDrainTerminate

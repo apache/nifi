@@ -21,6 +21,7 @@ import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
@@ -45,16 +46,20 @@ public interface FrameworkFlowContext extends FlowContext {
     void verifyUpdateFlow(VersionedExternalFlow versionedExternalFlow) throws FlowUpdateException;
 
     /**
-     * Restores the contents of the Managed Process Group from a snapshot persisted while the Connector was in
-     * Troubleshooting mode. Unlike {@link #updateFlow(VersionedExternalFlow, AssetManager)}, this method does
-     * <em>not</em> call {@code ProcessGroup#verifyCanUpdate} and is intended for use only when restoring a Connector
-     * that was persisted while in Troubleshooting mode. The persisted user modifications are re-applied on top of the
-     * Connector's current Managed Process Group contents.
-     *
-     * @param troubleshootingProcessGroup the VersionedProcessGroup representing the Managed Process Group contents
-     *                                    persisted while the Connector was in Troubleshooting mode
+     * Restores a persisted authoritative flow into the managed process group, keeping component identifiers.
+     * Components resume according to the Process Group's auto-resume setting.
+     * @param persistedFlow the flow to restore
+     * @param parameterContext the parameter context that belonged to that flow, or null
      */
-    void restoreTroubleshootingFlow(VersionedProcessGroup troubleshootingProcessGroup);
+    void restorePersistedFlow(VersionedProcessGroup persistedFlow, VersionedParameterContext parameterContext);
+
+    /**
+     * Restores a persisted authoritative flow into the managed process group, keeping component identifiers.
+     * @param persistedFlow the flow to restore
+     * @param parameterContext the parameter context that belonged to that flow, or null
+     * @param resumeComponentState whether components should resume the running or enabled state captured in the snapshot
+     */
+    void restorePersistedFlow(VersionedProcessGroup persistedFlow, VersionedParameterContext parameterContext, boolean resumeComponentState);
 
     default void reload(final Bundle bundle, final ComponentLog connectorLog) {
         reload(bundle, connectorLog, getConfigurationContext());
