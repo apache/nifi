@@ -108,7 +108,7 @@ public final class AuthorizeConnectorConfigReferences {
             final NiFiUser user
     ) {
         if (assetReferences == null || assetReferences.isEmpty()) {
-            throw new IllegalArgumentException("Asset references must be specified when value type is ASSET_REFERENCE");
+            return;
         }
 
         for (final AssetReferenceDTO assetReference : assetReferences) {

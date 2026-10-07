@@ -154,30 +154,30 @@ class AuthorizeConnectorConfigReferencesTest {
     }
 
     @Test
-    void testRejectsNullAssetReferences() {
+    void testAllowsNullAssetReferences() {
         when(lookup.getConnector(eq(CONNECTOR_ID))).thenReturn(connectorAuthorizable);
 
         final ConnectorValueReferenceDTO valueReference = new ConnectorValueReferenceDTO();
         valueReference.setValueType(ConnectorValueType.ASSET_REFERENCE.toString());
         valueReference.setAssetReferences(null);
 
-        assertThrows(IllegalArgumentException.class,
-                () -> AuthorizeConnectorConfigReferences.authorize(authorizer, lookup, CONNECTOR_ID, configurationStepWithValue(valueReference)));
+        AuthorizeConnectorConfigReferences.authorize(authorizer, lookup, CONNECTOR_ID, configurationStepWithValue(valueReference));
 
+        verify(connectorAuthorizable).authorize(eq(authorizer), eq(RequestAction.WRITE), any());
         verify(lookup, never()).getConnectorAsset(any(), any());
     }
 
     @Test
-    void testRejectsEmptyAssetReferences() {
+    void testAllowsEmptyAssetReferences() {
         when(lookup.getConnector(eq(CONNECTOR_ID))).thenReturn(connectorAuthorizable);
 
         final ConnectorValueReferenceDTO valueReference = new ConnectorValueReferenceDTO();
         valueReference.setValueType(ConnectorValueType.ASSET_REFERENCE.toString());
         valueReference.setAssetReferences(List.of());
 
-        assertThrows(IllegalArgumentException.class,
-                () -> AuthorizeConnectorConfigReferences.authorize(authorizer, lookup, CONNECTOR_ID, configurationStepWithValue(valueReference)));
+        AuthorizeConnectorConfigReferences.authorize(authorizer, lookup, CONNECTOR_ID, configurationStepWithValue(valueReference));
 
+        verify(connectorAuthorizable).authorize(eq(authorizer), eq(RequestAction.WRITE), any());
         verify(lookup, never()).getConnectorAsset(any(), any());
     }
 
