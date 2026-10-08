@@ -391,8 +391,11 @@ public class MockConnectorPropertyConfiguration implements ConnectorPropertyConf
             if (Objects.equals(propertyName, newName)) {
                 return false;
             }
+            final boolean newNamePresent = properties.containsKey(newName);
             final ConnectorValueReference existing = properties.remove(propertyName);
-            properties.put(newName, existing);
+            if (!newNamePresent) {
+                properties.put(newName, existing);
+            }
             trackRenamed(stepName, propertyName, newName);
             return true;
         }

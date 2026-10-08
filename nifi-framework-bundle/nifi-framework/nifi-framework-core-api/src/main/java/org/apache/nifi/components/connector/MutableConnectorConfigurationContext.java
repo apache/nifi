@@ -50,6 +50,15 @@ public interface MutableConnectorConfigurationContext extends ConnectorConfigura
     ConfigurationUpdateResult replaceProperties(String stepName, StepConfiguration configuration);
 
     /**
+     * Replaces the complete configuration with the provided step configurations. All property values are resolved
+     * before the current configuration is modified, so a resolution failure leaves the current configuration intact.
+     *
+     * @param configuration complete configuration keyed by step name
+     * @return the result of the configuration update
+     */
+    ConfigurationUpdateResult replaceConfiguration(Map<String, StepConfiguration> configuration);
+
+    /**
      * Resolves all existing property values.
      */
     void resolvePropertyValues();

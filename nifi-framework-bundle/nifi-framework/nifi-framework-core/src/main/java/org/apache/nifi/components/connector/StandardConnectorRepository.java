@@ -60,8 +60,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class StandardConnectorRepository implements ConnectorRepository {
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectorRepository.class);
@@ -217,11 +215,34 @@ public class StandardConnectorRepository implements ConnectorRepository {
                 ? providerConfig.getName()
                 : versionedConnector.getName();
 
-        final List<VersionedConfigurationStep> effectiveWorkingConfig = (providerConfig != null && providerConfig.getWorkingFlowConfiguration() != null)
+        final boolean providerWorkingConfigurationSupplied = providerConfig != null && providerConfig.getWorkingFlowConfiguration() != null;
+        final List<VersionedConfigurationStep> persistedActiveConfig = versionedConnector.getActiveFlowConfiguration();
+        final List<VersionedConfigurationStep> persistedWorkingConfig = providerWorkingConfigurationSupplied
                 ? providerConfig.getWorkingFlowConfiguration()
                 : versionedConnector.getWorkingFlowConfiguration();
+        final List<VersionedConfigurationStep> effectiveActiveConfig;
+        final List<VersionedConfigurationStep> effectiveWorkingConfig;
+        try {
+            effectiveActiveConfig = connector.migrateConfiguration(persistedActiveConfig);
+            effectiveWorkingConfig = connector.migrateConfiguration(persistedWorkingConfig);
+        } catch (final RuntimeException e) {
+            logger.error("{} failed to migrate persisted configuration", connector, e);
+            connector.markInvalid("Flow Synchronization Failure", "Failed to migrate persisted configuration: " + e.getMessage());
+            return ConnectorSyncResult.failed(connector);
+        }
 
-        final List<VersionedConfigurationStep> effectiveActiveConfig = versionedConnector.getActiveFlowConfiguration();
+        final ConnectorWorkingConfiguration migratedProviderConfig;
+        if (providerWorkingConfigurationSupplied) {
+            if (isVersionedConfigurationUpdated(persistedWorkingConfig, effectiveWorkingConfig)) {
+                migratedProviderConfig = new ConnectorWorkingConfiguration();
+                migratedProviderConfig.setName(providerConfig.getName());
+                migratedProviderConfig.setWorkingFlowConfiguration(effectiveWorkingConfig);
+            } else {
+                migratedProviderConfig = null;
+            }
+        } else {
+            migratedProviderConfig = null;
+        }
 
         final VersionedConnectorState effectiveScheduledState = (directive.getScheduledStateOverride() != null)
                 ? directive.getScheduledStateOverride()
@@ -231,7 +252,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
         connector.setName(effectiveName);
 
         final boolean wasRunning = currentState == ConnectorState.RUNNING;
-        final boolean configChanged = isNewConnector || isConfigurationUpdated(connector, effectiveActiveConfig, effectiveWorkingConfig);
+        final boolean configChanged = isNewConnector
+                || currentState == ConnectorState.UPDATE_FAILED
+                || isConfigurationUpdated(connector, persistedActiveConfig, effectiveActiveConfig, persistedWorkingConfig, effectiveWorkingConfig);
         final boolean restoringTroubleshooting = effectiveScheduledState == VersionedConnectorState.TROUBLESHOOTING;
 
         // Configuration must be inherited even when the effective state is TROUBLESHOOTING. The Connector's managed
@@ -250,7 +273,10 @@ public class StandardConnectorRepository implements ConnectorRepository {
         if (configChanged || restoringTroubleshooting) {
             logger.info("{} configuration needs synchronization", connector);
             try {
-                inheritConfiguration(connector, effectiveActiveConfig, effectiveWorkingConfig, versionedConnector.getBundle());
+                // Inherit the persisted lists. migrateConfiguration has already produced the comparison and save
+                // forms; inheriting those forms would hide a step that migration removed, and a later load could not
+                // tell that step from one newly declared by this Connector version.
+                inheritConfiguration(connector, persistedActiveConfig, persistedWorkingConfig, versionedConnector.getBundle());
             } catch (final Exception e) {
                 logger.error("{} failed to inherit configuration", connector, e);
                 if (wasRunning) {
@@ -291,6 +317,8 @@ public class StandardConnectorRepository implements ConnectorRepository {
                 connector.restoreTroubleshootingState();
             }
 
+            saveMigratedWorkingConfiguration(connectorId, connector, migratedProviderConfig);
+
             // Asset cleanup is intentionally skipped while the Connector is in Troubleshooting mode. Troubleshooting is
             // a transient state in which the user may have uploaded Assets that the experimental flow does not yet
             // reference and may have temporarily removed references to the authoritative Assets. Deleting unreferenced
@@ -298,6 +326,8 @@ public class StandardConnectorRepository implements ConnectorRepository {
             // authoritative configuration change, which is only permitted once Troubleshooting mode has ended.
             return ConnectorSyncResult.syncedConfigUnchanged(connector, effectiveScheduledState);
         }
+
+        saveMigratedWorkingConfiguration(connectorId, connector, migratedProviderConfig);
 
         // Clean up assets after configuration has been inherited so that the Connector's flow contexts reflect the
         // synchronized configuration; performing this before synchronization would treat still-referenced assets as
@@ -313,6 +343,19 @@ public class StandardConnectorRepository implements ConnectorRepository {
         return configChanged
                 ? ConnectorSyncResult.synced(connector, effectiveScheduledState)
                 : ConnectorSyncResult.syncedConfigUnchanged(connector, effectiveScheduledState);
+    }
+
+    private void saveMigratedWorkingConfiguration(final String connectorId, final ConnectorNode connector,
+            final ConnectorWorkingConfiguration migratedProviderConfig) {
+        if (migratedProviderConfig == null) {
+            return;
+        }
+
+        try {
+            configurationProvider.save(connectorId, migratedProviderConfig);
+        } catch (final RuntimeException e) {
+            logger.warn("Failed to save migrated working configuration for {}; continuing with migrated in-memory configuration", connector, e);
+        }
     }
 
     private ConnectorNode ensureConnectorNodeExists(final VersionedConnector versionedConnector) {
@@ -379,89 +422,92 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     private boolean isConfigurationUpdated(final ConnectorNode existingConnector,
-                                           final List<VersionedConfigurationStep> effectiveActiveConfig,
-                                           final List<VersionedConfigurationStep> effectiveWorkingConfig) {
+            final List<VersionedConfigurationStep> persistedActiveConfig, final List<VersionedConfigurationStep> effectiveActiveConfig,
+            final List<VersionedConfigurationStep> persistedWorkingConfig, final List<VersionedConfigurationStep> effectiveWorkingConfig) {
         final ConnectorConfiguration activeConfig = existingConnector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration();
-        final boolean activeContextChanged = isConfigurationUpdated(activeConfig, effectiveActiveConfig);
+        final boolean activeContextChanged = isPersistedConfigurationUpdated(
+            activeConfig, persistedActiveConfig, effectiveActiveConfig, existingConnector.getConfigurationSteps());
 
         final ConnectorConfiguration workingConfig = existingConnector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
-        final boolean workingContextChanged = isConfigurationUpdated(workingConfig, effectiveWorkingConfig);
+        final boolean workingContextChanged = isPersistedConfigurationUpdated(
+            workingConfig, persistedWorkingConfig, effectiveWorkingConfig, existingConnector.getConfigurationSteps());
 
         return activeContextChanged || workingContextChanged;
     }
 
-    private boolean isConfigurationUpdated(final ConnectorConfiguration existingConfiguration, final List<VersionedConfigurationStep> versionedConfigurationSteps) {
-        if (versionedConfigurationSteps == null || versionedConfigurationSteps.isEmpty()) {
-            return existingConfiguration != null && !existingConfiguration.getNamedStepConfigurations().isEmpty();
-        }
-
-        final Set<NamedStepConfiguration> existingStepConfigurations = existingConfiguration.getNamedStepConfigurations();
-        if (existingStepConfigurations.size() != versionedConfigurationSteps.size()) {
-            return true;
-        }
-
-        final Map<String, NamedStepConfiguration> existingStepsByName = existingStepConfigurations.stream()
-                .collect(Collectors.toMap(NamedStepConfiguration::stepName, Function.identity()));
-
-        for (final VersionedConfigurationStep versionedStep : versionedConfigurationSteps) {
-            final NamedStepConfiguration existingStep = existingStepsByName.get(versionedStep.getName());
-            if (existingStep == null) {
-                return true;
-            }
-
-            if (isConfigurationStepUpdated(existingStep, versionedStep)) {
-                return true;
-            }
-        }
-
-        return false;
+    private boolean isVersionedConfigurationUpdated(final List<VersionedConfigurationStep> existingConfiguration,
+            final List<VersionedConfigurationStep> updatedConfiguration) {
+        final Map<String, StepConfiguration> existingSteps = toStepConfigurationMap(existingConfiguration);
+        final Map<String, StepConfiguration> updatedSteps = toStepConfigurationMap(updatedConfiguration);
+        return !existingSteps.equals(updatedSteps);
     }
 
-    private boolean isConfigurationStepUpdated(final NamedStepConfiguration existingStep, final VersionedConfigurationStep versionedStep) {
-        final Map<String, ConnectorValueReference> existingProperties = existingStep.configuration().getPropertyValues();
+    private boolean isPersistedConfigurationUpdated(final ConnectorConfiguration existingConfiguration,
+            final List<VersionedConfigurationStep> originalConfiguration, final List<VersionedConfigurationStep> migratedConfiguration,
+            final List<ConfigurationStep> configurationSteps) {
+        final Map<String, StepConfiguration> originalSteps = toStepConfigurationMap(originalConfiguration);
+        final Map<String, StepConfiguration> migratedSteps = toStepConfigurationMap(migratedConfiguration);
+        final Map<String, Map<String, String>> requiredDefaultsByStep = new HashMap<>();
+        if (configurationSteps != null) {
+            for (final ConfigurationStep configurationStep : configurationSteps) {
+                final Map<String, String> requiredDefaults = new HashMap<>();
+                for (final ConnectorPropertyGroup propertyGroup : configurationStep.getPropertyGroups()) {
+                    for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
+                        if (descriptor.isRequired() && descriptor.getDefaultValue() != null) {
+                            requiredDefaults.put(descriptor.getName(), descriptor.getDefaultValue());
+                        }
+                    }
+                }
 
-        final Map<String, VersionedConnectorValueReference> versionedProperties = versionedStep.getProperties();
-        if (versionedProperties == null || versionedProperties.isEmpty()) {
-            return existingProperties != null && !existingProperties.isEmpty();
-        }
-
-        if (existingProperties == null || existingProperties.size() != versionedProperties.size()) {
-            return true;
-        }
-
-        for (final Map.Entry<String, VersionedConnectorValueReference> versionedEntry : versionedProperties.entrySet()) {
-            final String propertyName = versionedEntry.getKey();
-            final VersionedConnectorValueReference versionedValueReference = versionedEntry.getValue();
-            final ConnectorValueReference existingValueReference = existingProperties.get(propertyName);
-
-            if (!valueReferencesEqual(versionedValueReference, existingValueReference)) {
-                return true;
+                requiredDefaultsByStep.put(configurationStep.getName(), requiredDefaults);
             }
         }
 
-        return false;
+        final Map<String, StepConfiguration> comparableExistingSteps = new HashMap<>();
+        for (final NamedStepConfiguration namedStepConfiguration : existingConfiguration.getNamedStepConfigurations()) {
+            final String stepName = namedStepConfiguration.stepName();
+            final StepConfiguration originalStep = originalSteps.get(stepName);
+            final Map<String, ConnectorValueReference> originalProperties = originalStep == null ? Map.of() : originalStep.getPropertyValues();
+            final StepConfiguration migratedStep = migratedSteps.get(stepName);
+            final Map<String, ConnectorValueReference> migratedProperties = migratedStep == null ? Map.of() : migratedStep.getPropertyValues();
+            final Map<String, String> requiredDefaults = requiredDefaultsByStep.getOrDefault(stepName, Map.of());
+            final Map<String, ConnectorValueReference> comparableProperties = new HashMap<>();
+            boolean frameworkDefaultRemoved = false;
+            for (final Map.Entry<String, ConnectorValueReference> propertyEntry : namedStepConfiguration.configuration().getPropertyValues().entrySet()) {
+                final String propertyName = propertyEntry.getKey();
+                final ConnectorValueReference propertyValue = propertyEntry.getValue();
+                final String requiredDefault = requiredDefaults.get(propertyName);
+                final boolean frameworkDefault = !originalProperties.containsKey(propertyName)
+                        && !migratedProperties.containsKey(propertyName)
+                        && requiredDefaults.containsKey(propertyName)
+                        && propertyValue instanceof StringLiteralValue stringLiteral
+                        && Objects.equals(requiredDefault, stringLiteral.getValue());
+                if (!frameworkDefault) {
+                    comparableProperties.put(propertyName, propertyValue);
+                } else {
+                    frameworkDefaultRemoved = true;
+                }
+            }
+
+            if (!comparableProperties.isEmpty() || migratedSteps.containsKey(stepName) || !frameworkDefaultRemoved) {
+                comparableExistingSteps.put(stepName, new StepConfiguration(comparableProperties));
+            }
+        }
+
+        return !comparableExistingSteps.equals(migratedSteps);
     }
 
-    private boolean valueReferencesEqual(final VersionedConnectorValueReference versionedReference, final ConnectorValueReference existingReference) {
-        if (versionedReference == null && existingReference == null) {
-            return true;
-        }
-        if (versionedReference == null || existingReference == null) {
-            return false;
+    private Map<String, StepConfiguration> toStepConfigurationMap(final List<VersionedConfigurationStep> configurationSteps) {
+        final Map<String, StepConfiguration> configurationByStep = new HashMap<>();
+        if (configurationSteps == null) {
+            return configurationByStep;
         }
 
-        final String versionedValueType = versionedReference.getValueType();
-        final String existingValueType = existingReference.getValueType().name();
-        if (!Objects.equals(versionedValueType, existingValueType)) {
-            return false;
+        for (final VersionedConfigurationStep configurationStep : configurationSteps) {
+            configurationByStep.put(configurationStep.getName(), toStepConfiguration(configurationStep));
         }
 
-        return switch (existingReference) {
-            case StringLiteralValue stringLiteral -> Objects.equals(stringLiteral.getValue(), versionedReference.getValue());
-            case AssetReference assetReference -> Objects.equals(assetReference.getAssetIdentifiers(), versionedReference.getAssetIds());
-            case SecretReference secretReference -> Objects.equals(secretReference.getProviderId(), versionedReference.getProviderId())
-                    && Objects.equals(secretReference.getSecretName(), versionedReference.getSecretName());
-        };
+        return configurationByStep;
     }
 
     @Override
@@ -1085,18 +1131,12 @@ public class StandardConnectorRepository implements ConnectorRepository {
         // converted into the in-memory ConnectorValueReference graph.
         resolveSecretReferencesFromProvider(workingFlowConfiguration);
 
-        // Replace each step's working configuration on the connector. Routing through the connector
-        // (rather than touching the configuration context directly) ensures it is notified via
-        // onConfigurationStepConfigured when raw or resolved property values changed, so the embedded
-        // flow's Parameter Context picks up new values (e.g., rotated secrets) without an explicit save.
-        for (final VersionedConfigurationStep step : workingFlowConfiguration) {
-            final StepConfiguration stepConfiguration = toStepConfiguration(step);
-            try {
-                connector.replaceWorkingConfiguration(step.getName(), stepConfiguration);
-            } catch (final Exception e) {
-                logger.warn("Failed to replace working configuration for step [{}] on {} during sync from provider; continuing with remaining steps",
-                        step.getName(), connector, e);
-            }
+        // Replace the complete working configuration on the connector. Routing through the connector
+        // applies property migration and required defaults in memory without writing to the provider.
+        try {
+            connector.replaceWorkingConfiguration(workingFlowConfiguration);
+        } catch (final Exception e) {
+            logger.warn("Failed to replace working configuration on {} during sync from provider", connector, e);
         }
     }
 

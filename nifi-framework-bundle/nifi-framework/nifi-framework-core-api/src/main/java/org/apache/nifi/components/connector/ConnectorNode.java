@@ -315,6 +315,24 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      */
     void replaceWorkingConfiguration(String configurationStepName, StepConfiguration configuration) throws FlowUpdateException;
 
+    /**
+     * Migrates the supplied persisted configuration to the property and step names declared by the current Connector
+     * without applying framework-provided defaults.
+     *
+     * @param flowConfiguration persisted configuration
+     * @return migrated persisted configuration
+     */
+    List<VersionedConfigurationStep> migrateConfiguration(List<VersionedConfigurationStep> flowConfiguration);
+
+    /**
+     * Replaces the complete working configuration using an externally managed snapshot. Connector property migration
+     * and framework-provided required defaults are applied before the configuration is installed.
+     *
+     * @param workingFlowConfiguration externally managed working configuration
+     * @throws FlowUpdateException if unable to apply the configuration changes
+     */
+    void replaceWorkingConfiguration(List<VersionedConfigurationStep> workingFlowConfiguration) throws FlowUpdateException;
+
     void transitionStateForUpdating();
 
     void prepareForUpdate() throws FlowUpdateException;

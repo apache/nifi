@@ -479,26 +479,43 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
     private Map<String, StepConfiguration> migrateProperties(final List<VersionedConfigurationStep> flowConfiguration) {
         // Preserve persisted step order so the notifyStepConfigured loop in inheritConfiguration fires in a
-        // deterministic order matching the flow definition.
+        // deterministic order matching the flow definition. A serialized flow omits a configuration list that was
+        // never written, so a missing list is an empty configuration.
+        final List<VersionedConfigurationStep> persistedConfiguration = flowConfiguration == null ? List.of() : flowConfiguration;
         final Map<String, StepConfiguration> initial = new LinkedHashMap<>();
-        for (final VersionedConfigurationStep versionedConfigStep : flowConfiguration) {
+        for (final VersionedConfigurationStep versionedConfigStep : persistedConfiguration) {
             initial.put(versionedConfigStep.getName(), new StepConfiguration(toValueReferenceMap(versionedConfigStep)));
         }
 
         final Set<String> persistedStepNames = new LinkedHashSet<>(initial.keySet());
+        final Map<String, StepConfiguration> migratedProperties = migratePersistedProperties(initial);
+        return applyMissingRequiredPropertyDefaults(migratedProperties, persistedStepNames, getConnector().getConfigurationSteps());
+    }
+
+    private Map<String, StepConfiguration> migratePersistedProperties(final Map<String, StepConfiguration> initial) {
         final StandardConnectorPropertyConfiguration propertyConfiguration = new StandardConnectorPropertyConfiguration(initial, this.toString());
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             getConnector().migrateProperties(propertyConfiguration);
-            return applyMissingRequiredPropertyDefaults(propertyConfiguration.getMutatedProperties(), persistedStepNames, getConnector().getConfigurationSteps());
+            return retainDeclaredProperties(propertyConfiguration.getMutatedProperties(), getConnector().getConfigurationSteps());
         }
+    }
+
+    @Override
+    public List<VersionedConfigurationStep> migrateConfiguration(final List<VersionedConfigurationStep> flowConfiguration) {
+        final List<VersionedConfigurationStep> persistedConfiguration = flowConfiguration == null ? List.of() : flowConfiguration;
+        final Map<String, StepConfiguration> initial = new LinkedHashMap<>();
+        for (final VersionedConfigurationStep versionedConfigStep : persistedConfiguration) {
+            initial.put(versionedConfigStep.getName(), new StepConfiguration(toValueReferenceMap(versionedConfigStep)));
+        }
+
+        return toVersionedConfigurationSteps(migratePersistedProperties(initial));
     }
 
     /**
      * Fills in the default value for any required property that has no value in the migrated configuration, so a NAR
      * upgrade that adds a required property with a default does not make the Connector invalid. A step the Connector
-     * removed during migration (present in {@code persistedStepNames} but absent from {@code migratedProperties}) is
-     * not re-created; a declared step in neither is newly added by this version and is created, but only if at least
-     * one required default applies to it.
+     * removes during migration is not re-created. A declared step that is absent from both the persisted and migrated
+     * configurations is newly added by this version and is created, but only if at least one required default applies.
      */
     private Map<String, StepConfiguration> applyMissingRequiredPropertyDefaults(final Map<String, StepConfiguration> migratedProperties,
             final Set<String> persistedStepNames, final List<ConfigurationStep> configurationSteps) {
@@ -537,6 +554,53 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         return propertiesWithDefaults;
     }
 
+    private Map<String, StepConfiguration> retainDeclaredProperties(final Map<String, StepConfiguration> migratedProperties,
+            final List<ConfigurationStep> configurationSteps) {
+        if (configurationSteps == null || configurationSteps.isEmpty()) {
+            return migratedProperties;
+        }
+
+        final Map<String, Set<String>> declaredPropertyNamesByStep = new LinkedHashMap<>();
+        for (final ConfigurationStep configurationStep : configurationSteps) {
+            final Set<String> declaredPropertyNames = new HashSet<>();
+            for (final ConnectorPropertyGroup propertyGroup : configurationStep.getPropertyGroups()) {
+                for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
+                    declaredPropertyNames.add(descriptor.getName());
+                }
+            }
+
+            declaredPropertyNamesByStep.put(configurationStep.getName(), declaredPropertyNames);
+        }
+
+        final Map<String, StepConfiguration> retainedProperties = new LinkedHashMap<>();
+        for (final Map.Entry<String, StepConfiguration> entry : migratedProperties.entrySet()) {
+            final String stepName = entry.getKey();
+            final Set<String> declaredPropertyNames = declaredPropertyNamesByStep.get(stepName);
+            if (declaredPropertyNames == null) {
+                logger.debug("Dropped configuration step [{}] from {} because it is not declared by the current Connector version", stepName, this);
+                continue;
+            }
+
+            final StepConfiguration stepConfiguration = entry.getValue();
+            final Map<String, ConnectorValueReference> existingValues = stepConfiguration.getPropertyValues();
+            final Map<String, ConnectorValueReference> retainedValues = new LinkedHashMap<>();
+            for (final Map.Entry<String, ConnectorValueReference> propertyEntry : existingValues.entrySet()) {
+                if (declaredPropertyNames.contains(propertyEntry.getKey())) {
+                    retainedValues.put(propertyEntry.getKey(), propertyEntry.getValue());
+                } else {
+                    logger.debug("Dropped property [{}] of configuration step [{}] from {} because it is not declared by the current Connector version",
+                        propertyEntry.getKey(), stepName, this);
+                }
+            }
+
+            retainedProperties.put(stepName, retainedValues.size() == existingValues.size()
+                ? stepConfiguration
+                : new StepConfiguration(retainedValues));
+        }
+
+        return retainedProperties;
+    }
+
     private Map<String, ConnectorValueReference> toValueReferenceMap(final VersionedConfigurationStep step) {
         final Map<String, ConnectorValueReference> convertedProperties = new HashMap<>();
         if (step.getProperties() != null) {
@@ -545,6 +609,23 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             }
         }
         return convertedProperties;
+    }
+
+    private List<VersionedConfigurationStep> toVersionedConfigurationSteps(final Map<String, StepConfiguration> configuration) {
+        final List<VersionedConfigurationStep> versionedSteps = new ArrayList<>();
+        for (final Map.Entry<String, StepConfiguration> entry : configuration.entrySet()) {
+            final Map<String, VersionedConnectorValueReference> versionedProperties = new LinkedHashMap<>();
+            for (final Map.Entry<String, ConnectorValueReference> propertyEntry : entry.getValue().getPropertyValues().entrySet()) {
+                versionedProperties.put(propertyEntry.getKey(), createVersionedValueReference(propertyEntry.getValue()));
+            }
+
+            final VersionedConfigurationStep versionedStep = new VersionedConfigurationStep();
+            versionedStep.setName(entry.getKey());
+            versionedStep.setProperties(versionedProperties);
+            versionedSteps.add(versionedStep);
+        }
+
+        return versionedSteps;
     }
 
     private MutableConnectorConfigurationContext createConfigurationContext(final Map<String, StepConfiguration> migratedConfiguration) {
@@ -566,6 +647,22 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             case SECRET_REFERENCE -> new SecretReference(versionedReference.getProviderId(), versionedReference.getProviderName(),
                 versionedReference.getSecretName(), versionedReference.getFullyQualifiedSecretName());
         };
+    }
+
+    private VersionedConnectorValueReference createVersionedValueReference(final ConnectorValueReference valueReference) {
+        final VersionedConnectorValueReference versionedReference = new VersionedConnectorValueReference();
+        versionedReference.setValueType(valueReference.getValueType().name());
+        switch (valueReference) {
+            case StringLiteralValue stringLiteral -> versionedReference.setValue(stringLiteral.getValue());
+            case AssetReference assetReference -> versionedReference.setAssetIds(assetReference.getAssetIdentifiers());
+            case SecretReference secretReference -> {
+                versionedReference.setProviderId(secretReference.getProviderId());
+                versionedReference.setProviderName(secretReference.getProviderName());
+                versionedReference.setSecretName(secretReference.getSecretName());
+                versionedReference.setFullyQualifiedSecretName(secretReference.getFullyQualifiedName());
+            }
+        }
+        return versionedReference;
     }
 
     @Override
@@ -600,10 +697,13 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             getConnector().applyUpdate(contextToInherit, activeFlowContext);
 
             // Update the active flow context based on the properties of the provided context, as the connector has now been updated.
+            // The supplied context is the complete configuration, so a step it does not contain has been removed.
             final ConnectorConfiguration workingConfig = contextToInherit.getConfigurationContext().toConnectorConfiguration();
+            final Map<String, StepConfiguration> inheritedConfiguration = new LinkedHashMap<>();
             for (final NamedStepConfiguration stepConfig : workingConfig.getNamedStepConfigurations()) {
-                activeFlowContext.getConfigurationContext().replaceProperties(stepConfig.stepName(), stepConfig.configuration());
+                inheritedConfiguration.put(stepConfig.stepName(), stepConfig.configuration());
             }
+            activeFlowContext.getConfigurationContext().replaceConfiguration(inheritedConfiguration);
 
             getComponentLog().info("Working Context has been applied to Active Context");
 
@@ -728,6 +828,84 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             notifyStepConfigured(stepName, workingContext);
         } finally {
             releaseWorkingFlowContext(workingContextState);
+        }
+    }
+
+    @Override
+    public void replaceWorkingConfiguration(final List<VersionedConfigurationStep> workingFlowConfiguration) throws FlowUpdateException {
+        final Map<String, StepConfiguration> migratedConfiguration = migrateProperties(workingFlowConfiguration);
+        final Set<String> stepsToNotify = new LinkedHashSet<>(migratedConfiguration.keySet());
+        final Set<String> removedStepNames = new LinkedHashSet<>();
+        final FrameworkFlowContext workingContext;
+        final WorkingFlowContextState workingContextState;
+        synchronized (workingFlowContextLock) {
+            workingContextState = this.workingFlowContextState;
+            workingContext = workingContextState.getContext();
+            final MutableConnectorConfigurationContext configurationContext = workingContext.getConfigurationContext();
+            final ConnectorConfiguration existingConfiguration = configurationContext.toConnectorConfiguration();
+            for (final NamedStepConfiguration existingStep : existingConfiguration.getNamedStepConfigurations()) {
+                if (!migratedConfiguration.containsKey(existingStep.stepName())) {
+                    removedStepNames.add(existingStep.stepName());
+                }
+            }
+
+            final ConfigurationUpdateResult updateResult = configurationContext.replaceConfiguration(migratedConfiguration);
+            final boolean configurationChanged = updateResult == ConfigurationUpdateResult.CHANGES_MADE;
+
+            if (!configurationChanged) {
+                return;
+            }
+
+            if (stepsToNotify.isEmpty()) {
+                final List<ConfigurationStep> configurationSteps = getConnector().getConfigurationSteps();
+                if (configurationSteps != null) {
+                    for (final ConfigurationStep configurationStep : configurationSteps) {
+                        stepsToNotify.add(configurationStep.getName());
+                    }
+                }
+
+                if (stepsToNotify.isEmpty()) {
+                    stepsToNotify.addAll(removedStepNames);
+                }
+            }
+
+            workingContextState.incrementUseCount();
+        }
+
+        FlowUpdateException flowUpdateFailure = null;
+        RuntimeException runtimeFailure = null;
+        try {
+            for (final String stepName : stepsToNotify) {
+                try {
+                    notifyStepConfigured(stepName, workingContext);
+                } catch (final FlowUpdateException e) {
+                    if (flowUpdateFailure == null) {
+                        flowUpdateFailure = e;
+                    } else {
+                        flowUpdateFailure.addSuppressed(e);
+                    }
+                } catch (final RuntimeException e) {
+                    if (runtimeFailure == null) {
+                        runtimeFailure = e;
+                    } else {
+                        runtimeFailure.addSuppressed(e);
+                    }
+                }
+            }
+        } finally {
+            releaseWorkingFlowContext(workingContextState);
+        }
+
+        if (flowUpdateFailure != null) {
+            if (runtimeFailure != null) {
+                flowUpdateFailure.addSuppressed(runtimeFailure);
+            }
+
+            throw flowUpdateFailure;
+        }
+
+        if (runtimeFailure != null) {
+            throw runtimeFailure;
         }
     }
 
