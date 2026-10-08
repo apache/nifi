@@ -704,25 +704,36 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     @Override
     public void onGlobalSync() {
-        for (final BlockingQueue<ResourceClaim> claimQueue : claimsAwaitingDestruction.values()) {
-            final Set<ResourceClaim> claimsToDestroy = new HashSet<>();
-            claimQueue.drainTo(claimsToDestroy);
+        final long startedNanos = System.nanoTime();
 
-            for (final ResourceClaim claim : claimsToDestroy) {
-                markDestructable(claim);
-            }
-        }
+        try {
+            for (final BlockingQueue<ResourceClaim> claimQueue : claimsAwaitingDestruction.values()) {
+                final Set<ResourceClaim> claimsToDestroy = new HashSet<>();
+                claimQueue.drainTo(claimsToDestroy);
 
-        for (final BlockingQueue<ContentClaim> claimQueue : claimsAwaitingTruncation.values()) {
-            final Set<ContentClaim> claimsToTruncate = new HashSet<>();
-            claimQueue.drainTo(claimsToTruncate);
-
-            for (final ContentClaim claim : claimsToTruncate) {
-                if (isTruncationAllowed(claim)) {
-                    claimManager.markTruncatable(claim);
-                } else {
-                    logger.debug("Skipping markTruncatable for {} during onGlobalSync because truncation is no longer allowed", claim);
+                for (final ResourceClaim claim : claimsToDestroy) {
+                    markDestructable(claim);
                 }
+            }
+
+            for (final BlockingQueue<ContentClaim> claimQueue : claimsAwaitingTruncation.values()) {
+                final Set<ContentClaim> claimsToTruncate = new HashSet<>();
+                claimQueue.drainTo(claimsToTruncate);
+
+                for (final ContentClaim claim : claimsToTruncate) {
+                    if (isTruncationAllowed(claim)) {
+                        claimManager.markTruncatable(claim);
+                    } else {
+                        logger.debug("Skipping markTruncatable for {} during onGlobalSync because truncation is no longer allowed", claim);
+                    }
+                }
+            }
+        } finally {
+            final long elapsedNanos = System.nanoTime() - startedNanos;
+
+            if (elapsedNanos >= TimeUnit.SECONDS.toNanos(1)) {
+                logger.info("Content Repository cleanup delayed FlowFile Repository synchronization by {} ms",
+                        TimeUnit.NANOSECONDS.toMillis(elapsedNanos));
             }
         }
     }

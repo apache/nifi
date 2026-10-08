@@ -41,6 +41,7 @@ public class ProcessorDTO extends ComponentDTO {
     private String description;
     private Boolean supportsParallelProcessing;
     private Boolean supportsBatching;
+    private Boolean supportsAutoScheduling;
     private Boolean supportsSensitiveDynamicProperties;
     private Boolean supportsBacklogReporting;
     private Boolean persistsState;
@@ -270,6 +271,18 @@ public class ProcessorDTO extends ComponentDTO {
 
     public void setSupportsBatching(Boolean supportsBatching) {
         this.supportsBatching = supportsBatching;
+    }
+
+    /**
+     * @return whether this processor supports automatic scheduling
+     */
+    @Schema(description = "Whether the processor supports automatic scheduling.")
+    public Boolean getSupportsAutoScheduling() {
+        return supportsAutoScheduling;
+    }
+
+    public void setSupportsAutoScheduling(final Boolean supportsAutoScheduling) {
+        this.supportsAutoScheduling = supportsAutoScheduling;
     }
 
     /**

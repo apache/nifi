@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.annotation.behavior.AllowsAutoScheduling;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -60,6 +61,8 @@ import static io.krakens.grok.api.GrokUtils.getNameGroups;
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
+// A maximum-sized content buffer is allocated eagerly for every ProcessContext concurrency slot.
+@AllowsAutoScheduling(false)
 @Tags({"evaluate", "extract", "Text", "Regular Expression", "regex"})
 @CapabilityDescription(
         "Evaluates one or more Regular Expressions against the content of a FlowFile.  "

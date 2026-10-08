@@ -76,6 +76,10 @@ public class DynamicSemaphore {
         return semaphore.availablePermits();
     }
 
+    public int getWaitingThreadCount() {
+        return semaphore.getQueueLength();
+    }
+
     /**
      * Returns the number of acquired permits. The result can exceed the configured maximum
      * while a reduced permit limit waits for current holders to release permits.

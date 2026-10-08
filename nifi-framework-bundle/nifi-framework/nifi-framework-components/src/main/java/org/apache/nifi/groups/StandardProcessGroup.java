@@ -737,8 +737,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, node.getProcessor().getClass(), node.getIdentifier())) {
-                final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider,
-                    getStateManager(node), () -> false, nodeTypeProvider);
+                final StandardProcessContext processContext = StandardProcessContext.createBuilder(
+                        node, controllerServiceProvider, getStateManager(node), () -> false, nodeTypeProvider).build();
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, node.getProcessor(), processContext);
             }
         }
@@ -1300,8 +1300,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             processor.pauseValidationTrigger();
 
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, processor.getProcessor().getClass(), processor.getIdentifier())) {
-                final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider,
-                    getStateManager(processor), () -> false, nodeTypeProvider);
+                final StandardProcessContext processContext = StandardProcessContext.createBuilder(
+                        processor, controllerServiceProvider, getStateManager(processor), () -> false, nodeTypeProvider).build();
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, processor.getProcessor(), processContext);
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke 'OnRemoved' methods of processor with id " + processor.getIdentifier(), e);
@@ -1504,6 +1504,11 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             writeLock.unlock();
         }
+
+        scheduler.notifySchedulingEvent(connection.getSource());
+        if (connection.getSource() != connection.getDestination()) {
+            scheduler.notifySchedulingEvent(connection.getDestination());
+        }
     }
 
     @Override
@@ -1567,6 +1572,11 @@ public final class StandardProcessGroup implements ProcessGroup {
             flowManager.onConnectionRemoved(connection);
         } finally {
             writeLock.unlock();
+        }
+
+        scheduler.notifySchedulingEvent(connectionToRemove.getSource());
+        if (connectionToRemove.getSource() != connectionToRemove.getDestination()) {
+            scheduler.notifySchedulingEvent(connectionToRemove.getDestination());
         }
     }
 
@@ -4076,8 +4086,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     private ProcessContext createProcessContext(final ProcessorNode processorNode) {
         final Processor processor = processorNode.getProcessor();
         final Class<?> componentClass = processor == null ? null : processor.getClass();
-        return new StandardProcessContext(processorNode, controllerServiceProvider,
-            stateManagerProvider.getStateManager(processorNode.getIdentifier(), componentClass), () -> false, nodeTypeProvider);
+        return StandardProcessContext.createBuilder(processorNode, controllerServiceProvider,
+                stateManagerProvider.getStateManager(processorNode.getIdentifier(), componentClass), () -> false, nodeTypeProvider).build();
     }
 
     private ConfigurationContext createConfigurationContext(final ComponentNode component) {
