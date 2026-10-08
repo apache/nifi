@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.listen.ListenComponent;
 import org.apache.nifi.components.listen.ListenPort;
 import org.apache.nifi.components.listen.StandardListenPort;
@@ -52,6 +53,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"ingest", "FTP", "FTPS", "listen"})
@@ -119,9 +122,45 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
             .sensitive(true)
             .build();
 
+    private static final Pattern PORT_RANGE_PATTERN = Pattern.compile("^(\\d{1,5})-(\\d{1,5})$");
+
+    private static final Validator PORT_RANGE_VALIDATOR = (subject, input, context) -> {
+        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+            return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+        }
+
+        final String explanation;
+        final Matcher matcher = PORT_RANGE_PATTERN.matcher(input);
+        if (matcher.matches()) {
+            final int startPort = Integer.parseInt(matcher.group(1));
+            final int endPort = Integer.parseInt(matcher.group(2));
+            if (startPort < 1 || endPort > 65535) {
+                explanation = "Ports must be between 1 and 65535";
+            } else if (startPort > endPort) {
+                explanation = "Start port must be less than or equal to end port";
+            } else {
+                explanation = null;
+            }
+        } else {
+            explanation = "Port range must be in the format <start>-<end>, e.g. 50000-50099";
+        }
+        return new ValidationResult.Builder().subject(subject).input(input).explanation(explanation).valid(explanation == null).build();
+    };
+
+    public static final PropertyDescriptor PASSIVE_PORT_RANGE = new PropertyDescriptor.Builder()
+            .name("Passive Port Range")
+            .description("The range of ports, in the format <start>-<end> (e.g. 50000-50099), that the FTP server uses for data connections in passive mode. "
+                    + "Restricting the range simplifies firewall and container port mapping configurations. "
+                    + "If not set, any available port is used for each passive data connection.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(PORT_RANGE_VALIDATOR)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             ADDRESS,
             PORT,
+            PASSIVE_PORT_RANGE,
             USERNAME,
             PASSWORD,
             SSL_CONTEXT_SERVICE
@@ -168,6 +207,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
             String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
             String bindAddress = context.getProperty(ADDRESS).evaluateAttributeExpressions().getValue();
             int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+            String passivePortRange = context.getProperty(PASSIVE_PORT_RANGE).evaluateAttributeExpressions().getValue();
             final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
 
             try {
@@ -181,6 +221,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
                         .username(username)
                         .password(password)
                         .sslContextProvider(sslContextProvider)
+                        .passivePortRange(passivePortRange)
                         .build();
                 ftpServer.start();
             } catch (ProcessException processException) {
