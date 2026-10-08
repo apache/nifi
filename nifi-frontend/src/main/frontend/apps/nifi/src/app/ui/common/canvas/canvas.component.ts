@@ -124,7 +124,7 @@ interface SelectionBoxData {
 }
 
 interface ComponentDragStateCarrier {
-    entity: { id: string };
+    entity: { id: string; revision: { version: number } };
     ui: {
         dragDelta?: Position;
         dragMovingIds?: Set<string>;
@@ -132,6 +132,7 @@ interface ComponentDragStateCarrier {
         currentPosition?: Position;
         dragStartEntity?: CanvasEntity;
         dragStartRevision?: RevisionRequest;
+        dimensions?: { width: number; height: number };
     };
 }
 
@@ -224,19 +225,43 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         }
     }
 
-    private static preserveComponentDragState<T extends ComponentDragStateCarrier>(previous: T[], next: T[]): void {
-        for (const item of next) {
-            const existing = previous.find((candidate) => candidate.entity.id === item.entity.id);
-            if (!existing?.ui.dragStartEntity) {
-                continue;
-            }
-            item.ui.dragStartEntity = existing.ui.dragStartEntity;
-            item.ui.dragDelta = existing.ui.dragDelta;
-            item.ui.dragMovingIds = existing.ui.dragMovingIds;
-            item.ui.dragStartPosition = existing.ui.dragStartPosition;
-            item.ui.currentPosition = existing.ui.currentPosition;
-            item.ui.dragStartRevision = existing.ui.dragStartRevision;
+    private preserveComponentDragState<T extends ComponentDragStateCarrier>(
+        previous: ReadonlyArray<T>,
+        next: ReadonlyArray<T>,
+        savingIds: ReadonlySet<string>
+    ): void {
+        this.preserveInFlightUiState(previous, next, CanvasComponent.DRAG_BASELINE_FIELDS_COMPONENT);
+        this.preserveInFlightUiState(previous, next, CanvasComponent.DRAG_VISUAL_FIELDS_COMPONENT, (prior, fresh) =>
+            this.shouldPreserveComponentUi(prior, fresh.entity, savingIds)
+        );
+    }
+
+    private shouldPreserveComponentUi(
+        existing: ComponentDragStateCarrier,
+        incoming: { id: string; revision: { version: number } },
+        savingIds: ReadonlySet<string>
+    ): boolean {
+        const isInFlight =
+            existing.ui.dragStartEntity !== undefined ||
+            existing.ui.dragStartRevision !== undefined ||
+            existing.ui.currentPosition !== undefined ||
+            savingIds.has(incoming.id);
+        return isInFlight && !(incoming.revision.version > existing.entity.revision.version);
+    }
+
+    private refreshPositionableEntity<T extends ComponentDragStateCarrier>(
+        existing: T,
+        incoming: T['entity'],
+        savingIds: ReadonlySet<string>
+    ): boolean {
+        const preserve = this.shouldPreserveComponentUi(existing, incoming, savingIds);
+        existing.entity = incoming;
+        if (!preserve) {
+            delete existing.ui.currentPosition;
+            delete existing.ui.dragDelta;
+            delete existing.ui.dragMovingIds;
         }
+        return preserve;
     }
 
     private store = inject<Store<NiFiState>>(Store);
@@ -453,12 +478,10 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Internal Canvas* types (with UI metadata) - computed signals from inputs
     //
-    // Labels use a mutable array pattern because users can resize them in the canvas.
-    // The ui.dimensions field must persist during resize operations (optimistic updates).
-    // This pattern ensures ui.dimensions is only recreated when:
-    // 1. Labels are added/removed (IDs change)
-    // 2. Entity data updates (after successful save)
-    // Without this, ui.dimensions would be recreated on every render, losing in-progress resizes.
+    // Labels keep optimistic dimensions and position only while a resize, move, or
+    // pending save is in flight and the incoming revision has not advanced. A newer
+    // server revision shows the server geometry immediately. The gesture baseline
+    // stays until the gesture ends.
     private _internalLabels: CanvasLabel[] = [];
     internalLabels = computed(() => {
         const inputLabels = this.labels();
@@ -471,18 +494,22 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             inputIdSet.size !== currentIdSet.size || !Array.from(inputIdSet).every((id) => currentIdSet.has(id));
 
         if (labelsChanged) {
-            // Labels changed (added/removed) - create new array
+            // Labels changed (added/removed) - rebuild the array via mapLabels,
+            // then preserve in-flight drag state on surviving wrappers. Gesture
+            // baselines always carry over. Optimistic dimensions and position
+            // carry over only while the revision has not advanced.
             const previous = this._internalLabels;
             this._internalLabels = this.mapLabels(inputLabels);
-            CanvasComponent.preserveComponentDragState(previous, this._internalLabels);
+            this.preserveComponentDragState(previous, this._internalLabels, this.savingLabels());
         } else {
-            // Same labels - update entity data by matching IDs (not array index)
+            // Same labels. Resync dimensions unless the resize or move is still
+            // in flight at the same revision. A newer revision replaces both
+            // the dimensions and the move preview.
             inputLabels.forEach((inputEntity) => {
                 const existingLabel = this._internalLabels.find((l) => l.entity.id === inputEntity.id);
                 if (existingLabel) {
-                    existingLabel.entity = inputEntity;
-
-                    if (existingLabel.ui.dragStartRevision === undefined && !this.savingLabels().has(inputEntity.id)) {
+                    const preserve = this.refreshPositionableEntity(existingLabel, inputEntity, this.savingLabels());
+                    if (!preserve) {
                         existingLabel.ui.dimensions = {
                             width: inputEntity.dimensions?.width || 148,
                             height: inputEntity.dimensions?.height || 148
@@ -497,12 +524,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         return this._internalLabels;
     });
 
-    // Processors use a mutable array pattern because users can drag processors in the canvas.
-    // The ui.currentPosition field must persist during drag operations (optimistic updates).
-    // This pattern ensures ui.currentPosition is only cleared when:
-    // 1. Processors are added/removed (IDs change)
-    // 2. API call completes (confirmProcessorPosition/revertProcessorPosition)
-    // Without this, ui.currentPosition would be recreated on every render, losing in-progress drag operations.
+    // Processors keep ui.currentPosition only for a same-revision drag or pending
+    // save. A newer server revision clears that preview and leaves the gesture baseline.
     private _internalProcessors: CanvasProcessor[] = [];
     internalProcessors = computed(() => {
         const inputProcessors = this.processors();
@@ -515,22 +538,19 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             inputIdSet.size !== currentIdSet.size || !Array.from(inputIdSet).every((id) => currentIdSet.has(id));
 
         if (processorsChanged) {
-            // Processors changed (added/removed) - create new array
+            // Processors changed (added/removed) - rebuild the array via
+            // mapProcessors, then preserve in-flight drag state on
+            // surviving wrappers so a sibling add/remove mid-gesture
+            // doesn't strip the gesture baseline. See
+            // `preserveInFlightUiState` for the contract.
             const previous = this._internalProcessors;
             this._internalProcessors = this.mapProcessors(inputProcessors);
-            CanvasComponent.preserveComponentDragState(previous, this._internalProcessors);
+            this.preserveComponentDragState(previous, this._internalProcessors, this.savingProcessors());
         } else {
-            // Same processors - update entity data by matching IDs (not array index)
             inputProcessors.forEach((inputEntity) => {
                 const existingProcessor = this._internalProcessors.find((p) => p.entity.id === inputEntity.id);
                 if (existingProcessor) {
-                    existingProcessor.entity = inputEntity;
-
-                    // If currentPosition is not set (not dragging), update from entity
-                    // This allows the reducer to update position after successful save
-                    if (!existingProcessor.ui.currentPosition) {
-                        // Position is already in entity, no need to update ui
-                    }
+                    this.refreshPositionableEntity(existingProcessor, inputEntity, this.savingProcessors());
                 }
             });
             // Return new array reference to trigger re-render of layers
@@ -540,12 +560,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         return this._internalProcessors;
     });
 
-    // Funnels use a mutable array pattern because users can drag them in the canvas.
-    // The ui.currentPosition field must persist during drag operations (optimistic updates).
-    // This pattern ensures ui.currentPosition is only recreated when:
-    // 1. Funnels are added/removed (IDs change)
-    // 2. Entity data updates (after successful save)
-    // Without this, ui.currentPosition would be recreated on every render, losing in-progress drag operations.
+    // Funnels keep ui.currentPosition only for a same-revision drag or pending save.
+    // A newer server revision clears that preview and leaves the gesture baseline.
     private _internalFunnels: CanvasFunnel[] = [];
     internalFunnels = computed(() => {
         const inputFunnels = this.funnels();
@@ -556,15 +572,17 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             inputIdSet.size !== currentIdSet.size || !Array.from(inputIdSet).every((id) => currentIdSet.has(id));
 
         if (funnelsChanged) {
+            // Funnels changed (added/removed) - rebuild then preserve any
+            // in-flight drag state on surviving wrappers so a sibling
+            // add/remove mid-gesture doesn't strip the gesture baseline.
             const previous = this._internalFunnels;
             this._internalFunnels = this.mapFunnels(inputFunnels);
-            CanvasComponent.preserveComponentDragState(previous, this._internalFunnels);
+            this.preserveComponentDragState(previous, this._internalFunnels, this.savingFunnels());
         } else {
             inputFunnels.forEach((inputEntity) => {
                 const existingFunnel = this._internalFunnels.find((f) => f.entity.id === inputEntity.id);
                 if (existingFunnel) {
-                    existingFunnel.entity = inputEntity;
-                    // If currentPosition is not set (not dragging), the renderer will use entity.position
+                    this.refreshPositionableEntity(existingFunnel, inputEntity, this.savingFunnels());
                 }
             });
             // Return new array reference to trigger re-render of layers
@@ -574,12 +592,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         return this._internalFunnels;
     });
 
-    // Ports use a mutable array pattern because users can drag them in the canvas.
-    // The ui.currentPosition field must persist during drag operations (optimistic updates).
-    // This pattern ensures ui.currentPosition is only recreated when:
-    // 1. Ports are added/removed (IDs change)
-    // 2. Entity data updates (after successful save)
-    // Without this, ui.currentPosition would be recreated on every render, losing in-progress drag operations.
+    // Ports keep ui.currentPosition only for a same-revision drag or pending save.
+    // A newer server revision clears that preview and leaves the gesture baseline.
     private _internalPorts: CanvasPort[] = [];
     internalPorts = computed(() => {
         const inputPorts = this.ports();
@@ -590,15 +604,17 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             inputIdSet.size !== currentIdSet.size || !Array.from(inputIdSet).every((id) => currentIdSet.has(id));
 
         if (portsChanged) {
+            // Ports changed (added/removed) - rebuild then preserve any
+            // in-flight drag state on surviving wrappers so a sibling
+            // add/remove mid-gesture doesn't strip the gesture baseline.
             const previous = this._internalPorts;
             this._internalPorts = this.mapPorts(inputPorts);
-            CanvasComponent.preserveComponentDragState(previous, this._internalPorts);
+            this.preserveComponentDragState(previous, this._internalPorts, this.savingPorts());
         } else {
             inputPorts.forEach((inputEntity) => {
                 const existingPort = this._internalPorts.find((p) => p.entity.id === inputEntity.id);
                 if (existingPort) {
-                    existingPort.entity = inputEntity;
-                    // If currentPosition is not set (not dragging), the renderer will use entity.position
+                    this.refreshPositionableEntity(existingPort, inputEntity, this.savingPorts());
                 }
             });
             // Return new array reference to trigger re-render of layers
@@ -607,12 +623,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         return this._internalPorts;
     });
 
-    // Remote process groups use a mutable array pattern because users can drag them in the canvas.
-    // The ui.currentPosition field must persist during drag operations (optimistic updates).
-    // This pattern ensures ui.currentPosition is only recreated when:
-    // 1. Remote process groups are added/removed (IDs change)
-    // 2. Entity data updates (after successful save)
-    // Without this, ui.currentPosition would be recreated on every render, losing in-progress drag operations.
+    // Remote process groups keep ui.currentPosition only for a same-revision drag or
+    // pending save. A newer server revision clears that preview and leaves the gesture baseline.
     private _internalRemoteProcessGroups: CanvasRemoteProcessGroup[] = [];
     internalRemoteProcessGroups = computed(() => {
         const inputRpgs = this.remoteProcessGroups();
@@ -623,15 +635,21 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             inputIdSet.size !== currentIdSet.size || !Array.from(inputIdSet).every((id) => currentIdSet.has(id));
 
         if (rpgsChanged) {
+            // RPGs changed (added/removed) - rebuild then preserve any
+            // in-flight drag state on surviving wrappers so a sibling
+            // add/remove mid-gesture doesn't strip the gesture baseline.
             const previous = this._internalRemoteProcessGroups;
             this._internalRemoteProcessGroups = this.mapRemoteProcessGroups(inputRpgs);
-            CanvasComponent.preserveComponentDragState(previous, this._internalRemoteProcessGroups);
+            this.preserveComponentDragState(
+                previous,
+                this._internalRemoteProcessGroups,
+                this.savingRemoteProcessGroups()
+            );
         } else {
             inputRpgs.forEach((inputEntity) => {
                 const existingRpg = this._internalRemoteProcessGroups.find((r) => r.entity.id === inputEntity.id);
                 if (existingRpg) {
-                    existingRpg.entity = inputEntity;
-                    // If currentPosition is not set (not dragging), the renderer will use entity.position
+                    this.refreshPositionableEntity(existingRpg, inputEntity, this.savingRemoteProcessGroups());
                 }
             });
             // Return new array reference to trigger re-render of layers
@@ -640,12 +658,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         return this._internalRemoteProcessGroups;
     });
 
-    // Process groups use a mutable array pattern because users can drag them in the canvas.
-    // The ui.currentPosition field must persist during drag operations (optimistic updates).
-    // This pattern ensures ui.currentPosition is only recreated when:
-    // 1. Process groups are added/removed (IDs change)
-    // 2. Entity data updates (after successful save)
-    // Without this, ui.currentPosition would be recreated on every render, losing in-progress drag operations.
+    // Process groups keep ui.currentPosition only for a same-revision drag or pending
+    // save. A newer server revision clears that preview and leaves the gesture baseline.
     private _internalProcessGroups: CanvasProcessGroup[] = [];
     internalProcessGroups = computed(() => {
         const inputPgs = this.processGroups();
@@ -656,15 +670,17 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             inputIdSet.size !== currentIdSet.size || !Array.from(inputIdSet).every((id) => currentIdSet.has(id));
 
         if (pgsChanged) {
+            // Process groups changed (added/removed) - rebuild then preserve
+            // any in-flight drag state on surviving wrappers so a sibling
+            // add/remove mid-gesture doesn't strip the gesture baseline.
             const previous = this._internalProcessGroups;
             this._internalProcessGroups = this.mapProcessGroups(inputPgs);
-            CanvasComponent.preserveComponentDragState(previous, this._internalProcessGroups);
+            this.preserveComponentDragState(previous, this._internalProcessGroups, this.savingProcessGroups());
         } else {
             inputPgs.forEach((inputEntity) => {
                 const existingPg = this._internalProcessGroups.find((pg) => pg.entity.id === inputEntity.id);
                 if (existingPg) {
-                    existingPg.entity = inputEntity;
-                    // If currentPosition is not set (not dragging), the renderer will use entity.position
+                    this.refreshPositionableEntity(existingPg, inputEntity, this.savingProcessGroups());
                 }
             });
             // Return new array reference to trigger re-render of layers
@@ -673,12 +689,10 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         return this._internalProcessGroups;
     });
 
-    // Connections use a mutable array pattern because users can drag bend points in the canvas.
-    // The ui.start, ui.end, and ui.bends fields must persist during drag operations (optimistic updates).
-    // This pattern ensures these ui fields are only recreated when:
-    // 1. Connections are added/removed (IDs change)
-    // 2. Entity data updates (after successful save)
-    // Without this, ui.bends would be recreated on every render, losing in-progress drag operations.
+    // Connections keep optimistic bends only while a drag or pending save is in
+    // flight and the incoming revision has not advanced. A newer server revision
+    // shows the server bends immediately. The gesture baseline stays until the
+    // gesture ends.
     private _internalConnections: CanvasConnection[] = [];
     internalConnections = computed(() => {
         const inputConnections = this.connections();
@@ -691,33 +705,54 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             inputIdSet.size !== currentIdSet.size || !Array.from(inputIdSet).every((id) => currentIdSet.has(id));
 
         if (connectionsChanged) {
-            // Connections changed (added/removed) - create new array
+            // Connections changed (added/removed) - rebuild the array via
+            // mapConnections, then preserve in-flight drag state on surviving
+            // wrappers. Gesture baselines always carry over. Optimistic bends
+            // carry over only while the revision has not advanced. See
+            // `preserveInFlightUiState`.
             const previous = this._internalConnections;
             this._internalConnections = this.mapConnections(inputConnections);
+            this.preserveInFlightUiState(
+                previous,
+                this._internalConnections,
+                CanvasComponent.DRAG_BASELINE_FIELDS_CONNECTION
+            );
+            this.preserveInFlightUiState(
+                previous,
+                this._internalConnections,
+                CanvasComponent.DRAG_VISUAL_FIELDS_CONNECTION,
+                (prior, fresh) => this.shouldPreserveConnectionUi(prior, fresh.entity)
+            );
+            const previousById = new Map(previous.map((connection) => [connection.entity.id, connection]));
             for (const connection of this._internalConnections) {
-                const existing = previous.find((item) => item.entity.id === connection.entity.id);
-                if (!existing) continue;
-                connection.ui.dragStartEntity = existing.ui.dragStartEntity;
-                connection.ui.dragStartRevision = existing.ui.dragStartRevision;
-                connection.ui.dragStartBends = existing.ui.dragStartBends;
-                connection.ui.dragging = existing.ui.dragging;
-                connection.ui.bends = existing.ui.bends;
-                connection.ui.tempLabelIndex = existing.ui.tempLabelIndex;
-                connection.ui.reconnectDestinationId = existing.ui.reconnectDestinationId;
+                const prior = previousById.get(connection.entity.id);
+                if (!prior || !this.shouldPreserveConnectionUi(prior, connection.entity)) {
+                    connection.ui.bends = (connection.entity.bends ?? []).map((bend) => ({ ...bend }));
+                }
             }
         } else {
-            // Same connections - update entity data and refresh persisted bends while idle.
-            // Active gestures and pending saves retain their optimistic UI geometry until
-            // the corresponding completion path confirms or reverts it.
-            // Create a new array reference so layers detect the change and re-render
+            // Same connections - refresh entity data and resync ui.bends.
+            // `calculatePath` initializes `ui.bends` only when it is unset, so
+            // a polling update of `entity.bends` would never reach the renderer
+            // without this resync. Mirrors the `ui.dimensions` resync for labels.
+            //
+            // `shouldPreserveConnectionUi` keeps optimistic bends only while the
+            // connection is in flight and the incoming revision has not advanced.
+            // A newer revision replaces the visual preview immediately. The
+            // gesture baseline in `ui.dragStartEntity` / `ui.dragStartRevision`
+            // stays until gesture end, so the eventual write still carries the
+            // revision the user acted on.
             inputConnections.forEach((inputEntity) => {
                 const existingConnection = this._internalConnections.find((c) => c.entity.id === inputEntity.id);
                 if (existingConnection) {
+                    const preserveUi = this.shouldPreserveConnectionUi(existingConnection, inputEntity);
                     existingConnection.entity = inputEntity;
-                    const inFlight =
-                        existingConnection.ui.dragging === true || this.savingConnections().has(inputEntity.id);
-                    if (!inFlight) {
+                    if (!preserveUi) {
                         existingConnection.ui.bends = (inputEntity.bends ?? []).map((bend) => ({ ...bend }));
+                        delete existingConnection.ui.endPointDragging;
+                        delete existingConnection.ui.reconnectDestinationId;
+                        delete existingConnection.ui.tempLabelIndex;
+                        existingConnection.ui.dragging = false;
                     }
                 }
             });
@@ -727,6 +762,19 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
         return this._internalConnections;
     });
+
+    private shouldPreserveConnectionUi(
+        existingConnection: CanvasConnection,
+        incomingEntity: ConnectionEntity
+    ): boolean {
+        const isInFlight =
+            existingConnection.ui.dragging === true ||
+            existingConnection.ui.dragStartEntity !== undefined ||
+            existingConnection.ui.dragStartRevision !== undefined ||
+            this.savingConnections().has(incomingEntity.id);
+        const isNewerRevision = incomingEntity.revision.version > existingConnection.entity.revision.version;
+        return isInFlight && !isNewerRevision;
+    }
 
     private destroy$ = new Subject<void>();
     private destroyed = false; // Flag to prevent emitting after component is destroyed
@@ -927,6 +975,91 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         // Remove D3 zoom behavior to prevent events firing after component is destroyed
         if (this.svg) {
             this.svg.on('.zoom', null);
+        }
+    }
+
+    /**
+     * Field sets that `preserveInFlightUiState` carries from a pre-rebuild
+     * wrapper to its freshly-constructed counterpart when the input id-set
+     * changes. The baseline contract published by `componentsDragEnd` /
+     * `labelResizeEnd` / `connectionBendPointsUpdate` /
+     * `connectionLabelDragEnd` depends on `ui.dragStartEntity` (for the
+     * multi-component drag) and `ui.dragStartRevision` (for the three
+     * single-gesture emit paths) surviving any backend push that adds or
+     * removes a sibling of the same type during a gesture; without that,
+     * the fresh wrapper's `ui` would be initialized empty by `mapXxx` and
+     * the emit handler would silently fall back to the post-push
+     * `wrapper.entity.revision`, re-introducing the optimistic-locking
+     * silent-overwrite the gesture-baseline contract is designed to
+     * prevent.
+     *
+     * Gesture baselines survive a newer server revision so the eventual
+     * request still carries the revision the user acted on and can be
+     * rejected correctly. Optimistic connection, label, and component-move
+     * visuals survive only while the server revision remains unchanged.
+     */
+    private static readonly DRAG_BASELINE_FIELDS_COMPONENT: ReadonlyArray<string> = [
+        'dragStartPosition',
+        'dragStartEntity',
+        'dragStartRevision'
+    ];
+    private static readonly DRAG_VISUAL_FIELDS_COMPONENT: ReadonlyArray<string> = [
+        'currentPosition',
+        'dragDelta',
+        'dragMovingIds',
+        'dimensions'
+    ];
+    private static readonly DRAG_BASELINE_FIELDS_CONNECTION: ReadonlyArray<string> = [
+        'dragStartBends',
+        'dragStartEntity',
+        'dragStartRevision'
+    ];
+    private static readonly DRAG_VISUAL_FIELDS_CONNECTION: ReadonlyArray<string> = [
+        'bends',
+        'dragging',
+        'endPointDragging',
+        'end',
+        'tempLabelIndex',
+        // In-flight endpoint-reconnect target must survive a mid-save sibling
+        // add/remove rebuild, or the optimistic re-route would snap back to the
+        // entity destination before the server confirms.
+        'reconnectDestinationId'
+    ];
+
+    /**
+     * After a same-type input change rebuilds an `_internalXxx` array via
+     * `mapXxx`, copy the listed in-flight `ui` fields from the pre-rebuild
+     * wrapper to the freshly-constructed wrapper for every id that survived
+     * the rebuild. See the `DRAG_*_FIELDS_*` constants for the rationale and
+     * canonical field sets.
+     *
+     * The check is `!== undefined` so we only overwrite when the prior
+     * wrapper actually carried in-flight state — wrappers that were idle at
+     * the time of the rebuild get the fresh `mapXxx` defaults untouched.
+     */
+    private preserveInFlightUiState<W extends { entity: { id: string }; ui: object }>(
+        previous: ReadonlyArray<W>,
+        next: ReadonlyArray<W>,
+        fields: ReadonlyArray<string>,
+        shouldPreserve: (prior: W, fresh: W) => boolean = () => true
+    ): void {
+        if (previous.length === 0 || next.length === 0) {
+            return;
+        }
+        const previousById = new Map(previous.map((w) => [w.entity.id, w]));
+        for (const fresh of next) {
+            const prior = previousById.get(fresh.entity.id);
+            if (!prior || !shouldPreserve(prior, fresh)) {
+                continue;
+            }
+            const priorUi = prior.ui as Record<string, unknown>;
+            const freshUi = fresh.ui as Record<string, unknown>;
+            for (const field of fields) {
+                const value = priorUi[field];
+                if (value !== undefined) {
+                    freshUi[field] = value;
+                }
+            }
         }
     }
 

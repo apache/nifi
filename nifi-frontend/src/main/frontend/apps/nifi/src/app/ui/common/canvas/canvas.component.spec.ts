@@ -32,7 +32,8 @@ import {
     PortEntity,
     ProcessGroupEntity,
     ProcessorEntity,
-    RemoteProcessGroupEntity
+    RemoteProcessGroupEntity,
+    RevisionRequest
 } from '@nifi/shared';
 import * as d3 from 'd3';
 import { WritableSignal } from '@angular/core';
@@ -57,6 +58,7 @@ type CanvasTestAccess = {
     y: number;
     elementRef: { nativeElement: HTMLElement };
     internalCanvasReady: WritableSignal<boolean>;
+    hasInitialized: WritableSignal<boolean>;
     savingConnections: WritableSignal<Set<string>>;
     applyTransform(x: number, y: number, scale: number, transition?: boolean): void;
 };
@@ -64,6 +66,8 @@ type CanvasTestAccess = {
 function asPrivate(component: CanvasComponent): CanvasTestAccess {
     return component as unknown as CanvasTestAccess;
 }
+
+type ReadableEntity<T extends { component?: unknown }> = T & Required<Pick<T, 'component'>>;
 
 // Mock data factories
 function createMockProcessor(
@@ -73,7 +77,7 @@ function createMockProcessor(
         x?: number;
         y?: number;
     } = {}
-): ProcessorEntity {
+): ReadableEntity<ProcessorEntity> {
     const id = options.id || `processor-${Math.random().toString(36).substr(2, 9)}`;
     return {
         id,
@@ -96,7 +100,7 @@ function createMockProcessor(
             statsLastRefreshed: new Date().toISOString()
         },
         revision: { version: 0 }
-    } as unknown as ProcessorEntity;
+    } as unknown as ReadableEntity<ProcessorEntity>;
 }
 
 function createMockLabel(
@@ -108,7 +112,7 @@ function createMockLabel(
         width?: number;
         height?: number;
     } = {}
-): LabelEntity {
+): ReadableEntity<LabelEntity> {
     const id = options.id || `label-${Math.random().toString(36).substr(2, 9)}`;
     return {
         id,
@@ -130,7 +134,7 @@ function createMockLabel(
             width: options.width ?? 150,
             height: options.height ?? 150
         }
-    } as unknown as LabelEntity;
+    } as unknown as ReadableEntity<LabelEntity>;
 }
 
 function createMockFunnel(
@@ -689,7 +693,10 @@ describe('CanvasComponent', () => {
                 selectedComponentIds: ['proc-1'],
                 processors: [createMockProcessor({ id: 'proc-1' })]
             });
-            await fixture.whenStable();
+            asPrivate(component).internalCanvasReady.set(true);
+            asPrivate(component).hasInitialized.set(true);
+            fixture.detectChanges();
+            expect(asPrivate(component).hasInitialized()).toBe(true);
 
             const centerSpy = vi.spyOn(component, 'centerOnSelection');
             const restoreSpy = vi.spyOn(component, 'restoreViewportFromStorage');
@@ -995,7 +1002,7 @@ describe('CanvasComponent', () => {
             component.onZoomFit();
 
             expect(zoom.transform).toHaveBeenCalled();
-            const d3Transform = transformArgs[0]?.[1];
+            const d3Transform = transformArgs[0]?.[1] as d3.ZoomTransform | undefined;
             expect(d3Transform?.k).toBe(1);
             expect(d3Transform?.x).toBe(0);
             expect(d3Transform?.y).toBe(0);
@@ -1020,7 +1027,7 @@ describe('CanvasComponent', () => {
             component.onZoomFit();
 
             expect(zoom.transform).toHaveBeenCalled();
-            const d3Transform = transformArgs[0]?.[1];
+            const d3Transform = transformArgs[0]?.[1] as d3.ZoomTransform | undefined;
             expect(d3Transform?.k).toBe(1);
             // translateX = 25 + (1150 - 350) / 2 - 500 = 25 + 400 - 500 = -75
             expect(d3Transform?.x).toBeCloseTo(-75, 0);
@@ -1047,7 +1054,7 @@ describe('CanvasComponent', () => {
             component.onZoomFit();
 
             expect(zoom.transform).toHaveBeenCalled();
-            const d3Transform = transformArgs[0]?.[1];
+            const d3Transform = transformArgs[0]?.[1] as d3.ZoomTransform | undefined;
             // Bounding box: (0,0) to (5350,5130). Canvas 1150x750.
             // Scale = min(1150/5350, 750/5130) ≈ 0.146
             expect(d3Transform?.k).toBeLessThan(1);
@@ -1850,7 +1857,6 @@ describe('CanvasComponent', () => {
             wrapper.ui.bends = [{ x: 50, y: 60 }];
             const updatedConnection = {
                 ...connection,
-                revision: { version: 2 },
                 bends: [{ x: 30, y: 40 }]
             };
 
@@ -1859,6 +1865,44 @@ describe('CanvasComponent', () => {
 
             expect(component.internalConnections()[0].entity).toBe(updatedConnection);
             expect(component.internalConnections()[0].ui.bends).toEqual([{ x: 50, y: 60 }]);
+        });
+
+        it('uses newer server bends and clears an active local preview', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 1 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [{ x: 10, y: 20 }],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const { fixture, component } = await setup({ connections: [connection] });
+            const wrapper = component.internalConnections()[0];
+            wrapper.ui.dragging = true;
+            wrapper.ui.dragStartRevision = { version: 1 };
+            wrapper.ui.bends = [{ x: 50, y: 60 }];
+            wrapper.ui.endPointDragging = true;
+            wrapper.ui.reconnectDestinationId = 'destination-2';
+            wrapper.ui.tempLabelIndex = 2;
+            const updatedConnection = {
+                ...connection,
+                revision: { version: 2 },
+                bends: [{ x: 30, y: 40 }]
+            };
+
+            fixture.componentRef.setInput('connections', [updatedConnection]);
+            fixture.detectChanges();
+
+            const refreshed = component.internalConnections()[0];
+            expect(refreshed.entity).toBe(updatedConnection);
+            expect(refreshed.ui.bends).toEqual([{ x: 30, y: 40 }]);
+            expect(refreshed.ui.dragging).toBe(false);
+            expect(refreshed.ui.endPointDragging).toBeUndefined();
+            expect(refreshed.ui.reconnectDestinationId).toBeUndefined();
+            expect(refreshed.ui.tempLabelIndex).toBeUndefined();
+            expect(refreshed.ui.dragStartRevision).toEqual({ version: 1 });
         });
 
         it('preserves optimistic connection bends while a save is pending', async () => {
@@ -1878,7 +1922,6 @@ describe('CanvasComponent', () => {
             asPrivate(component).savingConnections.set(new Set(['connection-1']));
             const updatedConnection = {
                 ...connection,
-                revision: { version: 2 },
                 bends: [{ x: 30, y: 40 }]
             };
 
@@ -1887,6 +1930,77 @@ describe('CanvasComponent', () => {
 
             expect(component.internalConnections()[0].entity).toBe(updatedConnection);
             expect(component.internalConnections()[0].ui.bends).toEqual([{ x: 50, y: 60 }]);
+        });
+
+        it('uses updated server bends for an idle connection when a sibling is added', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 1 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [{ x: 10, y: 20 }],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const { fixture, component } = await setup({ connections: [connection] });
+            component.internalConnections()[0].ui.bends = [{ x: 10, y: 20 }];
+            const updatedConnection = {
+                ...connection,
+                revision: { version: 2 },
+                bends: [{ x: 30, y: 40 }]
+            };
+            const addedConnection = {
+                ...connection,
+                id: 'connection-2',
+                uri: 'https://localhost/nifi-api/connections/connection-2',
+                component: { ...connection.component, id: 'connection-2' }
+            } as ConnectionEntity;
+
+            fixture.componentRef.setInput('connections', [updatedConnection, addedConnection]);
+            fixture.detectChanges();
+
+            const rebuilt = component.internalConnections().find((item) => item.entity.id === 'connection-1')!;
+            expect(rebuilt.entity).toBe(updatedConnection);
+            expect(rebuilt.ui.bends).toEqual([{ x: 30, y: 40 }]);
+        });
+
+        it('uses newer server bends when a sibling is added during an active drag', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 1 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [{ x: 10, y: 20 }],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const { fixture, component } = await setup({ connections: [connection] });
+            const wrapper = component.internalConnections()[0];
+            wrapper.ui.dragging = true;
+            wrapper.ui.dragStartRevision = { version: 1 };
+            wrapper.ui.bends = [{ x: 50, y: 60 }];
+            const updatedConnection = {
+                ...connection,
+                revision: { version: 2 },
+                bends: [{ x: 30, y: 40 }]
+            };
+            const addedConnection = {
+                ...connection,
+                id: 'connection-2',
+                uri: 'https://localhost/nifi-api/connections/connection-2',
+                component: { ...connection.component, id: 'connection-2' }
+            } as ConnectionEntity;
+
+            fixture.componentRef.setInput('connections', [updatedConnection, addedConnection]);
+            fixture.detectChanges();
+
+            const rebuilt = component.internalConnections().find((item) => item.entity.id === 'connection-1')!;
+            expect(rebuilt.entity).toBe(updatedConnection);
+            expect(rebuilt.ui.bends).toEqual([{ x: 30, y: 40 }]);
+            expect(rebuilt.ui.dragging).toBeUndefined();
+            expect(rebuilt.ui.dragStartRevision).toEqual({ version: 1 });
         });
 
         it('preserves optimistic reconnect state across wrapper rebuilds and confirms it', async () => {
@@ -1982,9 +2096,104 @@ describe('CanvasComponent', () => {
             expect(wrapper.ui.bends).toBeUndefined();
         });
 
+        describe('label and component revision reconciliation', () => {
+            it('keeps label dimensions for a same-revision resize', async () => {
+                const label = createMockLabel({ id: 'label-1', width: 100, height: 100 });
+                label.revision = { version: 1 };
+                const { fixture, component } = await setup({ labels: [label] });
+                const wrapper = component.internalLabels()[0];
+                wrapper.ui.dimensions = { width: 250, height: 125 };
+                wrapper.ui.dragStartRevision = { version: 1 };
+                const refreshed = { ...label, revision: { version: 1 }, dimensions: { width: 100, height: 100 } };
+
+                fixture.componentRef.setInput('labels', [refreshed]);
+                fixture.detectChanges();
+
+                expect(wrapper.ui.dimensions).toEqual({ width: 250, height: 125 });
+                expect(wrapper.ui.dragStartRevision).toEqual({ version: 1 });
+            });
+
+            it('uses newer server label dimensions and keeps the resize baseline', async () => {
+                const label = createMockLabel({ id: 'label-1', width: 100, height: 100 });
+                label.revision = { version: 1 };
+                const { fixture, component } = await setup({ labels: [label] });
+                const wrapper = component.internalLabels()[0];
+                wrapper.ui.dimensions = { width: 250, height: 125 };
+                wrapper.ui.dragStartRevision = { version: 1 };
+                const updated = { ...label, revision: { version: 2 }, dimensions: { width: 160, height: 80 } };
+
+                fixture.componentRef.setInput('labels', [updated]);
+                fixture.detectChanges();
+
+                expect(wrapper.ui.dimensions).toEqual({ width: 160, height: 80 });
+                expect(wrapper.ui.dragStartRevision).toEqual({ version: 1 });
+            });
+
+            it('keeps a processor move preview for a same-revision refresh', async () => {
+                const processor = createMockProcessor({ id: 'proc-move', x: 10, y: 20 });
+                processor.revision = { version: 1 };
+                const { fixture, component } = await setup({ processors: [processor] });
+                const wrapper = component.internalProcessors()[0];
+                const baseline = wrapper.entity;
+                wrapper.ui.dragStartEntity = baseline;
+                wrapper.ui.currentPosition = { x: 40, y: 50 };
+                wrapper.ui.dragDelta = { x: 30, y: 30 };
+                const refreshed = { ...processor, revision: { version: 1 } };
+
+                fixture.componentRef.setInput('processors', [refreshed]);
+                fixture.detectChanges();
+
+                expect(wrapper.ui.currentPosition).toEqual({ x: 40, y: 50 });
+                expect(wrapper.ui.dragDelta).toEqual({ x: 30, y: 30 });
+                expect(wrapper.ui.dragStartEntity).toBe(baseline);
+            });
+
+            it('clears a processor move preview and keeps the baseline when the revision advances', async () => {
+                const processor = createMockProcessor({ id: 'proc-move', x: 10, y: 20 });
+                processor.revision = { version: 1 };
+                const { fixture, component } = await setup({ processors: [processor] });
+                const wrapper = component.internalProcessors()[0];
+                const baseline = wrapper.entity;
+                wrapper.ui.dragStartEntity = baseline;
+                wrapper.ui.currentPosition = { x: 40, y: 50 };
+                wrapper.ui.dragDelta = { x: 30, y: 30 };
+                wrapper.ui.dragMovingIds = new Set(['proc-move']);
+                const updated = { ...processor, revision: { version: 2 }, position: { x: 80, y: 90 } };
+
+                fixture.componentRef.setInput('processors', [updated]);
+                fixture.detectChanges();
+
+                expect(wrapper.entity.position).toEqual({ x: 80, y: 90 });
+                expect(wrapper.ui.currentPosition).toBeUndefined();
+                expect(wrapper.ui.dragDelta).toBeUndefined();
+                expect(wrapper.ui.dragMovingIds).toBeUndefined();
+                expect(wrapper.ui.dragStartEntity).toBe(baseline);
+            });
+
+            it('drops a processor move preview across a sibling rebuild when the revision advances', async () => {
+                const processor = createMockProcessor({ id: 'proc-move', x: 10, y: 20 });
+                processor.revision = { version: 1 };
+                const { fixture, component } = await setup({ processors: [processor] });
+                const wrapper = component.internalProcessors()[0];
+                const baseline = wrapper.entity;
+                wrapper.ui.dragStartEntity = baseline;
+                wrapper.ui.currentPosition = { x: 40, y: 50 };
+                const updated = { ...processor, revision: { version: 2 }, position: { x: 80, y: 90 } };
+                const sibling = createMockProcessor({ id: 'proc-sibling' });
+
+                fixture.componentRef.setInput('processors', [updated, sibling]);
+                fixture.detectChanges();
+
+                const rebuilt = component.internalProcessors().find((item) => item.entity.id === 'proc-move')!;
+                expect(rebuilt.ui.currentPosition).toBeUndefined();
+                expect(rebuilt.ui.dragStartEntity).toBe(baseline);
+                expect(rebuilt.entity.position).toEqual({ x: 80, y: 90 });
+            });
+        });
+
         it('emits the label resize gesture baseline revision', async () => {
             const { component } = await setup();
-            const emitted: Array<{ revision: { version: number } }> = [];
+            const emitted: Array<{ revision: RevisionRequest }> = [];
             outputToObservable(component.labelResizeEnd).subscribe((event) => emitted.push(event));
             const label = {
                 entity: { id: 'label-1', revision: { version: 9 } },
@@ -2003,7 +2212,7 @@ describe('CanvasComponent', () => {
 
         it('emits the connection label gesture baseline revision', async () => {
             const { component } = await setup();
-            const emitted: Array<{ revision: { version: number } }> = [];
+            const emitted: Array<{ revision: RevisionRequest }> = [];
             outputToObservable(component.connectionLabelDragEnd).subscribe((event) => emitted.push(event));
             const connection = {
                 entity: { id: 'connection-1', revision: { version: 8 } },
