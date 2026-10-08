@@ -1483,6 +1483,50 @@ public class TestStandardConnectorNode {
         connectorNode.verifyCanStart();
     }
 
+    @Test
+    public void testReplaceWorkingConfigurationBackfillsMissingRequiredPropertyDefault() throws FlowUpdateException {
+        // Mirrors the real-world case: a Gen2 connector's "Table Storage Format" is required(true) with a
+        // defaultValue, and an external configuration provider's config.json predates that property.
+        final TableStorageFormatConnector connector = new TableStorageFormatConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("Destination details",
+            createStepConfiguration(Map.of("Table Storage Format", "ICEBERG", "Object Identifier Resolution", "CASE_SENSITIVE")));
+        connectorNode.applyUpdate();
+
+        // Simulates an external configuration provider whose config.json predates "Table Storage Format": the
+        // replacement omits it entirely rather than leaving it unset, and replaceWorkingConfiguration treats an
+        // omitted property as removed, not merely unset -- the back-fill is the only thing standing between this
+        // and "Table Storage Format is required" on the very next validation, exactly as it did in production for
+        // "Configure Logical Keys" (FLOW-13099) and "Enable Advanced Configuration" (FLOW-14581 / Zopa).
+        connectorNode.replaceWorkingConfiguration("Destination details",
+            createStepConfiguration(Map.of("Object Identifier Resolution", "CASE_SENSITIVE")));
+
+        assertEquals("CASE_SENSITIVE",
+            connectorNode.getWorkingFlowContext().getConfigurationContext().getProperty("Destination details", "Object Identifier Resolution").getValue());
+        assertEquals("STANDARD",
+            connectorNode.getWorkingFlowContext().getConfigurationContext().getProperty("Destination details", "Table Storage Format").getValue());
+        connectorNode.verifyCanStart();
+    }
+
+    @Test
+    public void testReplaceWorkingConfigurationDoesNotApplyOptionalPropertyDefault() throws FlowUpdateException {
+        final DependentDefaultValueConnector connector = new DependentDefaultValueConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.applyUpdate();
+
+        connectorNode.replaceWorkingConfiguration("settings", createStepConfiguration(Map.of()));
+
+        // "SSL Mode" is optional, so its default must not be inserted. If it were, the "REQUIRED" default would
+        // satisfy the dependency of "Truststore Filename" and make that required property report as missing.
+        assertFalse(connectorNode.getWorkingFlowContext().getConfigurationContext().getPropertyNames("settings").contains("SSL Mode"));
+    }
+
     private static Bundle createConnectorBundle() {
         final Bundle bundle = new Bundle();
         bundle.setGroup("org.apache.nifi");
@@ -2091,6 +2135,71 @@ public class TestStandardConnectorNode {
 
             final ConfigurationStep step = new ConfigurationStep.Builder()
                 .name("settings")
+                .propertyGroups(List.of(propertyGroup))
+                .build();
+
+            return List.of(step);
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Mirrors a Gen2 CDC connector's "Destination details" step shape (e.g. the real PostgreSQL/MySQL
+     * connectors): "Table Storage Format" is required(true) with a defaultValue, the same shape as the
+     * properties that broke in production (FLOW-13099, FLOW-14581 / Zopa) when an external configuration
+     * provider's config.json predated them.
+     */
+    private static class TableStorageFormatConnector extends AbstractConnector {
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor tableStorageFormat = new ConnectorPropertyDescriptor.Builder()
+                .name("Table Storage Format")
+                .description("The storage format of the destination Snowflake table.")
+                .required(true)
+                .defaultValue("STANDARD")
+                .build();
+
+            final ConnectorPropertyDescriptor objectIdentifierResolution = new ConnectorPropertyDescriptor.Builder()
+                .name("Object Identifier Resolution")
+                .description("How source identifiers are resolved to Snowflake object identifiers.")
+                .required(true)
+                .defaultValue("CASE_INSENSITIVE")
+                .build();
+
+            final ConnectorPropertyGroup propertyGroup = ConnectorPropertyGroup.builder()
+                .name("Destination details group")
+                .description("Destination details")
+                .properties(List.of(tableStorageFormat, objectIdentifierResolution))
+                .build();
+
+            final ConfigurationStep step = new ConfigurationStep.Builder()
+                .name("Destination details")
                 .propertyGroups(List.of(propertyGroup))
                 .build();
 
