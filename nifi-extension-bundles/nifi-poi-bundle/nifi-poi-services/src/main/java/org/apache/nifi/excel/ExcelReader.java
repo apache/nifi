@@ -108,6 +108,17 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor IGNORE_CELLS_BEYOND_HEADER = new PropertyDescriptor
+            .Builder().name("Ignore Cells Beyond Header")
+            .description("Whether to ignore cells located beyond the last column of the header row, instead of failing schema inference."
+                    + " Such cells are often blank but formatted. A warning is logged when ignored cells contain a value."
+                    + " Only the rows evaluated by the '" + ROW_EVALUATION_STRATEGY.getName() + "' property are checked.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .dependsOn(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, ExcelStartingRowSchemaInference.USE_STARTING_ROW)
+            .build();
+
     public static final PropertyDescriptor REQUIRED_SHEETS = new PropertyDescriptor
             .Builder().name("Required Sheets")
             .description("Comma-separated list of Excel document sheet names whose rows should be extracted from the excel document. If this property" +
@@ -165,6 +176,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
         properties.add(PASSWORD);
         properties.add(STARTING_ROW);
         properties.add(ROW_EVALUATION_STRATEGY);
+        properties.add(IGNORE_CELLS_BEYOND_HEADER);
         properties.add(REQUIRED_SHEETS);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
@@ -181,8 +193,9 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
             final int firstRow = context.getProperty(STARTING_ROW)
                     .evaluateAttributeExpressions()
                     .asInteger();
+            final boolean ignoreCellsBeyondHeader = context.getProperty(IGNORE_CELLS_BEYOND_HEADER).asBoolean();
             final SchemaInferenceEngine<Row> inference =
-                    new ExcelStartingRowSchemaInference(rowEvaluationStrategy, firstRow, createTimeValueInference());
+                    new ExcelStartingRowSchemaInference(rowEvaluationStrategy, firstRow, createTimeValueInference(), ignoreCellsBeyondHeader, getLogger());
             return createInferSchemaAccessStrategy(context, inference);
         } else if (SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(allowableValue)) {
             final SchemaInferenceEngine<Row> inference = new ExcelSchemaInference(createTimeValueInference());
