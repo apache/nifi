@@ -50,6 +50,13 @@ public interface MutableConnectorConfigurationContext extends ConnectorConfigura
     ConfigurationUpdateResult replaceProperties(String stepName, StepConfiguration configuration);
 
     /**
+     * Removes the named configuration step and its resolved values. If the step is not present, this is a no-op.
+     *
+     * @param stepName the name of the configuration step to remove
+     */
+    void removeStep(String stepName);
+
+    /**
      * Resolves all existing property values.
      */
     void resolvePropertyValues();

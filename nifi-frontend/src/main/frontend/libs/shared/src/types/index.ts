@@ -184,7 +184,8 @@ export type ConnectorActionName =
     | 'CANCEL_DRAIN_FLOWFILES'
     | 'APPLY_UPDATES'
     | 'MIGRATE'
-    | 'DELETE';
+    | 'DELETE'
+    | 'CHANGE_VERSION';
 
 export interface ConnectorAction {
     name: ConnectorActionName;
@@ -202,7 +203,8 @@ export enum ConnectorState {
     DISABLED = 'DISABLED',
     PREPARING_FOR_UPDATE = 'PREPARING_FOR_UPDATE',
     UPDATING = 'UPDATING',
-    UPDATE_FAILED = 'UPDATE_FAILED'
+    UPDATE_FAILED = 'UPDATE_FAILED',
+    UPDATED = 'UPDATED'
 }
 
 export interface ConnectorComponent {

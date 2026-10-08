@@ -23,6 +23,7 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
@@ -35,6 +36,7 @@ import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.web.api.dto.AssetReferenceDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
+import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.web.dao.ConnectorDAO;
@@ -46,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -62,6 +65,9 @@ import java.util.stream.Stream;
 public class ConnectorAuditor extends NiFiAuditor {
 
     private static final Logger logger = LoggerFactory.getLogger(ConnectorAuditor.class);
+
+    private static final String NAME = "Name";
+    private static final String EXTENSION_VERSION = "Extension Version";
 
     /**
      * Audits the creation of connectors via createConnector().
@@ -129,6 +135,68 @@ public class ConnectorAuditor extends NiFiAuditor {
             if (action != null) {
                 saveAction(action, logger);
             }
+        }
+    }
+
+    /**
+     * Audits name and extension version changes via updateConnector().
+     *
+     * @param proceedingJoinPoint join point
+     * @param connectorDTO connector dto
+     * @param connectorDAO connector dao
+     * @throws Throwable if an error occurs
+     */
+    @Around("within(org.apache.nifi.web.dao.ConnectorDAO+) && "
+            + "execution(void updateConnector(org.apache.nifi.web.api.dto.ConnectorDTO)) && "
+            + "args(connectorDTO) && "
+            + "target(connectorDAO)")
+    public void updateConnectorAdvice(final ProceedingJoinPoint proceedingJoinPoint, final ConnectorDTO connectorDTO, final ConnectorDAO connectorDAO) throws Throwable {
+        ConnectorNode connector = connectorDAO.getConnector(connectorDTO.getId(), ConnectorSyncMode.LOCAL_ONLY);
+        final Map<String, String> values = extractConfiguredPropertyValues(connector, connectorDTO);
+
+        proceedingJoinPoint.proceed();
+
+        connector = connectorDAO.getConnector(connectorDTO.getId(), ConnectorSyncMode.LOCAL_ONLY);
+        if (!isAuditable()) {
+            return;
+        }
+
+        final Map<String, String> updatedValues = extractConfiguredPropertyValues(connector, connectorDTO);
+        final FlowChangeExtensionDetails connectorDetails = new FlowChangeExtensionDetails();
+        connectorDetails.setType(connector.getComponentType());
+
+        final Date actionTimestamp = new Date();
+        final Collection<Action> actions = new ArrayList<>();
+
+        for (final String property : updatedValues.keySet()) {
+            final String newValue = updatedValues.get(property);
+            final String oldValue = values.get(property);
+            if (oldValue != null && newValue != null && newValue.equals(oldValue)) {
+                continue;
+            }
+
+            if (oldValue == null && newValue == null) {
+                continue;
+            }
+
+            final FlowChangeConfigureDetails actionDetails = new FlowChangeConfigureDetails();
+            actionDetails.setName(property);
+            actionDetails.setValue(newValue);
+            actionDetails.setPreviousValue(oldValue);
+
+            final FlowChangeAction configurationAction = createFlowChangeAction();
+            configurationAction.setOperation(Operation.Configure);
+            configurationAction.setTimestamp(actionTimestamp);
+            configurationAction.setSourceId(connector.getIdentifier());
+            configurationAction.setSourceName(connector.getName());
+            configurationAction.setComponentDetails(connectorDetails);
+            configurationAction.setSourceType(Component.Connector);
+            configurationAction.setActionDetails(actionDetails);
+            actions.add(configurationAction);
+        }
+
+        if (!actions.isEmpty()) {
+            saveActions(actions, logger);
         }
     }
 
@@ -393,6 +461,18 @@ public class ConnectorAuditor extends NiFiAuditor {
                 saveAction(action, logger);
             }
         }
+    }
+
+    private Map<String, String> extractConfiguredPropertyValues(final ConnectorNode connector, final ConnectorDTO connectorDTO) {
+        final Map<String, String> values = new HashMap<>();
+        if (connectorDTO.getName() != null) {
+            values.put(NAME, connector.getName());
+        }
+        if (connectorDTO.getBundle() != null) {
+            final BundleCoordinate bundle = connector.getBundleCoordinate();
+            values.put(EXTENSION_VERSION, formatExtensionVersion(connector.getComponentType(), bundle));
+        }
+        return values;
     }
 
     /**

@@ -30,6 +30,10 @@
       <module>nifi-nar-provider-service-nar</module>
       <module>nifi-nar-provider-processors</module>
       <module>nifi-nar-provider-processors-nar</module>
+      <module>nifi-connector-change-version-v1</module>
+      <module>nifi-connector-change-version-v1-nar</module>
+      <module>nifi-connector-change-version-v2</module>
+      <module>nifi-connector-change-version-v2-nar</module>
       <module>nifi-nar-provider-assembly</module>
   </modules>
 </project>

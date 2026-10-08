@@ -35,6 +35,7 @@ import {
     navigateToViewConnectorDetails,
     openNewConnectorDialog,
     openRenameConnectorDialog,
+    openChangeConnectorVersionDialog,
     promptConnectorDeletion,
     promptDiscardConnectorConfig,
     promptDrainConnector,
@@ -122,6 +123,20 @@ export class ConnectorsListing implements OnInit {
 
     renameConnector(entity: ConnectorEntity): void {
         this.store.dispatch(openRenameConnectorDialog({ connector: entity }));
+    }
+
+    changeConnectorVersion(entity: ConnectorEntity): void {
+        this.store.dispatch(
+            openChangeConnectorVersionDialog({
+                request: {
+                    id: entity.id,
+                    bundle: entity.component.bundle,
+                    uri: entity.uri,
+                    type: entity.component.type,
+                    revision: entity.revision
+                }
+            })
+        );
     }
 
     startConnector(entity: ConnectorEntity): void {

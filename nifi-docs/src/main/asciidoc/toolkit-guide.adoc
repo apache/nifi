@@ -142,6 +142,7 @@ The following are available commands:
  nifi get-controller-configuration
  nifi update-controller-configuration
  nifi change-version-processor
+ nifi change-version-connector
  nifi upload-nar
  nifi download-nar
  nifi delete-nar
@@ -313,7 +314,7 @@ For example, typing tab at an empty prompt should display possible commands for 
 Typing "nifi " and then a tab will show the sub-commands for NiFi:
 
  #> nifi
- change-version-processor          delete-flow-analysis-rule         export-reporting-task             get-policy                        list-user-groups                  pg-export                         pg-delete
+ change-version-connector          change-version-processor          delete-flow-analysis-rule         export-reporting-task             get-policy                        list-user-groups                  pg-export                         pg-delete
  cluster-summary                   delete-node                       export-reporting-tasks            get-reg-client-id                 list-users                        pg-get-all-versions               pg-stop-version-control
  connect-node                      delete-param                      fetch-params                      get-reporting-task                logout-access-token               pg-get-param-context              set-inherited-param-contexts
  create-flow-analysis-rule         delete-param-context              get-access-token                  get-reporting-tasks               merge-param-context               pg-get-services                   remove-inherited-param-contexts

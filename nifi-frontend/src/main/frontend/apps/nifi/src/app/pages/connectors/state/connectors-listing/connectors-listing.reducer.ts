@@ -20,6 +20,9 @@ import { ConnectorsListingState } from '../index';
 import {
     cancelConnectorDrain,
     cancelConnectorDrainSuccess,
+    changeConnectorVersion,
+    changeConnectorVersionApiError,
+    changeConnectorVersionSuccess,
     connectorsListingBannerApiError,
     createConnector,
     createConnectorSuccess,
@@ -112,7 +115,7 @@ export const connectorsListingReducer = createReducer(
         saving: false
     })),
 
-    on(renameConnector, (state) => ({
+    on(renameConnector, changeConnectorVersion, (state) => ({
         ...state,
         saving: true
     })),
@@ -123,7 +126,13 @@ export const connectorsListingReducer = createReducer(
         saving: false
     })),
 
-    on(renameConnectorApiError, (state) => ({
+    on(changeConnectorVersionSuccess, (state, { response }) => ({
+        ...state,
+        connectors: state.connectors.map((c) => (c.id === response.connector.id ? response.connector : c)),
+        saving: false
+    })),
+
+    on(renameConnectorApiError, changeConnectorVersionApiError, (state) => ({
         ...state,
         saving: false
     })),

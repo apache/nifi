@@ -58,6 +58,12 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
 
     void verifyCanStart();
 
+    void verifyCanReload();
+
+    void verifyCanUpdateBundle(BundleCoordinate bundleCoordinate);
+
+    void replaceConnector(Connector connector, BundleCoordinate bundleCoordinate, ComponentLog componentLog) throws FlowUpdateException;
+
     Connector getConnector();
 
     /**
@@ -98,6 +104,8 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      * @return true if the extension is missing, false otherwise
      */
     boolean isExtensionMissing();
+
+    void resetValidationState();
 
     List<DescribedValue> fetchAllowableValues(String stepName, String propertyName);
 
