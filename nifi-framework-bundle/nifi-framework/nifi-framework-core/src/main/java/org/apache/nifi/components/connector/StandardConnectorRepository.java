@@ -566,20 +566,20 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     /**
-     * Sync a connector from the provider for a read operation, tolerating a configuration-load failure.
-     * A configuration that cannot be loaded or parsed (e.g. a transient provider error, or a corrupt
-     * stored configuration left by a failed commit) must not make a connector unreadable — and therefore
-     * undeletable. On failure we log and return the in-memory node without updating its working
-     * configuration; the connector's own state is left untouched, so a subsequent successful read recovers
-     * normally. Write paths ({@code addConnector}, {@code applyUpdate}) call
+     * Sync a connector from the provider for a read operation, tolerating a configuration synchronization failure.
+     * A configuration that cannot be loaded, parsed, or normalized (e.g. a transient provider error, a corrupt
+     * stored configuration left by a failed commit, or a property migration failure) must not make a connector
+     * unreadable — and therefore undeletable. On failure we log and return the in-memory node without updating its
+     * working configuration; the connector's own state is left untouched, so a subsequent successful read recovers
+     * normally. Operational paths ({@code addConnector}, {@code applyUpdate}, verification, and migration) call
      * {@link #syncFromProvider(ConnectorNode)} directly and continue to propagate the exception so they do
-     * not proceed on a configuration that could not be loaded.
+     * not proceed on a configuration that could not be loaded or normalized.
      */
     private void syncFromProviderForRead(final ConnectorNode connector) {
         try {
             syncFromProvider(connector);
         } catch (final ConnectorConfigurationProviderException e) {
-            logger.error("Failed to load configuration from provider for connector [{}] during a read operation; "
+            logger.error("Failed to synchronize configuration from provider for connector [{}] during a read operation; "
                     + "returning the connector with its existing configuration so it remains readable and deletable",
                     connector.getIdentifier(), e);
         }
@@ -1082,26 +1082,31 @@ public class StandardConnectorRepository implements ConnectorRepository {
         }
 
         final ConnectorWorkingConfiguration externalWorkingConfiguration = externalConfig.get();
-        if (externalWorkingConfiguration.getName() != null) {
-            connector.setName(externalWorkingConfiguration.getName());
-        }
-
+        final String externalName = externalWorkingConfiguration.getName();
         final List<VersionedConfigurationStep> workingFlowConfiguration = externalWorkingConfiguration.getWorkingFlowConfiguration();
 
         if (workingFlowConfiguration == null) {
+            if (externalName != null) {
+                connector.setName(externalName);
+            }
             return;
         }
 
-        // Enrich provider-sourced SECRET_REFERENCE values with providerId before they are
-        // converted into the in-memory ConnectorValueReference graph.
-        resolveSecretReferencesFromProvider(workingFlowConfiguration);
-
-        // Replace the complete working configuration on the connector. Routing through the connector
-        // applies property migration and required defaults in memory without writing to the provider.
         try {
+            // Enrich provider-sourced SECRET_REFERENCE values with providerId before they are
+            // converted into the in-memory ConnectorValueReference graph.
+            resolveSecretReferencesFromProvider(workingFlowConfiguration);
+
+            // Replace the complete working configuration on the connector. Routing through the connector
+            // applies property migration and required defaults in memory without writing to the provider.
             connector.replaceWorkingConfiguration(workingFlowConfiguration);
         } catch (final Exception e) {
-            logger.warn("Failed to replace working configuration on {} during sync from provider", connector, e);
+            throw new ConnectorConfigurationProviderException(
+                "Failed to normalize working configuration from provider for connector [%s]".formatted(connectorId), e);
+        }
+
+        if (externalName != null) {
+            connector.setName(externalName);
         }
     }
 

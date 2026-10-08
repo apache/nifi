@@ -424,6 +424,48 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
+    public void testGetConnectorToleratesProviderNormalizationException() throws FlowUpdateException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Original Name");
+        repository.restoreConnector(connector);
+
+        final VersionedConfigurationStep externalStep = createVersionedStep(
+            "step1", Map.of("Legacy Property", createStringLiteralRef("configured-value")));
+        final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
+        externalConfig.setName("External Name");
+        externalConfig.setWorkingFlowConfiguration(List.of(externalStep));
+        when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
+        doThrow(new FlowUpdateException("Migration failed"))
+            .when(connector).replaceWorkingConfiguration(List.of(externalStep));
+
+        final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
+
+        assertEquals(connector, result);
+        verify(connector).replaceWorkingConfiguration(List.of(externalStep));
+        verify(connector, never()).setName(anyString());
+        verify(connector, never()).markInvalid(anyString(), anyString());
+    }
+
+    @Test
+    public void testGetConnectorAppliesProviderNameWithoutWorkingConfiguration() throws FlowUpdateException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Original Name");
+        repository.restoreConnector(connector);
+
+        final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
+        externalConfig.setName("External Name");
+        when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
+
+        final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
+
+        assertEquals(connector, result);
+        verify(connector).setName("External Name");
+        verify(connector, never()).replaceWorkingConfiguration(any());
+    }
+
+    @Test
     public void testGetConnectorsToleratesProviderException() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
@@ -453,6 +495,28 @@ public class TestStandardConnectorRepository {
         // create/apply-config does not silently proceed on a bad configuration (only reads are made tolerant).
         assertThrows(ConnectorConfigurationProviderException.class, () -> repository.addConnector(connector));
         verify(connector, never()).markInvalid(anyString(), anyString());
+    }
+
+    @Test
+    public void testAddConnectorPropagatesProviderNormalizationException() throws FlowUpdateException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Original Name");
+        final VersionedConfigurationStep externalStep = createVersionedStep(
+            "step1", Map.of("Legacy Property", createStringLiteralRef("configured-value")));
+        final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
+        externalConfig.setName("External Name");
+        externalConfig.setWorkingFlowConfiguration(List.of(externalStep));
+        when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
+        doThrow(new FlowUpdateException("Migration failed"))
+            .when(connector).replaceWorkingConfiguration(List.of(externalStep));
+
+        final ConnectorConfigurationProviderException exception = assertThrows(
+            ConnectorConfigurationProviderException.class, () -> repository.addConnector(connector));
+
+        assertTrue(exception.getCause() instanceof FlowUpdateException);
+        assertNull(repository.getConnector("connector-1", ConnectorSyncMode.LOCAL_ONLY));
+        verify(connector, never()).setName(anyString());
     }
 
     @Test
@@ -1283,6 +1347,36 @@ public class TestStandardConnectorRepository {
 
         verify(connector).abortUpdate(any(FlowUpdateException.class));
         verify(connector).markInvalid(eq("Flow Update Failure"), eq("The flow could not be updated: Simulated failure"));
+    }
+
+    @Test
+    public void testApplyUpdatePropagatesProviderNormalizationFailureBeforeLifecycleTransition() throws FlowUpdateException, IOException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Original Name");
+        final ConnectorUpdateContext updateContext = mock(ConnectorUpdateContext.class);
+        final VersionedConfigurationStep externalStep = createVersionedStep(
+            "step1", Map.of("Legacy Property", createStringLiteralRef("configured-value")));
+        final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
+        externalConfig.setName("External Name");
+        externalConfig.setWorkingFlowConfiguration(List.of(externalStep));
+        when(provider.shouldApplyUpdate("connector-1")).thenReturn(true);
+        when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
+        doThrow(new FlowUpdateException("Migration failed"))
+            .when(connector).replaceWorkingConfiguration(List.of(externalStep));
+        repository.restoreConnector(connector);
+
+        final ConnectorConfigurationProviderException exception = assertThrows(
+            ConnectorConfigurationProviderException.class, () -> repository.applyUpdate(connector, updateContext));
+
+        assertTrue(exception.getCause() instanceof FlowUpdateException);
+        verify(provider).syncAssets("connector-1");
+        verify(connector, never()).setName(anyString());
+        verify(connector, never()).transitionStateForUpdating();
+        verify(connector, never()).prepareForUpdate();
+        verify(connector, never()).applyUpdate();
+        verify(connector, never()).abortUpdate(any());
+        verify(updateContext, never()).saveFlow();
     }
 
     @Test
