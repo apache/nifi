@@ -1138,34 +1138,96 @@ public class StandardConnectorRepository implements ConnectorRepository {
             ? new ArrayList<>(existingConfig.getWorkingFlowConfiguration())
             : new ArrayList<>();
 
-        VersionedConfigurationStep targetStep = null;
+        final Map<String, Set<String>> declaredPropertiesByStep = declaredPropertiesByStep(connector);
+        final List<VersionedConfigurationStep> retainedSteps = new ArrayList<>();
         for (final VersionedConfigurationStep step : existingSteps) {
+            final Set<String> declaredPropertyNames = declaredPropertiesByStep.get(step.getName());
+            if (declaredPropertyNames == null) {
+                logger.debug("Omitting configuration step [{}] from the saved configuration of {} because the current Connector does not declare it",
+                    step.getName(), connector);
+                continue;
+            }
+
+            final Map<String, VersionedConnectorValueReference> retainedProperties = new HashMap<>();
+            if (step.getProperties() != null) {
+                for (final Map.Entry<String, VersionedConnectorValueReference> propertyEntry : step.getProperties().entrySet()) {
+                    if (declaredPropertyNames.contains(propertyEntry.getKey())) {
+                        retainedProperties.put(propertyEntry.getKey(), propertyEntry.getValue());
+                    } else {
+                        logger.debug("Omitting property [{}] of step [{}] from the saved configuration of {} because the current Connector does not declare it",
+                            propertyEntry.getKey(), step.getName(), connector);
+                    }
+                }
+            }
+
+            final VersionedConfigurationStep retainedStep = new VersionedConfigurationStep();
+            retainedStep.setName(step.getName());
+            retainedStep.setProperties(retainedProperties);
+            retainedSteps.add(retainedStep);
+        }
+
+        VersionedConfigurationStep targetStep = null;
+        for (final VersionedConfigurationStep step : retainedSteps) {
             if (stepName.equals(step.getName())) {
                 targetStep = step;
                 break;
             }
         }
 
+        // The filter above only removes stored steps. The block below creates a missing step, so return here when the requested step is not declared.
+        if (targetStep == null && !declaredPropertiesByStep.containsKey(stepName)) {
+            logger.debug("Omitting configuration step [{}] from the saved configuration of {} because the current Connector does not declare it",
+                stepName, connector);
+            existingConfig.setWorkingFlowConfiguration(retainedSteps);
+            return existingConfig;
+        }
+
         if (targetStep == null) {
             targetStep = new VersionedConfigurationStep();
             targetStep.setName(stepName);
             targetStep.setProperties(new HashMap<>());
-            existingSteps.add(targetStep);
+            retainedSteps.add(targetStep);
         }
 
-        final Map<String, VersionedConnectorValueReference> mergedProperties = targetStep.getProperties() != null
-            ? new HashMap<>(targetStep.getProperties())
-            : new HashMap<>();
+        final Map<String, VersionedConnectorValueReference> mergedProperties = new HashMap<>(targetStep.getProperties());
 
+        final Set<String> declaredPropertyNames = declaredPropertiesByStep.get(stepName);
         for (final Map.Entry<String, ConnectorValueReference> entry : incomingConfiguration.getPropertyValues().entrySet()) {
-            if (entry.getValue() != null) {
-                mergedProperties.put(entry.getKey(), toVersionedValueReference(entry.getValue()));
+            if (entry.getValue() == null) {
+                continue;
             }
+
+            if (!declaredPropertyNames.contains(entry.getKey())) {
+                logger.debug("Omitting property [{}] of step [{}] from the saved configuration of {} because the current Connector does not declare it",
+                    entry.getKey(), stepName, connector);
+                continue;
+            }
+
+            mergedProperties.put(entry.getKey(), toVersionedValueReference(entry.getValue()));
         }
         targetStep.setProperties(mergedProperties);
 
-        existingConfig.setWorkingFlowConfiguration(existingSteps);
+        existingConfig.setWorkingFlowConfiguration(retainedSteps);
         return existingConfig;
+    }
+
+    /**
+     * Returns the property names declared by the current Connector, keyed by configuration step name.
+     */
+    private Map<String, Set<String>> declaredPropertiesByStep(final ConnectorNode connector) {
+        final Map<String, Set<String>> declaredPropertiesByStep = new HashMap<>();
+        for (final ConfigurationStep configurationStep : connector.getConfigurationSteps()) {
+            final Set<String> propertyNames = new HashSet<>();
+            for (final ConnectorPropertyGroup propertyGroup : configurationStep.getPropertyGroups()) {
+                for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
+                    propertyNames.add(descriptor.getName());
+                }
+            }
+
+            declaredPropertiesByStep.put(configurationStep.getName(), propertyNames);
+        }
+
+        return declaredPropertiesByStep;
     }
 
     private Map<String, VersionedConnectorValueReference> toVersionedProperties(final StepConfiguration configuration) {
