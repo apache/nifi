@@ -577,7 +577,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             final String stepName = entry.getKey();
             final Set<String> declaredPropertyNames = declaredPropertyNamesByStep.get(stepName);
             if (declaredPropertyNames == null) {
-                logger.debug("Dropped configuration step [{}] from {} because it is not declared by the current Connector version", stepName, this);
+                logger.debug("Omitting configuration step [{}] from {} because the current Connector does not declare it", stepName, this);
                 continue;
             }
 
@@ -588,7 +588,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                 if (declaredPropertyNames.contains(propertyEntry.getKey())) {
                     retainedValues.put(propertyEntry.getKey(), propertyEntry.getValue());
                 } else {
-                    logger.debug("Dropped property [{}] of configuration step [{}] from {} because it is not declared by the current Connector version",
+                    logger.debug("Omitting property [{}] of step [{}] from {} because the current Connector does not declare it",
                         propertyEntry.getKey(), stepName, this);
                 }
             }
@@ -793,30 +793,6 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             workingContextState = this.workingFlowContextState;
             workingContext = workingContextState.getContext();
             final ConfigurationUpdateResult updateResult = workingContext.getConfigurationContext().setProperties(stepName, configuration);
-            if (updateResult == ConfigurationUpdateResult.NO_CHANGES) {
-                return;
-            }
-
-            workingContextState.incrementUseCount();
-        }
-
-        try {
-            notifyStepConfigured(stepName, workingContext);
-        } finally {
-            releaseWorkingFlowContext(workingContextState);
-        }
-    }
-
-    @Override
-    public void replaceWorkingConfiguration(final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
-        // The configuration provider's view is authoritative: any property absent from the provided
-        // configuration is removed from the step.
-        final FrameworkFlowContext workingContext;
-        final WorkingFlowContextState workingContextState;
-        synchronized (workingFlowContextLock) {
-            workingContextState = this.workingFlowContextState;
-            workingContext = workingContextState.getContext();
-            final ConfigurationUpdateResult updateResult = workingContext.getConfigurationContext().replaceProperties(stepName, configuration);
             if (updateResult == ConfigurationUpdateResult.NO_CHANGES) {
                 return;
             }

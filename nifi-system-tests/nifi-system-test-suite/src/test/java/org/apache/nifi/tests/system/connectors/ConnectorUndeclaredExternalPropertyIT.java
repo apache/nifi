@@ -48,9 +48,13 @@ public class ConnectorUndeclaredExternalPropertyIT extends NiFiSystemIT {
     private static final File STATE_DIRECTORY = new File("target/undeclared-external-property").getAbsoluteFile();
     private static final String STEP_NAME = "Ignored Step";
     private static final String DECLARED_PROPERTY_NAME = "Ignored Property";
+    private static final String LEGACY_PROPERTY_NAME = "Legacy Ignored Property";
     private static final String DECLARED_PROPERTY_VALUE = "from-external-config";
     private static final String UPDATED_PROPERTY_VALUE = "saved-by-test";
+    private static final String RELOADED_PROPERTY_VALUE = "saved-after-reload";
     private static final String UNDECLARED_PROPERTY_NAME = "Removed Property";
+    private static final String REQUIRED_DEFAULT_PROPERTY_NAME = "Required Default Property";
+    private static final String REQUIRED_DEFAULT_PROPERTY_VALUE = "default-value";
 
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
@@ -78,37 +82,54 @@ public class ConnectorUndeclaredExternalPropertyIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testSaveDropsUndeclaredExternalProperty() throws NiFiClientException, IOException {
+    public void testReadMigratesInMemoryAndExplicitSavePersistsMigratedConfiguration() throws NiFiClientException, IOException {
         final JsonNode initialConfiguration = readConfiguration("initial-config.json");
-        assertEquals(DECLARED_PROPERTY_VALUE, propertyValue(initialConfiguration, DECLARED_PROPERTY_NAME));
+        assertEquals(DECLARED_PROPERTY_VALUE, propertyValue(initialConfiguration, LEGACY_PROPERTY_NAME));
+        assertFalse(containsProperty(initialConfiguration, DECLARED_PROPERTY_NAME));
         assertEquals("should-be-dropped", propertyValue(initialConfiguration, UNDECLARED_PROPERTY_NAME));
 
         final ConnectorEntity connector = getClientUtil().createConnector("NopConnector");
         assertNotNull(connector);
 
         final ConnectorEntity beforeSave = getNifiClient().getConnectorClient().getConnector(connector.getId());
-        assertEquals(DECLARED_PROPERTY_VALUE, ignoredPropertyValue(beforeSave));
+        assertEquals(DECLARED_PROPERTY_VALUE, workingPropertyValue(beforeSave, DECLARED_PROPERTY_NAME));
+        assertEquals(REQUIRED_DEFAULT_PROPERTY_VALUE, workingPropertyValue(beforeSave, REQUIRED_DEFAULT_PROPERTY_NAME));
+        final ConnectorEntity repeatedRead = getNifiClient().getConnectorClient().getConnector(connector.getId());
+        assertEquals(DECLARED_PROPERTY_VALUE, workingPropertyValue(repeatedRead, DECLARED_PROPERTY_NAME));
+        assertEquals(REQUIRED_DEFAULT_PROPERTY_VALUE, workingPropertyValue(repeatedRead, REQUIRED_DEFAULT_PROPERTY_NAME));
+        assertFalse(new File(STATE_DIRECTORY, "saved-config.json").exists());
 
         getClientUtil().configureConnector(connector, STEP_NAME, Map.of(DECLARED_PROPERTY_NAME, UPDATED_PROPERTY_VALUE));
 
         final JsonNode savedConfiguration = readConfiguration("saved-config.json");
         assertEquals(UPDATED_PROPERTY_VALUE, propertyValue(savedConfiguration, DECLARED_PROPERTY_NAME));
+        assertFalse(containsProperty(savedConfiguration, LEGACY_PROPERTY_NAME));
         assertFalse(containsProperty(savedConfiguration, UNDECLARED_PROPERTY_NAME));
+        assertFalse(containsProperty(savedConfiguration, REQUIRED_DEFAULT_PROPERTY_NAME));
 
         final ConnectorEntity afterSave = getNifiClient().getConnectorClient().getConnector(connector.getId());
-        assertEquals(UPDATED_PROPERTY_VALUE, ignoredPropertyValue(afterSave));
+        assertEquals(UPDATED_PROPERTY_VALUE, workingPropertyValue(afterSave, DECLARED_PROPERTY_NAME));
+        assertEquals(REQUIRED_DEFAULT_PROPERTY_VALUE, workingPropertyValue(afterSave, REQUIRED_DEFAULT_PROPERTY_NAME));
+
+        getClientUtil().configureConnector(afterSave, STEP_NAME, Map.of(DECLARED_PROPERTY_NAME, RELOADED_PROPERTY_VALUE));
+
+        final JsonNode reloadedConfiguration = readConfiguration("saved-config.json");
+        assertEquals(RELOADED_PROPERTY_VALUE, propertyValue(reloadedConfiguration, DECLARED_PROPERTY_NAME));
+        assertFalse(containsProperty(reloadedConfiguration, LEGACY_PROPERTY_NAME));
+        assertFalse(containsProperty(reloadedConfiguration, UNDECLARED_PROPERTY_NAME));
+        assertFalse(containsProperty(reloadedConfiguration, REQUIRED_DEFAULT_PROPERTY_NAME));
     }
 
     private JsonNode readConfiguration(final String fileName) throws IOException {
         return OBJECT_MAPPER.readTree(new File(STATE_DIRECTORY, fileName));
     }
 
-    private String ignoredPropertyValue(final ConnectorEntity connector) {
+    private String workingPropertyValue(final ConnectorEntity connector, final String propertyName) {
         final ConnectorConfigurationDTO workingConfiguration = connector.getComponent().getWorkingConfiguration();
         final Map<String, ConnectorValueReferenceDTO> propertyValues = workingConfiguration.getConfigurationStepConfigurations().getFirst()
             .getPropertyGroupConfigurations().getFirst()
             .getPropertyValues();
-        return propertyValues.get(DECLARED_PROPERTY_NAME).getValue();
+        return propertyValues.get(propertyName).getValue();
     }
 
     private String propertyValue(final JsonNode configuration, final String propertyName) {

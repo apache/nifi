@@ -640,7 +640,8 @@ public class TestStandardConnectorNode {
 
         trackingConnector.reset();
 
-        connectorNode.replaceWorkingConfiguration("step1", createStepConfiguration(Map.of("propA", "newA")));
+        connectorNode.replaceWorkingConfiguration(List.of(
+            createVersionedConfigurationStep("step1", Map.of("propA", "newA"))));
 
         assertTrue(trackingConnector.wasOnConfigurationStepConfiguredCalled("step1"));
         final ConnectorConfiguration workingConfig = connectorNode.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
@@ -661,7 +662,8 @@ public class TestStandardConnectorNode {
 
         trackingConnector.reset();
 
-        connectorNode.replaceWorkingConfiguration("step1", createStepConfiguration(Map.of("propA", "valueA")));
+        connectorNode.replaceWorkingConfiguration(List.of(
+            createVersionedConfigurationStep("step1", Map.of("propA", "valueA"))));
 
         assertFalse(trackingConnector.wasOnConfigurationStepConfiguredCalled("step1"));
     }
@@ -781,7 +783,8 @@ public class TestStandardConnectorNode {
             final CountDownLatch replaceStarted = new CountDownLatch(1);
             final Future<?> replacementFuture = executor.submit(() -> {
                 replaceStarted.countDown();
-                connectorNode.replaceWorkingConfiguration("step1", createStepConfiguration(Map.of("propA", "newA")));
+                connectorNode.replaceWorkingConfiguration(List.of(
+                    createVersionedConfigurationStep("step1", Map.of("propA", "newA"))));
                 return null;
             });
             assertTrue(replaceStarted.await(5, TimeUnit.SECONDS));
@@ -844,7 +847,11 @@ public class TestStandardConnectorNode {
             try {
                 assertTrue(refreshStarted.await(5, TimeUnit.SECONDS));
                 replacedStepName = "step1".equals(refreshingStepName.get()) ? "step2" : "step1";
-                connectorNode.replaceWorkingConfiguration(replacedStepName, createStepConfiguration(Map.of("propA", "newA")));
+                connectorNode.replaceWorkingConfiguration(List.of(
+                    createVersionedConfigurationStep("step1",
+                        Map.of("propA", "step1".equals(replacedStepName) ? "newA" : "oldA")),
+                    createVersionedConfigurationStep("step2",
+                        Map.of("propA", "step2".equals(replacedStepName) ? "newA" : "oldB"))));
             } finally {
                 permitRefresh.countDown();
             }
@@ -1518,6 +1525,95 @@ public class TestStandardConnectorNode {
         assertEquals("1", configurationContext.getProperty("settings", "Repeat Count").getValue());
         assertFalse(configurationContext.getPropertyNames("settings").contains("Legacy Greeting"));
         assertFalse(configurationContext.getPropertyNames("settings").contains("Obsolete Property"));
+    }
+
+    @Test
+    public void testProviderReplacementBackfillsImmutableRequiredDefaultAndAppliesMatchingValue() throws FlowUpdateException {
+        final ImmutableDefaultConnector connector = new ImmutableDefaultConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+        final VersionedConfigurationStep activeStep = createVersionedConfigurationStep("settings",
+            Map.of("Legacy Format Support", "STANDARD"));
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.inheritConfiguration(List.of(activeStep), List.of(activeStep), createConnectorBundle());
+
+        final VersionedConfigurationStep providerStep = new VersionedConfigurationStep();
+        providerStep.setName("settings");
+        providerStep.setProperties(Map.of());
+
+        connectorNode.replaceWorkingConfiguration(List.of(providerStep));
+        connectorNode.replaceWorkingConfiguration(List.of(providerStep));
+
+        final MutableConnectorConfigurationContext workingConfiguration =
+            connectorNode.getWorkingFlowContext().getConfigurationContext();
+        assertEquals("STANDARD", workingConfiguration.getProperty("settings", "Legacy Format Support").getValue());
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.applyUpdate();
+
+        assertEquals("STANDARD", connectorNode.getActiveFlowContext().getConfigurationContext()
+            .getProperty("settings", "Legacy Format Support").getValue());
+    }
+
+    @Test
+    public void testProviderReplacementDoesNotBypassImmutableRequiredDefaultChange() throws FlowUpdateException {
+        final ImmutableDefaultConnector connector = new ImmutableDefaultConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+        final VersionedConfigurationStep activeStep = createVersionedConfigurationStep("settings",
+            Map.of("Legacy Format Support", "LEGACY"));
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.inheritConfiguration(List.of(activeStep), List.of(activeStep), createConnectorBundle());
+        assertEquals("LEGACY", connectorNode.getActiveFlowContext().getConfigurationContext()
+            .getProperty("settings", "Legacy Format Support").getValue());
+
+        final VersionedConfigurationStep providerStep = new VersionedConfigurationStep();
+        providerStep.setName("settings");
+        providerStep.setProperties(Map.of());
+        connectorNode.replaceWorkingConfiguration(List.of(providerStep));
+
+        assertEquals("STANDARD", connectorNode.getWorkingFlowContext().getConfigurationContext()
+            .getProperty("settings", "Legacy Format Support").getValue());
+        assertEquals("LEGACY", connectorNode.getActiveFlowContext().getConfigurationContext()
+            .getProperty("settings", "Legacy Format Support").getValue());
+
+        connectorNode.transitionStateForUpdating();
+        final FlowUpdateException exception = assertThrows(FlowUpdateException.class, connectorNode::prepareForUpdate);
+        assertTrue(exception.getMessage().contains("cannot be changed"));
+    }
+
+    @Test
+    public void testProviderReplacementCreatesNewlyDeclaredStepWithRequiredDefaults() throws FlowUpdateException {
+        final DeclaredStepRecordingConnector connector = new DeclaredStepRecordingConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+        final VersionedConnectorValueReference greetingReference = new VersionedConnectorValueReference();
+        greetingReference.setValueType("STRING_LITERAL");
+        greetingReference.setValue("Welcome");
+        final VersionedConfigurationStep settingsStep = new VersionedConfigurationStep();
+        settingsStep.setName("settings");
+        settingsStep.setProperties(Map.of("Greeting", greetingReference));
+
+        connectorNode.replaceWorkingConfiguration(List.of(settingsStep));
+
+        assertTrue(connector.getConfiguredStepNames().contains("extra"));
+        assertEquals("default", connectorNode.getWorkingFlowContext().getConfigurationContext()
+            .getProperty("extra", "Extra Property").getValue());
+    }
+
+    @Test
+    public void testProviderReplacementDoesNotApplyOptionalPropertyDefault() throws FlowUpdateException {
+        final DependentDefaultValueConnector connector = new DependentDefaultValueConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+        final VersionedConfigurationStep providerStep = new VersionedConfigurationStep();
+        providerStep.setName("settings");
+        providerStep.setProperties(Map.of());
+
+        connectorNode.replaceWorkingConfiguration(List.of(providerStep));
+
+        assertFalse(connectorNode.getWorkingFlowContext().getConfigurationContext()
+            .getPropertyNames("settings").contains("SSL Mode"));
+        connectorNode.verifyCanStart();
     }
 
     @Test
@@ -2374,6 +2470,64 @@ public class TestStandardConnectorNode {
 
         @Override
         public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+    }
+
+    private static class ImmutableDefaultConnector extends AbstractConnector {
+        private static final String STEP_NAME = "settings";
+        private static final String PROPERTY_NAME = "Legacy Format Support";
+
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
+            final String activeValue = activeContext.getConfigurationContext().getProperty(STEP_NAME, PROPERTY_NAME).getValue();
+            final String workingValue = workingContext.getConfigurationContext().getProperty(STEP_NAME, PROPERTY_NAME).getValue();
+            if (activeValue != null && !activeValue.equals(workingValue)) {
+                throw new FlowUpdateException("%s cannot be changed after the connector has been started. Active value: %s, Requested value: %s"
+                    .formatted(PROPERTY_NAME, activeValue, workingValue));
+            }
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor legacyFormatSupport = new ConnectorPropertyDescriptor.Builder()
+                .name(PROPERTY_NAME)
+                .description("Controls legacy output formatting")
+                .required(true)
+                .defaultValue("STANDARD")
+                .build();
+            final ConnectorPropertyGroup propertyGroup = ConnectorPropertyGroup.builder()
+                .name("General")
+                .description("General settings")
+                .properties(List.of(legacyFormatSupport))
+                .build();
+            return List.of(new ConfigurationStep.Builder()
+                .name(STEP_NAME)
+                .propertyGroups(List.of(propertyGroup))
+                .build());
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName,
+                final Map<String, String> overrides, final FlowContext flowContext) {
             return List.of();
         }
     }
