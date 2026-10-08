@@ -29,9 +29,19 @@ import java.util.Optional;
 
 public class ExceptionalTriggerResult implements TriggerResult {
     private final Throwable failureCause;
+    private final FailingComponent failingComponent;
 
     public ExceptionalTriggerResult(final Throwable failureCause) {
+        this(failureCause, null);
+    }
+
+    /**
+     * @param failureCause the Exception that caused the dataflow to fail
+     * @param failingComponent the component that threw the Exception, or <code>null</code> if it was not thrown by a component
+     */
+    public ExceptionalTriggerResult(final Throwable failureCause, final FailingComponent failingComponent) {
         this.failureCause = failureCause;
+        this.failingComponent = failingComponent;
     }
 
     @Override
@@ -78,5 +88,10 @@ public class ExceptionalTriggerResult implements TriggerResult {
         if (cause != null && failureCause != cause) {
             failureCause.addSuppressed(cause);
         }
+    }
+
+    @Override
+    public Optional<FailingComponent> getFailingComponent() {
+        return Optional.ofNullable(failingComponent);
     }
 }
