@@ -514,27 +514,43 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                 continue;
             }
 
-            final Map<String, ConnectorValueReference> existingValues = existingConfiguration == null ? null : existingConfiguration.getPropertyValues();
-            final Map<String, ConnectorValueReference> propertyValues = existingValues == null ? new LinkedHashMap<>() : new LinkedHashMap<>(existingValues);
-            boolean appliedMissingDefault = false;
-            for (final ConnectorPropertyGroup propertyGroup : configurationStep.getPropertyGroups()) {
-                for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
-                    if (!descriptor.isRequired() || descriptor.getDefaultValue() == null || propertyValues.containsKey(descriptor.getName())) {
-                        continue;
-                    }
-
-                    propertyValues.put(descriptor.getName(), new StringLiteralValue(descriptor.getDefaultValue()));
-                    appliedMissingDefault = true;
-                    logger.debug("Applied default value for required property [{}] of configuration step [{}] on {}", descriptor.getName(), stepName, this);
-                }
-            }
-
-            if (appliedMissingDefault) {
-                propertiesWithDefaults.put(stepName, new StepConfiguration(propertyValues));
+            final Map<String, ConnectorValueReference> existingValues = existingConfiguration == null ? Map.of() : existingConfiguration.getPropertyValues();
+            final Map<String, ConnectorValueReference> propertyValuesWithDefaults = applyMissingRequiredPropertyDefaults(configurationStep, existingValues);
+            if (propertyValuesWithDefaults != existingValues) {
+                propertiesWithDefaults.put(stepName, new StepConfiguration(propertyValuesWithDefaults));
             }
         }
 
         return propertiesWithDefaults;
+    }
+
+    /**
+     * Fills in the default value for any required property of {@code configurationStep} that has no value in
+     * {@code propertyValues}. Shared by {@link #migrateProperties(List)} (NAR upgrade / flow-sync) and
+     * {@link #replaceWorkingConfiguration(String, StepConfiguration)} (an external configuration provider's
+     * replace-semantics view, re-applied on every {@code applyUpdate} rather than only on a version migration) so
+     * a required-with-default property is never left genuinely absent regardless of which path wrote the
+     * configuration. Returns {@code propertyValues} unchanged (same reference) when nothing needs backfilling.
+     */
+    private Map<String, ConnectorValueReference> applyMissingRequiredPropertyDefaults(final ConfigurationStep configurationStep,
+            final Map<String, ConnectorValueReference> propertyValues) {
+        Map<String, ConnectorValueReference> result = propertyValues;
+        for (final ConnectorPropertyGroup propertyGroup : configurationStep.getPropertyGroups()) {
+            for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
+                if (!descriptor.isRequired() || descriptor.getDefaultValue() == null || result.containsKey(descriptor.getName())) {
+                    continue;
+                }
+
+                if (result == propertyValues) {
+                    result = new LinkedHashMap<>(propertyValues);
+                }
+                result.put(descriptor.getName(), new StringLiteralValue(descriptor.getDefaultValue()));
+                logger.debug("Applied default value for required property [{}] of configuration step [{}] on {}",
+                        descriptor.getName(), configurationStep.getName(), this);
+            }
+        }
+
+        return result;
     }
 
     private Map<String, ConnectorValueReference> toValueReferenceMap(final VersionedConfigurationStep step) {
@@ -710,13 +726,18 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     @Override
     public void replaceWorkingConfiguration(final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
         // The configuration provider's view is authoritative: any property absent from the provided
-        // configuration is removed from the step.
+        // configuration is removed from the step. Backfill required-with-default properties into that view
+        // first, so a provider configuration that predates one of those properties does not surface it as
+        // missing -- this replace is re-applied on every applyUpdate, not only on a version migration, so the
+        // one-time backfill migrateProperties performs on NAR upgrade is not sufficient on its own.
+        final StepConfiguration configurationWithDefaults = backfillMissingRequiredPropertyDefaults(stepName, configuration);
+
         final FrameworkFlowContext workingContext;
         final WorkingFlowContextState workingContextState;
         synchronized (workingFlowContextLock) {
             workingContextState = this.workingFlowContextState;
             workingContext = workingContextState.getContext();
-            final ConfigurationUpdateResult updateResult = workingContext.getConfigurationContext().replaceProperties(stepName, configuration);
+            final ConfigurationUpdateResult updateResult = workingContext.getConfigurationContext().replaceProperties(stepName, configurationWithDefaults);
             if (updateResult == ConfigurationUpdateResult.NO_CHANGES) {
                 return;
             }
@@ -729,6 +750,17 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         } finally {
             releaseWorkingFlowContext(workingContextState);
         }
+    }
+
+    private StepConfiguration backfillMissingRequiredPropertyDefaults(final String stepName, final StepConfiguration configuration) {
+        final Optional<ConfigurationStep> configurationStep = getConfigurationStep(stepName);
+        if (configurationStep.isEmpty()) {
+            return configuration;
+        }
+
+        final Map<String, ConnectorValueReference> propertyValues = configuration.getPropertyValues();
+        final Map<String, ConnectorValueReference> propertyValuesWithDefaults = applyMissingRequiredPropertyDefaults(configurationStep.get(), propertyValues);
+        return propertyValuesWithDefaults == propertyValues ? configuration : new StepConfiguration(propertyValuesWithDefaults);
     }
 
     private void notifyStepConfigured(final String stepName, final FrameworkFlowContext workingContext) throws FlowUpdateException {

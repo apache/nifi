@@ -1483,6 +1483,47 @@ public class TestStandardConnectorNode {
         connectorNode.verifyCanStart();
     }
 
+    @Test
+    public void testReplaceWorkingConfigurationBackfillsMissingRequiredPropertyDefault() throws FlowUpdateException {
+        final ReplaceConfigurationDefaultConnector connector = new ReplaceConfigurationDefaultConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.setConfiguration("settings",
+            createStepConfiguration(Map.of("Mode", "MANUAL", "Compression", "CASE_SENSITIVE")));
+        connectorNode.applyUpdate();
+
+        // Simulates an external configuration provider whose view predates "Mode": the replacement omits it
+        // entirely rather than leaving it unset, and replaceWorkingConfiguration treats an omitted property as
+        // removed, not merely unset -- the back-fill is the only thing standing between this and
+        // "Mode is required" on the very next validation.
+        connectorNode.replaceWorkingConfiguration("settings",
+            createStepConfiguration(Map.of("Compression", "CASE_SENSITIVE")));
+
+        assertEquals("CASE_SENSITIVE",
+            connectorNode.getWorkingFlowContext().getConfigurationContext().getProperty("settings", "Compression").getValue());
+        assertEquals("AUTO",
+            connectorNode.getWorkingFlowContext().getConfigurationContext().getProperty("settings", "Mode").getValue());
+        connectorNode.verifyCanStart();
+    }
+
+    @Test
+    public void testReplaceWorkingConfigurationDoesNotApplyOptionalPropertyDefault() throws FlowUpdateException {
+        final DependentDefaultValueConnector connector = new DependentDefaultValueConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.applyUpdate();
+
+        connectorNode.replaceWorkingConfiguration("settings", createStepConfiguration(Map.of()));
+
+        // "SSL Mode" is optional, so its default must not be inserted. If it were, the "REQUIRED" default would
+        // satisfy the dependency of "Truststore Filename" and make that required property report as missing.
+        assertFalse(connectorNode.getWorkingFlowContext().getConfigurationContext().getPropertyNames("settings").contains("SSL Mode"));
+    }
+
     private static Bundle createConnectorBundle() {
         final Bundle bundle = new Bundle();
         bundle.setGroup("org.apache.nifi");
@@ -2087,6 +2128,71 @@ public class TestStandardConnectorNode {
                 .name("General")
                 .description("General settings")
                 .properties(List.of(greeting, repeatCount))
+                .build();
+
+            final ConfigurationStep step = new ConfigurationStep.Builder()
+                .name("settings")
+                .propertyGroups(List.of(propertyGroup))
+                .build();
+
+            return List.of(step);
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Declares two required(true) properties with a defaultValue, the shape that migrateProperties /
+     * inheritConfiguration already backfills on a version migration, used here to exercise the same
+     * backfill through replaceWorkingConfiguration -- the path an external configuration provider's
+     * replace-semantics push uses, re-applied on every applyUpdate rather than only once on migration.
+     */
+    private static class ReplaceConfigurationDefaultConnector extends AbstractConnector {
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor mode = new ConnectorPropertyDescriptor.Builder()
+                .name("Mode")
+                .description("Operating mode.")
+                .required(true)
+                .defaultValue("AUTO")
+                .build();
+
+            final ConnectorPropertyDescriptor compression = new ConnectorPropertyDescriptor.Builder()
+                .name("Compression")
+                .description("Compression strategy.")
+                .required(true)
+                .defaultValue("NONE")
+                .build();
+
+            final ConnectorPropertyGroup propertyGroup = ConnectorPropertyGroup.builder()
+                .name("Settings group")
+                .description("Settings")
+                .properties(List.of(mode, compression))
                 .build();
 
             final ConfigurationStep step = new ConfigurationStep.Builder()
