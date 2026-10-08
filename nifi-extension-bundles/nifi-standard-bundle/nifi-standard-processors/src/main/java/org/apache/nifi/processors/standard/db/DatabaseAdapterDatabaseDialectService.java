@@ -122,7 +122,9 @@ class DatabaseAdapterDatabaseDialectService extends AbstractControllerService im
             if (derivedTableFound.isPresent()) {
                 final String derivedTable = derivedTableFound.get();
                 final String tableAlias = databaseAdapter.getTableAliasClause(qualifiedTableName);
-                selectTableSql = "SELECT * FROM (%s) %s".formatted(derivedTable, tableAlias);
+                final String derivedSelectSql = "SELECT * FROM (%s) %s".formatted(derivedTable, tableAlias);
+                final Optional<String> derivedWhereClause = queryStatementRequest.whereClause().filter(clause -> !clause.isEmpty());
+                selectTableSql = derivedWhereClause.map(clause -> "%s WHERE %s".formatted(derivedSelectSql, clause)).orElse(derivedSelectSql);
             } else {
                 final String tableColumns = getSelectTableColumns(tableDefinition.columns());
 

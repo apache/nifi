@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.database.dialect.service.api.QueryStatementRequest;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -47,6 +48,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
+    private static final String TABLE_NAME = "TEST_QUERY_DB_TABLE";
     private static final String TABLE_NAME_KEY = "tableName";
     private static final String MAX_ROWS_KEY = "maxRows";
 
@@ -64,6 +66,36 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         runner.setProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION, "8");
         runner.setProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE, "2");
         runner.enableControllerService(recordWriter);
+    }
+
+    @Test
+    void testMetadataStatementRequestWithoutCustomWhereClauseUsesZeroResultGuard() {
+        final QueryDatabaseTableRecord processor = new QueryDatabaseTableRecord();
+
+        final QueryStatementRequest request = processor.getMetadataStatementRequest(TABLE_NAME, null, null);
+
+        assertEquals("1 = 0", request.whereClause().orElseThrow());
+        assertTrue(request.derivedTable().isEmpty());
+    }
+
+    @Test
+    void testMetadataStatementRequestWithEmptyCustomWhereClauseUsesZeroResultGuard() {
+        final QueryDatabaseTableRecord processor = new QueryDatabaseTableRecord();
+
+        final QueryStatementRequest request = processor.getMetadataStatementRequest(TABLE_NAME, null, "");
+
+        assertEquals("1 = 0", request.whereClause().orElseThrow());
+    }
+
+    @Test
+    void testMetadataStatementRequestWithCustomWhereClauseKeepsZeroResultGuard() {
+        final QueryDatabaseTableRecord processor = new QueryDatabaseTableRecord();
+        final String derivedTableQuery = "SELECT * FROM " + TABLE_NAME;
+
+        final QueryStatementRequest request = processor.getMetadataStatementRequest(TABLE_NAME, derivedTableQuery, "id > 5");
+
+        assertEquals("(id > 5) AND 1 = 0", request.whereClause().orElseThrow());
+        assertEquals(derivedTableQuery, request.derivedTable().orElseThrow());
     }
 
     @AfterEach
