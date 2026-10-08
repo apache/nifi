@@ -1,0 +1,82 @@
+{
+  "externalControllerServices": {},
+  "flowContents": {
+    "comments": "",
+    "componentType": "PROCESS_GROUP",
+    "connections": [],
+    "controllerServices": [],
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultFlowFileExpiration": "0 sec",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "funnels": [],
+    "identifier": "dddddddd-1111-1111-1111-111111111111",
+    "inputPorts": [],
+    "labels": [],
+    "name": "Store Group",
+    "outputPorts": [],
+    "position": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "processGroups": [],
+    "processors": [
+      {
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "bulletinLevel": "WARN",
+        "bundle": {
+          "artifact": "nifi-system-test-extensions-nar",
+          "group": "org.apache.nifi",
+          "version": "2.12.0-SNAPSHOT"
+        },
+        "comments": "",
+        "componentType": "PROCESSOR",
+        "concurrentlySchedulableTaskCount": 1,
+        "executionNode": "ALL",
+        "groupIdentifier": "dddddddd-1111-1111-1111-111111111111",
+        "identifier": "eeeeeeee-2222-2222-2222-222222222222",
+        "maxBackoffPeriod": "10 mins",
+        "name": "MigrateToControllerService",
+        "penaltyDuration": "30 sec",
+        "position": {
+          "x": 100.0,
+          "y": 100.0
+        },
+        "properties": {
+          "store-name": "store"
+        },
+        "propertyDescriptors": {
+          "store-name": {
+            "displayName": "Store Name",
+            "identifiesControllerService": false,
+            "name": "store-name",
+            "sensitive": false
+          }
+        },
+        "retriedRelationships": [],
+        "style": {},
+        "retryCount": 0,
+        "runDurationMillis": 0,
+        "scheduledState": "RUNNING",
+        "schedulingPeriod": "100 ms",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "type": "org.apache.nifi.processors.tests.system.MigrateToControllerService",
+        "yieldDuration": "1 sec"
+      }
+    ],
+    "remoteProcessGroups": [],
+    "variables": {}
+  },
+  "flowEncodingVersion": "1.0",
+  "parameterContexts": {},
+  "snapshotMetadata": {
+    "author": "system-test",
+    "comments": "",
+    "timestamp": 1700000000000,
+    "version": 1
+  }
+}
