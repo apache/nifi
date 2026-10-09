@@ -106,6 +106,41 @@ public class TestConnectorMigrateProperties {
     }
 
     @Test
+    public void testRenamePropertyPreservesExistingNewProperty() {
+        final Map<String, StepConfiguration> initial = new HashMap<>();
+        final Map<String, ConnectorValueReference> stepMap = new HashMap<>();
+        stepMap.put("old", new StringLiteralValue("old-value"));
+        stepMap.put("new", new StringLiteralValue("new-value"));
+        initial.put(STEP_A, new StepConfiguration(stepMap));
+
+        final StandardConnectorPropertyConfiguration config = new StandardConnectorPropertyConfiguration(initial, COMPONENT_DESCRIPTION);
+        new RenamePropertyStringConnector().migrateProperties(config);
+
+        assertTrue(config.isModified());
+        final Map<String, ConnectorValueReference> migrated = config.forStep(STEP_A).getValueReferences();
+        assertFalse(migrated.containsKey("old"));
+        assertEquals("new-value", ((StringLiteralValue) migrated.get("new")).getValue());
+    }
+
+    @Test
+    public void testRenamePropertyPreservesExistingNullNewProperty() {
+        final Map<String, StepConfiguration> initial = new HashMap<>();
+        final Map<String, ConnectorValueReference> stepMap = new HashMap<>();
+        stepMap.put("old", new StringLiteralValue("old-value"));
+        stepMap.put("new", null);
+        initial.put(STEP_A, new StepConfiguration(stepMap));
+
+        final StandardConnectorPropertyConfiguration config = new StandardConnectorPropertyConfiguration(initial, COMPONENT_DESCRIPTION);
+        new RenamePropertyStringConnector().migrateProperties(config);
+
+        assertTrue(config.isModified());
+        final ConnectorStepPropertyConfiguration migrated = config.forStep(STEP_A);
+        assertFalse(migrated.hasProperty("old"));
+        assertTrue(migrated.hasProperty("new"));
+        assertFalse(migrated.isPropertySet("new"));
+    }
+
+    @Test
     public void testRenamePropertyPreservesSecretReference() {
         final SecretReference secret = new SecretReference("vault", "Vault", "credentials/path", "vault:credentials/path");
         final Map<String, StepConfiguration> initial = new HashMap<>();

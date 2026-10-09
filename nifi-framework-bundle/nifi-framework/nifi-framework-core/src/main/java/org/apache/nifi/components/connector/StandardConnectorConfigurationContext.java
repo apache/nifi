@@ -259,6 +259,51 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
     }
 
     @Override
+    public ConfigurationUpdateResult replaceConfiguration(final Map<String, StepConfiguration> configuration) {
+        final Map<String, StepConfiguration> replacementConfigurations = new HashMap<>();
+        final Set<SecretReference> secretReferences = new HashSet<>();
+        for (final Map.Entry<String, StepConfiguration> stepEntry : configuration.entrySet()) {
+            final Map<String, ConnectorValueReference> replacementProperties = new HashMap<>();
+            for (final Map.Entry<String, ConnectorValueReference> propertyEntry : stepEntry.getValue().getPropertyValues().entrySet()) {
+                final ConnectorValueReference valueReference = propertyEntry.getValue();
+                if (valueReference == null) {
+                    continue;
+                }
+
+                replacementProperties.put(propertyEntry.getKey(), valueReference);
+                if (valueReference instanceof final SecretReference secretReference) {
+                    secretReferences.add(secretReference);
+                }
+            }
+
+            replacementConfigurations.put(stepEntry.getKey(), new StepConfiguration(replacementProperties));
+        }
+
+        final Map<SecretReference, Secret> resolvedSecrets = secretReferences.isEmpty() ? Map.of() : secretsManager.getSecrets(secretReferences);
+        final Map<String, StepConfiguration> resolvedReplacementConfigurations = new HashMap<>();
+        for (final Map.Entry<String, StepConfiguration> stepEntry : replacementConfigurations.entrySet()) {
+            final StepConfiguration resolvedConfiguration = resolvePropertyValues(stepEntry.getValue().getPropertyValues(), resolvedSecrets);
+            resolvedReplacementConfigurations.put(stepEntry.getKey(), resolvedConfiguration);
+        }
+
+        writeLock.lock();
+        try {
+            if (Objects.equals(propertyConfigurations, replacementConfigurations)
+                    && Objects.equals(resolvedPropertyConfigurations, resolvedReplacementConfigurations)) {
+                return ConfigurationUpdateResult.NO_CHANGES;
+            }
+
+            propertyConfigurations.clear();
+            propertyConfigurations.putAll(replacementConfigurations);
+            resolvedPropertyConfigurations.clear();
+            resolvedPropertyConfigurations.putAll(resolvedReplacementConfigurations);
+            return ConfigurationUpdateResult.CHANGES_MADE;
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
     public void resolvePropertyValues() {
         writeLock.lock();
         try {

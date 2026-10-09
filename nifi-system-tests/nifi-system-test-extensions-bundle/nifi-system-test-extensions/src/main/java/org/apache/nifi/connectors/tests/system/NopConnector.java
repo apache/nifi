@@ -32,6 +32,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.migration.ConnectorPropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.List;
@@ -39,11 +40,24 @@ import java.util.Map;
 import java.util.Set;
 
 public class NopConnector extends AbstractConnector {
+    static final String LEGACY_IGNORED_PROPERTY_NAME = "Legacy Ignored Property";
+    static final String IGNORED_PROPERTY_NAME = "Ignored Property";
+    static final String REQUIRED_DEFAULT_PROPERTY_NAME = "Required Default Property";
+    static final String REQUIRED_DEFAULT_PROPERTY_VALUE = "default-value";
 
     private static final ConnectorPropertyDescriptor IGNORED_PROPERTY = new ConnectorPropertyDescriptor.Builder()
-        .name("Ignored Property")
+        .name(IGNORED_PROPERTY_NAME)
         .description("This property is ignored by the NopConnector.")
         .required(false)
+        .type(PropertyType.STRING)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
+    private static final ConnectorPropertyDescriptor REQUIRED_DEFAULT_PROPERTY = new ConnectorPropertyDescriptor.Builder()
+        .name(REQUIRED_DEFAULT_PROPERTY_NAME)
+        .description("Required property added after external configuration was stored.")
+        .required(true)
+        .defaultValue(REQUIRED_DEFAULT_PROPERTY_VALUE)
         .type(PropertyType.STRING)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
@@ -51,7 +65,7 @@ public class NopConnector extends AbstractConnector {
     private static final ConnectorPropertyGroup IGNORED_PROPERTY_GROUP = new ConnectorPropertyGroup.Builder()
         .name("Ignored Property Group")
         .description("This property group is ignored by the NopConnector.")
-        .properties(List.of(IGNORED_PROPERTY))
+        .properties(List.of(IGNORED_PROPERTY, REQUIRED_DEFAULT_PROPERTY))
         .build();
 
     private static final ConnectorPropertyDescriptor SECRET_PROPERTY = new ConnectorPropertyDescriptor.Builder()
@@ -119,6 +133,11 @@ public class NopConnector extends AbstractConnector {
     @Override
     public List<ConfigurationStep> getConfigurationSteps() {
         return configurationSteps;
+    }
+
+    @Override
+    public void migrateProperties(final ConnectorPropertyConfiguration configuration) {
+        configuration.forStep("Ignored Step").renameProperty(LEGACY_IGNORED_PROPERTY_NAME, IGNORED_PROPERTY_NAME);
     }
 
     @Override

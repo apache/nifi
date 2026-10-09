@@ -57,6 +57,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -77,6 +79,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -378,7 +381,8 @@ public class TestStandardConnectorRepository {
 
         assertNotNull(result);
         verify(connector).setName("External Name");
-        verify(connector).replaceWorkingConfiguration(eq("step1"), any(StepConfiguration.class));
+        verify(connector).replaceWorkingConfiguration(List.of(externalStep));
+        verify(provider, never()).save(anyString(), any(ConnectorWorkingConfiguration.class));
     }
 
     @Test
@@ -420,6 +424,48 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
+    public void testGetConnectorToleratesProviderNormalizationException() throws FlowUpdateException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Original Name");
+        repository.restoreConnector(connector);
+
+        final VersionedConfigurationStep externalStep = createVersionedStep(
+            "step1", Map.of("Legacy Property", createStringLiteralRef("configured-value")));
+        final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
+        externalConfig.setName("External Name");
+        externalConfig.setWorkingFlowConfiguration(List.of(externalStep));
+        when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
+        doThrow(new FlowUpdateException("Migration failed"))
+            .when(connector).replaceWorkingConfiguration(List.of(externalStep));
+
+        final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
+
+        assertEquals(connector, result);
+        verify(connector).replaceWorkingConfiguration(List.of(externalStep));
+        verify(connector, never()).setName(anyString());
+        verify(connector, never()).markInvalid(anyString(), anyString());
+    }
+
+    @Test
+    public void testGetConnectorAppliesProviderNameWithoutWorkingConfiguration() throws FlowUpdateException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Original Name");
+        repository.restoreConnector(connector);
+
+        final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
+        externalConfig.setName("External Name");
+        when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
+
+        final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
+
+        assertEquals(connector, result);
+        verify(connector).setName("External Name");
+        verify(connector, never()).replaceWorkingConfiguration(any());
+    }
+
+    @Test
     public void testGetConnectorsToleratesProviderException() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
@@ -449,6 +495,28 @@ public class TestStandardConnectorRepository {
         // create/apply-config does not silently proceed on a bad configuration (only reads are made tolerant).
         assertThrows(ConnectorConfigurationProviderException.class, () -> repository.addConnector(connector));
         verify(connector, never()).markInvalid(anyString(), anyString());
+    }
+
+    @Test
+    public void testAddConnectorPropagatesProviderNormalizationException() throws FlowUpdateException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Original Name");
+        final VersionedConfigurationStep externalStep = createVersionedStep(
+            "step1", Map.of("Legacy Property", createStringLiteralRef("configured-value")));
+        final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
+        externalConfig.setName("External Name");
+        externalConfig.setWorkingFlowConfiguration(List.of(externalStep));
+        when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
+        doThrow(new FlowUpdateException("Migration failed"))
+            .when(connector).replaceWorkingConfiguration(List.of(externalStep));
+
+        final ConnectorConfigurationProviderException exception = assertThrows(
+            ConnectorConfigurationProviderException.class, () -> repository.addConnector(connector));
+
+        assertTrue(exception.getCause() instanceof FlowUpdateException);
+        assertNull(repository.getConnector("connector-1", ConnectorSyncMode.LOCAL_ONLY));
+        verify(connector, never()).setName(anyString());
     }
 
     @Test
@@ -578,6 +646,29 @@ public class TestStandardConnectorRepository {
 
         assertThrows(RuntimeException.class, () -> repository.configureConnector(connector, "step1", incomingConfig));
 
+        verify(connector, never()).setConfiguration(anyString(), any(StepConfiguration.class));
+    }
+
+    @Test
+    public void testConfigureConnectorMigrationFailureDoesNotSaveOrModifyNode() throws FlowUpdateException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final VersionedConfigurationStep persistedStep = createVersionedStep("step1",
+            Map.of("Legacy Property", createStringLiteralRef("configured-value")));
+        final ConnectorWorkingConfiguration providerConfig = new ConnectorWorkingConfiguration();
+        providerConfig.setWorkingFlowConfiguration(List.of(persistedStep));
+        when(provider.load("connector-1")).thenReturn(Optional.of(providerConfig));
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.migrateConfiguration(List.of(persistedStep))).thenThrow(new IllegalStateException("Migration failed"));
+        repository.restoreConnector(connector);
+        final StepConfiguration incomingConfig =
+            new StepConfiguration(Map.of("Current Property", new StringLiteralValue("new-value")));
+
+        assertThrows(IllegalStateException.class,
+            () -> repository.configureConnector(connector, "step1", incomingConfig));
+
+        verify(provider, never()).save(anyString(), any(ConnectorWorkingConfiguration.class));
         verify(connector, never()).setConfiguration(anyString(), any(StepConfiguration.class));
     }
 
@@ -735,6 +826,59 @@ public class TestStandardConnectorRepository {
         assertEquals("New Name", configCaptor.getValue().getName());
 
         verify(connector).setName("New Name");
+    }
+
+    @Test
+    public void testUpdateConnectorMigratesProviderConfigurationBeforeSavingName() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final VersionedConfigurationStep persistedStep = createVersionedStep("settings",
+            Map.of("Legacy Property", createStringLiteralRef("configured-value")));
+        final VersionedConfigurationStep migratedStep = createVersionedStep("settings",
+            Map.of("Current Property", createStringLiteralRef("configured-value")));
+        final ConnectorWorkingConfiguration providerConfig = new ConnectorWorkingConfiguration();
+        providerConfig.setName("Old Name");
+        providerConfig.setWorkingFlowConfiguration(List.of(persistedStep));
+        when(provider.load("connector-1")).thenReturn(Optional.of(providerConfig));
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Old Name");
+        when(connector.migrateConfiguration(List.of(persistedStep))).thenReturn(List.of(migratedStep));
+        repository.restoreConnector(connector);
+
+        repository.updateConnector(connector, "New Name");
+
+        final ArgumentCaptor<ConnectorWorkingConfiguration> configCaptor = ArgumentCaptor.forClass(ConnectorWorkingConfiguration.class);
+        verify(provider).save(eq("connector-1"), configCaptor.capture());
+        assertEquals("New Name", configCaptor.getValue().getName());
+        final VersionedConfigurationStep savedStep = configCaptor.getValue().getWorkingFlowConfiguration().getFirst();
+        assertEquals(Set.of("Current Property"), savedStep.getProperties().keySet());
+        assertEquals("configured-value", savedStep.getProperties().get("Current Property").getValue());
+    }
+
+    @Test
+    public void testUpdateGhostConnectorPreservesProviderConfigurationWhenSavingName() throws FlowUpdateException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final VersionedConfigurationStep persistedStep = createVersionedStep("settings",
+            Map.of("Unknown Property", createStringLiteralRef("configured-value")));
+        final ConnectorWorkingConfiguration providerConfig = new ConnectorWorkingConfiguration();
+        providerConfig.setName("Old Name");
+        providerConfig.setWorkingFlowConfiguration(List.of(persistedStep));
+        when(provider.load("connector-1")).thenReturn(Optional.of(providerConfig));
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final GhostConnector ghostConnector = new GhostConnector(
+            "connector-1", "org.example.MissingConnector", new IllegalStateException("Missing extension"));
+        final StandardConnectorNode connectorNode = createRealConnectorNode("connector-1", ghostConnector);
+        repository.restoreConnector(connectorNode);
+
+        repository.updateConnector(connectorNode, "New Name");
+
+        final ArgumentCaptor<ConnectorWorkingConfiguration> configCaptor = ArgumentCaptor.forClass(ConnectorWorkingConfiguration.class);
+        verify(provider).save(eq("connector-1"), configCaptor.capture());
+        assertEquals("New Name", configCaptor.getValue().getName());
+        final VersionedConfigurationStep savedStep = configCaptor.getValue().getWorkingFlowConfiguration().getFirst();
+        assertEquals(Set.of("Unknown Property"), savedStep.getProperties().keySet());
+        assertEquals("configured-value", savedStep.getProperties().get("Unknown Property").getValue());
     }
 
     @Test
@@ -1021,7 +1165,7 @@ public class TestStandardConnectorRepository {
         repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
 
         // Working config is replaced with NiFi UUIDs as-is -- no translation in the repository
-        verify(connector).replaceWorkingConfiguration(eq("step1"), any(StepConfiguration.class));
+        verify(connector).replaceWorkingConfiguration(List.of(step));
     }
 
     @Test
@@ -1075,30 +1219,30 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testGetConnectorContinuesWhenOneStepFailsToReplace() throws FlowUpdateException {
+    public void testGetConnectorContinuesWhenWorkingConfigurationReplacementFails() throws FlowUpdateException {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
 
         final ConnectorNode connector = mock(ConnectorNode.class);
         when(connector.getIdentifier()).thenReturn("connector-1");
-        doThrow(new FlowUpdateException("Simulated failure for step1"))
-                .when(connector).replaceWorkingConfiguration(eq("step1"), any(StepConfiguration.class));
         repository.addConnector(connector);
 
         final VersionedConfigurationStep stepOne = createVersionedStep("step1",
                 Map.of("prop1", createStringLiteralRef("value1")));
         final VersionedConfigurationStep stepTwo = createVersionedStep("step2",
                 Map.of("prop2", createStringLiteralRef("value2")));
+        final List<VersionedConfigurationStep> steps = List.of(stepOne, stepTwo);
+        doThrow(new FlowUpdateException("Simulated replacement failure"))
+                .when(connector).replaceWorkingConfiguration(steps);
         final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
         externalConfig.setName("connector-1");
-        externalConfig.setWorkingFlowConfiguration(List.of(stepOne, stepTwo));
+        externalConfig.setWorkingFlowConfiguration(steps);
         when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
 
         final ConnectorNode result = repository.getConnector("connector-1", ConnectorSyncMode.SYNC_WITH_PROVIDER);
 
         assertNotNull(result);
-        verify(connector).replaceWorkingConfiguration(eq("step1"), any(StepConfiguration.class));
-        verify(connector).replaceWorkingConfiguration(eq("step2"), any(StepConfiguration.class));
+        verify(connector).replaceWorkingConfiguration(steps);
     }
 
     @Test
@@ -1203,6 +1347,36 @@ public class TestStandardConnectorRepository {
 
         verify(connector).abortUpdate(any(FlowUpdateException.class));
         verify(connector).markInvalid(eq("Flow Update Failure"), eq("The flow could not be updated: Simulated failure"));
+    }
+
+    @Test
+    public void testApplyUpdatePropagatesProviderNormalizationFailureBeforeLifecycleTransition() throws FlowUpdateException, IOException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Original Name");
+        final ConnectorUpdateContext updateContext = mock(ConnectorUpdateContext.class);
+        final VersionedConfigurationStep externalStep = createVersionedStep(
+            "step1", Map.of("Legacy Property", createStringLiteralRef("configured-value")));
+        final ConnectorWorkingConfiguration externalConfig = new ConnectorWorkingConfiguration();
+        externalConfig.setName("External Name");
+        externalConfig.setWorkingFlowConfiguration(List.of(externalStep));
+        when(provider.shouldApplyUpdate("connector-1")).thenReturn(true);
+        when(provider.load("connector-1")).thenReturn(Optional.of(externalConfig));
+        doThrow(new FlowUpdateException("Migration failed"))
+            .when(connector).replaceWorkingConfiguration(List.of(externalStep));
+        repository.restoreConnector(connector);
+
+        final ConnectorConfigurationProviderException exception = assertThrows(
+            ConnectorConfigurationProviderException.class, () -> repository.applyUpdate(connector, updateContext));
+
+        assertTrue(exception.getCause() instanceof FlowUpdateException);
+        verify(provider).syncAssets("connector-1");
+        verify(connector, never()).setName(anyString());
+        verify(connector, never()).transitionStateForUpdating();
+        verify(connector, never()).prepareForUpdate();
+        verify(connector, never()).applyUpdate();
+        verify(connector, never()).abortUpdate(any());
+        verify(updateContext, never()).saveFlow();
     }
 
     @Test
@@ -1760,6 +1934,477 @@ public class TestStandardConnectorRepository {
         verify(connector).inheritConfiguration(any(), any(), any());
     }
 
+    @Test
+    public void testSyncConnectorMigratesProviderConfigurationWithoutSaving() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final VersionedConfigurationStep persistedStep = createVersionedStep("step1",
+            Map.of("Legacy Property", createStringLiteralRef("configured-value")));
+        final VersionedConfigurationStep migratedStep = createVersionedStep("step1",
+            Map.of("Current Property", createStringLiteralRef("configured-value")));
+        final ConnectorWorkingConfiguration providerConfig = new ConnectorWorkingConfiguration();
+        providerConfig.setName("Provider Name");
+        providerConfig.setWorkingFlowConfiguration(List.of(persistedStep));
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.allow(providerConfig));
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.migrateConfiguration(List.of(persistedStep))).thenReturn(List.of(migratedStep));
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of());
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+        verify(connector).inheritConfiguration(any(), eq(List.of(persistedStep)), any());
+
+        repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED, result.getOutcome());
+        verify(connector, times(2)).migrateConfiguration(List.of(persistedStep));
+        verify(provider, never()).save(anyString(), any(ConnectorWorkingConfiguration.class));
+    }
+
+    @Test
+    public void testConfigureConnectorSavesMigratedProviderConfigurationWhenEditingDifferentStep() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final VersionedConfigurationStep persistedStep = createVersionedStep("settings",
+            Map.of("Legacy Property", createStringLiteralRef("configured-value")));
+        final VersionedConfigurationStep unrelatedStep = createVersionedStep("destination",
+            Map.of("Destination Property", createStringLiteralRef("old-value")));
+        final VersionedConfigurationStep migratedStep = createVersionedStep("settings",
+            Map.of("Current Property", createStringLiteralRef("configured-value")));
+        final ConnectorWorkingConfiguration providerConfig = new ConnectorWorkingConfiguration();
+        providerConfig.setWorkingFlowConfiguration(List.of(persistedStep, unrelatedStep));
+        when(provider.load("connector-1")).thenReturn(Optional.of(providerConfig));
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.migrateConfiguration(providerConfig.getWorkingFlowConfiguration())).thenReturn(List.of(migratedStep, unrelatedStep));
+        when(connector.getConfigurationSteps()).thenReturn(List.of(
+            createConfigurationStep("settings", createOptionalDescriptor("Current Property")),
+            createConfigurationStep("destination", createOptionalDescriptor("Destination Property"))));
+        repository.restoreConnector(connector);
+
+        repository.configureConnector(connector, "destination",
+            new StepConfiguration(Map.of("Destination Property", new StringLiteralValue("new-value"))));
+
+        final ArgumentCaptor<ConnectorWorkingConfiguration> configurationCaptor = ArgumentCaptor.forClass(ConnectorWorkingConfiguration.class);
+        verify(provider).save(eq("connector-1"), configurationCaptor.capture());
+        final Map<String, VersionedConfigurationStep> savedSteps = configurationCaptor.getValue().getWorkingFlowConfiguration().stream()
+            .collect(Collectors.toMap(VersionedConfigurationStep::getName, Function.identity()));
+        assertEquals(Set.of("Current Property"), savedSteps.get("settings").getProperties().keySet());
+        assertEquals("configured-value", savedSteps.get("settings").getProperties().get("Current Property").getValue());
+        assertEquals("new-value", savedSteps.get("destination").getProperties().get("Destination Property").getValue());
+    }
+
+    @Test
+    public void testSyncConnectorMigrationFailureReturnsFailed() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final VersionedConfigurationStep persistedStep = createVersionedStep("step1",
+            Map.of("Legacy Property", createStringLiteralRef("configured-value")));
+        final ConnectorWorkingConfiguration providerConfig = new ConnectorWorkingConfiguration();
+        providerConfig.setWorkingFlowConfiguration(List.of(persistedStep));
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.allow(providerConfig));
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.migrateConfiguration(List.of(persistedStep))).thenThrow(new IllegalStateException("Migration failed"));
+        repository.restoreConnector(connector);
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of());
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.FAILED, result.getOutcome());
+        verify(connector).markInvalid(eq("Flow Synchronization Failure"), anyString());
+        verify(connector, never()).inheritConfiguration(any(), any(), any());
+        verify(provider, never()).save(anyString(), any(ConnectorWorkingConfiguration.class));
+    }
+
+    @Test
+    public void testConfigureConnectorCurrentPropertyOverridesMigratedValue() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final VersionedConfigurationStep persistedStep = createVersionedStep("step1",
+            Map.of("Legacy Property", createStringLiteralRef("legacy-value")));
+        final VersionedConfigurationStep migratedStep = createVersionedStep("step1",
+            Map.of("Current Property", createStringLiteralRef("legacy-value")));
+        final ConnectorWorkingConfiguration providerConfig = new ConnectorWorkingConfiguration();
+        providerConfig.setWorkingFlowConfiguration(List.of(persistedStep));
+        when(provider.load("connector-1")).thenReturn(Optional.of(providerConfig));
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.migrateConfiguration(List.of(persistedStep))).thenReturn(List.of(migratedStep));
+        when(connector.getConfigurationSteps()).thenReturn(List.of(
+            createConfigurationStep("step1", createOptionalDescriptor("Current Property"))));
+        repository.restoreConnector(connector);
+
+        repository.configureConnector(connector, "step1",
+            new StepConfiguration(Map.of("Current Property", new StringLiteralValue("user-value"))));
+
+        final ArgumentCaptor<ConnectorWorkingConfiguration> configurationCaptor = ArgumentCaptor.forClass(ConnectorWorkingConfiguration.class);
+        verify(provider).save(eq("connector-1"), configurationCaptor.capture());
+        final VersionedConfigurationStep savedStep = configurationCaptor.getValue().getWorkingFlowConfiguration().getFirst();
+        assertEquals(Set.of("Current Property"), savedStep.getProperties().keySet());
+        assertEquals("user-value", savedStep.getProperties().get("Current Property").getValue());
+    }
+
+    @Test
+    public void testSyncConnectorRetriesFailedInheritanceWithoutSavingProviderConfiguration() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final VersionedConfigurationStep persistedStep = createVersionedStep("step1",
+            Map.of("Legacy Property", createStringLiteralRef("configured-value")));
+        final ConnectorWorkingConfiguration providerConfig = new ConnectorWorkingConfiguration();
+        providerConfig.setWorkingFlowConfiguration(List.of(persistedStep));
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.allow(providerConfig));
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final FailOnceMigratingConnector connector = new FailOnceMigratingConnector();
+        connector.setMigration(configuration -> configuration.forStep("step1").renameProperty("Legacy Property", "Current Property"));
+        final StandardConnectorNode connectorNode = createRealConnectorNode("connector-1", connector);
+        repository.restoreConnector(connectorNode);
+        final VersionedConnector versioned = createVersionedConnector(
+            "connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of(persistedStep));
+
+        final ConnectorSyncResult firstResult = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.FAILED, firstResult.getOutcome());
+        assertEquals(ConnectorState.UPDATE_FAILED, connectorNode.getCurrentState());
+        verify(provider, never()).save(anyString(), any(ConnectorWorkingConfiguration.class));
+
+        final ConnectorSyncResult secondResult = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED, secondResult.getOutcome());
+        assertEquals(4, connector.getConfiguredInvocations());
+        verify(provider, never()).save(anyString(), any(ConnectorWorkingConfiguration.class));
+    }
+
+    @Test
+    public void testSyncConnectorIgnoresFrameworkRequiredDefaultMissingFromProvider() throws Exception {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final VersionedConfigurationStep providerStep = createVersionedStep("settings",
+            Map.of("Greeting", createStringLiteralRef("Welcome")));
+        final ConnectorWorkingConfiguration providerConfig = new ConnectorWorkingConfiguration();
+        providerConfig.setWorkingFlowConfiguration(List.of(providerStep));
+        when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.allow(providerConfig));
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        final ConnectorPropertyDescriptor greeting = new ConnectorPropertyDescriptor.Builder()
+            .name("Greeting")
+            .description("Greeting")
+            .required(true)
+            .build();
+        final ConnectorPropertyDescriptor repeatCount = new ConnectorPropertyDescriptor.Builder()
+            .name("Repeat Count")
+            .description("Repeat count")
+            .required(true)
+            .defaultValue("1")
+            .build();
+        final ConfigurationStep configurationStep = new ConfigurationStep.Builder()
+            .name("settings")
+            .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                .name("General")
+                .description("General")
+                .properties(List.of(greeting, repeatCount))
+                .build()))
+            .build();
+        when(connector.getConfigurationSteps()).thenReturn(List.of(configurationStep));
+        final ConnectorConfiguration runtimeConfiguration = new ConnectorConfiguration(Set.of(
+            new NamedStepConfiguration("settings", new StepConfiguration(Map.of(
+                "Greeting", new StringLiteralValue("Welcome"),
+                "Repeat Count", new StringLiteralValue("1"))))));
+        when(connector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        when(connector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of(providerStep));
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
+        verify(connector, never()).inheritConfiguration(any(), any(), any());
+        verify(provider, never()).save(anyString(), any(ConnectorWorkingConfiguration.class));
+    }
+
+    @Test
+    public void testSyncConnectorRetainsRenamedPropertyWhoseValueMatchesDefault() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        final VersionedConfigurationStep persistedStep = createVersionedStep(
+            "settings", Map.of("Legacy Property", createStringLiteralRef("default-value")));
+        final VersionedConfigurationStep migratedStep = createVersionedStep(
+            "settings", Map.of("Current Property", createStringLiteralRef("default-value")));
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.migrateConfiguration(List.of(persistedStep))).thenReturn(List.of(migratedStep));
+        when(connector.getConfigurationSteps()).thenReturn(List.of(createConfigurationStep(
+            "settings", createRequiredDefaultDescriptor("Current Property", "default-value"))));
+        final ConnectorConfiguration runtimeConfiguration = new ConnectorConfiguration(Set.of(
+            new NamedStepConfiguration("settings", new StepConfiguration(Map.of(
+                "Current Property", new StringLiteralValue("default-value"))))));
+        when(connector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        when(connector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector(
+            "connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of(persistedStep));
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
+        verify(connector, never()).inheritConfiguration(any(), any(), any());
+    }
+
+    @Test
+    public void testSyncConnectorRetainsExplicitValueMatchingRequiredDefault() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        final VersionedConfigurationStep persistedStep = createVersionedStep(
+            "settings", Map.of("Current Property", createStringLiteralRef("default-value")));
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.getConfigurationSteps()).thenReturn(List.of(createConfigurationStep(
+            "settings", createRequiredDefaultDescriptor("Current Property", "default-value"))));
+        final ConnectorConfiguration runtimeConfiguration = new ConnectorConfiguration(Set.of(
+            new NamedStepConfiguration("settings", new StepConfiguration(Map.of(
+                "Current Property", new StringLiteralValue("default-value"))))));
+        when(connector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        when(connector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector(
+            "connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of(persistedStep));
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
+        verify(connector, never()).inheritConfiguration(any(), any(), any());
+    }
+
+    @Test
+    public void testSyncConnectorComparesReferencesWithMixedFrameworkDefault() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        final VersionedConnectorValueReference secretReference = new VersionedConnectorValueReference();
+        secretReference.setValueType(ConnectorValueType.SECRET_REFERENCE.name());
+        secretReference.setProviderId("provider-id");
+        secretReference.setProviderName("Provider");
+        secretReference.setSecretName("password");
+        secretReference.setFullyQualifiedSecretName("Provider.password");
+        final VersionedConnectorValueReference assetReference = new VersionedConnectorValueReference();
+        assetReference.setValueType(ConnectorValueType.ASSET_REFERENCE.name());
+        assetReference.setAssetIds(Set.of("asset-id"));
+        final VersionedConfigurationStep persistedStep = createVersionedStep("settings", Map.of(
+            "Greeting", createStringLiteralRef("Welcome"),
+            "Password", secretReference,
+            "Asset", assetReference));
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.getConfigurationSteps()).thenReturn(List.of(createConfigurationStep(
+            "settings", createRequiredDefaultDescriptor("Repeat Count", "1"))));
+        final ConnectorConfiguration runtimeConfiguration = new ConnectorConfiguration(Set.of(
+            new NamedStepConfiguration("settings", new StepConfiguration(Map.of(
+                "Greeting", new StringLiteralValue("Welcome"),
+                "Password", new SecretReference("provider-id", "Provider", "password", "Provider.password"),
+                "Asset", new AssetReference(Set.of("asset-id")),
+                "Repeat Count", new StringLiteralValue("1"))))));
+        when(connector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        when(connector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector(
+            "connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of(persistedStep));
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
+        verify(connector, never()).inheritConfiguration(any(), any(), any());
+    }
+
+    @Test
+    public void testSyncConnectorRetainsMigratedEmptyStep() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        final VersionedConfigurationStep persistedStep = createVersionedStep(
+            "settings", Map.of("Obsolete Property", createStringLiteralRef("obsolete")));
+        final VersionedConfigurationStep migratedStep = createVersionedStep("settings", Map.of());
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.migrateConfiguration(List.of(persistedStep))).thenReturn(List.of(migratedStep));
+        final ConnectorConfiguration runtimeConfiguration = new ConnectorConfiguration(Set.of(
+            new NamedStepConfiguration("settings", new StepConfiguration(Map.of()))));
+        when(connector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        when(connector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector(
+            "connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of(persistedStep));
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
+        verify(connector, never()).inheritConfiguration(any(), any(), any());
+    }
+
+    @Test
+    public void testSyncConnectorComparesStepAddedByMigrationFromMissingConfiguration() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        final VersionedConfigurationStep migratedStep = createVersionedStep(
+            "settings", Map.of("Current Property", createStringLiteralRef("configured-value")));
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.migrateConfiguration(null)).thenReturn(List.of(migratedStep));
+        final ConnectorConfiguration runtimeConfiguration = new ConnectorConfiguration(Set.of(
+            new NamedStepConfiguration("settings", new StepConfiguration(Map.of(
+                "Current Property", new StringLiteralValue("configured-value"))))));
+        when(connector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        when(connector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector(
+            "connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of());
+        versioned.setActiveFlowConfiguration(null);
+        versioned.setWorkingFlowConfiguration(null);
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
+        verify(connector, never()).inheritConfiguration(any(), any(), any());
+    }
+
+    @Test
+    public void testSyncConnectorRemovesEmptyStepMissingFromPersistedConfiguration() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        final ConnectorConfiguration runtimeConfiguration = new ConnectorConfiguration(Set.of(
+            new NamedStepConfiguration("empty", new StepConfiguration(Map.of()))));
+        when(connector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        when(connector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector(
+            "connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of());
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED, result.getOutcome());
+        verify(connector).inheritConfiguration(eq(List.of()), eq(List.of()), any(Bundle.class));
+    }
+
+    @Test
+    public void testSyncConnectorRemovesMigratedStepWhoseValueMatchesRequiredDefault() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        final VersionedConfigurationStep legacyStep = createVersionedStep(
+            "legacy", Map.of("Legacy Property", createStringLiteralRef("old")));
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.migrateConfiguration(List.of(legacyStep))).thenReturn(List.of());
+        final ConnectorPropertyDescriptor legacyProperty = new ConnectorPropertyDescriptor.Builder()
+            .name("Legacy Property")
+            .description("Legacy property")
+            .required(true)
+            .defaultValue("old")
+            .build();
+        final ConfigurationStep legacyConfigurationStep = new ConfigurationStep.Builder()
+            .name("legacy")
+            .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                .name("General")
+                .description("General")
+                .properties(List.of(legacyProperty))
+                .build()))
+            .build();
+        when(connector.getConfigurationSteps()).thenReturn(List.of(legacyConfigurationStep));
+        final ConnectorConfiguration runtimeConfiguration = new ConnectorConfiguration(Set.of(
+            new NamedStepConfiguration("legacy", new StepConfiguration(Map.of(
+                "Legacy Property", new StringLiteralValue("old"))))));
+        when(connector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        when(connector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector(
+            "connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of(legacyStep));
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED, result.getOutcome());
+        verify(connector).inheritConfiguration(eq(List.of(legacyStep)), eq(List.of(legacyStep)), any(Bundle.class));
+    }
+
+    @Test
+    public void testSyncConnectorComparesMigratedActiveAndWorkingConfiguration() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        final VersionedConfigurationStep persistedStep = createVersionedStep("settings", Map.of(
+            "Legacy Property", createStringLiteralRef("configured-value"),
+            "Obsolete Property", createStringLiteralRef("obsolete")));
+        final VersionedConfigurationStep migratedStep = createVersionedStep("settings",
+            Map.of("Current Property", createStringLiteralRef("configured-value")));
+
+        final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.migrateConfiguration(List.of(persistedStep))).thenReturn(List.of(migratedStep));
+        final ConnectorPropertyDescriptor currentProperty = new ConnectorPropertyDescriptor.Builder()
+            .name("Current Property")
+            .description("Current property")
+            .required(true)
+            .build();
+        final ConfigurationStep configurationStep = new ConfigurationStep.Builder()
+            .name("settings")
+            .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                .name("General")
+                .description("General")
+                .properties(List.of(currentProperty))
+                .build()))
+            .build();
+        when(connector.getConfigurationSteps()).thenReturn(List.of(configurationStep));
+        final ConnectorConfiguration runtimeConfiguration = new ConnectorConfiguration(Set.of(
+            new NamedStepConfiguration("settings", new StepConfiguration(Map.of(
+                "Current Property", new StringLiteralValue("configured-value"))))));
+        when(connector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        when(connector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration()).thenReturn(runtimeConfiguration);
+        repository.restoreConnector(connector);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of(persistedStep));
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
+        verify(connector, times(2)).migrateConfiguration(List.of(persistedStep));
+        verify(connector, never()).inheritConfiguration(any(), any(), any());
+    }
+
+    @Test
+    public void testSyncConnectorTreatsMissingPersistedConfigurationAsEmpty() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        final StandardConnectorNode connectorNode = createRealConnectorNode("connector-1", new TrackingConnector());
+        repository.restoreConnector(connectorNode);
+
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of());
+        versioned.setActiveFlowConfiguration(null);
+        versioned.setWorkingFlowConfiguration(null);
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, result.getOutcome());
+        assertTrue(connectorNode.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration().getNamedStepConfigurations().isEmpty());
+    }
+
+    @Test
+    public void testSyncConnectorKeepsRemovedStepAbsentAcrossLaterSynchronization() throws Exception {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+        final StandardConnectorNode connectorNode = createRealConnectorNode("connector-1", new StepRemovingConnector());
+        repository.restoreConnector(connectorNode);
+
+        final VersionedConfigurationStep settingsStep = createVersionedStep("settings", Map.of("Greeting", createStringLiteralRef("Welcome")));
+        final VersionedConfigurationStep legacyStep = createVersionedStep("legacy", Map.of("Legacy Property", createStringLiteralRef("retained")));
+        final VersionedConnector versioned = createVersionedConnector("connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of(settingsStep, legacyStep));
+
+        final ConnectorSyncResult firstSync = repository.syncConnector(versioned);
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED, firstSync.getOutcome());
+        assertTrue(connectorNode.getActiveFlowContext().getConfigurationContext().getPropertyNames("legacy").isEmpty());
+        assertEquals("Welcome", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("settings", "Greeting").getValue());
+
+        final VersionedConnector migrated = createVersionedConnector("connector-1", "Test Connector", VersionedConnectorState.ENABLED, List.of(settingsStep));
+        final ConnectorSyncResult secondSync = repository.syncConnector(migrated);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED_CONFIG_UNCHANGED, secondSync.getOutcome());
+        assertTrue(connectorNode.getActiveFlowContext().getConfigurationContext().getPropertyNames("legacy").isEmpty());
+    }
+
     // --- findProviderIdByName ---
 
     @Test
@@ -2023,6 +2668,7 @@ public class TestStandardConnectorRepository {
         final ConnectorNode connector = mock(ConnectorNode.class);
         when(connector.getIdentifier()).thenReturn(id);
         when(connector.getName()).thenReturn(name);
+        when(connector.migrateConfiguration(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         final FrameworkFlowContext workingFlowContext = mock(FrameworkFlowContext.class);
         when(workingFlowContext.getConfigurationContext()).thenReturn(workingConfigContext);
@@ -2035,6 +2681,7 @@ public class TestStandardConnectorRepository {
         final ConnectorNode connector = mock(ConnectorNode.class);
         when(connector.getIdentifier()).thenReturn(id);
         when(connector.getName()).thenReturn(name);
+        when(connector.migrateConfiguration(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         final MutableConnectorConfigurationContext workingConfigContext = mock(MutableConnectorConfigurationContext.class);
         final ConnectorConfiguration emptyConfig = new ConnectorConfiguration(Set.of());
@@ -2085,6 +2732,34 @@ public class TestStandardConnectorRepository {
         ref.setValueType("STRING_LITERAL");
         ref.setValue(value);
         return ref;
+    }
+
+    private ConnectorPropertyDescriptor createRequiredDefaultDescriptor(final String name, final String defaultValue) {
+        return new ConnectorPropertyDescriptor.Builder()
+            .name(name)
+            .description(name)
+            .required(true)
+            .defaultValue(defaultValue)
+            .build();
+    }
+
+    private ConnectorPropertyDescriptor createOptionalDescriptor(final String name) {
+        return new ConnectorPropertyDescriptor.Builder()
+            .name(name)
+            .description(name)
+            .required(false)
+            .build();
+    }
+
+    private ConfigurationStep createConfigurationStep(final String name, final ConnectorPropertyDescriptor... descriptors) {
+        return new ConfigurationStep.Builder()
+            .name(name)
+            .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                .name("General")
+                .description("General")
+                .properties(List.of(descriptors))
+                .build()))
+            .build();
     }
 
     private VersionedConnector createVersionedConnector(final String id, final String name, final VersionedConnectorState scheduledState,
@@ -2408,6 +3083,78 @@ public class TestStandardConnectorRepository {
         assertEquals(Set.of("b"), node.getWorkingFlowContext().getConfigurationContext().getPropertyNames("survivor"));
     }
 
+    /**
+     * Declares a step that {@code migrateProperties} always removes while keeping the step and its required default in
+     * {@code getConfigurationSteps}.
+     */
+    private static class StepRemovingConnector extends AbstractConnector {
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public void migrateProperties(final ConnectorPropertyConfiguration configuration) {
+            configuration.removeStep("legacy");
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor greeting = new ConnectorPropertyDescriptor.Builder()
+                .name("Greeting")
+                .description("Greeting")
+                .required(true)
+                .defaultValue("Hello")
+                .build();
+            final ConfigurationStep settings = new ConfigurationStep.Builder()
+                .name("settings")
+                .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                    .name("General")
+                    .description("General")
+                    .properties(List.of(greeting))
+                    .build()))
+                .build();
+
+            final ConnectorPropertyDescriptor legacyProperty = new ConnectorPropertyDescriptor.Builder()
+                .name("Legacy Property")
+                .description("Legacy property")
+                .required(true)
+                .defaultValue("old")
+                .build();
+            final ConfigurationStep legacy = new ConfigurationStep.Builder()
+                .name("legacy")
+                .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                    .name("Legacy")
+                    .description("Legacy")
+                    .properties(List.of(legacyProperty))
+                    .build()))
+                .build();
+            return List.of(settings, legacy);
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+    }
+
     private static class MigratingConnector extends TrackingConnector {
         private java.util.function.Consumer<ConnectorPropertyConfiguration> migration = config -> { };
 
@@ -2418,6 +3165,40 @@ public class TestStandardConnectorRepository {
         @Override
         public void migrateProperties(final ConnectorPropertyConfiguration config) {
             migration.accept(config);
+        }
+    }
+
+    private static class FailOnceMigratingConnector extends MigratingConnector {
+        private int configuredInvocations;
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor currentProperty = new ConnectorPropertyDescriptor.Builder()
+                .name("Current Property")
+                .description("Current property")
+                .build();
+            return List.of(new ConfigurationStep.Builder()
+                .name("step1")
+                .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                    .name("General")
+                    .description("General")
+                    .properties(List.of(currentProperty))
+                    .build()))
+                .build());
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+            configuredInvocations++;
+            if (configuredInvocations == 2) {
+                throw new IllegalStateException("Configuration callback failed");
+            }
+
+            super.onStepConfigured(stepName, workingContext);
+        }
+
+        private int getConfiguredInvocations() {
+            return configuredInvocations;
         }
     }
 }

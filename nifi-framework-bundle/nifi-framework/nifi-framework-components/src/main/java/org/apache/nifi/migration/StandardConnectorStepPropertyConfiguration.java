@@ -65,8 +65,11 @@ public class StandardConnectorStepPropertyConfiguration implements ConnectorStep
             return false;
         }
 
+        final boolean newNamePresent = properties.containsKey(newName);
         final ConnectorValueReference existing = properties.remove(propertyName);
-        properties.put(newName, existing);
+        if (!newNamePresent) {
+            properties.put(newName, existing);
+        }
         parent.markModified(stepName);
         logger.info("Renamed property [{}] to [{}] in step [{}] for [{}]", propertyName, newName, stepName, componentDescription);
         return true;

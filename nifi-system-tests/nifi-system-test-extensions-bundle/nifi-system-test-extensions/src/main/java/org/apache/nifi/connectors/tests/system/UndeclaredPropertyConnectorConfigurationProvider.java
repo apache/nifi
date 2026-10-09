@@ -47,7 +47,8 @@ public class UndeclaredPropertyConnectorConfigurationProvider implements Connect
     public static final String SAVED_CONFIG_FILE_NAME = "saved-config.json";
 
     static final String STEP_NAME = "Ignored Step";
-    static final String DECLARED_PROPERTY_NAME = "Ignored Property";
+    static final String DECLARED_PROPERTY_NAME = NopConnector.IGNORED_PROPERTY_NAME;
+    static final String LEGACY_PROPERTY_NAME = NopConnector.LEGACY_IGNORED_PROPERTY_NAME;
     static final String DECLARED_PROPERTY_VALUE = "from-external-config";
     static final String UNDECLARED_PROPERTY_NAME = "Removed Property";
     static final String UNDECLARED_PROPERTY_VALUE = "should-be-dropped";
@@ -131,7 +132,7 @@ public class UndeclaredPropertyConnectorConfigurationProvider implements Connect
         undeclaredValue.setValue(UNDECLARED_PROPERTY_VALUE);
 
         final Map<String, VersionedConnectorValueReference> properties = new HashMap<>();
-        properties.put(DECLARED_PROPERTY_NAME, declaredValue);
+        properties.put(LEGACY_PROPERTY_NAME, declaredValue);
         properties.put(UNDECLARED_PROPERTY_NAME, undeclaredValue);
 
         final VersionedConfigurationStep step = new VersionedConfigurationStep();

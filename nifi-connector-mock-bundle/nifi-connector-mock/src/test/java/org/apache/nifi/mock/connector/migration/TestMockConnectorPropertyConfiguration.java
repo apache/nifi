@@ -86,6 +86,37 @@ public class TestMockConnectorPropertyConfiguration {
     }
 
     @Test
+    public void testRenamePropertyPreservesExistingNewProperty() {
+        final Map<String, ConnectorValueReference> properties = new HashMap<>();
+        properties.put("old", new StringLiteralValue("old-value"));
+        properties.put("new", new StringLiteralValue("new-value"));
+        final MockConnectorPropertyConfiguration config = MockConnectorPropertyConfiguration.fromValueReferences(
+            Map.of(STEP_ONE, new StepConfiguration(properties)));
+
+        final ConnectorStepPropertyConfiguration stepOne = config.forStep(STEP_ONE);
+        assertTrue(stepOne.renameProperty("old", "new"));
+
+        assertFalse(stepOne.hasProperty("old"));
+        assertEquals("new-value", stepOne.getPropertyValue("new").orElseThrow());
+    }
+
+    @Test
+    public void testRenamePropertyPreservesExistingNullNewProperty() {
+        final Map<String, ConnectorValueReference> properties = new HashMap<>();
+        properties.put("old", new StringLiteralValue("old-value"));
+        properties.put("new", null);
+        final MockConnectorPropertyConfiguration config = MockConnectorPropertyConfiguration.fromValueReferences(
+            Map.of(STEP_ONE, new StepConfiguration(properties)));
+
+        final ConnectorStepPropertyConfiguration stepOne = config.forStep(STEP_ONE);
+        assertTrue(stepOne.renameProperty("old", "new"));
+
+        assertFalse(stepOne.hasProperty("old"));
+        assertTrue(stepOne.hasProperty("new"));
+        assertFalse(stepOne.isPropertySet("new"));
+    }
+
+    @Test
     public void testRemovePropertyRecordsOnlyWhenMutated() {
         final MockConnectorPropertyConfiguration config = newConfig();
         final ConnectorStepPropertyConfiguration stepOne = config.forStep(STEP_ONE);
