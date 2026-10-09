@@ -73,9 +73,13 @@ public class MqttTestClient implements MqttClient {
     }
 
     @Override
-    public void subscribe(String topicFilter, int qos, ReceivedMqttMessageHandler handler) {
+    public void subscribe(String topicFilter, int qos) {
         subscribedTopic = topicFilter;
         subscribedQos = qos;
+    }
+
+    @Override
+    public void setReceivedMessageHandler(ReceivedMqttMessageHandler handler) {
         receivedMqttMessageHandler = handler;
     }
 

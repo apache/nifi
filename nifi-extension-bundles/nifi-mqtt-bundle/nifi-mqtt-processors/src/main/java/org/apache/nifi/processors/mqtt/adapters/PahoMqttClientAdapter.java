@@ -123,16 +123,21 @@ public class PahoMqttClientAdapter implements MqttClient {
     }
 
     @Override
-    public void subscribe(String topicFilter, int qos, ReceivedMqttMessageHandler handler) {
+    public void subscribe(String topicFilter, int qos) {
         logger.debug("Subscribing to {} with QoS: {}", topicFilter, qos);
-
-        client.setCallback(new ConsumerMqttCallback(handler));
 
         try {
             client.subscribe(topicFilter, qos);
         } catch (org.eclipse.paho.client.mqttv3.MqttException e) {
             throw new MqttException("An error has occurred during subscribing to " + topicFilter + " with QoS: " + qos, e);
         }
+    }
+
+    @Override
+    public void setReceivedMessageHandler(ReceivedMqttMessageHandler handler) {
+        logger.debug("Registering received message handler");
+
+        client.setCallback(new ConsumerMqttCallback(handler));
     }
 
     private static org.eclipse.paho.client.mqttv3.MqttClient createClient(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) {

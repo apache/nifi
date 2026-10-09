@@ -388,8 +388,9 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
         // non-null but not connected, so we need to handle each case and only create a new client when it is null
         try {
             mqttClient = createMqttClient();
+            mqttClient.setReceivedMessageHandler(this::handleReceivedMessage);
             mqttClient.connect();
-            mqttClient.subscribe(topicPrefix + topicFilter, qos, this::handleReceivedMessage);
+            mqttClient.subscribe(topicPrefix + topicFilter, qos);
         } catch (Exception e) {
             logger.error("Connection failed to {}. Yielding processor", clientProperties.getRawBrokerUris(), e);
             mqttClient = null; // prevent stuck processor when subscribe fails
