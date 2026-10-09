@@ -52,6 +52,7 @@ import {
     ProcessGroupEntity,
     ProcessorEntity,
     RemoteProcessGroupEntity,
+    Revision,
     RevisionRequest
 } from '@nifi/shared';
 import { DocumentedType, RegistryClientEntity } from '../../../state/shared';
@@ -2040,7 +2041,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         this.labelResizeEnd.emit({
             id: labelId,
             dimensions: event.dimensions,
-            revision: event.label.ui.dragStartRevision ?? event.label.entity.revision
+            revision: this.toRevisionRequest(event.label.ui.dragStartRevision ?? event.label.entity.revision)
         });
         delete event.label.ui.dragStartRevision;
     }
@@ -2367,7 +2368,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         this.connectionBendPointsUpdate.emit({
             id: connectionId,
             bends: event.bends,
-            revision: event.connection.ui.dragStartRevision ?? event.connection.entity.revision
+            revision: this.toRevisionRequest(event.connection.ui.dragStartRevision ?? event.connection.entity.revision)
         });
         delete event.connection.ui.dragStartRevision;
     }
@@ -2389,7 +2390,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         this.connectionBendPointsUpdate.emit({
             id: connectionId,
             bends: event.connection.ui.bends || [],
-            revision: event.connection.entity.revision
+            revision: this.toRevisionRequest(event.connection.entity.revision)
         });
     }
 
@@ -2429,7 +2430,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         this.connectionBendPointsUpdate.emit({
             id: connectionId,
             bends: currentBends,
-            revision: event.connection.entity.revision
+            revision: this.toRevisionRequest(event.connection.entity.revision)
         });
     }
 
@@ -2446,7 +2447,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         this.connectionLabelDragEnd.emit({
             id: connectionId,
             labelIndex: event.labelIndex,
-            revision: event.connection.ui.dragStartRevision ?? event.connection.entity.revision
+            revision: this.toRevisionRequest(event.connection.ui.dragStartRevision ?? event.connection.entity.revision)
         });
         delete event.connection.ui.dragStartRevision;
     }
@@ -2458,7 +2459,9 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     }): void {
         const connectionId = event.connection.entity.id;
         this.savingConnections.update((connections) => new Set(connections).add(connectionId));
-        const revision = event.connection.ui.dragStartRevision ?? event.connection.entity.revision;
+        const revision = this.toRevisionRequest(
+            event.connection.ui.dragStartRevision ?? event.connection.entity.revision
+        );
         delete event.connection.ui.dragStartRevision;
 
         if (event.bends) {
@@ -2694,10 +2697,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         type: DragEndBaselineItem['type'],
         source: CanvasEntity
     ): DragEndBaselineItem {
-        const revision: RevisionRequest = {
-            version: source.revision.version,
-            ...(source.revision.clientId !== undefined && { clientId: source.revision.clientId })
-        };
+        const revision = this.toRevisionRequest(source.revision);
         if (type === ComponentType.Connection) {
             const connection = source as ConnectionEntity;
             return {
@@ -2712,6 +2712,13 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         }
         const position = 'position' in source ? source.position : { x: 0, y: 0 };
         return { id, type, position: { ...position }, revision };
+    }
+
+    private toRevisionRequest(revision: Revision): RevisionRequest {
+        return {
+            version: revision.version,
+            ...(revision.clientId !== undefined && { clientId: revision.clientId })
+        };
     }
 
     private findWrapperByType(id: string, type: ComponentType): CanvasDatum | undefined {

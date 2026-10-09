@@ -1812,6 +1812,28 @@ describe('CanvasComponent', () => {
             expect(connectionDatum.ui.bends).toEqual(connection.bends);
         });
 
+        it('projects the bulk drag revision to request fields', async () => {
+            const processor = createMockProcessor({ id: 'processor-1' });
+            processor.revision = {
+                version: 4,
+                clientId: 'peer-client',
+                lastModifier: 'alice'
+            };
+            const { component } = await setup({ processors: [processor] });
+            const wrapper = component.internalProcessors()[0];
+            wrapper.ui.dragStartEntity = processor;
+            wrapper.ui.dragStartPosition = { ...processor.position };
+            const emitted = vi.fn();
+            outputToObservable(component.componentsDragEnd).subscribe(emitted);
+
+            component.onDragEnd({ delta: { x: 5, y: 10 }, movingIds: new Set(['processor-1']) });
+
+            const event = emitted.mock.calls[0][0] as {
+                items: Array<{ revision: RevisionRequest }>;
+            };
+            expect(event.items[0].revision).toEqual({ version: 4, clientId: 'peer-client' });
+        });
+
         it('refreshes idle connection bends from a same-id entity update', async () => {
             const connection = {
                 id: 'connection-1',
@@ -2023,7 +2045,11 @@ describe('CanvasComponent', () => {
             const destination = createMockProcessor({ id: 'dest-2' });
             const { fixture, component } = await setup({ connections: [connection] });
             const wrapper = component.internalConnections()[0];
-            wrapper.ui.dragStartRevision = { version: 3 };
+            wrapper.ui.dragStartRevision = {
+                version: 3,
+                clientId: 'peer-client',
+                lastModifier: 'alice'
+            };
             const emitted: Array<{ id: string; bends?: Array<{ x: number; y: number }> }> = [];
             outputToObservable(component.connectionDestinationChangeRequested).subscribe((event) =>
                 emitted.push(event)
@@ -2045,7 +2071,7 @@ describe('CanvasComponent', () => {
             expect(emitted).toEqual([
                 {
                     id: 'connection-1',
-                    revision: { version: 3 },
+                    revision: { version: 3, clientId: 'peer-client' },
                     newDestination: expect.any(Object),
                     bends: [{ x: 10, y: 20 }]
                 }
@@ -2200,13 +2226,13 @@ describe('CanvasComponent', () => {
                 ui: {
                     componentType: ComponentType.Label,
                     dimensions: { width: 100, height: 100 },
-                    dragStartRevision: { version: 3 }
+                    dragStartRevision: { version: 3, clientId: 'peer-client', lastModifier: 'alice' }
                 }
             } as unknown as CanvasLabel;
 
             component.onLabelResizeEnd({ label, dimensions: { width: 120, height: 140 } });
 
-            expect(emitted[0].revision).toEqual({ version: 3 });
+            expect(emitted[0].revision).toEqual({ version: 3, clientId: 'peer-client' });
             expect(label.ui.dragStartRevision).toBeUndefined();
         });
 
@@ -2220,14 +2246,44 @@ describe('CanvasComponent', () => {
                     componentType: ComponentType.Connection,
                     start: { x: 0, y: 0 },
                     end: { x: 10, y: 10 },
-                    dragStartRevision: { version: 2 }
+                    dragStartRevision: { version: 2, clientId: 'peer-client', lastModifier: 'alice' }
                 }
             } as unknown as CanvasConnection;
 
             component.onConnectionLabelDragEnd({ connection, labelIndex: 1 });
 
-            expect(emitted[0].revision).toEqual({ version: 2 });
+            expect(emitted[0].revision).toEqual({ version: 2, clientId: 'peer-client' });
             expect(connection.ui.dragStartRevision).toBeUndefined();
+        });
+
+        it('projects bend revisions to request fields', async () => {
+            const { component } = await setup();
+            const emitted: Array<{ revision: RevisionRequest }> = [];
+            outputToObservable(component.connectionBendPointsUpdate).subscribe((event) => emitted.push(event));
+            const connection = {
+                entity: {
+                    id: 'connection-1',
+                    revision: { version: 8, clientId: 'peer-client', lastModifier: 'alice' }
+                },
+                ui: {
+                    componentType: ComponentType.Connection,
+                    start: { x: 0, y: 0 },
+                    end: { x: 10, y: 10 },
+                    bends: [{ x: 5, y: 5 }],
+                    dragStartRevision: { version: 2, clientId: 'peer-client', lastModifier: 'alice' }
+                }
+            } as unknown as CanvasConnection;
+
+            component.onConnectionBendPointDragEnd({ connection, bends: [{ x: 5, y: 5 }] });
+            component.onConnectionBendPointAdd({
+                connection,
+                point: { x: 5, y: 5, index: 0 }
+            });
+
+            expect(emitted.map((event) => event.revision)).toEqual([
+                { version: 2, clientId: 'peer-client' },
+                { version: 8, clientId: 'peer-client' }
+            ]);
         });
     });
 });
