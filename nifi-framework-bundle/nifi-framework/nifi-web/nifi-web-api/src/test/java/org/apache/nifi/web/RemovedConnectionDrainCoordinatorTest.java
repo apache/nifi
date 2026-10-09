@@ -27,6 +27,8 @@ import org.apache.nifi.web.util.InvalidComponentAction;
 import org.apache.nifi.web.util.LifecycleManagementException;
 import org.apache.nifi.web.util.Pause;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.net.URI;
 import java.time.Duration;
@@ -100,8 +102,9 @@ class RemovedConnectionDrainCoordinatorTest {
         assertEquals(Set.of("shared-source"), ids(result.drainStoppedComponents()));
     }
 
-    @Test
-    void testCoordinateDrainCancelsDuringProducerStopAndRestoresOnlyActuallyStoppedComponents() throws Exception {
+    @ParameterizedTest
+    @EnumSource(CancellationPhase.class)
+    void testCoordinateDrainCancelsBeforeOrDuringProducerStopAndRestoresOnlyActuallyStoppedComponents(final CancellationPhase cancellationPhase) throws Exception {
         final RemovedConnectionDescriptor first = descriptor("connection-a", "source-a", ConnectableType.PROCESSOR, "destination-a", ConnectableType.PROCESSOR, RemovalReason.COMPONENT_REMOVED);
         final RemovedConnectionDescriptor second = descriptor("connection-b", "source-b", ConnectableType.PROCESSOR, "destination-b", ConnectableType.PROCESSOR, RemovalReason.COMPONENT_REMOVED);
         final FlowUpdateImpact impact = createImpact(Set.of(first, second), Set.of(
@@ -118,7 +121,8 @@ class RemovedConnectionDrainCoordinatorTest {
                 .addProcessor("destination-a", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID)
                 .addProcessor("destination-b", ROOT_GROUP_ID, ScheduledState.RUNNING, ValidationStatus.VALID);
         final TestComponentLifecycle lifecycle = new TestComponentLifecycle();
-        lifecycle.cancelAfterStop = true;
+        lifecycle.cancelDuringPreflightQueueProbe = cancellationPhase == CancellationPhase.PREFLIGHT_QUEUE_PROBE;
+        lifecycle.cancelAfterStop = cancellationPhase == CancellationPhase.PRODUCER_STOP;
         lifecycle.stoppedResultById.put("source-a", affectedProcessor("source-a", "Stopped", 0));
         lifecycle.stoppedResultById.put("source-b", affectedProcessor("source-b", "Running", 1));
         lifecycle.runningResultById.put("source-a", affectedProcessor("source-a", "Running", 1));
@@ -133,11 +137,20 @@ class RemovedConnectionDrainCoordinatorTest {
                 impact, context, lifecycle, REQUEST_URI, ROOT_GROUP_ID, cancellationHandle);
 
         assertTrue(result.cancelled());
-        assertEquals(List.of(
-                new ScheduleCall(ScheduledState.STOPPED, Set.of("source-a", "source-b")),
-                new ScheduleCall(ScheduledState.RUNNING, Set.of("source-a"))
-        ), lifecycle.scheduleCalls);
+        assertFalse(cancellationHandle.hasCancelCallback());
+        assertEquals(Set.of("connection-a", "connection-b"), result.candidateConnectionIds());
         assertTrue(lifecycle.queueWaitCalls.isEmpty());
+
+        if (cancellationPhase == CancellationPhase.PREFLIGHT_QUEUE_PROBE) {
+            assertTrue(result.drainStoppedComponents().isEmpty());
+            assertTrue(lifecycle.scheduleCalls.isEmpty());
+        } else {
+            assertEquals(Set.of("source-a"), ids(result.drainStoppedComponents()));
+            assertEquals(List.of(
+                    new ScheduleCall(ScheduledState.STOPPED, Set.of("source-a", "source-b")),
+                    new ScheduleCall(ScheduledState.RUNNING, Set.of("source-a"))
+            ), lifecycle.scheduleCalls);
+        }
     }
 
     @Test
@@ -669,6 +682,11 @@ class RemovedConnectionDrainCoordinatorTest {
         }
     }
 
+    private enum CancellationPhase {
+        PREFLIGHT_QUEUE_PROBE,
+        PRODUCER_STOP
+    }
+
     private static final class TestComponentLifecycle implements ComponentLifecycle {
         private final List<ScheduleCall> scheduleCalls = new ArrayList<>();
         private final List<Set<String>> queueWaitCalls = new ArrayList<>();
@@ -677,6 +695,7 @@ class RemovedConnectionDrainCoordinatorTest {
         private final Set<String> initiallyEmptyConnectionIds = new LinkedHashSet<>();
         private boolean queueWaitResult;
         private boolean cancelAfterStop;
+        private boolean cancelDuringPreflightQueueProbe;
         private boolean cancelDuringQueueWait;
         private boolean queueWaitUsesPause;
         private LifecycleManagementException stopException;
@@ -732,6 +751,10 @@ class RemovedConnectionDrainCoordinatorTest {
         @Override
         public boolean waitForConnectionQueuesEmpty(final URI exampleUri, final Set<String> connectionIds, final Pause pause) throws LifecycleManagementException {
             if (connectionIds.size() == 1 && !pause.pause()) {
+                if (cancelDuringPreflightQueueProbe && cancellationHandle != null) {
+                    cancellationHandle.cancel();
+                }
+
                 return initiallyEmptyConnectionIds.contains(connectionIds.iterator().next());
             }
 

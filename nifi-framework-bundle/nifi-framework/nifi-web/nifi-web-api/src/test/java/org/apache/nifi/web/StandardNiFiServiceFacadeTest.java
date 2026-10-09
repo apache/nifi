@@ -523,6 +523,7 @@ public class StandardNiFiServiceFacadeTest {
 
         final ProcessGroup removedGroup = mock(ProcessGroup.class);
         when(removedGroup.getIdentifier()).thenReturn(removedGroupId);
+        when(removedGroup.getStatelessScheduledState()).thenReturn(StatelessGroupScheduledState.STOPPED);
         when(processGroupDAO.getProcessGroup(removedGroupId)).thenReturn(removedGroup);
         when(removedGroup.findAllProcessors()).thenReturn(List.of());
         when(removedGroup.findAllFunnels()).thenReturn(List.of());

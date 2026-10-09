@@ -110,6 +110,10 @@ public final class RemovedConnectionDrainCoordinator {
         final Set<AffectedComponentEntity> drainStoppedComponents = new LinkedHashSet<>();
         boolean stopRequestCompleted = false;
         try {
+            if (cancellationHandle.isCancelled()) {
+                return DrainResult.cancelled(candidateConnectionIds, Collections.emptySet());
+            }
+
             if (!componentsToStop.isEmpty()) {
                 final Set<AffectedComponentEntity> updatedStoppedComponents = componentLifecycle.scheduleComponents(
                         requestUri, groupId, componentsToStop, ScheduledState.STOPPED, drainPause, InvalidComponentAction.SKIP);
