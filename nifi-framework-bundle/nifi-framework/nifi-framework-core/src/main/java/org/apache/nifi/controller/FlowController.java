@@ -367,6 +367,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final RepositoryContextFactory repositoryContextFactory;
     private final RingBufferGarbageCollectionLog gcLog;
     private final Optional<FlowEngine> longRunningTaskMonitorThreadPool;
+    private volatile RegistryFlowSynchronizationTask registrySynchronizationTask;
 
 
     /**
@@ -1430,6 +1431,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
             final RegistryFlowSynchronizationTask registrySynchronizationTask = new RegistryFlowSynchronizationTask(flowManager, defaultRegistrySyncIntervalSeconds);
             timerDrivenEngineRef.get().scheduleWithFixedDelay(registrySynchronizationTask, 300, registrySyncTickSeconds, TimeUnit.SECONDS);
+            this.registrySynchronizationTask = registrySynchronizationTask;
 
             initialized.set(true);
         } finally {
@@ -1491,6 +1493,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
      * @param startDelayedComponents true if start
      */
     public void onFlowInitialized(final boolean startDelayedComponents) {
+        RegistryFlowSynchronizationTask postInitializationRegistrySynchronizationTask = null;
         writeLock.lock();
         try {
             // Perform validation of all components before attempting to start them.
@@ -1655,8 +1658,13 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             timerDrivenEngineRef.get().scheduleWithFixedDelay(discoverPythonExtensions, 1, 1, TimeUnit.MINUTES);
 
             ComponentAccessPolicyDeprecationLogger.logComponentPolicies(authorizer, flowManager.getRootGroupId());
+            postInitializationRegistrySynchronizationTask = registrySynchronizationTask;
         } finally {
             writeLock.unlock("onFlowInitialized");
+        }
+
+        if (postInitializationRegistrySynchronizationTask != null) {
+            processScheduler.submitFrameworkTask(postInitializationRegistrySynchronizationTask::synchronizeAllProcessGroups);
         }
     }
 
