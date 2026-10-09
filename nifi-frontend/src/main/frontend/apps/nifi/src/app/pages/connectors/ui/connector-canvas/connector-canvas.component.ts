@@ -37,8 +37,15 @@ import { Store } from '@ngrx/store';
 import {
     canOperateConnector,
     ComponentType,
+    ConnectionEntity,
+    FunnelEntity,
+    LabelEntity,
     isConnectorActionAllowed,
+    PortEntity,
     Position,
+    ProcessGroupEntity,
+    ProcessorEntity,
+    RemoteProcessGroupEntity,
     selectRouteParams,
     selectUrl,
     Storage
@@ -51,7 +58,7 @@ import { CanvasConfiguration } from '../../../../state/canvas-ui';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import { CanvasComponent } from '../../../../ui/common/canvas/canvas.component';
 import { BirdseyeComponentData, BirdseyeTransform } from '../../../../ui/common/birdseye/birdseye.types';
-import { ContextMenuContext, Dimension } from '../../../../ui/common/canvas/canvas.types';
+import { ContextMenuContext, Dimension, isProcessorDatum } from '../../../../ui/common/canvas/canvas.types';
 import {
     ContextMenuDefinition,
     ContextMenuDefinitionProvider,
@@ -164,13 +171,15 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
         }
     }
 
-    labels$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectLabels);
-    processors$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectProcessors);
-    funnels$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectFunnels);
-    allPorts$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectAllPorts);
-    remoteProcessGroups$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectRemoteProcessGroups);
-    processGroups$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectProcessGroups);
-    connections$: Observable<unknown[]> = this.store.select(ConnectorCanvasSelectors.selectConnections);
+    labels$: Observable<LabelEntity[]> = this.store.select(ConnectorCanvasSelectors.selectLabels);
+    processors$: Observable<ProcessorEntity[]> = this.store.select(ConnectorCanvasSelectors.selectProcessors);
+    funnels$: Observable<FunnelEntity[]> = this.store.select(ConnectorCanvasSelectors.selectFunnels);
+    allPorts$: Observable<PortEntity[]> = this.store.select(ConnectorCanvasSelectors.selectAllPorts);
+    remoteProcessGroups$: Observable<RemoteProcessGroupEntity[]> = this.store.select(
+        ConnectorCanvasSelectors.selectRemoteProcessGroups
+    );
+    processGroups$: Observable<ProcessGroupEntity[]> = this.store.select(ConnectorCanvasSelectors.selectProcessGroups);
+    connections$: Observable<ConnectionEntity[]> = this.store.select(ConnectorCanvasSelectors.selectConnections);
     registryClients$: Observable<RegistryClientEntity[]> = this.store.select(
         ConnectorCanvasSelectors.selectRegistryClients
     );
@@ -243,7 +252,6 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                 const isSingleSelection = context.selectedComponents.length <= 1;
                 const isProcessGroup = clicked?.ui.componentType === ComponentType.ProcessGroup;
                 const isConnection = clicked?.ui.componentType === ComponentType.Connection;
-                const isProcessor = clicked?.ui.componentType === ComponentType.Processor;
                 const isFunnel = clicked?.ui.componentType === ComponentType.Funnel;
                 const isProvenanceTarget =
                     !!clicked &&
@@ -279,11 +287,12 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                         text: 'View State',
                         clazz: 'fa fa-tasks',
                         condition: () =>
-                            isProcessor &&
+                            clicked != null &&
+                            isProcessorDatum(clicked) &&
                             isSingleSelection &&
-                            clicked!.entity.component?.persistsState === true &&
-                            clicked!.entity.permissions.canRead === true &&
-                            clicked!.entity.permissions.canWrite === true,
+                            clicked.entity.component?.persistsState === true &&
+                            clicked.entity.permissions.canRead === true &&
+                            clicked.entity.permissions.canWrite === true,
                         action: () => this.viewProcessorStateAction(clicked!.entity)
                     },
                     { isSeparator: true },

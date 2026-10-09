@@ -20,6 +20,7 @@ import {
     ChangeDetectionStrategy,
     AfterViewInit,
     ElementRef,
+    DestroyRef,
     inject,
     input,
     output,
@@ -27,14 +28,15 @@ import {
     computed
 } from '@angular/core';
 import * as d3 from 'd3';
-import { CanvasProcessor } from '../../canvas.types';
+import { CanvasProcessor, CanvasRootResolver, CanvasRootSelection, CanvasSelection } from '../../canvas.types';
 import { ProcessorRenderer } from './processor-renderer';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../../canvas-format-utils.service';
 import { CanvasComponentUtils } from '../../canvas-component-utils.service';
-import { NiFiCommon } from '@nifi/shared';
+import { NiFiCommon, Position } from '@nifi/shared';
 import { DocumentedType } from '../../../../../state/shared';
 import { ProcessorRenderContext } from '../render-context.types';
+import { ConnectableBehaviorHelper } from '../../connectable-behavior.helper';
 
 /**
  * Processor Layer Component
@@ -127,6 +129,8 @@ export class ProcessorLayerComponent implements AfterViewInit {
      * IDs of processors that are currently saving (disabled during save)
      */
     disabledProcessorIds = input<Set<string>>(new Set());
+    connectableBehavior = input<ConnectableBehaviorHelper | null>(null);
+    canvasRootResolver = input<CanvasRootResolver | null>(null);
 
     /**
      * Emitted when processor is clicked
@@ -141,33 +145,44 @@ export class ProcessorLayerComponent implements AfterViewInit {
     /**
      * Emitted when processor drag ends (for position updates)
      */
-    processorDragEnd = output<{
-        processor: CanvasProcessor;
-        newPosition: { x: number; y: number };
-        previousPosition: { x: number; y: number };
-    }>();
+    dragEnd = output<{ delta: Position; movingIds: Set<string> }>();
 
     private elementRef = inject(ElementRef);
-    private containerSelection: d3.Selection<any, any, any, any> | null = null;
+    private destroyRef = inject(DestroyRef);
+    private containerSelection: CanvasRootSelection | null = null;
+
+    constructor() {
+        this.destroyRef.onDestroy(() => {
+            const helper = this.connectableBehavior();
+            if (helper && this.containerSelection) {
+                helper.deactivate(this.containerSelection.selectAll<SVGGElement, CanvasProcessor>('g.processor'));
+            }
+        });
+    }
+
+    private readonly defaultCanvasRootResolver: CanvasRootResolver = () => {
+        const node = this.containerSelection?.node();
+        const canvasNode = (node?.closest('g.canvas') as SVGGElement | null) ?? node;
+        return canvasNode
+            ? d3.select<SVGGElement, unknown>(canvasNode)
+            : d3.select<SVGGElement, unknown>(null as unknown as SVGGElement);
+    };
 
     /**
      * Stable callback references - defined once, not recreated on every render
      */
-    private readonly callbacks = {
+    private readonly callbacks: ProcessorRenderContext['callbacks'] = {
         onClick: (processor: CanvasProcessor, event: MouseEvent) => {
             this.processorClick.emit({ processor, event });
         },
         onDoubleClick: (processor: CanvasProcessor, event: MouseEvent) => {
             this.processorDoubleClick.emit({ processor, event });
         },
-        onDragEnd: (
-            processor: CanvasProcessor,
-            newPosition: { x: number; y: number },
-            previousPosition: { x: number; y: number }
-        ) => {
-            this.processorDragEnd.emit({ processor, newPosition, previousPosition });
+        onDragEnd: (delta: Position, movingIds: Set<string>) => {
+            this.dragEnd.emit({ delta, movingIds });
         }
     };
+    private selectedIdsSet = computed(() => new Set(this.selectedIds()));
 
     /**
      * Computed render context - single source of truth for all rendering
@@ -181,10 +196,14 @@ export class ProcessorLayerComponent implements AfterViewInit {
             formatUtils: this.formatUtils(),
             nifiCommon: this.nifiCommon(),
             getCanEdit: () => this.canEdit(), // Function that returns current value
+            getCanSelect: () => this.canSelect(),
+            getSelectedIds: () => this.selectedIdsSet(),
             componentUtils: this.componentUtils(),
             processors: this.processors(),
             previewExtensions: this.previewExtensions(),
             disabledProcessorIds: this.disabledProcessorIds(),
+            getDisabledProcessorIds: () => this.disabledProcessorIds(),
+            canvasRootResolver: this.canvasRootResolver() ?? this.defaultCanvasRootResolver,
             canSelect: this.canSelect(),
             callbacks: this.callbacks // Stable reference
         };
@@ -212,11 +231,38 @@ export class ProcessorLayerComponent implements AfterViewInit {
         this.applySelectionStyling();
     });
 
+    /**
+     * Attach or detach the connection handle when the helper, canEdit, or
+     * processor set changes. activate is idempotent, so a data refresh rewires
+     * newly entered processors without tearing down an in-flight connection.
+     * deactivate runs only when editing is turned off.
+     */
+    private connectableEffect = effect((onCleanup) => {
+        this.processors();
+        this.renderTrigger();
+        const helper = this.connectableBehavior();
+        const canEdit = this.canEdit();
+        if (!this.containerSelection) {
+            return;
+        }
+        const groups = this.containerSelection.selectAll<SVGGElement, CanvasProcessor>('g.processor');
+        if (helper && canEdit) {
+            helper.activate(groups);
+            onCleanup(() => {
+                if (this.connectableBehavior() !== helper || !this.canEdit()) {
+                    helper.deactivate(groups);
+                }
+            });
+        } else if (helper) {
+            helper.deactivate(groups);
+        }
+    });
+
     ngAfterViewInit(): void {
         const nativeElement = this.elementRef.nativeElement;
 
         // The component IS the <g> element with attribute selector
-        this.containerSelection = d3.select(nativeElement);
+        this.containerSelection = d3.select<SVGGElement, unknown>(nativeElement);
 
         // Initial render if data arrived before view was ready
         if (this.processors().length > 0) {
@@ -254,7 +300,7 @@ export class ProcessorLayerComponent implements AfterViewInit {
     /**
      * Pan update for entering/leaving processors (called from canvas during zoom/pan)
      */
-    public pan(selection: d3.Selection<any, any, any, any>): void {
+    public pan(selection: CanvasSelection<CanvasProcessor>): void {
         ProcessorRenderer.pan(selection, this.renderContext());
         this.applySelectionStyling();
     }

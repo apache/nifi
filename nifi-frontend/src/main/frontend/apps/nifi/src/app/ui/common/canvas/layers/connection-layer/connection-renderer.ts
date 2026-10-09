@@ -16,11 +16,15 @@
  */
 
 import * as d3 from 'd3';
-import { Position } from '@nifi/shared';
-import { CanvasConnection } from '../../canvas.types';
+import { ConnectableDTO, ConnectionDTO, Position } from '@nifi/shared';
+import { CanvasConnection, CanvasDatum, CanvasRootSelection, CanvasSelection } from '../../canvas.types';
 import { ConnectionRenderContext } from '../render-context.types';
 import { CanvasConstants } from '../../canvas.constants';
 import { UnorderedListTip } from '../../../tooltips/unordered-list-tip/unordered-list-tip.component';
+import { CanvasComponentUtils } from '../../canvas-component-utils.service';
+import { ConnectableComponentDatum, ConnectableComponentSelection } from '../../connectable-behavior.helper';
+
+type PositionableCanvasDatum = Exclude<CanvasDatum, CanvasConnection>;
 
 /**
  * ConnectionRenderer
@@ -37,6 +41,11 @@ import { UnorderedListTip } from '../../../tooltips/unordered-list-tip/unordered
  * - updateConnectionElements(): Update existing elements
  * - Uses D3's enter/update/exit pattern for efficiency
  */
+interface LabelDragBounds extends Position {
+    width: number;
+    height: number;
+}
+
 export class ConnectionRenderer {
     /**
      * Main render method - orchestrates the D3 data join pattern
@@ -50,11 +59,11 @@ export class ConnectionRenderer {
             .data(connections, (d: CanvasConnection) => d.entity.id);
 
         // Enter: create new connection elements
-        const entered: any = selection.enter();
-        const appendedGroups: any = ConnectionRenderer.appendConnectionElements(entered);
+        const entered = selection.enter();
+        const appendedGroups = ConnectionRenderer.appendConnectionElements(entered, context);
 
         // Update existing and newly entered connections
-        const merged: any = selection.merge(appendedGroups);
+        const merged = selection.merge(appendedGroups);
         ConnectionRenderer.updateConnectionElements(merged, context, true);
 
         // Sort connections by zIndex to ensure correct rendering order
@@ -132,15 +141,21 @@ export class ConnectionRenderer {
                     });
 
                     // Update visual immediately
-                    const connection = d3.select<SVGGElement, CanvasConnection>(`#id-${d.entity.id}`);
+                    const connection = context
+                        .canvasRootResolver()
+                        .select<SVGGElement>(`#id-${d.entity.id}`) as d3.Selection<
+                        SVGGElement,
+                        CanvasConnection,
+                        d3.BaseType,
+                        unknown
+                    >;
                     ConnectionRenderer.updateConnectionPoints(connection, context);
                 });
             }
         }
 
         // Exit: remove connections that are no longer in data
-        const exited: any = selection.exit();
-        ConnectionRenderer.removeConnectionElements(exited);
+        selection.exit().remove();
     }
 
     /**
@@ -148,8 +163,9 @@ export class ConnectionRenderer {
      * Note: Event handlers are attached separately in render() method
      */
     private static appendConnectionElements(
-        entered: d3.Selection<any, CanvasConnection, any, any>
-    ): d3.Selection<any, CanvasConnection, any, any> {
+        entered: d3.Selection<d3.EnterElement, CanvasConnection, SVGGElement, unknown>,
+        context: ConnectionRenderContext
+    ) {
         // Create group for each connection
         const connGroups = entered
             .append('g')
@@ -162,14 +178,18 @@ export class ConnectionRenderer {
             .append('path')
             .attr('class', 'connection-path')
             .attr('pointer-events', 'none')
-            .attr('d', (d) => ConnectionRenderer.calculatePath(d));
+            .attr('d', (d) =>
+                ConnectionRenderer.calculatePath(d, context.canvasRootResolver(), context.processGroupId)
+            );
 
         // Selection overlay (shown when connection is selected)
         connGroups
             .append('path')
             .attr('class', 'connection-selection-path')
             .attr('pointer-events', 'none')
-            .attr('d', (d) => ConnectionRenderer.calculatePath(d));
+            .attr('d', (d) =>
+                ConnectionRenderer.calculatePath(d, context.canvasRootResolver(), context.processGroupId)
+            );
 
         // Selectable path (wide invisible path for easier clicking)
         // Event handlers will be attached in render() method
@@ -177,7 +197,9 @@ export class ConnectionRenderer {
             .append('path')
             .attr('class', 'connection-path-selectable')
             .attr('pointer-events', 'stroke')
-            .attr('d', (d) => ConnectionRenderer.calculatePath(d));
+            .attr('d', (d) =>
+                ConnectionRenderer.calculatePath(d, context.canvasRootResolver(), context.processGroupId)
+            );
 
         return connGroups;
     }
@@ -186,7 +208,7 @@ export class ConnectionRenderer {
      * Update connection SVG elements (update + enter selection)
      */
     private static updateConnectionElements(
-        selection: d3.Selection<any, CanvasConnection, any, any>,
+        selection: CanvasSelection<CanvasConnection>,
         context: ConnectionRenderContext,
         updateLabel = true
     ): void {
@@ -204,19 +226,27 @@ export class ConnectionRenderer {
         // Update main connection path
         selection
             .select('path.connection-path')
-            .attr('d', (d) => ConnectionRenderer.calculatePath(d))
+            .attr('d', (d) => ConnectionRenderer.calculatePath(d, context.canvasRootResolver(), context.processGroupId))
             .classed('unauthorized', (d) => d.entity.permissions?.canRead === false);
 
         // Update selection overlay path (shown when connection has 'selected' class)
-        selection.select('path.connection-selection-path').attr('d', (d) => ConnectionRenderer.calculatePath(d));
+        selection
+            .select('path.connection-selection-path')
+            .attr('d', (d) =>
+                ConnectionRenderer.calculatePath(d, context.canvasRootResolver(), context.processGroupId)
+            );
 
         // Update selectable path (wide invisible path for easier clicking)
-        selection.select('path.connection-path-selectable').attr('d', (d) => ConnectionRenderer.calculatePath(d));
+        selection
+            .select('path.connection-path-selectable')
+            .attr('d', (d) =>
+                ConnectionRenderer.calculatePath(d, context.canvasRootResolver(), context.processGroupId)
+            );
 
         // Update connection labels if requested
         if (updateLabel) {
             selection.each(function (d) {
-                const connection = d3.select(this) as d3.Selection<any, CanvasConnection, any, any>;
+                const connection = d3.select(this) as CanvasSelection<CanvasConnection>;
                 const connectionLabelContainer = connection.select('g.connection-label-container');
 
                 // update visible connections
@@ -250,7 +280,7 @@ export class ConnectionRenderer {
      * These are only visible when the connection is selected
      */
     private static updateConnectionPoints(
-        selection: d3.Selection<any, CanvasConnection, any, any>,
+        selection: CanvasSelection<CanvasConnection>,
         context: ConnectionRenderContext
     ): void {
         const { callbacks, canSelect, disabledConnectionIds } = context;
@@ -277,24 +307,34 @@ export class ConnectionRenderer {
                     .attr('pointer-events', 'all')
                     .attr('width', 8)
                     .attr('height', 8)
-                    .attr('transform', (p: any) => `translate(${p.x - 4}, ${p.y - 4})`);
+                    .attr('transform', (p: Position) => `translate(${p.x - 4}, ${p.y - 4})`);
 
-                startpoints.attr('transform', (p: any) => `translate(${p.x - 4}, ${p.y - 4})`);
+                startpoints.attr('transform', (p: Position) => `translate(${p.x - 4}, ${p.y - 4})`);
 
                 startpoints.exit().remove();
 
                 // Update endpoint
-                const endpoints = connection.selectAll('rect.endpoint').data([end]);
-                endpoints
+                const endpoints = connection.selectAll<SVGRectElement, Position>('rect.endpoint').data([end]);
+                const endpointsEntered = endpoints
                     .enter()
                     .append('rect')
                     .attr('class', 'endpoint linepoint')
                     .attr('pointer-events', 'all')
                     .attr('width', 8)
                     .attr('height', 8)
-                    .attr('transform', (p: any) => `translate(${p.x - 4}, ${p.y - 4})`);
+                    .attr('transform', (p: Position) => `translate(${p.x - 4}, ${p.y - 4})`);
 
-                endpoints.attr('transform', (p: any) => `translate(${p.x - 4}, ${p.y - 4})`);
+                const mergedEndpoints = endpoints
+                    .merge(endpointsEntered)
+                    .attr('transform', (p: Position) => `translate(${p.x - 4}, ${p.y - 4})`);
+                if (context.reconnect && context.callbacks.onEndpointReconnect) {
+                    mergedEndpoints
+                        .classed('reconnectable', true)
+                        .style('cursor', () => (context.getCanEdit() ? 'move' : 'default'));
+                    ConnectionRenderer.attachEndpointReconnect(mergedEndpoints, d, context);
+                } else {
+                    mergedEndpoints.classed('reconnectable', false).style('cursor', 'default').on('.drag', null);
+                }
 
                 endpoints.exit().remove();
 
@@ -307,10 +347,10 @@ export class ConnectionRenderer {
                     .attr('pointer-events', 'all')
                     .attr('width', 8)
                     .attr('height', 8)
-                    .attr('transform', (p: any) => `translate(${p.x - 4}, ${p.y - 4})`);
+                    .attr('transform', (p: Position) => `translate(${p.x - 4}, ${p.y - 4})`);
 
                 midpoints
-                    .attr('transform', (p: any) => `translate(${p.x - 4}, ${p.y - 4})`)
+                    .attr('transform', (p: Position) => `translate(${p.x - 4}, ${p.y - 4})`)
                     .style('cursor', () => {
                         // Only show move cursor if editing is enabled
                         return context.getCanEdit() ? 'move' : 'default';
@@ -321,6 +361,13 @@ export class ConnectionRenderer {
                 // Add double-click handler to remove bend points
                 if (canSelect && callbacks.onBendPointRemove && !isDisabled) {
                     connection.selectAll('rect.midpoint').on('dblclick', function (event, bendPoint) {
+                        if (
+                            !context.getCanEdit() ||
+                            !context.getCanSelect() ||
+                            context.getDisabledConnectionIds().has(d.entity.id)
+                        ) {
+                            return;
+                        }
                         event.preventDefault();
                         event.stopPropagation();
 
@@ -359,6 +406,7 @@ export class ConnectionRenderer {
                             event.sourceEvent.stopPropagation();
                             // Mark connection as dragging
                             d.ui.dragging = true;
+                            d.ui.dragStartRevision = d.entity.revision;
                         })
                         .on('drag', function (event, bendPoint) {
                             // Stop propagation to prevent canvas pan
@@ -372,10 +420,26 @@ export class ConnectionRenderer {
                             d3.select(this).attr('transform', `translate(${bendPoint.x - 4}, ${bendPoint.y - 4})`);
 
                             // Recalculate and update connection path
-                            connection.select('path.connection-path').attr('d', ConnectionRenderer.calculatePath(d));
+                            connection
+                                .select('path.connection-path')
+                                .attr(
+                                    'd',
+                                    ConnectionRenderer.calculatePath(
+                                        d,
+                                        context.canvasRootResolver(),
+                                        context.processGroupId
+                                    )
+                                );
                             connection
                                 .select('path.connection-selection-path')
-                                .attr('d', ConnectionRenderer.calculatePath(d));
+                                .attr(
+                                    'd',
+                                    ConnectionRenderer.calculatePath(
+                                        d,
+                                        context.canvasRootResolver(),
+                                        context.processGroupId
+                                    )
+                                );
 
                             // Update other connection points positions (start/end updated by calculatePath)
                             connection
@@ -386,7 +450,7 @@ export class ConnectionRenderer {
                                 .attr('transform', `translate(${d.ui.end.x - 4}, ${d.ui.end.y - 4})`);
 
                             // Update connection label position if it exists
-                            const labelPosition = ConnectionRenderer.getLabelPosition(d);
+                            const labelPosition = ConnectionRenderer.getLabelPosition(d, context.canvasRootResolver());
                             connection
                                 .select('g.connection-label-container')
                                 .attr('transform', `translate(${labelPosition.x}, ${labelPosition.y})`);
@@ -419,6 +483,7 @@ export class ConnectionRenderer {
                             }
 
                             // Clear dragging flag
+                            delete d.ui.dragStartRevision;
                             d.ui.dragging = false;
                         });
 
@@ -436,10 +501,196 @@ export class ConnectionRenderer {
         });
     }
 
+    private static attachEndpointReconnect(
+        endpoints: d3.Selection<SVGRectElement, Position, SVGGElement, CanvasConnection>,
+        connection: CanvasConnection,
+        context: ConnectionRenderContext
+    ): void {
+        const drag = d3
+            .drag<SVGRectElement, Position, { element: SVGRectElement }>()
+            .subject(function () {
+                return { element: this };
+            })
+            .filter(
+                () =>
+                    context.getCanEdit() &&
+                    context.getCanSelect() &&
+                    !!context.getReconnect() &&
+                    !context.getDisabledConnectionIds().has(connection.entity.id)
+            )
+            .on('start', (event) => {
+                event.sourceEvent.stopPropagation();
+                connection.ui.endPointDragging = true;
+                connection.ui.dragging = true;
+                connection.ui.dragStartRevision = connection.entity.revision;
+            })
+            .on('drag', (event, point) => {
+                event.sourceEvent.stopPropagation();
+                const reconnect = context.getReconnect();
+                const root = context.canvasRootResolver();
+                const group = d3.select<SVGGElement, CanvasConnection>(event.subject.element.parentNode as SVGGElement);
+                if (!reconnect) {
+                    ConnectionRenderer.cancelEndpointReconnect(group, root, context.processGroupId);
+                    return;
+                }
+                // Keep the 8px endpoint handle clear of the pointer so it cannot
+                // win hit-testing over a potential reconnect destination.
+                point.x = event.x - 8;
+                point.y = event.y - 8;
+                connection.ui.end = { x: point.x, y: point.y };
+
+                root.selectAll('g.component').classed('connectable-destination', false);
+                const hovered = root.select<SVGGElement>('g.hover') as ConnectableComponentSelection;
+                if (!hovered.empty() && reconnect.isValidConnectionDestination(hovered)) {
+                    hovered.classed('connectable-destination', true);
+                    const datum = hovered.datum();
+                    const position = datum.ui.currentPosition ?? datum.entity.position;
+                    const endAnchor = ConnectionRenderer.getConnectionEndAnchor(
+                        connection,
+                        context.processGroupId,
+                        root
+                    );
+                    if (endAnchor) {
+                        connection.ui.end = reconnect.getPerimeterPoint(endAnchor, {
+                            x: position.x,
+                            y: position.y,
+                            width: datum.ui.dimensions.width,
+                            height: datum.ui.dimensions.height
+                        });
+                    }
+                }
+
+                ConnectionRenderer.refreshConnectionPathDuringEndpointDrag(group, root, context.processGroupId);
+            })
+            .on('end', (event) => {
+                event.sourceEvent.stopPropagation();
+                const root = context.canvasRootResolver();
+                const group = d3.select<SVGGElement, CanvasConnection>(event.subject.element.parentNode as SVGGElement);
+                const reconnect = context.getReconnect();
+                if (!reconnect) {
+                    ConnectionRenderer.cancelEndpointReconnect(group, root, context.processGroupId);
+                    return;
+                }
+                const destination = root.select<SVGGElement>(
+                    'g.connectable-destination'
+                ) as ConnectableComponentSelection;
+                root.selectAll('g.component').classed('connectable-destination', false);
+
+                if (!destination.empty()) {
+                    const datum: ConnectableComponentDatum = destination.datum();
+                    const position = datum.ui.currentPosition ?? datum.entity.position;
+                    const sourceComponentId = ConnectionRenderer.getConnectionSourceComponentId(
+                        connection,
+                        context.processGroupId
+                    );
+                    const bends =
+                        datum.entity.id === sourceComponentId &&
+                        (connection.ui.bends ?? connection.entity.bends ?? []).length < 2
+                            ? [
+                                  {
+                                      x: position.x + datum.ui.dimensions.width + reconnect.selfLoopXOffset,
+                                      y: position.y + datum.ui.dimensions.height / 2 - reconnect.selfLoopYOffset
+                                  },
+                                  {
+                                      x: position.x + datum.ui.dimensions.width + reconnect.selfLoopXOffset,
+                                      y: position.y + datum.ui.dimensions.height / 2 + reconnect.selfLoopYOffset
+                                  }
+                              ]
+                            : undefined;
+                    context.callbacks.onEndpointReconnect?.(
+                        connection,
+                        {
+                            id: datum.entity.id,
+                            componentType: datum.ui.componentType,
+                            entity: datum.entity
+                        },
+                        bends
+                    );
+                } else {
+                    delete connection.ui.endPointDragging;
+                    ConnectionRenderer.refreshConnectionPathDuringEndpointDrag(group, root, context.processGroupId);
+                }
+
+                delete connection.ui.dragStartRevision;
+                delete connection.ui.endPointDragging;
+                connection.ui.dragging = false;
+            });
+
+        endpoints.on('.drag', null).call(drag);
+    }
+
+    private static cancelEndpointReconnect(
+        connection: CanvasSelection<CanvasConnection>,
+        canvasRoot: CanvasRootSelection,
+        processGroupId: string | null
+    ): void {
+        const datum = connection.datum();
+        canvasRoot.selectAll('g.component').classed('connectable-destination', false);
+        delete datum.ui.dragStartRevision;
+        delete datum.ui.endPointDragging;
+        datum.ui.dragging = false;
+        ConnectionRenderer.refreshConnectionPathDuringEndpointDrag(connection, canvasRoot, processGroupId);
+    }
+
+    private static getConnectionSourceComponentId(connection: CanvasConnection, processGroupId: string | null): string {
+        const entity = connection.entity;
+        if (entity.sourceGroupId && processGroupId && entity.sourceGroupId !== processGroupId) {
+            return entity.sourceGroupId;
+        }
+        return entity.sourceId;
+    }
+
+    private static getConnectionEndAnchor(
+        connection: CanvasConnection,
+        processGroupId: string | null,
+        canvasRoot: CanvasRootSelection
+    ): Position | null {
+        const bends = connection.ui.bends ?? connection.entity.bends ?? [];
+        if (bends.length > 0) {
+            return bends[bends.length - 1];
+        }
+
+        const sourceId = ConnectionRenderer.getConnectionSourceComponentId(connection, processGroupId);
+        const sourceElement = canvasRoot.select<SVGGElement>(`#id-${sourceId}`);
+        if (sourceElement.empty()) {
+            return null;
+        }
+
+        const sourceData = sourceElement.datum() as ConnectableComponentDatum | undefined;
+        if (!sourceData) {
+            return null;
+        }
+        const position = sourceData.ui.currentPosition ?? sourceData.entity.position;
+        return {
+            x: position.x + sourceData.ui.dimensions.width / 2,
+            y: position.y + sourceData.ui.dimensions.height / 2
+        };
+    }
+
+    private static refreshConnectionPathDuringEndpointDrag(
+        connection: CanvasSelection<CanvasConnection>,
+        canvasRoot: CanvasRootSelection,
+        processGroupId: string | null
+    ): void {
+        const datum = connection.datum();
+        const path = ConnectionRenderer.calculatePath(datum, canvasRoot, processGroupId);
+        connection.selectAll<SVGPathElement, CanvasConnection>('path').attr('d', path);
+        connection
+            .selectAll<SVGRectElement, Position>('rect.startpoint')
+            .attr('transform', `translate(${datum.ui.start.x - 4}, ${datum.ui.start.y - 4})`);
+        connection
+            .selectAll<SVGRectElement, Position>('rect.endpoint')
+            .attr('transform', `translate(${datum.ui.end.x - 4}, ${datum.ui.end.y - 4})`);
+        const labelPosition = ConnectionRenderer.getLabelPosition(datum, canvasRoot);
+        connection
+            .select('g.connection-label-container')
+            .attr('transform', `translate(${labelPosition.x}, ${labelPosition.y})`);
+    }
+
     /**
      * Remove connection SVG elements (exit selection)
      */
-    private static removeConnectionElements(exited: d3.Selection<any, any, any, any>): void {
+    private static removeConnectionElements(exited: CanvasSelection<CanvasConnection>): void {
         exited.remove();
     }
 
@@ -453,10 +704,7 @@ export class ConnectionRenderer {
      * @param selection - D3 selection of connections to update (typically entering/leaving)
      * @param context - Complete render context with all necessary data
      */
-    public static pan(
-        selection: d3.Selection<any, CanvasConnection, any, any>,
-        context: ConnectionRenderContext
-    ): void {
+    public static pan(selection: CanvasSelection<CanvasConnection>, context: ConnectionRenderContext): void {
         // Simply delegate to updateConnectionElements which handles all updates
         // including creating/removing labels based on the 'visible' class
         ConnectionRenderer.updateConnectionElements(selection, context);
@@ -467,7 +715,7 @@ export class ConnectionRenderer {
      *
      * A terminal is considered a "group" if it's a port in a different process group
      */
-    private static isGroup(terminal: any, currentProcessGroupId: string | null): boolean {
+    private static isGroup(terminal: ConnectableDTO | undefined, currentProcessGroupId: string | null): boolean {
         if (!terminal) {
             return false;
         }
@@ -484,13 +732,14 @@ export class ConnectionRenderer {
      *
      */
     private static updateConnectionLabel(
-        connection: d3.Selection<any, CanvasConnection, any, any>,
+        connection: CanvasSelection<CanvasConnection>,
         d: CanvasConnection,
         context: ConnectionRenderContext
     ): void {
         const textEllipsis = context.textEllipsis;
         const processGroupId = context.processGroupId;
-        let connectionLabelContainer: any = connection.select('g.connection-label-container');
+        let connectionLabelContainer: CanvasSelection<CanvasConnection> =
+            connection.select<SVGGElement>('g.connection-label-container');
 
         // If label container doesn't exist, create it
         if (connectionLabelContainer.empty()) {
@@ -559,13 +808,16 @@ export class ConnectionRenderer {
         }
 
         // Arrays to track backgrounds and borders for styling
-        const backgrounds: any[] = [];
-        const borders: any[] = [];
+        const backgrounds: d3.Selection<SVGRectElement, CanvasConnection, d3.BaseType, unknown>[] = [];
+        const borders: d3.Selection<SVGRectElement, CanvasConnection, d3.BaseType, unknown>[] = [];
 
         // Select containers
-        let connectionFrom = connectionLabelContainer.select('g.connection-from-container');
-        let connectionTo = connectionLabelContainer.select('g.connection-to-container');
-        let connectionName = connectionLabelContainer.select('g.connection-name-container');
+        let connectionFrom: CanvasSelection<CanvasConnection> =
+            connectionLabelContainer.select<SVGGElement>('g.connection-from-container');
+        let connectionTo: CanvasSelection<CanvasConnection> =
+            connectionLabelContainer.select<SVGGElement>('g.connection-to-container');
+        let connectionName: CanvasSelection<CanvasConnection> =
+            connectionLabelContainer.select<SVGGElement>('g.connection-name-container');
 
         // -------------------------
         // connection label - from
@@ -774,7 +1026,8 @@ export class ConnectionRenderer {
         // -------------------------
         // connection label - queued
         // -------------------------
-        let queued = connectionLabelContainer.select('g.queued-container');
+        let queued: CanvasSelection<CanvasConnection> =
+            connectionLabelContainer.select<SVGGElement>('g.queued-container');
         if (queued.empty()) {
             queued = connectionLabelContainer.append('g').attr('class', 'queued-container');
 
@@ -1017,16 +1270,16 @@ export class ConnectionRenderer {
         });
 
         // Position label at center of connection path
-        const labelPosition = ConnectionRenderer.getLabelPosition(d);
+        const labelPosition = ConnectionRenderer.getLabelPosition(d, context.canvasRootResolver());
         connectionLabelContainer.attr('transform', `translate(${labelPosition.x}, ${labelPosition.y})`);
     }
 
     private static updateConnectionStatus(
-        selection: d3.Selection<any, CanvasConnection, any, any>,
+        selection: CanvasSelection<CanvasConnection>,
         context: ConnectionRenderContext
     ): void {
         selection.each(function (d) {
-            const connection = d3.select(this) as d3.Selection<any, CanvasConnection, any, any>;
+            const connection = d3.select(this) as CanvasSelection<CanvasConnection>;
             const connectionStatus = d.entity.status;
 
             if (!connectionStatus) {
@@ -1156,7 +1409,7 @@ export class ConnectionRenderer {
      *
      */
     private static updateConnectionPathStyling(
-        connection: d3.Selection<any, CanvasConnection, any, any>,
+        connection: CanvasSelection<CanvasConnection>,
         d: CanvasConnection
     ): void {
         const hasGhostRelationship = ConnectionRenderer.hasUnavailableRelationship(d);
@@ -1260,13 +1513,13 @@ export class ConnectionRenderer {
      * Add drag behavior to connection label for moving between bend points
      */
     private static addLabelDragBehavior(
-        labelContainer: any,
+        labelContainer: CanvasSelection<CanvasConnection>,
         connectionData: CanvasConnection,
-        connection: d3.Selection<any, CanvasConnection, any, any>,
+        connection: CanvasSelection<CanvasConnection>,
         context: ConnectionRenderContext
     ): void {
         const labelDrag = d3
-            .drag()
+            .drag<SVGGElement, CanvasConnection>()
             .filter(function () {
                 // Block drag if editing is disabled
                 if (!context.getCanEdit()) {
@@ -1288,6 +1541,7 @@ export class ConnectionRenderer {
 
                 // Mark as dragging
                 connectionData.ui.dragging = true;
+                connectionData.ui.dragStartRevision = connectionData.entity.revision;
             })
             .on('drag', function (event) {
                 // Stop propagation to prevent canvas pan
@@ -1301,7 +1555,7 @@ export class ConnectionRenderer {
                 }
 
                 // Get or create the drag indicator rectangle
-                let dragRect: any = d3.select('rect.label-drag');
+                let dragRect = connection.selectAll<SVGRectElement, LabelDragBounds>('rect.label-drag');
 
                 if (dragRect.empty()) {
                     // Get label dimensions
@@ -1316,7 +1570,7 @@ export class ConnectionRenderer {
                     const currentY = match ? parseFloat(match[2]) : 0;
 
                     // Create drag indicator
-                    dragRect = connection
+                    connection
                         .append('rect')
                         .attr('class', 'label-drag')
                         .attr('x', currentX)
@@ -1333,21 +1587,22 @@ export class ConnectionRenderer {
                             width: labelWidth,
                             height: labelHeight
                         });
+                    dragRect = connection.selectAll<SVGRectElement, LabelDragBounds>('rect.label-drag');
                 } else {
                     // Update drag indicator position
                     dragRect
-                        .attr('x', function (d: any) {
+                        .attr('x', function (d: LabelDragBounds) {
                             d.x += event.dx;
                             return d.x;
                         })
-                        .attr('y', function (d: any) {
+                        .attr('y', function (d: LabelDragBounds) {
                             d.y += event.dy;
                             return d.y;
                         });
                 }
 
                 // Calculate current center point of drag indicator
-                const datum: any = dragRect.datum();
+                const datum = dragRect.datum();
                 const currentPoint: Position = {
                     x: datum.x + datum.width / 2,
                     y: datum.y + datum.height / 2
@@ -1370,7 +1625,7 @@ export class ConnectionRenderer {
                 connectionData.ui.tempLabelIndex = closestBendIndex;
 
                 // Update label position to snap to closest bend
-                const snapPosition = ConnectionRenderer.getLabelPosition(connectionData);
+                const snapPosition = ConnectionRenderer.getLabelPosition(connectionData, context.canvasRootResolver());
                 labelContainer.attr('transform', `translate(${snapPosition.x}, ${snapPosition.y})`);
             })
             .on('end', function (event) {
@@ -1383,12 +1638,13 @@ export class ConnectionRenderer {
                     // Remove drag indicator
                     connection.select('rect.label-drag').remove();
 
-                    // Get the new label index
-                    const newLabelIndex = connectionData.ui.tempLabelIndex ?? 0;
+                    // A start/end pair without a drag tick is a click. Preserve
+                    // the saved index and do not emit in that case.
+                    const newLabelIndex = connectionData.ui.tempLabelIndex;
                     const currentLabelIndex = connectionData.entity.component?.labelIndex ?? 0;
 
                     // Only save if the label index actually changed
-                    if (newLabelIndex !== currentLabelIndex) {
+                    if (newLabelIndex !== undefined && newLabelIndex !== currentLabelIndex) {
                         context.callbacks.onLabelDragEnd?.(connectionData, newLabelIndex);
                         // Keep tempLabelIndex until save succeeds/fails
                         // It will be cleared by confirmConnectionLabelIndex() or revertConnectionLabelIndex()
@@ -1399,6 +1655,7 @@ export class ConnectionRenderer {
                 }
 
                 // Mark dragging complete
+                delete connectionData.ui.dragStartRevision;
                 connectionData.ui.dragging = false;
             });
 
@@ -1411,7 +1668,7 @@ export class ConnectionRenderer {
     /**
      * Calculate the position for the connection label (centered on path)
      */
-    public static getLabelPosition(d: CanvasConnection): { x: number; y: number } {
+    public static getLabelPosition(d: CanvasConnection, canvasRoot: CanvasRootSelection): Position {
         const bends = d.ui.bends || [];
         // Use tempLabelIndex during drag, otherwise use saved labelIndex
         const labelIndex = d.ui.tempLabelIndex ?? d.entity.component?.labelIndex ?? 0;
@@ -1440,7 +1697,9 @@ export class ConnectionRenderer {
         // Get the actual label height from the DOM
         // The label container is a sibling of the connection path
         const connectionId = d.entity.id;
-        const labelBody = d3.select(`#id-${connectionId} g.connection-label-container rect.body`);
+        const labelBody = canvasRoot.select<SVGRectElement>(
+            `#id-${connectionId} g.connection-label-container rect.body`
+        );
         const labelHeight = labelBody.empty()
             ? CanvasConstants.CONNECTION_ROW_HEIGHT
             : parseFloat(labelBody.attr('height'));
@@ -1466,7 +1725,7 @@ export class ConnectionRenderer {
     /**
      * Generate tooltip content for object count backpressure bar
      */
-    private static getBackPressureCountTip(d: CanvasConnection, componentUtils: any): string[] {
+    private static getBackPressureCountTip(d: CanvasConnection, componentUtils: CanvasComponentUtils): string[] {
         const tooltipLines: string[] = [];
         const percentUseCount = d.entity.status?.aggregateSnapshot?.percentUseCount;
 
@@ -1484,11 +1743,11 @@ export class ConnectionRenderer {
             }
 
             if (predictions != null) {
-                const predictedPercentCount = predictions.predictedPercentCount;
-                const timeToBackPressure = predictions.predictedMillisUntilCountBackpressure;
+                const predictedPercentCount = predictions.predictedPercentCount ?? 0;
+                const timeToBackPressure = predictions.predictedMillisUntilCountBackpressure ?? -1;
 
                 // only show predicted percent if it is non-negative
-                const predictionIntervalSeconds = predictions.predictionIntervalSeconds;
+                const predictionIntervalSeconds = predictions.predictionIntervalSeconds ?? 0;
                 const predictedPercentCountClamped = Math.min(Math.max(predictedPercentCount, 0), 100);
                 tooltipLines.push(
                     `Predicted queue (next ${predictionIntervalSeconds / 60} mins): ${predictedPercentCountClamped}%`
@@ -1515,7 +1774,7 @@ export class ConnectionRenderer {
     /**
      * Generate tooltip content for data size backpressure bar
      */
-    private static getBackPressureSizeTip(d: CanvasConnection, componentUtils: any): string[] {
+    private static getBackPressureSizeTip(d: CanvasConnection, componentUtils: CanvasComponentUtils): string[] {
         const tooltipLines: string[] = [];
         const percentUseBytes = d.entity.status?.aggregateSnapshot?.percentUseBytes;
 
@@ -1533,11 +1792,11 @@ export class ConnectionRenderer {
             }
 
             if (predictions != null) {
-                const predictedPercentBytes = predictions.predictedPercentBytes;
-                const timeToBackPressure = predictions.predictedMillisUntilBytesBackpressure;
+                const predictedPercentBytes = predictions.predictedPercentBytes ?? 0;
+                const timeToBackPressure = predictions.predictedMillisUntilBytesBackpressure ?? -1;
 
                 // only show predicted percent if it is non-negative
-                const predictionIntervalSeconds = predictions.predictionIntervalSeconds;
+                const predictionIntervalSeconds = predictions.predictionIntervalSeconds ?? 0;
                 const predictedPercentBytesClamped = Math.min(Math.max(predictedPercentBytes, 0), 100);
                 tooltipLines.push(
                     `Predicted queue (next ${predictionIntervalSeconds / 60} mins): ${predictedPercentBytesClamped}%`
@@ -1564,7 +1823,12 @@ export class ConnectionRenderer {
     /**
      * Add tick marks to backpressure bar
      */
-    private static addBackpressureTicks(container: any, xOffset: number, yOffset: number, barWidth: number): void {
+    private static addBackpressureTicks(
+        container: CanvasSelection<CanvasConnection>,
+        xOffset: number,
+        yOffset: number,
+        barWidth: number
+    ): void {
         const tickPositions = [0, 0.25, 0.5, 0.75, 1.0];
 
         tickPositions.forEach((position) => {
@@ -1585,7 +1849,10 @@ export class ConnectionRenderer {
      *
      * Icons are created but hidden by default - visibility is controlled by CSS
      */
-    private static addConnectionIcons(container: any, connectionData: any): void {
+    private static addConnectionIcons(
+        container: CanvasSelection<CanvasConnection>,
+        connectionData: ConnectionDTO
+    ): void {
         // Check which icons should be visible
 
         // Expiration: check if flowFileExpiration is set and the numeric value is > 0
@@ -1645,7 +1912,7 @@ export class ConnectionRenderer {
             .append('title')
             .text(
                 hasRetry
-                    ? `Relationships configured to be retried: ${connectionData.retriedRelationships.join(', ')}`
+                    ? `Relationships configured to be retried: ${(connectionData.retriedRelationships ?? []).join(', ')}`
                     : ''
             );
 
@@ -1665,10 +1932,7 @@ export class ConnectionRenderer {
     /**
      * Update penalized icon visibility based on connection status
      */
-    private static updatePenalizedIcon(
-        connection: d3.Selection<any, CanvasConnection, any, any>,
-        d: CanvasConnection
-    ): void {
+    private static updatePenalizedIcon(connection: CanvasSelection<CanvasConnection>, d: CanvasConnection): void {
         const connectionLabelContainer = connection.select('g.connection-label-container');
         const queuedContainer = connectionLabelContainer.select('g.queued-container');
 
@@ -1677,7 +1941,7 @@ export class ConnectionRenderer {
         }
 
         // Create penalized icon if it doesn't exist
-        let penalizedIcon: any = queuedContainer.select('text.penalized-icon');
+        let penalizedIcon = queuedContainer.select<SVGTextElement>('text.penalized-icon');
         if (penalizedIcon.empty()) {
             penalizedIcon = queuedContainer
                 .append('text')
@@ -1720,10 +1984,7 @@ export class ConnectionRenderer {
     /**
      * Update run status icons for source and destination components
      */
-    private static updateRunStatusIcons(
-        connection: d3.Selection<any, CanvasConnection, any, any>,
-        d: CanvasConnection
-    ): void {
+    private static updateRunStatusIcons(connection: CanvasSelection<CanvasConnection>, d: CanvasConnection): void {
         const connectionData = d.entity.component;
         if (!connectionData) {
             return;
@@ -1732,7 +1993,7 @@ export class ConnectionRenderer {
         const connectionLabelContainer = connection.select('g.connection-label-container');
 
         // Update source run status icon
-        const sourceContainer = connectionLabelContainer.select('g.connection-from-container');
+        const sourceContainer = connectionLabelContainer.select<SVGGElement>('g.connection-from-container');
         if (!sourceContainer.empty() && connectionData.source) {
             const sourceRunStatus = ConnectionRenderer.determineRunStatus(
                 connectionData.source.exists,
@@ -1742,7 +2003,7 @@ export class ConnectionRenderer {
         }
 
         // Update destination run status icon
-        const destinationContainer = connectionLabelContainer.select('g.connection-to-container');
+        const destinationContainer = connectionLabelContainer.select<SVGGElement>('g.connection-to-container');
         if (!destinationContainer.empty() && connectionData.destination) {
             const destRunStatus = ConnectionRenderer.determineRunStatus(
                 connectionData.destination.exists,
@@ -1769,8 +2030,12 @@ export class ConnectionRenderer {
     /**
      * Update a single run status icon
      */
-    private static updateRunStatusIcon(container: any, runStatus: string | undefined, className: string): void {
-        let icon: any = container.select(`text.${className}`);
+    private static updateRunStatusIcon(
+        container: CanvasSelection<CanvasConnection>,
+        runStatus: string | undefined,
+        className: string
+    ): void {
+        let icon = container.select<SVGTextElement>(`text.${className}`);
 
         // Create icon if it doesn't exist
         if (icon.empty()) {
@@ -1839,30 +2104,41 @@ export class ConnectionRenderer {
      * 5. Build path: source edge → bend points → destination edge
      * 6. Store start/end/bends on connection.ui for box selection
      */
-    public static calculatePath(connection: CanvasConnection): string {
+    public static calculatePath(
+        connection: CanvasConnection,
+        canvasRoot: CanvasRootSelection,
+        currentProcessGroupId: string | null
+    ): string {
         const conn = connection.entity;
 
         // Get the current process group ID from the first component we can find
         // This is needed to determine if ports are in sub-groups
-        const allComponents = d3.selectAll(
+        const allComponents = canvasRoot.selectAll<SVGGElement, PositionableCanvasDatum>(
             'g.label, g.processor, g.funnel, g.input-port, g.output-port, g.remote-process-group, g.process-group'
         );
         if (allComponents.empty()) {
             return '';
         }
-        const firstComponent: any = allComponents.datum();
-        const currentProcessGroupId = firstComponent?.entity?.component?.parentGroupId || 'root';
+        const firstComponent = allComponents.datum();
+        const resolvedProcessGroupId =
+            currentProcessGroupId ?? firstComponent?.entity?.component?.parentGroupId ?? 'root';
 
         // Resolve source component ID (handle ports in groups)
         // If the connection's sourceGroupId is different from current group, use the group ID
         let sourceId = conn.sourceId;
-        if (conn.sourceGroupId && conn.sourceGroupId !== currentProcessGroupId) {
+        if (conn.sourceGroupId && conn.sourceGroupId !== resolvedProcessGroupId) {
             sourceId = conn.sourceGroupId;
         }
 
-        // Resolve destination component ID (handle ports in groups)
-        let destId = conn.destinationId;
-        if (conn.destinationGroupId && conn.destinationGroupId !== currentProcessGroupId) {
+        // Resolve destination component ID (handle ports in groups). An
+        // optimistic reconnect target already identifies the on-canvas
+        // component and must not be redirected through the persisted group.
+        let destId = connection.ui.reconnectDestinationId ?? conn.destinationId;
+        if (
+            !connection.ui.reconnectDestinationId &&
+            conn.destinationGroupId &&
+            conn.destinationGroupId !== resolvedProcessGroupId
+        ) {
             destId = conn.destinationGroupId;
         }
 
@@ -1871,15 +2147,25 @@ export class ConnectionRenderer {
         }
 
         // Look up source and destination components on canvas
-        const sourceElement = d3.select(`#id-${sourceId}`);
-        const destElement = d3.select(`#id-${destId}`);
+        const sourceElement = canvasRoot.select<SVGGElement>(`#id-${sourceId}`) as d3.Selection<
+            SVGGElement,
+            PositionableCanvasDatum,
+            d3.BaseType,
+            unknown
+        >;
+        const destElement = canvasRoot.select<SVGGElement>(`#id-${destId}`) as d3.Selection<
+            SVGGElement,
+            PositionableCanvasDatum,
+            d3.BaseType,
+            unknown
+        >;
 
         if (sourceElement.empty() || destElement.empty()) {
             return '';
         }
 
-        const sourceData: any = sourceElement.datum();
-        const destData: any = destElement.datum();
+        const sourceData = sourceElement.datum();
+        const destData = destElement.datum();
 
         if (!sourceData || !destData) {
             return '';
@@ -1910,11 +2196,6 @@ export class ConnectionRenderer {
             y: sourceBBox.y + sourceBBox.height / 2
         };
 
-        const destCenter = {
-            x: destBBox.x + destBBox.width / 2,
-            y: destBBox.y + destBBox.height / 2
-        };
-
         // Initialize ui.bends from entity.bends if not already set (source of truth)
         // ui.bends is used for rendering and allows optimistic updates.
         // Must create a NEW array and NEW objects to prevent state mutation
@@ -1928,18 +2209,18 @@ export class ConnectionRenderer {
         // Get bend points from ui (used for rendering, allows optimistic updates)
         const bends: Array<{ x: number; y: number }> = connection.ui.bends || [];
 
-        // Calculate appropriate start anchor (first bend or destination)
-        const startAnchor = bends.length > 0 ? bends[0] : destCenter;
-
-        // Calculate appropriate end anchor (last bend or source)
+        // The destination endpoint follows the cursor while reconnecting.
+        // Otherwise it is anchored from the last bend, or the rendered source
+        // terminal center for an unbent connection.
         const endAnchor = bends.length > 0 ? bends[bends.length - 1] : sourceCenter;
+        const destPoint =
+            connection.ui.endPointDragging && connection.ui.end
+                ? { ...connection.ui.end }
+                : ConnectionRenderer.getPerimeterPoint(endAnchor, destBBox);
 
-        // Calculate perimeter intersection points
-        // Source: Find point on source perimeter closest to start anchor
+        // With no bends the source perimeter must follow the live endpoint.
+        const startAnchor = bends.length > 0 ? bends[0] : destPoint;
         const sourcePoint = ConnectionRenderer.getPerimeterPoint(startAnchor, sourceBBox);
-
-        // Destination: Find point on destination perimeter closest to end anchor
-        const destPoint = ConnectionRenderer.getPerimeterPoint(endAnchor, destBBox);
 
         // Store calculated positions on connection.ui for box selection logic
         connection.ui.start = sourcePoint;
@@ -2032,7 +2313,10 @@ export class ConnectionRenderer {
      * This uses trigonometry to find which edge of the rectangle the line intersects
      * and calculates the exact intersection point.
      */
-    private static getPerimeterPoint(p: { x: number; y: number }, bBox: any): { x: number; y: number } {
+    private static getPerimeterPoint(
+        p: { x: number; y: number },
+        bBox: { x: number; y: number; width: number; height: number }
+    ): { x: number; y: number } {
         const TWO_PI = 2 * Math.PI;
 
         // Calculate theta (angle of rectangle diagonal)

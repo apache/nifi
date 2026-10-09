@@ -27,11 +27,11 @@ import {
     computed
 } from '@angular/core';
 import * as d3 from 'd3';
-import { CanvasLabel } from '../../canvas.types';
+import { CanvasLabel, CanvasRootResolver, CanvasRootSelection, CanvasSelection } from '../../canvas.types';
 import { LabelRenderer } from './label-renderer';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../../canvas-format-utils.service';
-import { NiFiCommon } from '@nifi/shared';
+import { NiFiCommon, Position } from '@nifi/shared';
 import { LabelRenderContext } from '../render-context.types';
 
 @Component({
@@ -63,6 +63,7 @@ export class LabelLayerComponent implements AfterViewInit {
     canEdit = input<boolean>(true);
 
     disabledLabelIds = input<Set<string>>(new Set());
+    canvasRootResolver = input<CanvasRootResolver | null>(null);
 
     labelClick = output<{ label: CanvasLabel; event: MouseEvent }>();
 
@@ -70,29 +71,33 @@ export class LabelLayerComponent implements AfterViewInit {
 
     labelResizeEnd = output<{ label: CanvasLabel; dimensions: { width: number; height: number } }>();
 
-    labelDragEnd = output<{
-        label: CanvasLabel;
-        newPosition: { x: number; y: number };
-        previousPosition: { x: number; y: number };
-    }>();
+    dragEnd = output<{ delta: Position; movingIds: Set<string> }>();
 
     private elementRef = inject(ElementRef);
-    private containerSelection: d3.Selection<any, any, any, any> | null = null;
+    private containerSelection: CanvasRootSelection | null = null;
+    private readonly defaultCanvasRootResolver: CanvasRootResolver = () => {
+        const node = this.containerSelection?.node();
+        const canvasNode = (node?.closest('g.canvas') as SVGGElement | null) ?? node;
+        return canvasNode
+            ? d3.select<SVGGElement, unknown>(canvasNode)
+            : d3.select<SVGGElement, unknown>(null as unknown as SVGGElement);
+    };
 
-    private readonly callbacks = {
-        onClick: (label: any, event: MouseEvent) => {
+    private readonly callbacks: LabelRenderContext['callbacks'] = {
+        onClick: (label, event) => {
             this.labelClick.emit({ label, event });
         },
-        onDoubleClick: (label: any, event: MouseEvent) => {
+        onDoubleClick: (label, event) => {
             this.labelDoubleClick.emit({ label, event });
         },
-        onResizeEnd: (label: any, dimensions: { width: number; height: number }) => {
+        onResizeEnd: (label, dimensions: { width: number; height: number }) => {
             this.labelResizeEnd.emit({ label, dimensions });
         },
-        onDragEnd: (label: any, newPosition: { x: number; y: number }, previousPosition: { x: number; y: number }) => {
-            this.labelDragEnd.emit({ label, newPosition, previousPosition });
+        onDragEnd: (delta, movingIds) => {
+            this.dragEnd.emit({ delta, movingIds });
         }
     };
+    private selectedIdsSet = computed(() => new Set(this.selectedIds()));
 
     private renderContext = computed<LabelRenderContext>(() => ({
         containerSelection: this.containerSelection!,
@@ -101,8 +106,12 @@ export class LabelLayerComponent implements AfterViewInit {
         formatUtils: this.formatUtils(),
         nifiCommon: this.nifiCommon(),
         getCanEdit: () => this.canEdit(),
+        getCanSelect: () => this.canSelect(),
+        getSelectedIds: () => this.selectedIdsSet(),
         labels: this.labels(),
         disabledLabelIds: this.disabledLabelIds(),
+        getDisabledLabelIds: () => this.disabledLabelIds(),
+        canvasRootResolver: this.canvasRootResolver() ?? this.defaultCanvasRootResolver,
         canSelect: this.canSelect(),
         callbacks: this.callbacks
     }));
@@ -126,7 +135,7 @@ export class LabelLayerComponent implements AfterViewInit {
         const nativeElement = this.elementRef.nativeElement;
 
         // The component IS the <g> element with attribute selector
-        this.containerSelection = d3.select(nativeElement);
+        this.containerSelection = d3.select<SVGGElement, unknown>(nativeElement);
 
         // Initial render if data arrived before view was ready
         if (this.labels().length > 0) {
@@ -156,7 +165,7 @@ export class LabelLayerComponent implements AfterViewInit {
         this.applySelectionStyling();
     }
 
-    public pan(selection: d3.Selection<any, any, any, any>): void {
+    public pan(selection: CanvasSelection<CanvasLabel>): void {
         LabelRenderer.pan(selection, this.renderContext());
         this.applySelectionStyling();
     }

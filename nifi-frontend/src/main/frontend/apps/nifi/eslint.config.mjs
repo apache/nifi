@@ -104,6 +104,12 @@ export default [
         }
     },
     {
+        files: ['src/app/ui/common/canvas/**/*.ts'],
+        rules: {
+            '@typescript-eslint/no-explicit-any': 'error'
+        }
+    },
+    {
         files: [
             'src/app/pages/connectors/testing/connector-canvas-entity-fixtures.ts',
             'src/app/pages/connectors/testing/expect-action-of-type.ts'

@@ -21,14 +21,18 @@ export class TextEllipsisUtils {
     // Cache structure: Map<cacheName, Map<text, Map<width, trimLength>>>
     private trimLengthCaches = new Map<string, Map<string, Map<number, number>>>();
 
-    public applyEllipsis(selection: d3.Selection<any, any, any, any>, text: string, cacheName: string): void {
+    public applyEllipsis<GElement extends d3.BaseType, Datum, PElement extends d3.BaseType, PDatum>(
+        selection: d3.Selection<GElement, Datum, PElement, PDatum>,
+        text: string,
+        cacheName: string
+    ): void {
         text = text.trim();
         let width = parseInt(selection.attr('width'), 10);
-        const node = selection.node() as SVGTextElement;
-
-        if (!node) {
+        const rawNode = selection.node();
+        if (rawNode == null || typeof (rawNode as SVGTextContentElement).getSubStringLength !== 'function') {
             return;
         }
+        const node = rawNode as SVGTextContentElement;
 
         // set the element text
         selection.text(text);

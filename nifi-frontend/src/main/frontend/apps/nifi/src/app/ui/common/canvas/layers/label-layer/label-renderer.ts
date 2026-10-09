@@ -16,8 +16,9 @@
  */
 
 import * as d3 from 'd3';
-import { CanvasLabel } from '../../canvas.types';
+import { CanvasLabel, CanvasSelection } from '../../canvas.types';
 import { LabelRenderContext } from '../render-context.types';
+import { DragUtils } from '../../utils/drag.utils';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
 import { CanvasConstants } from '../../canvas.constants';
 
@@ -43,6 +44,16 @@ export class LabelRenderer {
 
         LabelRenderer.updateLabelElements(updated, context);
 
+        // Reconcile drag attachment on the merged selection so existing labels
+        // respond to permission changes between renders.
+        const callbacks = context.callbacks;
+        if (callbacks.onResizeEnd) {
+            LabelRenderer.applyResizeDragBehavior(updated, context);
+        }
+        if (callbacks.onDragEnd) {
+            LabelRenderer.applyPositionDragBehavior(updated, context);
+        }
+
         // Sort labels by zIndex to ensure correct rendering order
         // Labels with higher z-index appear on top of labels with lower z-index
         // D3's sort() method sorts the selection AND reorders DOM elements in one operation
@@ -56,7 +67,7 @@ export class LabelRenderer {
         selection.exit().remove();
     }
 
-    public static pan(selection: d3.Selection<any, any, any, any>, context: LabelRenderContext): void {
+    public static pan(selection: CanvasSelection<CanvasLabel>, context: LabelRenderContext): void {
         if (selection.empty()) {
             return;
         }
@@ -65,7 +76,7 @@ export class LabelRenderer {
         LabelRenderer.updateLabelElements(selection, context);
     }
 
-    private static appendLabelElements(entered: d3.Selection<SVGGElement, CanvasLabel, any, any>): void {
+    private static appendLabelElements(entered: CanvasSelection<CanvasLabel>): void {
         // Border (for selection highlight)
         entered
             .append('rect')
@@ -99,10 +110,7 @@ export class LabelRenderer {
             .style('cursor', 'nwse-resize');
     }
 
-    private static updateLabelElements(
-        updated: d3.Selection<SVGGElement, CanvasLabel, any, any>,
-        context: LabelRenderContext
-    ): void {
+    private static updateLabelElements(updated: CanvasSelection<CanvasLabel>, context: LabelRenderContext): void {
         // Position labels (use currentPosition during drag, otherwise entity position)
         updated.attr('transform', (d) => {
             const position = d.ui.currentPosition || d.entity.position;
@@ -171,9 +179,9 @@ export class LabelRenderer {
             .style('opacity', (d) => (context.disabledLabelIds?.has(d.entity.id) ? 0.6 : null));
 
         // Update text content with multi-line wrapping and ellipsis
-        updated.each(function (d: CanvasLabel) {
-            const label = d3.select(this);
-            const labelText = label.select('text.label-value');
+        updated.each(function (this: SVGGElement, d: CanvasLabel) {
+            const label = d3.select<SVGGElement, CanvasLabel>(this);
+            const labelText = label.select<SVGTextElement>('text.label-value');
 
             if (d.entity.permissions.canRead) {
                 // update the font size
@@ -230,10 +238,7 @@ export class LabelRenderer {
         });
     }
 
-    private static attachEventHandlers(
-        selection: d3.Selection<SVGGElement, CanvasLabel, any, any>,
-        context: LabelRenderContext
-    ): void {
+    private static attachEventHandlers(selection: CanvasSelection<CanvasLabel>, context: LabelRenderContext): void {
         if (!context.canSelect) {
             return; // No interactions when selection is disabled
         }
@@ -259,191 +264,113 @@ export class LabelRenderer {
                 callbacks.onDoubleClick!(d, event);
             });
         }
-
-        // Attach resize drag behavior (filter will check canEdit dynamically)
-        if (callbacks.onResizeEnd) {
-            const resizeDrag = d3
-                .drag<SVGPathElement, CanvasLabel>()
-                .filter(function (event, d) {
-                    // Match D3's default filter: block right-click and Ctrl+click (Mac right-click)
-                    if (event.ctrlKey || event.button !== 0) {
-                        return false;
-                    }
-                    // Block drag if editing is disabled
-                    if (!context.getCanEdit()) {
-                        return false;
-                    }
-                    // Block drag if label is disabled (saving)
-                    if (context.disabledLabelIds?.has(d.entity.id)) {
-                        return false;
-                    }
-                    return true;
-                })
-                .on('start', function (event) {
-                    event.sourceEvent.stopPropagation();
-
-                    // Add visual feedback that resize is active
-                    if (this.parentNode) {
-                        d3.select(this.parentNode as Element).classed('resizing', true);
-                    }
-                })
-                .on('drag', function (event, d) {
-                    // Apply snap-to-grid unless shift key is held
-                    const snapEnabled = !event.sourceEvent.shiftKey;
-
-                    // Calculate new dimensions
-                    let newWidth = Math.max(CanvasConstants.LABEL_MIN.width, d.ui.dimensions.width + event.dx);
-                    let newHeight = Math.max(CanvasConstants.LABEL_MIN.height, d.ui.dimensions.height + event.dy);
-
-                    // Apply snap alignment if enabled
-                    if (snapEnabled) {
-                        newWidth =
-                            Math.round(newWidth / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                            CanvasConstants.SNAP_ALIGNMENT_PIXELS;
-                        newHeight =
-                            Math.round(newHeight / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                            CanvasConstants.SNAP_ALIGNMENT_PIXELS;
-                    }
-
-                    // Update local dimensions for immediate visual feedback
-                    d.ui.dimensions.width = newWidth;
-                    d.ui.dimensions.height = newHeight;
-
-                    // Update visuals
-                    if (this.parentNode) {
-                        const label = d3.select(this.parentNode as Element);
-                        label.select('rect.body').attr('width', newWidth).attr('height', newHeight);
-
-                        label.select('rect.border').attr('width', newWidth).attr('height', newHeight);
-
-                        label
-                            .select('path.resizable-triangle')
-                            .attr('transform', `translate(${newWidth - 2}, ${newHeight - 10})`);
-                    }
-
-                    // Note: Text will be re-wrapped on next full render
-                })
-                .on('end', function (event, d) {
-                    // Remove resizing visual feedback
-                    if (this.parentNode) {
-                        d3.select(this.parentNode as Element).classed('resizing', false);
-                    }
-
-                    if (callbacks.onResizeEnd) {
-                        callbacks.onResizeEnd(d, {
-                            width: d.ui.dimensions.width,
-                            height: d.ui.dimensions.height
-                        });
-                    }
-                });
-
-            // Remove drag behavior to prevent stale closures
-            selection.select('path.resizable-triangle').on('.drag', null);
-            selection.select<SVGPathElement>('path.resizable-triangle').call(resizeDrag);
-        }
-
-        // Attach position drag behavior (filter will check canEdit dynamically)
-        if (callbacks.onDragEnd) {
-            const positionDrag = d3
-                .drag<SVGGElement, CanvasLabel>()
-                .filter(function (event, d) {
-                    // Match D3's default filter: block right-click and Ctrl+click (Mac right-click)
-                    if (event.ctrlKey || event.button !== 0) {
-                        return false;
-                    }
-                    // Block drag if editing is disabled
-                    if (!context.getCanEdit()) {
-                        return false;
-                    }
-                    // Block drag if label is disabled (saving)
-                    if (context.disabledLabelIds?.has(d.entity.id)) {
-                        return false;
-                    }
-                    // Only allow drag on the body, not the resize handle
-                    return event.target.classList.contains('body');
-                })
-                .clickDistance(4) // Minimum distance in pixels before drag starts (prevents accidental drags during clicks)
-                .on('start', function (event, d) {
-                    const labelGroup = d3.select(this as SVGGElement);
-
-                    if (!labelGroup.classed('selected') && callbacks.onClick) {
-                        callbacks.onClick(d, event.sourceEvent as MouseEvent);
-                    }
-
-                    event.sourceEvent.stopPropagation();
-
-                    // Store original position for potential revert
-                    d.ui.dragStartPosition = { ...d.entity.position };
-                    // Initialize current position in UI state
-                    d.ui.currentPosition = { ...d.entity.position };
-                })
-                .on('drag', function (event, d) {
-                    // Update current position in UI state (entity is read-only from store)
-                    if (d.ui.currentPosition) {
-                        // Apply snap-to-grid unless shift key is held
-                        const snapEnabled = !event.sourceEvent.shiftKey;
-
-                        d.ui.currentPosition.x += event.dx;
-                        d.ui.currentPosition.y += event.dy;
-
-                        // Apply snap alignment if enabled
-                        const displayX = snapEnabled
-                            ? Math.round(d.ui.currentPosition.x / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                              CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                            : d.ui.currentPosition.x;
-                        const displayY = snapEnabled
-                            ? Math.round(d.ui.currentPosition.y / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                              CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                            : d.ui.currentPosition.y;
-
-                        // Update visual position immediately with snapped coordinates
-                        d3.select(this).attr('transform', `translate(${displayX}, ${displayY})`);
-                    }
-                })
-                .on('end', function (event, d) {
-                    if (!d.ui.dragStartPosition || !d.ui.currentPosition) {
-                        return;
-                    }
-
-                    // Apply final snap alignment (respecting shift key)
-                    const snapEnabled = !event.sourceEvent.shiftKey;
-                    const finalX = snapEnabled
-                        ? Math.round(d.ui.currentPosition.x / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                          CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                        : d.ui.currentPosition.x;
-                    const finalY = snapEnabled
-                        ? Math.round(d.ui.currentPosition.y / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                          CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                        : d.ui.currentPosition.y;
-
-                    // Update currentPosition to final snapped position
-                    d.ui.currentPosition.x = finalX;
-                    d.ui.currentPosition.y = finalY;
-
-                    const newPosition = { ...d.ui.currentPosition };
-                    const previousPosition = { ...d.ui.dragStartPosition };
-
-                    // Check if position actually changed (prevent API calls on clicks)
-                    const moved = newPosition.x !== previousPosition.x || newPosition.y !== previousPosition.y;
-
-                    // Clean up drag start position only
-                    // Keep currentPosition until API call completes (for disabled treatment)
-                    delete d.ui.dragStartPosition;
-
-                    // Only emit drag end if position actually changed
-                    if (moved && callbacks.onDragEnd) {
-                        callbacks.onDragEnd(d, newPosition, previousPosition);
-                    }
-                });
-
-            // Remove drag behavior to prevent stale closures
-            selection.on('.drag', null);
-            selection.call(positionDrag);
-        }
     }
 
-    private static boundedMultilineEllipsis(
-        selection: d3.Selection<any, any, any, any>,
+    private static applyPositionDragBehavior(
+        selection: CanvasSelection<CanvasLabel>,
+        context: LabelRenderContext
+    ): void {
+        DragUtils.attachComponentDrag(selection, {
+            resolveCanvasRoot: context.canvasRootResolver,
+            getCanEdit: context.getCanEdit,
+            getCanSelect: context.getCanSelect,
+            getDisabledIds: context.getDisabledLabelIds,
+            getSelectedIds: context.getSelectedIds,
+            onDragEnd: context.callbacks.onDragEnd!,
+            extraFilter: (event) => (event.target as Element).classList.contains('body')
+        });
+    }
+
+    private static applyResizeDragBehavior(selection: CanvasSelection<CanvasLabel>, context: LabelRenderContext): void {
+        const callbacks = context.callbacks;
+        const eligible = selection.filter(
+            (d: CanvasLabel) => d.entity.permissions.canWrite && d.entity.permissions.canRead
+        );
+        const newlyResizeable = eligible.filter(function (this: SVGGElement) {
+            return !d3.select(this as Element).classed('resizeable');
+        });
+        const noLongerResizeable = selection.filter(function (this: SVGGElement, d: CanvasLabel) {
+            const isResizeable = d3.select(this as Element).classed('resizeable');
+            const stillEligible = d.entity.permissions.canWrite && d.entity.permissions.canRead;
+            return isResizeable && !stillEligible;
+        });
+
+        noLongerResizeable.classed('resizeable', false).select('path.resizable-triangle').on('.drag', null);
+
+        if (newlyResizeable.empty()) {
+            return;
+        }
+
+        const resizeDrag = d3
+            .drag<SVGPathElement, CanvasLabel>()
+            .filter(function (event, d) {
+                if (event.ctrlKey || event.button !== 0) {
+                    return false;
+                }
+                if (!context.getCanEdit()) {
+                    return false;
+                }
+                if (!context.getCanSelect()) {
+                    return false;
+                }
+                if (context.getDisabledLabelIds().has(d.entity.id)) {
+                    return false;
+                }
+                return true;
+            })
+            .on('start', function (event, d) {
+                event.sourceEvent.stopPropagation();
+                d.ui.dragStartRevision = d.entity.revision;
+
+                if (this.parentNode) {
+                    d3.select(this.parentNode as Element).classed('resizing', true);
+                }
+            })
+            .on('drag', function (event, d) {
+                const snapEnabled = !event.sourceEvent.shiftKey;
+                let newWidth = Math.max(CanvasConstants.LABEL_MIN.width, d.ui.dimensions.width + event.dx);
+                let newHeight = Math.max(CanvasConstants.LABEL_MIN.height, d.ui.dimensions.height + event.dy);
+
+                if (snapEnabled) {
+                    newWidth =
+                        Math.round(newWidth / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
+                        CanvasConstants.SNAP_ALIGNMENT_PIXELS;
+                    newHeight =
+                        Math.round(newHeight / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
+                        CanvasConstants.SNAP_ALIGNMENT_PIXELS;
+                }
+
+                d.ui.dimensions.width = newWidth;
+                d.ui.dimensions.height = newHeight;
+
+                if (this.parentNode) {
+                    const label = d3.select(this.parentNode as Element);
+                    label.select('rect.body').attr('width', newWidth).attr('height', newHeight);
+                    label.select('rect.border').attr('width', newWidth).attr('height', newHeight);
+                    label
+                        .select('path.resizable-triangle')
+                        .attr('transform', `translate(${newWidth - 2}, ${newHeight - 10})`);
+                }
+            })
+            .on('end', function (event, d) {
+                if (this.parentNode) {
+                    d3.select(this.parentNode as Element).classed('resizing', false);
+                }
+
+                if (callbacks.onResizeEnd) {
+                    callbacks.onResizeEnd(d, {
+                        width: d.ui.dimensions.width,
+                        height: d.ui.dimensions.height
+                    });
+                }
+                delete d.ui.dragStartRevision;
+            });
+
+        newlyResizeable.classed('resizeable', true).select<SVGPathElement>('path.resizable-triangle').call(resizeDrag);
+    }
+
+    private static boundedMultilineEllipsis<PElement extends d3.BaseType, PDatum>(
+        selection: d3.Selection<SVGTextElement, CanvasLabel, PElement, PDatum>,
         width: number,
         height: number,
         lines: string[],

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideMockStore } from '@ngrx/store/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { ReplaySubject } from 'rxjs';
@@ -24,7 +24,50 @@ import { outputToObservable } from '@angular/core/rxjs-interop';
 import { CanvasComponent } from './canvas.component';
 import { BirdseyeComponentData } from '../birdseye/birdseye.types';
 import { canvasUiFeatureKey, initialCanvasUiState } from '../../../state/canvas-ui';
-import { ComponentType } from '@nifi/shared';
+import {
+    ComponentType,
+    ConnectionEntity,
+    FunnelEntity,
+    LabelEntity,
+    PortEntity,
+    ProcessGroupEntity,
+    ProcessorEntity,
+    RemoteProcessGroupEntity,
+    RevisionRequest
+} from '@nifi/shared';
+import * as d3 from 'd3';
+import { WritableSignal } from '@angular/core';
+import {
+    CanvasConnection,
+    CanvasFunnel,
+    CanvasLabel,
+    CanvasPort,
+    CanvasProcessor,
+    CanvasRemoteProcessGroup,
+    CanvasRootSelection,
+    ComponentDoubleClickEvent
+} from './canvas.types';
+import { ConnectablePolicy } from './connectable-behavior.helper';
+
+type CanvasTestAccess = {
+    zoom: d3.ZoomBehavior<SVGSVGElement, unknown> | null;
+    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+    canvasGroup: CanvasRootSelection;
+    currentScale: number;
+    x: number;
+    y: number;
+    elementRef: { nativeElement: HTMLElement };
+    internalCanvasReady: WritableSignal<boolean>;
+    hasInitialized: WritableSignal<boolean>;
+    savingConnections: WritableSignal<Set<string>>;
+    applyTransform(x: number, y: number, scale: number, transition?: boolean): void;
+};
+
+function asPrivate(component: CanvasComponent): CanvasTestAccess {
+    return component as unknown as CanvasTestAccess;
+}
+
+type ReadableEntity<T extends { component?: unknown }> = T & Required<Pick<T, 'component'>>;
 
 // Mock data factories
 function createMockProcessor(
@@ -34,7 +77,7 @@ function createMockProcessor(
         x?: number;
         y?: number;
     } = {}
-): any {
+): ReadableEntity<ProcessorEntity> {
     const id = options.id || `processor-${Math.random().toString(36).substr(2, 9)}`;
     return {
         id,
@@ -57,7 +100,7 @@ function createMockProcessor(
             statsLastRefreshed: new Date().toISOString()
         },
         revision: { version: 0 }
-    };
+    } as unknown as ReadableEntity<ProcessorEntity>;
 }
 
 function createMockLabel(
@@ -69,7 +112,7 @@ function createMockLabel(
         width?: number;
         height?: number;
     } = {}
-): any {
+): ReadableEntity<LabelEntity> {
     const id = options.id || `label-${Math.random().toString(36).substr(2, 9)}`;
     return {
         id,
@@ -91,7 +134,7 @@ function createMockLabel(
             width: options.width ?? 150,
             height: options.height ?? 150
         }
-    };
+    } as unknown as ReadableEntity<LabelEntity>;
 }
 
 function createMockFunnel(
@@ -100,7 +143,7 @@ function createMockFunnel(
         x?: number;
         y?: number;
     } = {}
-): any {
+): FunnelEntity {
     const id = options.id || `funnel-${Math.random().toString(36).substr(2, 9)}`;
     return {
         id,
@@ -112,7 +155,7 @@ function createMockFunnel(
             y: options.y ?? 300
         },
         revision: { version: 0 }
-    };
+    } as unknown as FunnelEntity;
 }
 
 function createMockProcessGroup(
@@ -122,7 +165,7 @@ function createMockProcessGroup(
         x?: number;
         y?: number;
     } = {}
-): any {
+): ProcessGroupEntity {
     const id = options.id || `pg-${Math.random().toString(36).substr(2, 9)}`;
     return {
         id,
@@ -145,7 +188,7 @@ function createMockProcessGroup(
             statsLastRefreshed: new Date().toISOString()
         },
         revision: { version: 0 }
-    };
+    } as unknown as ProcessGroupEntity;
 }
 
 // Initial NgRx state for canvas using exported feature key and initial state
@@ -158,7 +201,7 @@ const initialState = {
  * In test environments (happy-dom/jsdom), getBoundingClientRect returns zeros.
  * This allows fitContent, onZoomActual, etc. to calculate real transforms.
  */
-function mockSvgDimensions(fixture: any, width = 1200, height = 800): void {
+function mockSvgDimensions(fixture: ComponentFixture<CanvasComponent>, width = 1200, height = 800): void {
     const svgElement = fixture.nativeElement.querySelector('svg.canvas-svg');
     if (svgElement) {
         vi.spyOn(svgElement, 'getBoundingClientRect').mockReturnValue({
@@ -176,13 +219,13 @@ function mockSvgDimensions(fixture: any, width = 1200, height = 800): void {
 }
 
 interface SetupOptions {
-    processors?: any[];
-    labels?: any[];
-    funnels?: any[];
-    processGroups?: any[];
-    ports?: any[];
-    remoteProcessGroups?: any[];
-    connections?: any[];
+    processors?: ProcessorEntity[];
+    labels?: LabelEntity[];
+    funnels?: FunnelEntity[];
+    processGroups?: ProcessGroupEntity[];
+    ports?: PortEntity[];
+    remoteProcessGroups?: RemoteProcessGroupEntity[];
+    connections?: ConnectionEntity[];
     selectedComponentIds?: string[];
     initialTransform?: { x: number; y: number; scale: number };
     dataReady?: boolean;
@@ -643,6 +686,55 @@ describe('CanvasComponent', () => {
             const data = component.getBirdseyeComponentData();
             expect(data.length).toBe(1);
         });
+
+        it('should preserve the viewport when polling toggles dataReady for the same process group', async () => {
+            const { fixture, component } = await setup({
+                dataReady: true,
+                selectedComponentIds: ['proc-1'],
+                processors: [createMockProcessor({ id: 'proc-1' })]
+            });
+            asPrivate(component).internalCanvasReady.set(true);
+            asPrivate(component).hasInitialized.set(true);
+            fixture.detectChanges();
+            expect(asPrivate(component).hasInitialized()).toBe(true);
+
+            const centerSpy = vi.spyOn(component, 'centerOnSelection');
+            const restoreSpy = vi.spyOn(component, 'restoreViewportFromStorage');
+
+            fixture.componentRef.setInput('dataReady', false);
+            fixture.detectChanges();
+            fixture.componentRef.setInput('dataReady', true);
+            fixture.detectChanges();
+            await fixture.whenStable();
+
+            expect(centerSpy).not.toHaveBeenCalled();
+            expect(restoreSpy).not.toHaveBeenCalled();
+        });
+
+        it('should reinitialize the viewport when the process group changes', async () => {
+            vi.useFakeTimers();
+            try {
+                const { fixture, component } = await setup({
+                    dataReady: true,
+                    processors: [createMockProcessor({ id: 'proc-1' })]
+                });
+
+                asPrivate(component).internalCanvasReady.set(true);
+                fixture.detectChanges();
+                vi.runAllTimers();
+                fixture.detectChanges();
+
+                const restoreSpy = vi.spyOn(component, 'restoreViewportFromStorage');
+
+                fixture.componentRef.setInput('processGroupId', 'different-pg-id');
+                fixture.detectChanges();
+                vi.runAllTimers();
+
+                expect(restoreSpy).toHaveBeenCalled();
+            } finally {
+                vi.useRealTimers();
+            }
+        });
     });
 
     describe('Edge cases', () => {
@@ -762,7 +854,7 @@ describe('CanvasComponent', () => {
                 JSON.stringify({
                     expires: Date.now() + 172800000,
                     item: {
-                        scale: undefined as any,
+                        scale: undefined as unknown as number,
                         translateX: 100,
                         translateY: 100
                     }
@@ -899,18 +991,18 @@ describe('CanvasComponent', () => {
             const { fixture, component } = await setup();
             mockSvgDimensions(fixture);
 
-            const zoom = (component as any).zoom;
-            const transformArgs: any[] = [];
+            const zoom = asPrivate(component).zoom!;
+            const transformArgs: unknown[][] = [];
             const transformOriginal = zoom.transform;
-            vi.spyOn(zoom, 'transform').mockImplementation((...args: any[]) => {
+            vi.spyOn(zoom, 'transform').mockImplementation((...args: unknown[]) => {
                 transformArgs.push(args);
-                return transformOriginal.apply(zoom, args);
+                return transformOriginal.apply(zoom, args as Parameters<typeof transformOriginal>);
             });
 
             component.onZoomFit();
 
             expect(zoom.transform).toHaveBeenCalled();
-            const d3Transform = transformArgs[0]?.[1];
+            const d3Transform = transformArgs[0]?.[1] as d3.ZoomTransform | undefined;
             expect(d3Transform?.k).toBe(1);
             expect(d3Transform?.x).toBe(0);
             expect(d3Transform?.y).toBe(0);
@@ -924,18 +1016,18 @@ describe('CanvasComponent', () => {
             const { fixture, component } = await setup({ processors: [processor] });
             mockSvgDimensions(fixture, 1200, 800);
 
-            const zoom = (component as any).zoom;
-            const transformArgs: any[] = [];
+            const zoom = asPrivate(component).zoom!;
+            const transformArgs: unknown[][] = [];
             const transformOriginal = zoom.transform;
-            vi.spyOn(zoom, 'transform').mockImplementation((...args: any[]) => {
+            vi.spyOn(zoom, 'transform').mockImplementation((...args: unknown[]) => {
                 transformArgs.push(args);
-                return transformOriginal.apply(zoom, args);
+                return transformOriginal.apply(zoom, args as Parameters<typeof transformOriginal>);
             });
 
             component.onZoomFit();
 
             expect(zoom.transform).toHaveBeenCalled();
-            const d3Transform = transformArgs[0]?.[1];
+            const d3Transform = transformArgs[0]?.[1] as d3.ZoomTransform | undefined;
             expect(d3Transform?.k).toBe(1);
             // translateX = 25 + (1150 - 350) / 2 - 500 = 25 + 400 - 500 = -75
             expect(d3Transform?.x).toBeCloseTo(-75, 0);
@@ -951,18 +1043,18 @@ describe('CanvasComponent', () => {
             });
             mockSvgDimensions(fixture, 1200, 800);
 
-            const zoom = (component as any).zoom;
-            const transformArgs: any[] = [];
+            const zoom = asPrivate(component).zoom!;
+            const transformArgs: unknown[][] = [];
             const transformOriginal = zoom.transform;
-            vi.spyOn(zoom, 'transform').mockImplementation((...args: any[]) => {
+            vi.spyOn(zoom, 'transform').mockImplementation((...args: unknown[]) => {
                 transformArgs.push(args);
-                return transformOriginal.apply(zoom, args);
+                return transformOriginal.apply(zoom, args as Parameters<typeof transformOriginal>);
             });
 
             component.onZoomFit();
 
             expect(zoom.transform).toHaveBeenCalled();
-            const d3Transform = transformArgs[0]?.[1];
+            const d3Transform = transformArgs[0]?.[1] as d3.ZoomTransform | undefined;
             // Bounding box: (0,0) to (5350,5130). Canvas 1150x750.
             // Scale = min(1150/5350, 750/5130) ≈ 0.146
             expect(d3Transform?.k).toBeLessThan(1);
@@ -987,7 +1079,7 @@ describe('CanvasComponent', () => {
             const { component } = await setup();
 
             // Forcibly null out zoom to simulate pre-init state
-            (component as any).zoom = null;
+            asPrivate(component).zoom = null;
 
             // Should return early without error
             expect(() => component.onZoomIn()).not.toThrow();
@@ -997,12 +1089,12 @@ describe('CanvasComponent', () => {
             const { fixture, component } = await setup();
             mockSvgDimensions(fixture);
 
-            const zoom = (component as any).zoom;
+            const zoom = asPrivate(component).zoom!;
             const scaleByOriginal = zoom.scaleBy;
-            const scaleByArgs: any[] = [];
-            vi.spyOn(zoom, 'scaleBy').mockImplementation((...args: any[]) => {
+            const scaleByArgs: unknown[][] = [];
+            vi.spyOn(zoom, 'scaleBy').mockImplementation((...args: unknown[]) => {
                 scaleByArgs.push(args);
-                return scaleByOriginal.apply(zoom, args);
+                return scaleByOriginal.apply(zoom, args as Parameters<typeof scaleByOriginal>);
             });
 
             component.onZoomIn();
@@ -1017,10 +1109,10 @@ describe('CanvasComponent', () => {
             const { fixture, component } = await setup();
             mockSvgDimensions(fixture);
 
-            const zoom = (component as any).zoom;
+            const zoom = asPrivate(component).zoom!;
             const scaleByOriginal = zoom.scaleBy;
-            vi.spyOn(zoom, 'scaleBy').mockImplementation((...args: any[]) => {
-                return scaleByOriginal.apply(zoom, args);
+            vi.spyOn(zoom, 'scaleBy').mockImplementation((...args: unknown[]) => {
+                return scaleByOriginal.apply(zoom, args as Parameters<typeof scaleByOriginal>);
             });
 
             component.onZoomIn();
@@ -1035,7 +1127,7 @@ describe('CanvasComponent', () => {
         it('should return early without error when zoom behavior is not initialized', async () => {
             const { component } = await setup();
 
-            (component as any).zoom = null;
+            asPrivate(component).zoom = null;
 
             expect(() => component.onZoomOut()).not.toThrow();
         });
@@ -1044,12 +1136,12 @@ describe('CanvasComponent', () => {
             const { fixture, component } = await setup();
             mockSvgDimensions(fixture);
 
-            const zoom = (component as any).zoom;
+            const zoom = asPrivate(component).zoom!;
             const scaleByOriginal = zoom.scaleBy;
-            const scaleByArgs: any[] = [];
-            vi.spyOn(zoom, 'scaleBy').mockImplementation((...args: any[]) => {
+            const scaleByArgs: unknown[][] = [];
+            vi.spyOn(zoom, 'scaleBy').mockImplementation((...args: unknown[]) => {
                 scaleByArgs.push(args);
-                return scaleByOriginal.apply(zoom, args);
+                return scaleByOriginal.apply(zoom, args as Parameters<typeof scaleByOriginal>);
             });
 
             component.onZoomOut();
@@ -1063,10 +1155,10 @@ describe('CanvasComponent', () => {
             const { fixture, component } = await setup();
             mockSvgDimensions(fixture);
 
-            const zoom = (component as any).zoom;
+            const zoom = asPrivate(component).zoom!;
             const scaleByOriginal = zoom.scaleBy;
-            vi.spyOn(zoom, 'scaleBy').mockImplementation((...args: any[]) => {
-                return scaleByOriginal.apply(zoom, args);
+            vi.spyOn(zoom, 'scaleBy').mockImplementation((...args: unknown[]) => {
+                return scaleByOriginal.apply(zoom, args as Parameters<typeof scaleByOriginal>);
             });
 
             component.onZoomOut();
@@ -1080,16 +1172,16 @@ describe('CanvasComponent', () => {
         // onZoomActual always sets scale to 1 and centers content.
         // Uses D3 transitions, so we spy on zoom.transform to verify computed values.
 
-        function spyOnZoomTransform(component: any): { getLastTransform: () => any } {
-            const zoom = component.zoom;
+        function spyOnZoomTransform(component: CanvasComponent): { getLastTransform: () => d3.ZoomTransform } {
+            const zoom = asPrivate(component).zoom!;
             const transformOriginal = zoom.transform;
-            const transformArgs: any[] = [];
-            vi.spyOn(zoom, 'transform').mockImplementation((...args: any[]) => {
+            const transformArgs: unknown[][] = [];
+            vi.spyOn(zoom, 'transform').mockImplementation((...args: unknown[]) => {
                 transformArgs.push(args);
-                return transformOriginal.apply(zoom, args);
+                return transformOriginal.apply(zoom, args as Parameters<typeof transformOriginal>);
             });
             return {
-                getLastTransform: () => transformArgs[transformArgs.length - 1]?.[1]
+                getLastTransform: () => transformArgs[transformArgs.length - 1]?.[1] as d3.ZoomTransform
             };
         }
 
@@ -1416,14 +1508,14 @@ describe('CanvasComponent', () => {
         it('should emit componentDoubleClick with Processor type on processor double-click', async () => {
             const { component } = await setup();
 
-            const emittedValues: any[] = [];
+            const emittedValues: ComponentDoubleClickEvent[] = [];
             outputToObservable(component.componentDoubleClick).subscribe((v) => emittedValues.push(v));
 
             const entity = { id: 'proc-1', component: { name: 'Test Processor' } };
             const canvasProcessor = {
                 entity,
                 ui: { componentType: ComponentType.Processor }
-            } as any;
+            } as unknown as CanvasProcessor;
 
             component.onProcessorDoubleClick({ processor: canvasProcessor, event: new MouseEvent('dblclick') });
 
@@ -1434,14 +1526,14 @@ describe('CanvasComponent', () => {
         it('should emit componentDoubleClick with InputPort type on port double-click', async () => {
             const { component } = await setup();
 
-            const emittedValues: any[] = [];
+            const emittedValues: ComponentDoubleClickEvent[] = [];
             outputToObservable(component.componentDoubleClick).subscribe((v) => emittedValues.push(v));
 
             const entity = { id: 'port-1', component: { name: 'Input Port' } };
             const canvasPort = {
                 entity,
                 ui: { componentType: ComponentType.InputPort }
-            } as any;
+            } as unknown as CanvasPort;
 
             component.onPortDoubleClick({ port: canvasPort, event: new MouseEvent('dblclick') });
 
@@ -1452,14 +1544,14 @@ describe('CanvasComponent', () => {
         it('should emit componentDoubleClick with RemoteProcessGroup type on RPG double-click', async () => {
             const { component } = await setup();
 
-            const emittedValues: any[] = [];
+            const emittedValues: ComponentDoubleClickEvent[] = [];
             outputToObservable(component.componentDoubleClick).subscribe((v) => emittedValues.push(v));
 
             const entity = { id: 'rpg-1', component: { name: 'Remote PG' } };
             const canvasRpg = {
                 entity,
                 ui: { componentType: ComponentType.RemoteProcessGroup }
-            } as any;
+            } as unknown as CanvasRemoteProcessGroup;
 
             component.onRemoteProcessGroupDoubleClick({ rpg: canvasRpg, event: new MouseEvent('dblclick') });
 
@@ -1470,14 +1562,14 @@ describe('CanvasComponent', () => {
         it('should emit componentDoubleClick with Connection type on connection double-click', async () => {
             const { component } = await setup();
 
-            const emittedValues: any[] = [];
+            const emittedValues: ComponentDoubleClickEvent[] = [];
             outputToObservable(component.componentDoubleClick).subscribe((v) => emittedValues.push(v));
 
             const entity = { id: 'conn-1', component: { source: {}, destination: {} } };
             const canvasConnection = {
                 entity,
                 ui: { componentType: ComponentType.Connection }
-            } as any;
+            } as unknown as CanvasConnection;
 
             component.onConnectionDoubleClick({ connection: canvasConnection, event: new MouseEvent('dblclick') });
 
@@ -1488,13 +1580,13 @@ describe('CanvasComponent', () => {
         it('should not emit componentDoubleClick on funnel double-click', async () => {
             const { component } = await setup();
 
-            const emittedValues: any[] = [];
+            const emittedValues: ComponentDoubleClickEvent[] = [];
             outputToObservable(component.componentDoubleClick).subscribe((v) => emittedValues.push(v));
 
             const canvasFunnel = {
                 entity: { id: 'funnel-1' },
                 ui: { componentType: ComponentType.Funnel }
-            } as any;
+            } as unknown as CanvasFunnel;
 
             component.onFunnelDoubleClick({ funnel: canvasFunnel, event: new MouseEvent('dblclick') });
 
@@ -1504,13 +1596,13 @@ describe('CanvasComponent', () => {
         it('should not emit componentDoubleClick on label double-click', async () => {
             const { component } = await setup();
 
-            const emittedValues: any[] = [];
+            const emittedValues: ComponentDoubleClickEvent[] = [];
             outputToObservable(component.componentDoubleClick).subscribe((v) => emittedValues.push(v));
 
             const canvasLabel = {
                 entity: { id: 'label-1' },
                 ui: { componentType: ComponentType.Label }
-            } as any;
+            } as unknown as CanvasLabel;
 
             component.onLabelDoubleClick({ label: canvasLabel, event: new MouseEvent('dblclick') });
 
@@ -1522,22 +1614,22 @@ describe('CanvasComponent', () => {
         describe('applyTransform() — magnitude guard', () => {
             it('does not throw when called with valid translate and scale', async () => {
                 const { component } = await setup();
-                expect(() => (component as any).applyTransform(100, 200, 1, false)).not.toThrow();
+                expect(() => asPrivate(component).applyTransform(100, 200, 1, false)).not.toThrow();
             });
 
             it('does not throw when translate is catastrophic-finite (~9e307)', async () => {
                 const { component } = await setup();
-                expect(() => (component as any).applyTransform(9e307, 0, 1, false)).not.toThrow();
+                expect(() => asPrivate(component).applyTransform(9e307, 0, 1, false)).not.toThrow();
             });
 
             it('does not throw when scale is Infinity', async () => {
                 const { component } = await setup();
-                expect(() => (component as any).applyTransform(0, 0, Infinity, false)).not.toThrow();
+                expect(() => asPrivate(component).applyTransform(0, 0, Infinity, false)).not.toThrow();
             });
 
             it('does not throw when scale is near-zero (0.0001)', async () => {
                 const { component } = await setup();
-                expect(() => (component as any).applyTransform(0, 0, 0.0001, false)).not.toThrow();
+                expect(() => asPrivate(component).applyTransform(0, 0, 0.0001, false)).not.toThrow();
             });
         });
 
@@ -1569,11 +1661,11 @@ describe('CanvasComponent', () => {
             it('returns null when scale is near-zero causing overflow', async () => {
                 const { component } = await setup();
                 // Force a near-zero scale; result x = (400 - 0 - 0) / 1e-15 >> MAX_ABS_COORD
-                (component as any).currentScale = 1e-15;
-                (component as any).x = 0;
-                (component as any).y = 0;
+                asPrivate(component).currentScale = 1e-15;
+                asPrivate(component).x = 0;
+                asPrivate(component).y = 0;
 
-                const nativeEl = (component as any).elementRef.nativeElement;
+                const nativeEl = asPrivate(component).elementRef.nativeElement;
                 vi.spyOn(nativeEl, 'getBoundingClientRect').mockReturnValue({
                     left: 0,
                     top: 0,
@@ -1587,11 +1679,11 @@ describe('CanvasComponent', () => {
 
             it('returns a valid position for in-bounds inputs', async () => {
                 const { component } = await setup();
-                (component as any).currentScale = 1;
-                (component as any).x = 0;
-                (component as any).y = 0;
+                asPrivate(component).currentScale = 1;
+                asPrivate(component).x = 0;
+                asPrivate(component).y = 0;
 
-                const nativeEl = (component as any).elementRef.nativeElement;
+                const nativeEl = asPrivate(component).elementRef.nativeElement;
                 vi.spyOn(nativeEl, 'getBoundingClientRect').mockReturnValue({
                     left: 0,
                     top: 0,
@@ -1603,6 +1695,595 @@ describe('CanvasComponent', () => {
                 expect(result).not.toBeNull();
                 expect(Number.isFinite(result!.x)).toBe(true);
             });
+        });
+    });
+
+    describe('typed reusable-canvas contracts', () => {
+        it('keeps connectable behavior inert when no policy is supplied', async () => {
+            const { component } = await setup();
+
+            expect(component.connectable()).toBeNull();
+            expect(component.connectableBehavior()).toBeNull();
+            expect(component.connectionReconnect()).toBeNull();
+        });
+
+        it('replaces connectable listeners and removes them when policy changes to null', async () => {
+            const { fixture } = await setup({
+                processors: [createMockProcessor({ id: 'processor-1' })],
+                dataReady: true
+            });
+            const firstPolicy: ConnectablePolicy = {
+                isValidConnectionSource: vi.fn(() => true),
+                isValidConnectionDestination: vi.fn(() => true)
+            };
+            const secondPolicy: ConnectablePolicy = {
+                isValidConnectionSource: vi.fn(() => true),
+                isValidConnectionDestination: vi.fn(() => true)
+            };
+            fixture.componentRef.setInput('connectable', firstPolicy);
+            fixture.detectChanges();
+            const processor = fixture.nativeElement.querySelector('g.processor') as SVGGElement;
+
+            processor.dispatchEvent(new MouseEvent('mouseenter'));
+            expect(processor.querySelector('text.add-connect')).not.toBeNull();
+
+            fixture.componentRef.setInput('connectable', secondPolicy);
+            fixture.detectChanges();
+            expect(processor.querySelector('text.add-connect')).toBeNull();
+            processor.dispatchEvent(new MouseEvent('mouseenter'));
+            expect(firstPolicy.isValidConnectionSource).toHaveBeenCalledTimes(1);
+            expect(secondPolicy.isValidConnectionSource).toHaveBeenCalledTimes(1);
+
+            fixture.componentRef.setInput('connectable', null);
+            fixture.detectChanges();
+            expect(processor.querySelector('text.add-connect')).toBeNull();
+            const sourceChecks = vi.mocked(secondPolicy.isValidConnectionSource).mock.calls.length;
+
+            processor.dispatchEvent(new MouseEvent('mouseenter'));
+            expect(secondPolicy.isValidConnectionSource).toHaveBeenCalledTimes(sourceChecks);
+            expect(processor.querySelector('text.add-connect')).toBeNull();
+        });
+
+        it('deactivates an active create-connection gesture when the canvas is destroyed', async () => {
+            const { component, fixture } = await setup({
+                processors: [createMockProcessor({ id: 'processor-1' })],
+                dataReady: true
+            });
+            const policy: ConnectablePolicy = {
+                isValidConnectionSource: vi.fn(() => true),
+                isValidConnectionDestination: vi.fn(() => true)
+            };
+            fixture.componentRef.setInput('connectable', policy);
+            fixture.detectChanges();
+            const helper = component.connectableBehavior()!;
+            const deactivate = vi.spyOn(helper, 'deactivate');
+            const processor = fixture.nativeElement.querySelector('g.processor') as SVGGElement;
+            processor.dispatchEvent(new MouseEvent('mouseenter'));
+            const canvasRoot = asPrivate(component).canvasGroup;
+            const handle = processor.querySelector('text.add-connect')!;
+            d3.select(handle).classed('dragging', true);
+            canvasRoot.node()!.appendChild(handle);
+            canvasRoot.append('path').attr('class', 'connector');
+
+            fixture.destroy();
+
+            expect(deactivate).toHaveBeenCalled();
+            expect(canvasRoot.select('text.add-connect').empty()).toBe(true);
+            expect(canvasRoot.select('path.connector').empty()).toBe(true);
+        });
+
+        it('clears component and self-loop drag state without emitting for a zero-delta drop', async () => {
+            const processor = createMockProcessor({ id: 'processor-1' });
+            processor.revision = { version: 4 };
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 7 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'processor-1',
+                destinationId: 'processor-1',
+                bends: [{ x: 25, y: 30 }],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const { component } = await setup({ processors: [processor], connections: [connection] });
+            const processorDatum = component.internalProcessors()[0];
+            const connectionDatum = component.internalConnections()[0];
+            processorDatum.ui.dragStartEntity = processor;
+            processorDatum.ui.dragStartPosition = { ...processor.position };
+            processorDatum.ui.currentPosition = { ...processor.position };
+            processorDatum.ui.dragDelta = { x: 0, y: 0 };
+            processorDatum.ui.dragMovingIds = new Set(['processor-1']);
+            connectionDatum.ui.dragStartEntity = connection;
+            connectionDatum.ui.dragStartBends = [{ x: 25, y: 30 }];
+            connectionDatum.ui.bends = [{ x: 25, y: 30 }];
+            const emitted: unknown[] = [];
+            outputToObservable(component.componentsDragEnd).subscribe((event) => emitted.push(event));
+
+            component.onDragEnd({ delta: { x: 0, y: 0 }, movingIds: new Set(['processor-1']) });
+
+            expect(emitted).toEqual([]);
+            expect(processorDatum.ui.dragStartEntity).toBeUndefined();
+            expect(processorDatum.ui.dragStartPosition).toBeUndefined();
+            expect(processorDatum.ui.currentPosition).toBeUndefined();
+            expect(processorDatum.ui.dragDelta).toBeUndefined();
+            expect(processorDatum.ui.dragMovingIds).toBeUndefined();
+            expect(connectionDatum.ui.dragStartEntity).toBeUndefined();
+            expect(connectionDatum.ui.dragStartBends).toBeUndefined();
+            expect(connectionDatum.ui.bends).toEqual(connection.bends);
+        });
+
+        it('projects the bulk drag revision to request fields', async () => {
+            const processor = createMockProcessor({ id: 'processor-1' });
+            processor.revision = {
+                version: 4,
+                clientId: 'peer-client',
+                lastModifier: 'alice'
+            };
+            const { component } = await setup({ processors: [processor] });
+            const wrapper = component.internalProcessors()[0];
+            wrapper.ui.dragStartEntity = processor;
+            wrapper.ui.dragStartPosition = { ...processor.position };
+            const emitted = vi.fn();
+            outputToObservable(component.componentsDragEnd).subscribe(emitted);
+
+            component.onDragEnd({ delta: { x: 5, y: 10 }, movingIds: new Set(['processor-1']) });
+
+            const event = emitted.mock.calls[0][0] as {
+                items: Array<{ revision: RevisionRequest }>;
+            };
+            expect(event.items[0].revision).toEqual({ version: 4, clientId: 'peer-client' });
+        });
+
+        it('refreshes idle connection bends from a same-id entity update', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 1 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [{ x: 10, y: 20 }],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const { fixture, component } = await setup({ connections: [connection] });
+            const wrapper = component.internalConnections()[0];
+            wrapper.ui.bends = [{ x: 10, y: 20 }];
+            const updatedConnection = {
+                ...connection,
+                revision: { version: 2 },
+                bends: [{ x: 30, y: 40 }]
+            };
+
+            fixture.componentRef.setInput('connections', [updatedConnection]);
+            fixture.detectChanges();
+
+            expect(component.internalConnections()[0].entity).toBe(updatedConnection);
+            expect(component.internalConnections()[0].ui.bends).toEqual([{ x: 30, y: 40 }]);
+            expect(component.internalConnections()[0].ui.bends).not.toBe(updatedConnection.bends);
+        });
+
+        it('preserves optimistic connection bends during an active drag', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 1 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [{ x: 10, y: 20 }],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const { fixture, component } = await setup({ connections: [connection] });
+            const wrapper = component.internalConnections()[0];
+            wrapper.ui.dragging = true;
+            wrapper.ui.bends = [{ x: 50, y: 60 }];
+            const updatedConnection = {
+                ...connection,
+                bends: [{ x: 30, y: 40 }]
+            };
+
+            fixture.componentRef.setInput('connections', [updatedConnection]);
+            fixture.detectChanges();
+
+            expect(component.internalConnections()[0].entity).toBe(updatedConnection);
+            expect(component.internalConnections()[0].ui.bends).toEqual([{ x: 50, y: 60 }]);
+        });
+
+        it('uses newer server bends and clears an active local preview', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 1 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [{ x: 10, y: 20 }],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const { fixture, component } = await setup({ connections: [connection] });
+            const wrapper = component.internalConnections()[0];
+            wrapper.ui.dragging = true;
+            wrapper.ui.dragStartRevision = { version: 1 };
+            wrapper.ui.bends = [{ x: 50, y: 60 }];
+            wrapper.ui.endPointDragging = true;
+            wrapper.ui.reconnectDestinationId = 'destination-2';
+            wrapper.ui.tempLabelIndex = 2;
+            const updatedConnection = {
+                ...connection,
+                revision: { version: 2 },
+                bends: [{ x: 30, y: 40 }]
+            };
+
+            fixture.componentRef.setInput('connections', [updatedConnection]);
+            fixture.detectChanges();
+
+            const refreshed = component.internalConnections()[0];
+            expect(refreshed.entity).toBe(updatedConnection);
+            expect(refreshed.ui.bends).toEqual([{ x: 30, y: 40 }]);
+            expect(refreshed.ui.dragging).toBe(false);
+            expect(refreshed.ui.endPointDragging).toBeUndefined();
+            expect(refreshed.ui.reconnectDestinationId).toBeUndefined();
+            expect(refreshed.ui.tempLabelIndex).toBeUndefined();
+            expect(refreshed.ui.dragStartRevision).toEqual({ version: 1 });
+        });
+
+        it('preserves optimistic connection bends while a save is pending', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 1 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [{ x: 10, y: 20 }],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const { fixture, component } = await setup({ connections: [connection] });
+            const wrapper = component.internalConnections()[0];
+            wrapper.ui.bends = [{ x: 50, y: 60 }];
+            asPrivate(component).savingConnections.set(new Set(['connection-1']));
+            const updatedConnection = {
+                ...connection,
+                bends: [{ x: 30, y: 40 }]
+            };
+
+            fixture.componentRef.setInput('connections', [updatedConnection]);
+            fixture.detectChanges();
+
+            expect(component.internalConnections()[0].entity).toBe(updatedConnection);
+            expect(component.internalConnections()[0].ui.bends).toEqual([{ x: 50, y: 60 }]);
+        });
+
+        it('uses updated server bends for an idle connection when a sibling is added', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 1 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [{ x: 10, y: 20 }],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const { fixture, component } = await setup({ connections: [connection] });
+            component.internalConnections()[0].ui.bends = [{ x: 10, y: 20 }];
+            const updatedConnection = {
+                ...connection,
+                revision: { version: 2 },
+                bends: [{ x: 30, y: 40 }]
+            };
+            const addedConnection = {
+                ...connection,
+                id: 'connection-2',
+                uri: 'https://localhost/nifi-api/connections/connection-2',
+                component: { ...connection.component, id: 'connection-2' }
+            } as ConnectionEntity;
+
+            fixture.componentRef.setInput('connections', [updatedConnection, addedConnection]);
+            fixture.detectChanges();
+
+            const rebuilt = component.internalConnections().find((item) => item.entity.id === 'connection-1')!;
+            expect(rebuilt.entity).toBe(updatedConnection);
+            expect(rebuilt.ui.bends).toEqual([{ x: 30, y: 40 }]);
+        });
+
+        it('uses newer server bends when a sibling is added during an active drag', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 1 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [{ x: 10, y: 20 }],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const { fixture, component } = await setup({ connections: [connection] });
+            const wrapper = component.internalConnections()[0];
+            wrapper.ui.dragging = true;
+            wrapper.ui.dragStartRevision = { version: 1 };
+            wrapper.ui.bends = [{ x: 50, y: 60 }];
+            const updatedConnection = {
+                ...connection,
+                revision: { version: 2 },
+                bends: [{ x: 30, y: 40 }]
+            };
+            const addedConnection = {
+                ...connection,
+                id: 'connection-2',
+                uri: 'https://localhost/nifi-api/connections/connection-2',
+                component: { ...connection.component, id: 'connection-2' }
+            } as ConnectionEntity;
+
+            fixture.componentRef.setInput('connections', [updatedConnection, addedConnection]);
+            fixture.detectChanges();
+
+            const rebuilt = component.internalConnections().find((item) => item.entity.id === 'connection-1')!;
+            expect(rebuilt.entity).toBe(updatedConnection);
+            expect(rebuilt.ui.bends).toEqual([{ x: 30, y: 40 }]);
+            expect(rebuilt.ui.dragging).toBeUndefined();
+            expect(rebuilt.ui.dragStartRevision).toEqual({ version: 1 });
+        });
+
+        it('preserves optimistic reconnect state across wrapper rebuilds and confirms it', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 7 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const addedConnection = {
+                ...connection,
+                id: 'connection-2',
+                uri: 'https://localhost/nifi-api/connections/connection-2',
+                component: { ...connection.component, id: 'connection-2' }
+            } as ConnectionEntity;
+            const destination = createMockProcessor({ id: 'dest-2' });
+            const { fixture, component } = await setup({ connections: [connection] });
+            const wrapper = component.internalConnections()[0];
+            wrapper.ui.dragStartRevision = {
+                version: 3,
+                clientId: 'peer-client',
+                lastModifier: 'alice'
+            };
+            const emitted: Array<{ id: string; bends?: Array<{ x: number; y: number }> }> = [];
+            outputToObservable(component.connectionDestinationChangeRequested).subscribe((event) =>
+                emitted.push(event)
+            );
+
+            component.onConnectionEndpointReconnect({
+                connection: wrapper,
+                newDestination: {
+                    id: 'dest-2',
+                    componentType: ComponentType.Processor,
+                    entity: destination
+                },
+                bends: [{ x: 10, y: 20 }]
+            });
+
+            expect(wrapper.ui.reconnectDestinationId).toBe('dest-2');
+            expect(wrapper.ui.bends).toEqual([{ x: 10, y: 20 }]);
+            expect(wrapper.ui.dragStartRevision).toBeUndefined();
+            expect(emitted).toEqual([
+                {
+                    id: 'connection-1',
+                    revision: { version: 3, clientId: 'peer-client' },
+                    newDestination: expect.any(Object),
+                    bends: [{ x: 10, y: 20 }]
+                }
+            ]);
+
+            fixture.componentRef.setInput('connections', [connection, addedConnection]);
+            fixture.detectChanges();
+            const rebuilt = component.internalConnections().find((item) => item.entity.id === 'connection-1')!;
+            expect(rebuilt.ui.reconnectDestinationId).toBe('dest-2');
+            expect(rebuilt.ui.bends).toEqual([{ x: 10, y: 20 }]);
+
+            component.confirmConnectionDestination('connection-1');
+            expect(component.disabledConnectionIds().has('connection-1')).toBe(false);
+            expect(rebuilt.ui.reconnectDestinationId).toBeUndefined();
+            expect(rebuilt.ui.bends).toBeUndefined();
+        });
+
+        it('reverts optimistic reconnect destination and bends', async () => {
+            const connection = {
+                id: 'connection-1',
+                uri: 'https://localhost/nifi-api/connections/connection-1',
+                revision: { version: 7 },
+                permissions: { canRead: true, canWrite: true },
+                sourceId: 'source-1',
+                destinationId: 'dest-1',
+                bends: [],
+                component: { id: 'connection-1', source: {}, destination: {} }
+            } as unknown as ConnectionEntity;
+            const destination = createMockProcessor({ id: 'dest-2' });
+            const { component } = await setup({ connections: [connection] });
+            const wrapper = component.internalConnections()[0];
+            component.onConnectionEndpointReconnect({
+                connection: wrapper,
+                newDestination: {
+                    id: 'dest-2',
+                    componentType: ComponentType.Processor,
+                    entity: destination
+                },
+                bends: [{ x: 10, y: 20 }]
+            });
+            wrapper.ui.endPointDragging = true;
+
+            component.revertConnectionDestination('connection-1');
+
+            expect(component.disabledConnectionIds().has('connection-1')).toBe(false);
+            expect(wrapper.ui.reconnectDestinationId).toBeUndefined();
+            expect(wrapper.ui.endPointDragging).toBeUndefined();
+            expect(wrapper.ui.bends).toBeUndefined();
+        });
+
+        describe('label and component revision reconciliation', () => {
+            it('keeps label dimensions for a same-revision resize', async () => {
+                const label = createMockLabel({ id: 'label-1', width: 100, height: 100 });
+                label.revision = { version: 1 };
+                const { fixture, component } = await setup({ labels: [label] });
+                const wrapper = component.internalLabels()[0];
+                wrapper.ui.dimensions = { width: 250, height: 125 };
+                wrapper.ui.dragStartRevision = { version: 1 };
+                const refreshed = { ...label, revision: { version: 1 }, dimensions: { width: 100, height: 100 } };
+
+                fixture.componentRef.setInput('labels', [refreshed]);
+                fixture.detectChanges();
+
+                expect(wrapper.ui.dimensions).toEqual({ width: 250, height: 125 });
+                expect(wrapper.ui.dragStartRevision).toEqual({ version: 1 });
+            });
+
+            it('uses newer server label dimensions and keeps the resize baseline', async () => {
+                const label = createMockLabel({ id: 'label-1', width: 100, height: 100 });
+                label.revision = { version: 1 };
+                const { fixture, component } = await setup({ labels: [label] });
+                const wrapper = component.internalLabels()[0];
+                wrapper.ui.dimensions = { width: 250, height: 125 };
+                wrapper.ui.dragStartRevision = { version: 1 };
+                const updated = { ...label, revision: { version: 2 }, dimensions: { width: 160, height: 80 } };
+
+                fixture.componentRef.setInput('labels', [updated]);
+                fixture.detectChanges();
+
+                expect(wrapper.ui.dimensions).toEqual({ width: 160, height: 80 });
+                expect(wrapper.ui.dragStartRevision).toEqual({ version: 1 });
+            });
+
+            it('keeps a processor move preview for a same-revision refresh', async () => {
+                const processor = createMockProcessor({ id: 'proc-move', x: 10, y: 20 });
+                processor.revision = { version: 1 };
+                const { fixture, component } = await setup({ processors: [processor] });
+                const wrapper = component.internalProcessors()[0];
+                const baseline = wrapper.entity;
+                wrapper.ui.dragStartEntity = baseline;
+                wrapper.ui.currentPosition = { x: 40, y: 50 };
+                wrapper.ui.dragDelta = { x: 30, y: 30 };
+                const refreshed = { ...processor, revision: { version: 1 } };
+
+                fixture.componentRef.setInput('processors', [refreshed]);
+                fixture.detectChanges();
+
+                expect(wrapper.ui.currentPosition).toEqual({ x: 40, y: 50 });
+                expect(wrapper.ui.dragDelta).toEqual({ x: 30, y: 30 });
+                expect(wrapper.ui.dragStartEntity).toBe(baseline);
+            });
+
+            it('clears a processor move preview and keeps the baseline when the revision advances', async () => {
+                const processor = createMockProcessor({ id: 'proc-move', x: 10, y: 20 });
+                processor.revision = { version: 1 };
+                const { fixture, component } = await setup({ processors: [processor] });
+                const wrapper = component.internalProcessors()[0];
+                const baseline = wrapper.entity;
+                wrapper.ui.dragStartEntity = baseline;
+                wrapper.ui.currentPosition = { x: 40, y: 50 };
+                wrapper.ui.dragDelta = { x: 30, y: 30 };
+                wrapper.ui.dragMovingIds = new Set(['proc-move']);
+                const updated = { ...processor, revision: { version: 2 }, position: { x: 80, y: 90 } };
+
+                fixture.componentRef.setInput('processors', [updated]);
+                fixture.detectChanges();
+
+                expect(wrapper.entity.position).toEqual({ x: 80, y: 90 });
+                expect(wrapper.ui.currentPosition).toBeUndefined();
+                expect(wrapper.ui.dragDelta).toBeUndefined();
+                expect(wrapper.ui.dragMovingIds).toBeUndefined();
+                expect(wrapper.ui.dragStartEntity).toBe(baseline);
+            });
+
+            it('drops a processor move preview across a sibling rebuild when the revision advances', async () => {
+                const processor = createMockProcessor({ id: 'proc-move', x: 10, y: 20 });
+                processor.revision = { version: 1 };
+                const { fixture, component } = await setup({ processors: [processor] });
+                const wrapper = component.internalProcessors()[0];
+                const baseline = wrapper.entity;
+                wrapper.ui.dragStartEntity = baseline;
+                wrapper.ui.currentPosition = { x: 40, y: 50 };
+                const updated = { ...processor, revision: { version: 2 }, position: { x: 80, y: 90 } };
+                const sibling = createMockProcessor({ id: 'proc-sibling' });
+
+                fixture.componentRef.setInput('processors', [updated, sibling]);
+                fixture.detectChanges();
+
+                const rebuilt = component.internalProcessors().find((item) => item.entity.id === 'proc-move')!;
+                expect(rebuilt.ui.currentPosition).toBeUndefined();
+                expect(rebuilt.ui.dragStartEntity).toBe(baseline);
+                expect(rebuilt.entity.position).toEqual({ x: 80, y: 90 });
+            });
+        });
+
+        it('emits the label resize gesture baseline revision', async () => {
+            const { component } = await setup();
+            const emitted: Array<{ revision: RevisionRequest }> = [];
+            outputToObservable(component.labelResizeEnd).subscribe((event) => emitted.push(event));
+            const label = {
+                entity: { id: 'label-1', revision: { version: 9 } },
+                ui: {
+                    componentType: ComponentType.Label,
+                    dimensions: { width: 100, height: 100 },
+                    dragStartRevision: { version: 3, clientId: 'peer-client', lastModifier: 'alice' }
+                }
+            } as unknown as CanvasLabel;
+
+            component.onLabelResizeEnd({ label, dimensions: { width: 120, height: 140 } });
+
+            expect(emitted[0].revision).toEqual({ version: 3, clientId: 'peer-client' });
+            expect(label.ui.dragStartRevision).toBeUndefined();
+        });
+
+        it('emits the connection label gesture baseline revision', async () => {
+            const { component } = await setup();
+            const emitted: Array<{ revision: RevisionRequest }> = [];
+            outputToObservable(component.connectionLabelDragEnd).subscribe((event) => emitted.push(event));
+            const connection = {
+                entity: { id: 'connection-1', revision: { version: 8 } },
+                ui: {
+                    componentType: ComponentType.Connection,
+                    start: { x: 0, y: 0 },
+                    end: { x: 10, y: 10 },
+                    dragStartRevision: { version: 2, clientId: 'peer-client', lastModifier: 'alice' }
+                }
+            } as unknown as CanvasConnection;
+
+            component.onConnectionLabelDragEnd({ connection, labelIndex: 1 });
+
+            expect(emitted[0].revision).toEqual({ version: 2, clientId: 'peer-client' });
+            expect(connection.ui.dragStartRevision).toBeUndefined();
+        });
+
+        it('projects bend revisions to request fields', async () => {
+            const { component } = await setup();
+            const emitted: Array<{ revision: RevisionRequest }> = [];
+            outputToObservable(component.connectionBendPointsUpdate).subscribe((event) => emitted.push(event));
+            const connection = {
+                entity: {
+                    id: 'connection-1',
+                    revision: { version: 8, clientId: 'peer-client', lastModifier: 'alice' }
+                },
+                ui: {
+                    componentType: ComponentType.Connection,
+                    start: { x: 0, y: 0 },
+                    end: { x: 10, y: 10 },
+                    bends: [{ x: 5, y: 5 }],
+                    dragStartRevision: { version: 2, clientId: 'peer-client', lastModifier: 'alice' }
+                }
+            } as unknown as CanvasConnection;
+
+            component.onConnectionBendPointDragEnd({ connection, bends: [{ x: 5, y: 5 }] });
+            component.onConnectionBendPointAdd({
+                connection,
+                point: { x: 5, y: 5, index: 0 }
+            });
+
+            expect(emitted.map((event) => event.revision)).toEqual([
+                { version: 2, clientId: 'peer-client' },
+                { version: 8, clientId: 'peer-client' }
+            ]);
         });
     });
 });

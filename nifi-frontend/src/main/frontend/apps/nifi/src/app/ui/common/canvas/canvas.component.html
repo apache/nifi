@@ -108,10 +108,11 @@
                 [canEdit]="(canEdit$ | async) !== false"
                 [disabledLabelIds]="disabledLabelIds()"
                 [canSelect]="(canSelect$ | async) !== false"
+                [canvasRootResolver]="canvasRootResolver"
                 (labelClick)="onLabelClick($event)"
                 (labelDoubleClick)="onLabelDoubleClick($event)"
                 (labelResizeEnd)="onLabelResizeEnd($event)"
-                (labelDragEnd)="onLabelDragEnd($event)"></g>
+                (dragEnd)="onDragEnd($event)"></g>
 
             <!-- 2. Funnel Layer -->
             <g
@@ -122,12 +123,15 @@
                 [selectedIds]="selectedIds()"
                 [textEllipsis]="textEllipsisUtils"
                 [formatUtils]="formatUtils"
+                [nifiCommon]="nifiCommon"
                 [canEdit]="(canEdit$ | async) !== false"
                 [disabledFunnelIds]="disabledFunnelIds()"
                 [canSelect]="(canSelect$ | async) !== false"
+                [connectableBehavior]="connectableBehavior()"
+                [canvasRootResolver]="canvasRootResolver"
                 (funnelClick)="onFunnelClick($event)"
                 (funnelDoubleClick)="onFunnelDoubleClick($event)"
-                (funnelDragEnd)="onFunnelDragEnd($event)"></g>
+                (dragEnd)="onDragEnd($event)"></g>
 
             <!-- 3. Port Layer -->
             <g
@@ -138,13 +142,16 @@
                 [selectedIds]="selectedIds()"
                 [textEllipsis]="textEllipsisUtils"
                 [formatUtils]="formatUtils"
+                [nifiCommon]="nifiCommon"
                 [componentUtils]="componentUtils"
                 [canEdit]="(canEdit$ | async) !== false"
                 [disabledPortIds]="disabledPortIds()"
                 [canSelect]="(canSelect$ | async) !== false"
+                [connectableBehavior]="connectableBehavior()"
+                [canvasRootResolver]="canvasRootResolver"
                 (portClick)="onPortClick($event)"
                 (portDoubleClick)="onPortDoubleClick($event)"
-                (portDragEnd)="onPortDragEnd($event)"></g>
+                (dragEnd)="onDragEnd($event)"></g>
 
             <!-- 4. Remote Process Group Layer -->
             <g
@@ -161,9 +168,11 @@
                 [canEdit]="(canEdit$ | async) !== false"
                 [disabledRemoteProcessGroupIds]="disabledRemoteProcessGroupIds()"
                 [canSelect]="(canSelect$ | async) !== false"
+                [connectableBehavior]="connectableBehavior()"
+                [canvasRootResolver]="canvasRootResolver"
                 (remoteProcessGroupClick)="onRemoteProcessGroupClick($event)"
                 (remoteProcessGroupDoubleClick)="onRemoteProcessGroupDoubleClick($event)"
-                (remoteProcessGroupDragEnd)="onRemoteProcessGroupDragEnd($event)"></g>
+                (dragEnd)="onDragEnd($event)"></g>
 
             <!-- 5. Process Group Layer -->
             <g
@@ -181,9 +190,12 @@
                 [disabledProcessGroupIds]="disabledProcessGroupIds()"
                 [registryClients]="registryClients()"
                 [canSelect]="(canSelect$ | async) !== false"
+                [connectableBehavior]="connectableBehavior()"
+                [canvasRootResolver]="canvasRootResolver"
+                [isDropAllowed]="isDropAllowedFn"
                 (processGroupClick)="onProcessGroupClick($event)"
                 (processGroupDoubleClick)="onProcessGroupDoubleClick($event)"
-                (processGroupDragEnd)="onProcessGroupDragEnd($event)"></g>
+                (dragEnd)="onDragEnd($event)"></g>
 
             <!-- 6. Processor Layer -->
             <g
@@ -201,9 +213,11 @@
                 [previewExtensions]="previewExtensions()"
                 [disabledProcessorIds]="disabledProcessorIds()"
                 [canSelect]="(canSelect$ | async) !== false"
+                [connectableBehavior]="connectableBehavior()"
+                [canvasRootResolver]="canvasRootResolver"
                 (processorClick)="onProcessorClick($event.processor, $event.event)"
                 (processorDoubleClick)="onProcessorDoubleClick($event)"
-                (processorDragEnd)="onProcessorDragEnd($event)"></g>
+                (dragEnd)="onDragEnd($event)"></g>
 
             <!-- 7. Connection Layer (top - renders last for hover priority) -->
             <g
@@ -221,12 +235,15 @@
                 [renderTrigger]="renderTrigger()"
                 [processGroupId]="processGroupId()"
                 [disabledConnectionIds]="disabledConnectionIds()"
+                [canvasRootResolver]="canvasRootResolver"
+                [reconnect]="connectionReconnect()"
                 (connectionClick)="onConnectionClick($event)"
                 (connectionDoubleClick)="onConnectionDoubleClick($event)"
                 (bendPointDragEnd)="onConnectionBendPointDragEnd($event)"
                 (bendPointAdd)="onConnectionBendPointAdd($event)"
                 (bendPointRemove)="onConnectionBendPointRemove($event)"
-                (labelDragEnd)="onConnectionLabelDragEnd($event)"></g>
+                (labelDragEnd)="onConnectionLabelDragEnd($event)"
+                (endpointReconnect)="onConnectionEndpointReconnect($event)"></g>
         </g>
     </svg>
 </div>

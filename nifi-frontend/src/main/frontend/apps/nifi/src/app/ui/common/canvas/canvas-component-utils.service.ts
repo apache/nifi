@@ -22,6 +22,7 @@ import { Overlay, OverlayRef, PositionStrategy } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { BulletinsTip } from '../tooltips/bulletins-tip/bulletins-tip.component';
 import { humanizer, Humanizer } from 'humanize-duration';
+import { ActiveThreadCountDatum } from './canvas.types';
 
 @Injectable({
     providedIn: 'root'
@@ -31,11 +32,22 @@ export class CanvasComponentUtils {
     private overlay = inject(Overlay);
     private readonly humanizeDuration: Humanizer = humanizer();
 
-    public activeThreadCount(selection: any, d: any): void {
-        // New canvas structure uses d.entity.status, old canvas uses d.status
-        const status = d.entity?.status || d.status;
-        const activeThreads = status?.aggregateSnapshot?.activeThreadCount || 0;
-        const terminatedThreads = status?.aggregateSnapshot?.terminatedThreadCount || 0;
+    public activeThreadCount<GElement extends d3.BaseType, Datum, PElement extends d3.BaseType, PDatum>(
+        selection: d3.Selection<GElement, Datum, PElement, PDatum>,
+        d: ActiveThreadCountDatum
+    ): void {
+        const aggregateSnapshot =
+            'status' in d.entity && d.entity.status && 'aggregateSnapshot' in d.entity.status
+                ? d.entity.status.aggregateSnapshot
+                : undefined;
+        const activeThreads =
+            aggregateSnapshot && 'activeThreadCount' in aggregateSnapshot
+                ? aggregateSnapshot.activeThreadCount || 0
+                : 0;
+        const terminatedThreads =
+            aggregateSnapshot && 'terminatedThreadCount' in aggregateSnapshot
+                ? aggregateSnapshot.terminatedThreadCount || 0
+                : 0;
 
         // if there is active threads show the count, otherwise hide
         if (activeThreads > 0 || terminatedThreads > 0) {
@@ -49,7 +61,7 @@ export class CanvasComponentUtils {
 
             // update the active thread count
             const activeThreadCount = selection
-                .select('text.active-thread-count')
+                .select<SVGTextElement>('text.active-thread-count')
                 .text(function () {
                     if (terminatedThreads > 0) {
                         return activeThreads + ' (' + terminatedThreads + ')';
@@ -58,9 +70,7 @@ export class CanvasComponentUtils {
                     }
                 })
                 .attr('class', function () {
-                    // New canvas structure uses d.ui.componentType, old canvas uses d.type
-                    const componentType = d.ui?.componentType || d.type;
-                    switch (componentType) {
+                    switch (d.ui.componentType) {
                         case ComponentType.Processor:
                         case ComponentType.InputPort:
                         case ComponentType.OutputPort:
@@ -70,13 +80,12 @@ export class CanvasComponentUtils {
                     }
                 })
                 .style('display', 'block')
-                .each(function (this: any) {
+                .each(function (this: SVGTextElement) {
                     const activeThreadCountText = d3.select(this);
 
                     const bBox = this.getBBox();
                     activeThreadCountText.attr('x', function () {
-                        // New canvas structure uses d.ui.dimensions, old canvas uses d.dimensions
-                        const width = d.ui?.dimensions?.width || d.dimensions?.width;
+                        const width = 'dimensions' in d.ui ? d.ui.dimensions.width : 0;
                         return width - bBox.width - 15;
                     });
 
@@ -89,17 +98,15 @@ export class CanvasComponentUtils {
 
             // update the background width
             selection
-                .select('text.active-thread-count-icon')
+                .select<SVGTextElement>('text.active-thread-count-icon')
                 .attr('x', function () {
-                    const bBox = activeThreadCount.node().getBBox();
-                    // New canvas structure uses d.ui.dimensions, old canvas uses d.dimensions
-                    const width = d.ui?.dimensions?.width || d.dimensions?.width;
+                    const node = activeThreadCount.node();
+                    const bBox = node ? node.getBBox() : { width: 0 };
+                    const width = 'dimensions' in d.ui ? d.ui.dimensions.width : 0;
                     return width - bBox.width - 20;
                 })
                 .attr('class', function () {
-                    // New canvas structure uses d.ui.componentType, old canvas uses d.type
-                    const componentType = d.ui?.componentType || d.type;
-                    switch (componentType) {
+                    switch (d.ui.componentType) {
                         case ComponentType.Processor:
                         case ComponentType.InputPort:
                         case ComponentType.OutputPort:
@@ -113,7 +120,7 @@ export class CanvasComponentUtils {
                     }
                 })
                 .style('display', 'block')
-                .each(function (this: any) {
+                .each(function (this: SVGTextElement) {
                     const activeThreadCountIcon = d3.select(this);
 
                     // reset the active thread count tooltip
@@ -123,15 +130,18 @@ export class CanvasComponentUtils {
                 .text(generateThreadsTip);
         } else {
             selection
-                .selectAll('text.active-thread-count, text.active-thread-count-icon')
+                .selectAll<SVGTextElement, Datum>('text.active-thread-count, text.active-thread-count-icon')
                 .style('display', 'none')
-                .each(function (this: any) {
+                .each(function (this: SVGTextElement) {
                     d3.select(this).selectAll('title').remove();
                 });
         }
     }
 
-    public bulletins(selection: any, bulletins: BulletinEntity[]): void {
+    public bulletins<GElement extends d3.BaseType, Datum, PElement extends d3.BaseType, PDatum>(
+        selection: d3.Selection<GElement, Datum, PElement, PDatum>,
+        bulletins: BulletinEntity[] | undefined
+    ): void {
         let filteredBulletins: BulletinEntity[] = [];
         if (bulletins) {
             filteredBulletins = bulletins.filter((bulletin) => bulletin.canRead && bulletin.bulletin);
@@ -146,8 +156,8 @@ export class CanvasComponentUtils {
             // add the proper class to indicate the most severe bulletin
             if (mostSevere) {
                 // Get references to bulletin elements
-                const bulletinIcon: any = selection.select('text.bulletin-icon');
-                const bulletinBackground: any = selection.select('rect.bulletin-background');
+                const bulletinIcon = selection.select<SVGTextElement>('text.bulletin-icon');
+                const bulletinBackground = selection.select<SVGRectElement>('rect.bulletin-background');
 
                 // show the bulletin icon/background
                 bulletinIcon.style('visibility', 'visible');
@@ -182,8 +192,11 @@ export class CanvasComponentUtils {
         }
     }
 
-    public comments(selection: any, comments: string | null | undefined): void {
-        const commentIcon = selection.select('text.component-comments');
+    public comments<GElement extends d3.BaseType, Datum, PElement extends d3.BaseType, PDatum>(
+        selection: d3.Selection<GElement, Datum, PElement, PDatum>,
+        comments: string | null | undefined
+    ): void {
+        const commentIcon = selection.select<SVGTextElement>('text.component-comments');
         const hasComments = comments && comments.trim().length > 0;
 
         // Update visibility
@@ -197,16 +210,22 @@ export class CanvasComponentUtils {
         }
     }
 
-    private resetBulletin(selection: any): void {
+    private resetBulletin<GElement extends d3.BaseType, Datum, PElement extends d3.BaseType, PDatum>(
+        selection: d3.Selection<GElement, Datum, PElement, PDatum>
+    ): void {
         // reset the bulletin icon/background
         selection.select('text.bulletin-icon').style('visibility', 'hidden');
         selection.select('rect.bulletin-background').style('visibility', 'hidden');
 
         // reset any tooltips
-        this.resetCanvasTooltip(selection.select('text.bulletin-icon'));
+        this.resetCanvasTooltip(selection.select<SVGTextElement>('text.bulletin-icon'));
     }
 
-    public canvasTooltip<C>(type: Type<C>, selection: any, tooltipData: any): void {
+    public canvasTooltip<C, GElement extends d3.BaseType, Datum, PElement extends d3.BaseType, PDatum>(
+        type: Type<C>,
+        selection: d3.Selection<GElement, Datum, PElement, PDatum>,
+        tooltipData: unknown
+    ): void {
         let closeTimer = -1;
         let openTimer = -1;
         const overlay = this.overlay;
@@ -234,7 +253,7 @@ export class CanvasComponentUtils {
         }
 
         selection
-            .on('mouseenter', function (this: any) {
+            .on('mouseenter', function (this: GElement) {
                 if (overlayRef?.hasAttached()) {
                     return;
                 }
@@ -244,9 +263,14 @@ export class CanvasComponentUtils {
                         // mark the tooltip as active so that is can be cleaned up in a subsequent invocation of this method
                         selection.classed('tooltip-active', true);
 
+                        const anchor = d3.select(this).node();
+                        if (!(anchor instanceof Element)) {
+                            return;
+                        }
+
                         positionStrategy = overlay
                             .position()
-                            .flexibleConnectedTo(d3.select(this).node())
+                            .flexibleConnectedTo(anchor)
                             .withPositions([
                                 {
                                     originX: 'end',
@@ -292,7 +316,9 @@ export class CanvasComponentUtils {
         }
     }
 
-    public resetCanvasTooltip(selection: any): void {
+    public resetCanvasTooltip<GElement extends d3.BaseType, Datum, PElement extends d3.BaseType, PDatum>(
+        selection: d3.Selection<GElement, Datum, PElement, PDatum>
+    ): void {
         // while tooltips are created dynamically, we need to provide the ability to remove the mouse
         // listener to prevent new tooltips from being created on subsequent mouse enter/leave
         selection.on('mouseenter', null).on('mouseleave', null);

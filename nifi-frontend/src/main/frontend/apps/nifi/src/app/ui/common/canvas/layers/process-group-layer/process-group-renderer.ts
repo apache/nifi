@@ -16,9 +16,9 @@
  */
 
 import * as d3 from 'd3';
-import { CanvasProcessGroup } from '../../canvas.types';
+import { CanvasProcessGroup, CanvasSelection } from '../../canvas.types';
 import { ProcessGroupRenderContext } from '../render-context.types';
-import { ConnectionRenderer } from '../connection-layer/connection-renderer';
+import { DragUtils } from '../../utils/drag.utils';
 import { VersionControlTip } from '../../../tooltips/version-control-tip/version-control-tip.component';
 import { CanvasConstants } from '../../canvas.constants';
 
@@ -54,11 +54,11 @@ export class ProcessGroupRenderer {
             .data(processGroups, (d: CanvasProcessGroup) => d.entity.id);
 
         // Enter: create new PG elements
-        const entered: any = selection.enter();
-        const appendedGroups: any = ProcessGroupRenderer.appendProcessGroupElements(entered);
+        const entered = selection.enter();
+        const appendedGroups = ProcessGroupRenderer.appendProcessGroupElements(entered);
 
         // Update existing and newly entered process groups
-        const merged: any = selection.merge(appendedGroups);
+        const merged = selection.merge(appendedGroups);
         ProcessGroupRenderer.updateProcessGroupElements(merged, context);
 
         // Attach event listeners if selection is enabled
@@ -81,23 +81,22 @@ export class ProcessGroupRenderer {
                     callbacks.onDoubleClick!(d, event);
                 });
             }
-            // Attach drag behavior for position updates if editing is allowed
-            if (callbacks.onDragEnd && context.getCanEdit()) {
+            if (callbacks.onDragEnd) {
                 ProcessGroupRenderer.attachDragBehavior(merged, context);
             }
         }
+        ProcessGroupRenderer.applyDropTargetBehavior(appendedGroups, context);
 
         // Exit: remove PGs that are no longer in data
-        const exited: any = selection.exit();
-        ProcessGroupRenderer.removeProcessGroupElements(exited);
+        selection.exit().remove();
     }
 
     /**
      * Append process group SVG elements (enter selection)
      */
     private static appendProcessGroupElements(
-        entered: d3.Selection<any, CanvasProcessGroup, any, any>
-    ): d3.Selection<any, CanvasProcessGroup, any, any> {
+        entered: d3.Selection<d3.EnterElement, CanvasProcessGroup, SVGGElement, unknown>
+    ) {
         // Create group for each process group
         const pgGroups = entered
             .append('g')
@@ -169,9 +168,9 @@ export class ProcessGroupRenderer {
      * This is called conditionally when the process group is visible
      */
     private static appendProcessGroupDetails(
-        processGroup: d3.Selection<any, CanvasProcessGroup, any, any>,
+        processGroup: CanvasSelection<CanvasProcessGroup>,
         processGroupData: CanvasProcessGroup
-    ): d3.Selection<any, CanvasProcessGroup, any, any> {
+    ): CanvasSelection<CanvasProcessGroup> {
         const details = processGroup.append('g').attr('class', 'process-group-details');
         const width = processGroupData.ui.dimensions.width;
         const height = processGroupData.ui.dimensions.height;
@@ -584,7 +583,7 @@ export class ProcessGroupRenderer {
      * Update process group SVG elements (update + enter selection)
      */
     private static updateProcessGroupElements(
-        selection: d3.Selection<any, CanvasProcessGroup, any, any>,
+        selection: CanvasSelection<CanvasProcessGroup>,
         context: ProcessGroupRenderContext
     ): void {
         // Update transform for position (use currentPosition during drag, otherwise entity position)
@@ -706,9 +705,10 @@ export class ProcessGroupRenderer {
         });
 
         // Handle details group (conditionally render based on visibility)
-        selection.each(function (d: CanvasProcessGroup) {
-            const processGroup = d3.select(this) as d3.Selection<any, CanvasProcessGroup, any, any>;
-            let details = processGroup.select('g.process-group-details');
+        selection.each(function (this: SVGGElement, d: CanvasProcessGroup) {
+            const processGroup = d3.select<SVGGElement, CanvasProcessGroup>(this);
+            let details: CanvasSelection<CanvasProcessGroup> =
+                processGroup.select<SVGGElement>('g.process-group-details');
 
             // if this process group is visible, render everything
             if (processGroup.classed('visible')) {
@@ -1131,7 +1131,7 @@ export class ProcessGroupRenderer {
                     // ---------
 
                     // Delegate to shared component utility for consistent bulletin rendering
-                    context.componentUtils.bulletins(processGroup, d.entity.bulletins);
+                    context.componentUtils.bulletins(processGroup, d.entity.bulletins ?? []);
 
                     // --------
                     // comments and name
@@ -1144,7 +1144,7 @@ export class ProcessGroupRenderer {
 
                         // update the process group name
                         processGroup
-                            .select('text.process-group-name')
+                            .select<SVGTextElement>('text.process-group-name')
                             .attr('x', function () {
                                 if (isUnderVersionControl(d)) {
                                     return 40; // Offset for version control icon
@@ -1152,7 +1152,7 @@ export class ProcessGroupRenderer {
                                     return 10;
                                 }
                             })
-                            .attr('width', function (this: any) {
+                            .attr('width', function (this: SVGTextElement) {
                                 const processGroupNameX = parseInt(d3.select(this).attr('x'), 10);
                                 if (isUnderVersionControl(d)) {
                                     return 300 - (processGroupNameX - 0);
@@ -1193,10 +1193,7 @@ export class ProcessGroupRenderer {
      * Pan process groups - update entering/leaving components during zoom/pan
      * This is more efficient than full re-render - only updates components transitioning visibility
      */
-    public static pan(
-        selection: d3.Selection<any, CanvasProcessGroup, any, any>,
-        context: ProcessGroupRenderContext
-    ): void {
+    public static pan(selection: CanvasSelection<CanvasProcessGroup>, context: ProcessGroupRenderContext): void {
         // The update method will check the 'visible' class and render/remove details accordingly
         ProcessGroupRenderer.updateProcessGroupElements(selection, context);
     }
@@ -1206,162 +1203,47 @@ export class ProcessGroupRenderer {
      * Follows the same pattern as other draggable components
      */
     private static attachDragBehavior(
-        selection: d3.Selection<SVGGElement, CanvasProcessGroup, any, any>,
+        selection: CanvasSelection<CanvasProcessGroup>,
         context: ProcessGroupRenderContext
     ): void {
-        const drag = d3
-            .drag<SVGGElement, CanvasProcessGroup>()
-            .filter(function (event, d) {
-                // Match D3's default filter: block right-click and Ctrl+click (Mac right-click)
-                if (event.ctrlKey || event.button !== 0) {
-                    return false;
+        DragUtils.attachComponentDrag(selection, {
+            resolveCanvasRoot: context.canvasRootResolver,
+            getCanEdit: context.getCanEdit,
+            getCanSelect: context.getCanSelect,
+            getDisabledIds: context.getDisabledProcessGroupIds,
+            getSelectedIds: context.getSelectedIds,
+            onDragEnd: context.callbacks.onDragEnd!
+        });
+    }
+
+    private static applyDropTargetBehavior(
+        groups: CanvasSelection<CanvasProcessGroup>,
+        context: ProcessGroupRenderContext
+    ): void {
+        groups
+            .on('mouseover.drop', function (_event: MouseEvent, datum: CanvasProcessGroup) {
+                const canvasRoot = context.canvasRootResolver();
+                const movingIds = DragUtils.getActiveDragMovingIds(canvasRoot);
+                if (
+                    !canvasRoot.classed(DragUtils.DRAGGING_CLASS) ||
+                    !datum.entity.permissions.canRead ||
+                    !datum.entity.permissions.canWrite ||
+                    movingIds?.has(datum.entity.id) ||
+                    !context.getIsDropAllowed()
+                ) {
+                    return;
                 }
-                // Block drag if editing is disabled
-                if (!context.getCanEdit()) {
-                    return false;
-                }
-                // Block drag if PG is disabled (saving)
-                if (context.disabledProcessGroupIds?.has(d.entity.id)) {
-                    return false;
-                }
-                return true;
+                d3.select(this).classed(DragUtils.DROP_CLASS, true);
             })
-            .clickDistance(4) // Minimum distance in pixels before drag starts (prevents accidental drags during clicks)
-            .on(
-                'start',
-                function (
-                    event: d3.D3DragEvent<SVGGElement, CanvasProcessGroup, CanvasProcessGroup>,
-                    d: CanvasProcessGroup
-                ) {
-                    const processGroup = d3.select(this as SVGGElement);
-
-                    if (!processGroup.classed('selected') && context.callbacks.onClick) {
-                        context.callbacks.onClick(d, event.sourceEvent as MouseEvent);
-                    }
-
-                    // Stop propagation to prevent canvas pan
-                    event.sourceEvent.stopPropagation();
-
-                    // Store original position for potential revert
-                    d.ui.dragStartPosition = { ...d.entity.position };
-                    // Initialize current position in UI state
-                    d.ui.currentPosition = { ...d.entity.position };
-                }
-            )
-            .on(
-                'drag',
-                function (
-                    event: d3.D3DragEvent<SVGGElement, CanvasProcessGroup, CanvasProcessGroup>,
-                    d: CanvasProcessGroup
-                ) {
-                    // Update current position in UI state (entity is read-only from store)
-                    if (d.ui.currentPosition) {
-                        // Apply snap-to-grid unless shift key is held
-                        const snapEnabled = !event.sourceEvent.shiftKey;
-
-                        d.ui.currentPosition.x += event.dx;
-                        d.ui.currentPosition.y += event.dy;
-
-                        // Apply snap alignment if enabled
-                        const displayX = snapEnabled
-                            ? Math.round(d.ui.currentPosition.x / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                              CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                            : d.ui.currentPosition.x;
-                        const displayY = snapEnabled
-                            ? Math.round(d.ui.currentPosition.y / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                              CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                            : d.ui.currentPosition.y;
-
-                        // Update visual position immediately with snapped coordinates
-                        d3.select(this).attr('transform', `translate(${displayX}, ${displayY})`);
-
-                        // Update attached connections by recalculating their paths
-                        // For process groups, connections connect to ports within the group,
-                        // so we check sourceGroupId/destinationGroupId instead of sourceId/destinationId
-                        d3.selectAll('g.connection').each(function () {
-                            const connectionData: any = d3.select(this).datum();
-
-                            // Check if this connection is attached to the dragged PG
-                            // Connections to/from process groups use the group ID as the source/destination group
-                            if (
-                                connectionData?.entity?.sourceGroupId === d.entity.id ||
-                                connectionData?.entity?.destinationGroupId === d.entity.id
-                            ) {
-                                const connectionGroup = d3.select(this);
-
-                                // Recalculate path using ConnectionRenderer
-                                const newPath = ConnectionRenderer.calculatePath(connectionData);
-
-                                // Update all path elements with the new path
-                                connectionGroup.selectAll('path').attr('d', newPath);
-
-                                // Update connection label position
-                                // getLabelPosition uses ui.start and ui.end which were updated by calculatePath
-                                const labelPosition = ConnectionRenderer.getLabelPosition(connectionData);
-                                connectionGroup
-                                    .select('g.connection-label-container')
-                                    .attr('transform', `translate(${labelPosition.x}, ${labelPosition.y})`);
-                            }
-                        });
-                    }
-                }
-            )
-            .on(
-                'end',
-                function (
-                    event: d3.D3DragEvent<SVGGElement, CanvasProcessGroup, CanvasProcessGroup>,
-                    d: CanvasProcessGroup
-                ) {
-                    if (!d.ui.dragStartPosition || !d.ui.currentPosition) {
-                        return;
-                    }
-
-                    // Apply final snap alignment (respecting shift key)
-                    const snapEnabled = !event.sourceEvent.shiftKey;
-                    const finalX = snapEnabled
-                        ? Math.round(d.ui.currentPosition.x / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                          CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                        : d.ui.currentPosition.x;
-                    const finalY = snapEnabled
-                        ? Math.round(d.ui.currentPosition.y / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                          CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                        : d.ui.currentPosition.y;
-
-                    // Update currentPosition to final snapped position
-                    d.ui.currentPosition.x = finalX;
-                    d.ui.currentPosition.y = finalY;
-
-                    const newPosition = { ...d.ui.currentPosition };
-                    const previousPosition = { ...d.ui.dragStartPosition };
-
-                    // Check if position actually changed (prevent API calls on clicks)
-                    const moved = newPosition.x !== previousPosition.x || newPosition.y !== previousPosition.y;
-
-                    // Clean up drag start position only
-                    // Keep currentPosition until API call completes (for disabled treatment)
-                    delete d.ui.dragStartPosition;
-
-                    // Only emit drag end if position actually changed
-                    if (moved && context.callbacks.onDragEnd) {
-                        context.callbacks.onDragEnd(d, newPosition, previousPosition);
-                    }
-                }
-            );
-
-        // Remove drag behavior to prevent stale closures
-        selection.on('.drag', null);
-
-        // Apply drag behavior to PGs with write permissions
-        // Disabled state is checked dynamically in the 'start' handler
-        selection
-            .filter((d: CanvasProcessGroup) => d.entity.permissions.canWrite && d.entity.permissions.canRead)
-            .call(drag);
+            .on('mouseout.drop', function () {
+                d3.select(this).classed(DragUtils.DROP_CLASS, false);
+            });
     }
 
     /**
      * Remove process group SVG elements (exit selection)
      */
-    private static removeProcessGroupElements(exited: d3.Selection<any, any, any, any>): void {
+    private static removeProcessGroupElements(exited: CanvasSelection<CanvasProcessGroup>): void {
         exited.remove();
     }
 }

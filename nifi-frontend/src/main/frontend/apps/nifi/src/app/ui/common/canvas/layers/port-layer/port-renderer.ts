@@ -17,10 +17,10 @@
 
 import * as d3 from 'd3';
 import { ComponentType } from '@nifi/shared';
-import { CanvasPort } from '../../canvas.types';
+import { CanvasPort, CanvasSelection } from '../../canvas.types';
 import { PortRenderContext } from '../render-context.types';
+import { DragUtils } from '../../utils/drag.utils';
 import { ValidationErrorsTip } from '../../../tooltips/validation-errors-tip/validation-errors-tip.component';
-import { ConnectionRenderer } from '../connection-layer/connection-renderer';
 import { CanvasConstants } from '../../canvas.constants';
 
 export class PortRenderer {
@@ -41,11 +41,11 @@ export class PortRenderer {
             .data(ports, (d: CanvasPort) => d.entity.id);
 
         // Enter: create new port elements
-        const entered: any = selection.enter();
-        const appendedGroups: any = PortRenderer.appendPortElements(entered);
+        const entered = selection.enter();
+        const appendedGroups = PortRenderer.appendPortElements(entered);
 
         // Update existing and newly entered ports
-        const merged: any = selection.merge(appendedGroups);
+        const merged = selection.merge(appendedGroups);
         PortRenderer.updatePortElements(merged, context);
 
         // Attach event listeners if interactive
@@ -75,13 +75,10 @@ export class PortRenderer {
         }
 
         // Exit: remove ports that are no longer in data
-        const exited: any = selection.exit();
-        PortRenderer.removePortElements(exited);
+        selection.exit().remove();
     }
 
-    private static appendPortElements(
-        entered: d3.Selection<any, CanvasPort, any, any>
-    ): d3.Selection<any, CanvasPort, any, any> {
+    private static appendPortElements(entered: d3.Selection<d3.EnterElement, CanvasPort, SVGGElement, unknown>) {
         // Create group for each port
         const portGroups = entered
             .append('g')
@@ -144,10 +141,7 @@ export class PortRenderer {
         return portGroups;
     }
 
-    private static updatePortElements(
-        selection: d3.Selection<any, CanvasPort, any, any>,
-        context: PortRenderContext
-    ): void {
+    private static updatePortElements(selection: CanvasSelection<CanvasPort>, context: PortRenderContext): void {
         const { textEllipsis } = context;
 
         // Update transform for position (use currentPosition during drag, otherwise entity position)
@@ -179,9 +173,9 @@ export class PortRenderer {
             .classed('unauthorized', (d) => d.entity.permissions.canRead === false);
 
         // Update each port individually
-        selection.each(function (portData: CanvasPort) {
-            const port = d3.select(this);
-            let details: any = port.select('g.port-details');
+        selection.each(function (this: SVGGElement, portData: CanvasPort) {
+            const port = d3.select<SVGGElement, CanvasPort>(this);
+            let details: CanvasSelection<CanvasPort> = port.select<SVGGElement>('g.port-details');
 
             // if this port is visible, render everything
             if (port.classed('visible')) {
@@ -319,7 +313,11 @@ export class PortRenderer {
         });
     }
 
-    private static updatePortStatus(port: any, d: CanvasPort, context: PortRenderContext): void {
+    private static updatePortStatus(
+        port: CanvasSelection<CanvasPort>,
+        d: CanvasPort,
+        context: PortRenderContext
+    ): void {
         const runStatusIcon = port.select('text.run-status-icon');
 
         if (!runStatusIcon.empty()) {
@@ -380,7 +378,7 @@ export class PortRenderer {
         }
     }
 
-    private static updateTransmissionIcon(details: any, d: CanvasPort): void {
+    private static updateTransmissionIcon(details: CanvasSelection<CanvasPort>, d: CanvasPort): void {
         const transmissionIcon = details.select('text.port-transmission-icon');
 
         if (!transmissionIcon.empty()) {
@@ -410,13 +408,17 @@ export class PortRenderer {
         }
     }
 
-    private static updateBulletins(port: any, d: CanvasPort, context: PortRenderContext): void {
+    private static updateBulletins(port: CanvasSelection<CanvasPort>, d: CanvasPort, context: PortRenderContext): void {
         // Use shared bulletin utility for consistent styling and tooltip behavior
         // Pass port selection (not details)
-        context.componentUtils.bulletins(port, d.entity.bulletins);
+        context.componentUtils.bulletins(port, d.entity.bulletins ?? []);
     }
 
-    private static updateActiveThreadCount(port: any, d: CanvasPort, context: PortRenderContext): void {
+    private static updateActiveThreadCount(
+        port: CanvasSelection<CanvasPort>,
+        d: CanvasPort,
+        context: PortRenderContext
+    ): void {
         // Delegate to shared component utility for consistent active thread count rendering
         // This handles show/hide, X positioning, text content, classes, and tooltips
         context.componentUtils.activeThreadCount(port, d);
@@ -427,142 +429,22 @@ export class PortRenderer {
         port.select('text.active-thread-count').attr('y', PortRenderer.offsetY(d, 43));
     }
 
-    private static attachDragBehavior(
-        selection: d3.Selection<SVGGElement, CanvasPort, any, any>,
-        context: PortRenderContext
-    ): void {
-        const drag = d3
-            .drag<SVGGElement, CanvasPort>()
-            .filter(function (event, d) {
-                // Match D3's default filter: block right-click and Ctrl+click (Mac right-click)
-                if (event.ctrlKey || event.button !== 0) {
-                    return false;
-                }
-                // Block drag if editing is disabled
-                if (!context.getCanEdit()) {
-                    return false;
-                }
-                // Block drag if port is disabled (saving)
-                if (context.disabledPortIds?.has(d.entity.id)) {
-                    return false;
-                }
-                return true;
-            })
-            .clickDistance(4) // Minimum distance in pixels before drag starts (prevents accidental drags during clicks)
-            .on('start', function (event: d3.D3DragEvent<SVGGElement, CanvasPort, CanvasPort>, d: CanvasPort) {
-                const portGroup = d3.select(this as SVGGElement);
-
-                if (!portGroup.classed('selected') && context.callbacks.onClick) {
-                    context.callbacks.onClick(d, event.sourceEvent as MouseEvent);
-                }
-
-                // Stop propagation to prevent canvas pan
-                event.sourceEvent.stopPropagation();
-
-                // Store original position for potential revert
-                d.ui.dragStartPosition = { ...d.entity.position };
-                // Initialize current position in UI state
-                d.ui.currentPosition = { ...d.entity.position };
-            })
-            .on('drag', function (event: d3.D3DragEvent<SVGGElement, CanvasPort, CanvasPort>, d: CanvasPort) {
-                // Update current position in UI state (entity is read-only from store)
-                if (d.ui.currentPosition) {
-                    // Apply snap-to-grid unless shift key is held
-                    const snapEnabled = !event.sourceEvent.shiftKey;
-
-                    d.ui.currentPosition.x += event.dx;
-                    d.ui.currentPosition.y += event.dy;
-
-                    // Apply snap alignment if enabled
-                    const displayX = snapEnabled
-                        ? Math.round(d.ui.currentPosition.x / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                          CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                        : d.ui.currentPosition.x;
-                    const displayY = snapEnabled
-                        ? Math.round(d.ui.currentPosition.y / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                          CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                        : d.ui.currentPosition.y;
-
-                    // Update visual position immediately with snapped coordinates
-                    d3.select(this).attr('transform', `translate(${displayX}, ${displayY})`);
-
-                    // Update attached connections by recalculating their paths
-                    // The ConnectionRenderer.calculatePath will use ui.currentPosition
-                    d3.selectAll('g.connection').each(function () {
-                        const connectionData: any = d3.select(this).datum();
-
-                        // Check if this connection is attached to the dragged port
-                        if (
-                            connectionData?.entity?.sourceId === d.entity.id ||
-                            connectionData?.entity?.destinationId === d.entity.id
-                        ) {
-                            const connectionGroup = d3.select(this);
-
-                            // Recalculate path using ConnectionRenderer
-                            const newPath = ConnectionRenderer.calculatePath(connectionData);
-
-                            // Update all path elements with the new path
-                            connectionGroup.selectAll('path').attr('d', newPath);
-
-                            // Update connection label position
-                            // getLabelPosition uses ui.start and ui.end which were updated by calculatePath
-                            const labelPosition = ConnectionRenderer.getLabelPosition(connectionData);
-                            connectionGroup
-                                .select('g.connection-label-container')
-                                .attr('transform', `translate(${labelPosition.x}, ${labelPosition.y})`);
-                        }
-                    });
-                }
-            })
-            .on('end', function (event: d3.D3DragEvent<SVGGElement, CanvasPort, CanvasPort>, d: CanvasPort) {
-                if (!d.ui.dragStartPosition || !d.ui.currentPosition) {
-                    return;
-                }
-
-                // Apply final snap alignment (respecting shift key)
-                const snapEnabled = !event.sourceEvent.shiftKey;
-                const finalX = snapEnabled
-                    ? Math.round(d.ui.currentPosition.x / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                      CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                    : d.ui.currentPosition.x;
-                const finalY = snapEnabled
-                    ? Math.round(d.ui.currentPosition.y / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                      CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                    : d.ui.currentPosition.y;
-
-                // Update currentPosition to final snapped position
-                d.ui.currentPosition.x = finalX;
-                d.ui.currentPosition.y = finalY;
-
-                const newPosition = { ...d.ui.currentPosition };
-                const previousPosition = { ...d.ui.dragStartPosition };
-
-                // Check if position actually changed (prevent API calls on clicks)
-                const moved = newPosition.x !== previousPosition.x || newPosition.y !== previousPosition.y;
-
-                // Clean up drag start position only
-                // Keep currentPosition until API call completes (for disabled treatment)
-                delete d.ui.dragStartPosition;
-
-                // Only emit drag end if position actually changed
-                if (moved && context.callbacks.onDragEnd) {
-                    context.callbacks.onDragEnd(d, newPosition, previousPosition);
-                }
-            });
-
-        // Remove drag behavior to prevent stale closures
-        selection.on('.drag', null);
-
-        // Apply drag behavior to ports with write permissions
-        // Disabled state is checked dynamically in the 'start' handler
-        selection.filter((d: CanvasPort) => d.entity.permissions.canWrite && d.entity.permissions.canRead).call(drag);
+    private static attachDragBehavior(selection: CanvasSelection<CanvasPort>, context: PortRenderContext): void {
+        DragUtils.attachComponentDrag(selection, {
+            resolveCanvasRoot: context.canvasRootResolver,
+            getCanEdit: context.getCanEdit,
+            getCanSelect: context.getCanSelect,
+            getDisabledIds: context.getDisabledPortIds,
+            getSelectedIds: context.getSelectedIds,
+            onDragEnd: context.callbacks.onDragEnd!
+        });
     }
 
-    private static removePortElements(exited: d3.Selection<any, any, any, any>): void {
+    private static removePortElements(exited: CanvasSelection<CanvasPort>): void {
         exited.remove();
     }
 
-    public static pan(selection: d3.Selection<any, any, any, any>, context: PortRenderContext): void {
+    public static pan(selection: CanvasSelection<CanvasPort>, context: PortRenderContext): void {
         // Simply delegate to updatePortElements which already handles
         // creating/removing details based on visibility
         PortRenderer.updatePortElements(selection, context);

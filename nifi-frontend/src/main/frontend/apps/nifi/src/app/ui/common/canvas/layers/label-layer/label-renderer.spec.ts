@@ -18,6 +18,7 @@
 import * as d3 from 'd3';
 import { LabelRenderer } from './label-renderer';
 import { LabelRenderContext } from '../render-context.types';
+import { createBaseRenderContextFixture } from '../render-context-fixtures';
 import { CanvasLabel } from '../../canvas.types';
 import { ComponentType } from '@nifi/shared';
 
@@ -99,19 +100,21 @@ function createMockContext(options: SetupOptions = {}): LabelRenderContext {
         disabledLabelIds: options.disabledLabelIds,
         scale: options.scale ?? 1,
         getCanEdit: () => options.canEdit ?? true,
-        textEllipsis: {
-            applyEllipsis: vi.fn((selection, text, _className) => {
-                selection.text(text);
-            }),
-            determineContrastColor: vi.fn((bgColor) => {
-                // Simple mock: return black for light colors, white for dark
-                return bgColor === '#ffffff' || bgColor === '#ffffcc' ? '#000000' : '#ffffff';
-            })
-        } as any,
-        formatUtils: {} as any,
-        nifiCommon: {
-            compareNumber: vi.fn((a, b) => (a ?? 0) - (b ?? 0))
-        } as any,
+        ...createBaseRenderContextFixture({
+            textEllipsis: {
+                applyEllipsis: vi.fn((selection, text, _className) => {
+                    selection.text(text);
+                }),
+                determineContrastColor: vi.fn((bgColor) => {
+                    // Simple mock: return black for light colors, white for dark
+                    return bgColor === '#ffffff' || bgColor === '#ffffcc' ? '#000000' : '#ffffff';
+                })
+            },
+            formatUtils: {},
+            nifiCommon: {
+                compareNumber: vi.fn((a, b) => (a ?? 0) - (b ?? 0))
+            }
+        }),
         callbacks: {
             onClick: options.callbacks?.onClick,
             onDoubleClick: options.callbacks?.onDoubleClick,
@@ -921,6 +924,77 @@ describe('LabelRenderer', () => {
             expect(labelText.selectAll('tspan').size()).toBeGreaterThanOrEqual(1);
 
             cleanup();
+        });
+    });
+
+    describe('drag permission lifecycle', () => {
+        it('detaches position and resize drag when write permission is revoked between renders', () => {
+            const label = createMockLabel({
+                entity: { permissions: { canRead: true, canWrite: true } }
+            });
+            const context = createMockContext({
+                labels: [label],
+                callbacks: { onDragEnd: vi.fn(), onResizeEnd: vi.fn() }
+            });
+
+            LabelRenderer.render(context);
+            const element = context.containerSelection.select<SVGGElement>('g.label');
+            const resizeHandle = element.select<SVGPathElement>('path.resizable-triangle');
+            expect(element.classed('moveable')).toBe(true);
+            expect(element.classed('resizeable')).toBe(true);
+            expect(element.on('mousedown.drag')).toBeTruthy();
+            expect(resizeHandle.on('mousedown.drag')).toBeTruthy();
+
+            label.entity.permissions.canWrite = false;
+            LabelRenderer.render(context);
+
+            expect(element.classed('moveable')).toBe(false);
+            expect(element.classed('resizeable')).toBe(false);
+            expect(element.on('mousedown.drag')).toBeFalsy();
+            expect(resizeHandle.on('mousedown.drag')).toBeFalsy();
+        });
+
+        it('attaches position and resize drag when write permission is granted between renders', () => {
+            const label = createMockLabel({
+                entity: { permissions: { canRead: true, canWrite: false } }
+            });
+            const context = createMockContext({
+                labels: [label],
+                callbacks: { onDragEnd: vi.fn(), onResizeEnd: vi.fn() }
+            });
+
+            LabelRenderer.render(context);
+            const element = context.containerSelection.select<SVGGElement>('g.label');
+            const resizeHandle = element.select<SVGPathElement>('path.resizable-triangle');
+            expect(element.classed('moveable')).toBe(false);
+            expect(element.classed('resizeable')).toBe(false);
+
+            label.entity.permissions.canWrite = true;
+            LabelRenderer.render(context);
+
+            expect(element.classed('moveable')).toBe(true);
+            expect(element.classed('resizeable')).toBe(true);
+            expect(element.on('mousedown.drag')).toBeTruthy();
+            expect(resizeHandle.on('mousedown.drag')).toBeTruthy();
+        });
+
+        it('does not replace drag listeners on a steady-state render', () => {
+            const label = createMockLabel();
+            const context = createMockContext({
+                labels: [label],
+                callbacks: { onDragEnd: vi.fn(), onResizeEnd: vi.fn() }
+            });
+
+            LabelRenderer.render(context);
+            const element = context.containerSelection.select<SVGGElement>('g.label');
+            const resizeHandle = element.select<SVGPathElement>('path.resizable-triangle');
+            const initialPositionHandler = element.on('mousedown.drag');
+            const initialResizeHandler = resizeHandle.on('mousedown.drag');
+
+            LabelRenderer.render(context);
+
+            expect(element.on('mousedown.drag')).toBe(initialPositionHandler);
+            expect(resizeHandle.on('mousedown.drag')).toBe(initialResizeHandler);
         });
     });
 });

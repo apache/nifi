@@ -16,10 +16,10 @@
  */
 
 import * as d3 from 'd3';
-import { CanvasRemoteProcessGroup } from '../../canvas.types';
+import { CanvasRemoteProcessGroup, CanvasSelection } from '../../canvas.types';
 import { RemoteProcessGroupRenderContext } from '../render-context.types';
+import { DragUtils } from '../../utils/drag.utils';
 import { ValidationErrorsTip } from '../../../tooltips/validation-errors-tip/validation-errors-tip.component';
-import { ConnectionRenderer } from '../connection-layer/connection-renderer';
 import { CanvasConstants } from '../../canvas.constants';
 
 export class RemoteProcessGroupRenderer {
@@ -32,11 +32,11 @@ export class RemoteProcessGroupRenderer {
             .data(remoteProcessGroups, (d: CanvasRemoteProcessGroup) => d.entity.id);
 
         // Enter: create new RPG elements
-        const entered: any = selection.enter();
-        const appendedGroups: any = RemoteProcessGroupRenderer.appendRemoteProcessGroupElements(entered);
+        const entered = selection.enter();
+        const appendedGroups = RemoteProcessGroupRenderer.appendRemoteProcessGroupElements(entered);
 
         // Update existing and newly entered remote process groups
-        const merged: any = selection.merge(appendedGroups);
+        const merged = selection.merge(appendedGroups);
         RemoteProcessGroupRenderer.updateRemoteProcessGroupElements(merged, context);
 
         // Attach event listeners if selection is enabled
@@ -66,13 +66,12 @@ export class RemoteProcessGroupRenderer {
         }
 
         // Exit: remove RPGs that are no longer in data
-        const exited: any = selection.exit();
-        RemoteProcessGroupRenderer.removeRemoteProcessGroupElements(exited);
+        selection.exit().remove();
     }
 
     private static appendRemoteProcessGroupElements(
-        entered: d3.Selection<any, CanvasRemoteProcessGroup, any, any>
-    ): d3.Selection<any, CanvasRemoteProcessGroup, any, any> {
+        entered: d3.Selection<d3.EnterElement, CanvasRemoteProcessGroup, SVGGElement, unknown>
+    ) {
         // Create group for each remote process group
         const rpgGroups = entered
             .append('g')
@@ -123,9 +122,9 @@ export class RemoteProcessGroupRenderer {
     }
 
     private static appendRemoteProcessGroupDetails(
-        remoteProcessGroup: d3.Selection<any, CanvasRemoteProcessGroup, any, any>,
+        remoteProcessGroup: CanvasSelection<CanvasRemoteProcessGroup>,
         rpgData: CanvasRemoteProcessGroup
-    ): d3.Selection<any, CanvasRemoteProcessGroup, any, any> {
+    ): CanvasSelection<CanvasRemoteProcessGroup> {
         const details = remoteProcessGroup.append('g').attr('class', 'remote-process-group-details');
         const width = rpgData.ui.dimensions.width;
 
@@ -347,7 +346,7 @@ export class RemoteProcessGroupRenderer {
     }
 
     private static updateRemoteProcessGroupElements(
-        selection: d3.Selection<any, CanvasRemoteProcessGroup, any, any>,
+        selection: CanvasSelection<CanvasRemoteProcessGroup>,
         context: RemoteProcessGroupRenderContext
     ): void {
         // Update transform for position (use currentPosition during drag, otherwise entity position)
@@ -372,14 +371,11 @@ export class RemoteProcessGroupRenderer {
         selection.select('rect.body').classed('unauthorized', (d) => d.entity.permissions.canRead === false);
 
         // Update each remote process group's details
-        selection.each(function (d: CanvasRemoteProcessGroup) {
-            const rpg = d3.select(this) as d3.Selection<any, CanvasRemoteProcessGroup, any, any>;
-            let details = rpg.select('g.remote-process-group-details') as d3.Selection<
-                any,
-                CanvasRemoteProcessGroup,
-                any,
-                any
-            >;
+        selection.each(function (this: SVGGElement, d: CanvasRemoteProcessGroup) {
+            const rpg = d3.select<SVGGElement, CanvasRemoteProcessGroup>(this);
+            let details: CanvasSelection<CanvasRemoteProcessGroup> = rpg.select<SVGGElement>(
+                'g.remote-process-group-details'
+            );
 
             // if this remote process group is visible, render everything
             if (rpg.classed('visible')) {
@@ -398,7 +394,7 @@ export class RemoteProcessGroupRenderer {
     }
 
     private static updateRemoteProcessGroupDetails(
-        details: d3.Selection<any, CanvasRemoteProcessGroup, any, any>,
+        details: CanvasSelection<CanvasRemoteProcessGroup>,
         d: CanvasRemoteProcessGroup,
         context: RemoteProcessGroupRenderContext
     ): void {
@@ -407,7 +403,7 @@ export class RemoteProcessGroupRenderer {
         const status = d.entity.status;
 
         // Update transmission status icon and background
-        const hasIssues = component?.validationErrors && component.validationErrors.length > 0;
+        const hasIssues = (component?.validationErrors?.length ?? 0) > 0;
         const isTransmitting = status?.transmissionStatus === 'Transmitting';
 
         const transmissionStatus = details
@@ -587,11 +583,11 @@ export class RemoteProcessGroupRenderer {
         // Update bulletins
         // This is called outside permissions check to ensure bulletins are shown regardless of component read permissions
         // (only bulletin.canRead matters, not component.permissions.canRead)
-        context.componentUtils.bulletins(rpg, d.entity.bulletins);
+        context.componentUtils.bulletins(rpg, d.entity.bulletins ?? []);
     }
 
     public static pan(
-        selection: d3.Selection<any, CanvasRemoteProcessGroup, any, any>,
+        selection: CanvasSelection<CanvasRemoteProcessGroup>,
         context: RemoteProcessGroupRenderContext
     ): void {
         // Update only the entering/leaving RPGs
@@ -599,159 +595,20 @@ export class RemoteProcessGroupRenderer {
     }
 
     private static attachDragBehavior(
-        selection: d3.Selection<SVGGElement, CanvasRemoteProcessGroup, any, any>,
+        selection: CanvasSelection<CanvasRemoteProcessGroup>,
         context: RemoteProcessGroupRenderContext
     ): void {
-        const drag = d3
-            .drag<SVGGElement, CanvasRemoteProcessGroup>()
-            .filter(function (event, d) {
-                // Match D3's default filter: block right-click and Ctrl+click (Mac right-click)
-                if (event.ctrlKey || event.button !== 0) {
-                    return false;
-                }
-                // Block drag if editing is disabled
-                if (!context.getCanEdit()) {
-                    return false;
-                }
-                // Block drag if RPG is disabled (saving)
-                if (context.disabledRemoteProcessGroupIds?.has(d.entity.id)) {
-                    return false;
-                }
-                return true;
-            })
-            .clickDistance(4) // Minimum distance in pixels before drag starts (prevents accidental drags during clicks)
-            .on(
-                'start',
-                function (
-                    event: d3.D3DragEvent<SVGGElement, CanvasRemoteProcessGroup, CanvasRemoteProcessGroup>,
-                    d: CanvasRemoteProcessGroup
-                ) {
-                    const rpgGroup = d3.select(this as SVGGElement);
-
-                    if (!rpgGroup.classed('selected') && context.callbacks.onClick) {
-                        context.callbacks.onClick(d, event.sourceEvent as MouseEvent);
-                    }
-
-                    // Stop propagation to prevent canvas pan
-                    event.sourceEvent.stopPropagation();
-
-                    // Store original position for potential revert
-                    d.ui.dragStartPosition = { ...d.entity.position };
-                    // Initialize current position in UI state
-                    d.ui.currentPosition = { ...d.entity.position };
-                }
-            )
-            .on(
-                'drag',
-                function (
-                    event: d3.D3DragEvent<SVGGElement, CanvasRemoteProcessGroup, CanvasRemoteProcessGroup>,
-                    d: CanvasRemoteProcessGroup
-                ) {
-                    // Update current position in UI state (entity is read-only from store)
-                    if (d.ui.currentPosition) {
-                        // Apply snap-to-grid unless shift key is held
-                        const snapEnabled = !event.sourceEvent.shiftKey;
-
-                        d.ui.currentPosition.x += event.dx;
-                        d.ui.currentPosition.y += event.dy;
-
-                        // Apply snap alignment if enabled
-                        const displayX = snapEnabled
-                            ? Math.round(d.ui.currentPosition.x / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                              CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                            : d.ui.currentPosition.x;
-                        const displayY = snapEnabled
-                            ? Math.round(d.ui.currentPosition.y / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                              CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                            : d.ui.currentPosition.y;
-
-                        // Update visual position immediately with snapped coordinates
-                        d3.select(this).attr('transform', `translate(${displayX}, ${displayY})`);
-
-                        // Update attached connections by recalculating their paths
-                        // For remote process groups, connections connect to ports within the group,
-                        // so we check sourceGroupId/destinationGroupId instead of sourceId/destinationId
-                        d3.selectAll('g.connection').each(function () {
-                            const connectionData: any = d3.select(this).datum();
-
-                            // Check if this connection is attached to the dragged RPG
-                            // Connections to/from remote process groups use the group ID as the source/destination group
-                            if (
-                                connectionData?.entity?.sourceGroupId === d.entity.id ||
-                                connectionData?.entity?.destinationGroupId === d.entity.id
-                            ) {
-                                const connectionGroup = d3.select(this);
-
-                                // Recalculate path using ConnectionRenderer
-                                const newPath = ConnectionRenderer.calculatePath(connectionData);
-
-                                // Update all path elements with the new path
-                                connectionGroup.selectAll('path').attr('d', newPath);
-
-                                // Update connection label position
-                                // getLabelPosition uses ui.start and ui.end which were updated by calculatePath
-                                const labelPosition = ConnectionRenderer.getLabelPosition(connectionData);
-                                connectionGroup
-                                    .select('g.connection-label-container')
-                                    .attr('transform', `translate(${labelPosition.x}, ${labelPosition.y})`);
-                            }
-                        });
-                    }
-                }
-            )
-            .on(
-                'end',
-                function (
-                    event: d3.D3DragEvent<SVGGElement, CanvasRemoteProcessGroup, CanvasRemoteProcessGroup>,
-                    d: CanvasRemoteProcessGroup
-                ) {
-                    if (!d.ui.dragStartPosition || !d.ui.currentPosition) {
-                        return;
-                    }
-
-                    // Apply final snap alignment (respecting shift key)
-                    const snapEnabled = !event.sourceEvent.shiftKey;
-                    const finalX = snapEnabled
-                        ? Math.round(d.ui.currentPosition.x / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                          CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                        : d.ui.currentPosition.x;
-                    const finalY = snapEnabled
-                        ? Math.round(d.ui.currentPosition.y / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                          CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                        : d.ui.currentPosition.y;
-
-                    // Update currentPosition to final snapped position
-                    d.ui.currentPosition.x = finalX;
-                    d.ui.currentPosition.y = finalY;
-
-                    const newPosition = { ...d.ui.currentPosition };
-                    const previousPosition = { ...d.ui.dragStartPosition };
-
-                    // Check if position actually changed (prevent API calls on clicks)
-                    const moved = newPosition.x !== previousPosition.x || newPosition.y !== previousPosition.y;
-
-                    // Clean up drag start position only
-                    // Keep currentPosition until API call completes (for disabled treatment)
-                    delete d.ui.dragStartPosition;
-
-                    // Only emit drag end if position actually changed
-                    if (moved && context.callbacks.onDragEnd) {
-                        context.callbacks.onDragEnd(d, newPosition, previousPosition);
-                    }
-                }
-            );
-
-        // Remove drag behavior to prevent stale closures
-        selection.on('.drag', null);
-
-        // Apply drag behavior to RPGs with write permissions
-        // Disabled state is checked dynamically in the 'start' handler
-        selection
-            .filter((d: CanvasRemoteProcessGroup) => d.entity.permissions.canWrite && d.entity.permissions.canRead)
-            .call(drag);
+        DragUtils.attachComponentDrag(selection, {
+            resolveCanvasRoot: context.canvasRootResolver,
+            getCanEdit: context.getCanEdit,
+            getCanSelect: context.getCanSelect,
+            getDisabledIds: context.getDisabledRemoteProcessGroupIds,
+            getSelectedIds: context.getSelectedIds,
+            onDragEnd: context.callbacks.onDragEnd!
+        });
     }
 
-    private static removeRemoteProcessGroupElements(exited: d3.Selection<any, any, any, any>): void {
+    private static removeRemoteProcessGroupElements(exited: CanvasSelection<CanvasRemoteProcessGroup>): void {
         exited.remove();
     }
 }

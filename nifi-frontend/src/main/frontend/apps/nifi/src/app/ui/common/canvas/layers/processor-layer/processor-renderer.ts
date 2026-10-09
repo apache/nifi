@@ -16,11 +16,10 @@
  */
 
 import * as d3 from 'd3';
-import { CanvasProcessor } from '../../canvas.types';
+import { CanvasProcessor, CanvasSelection } from '../../canvas.types';
 import { ProcessorRenderContext } from '../render-context.types';
-import { ConnectionRenderer } from '../connection-layer/connection-renderer';
+import { DragUtils } from '../../utils/drag.utils';
 import { ValidationErrorsTip } from '../../../tooltips/validation-errors-tip/validation-errors-tip.component';
-import { CanvasConstants } from '../../canvas.constants';
 
 /**
  * ProcessorRenderer
@@ -91,7 +90,10 @@ export class ProcessorRenderer {
     /**
      * Check if processor is a preview extension
      */
-    private static isPreviewProcessor(processor: CanvasProcessor, previewExtensions: any[]): boolean {
+    private static isPreviewProcessor(
+        processor: CanvasProcessor,
+        previewExtensions: ProcessorRenderContext['previewExtensions']
+    ): boolean {
         if (!processor.entity.permissions.canRead) {
             return false;
         }
@@ -102,7 +104,7 @@ export class ProcessorRenderer {
         }
 
         return previewExtensions.some(
-            (type: any) =>
+            (type) =>
                 type.type === component.type &&
                 type.bundle.group === component.bundle.group &&
                 type.bundle.artifact === component.bundle.artifact &&
@@ -138,6 +140,12 @@ export class ProcessorRenderer {
 
         ProcessorRenderer.updateProcessorElements(updated, context);
 
+        // Reconcile drag attachment on the merged selection so existing
+        // processors respond to permission changes between renders.
+        if (context.callbacks.onDragEnd) {
+            ProcessorRenderer.attachDragBehavior(updated, context);
+        }
+
         // EXIT: Remove processors that are no longer in data
         selection.exit().remove();
     }
@@ -145,7 +153,7 @@ export class ProcessorRenderer {
     /**
      * ENTER phase: Append SVG elements for new processors
      */
-    private static appendProcessorElements(entered: d3.Selection<SVGGElement, CanvasProcessor, any, any>): void {
+    private static appendProcessorElements(entered: CanvasSelection<CanvasProcessor>): void {
         // Border (for selection highlight)
         entered.append('rect').attr('class', 'border').attr('fill', 'transparent').attr('stroke', 'transparent');
 
@@ -226,7 +234,7 @@ export class ProcessorRenderer {
     /**
      * Append bulletin/alert elements
      */
-    private static appendBulletinElements(details: d3.Selection<SVGGElement, CanvasProcessor, any, any>): void {
+    private static appendBulletinElements(details: CanvasSelection<CanvasProcessor>): void {
         // Bulletin background
         details
             .append('rect')
@@ -250,7 +258,7 @@ export class ProcessorRenderer {
     /**
      * Append active thread count elements
      */
-    private static appendActiveThreadElements(details: d3.Selection<SVGGElement, CanvasProcessor, any, any>): void {
+    private static appendActiveThreadElements(details: CanvasSelection<CanvasProcessor>): void {
         // Active thread count icon
         details.append('text').attr('class', 'active-thread-count-icon').attr('y', 46).text('\ue83f');
 
@@ -261,7 +269,7 @@ export class ProcessorRenderer {
     /**
      * Append comment icon element
      */
-    private static appendCommentElements(details: d3.Selection<SVGGElement, CanvasProcessor, any, any>): void {
+    private static appendCommentElements(details: CanvasSelection<CanvasProcessor>): void {
         // Comment icon (positioned at bottom-right corner)
         details
             .append('text')
@@ -274,7 +282,7 @@ export class ProcessorRenderer {
      * UPDATE phase: Update processor elements
      */
     private static updateProcessorElements(
-        updated: d3.Selection<SVGGElement, CanvasProcessor, any, any>,
+        updated: CanvasSelection<CanvasProcessor>,
         context: ProcessorRenderContext
     ): void {
         // Position processors (always update position, even for off-screen components)
@@ -404,7 +412,7 @@ export class ProcessorRenderer {
      * @param selection - D3 selection of processors to update (typically entering/leaving)
      * @param context - Complete render context with all necessary data
      */
-    public static pan(selection: d3.Selection<any, any, any, any>, context: ProcessorRenderContext): void {
+    public static pan(selection: CanvasSelection<CanvasProcessor>, context: ProcessorRenderContext): void {
         // Simply delegate to updateProcessorElements which handles all updates
         // including creating/removing details based on the 'visible' class
         ProcessorRenderer.updateProcessorElements(selection, context);
@@ -413,10 +421,7 @@ export class ProcessorRenderer {
     /**
      * Helper to append processor details (called when processor becomes visible)
      */
-    private static appendProcessorDetails(
-        processor: d3.Selection<SVGGElement, CanvasProcessor, any, any>,
-        d: CanvasProcessor
-    ): void {
+    private static appendProcessorDetails(processor: CanvasSelection<CanvasProcessor>, d: CanvasProcessor): void {
         const details = processor.append('g').attr('class', 'processor-canvas-details');
 
         // Run status icon
@@ -654,7 +659,7 @@ export class ProcessorRenderer {
      * Helper to update processor details (called for visible processors)
      */
     private static updateProcessorDetails(
-        processor: d3.Selection<SVGGElement, CanvasProcessor, any, any>,
+        processor: CanvasSelection<CanvasProcessor>,
         d: CanvasProcessor,
         context: ProcessorRenderContext
     ): void {
@@ -847,7 +852,7 @@ export class ProcessorRenderer {
      * Update statistics for a processor
      */
     private static updateStatistics(
-        processor: d3.Selection<SVGGElement, CanvasProcessor, any, any>,
+        processor: CanvasSelection<CanvasProcessor>,
         d: CanvasProcessor,
         context: ProcessorRenderContext
     ): void {
@@ -892,19 +897,19 @@ export class ProcessorRenderer {
      * Update bulletins for a processor
      */
     private static updateBulletins(
-        processor: d3.Selection<SVGGElement, CanvasProcessor, any, any>,
+        processor: CanvasSelection<CanvasProcessor>,
         d: CanvasProcessor,
         context: ProcessorRenderContext
     ): void {
         // Delegate to shared component utility for consistent bulletin rendering
-        context.componentUtils.bulletins(processor, d.entity.bulletins);
+        context.componentUtils.bulletins(processor, d.entity.bulletins ?? []);
     }
 
     /**
      * Update active thread count for a processor
      */
     private static updateActiveThreadCount(
-        processor: d3.Selection<SVGGElement, CanvasProcessor, any, any>,
+        processor: CanvasSelection<CanvasProcessor>,
         d: CanvasProcessor,
         context: ProcessorRenderContext
     ): void {
@@ -916,7 +921,7 @@ export class ProcessorRenderer {
      * Attach event handlers to processors
      */
     private static attachEventHandlers(
-        selection: d3.Selection<SVGGElement, CanvasProcessor, any, any>,
+        selection: CanvasSelection<CanvasProcessor>,
         context: ProcessorRenderContext
     ): void {
         // Early exit if selection is empty (no new processors to attach handlers to)
@@ -949,153 +954,22 @@ export class ProcessorRenderer {
                 callbacks.onDoubleClick!(d, event);
             });
         }
-
-        // Attach drag behavior if callback is provided (filter will check canEdit dynamically)
-        if (callbacks.onDragEnd) {
-            ProcessorRenderer.attachDragBehavior(selection, context);
-        }
     }
 
     /**
      * Attach drag behavior to processors
      */
     private static attachDragBehavior(
-        selection: d3.Selection<SVGGElement, CanvasProcessor, any, any>,
+        selection: CanvasSelection<CanvasProcessor>,
         context: ProcessorRenderContext
     ): void {
-        const drag = d3
-            .drag<SVGGElement, CanvasProcessor>()
-            .filter(function (event, d) {
-                // Match D3's default filter: block right-click and Ctrl+click (Mac right-click)
-                if (event.ctrlKey || event.button !== 0) {
-                    return false;
-                }
-                // Block drag if editing is disabled
-                if (!context.getCanEdit()) {
-                    return false;
-                }
-                // Block drag if processor is disabled (saving)
-                if (context.disabledProcessorIds?.has(d.entity.id)) {
-                    return false;
-                }
-                return true;
-            })
-            .clickDistance(4) // Minimum distance in pixels before drag starts (prevents accidental drags during clicks)
-            .on(
-                'start',
-                function (event: d3.D3DragEvent<SVGGElement, CanvasProcessor, CanvasProcessor>, d: CanvasProcessor) {
-                    const selectionGroup = d3.select(this as SVGGElement);
-
-                    // If the processor isn't currently selected, select it before starting the drag
-                    if (!selectionGroup.classed('selected') && context.callbacks.onClick) {
-                        context.callbacks.onClick(d, event.sourceEvent as MouseEvent);
-                    }
-
-                    // Stop propagation to prevent canvas pan
-                    event.sourceEvent.stopPropagation();
-
-                    // Store original position for potential revert
-                    d.ui.dragStartPosition = { ...d.entity.position };
-                    // Initialize current position in UI state
-                    d.ui.currentPosition = { ...d.entity.position };
-                }
-            )
-            .on(
-                'drag',
-                function (event: d3.D3DragEvent<SVGGElement, CanvasProcessor, CanvasProcessor>, d: CanvasProcessor) {
-                    // Update current position in UI state (entity is read-only from store)
-                    if (d.ui.currentPosition) {
-                        // Apply snap-to-grid unless shift key is held
-                        const snapEnabled = !event.sourceEvent.shiftKey;
-
-                        d.ui.currentPosition.x += event.dx;
-                        d.ui.currentPosition.y += event.dy;
-
-                        // Apply snap alignment if enabled
-                        const displayX = snapEnabled
-                            ? Math.round(d.ui.currentPosition.x / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                              CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                            : d.ui.currentPosition.x;
-                        const displayY = snapEnabled
-                            ? Math.round(d.ui.currentPosition.y / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                              CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                            : d.ui.currentPosition.y;
-
-                        // Update visual position immediately with snapped coordinates
-                        d3.select(this).attr('transform', `translate(${displayX}, ${displayY})`);
-
-                        // Update attached connections by recalculating their paths
-                        // The ConnectionRenderer.calculatePath will use ui.currentPosition
-                        d3.selectAll('g.connection').each(function () {
-                            const connectionData: any = d3.select(this).datum();
-
-                            // Check if this connection is attached to the dragged processor
-                            if (
-                                connectionData?.entity?.sourceId === d.entity.id ||
-                                connectionData?.entity?.destinationId === d.entity.id
-                            ) {
-                                const connectionGroup = d3.select(this);
-
-                                // Recalculate path using ConnectionRenderer
-                                const newPath = ConnectionRenderer.calculatePath(connectionData);
-
-                                // Update all path elements with the new path
-                                connectionGroup.selectAll('path').attr('d', newPath);
-
-                                // Update connection label position
-                                // getLabelPosition uses ui.start and ui.end which were updated by calculatePath
-                                const labelPosition = ConnectionRenderer.getLabelPosition(connectionData);
-                                connectionGroup
-                                    .select('g.connection-label-container')
-                                    .attr('transform', `translate(${labelPosition.x}, ${labelPosition.y})`);
-                            }
-                        });
-                    }
-                }
-            )
-            .on(
-                'end',
-                function (event: d3.D3DragEvent<SVGGElement, CanvasProcessor, CanvasProcessor>, d: CanvasProcessor) {
-                    // Only emit if position actually changed
-                    if (d.ui.dragStartPosition && d.ui.currentPosition) {
-                        // Apply final snap alignment (respecting shift key)
-                        const snapEnabled = !event.sourceEvent.shiftKey;
-                        const finalX = snapEnabled
-                            ? Math.round(d.ui.currentPosition.x / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                              CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                            : d.ui.currentPosition.x;
-                        const finalY = snapEnabled
-                            ? Math.round(d.ui.currentPosition.y / CanvasConstants.SNAP_ALIGNMENT_PIXELS) *
-                              CanvasConstants.SNAP_ALIGNMENT_PIXELS
-                            : d.ui.currentPosition.y;
-
-                        // Update currentPosition to final snapped position
-                        d.ui.currentPosition.x = finalX;
-                        d.ui.currentPosition.y = finalY;
-
-                        const moved =
-                            d.ui.currentPosition.x !== d.ui.dragStartPosition.x ||
-                            d.ui.currentPosition.y !== d.ui.dragStartPosition.y;
-
-                        if (moved && context.callbacks.onDragEnd) {
-                            context.callbacks.onDragEnd(d, d.ui.currentPosition, d.ui.dragStartPosition);
-                        }
-
-                        // Clean up drag start position only
-                        // Keep currentPosition until API call completes (for disabled treatment)
-                        delete d.ui.dragStartPosition;
-                    }
-                }
-            );
-
-        // Remove all drag-related event handlers to prevent stale closures
-        // D3 drag uses mousedown/touchstart, so we need to remove those too
-        selection.on('.drag', null).on('mousedown.drag', null).on('touchstart.drag', null);
-
-        // Apply drag behavior to processors with write permissions
-        // Disabled state is checked dynamically in the 'start' handler
-        selection
-            .filter((d: CanvasProcessor) => d.entity.permissions.canWrite && d.entity.permissions.canRead)
-            .call(drag);
+        DragUtils.attachComponentDrag(selection, {
+            resolveCanvasRoot: context.canvasRootResolver,
+            getCanEdit: context.getCanEdit,
+            getCanSelect: context.getCanSelect,
+            getDisabledIds: context.getDisabledProcessorIds,
+            getSelectedIds: context.getSelectedIds,
+            onDragEnd: context.callbacks.onDragEnd!
+        });
     }
 }

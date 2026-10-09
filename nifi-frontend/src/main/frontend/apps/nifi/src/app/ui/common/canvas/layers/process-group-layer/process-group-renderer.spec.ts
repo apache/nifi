@@ -18,8 +18,10 @@
 import * as d3 from 'd3';
 import { ProcessGroupRenderer } from './process-group-renderer';
 import { ProcessGroupRenderContext } from '../render-context.types';
+import { createBaseRenderContextFixture } from '../render-context-fixtures';
+import { RegistryClientEntity } from '../../../../state/shared';
 import { CanvasProcessGroup } from '../../canvas.types';
-import { ComponentType } from '@nifi/shared';
+import { BulletinEntity, ComponentType } from '@nifi/shared';
 
 /**
  * Test setup options for ProcessGroupRenderer tests
@@ -29,7 +31,7 @@ interface SetupOptions {
     canSelect?: boolean;
     canEdit?: boolean;
     disabledProcessGroupIds?: Set<string>;
-    registryClients?: any[];
+    registryClients?: RegistryClientEntity[];
     callbacks?: Partial<ProcessGroupRenderContext['callbacks']>;
 }
 
@@ -46,7 +48,9 @@ function createMockProcessGroup(
             component?: {
                 name?: string;
                 comments?: string;
-                versionControlInformation?: any;
+                versionControlInformation?: NonNullable<
+                    CanvasProcessGroup['entity']['component']
+                >['versionControlInformation'];
             };
             status?: {
                 aggregateSnapshot?: {
@@ -57,7 +61,7 @@ function createMockProcessGroup(
                     output?: string;
                 };
             };
-            bulletins?: any[];
+            bulletins?: BulletinEntity[];
             // Component counts
             inputPortCount?: number;
             outputPortCount?: number;
@@ -148,20 +152,22 @@ function createMockContext(options: SetupOptions = {}): ProcessGroupRenderContex
         disabledProcessGroupIds: options.disabledProcessGroupIds,
         registryClients: options.registryClients || [],
         getCanEdit: () => options.canEdit ?? true,
-        textEllipsis: {
-            applyEllipsis: vi.fn((selection, text, _className) => {
-                selection.text(text);
-            })
-        } as any,
-        formatUtils: {} as any,
-        nifiCommon: {} as any,
+        ...createBaseRenderContextFixture({
+            textEllipsis: {
+                applyEllipsis: vi.fn((selection, text, _className) => {
+                    selection.text(text);
+                })
+            },
+            formatUtils: {},
+            nifiCommon: {}
+        }),
         componentUtils: {
             bulletins: vi.fn(),
             activeThreadCount: vi.fn(),
             comments: vi.fn(),
             canvasTooltip: vi.fn(),
             resetCanvasTooltip: vi.fn()
-        } as any,
+        } as unknown as ProcessGroupRenderContext['componentUtils'],
         callbacks: {
             onClick: options.callbacks?.onClick,
             onDoubleClick: options.callbacks?.onDoubleClick,
