@@ -392,6 +392,10 @@ public class RegistryClientIT extends NiFiSystemIT {
         getNiFiInstance().start();
         setupClient();
 
+        if (getNiFiInstance().isClustered()) {
+            waitForAllNodesConnected();
+        }
+
         waitForVersionControlState(processGroup.getId(), VersionControlInformationDTO.UP_TO_DATE);
     }
 
