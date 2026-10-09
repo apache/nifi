@@ -39,6 +39,8 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedKeyManager;
@@ -130,12 +132,13 @@ public class HiveMqV5ClientAdapter implements MqttClient {
     public void subscribe(String topicFilter, int qos) {
         logger.debug("Subscribing to {} with QoS: {}", topicFilter, qos);
 
-        try {
-            Mqtt5SubAck ack = mqtt5BlockingClient.subscribeWith()
-                    .topicFilter(topicFilter)
-                    .qos(Objects.requireNonNull(MqttQos.fromCode(qos)))
-                    .send();
+        CompletableFuture<Mqtt5SubAck> futureAck = mqtt5BlockingClient.toAsync().subscribeWith()
+                .topicFilter(topicFilter)
+                .qos(Objects.requireNonNull(MqttQos.fromCode(qos)))
+                .send();
 
+        try {
+            final Mqtt5SubAck ack = futureAck.get(clientProperties.getConnectionTimeout(), TimeUnit.SECONDS);
             logger.debug("Received mqtt5 subscribe ack: {}", ack);
         } catch (Exception e) {
             throw new MqttException("An error has occurred during sending subscribe message to broker", e);

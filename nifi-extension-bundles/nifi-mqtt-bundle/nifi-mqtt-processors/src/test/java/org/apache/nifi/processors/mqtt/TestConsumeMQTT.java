@@ -648,6 +648,25 @@ public class TestConsumeMQTT {
     }
 
     @Test
+    void testConsumeMessageDeliveredOnConnect() throws Exception {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber) {
+            @Override
+            public void connect() {
+                super.connect();
+                publishMessage(STRING_MESSAGE, AT_LEAST_ONCE);
+            }
+        };
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.run();
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
+        assertEquals(1, flowFiles.size());
+        final MockFlowFile flowFile = flowFiles.getFirst();
+        flowFile.assertContentEquals(STRING_MESSAGE);
+    }
+
+    @Test
     void addTopicAttributesWithMultipleTopicSegments() {
         final String topic = "home/livingroom/temperature";
 
