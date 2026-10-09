@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestStandardPropertyConfiguration {
 
     private Map<String, String> originalProperties;
+    private ControllerServiceFactory controllerServiceFactory;
     private StandardPropertyConfiguration config;
 
     @BeforeEach
@@ -42,7 +43,7 @@ public class TestStandardPropertyConfiguration {
         originalProperties.put("b", "B");
         originalProperties.put("c", null);
 
-        final ControllerServiceFactory controllerServiceFactory = new ControllerServiceFactory() {
+        controllerServiceFactory = new ControllerServiceFactory() {
             @Override
             public ControllerServiceCreationDetails getCreationDetails(final String implementationClassName, final Map<String, String> propertyValues) {
                 return new ControllerServiceCreationDetails("id", implementationClassName, null, propertyValues, ControllerServiceCreationDetails.CreationState.SERVICE_TO_BE_CREATED);
@@ -57,7 +58,28 @@ public class TestStandardPropertyConfiguration {
         config = new StandardPropertyConfiguration(originalProperties, originalProperties, raw -> raw, "Test Component", controllerServiceFactory);
     }
 
-    // TODO: Test Raw vs. Effective values
+    @Test
+    public void testParameterReferenceWithoutValueIsRawValueOnly() {
+        final Map<String, String> rawProperties = new HashMap<>();
+        rawProperties.put("service", "#{service-parameter}");
+        rawProperties.put("a", "A");
+
+        final Map<String, String> effectiveProperties = new HashMap<>();
+        effectiveProperties.put("service", null);
+        effectiveProperties.put("a", "A");
+
+        final StandardPropertyConfiguration parameterConfig = new StandardPropertyConfiguration(
+                effectiveProperties, rawProperties, raw -> raw.startsWith("#{") ? null : raw, "Test Component", controllerServiceFactory);
+
+        assertTrue(parameterConfig.hasProperty("service"));
+        assertFalse(parameterConfig.isPropertySet("service"));
+        assertEquals(Optional.empty(), parameterConfig.getPropertyValue("service"));
+        assertEquals(Optional.of("#{service-parameter}"), parameterConfig.getRawPropertyValue("service"));
+
+        assertTrue(parameterConfig.isPropertySet("a"));
+        assertEquals(Optional.of("A"), parameterConfig.getPropertyValue("a"));
+        assertEquals(Optional.of("A"), parameterConfig.getRawPropertyValue("a"));
+    }
 
     @Test
     public void testGetOperations() {

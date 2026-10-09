@@ -364,7 +364,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         config.renameProperty("put-es-record-at-timestamp-timestamp-format", TIMESTAMP_FORMAT.getName());
         config.renameProperty("put-es-record-not_found-is-error", NOT_FOUND_IS_SUCCESSFUL.getName());
 
-        if (config.getPropertyValue(RESULT_RECORD_WRITER).isEmpty()) {
+        if (config.getRawPropertyValue(RESULT_RECORD_WRITER).isEmpty()) {
             final String resultRecordWriterId = config.createControllerService("org.apache.nifi.json.JsonRecordSetWriter", Collections.emptyMap());
             config.setProperty(RESULT_RECORD_WRITER, resultRecordWriterId);
         }

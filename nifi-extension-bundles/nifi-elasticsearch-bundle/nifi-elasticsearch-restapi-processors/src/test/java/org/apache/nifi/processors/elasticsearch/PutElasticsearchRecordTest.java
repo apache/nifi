@@ -34,6 +34,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.RelationshipMigrationResult;
 import org.apache.nifi.util.StringUtils;
@@ -57,6 +58,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1031,5 +1033,33 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest {
         });
         parsedJson.getLast().computeIfPresent("choice_ts", (key, val) -> "not-timestamp");
         return JsonUtils.prettyPrint(parsedJson);
+    }
+
+    @Test
+    void testMigratePropertiesRetainsResultRecordWriterParameterReferenceWithoutValue() {
+        final String resultRecordWriterName = PutElasticsearchRecord.RESULT_RECORD_WRITER.getName();
+        final MockPropertyConfiguration configuration = new UnresolvedParameterPropertyConfiguration(Map.of(resultRecordWriterName, "#{writer-service}"));
+
+        new PutElasticsearchRecord().migrateProperties(configuration);
+
+        assertEquals(Optional.of("#{writer-service}"), configuration.getRawPropertyValue(resultRecordWriterName));
+        assertTrue(configuration.toPropertyMigrationResult().getCreatedControllerServices().isEmpty());
+    }
+
+    private static class UnresolvedParameterPropertyConfiguration extends MockPropertyConfiguration {
+
+        private UnresolvedParameterPropertyConfiguration(final Map<String, String> rawProperties) {
+            super(rawProperties);
+        }
+
+        @Override
+        public boolean isPropertySet(final String propertyName) {
+            return getPropertyValue(propertyName).isPresent();
+        }
+
+        @Override
+        public Optional<String> getPropertyValue(final String propertyName) {
+            return getRawPropertyValue(propertyName).filter(value -> !value.startsWith("#{"));
+        }
     }
 }
