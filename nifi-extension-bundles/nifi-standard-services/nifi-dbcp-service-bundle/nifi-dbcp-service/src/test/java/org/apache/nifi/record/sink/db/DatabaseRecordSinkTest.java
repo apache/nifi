@@ -46,10 +46,8 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -90,18 +88,20 @@ public class DatabaseRecordSinkTest {
     private static final String SERVICE_ID = DBCPConnectionPool.class.getName();
 
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
-    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s";
+    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:mem:%s;shutdown=true";
 
     private String connectionUrl;
     private DBCPConnectionPool dbcpService;
 
     @BeforeEach
-    public void setService(@TempDir final Path tempDir) throws InitializationException {
+    public void setService() throws InitializationException {
         dbcpService = new DBCPConnectionPool();
         TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService(SERVICE_ID, dbcpService);
 
-        connectionUrl = CONNECTION_URL_FORMAT.formatted(tempDir);
+        // Each test instance gets its own independent database context path
+        final String uniqueDbName = UUID.randomUUID().toString();
+        connectionUrl = CONNECTION_URL_FORMAT.formatted(uniqueDbName);
         runner.setProperty(dbcpService, DATABASE_URL, connectionUrl);
         runner.setProperty(dbcpService, DB_USER, String.class.getSimpleName());
         runner.setProperty(dbcpService, DB_PASSWORD, String.class.getName());
