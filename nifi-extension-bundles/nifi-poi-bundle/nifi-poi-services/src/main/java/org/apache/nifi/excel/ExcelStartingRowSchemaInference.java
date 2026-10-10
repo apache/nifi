@@ -57,10 +57,6 @@ public class ExcelStartingRowSchemaInference implements SchemaInferenceEngine<Ro
     private final boolean ignoreCellsBeyondHeader;
     private final ComponentLog logger;
 
-    public ExcelStartingRowSchemaInference(RowEvaluationStrategy rowEvaluationStrategy, int firstRow, TimeValueInference timeValueInference) {
-        this(rowEvaluationStrategy, firstRow, timeValueInference, false, null);
-    }
-
     public ExcelStartingRowSchemaInference(RowEvaluationStrategy rowEvaluationStrategy, int firstRow, TimeValueInference timeValueInference,
                                            boolean ignoreCellsBeyondHeader, ComponentLog logger) {
         this.rowEvaluationStrategy = rowEvaluationStrategy;
@@ -104,12 +100,10 @@ public class ExcelStartingRowSchemaInference implements SchemaInferenceEngine<Ro
             index++;
         }
 
-        if (logger != null) {
-            for (Map.Entry<String, IgnoredCells> entry : ignoredCellsBySheet.entrySet()) {
-                final IgnoredCells ignoredCells = entry.getValue();
-                logger.warn("Ignored non-empty cells beyond the {} header columns in {} row(s) of sheet [{}], first at row {} column {}",
-                        fieldNames.size(), ignoredCells.rowCount(), entry.getKey(), ignoredCells.firstRowNumber(), ignoredCells.firstColumnName());
-            }
+        for (Map.Entry<String, IgnoredCells> entry : ignoredCellsBySheet.entrySet()) {
+            final IgnoredCells ignoredCells = entry.getValue();
+            logger.warn("Ignored non-empty cells beyond the {} header columns in {} row(s) of sheet [{}], first at row {} column {}",
+                    fieldNames.size(), ignoredCells.rowCount(), entry.getKey(), ignoredCells.firstRowNumber(), ignoredCells.firstColumnName());
         }
         return createSchema(typeMap);
     }

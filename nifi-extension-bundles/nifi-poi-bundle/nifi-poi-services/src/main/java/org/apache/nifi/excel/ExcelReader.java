@@ -110,9 +110,11 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     public static final PropertyDescriptor IGNORE_CELLS_BEYOND_HEADER = new PropertyDescriptor
             .Builder().name("Ignore Cells Beyond Header")
-            .description("Whether to ignore cells located beyond the last column of the header row, instead of failing schema inference."
-                    + " Such cells are often blank but formatted. A warning is logged when ignored cells contain a value."
-                    + " Only the rows evaluated by the '" + ROW_EVALUATION_STRATEGY.getName() + "' property are checked.")
+            .description("""
+                    Whether to ignore cells located beyond the last column of the header row, instead of failing schema inference. \
+                    Such cells are often blank but formatted. A warning is logged when ignored cells contain a value. \
+                    Only the rows evaluated by the '%s' property are checked.\
+                    """.formatted(ROW_EVALUATION_STRATEGY.getName()))
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
