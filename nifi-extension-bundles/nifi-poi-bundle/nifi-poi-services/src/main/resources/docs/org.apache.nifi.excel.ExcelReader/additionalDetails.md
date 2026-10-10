@@ -70,6 +70,11 @@ Schema" strategy, the Reader will determine the schema by first parsing all data
 fields that it has encountered and the type of each field. Once all data has been parsed, a schema is formed that
 encompasses all fields that have been encountered.
 
+When using the "Use Starting Row" strategy, a row having more cells than the header row causes schema inference to
+fail. This often happens with spreadsheets edited by hand, where cells to the right of the data are blank but formatted.
+Setting the "Ignore Cells Beyond Header" property to true ignores the cells beyond the last header column instead. Blank
+cells are ignored silently, while a warning is logged for each sheet where the ignored cells contain a value.
+
 A common concern when inferring schemas is how to handle the condition of two values that have different types. For
 example, consider a FlowFile with the following two records:
 
