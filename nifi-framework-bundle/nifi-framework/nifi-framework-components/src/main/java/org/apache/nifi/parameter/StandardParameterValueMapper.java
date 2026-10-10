@@ -56,10 +56,10 @@ public class StandardParameterValueMapper implements ParameterValueMapper {
         final ParameterDescriptor descriptor = parameter.getDescriptor();
         final String mapped;
 
-        if (value == null) {
-            mapped = null;
-        } else if (parameter.isProvided()) {
+        if (parameter.isProvided()) {
             mapped = PROVIDED_MAPPING;
+        } else if (value == null) {
+            mapped = null;
         } else if (descriptor.isSensitive()) {
             mapped = getEncrypted(parameterContextName, descriptor.getName(), value);
         } else {
