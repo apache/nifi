@@ -126,7 +126,12 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
 
     private static final Validator PORT_RANGE_VALIDATOR = (subject, input, context) -> {
         if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-            return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            return new ValidationResult.Builder()
+                    .subject(subject)
+                    .input(input)
+                    .explanation("Expression Language Present")
+                    .valid(true)
+                    .build();
         }
 
         final String explanation;
@@ -144,15 +149,22 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
         } else {
             explanation = "Port range must be in the format <start>-<end>, e.g. 50000-50099";
         }
-        return new ValidationResult.Builder().subject(subject).input(input).explanation(explanation).valid(explanation == null).build();
+        return new ValidationResult.Builder()
+                .subject(subject)
+                .input(input)
+                .explanation(explanation)
+                .valid(explanation == null)
+                .build();
     };
 
     public static final PropertyDescriptor PASSIVE_PORT_RANGE = new PropertyDescriptor.Builder()
             .name("Passive Port Range")
-            .description("The range of ports, in the format <start>-<end> (e.g. 50000-50099), that the FTP server uses for data connections in passive mode. "
-                    + "Restricting the range simplifies firewall and container port mapping configurations. "
-                    + "If not set, any available port is used for each passive data connection.")
-            .required(false)
+            .description("""
+                    The range of ports, in the format <start>-<end> (e.g. 50000-50099), that the FTP server uses for data connections in passive mode.
+                    Restricting the range simplifies firewall and container port mapping configurations.
+                    """)
+            .required(true)
+            .defaultValue("1025-65534")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(PORT_RANGE_VALIDATOR)
             .build();

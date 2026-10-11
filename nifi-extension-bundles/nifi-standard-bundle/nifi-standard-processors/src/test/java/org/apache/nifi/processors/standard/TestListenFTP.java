@@ -52,6 +52,11 @@ class TestListenFTP {
         runner.shutdown();
     }
 
+    @Test
+    void testPassivePortRangeDefaultValid() {
+        runner.assertValid();
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"50000-50099", "50000-50000", "1-65535", "${PASSIVE_PORT_RANGE}"})
     void testPassivePortRangeValid(final String passivePortRange) {

@@ -30,8 +30,8 @@ Before starting the processor, the following properties can be set:
 * **Passive Port Range:** the range of ports, in the format _start-end_ (e.g. _50000-50099_), that the FTP server
   uses for data connections in passive mode. Setting a narrow range makes it possible to open only these ports on
   firewalls or to publish them from a container (e.g. with Docker). Each concurrent passive transfer uses one port of the
-  range, so the range should be large enough for the expected number of simultaneous transfers. If not set, any
-  available port is used for each passive data connection.
+  range, so the range should be large enough for the expected number of simultaneous transfers. The default range is
+  _1025-65534_.
 * **Username and Password:** Either both of them need to be set, or none of them. If set, the FTP server only allows
   users to log in with the username-password pair specified in these properties. If the Username and Password properties
   are left blank, the FTP server allows anonymous connections, meaning that the client can connect to the FTP server by
