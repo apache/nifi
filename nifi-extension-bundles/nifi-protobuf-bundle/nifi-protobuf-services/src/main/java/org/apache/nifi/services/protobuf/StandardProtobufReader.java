@@ -119,6 +119,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
     private static final String PROTO_EXTENSION = ".proto";
 
     private volatile ProtobufSchemaCompiler schemaCompiler;
+    private volatile ProtobufSchemaDefinitionSanitizer schemaSanitizer;
     private volatile MessageNameResolver messageNameResolver;
     private volatile SchemaReferenceReader schemaReferenceReader;
     private volatile SchemaRegistry schemaRegistry;
@@ -163,6 +164,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
     protected void init(final ControllerServiceInitializationContext config) throws InitializationException {
         super.init(config);
         schemaCompiler = new ProtobufSchemaCompiler(getIdentifier(), getLogger());
+        schemaSanitizer = new ProtobufSchemaDefinitionSanitizer(getLogger());
     }
 
     @Override
@@ -250,13 +252,15 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
 
     private Schema validateSchemaCompiles(final SchemaIdentifier schemaIdentifier, final String schemaTextValue) {
         final SchemaDefinition schemaDefinition = new StandardSchemaDefinition(schemaIdentifier, schemaTextValue, SchemaDefinition.SchemaType.PROTOBUF);
-        return schemaCompiler.compileOrGetFromCache(schemaDefinition);
+        final SchemaDefinition sanitizedSchemaDefinition = schemaSanitizer.sanitizeOrGetFromCache(schemaDefinition);
+        return schemaCompiler.compileOrGetFromCache(sanitizedSchemaDefinition);
     }
 
     private RecordReader createProtobufRecordReader(final Map<String, String> variables, final InputStream in, final SchemaDefinition schemaDefinition) throws IOException {
-        final Schema schema = schemaCompiler.compileOrGetFromCache(schemaDefinition);
+        final SchemaDefinition sanitizedSchemaDefinition = schemaSanitizer.sanitizeOrGetFromCache(schemaDefinition);
+        final Schema schema = schemaCompiler.compileOrGetFromCache(sanitizedSchemaDefinition);
         final ProtoSchemaParser schemaParser = new ProtoSchemaParser(schema);
-        final MessageName messageName = messageNameResolver.getMessageName(variables, schemaDefinition, in);
+        final MessageName messageName = messageNameResolver.getMessageName(variables, sanitizedSchemaDefinition, in);
         final RecordSchema recordSchema = schemaParser.createSchema(messageName.getFullyQualifiedName());
         return new ProtobufRecordReader(schema, messageName.getFullyQualifiedName(), in, recordSchema);
     }

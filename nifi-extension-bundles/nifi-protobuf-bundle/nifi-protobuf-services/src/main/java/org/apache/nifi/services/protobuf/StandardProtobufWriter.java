@@ -154,6 +154,7 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
     private static final String PROTO_EXTENSION = ".proto";
 
     private volatile ProtobufSchemaCompiler schemaCompiler;
+    private volatile ProtobufSchemaDefinitionSanitizer schemaSanitizer;
     private volatile MessageNameResolver messageNameResolver;
     private volatile SchemaReferenceWriter schemaReferenceWriter;
     private volatile MessageIndexWriter messageIndexWriter;
@@ -182,6 +183,7 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
     protected void init(final ControllerServiceInitializationContext config) throws InitializationException {
         super.init(config);
         schemaCompiler = new ProtobufSchemaCompiler(getIdentifier(), getLogger());
+        schemaSanitizer = new ProtobufSchemaDefinitionSanitizer(getLogger());
     }
 
     @Override
@@ -235,7 +237,7 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
     }
 
     private ProtobufWriteContext createWriteContext(final Map<String, String> variables, final RecordSchema suppliedSchema) throws SchemaNotFoundException, IOException {
-        final SchemaDefinition schemaDefinition = createSchemaDefinition(variables, suppliedSchema);
+        final SchemaDefinition schemaDefinition = schemaSanitizer.sanitizeOrGetFromCache(createSchemaDefinition(variables, suppliedSchema));
         final Schema schema = schemaCompiler.compileOrGetFromCache(schemaDefinition);
         final MessageName messageName = messageNameResolver.getMessageName(variables, schemaDefinition, InputStream.nullInputStream());
 
@@ -278,7 +280,8 @@ public class StandardProtobufWriter extends SchemaRegistryService implements Rec
                 .name(sha256Hex(schemaTextValue) + PROTO_EXTENSION)
                 .build();
             final SchemaDefinition schemaDefinition = new StandardSchemaDefinition(schemaIdentifier, schemaTextValue, SchemaDefinition.SchemaType.PROTOBUF);
-            compiledSchema = schemaCompiler.compileOrGetFromCache(schemaDefinition);
+            final SchemaDefinition sanitizedSchemaDefinition = schemaSanitizer.sanitizeOrGetFromCache(schemaDefinition);
+            compiledSchema = schemaCompiler.compileOrGetFromCache(sanitizedSchemaDefinition);
         } catch (final RuntimeException e) {
             // The compiler reports Wire schema errors as SchemaCompilationException and other failures as other
             // runtime exceptions, all of which indicate that the configured schema text cannot be used
