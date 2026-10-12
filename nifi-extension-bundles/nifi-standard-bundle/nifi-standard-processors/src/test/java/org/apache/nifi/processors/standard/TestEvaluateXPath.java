@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -34,6 +35,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestEvaluateXPath {
+
+    private static final int LARGE_ESCAPED_CHARACTER_REFERENCE_LENGTH = 100_001;
+
+    private static final int HIGH_ENTITY_SIZE_LIMIT = 200_000;
+
+    private static final String ESCAPED_ENTITY_XPATH = "string-length(/*:bundle/node/subNode[1]/@value)";
+
+    private static final String ESCAPED_VALUE_XPATH = "string(/*:bundle/node/subNode[1]/@value)";
 
     private static final Path XML_SNIPPET = Paths.get("src/test/resources/TestXml/xml-snippet.xml");
     private static final Path XML_SNIPPET_EMBEDDED_DOCTYPE = Paths.get("src/test/resources/TestXml/xml-snippet-embedded-doctype.xml");
@@ -172,6 +181,9 @@ public class TestEvaluateXPath {
         testRunner.assertAllFlowFilesTransferred(EvaluateXPath.REL_MATCH, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).getFirst();
         out.assertContentEquals("Hello");
+
+        assertEntitySizeLimitConfigurationAcrossDocumentProviderPaths();
+        assertLargeEscapedCharacterReferencePayloadWithConfiguredLimits();
     }
 
     @Test
@@ -179,6 +191,8 @@ public class TestEvaluateXPath {
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
         testRunner.setProperty(EvaluateXPath.VALIDATE_DTD, "false");
+        testRunner.setProperty(EvaluateXPath.MAXIMUM_GENERAL_ENTITY_SIZE, "1024");
+        testRunner.setProperty(EvaluateXPath.MAXIMUM_TOTAL_ENTITY_SIZE, "1024");
         testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
 
         testRunner.enqueue(XML_SNIPPET_EMBEDDED_DOCTYPE);
@@ -191,6 +205,9 @@ public class TestEvaluateXPath {
     public void testFailureForExternalDocTypeWithDocTypeValidationEnabled() throws IOException {
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
+        testRunner.setProperty(EvaluateXPath.VALIDATE_DTD, "true");
+        testRunner.setProperty(EvaluateXPath.MAXIMUM_GENERAL_ENTITY_SIZE, "1024");
+        testRunner.setProperty(EvaluateXPath.MAXIMUM_TOTAL_ENTITY_SIZE, "1024");
         testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
 
         testRunner.enqueue(XML_SNIPPET_NONEXISTENT_DOCTYPE);
@@ -204,6 +221,8 @@ public class TestEvaluateXPath {
         testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
         testRunner.setProperty(EvaluateXPath.VALIDATE_DTD, "false");
+        testRunner.setProperty(EvaluateXPath.MAXIMUM_GENERAL_ENTITY_SIZE, "1024");
+        testRunner.setProperty(EvaluateXPath.MAXIMUM_TOTAL_ENTITY_SIZE, "1024");
         testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
 
         testRunner.enqueue(XML_SNIPPET_NONEXISTENT_DOCTYPE);
@@ -218,5 +237,133 @@ public class TestEvaluateXPath {
 
         final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+
+    private void assertEntitySizeLimitConfigurationAcrossDocumentProviderPaths() {
+        final byte[] payload = getEscapedCharacterReferenceXml(128);
+        final String expectedContent = getEscapedCharacterReferenceValue(128);
+        final TestRunner disallowDtdRunner = newEntityLimitTestRunner(false, ESCAPED_VALUE_XPATH);
+        final TestRunner allowDtdRunner = newEntityLimitTestRunner(true, ESCAPED_VALUE_XPATH);
+
+        assertInvalidEntitySizeProperties(disallowDtdRunner);
+        assertInvalidEntitySizeProperties(allowDtdRunner);
+
+        disallowDtdRunner.setProperty(EvaluateXPath.MAXIMUM_GENERAL_ENTITY_SIZE, "32");
+        assertFailure(disallowDtdRunner, payload);
+        assertMatch(allowDtdRunner, payload, expectedContent);
+
+        disallowDtdRunner.removeProperty(EvaluateXPath.MAXIMUM_GENERAL_ENTITY_SIZE);
+        assertMatch(disallowDtdRunner, payload, expectedContent);
+
+        allowDtdRunner.setProperty(EvaluateXPath.MAXIMUM_GENERAL_ENTITY_SIZE, "32");
+        assertFailure(allowDtdRunner, payload);
+        allowDtdRunner.removeProperty(EvaluateXPath.MAXIMUM_GENERAL_ENTITY_SIZE);
+        assertMatch(allowDtdRunner, payload, expectedContent);
+
+        allowDtdRunner.setProperty(EvaluateXPath.MAXIMUM_TOTAL_ENTITY_SIZE, "32");
+        assertFailure(allowDtdRunner, payload);
+        assertMatch(disallowDtdRunner, payload, expectedContent);
+
+        allowDtdRunner.removeProperty(EvaluateXPath.MAXIMUM_TOTAL_ENTITY_SIZE);
+        assertMatch(allowDtdRunner, payload, expectedContent);
+
+        disallowDtdRunner.setProperty(EvaluateXPath.MAXIMUM_TOTAL_ENTITY_SIZE, "32");
+        assertFailure(disallowDtdRunner, payload);
+        disallowDtdRunner.removeProperty(EvaluateXPath.MAXIMUM_TOTAL_ENTITY_SIZE);
+        assertMatch(disallowDtdRunner, payload, expectedContent);
+    }
+
+    private void assertLargeEscapedCharacterReferencePayloadWithConfiguredLimits() {
+        final byte[] payload = getEscapedCharacterReferenceXml(LARGE_ESCAPED_CHARACTER_REFERENCE_LENGTH);
+
+        assertLargeEscapedCharacterReferenceBehavior(false, payload);
+        assertLargeEscapedCharacterReferenceBehavior(true, payload);
+    }
+
+    private void assertLargeEscapedCharacterReferenceBehavior(final boolean allowDtd, final byte[] payload) {
+        final TestRunner runner = newEntityLimitTestRunner(allowDtd, ESCAPED_ENTITY_XPATH);
+
+        runner.setProperty(EvaluateXPath.MAXIMUM_GENERAL_ENTITY_SIZE, Integer.toString(LARGE_ESCAPED_CHARACTER_REFERENCE_LENGTH - 1));
+        runner.setProperty(EvaluateXPath.MAXIMUM_TOTAL_ENTITY_SIZE, Integer.toString(LARGE_ESCAPED_CHARACTER_REFERENCE_LENGTH - 1));
+        assertFailure(runner, payload);
+
+        runner.setProperty(EvaluateXPath.MAXIMUM_GENERAL_ENTITY_SIZE, Integer.toString(HIGH_ENTITY_SIZE_LIMIT));
+        runner.setProperty(EvaluateXPath.MAXIMUM_TOTAL_ENTITY_SIZE, Integer.toString(HIGH_ENTITY_SIZE_LIMIT));
+        assertMatch(runner, payload, Integer.toString(LARGE_ESCAPED_CHARACTER_REFERENCE_LENGTH));
+    }
+
+    private void assertInvalidEntitySizeProperties(final TestRunner runner) {
+        final PropertyDescriptor[] descriptors = {
+                EvaluateXPath.MAXIMUM_GENERAL_ENTITY_SIZE,
+                EvaluateXPath.MAXIMUM_TOTAL_ENTITY_SIZE
+        };
+        final String[] invalidValues = {"0", "-1", "abc", "2147483648"};
+
+        for (final PropertyDescriptor descriptor : descriptors) {
+            for (final String invalidValue : invalidValues) {
+                runner.setProperty(descriptor, invalidValue);
+                runner.assertNotValid();
+                runner.removeProperty(descriptor);
+                runner.assertValid();
+            }
+        }
+    }
+
+    private TestRunner newEntityLimitTestRunner(final boolean allowDtd, final String xpathExpression) {
+        final TestRunner runner = TestRunners.newTestRunner(new EvaluateXPath());
+        runner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
+        runner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
+        runner.setProperty(EvaluateXPath.VALIDATE_DTD, Boolean.toString(allowDtd));
+        runner.setProperty("some.property", xpathExpression);
+        return runner;
+    }
+
+    private void assertFailure(final TestRunner runner, final byte[] payload) {
+        runner.enqueue(payload);
+        runner.run();
+        runner.assertTransferCount(EvaluateXPath.REL_FAILURE, 1);
+        runner.clearTransferState();
+    }
+
+    private void assertMatch(final TestRunner runner, final byte[] payload, final String expectedContent) {
+        runner.enqueue(payload);
+        runner.run();
+        runner.assertTransferCount(EvaluateXPath.REL_MATCH, 1);
+        runner.getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).getFirst().assertContentEquals(expectedContent);
+        runner.clearTransferState();
+    }
+
+    private byte[] getEscapedCharacterReferenceXml(final int characterLength) {
+        final String document = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <bundle>
+                    <node>
+                        <subNode value="%s"/>
+                    </node>
+                </bundle>
+                """.formatted(getEscapedCharacterReferenceMarkup(characterLength));
+        return document.getBytes(StandardCharsets.UTF_8);
+    }
+
+    private String getEscapedCharacterReferenceMarkup(final int characterLength) {
+        final String[] escapedCharacters = {"&lt;", "&gt;", "&amp;"};
+        final StringBuilder builder = new StringBuilder(characterLength * 4);
+
+        for (int characterIndex = 0; characterIndex < characterLength; characterIndex++) {
+            builder.append(escapedCharacters[characterIndex % escapedCharacters.length]);
+        }
+
+        return builder.toString();
+    }
+
+    private String getEscapedCharacterReferenceValue(final int characterLength) {
+        final char[] expandedCharacters = {'<', '>', '&'};
+        final StringBuilder builder = new StringBuilder(characterLength);
+
+        for (int characterIndex = 0; characterIndex < characterLength; characterIndex++) {
+            builder.append(expandedCharacters[characterIndex % expandedCharacters.length]);
+        }
+
+        return builder.toString();
     }
 }

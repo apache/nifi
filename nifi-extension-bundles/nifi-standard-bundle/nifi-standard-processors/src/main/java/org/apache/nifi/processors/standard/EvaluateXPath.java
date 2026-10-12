@@ -43,6 +43,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.xml.DocumentTypeAllowedDocumentProvider;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
@@ -131,10 +132,32 @@ public class EvaluateXPath extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
+    public static final PropertyDescriptor MAXIMUM_GENERAL_ENTITY_SIZE = new PropertyDescriptor.Builder()
+            .name("Maximum General Entity Size")
+            .description("""
+                    The maximum number of characters permitted in a single general entity. \
+                    When not set, the effective JVM XML processing configuration is used. \
+                    Increasing this limit can increase memory consumption when parsing XML with entities.""")
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor MAXIMUM_TOTAL_ENTITY_SIZE = new PropertyDescriptor.Builder()
+            .name("Maximum Total Entity Size")
+            .description("""
+                    The maximum cumulative number of characters permitted across all entities. \
+                    When not set, the effective JVM XML processing configuration is used. \
+                    Increasing this limit can increase memory consumption when parsing XML with entities.""")
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             DESTINATION,
             RETURN_TYPE,
-            VALIDATE_DTD
+            VALIDATE_DTD,
+            MAXIMUM_GENERAL_ENTITY_SIZE,
+            MAXIMUM_TOTAL_ENTITY_SIZE
     );
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
@@ -261,6 +284,8 @@ public class EvaluateXPath extends AbstractProcessor {
         }
 
         final boolean validatingDeclaration = context.getProperty(VALIDATE_DTD).asBoolean();
+        final Integer maximumGeneralEntitySize = context.getProperty(MAXIMUM_GENERAL_ENTITY_SIZE).asInteger();
+        final Integer maximumTotalEntitySize = context.getProperty(MAXIMUM_TOTAL_ENTITY_SIZE).asInteger();
 
         final StandardTransformProvider transformProvider = new StandardTransformProvider();
         transformProvider.setIndent(true);
@@ -275,6 +300,8 @@ public class EvaluateXPath extends AbstractProcessor {
                         final StandardDocumentProvider documentProvider = validatingDeclaration
                                 ? new DocumentTypeAllowedDocumentProvider()
                                 : new StandardDocumentProvider();
+                        documentProvider.setMaximumGeneralEntitySizeLimit(maximumGeneralEntitySize);
+                        documentProvider.setMaximumTotalEntitySizeLimit(maximumTotalEntitySize);
                         final Document document = documentProvider.parse(in);
                         sourceRef.set(new DOMSource(document));
                     }
