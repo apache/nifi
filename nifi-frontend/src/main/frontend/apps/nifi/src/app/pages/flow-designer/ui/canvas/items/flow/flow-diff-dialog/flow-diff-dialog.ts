@@ -1,0 +1,320 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { Component, DestroyRef, inject } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatSortModule, Sort } from '@angular/material/sort';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { combineLatest, of } from 'rxjs';
+import {
+    catchError,
+    debounceTime,
+    distinctUntilChanged,
+    filter,
+    map,
+    startWith,
+    switchMap,
+    take,
+    tap
+} from 'rxjs/operators';
+import { FlowComparisonEntity } from '../../../../../state/flow';
+import { VersionedFlowSnapshotMetadata } from '../../../../../../../state/shared';
+import { VersionControlInformation } from '../../../../../../../ui/common/tooltips/version-control-tip/version-control-tip.component';
+import { RegistryService } from '../../../../../service/registry.service';
+import { CloseOnEscapeDialog, NiFiCommon, NifiSpinnerDirective } from '@nifi/shared';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Store } from '@ngrx/store';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { ErrorContextKey } from '../../../../../../../state/error';
+import * as ErrorActions from '../../../../../../../state/error/error.actions';
+import { NiFiState } from '../../../../../../../state';
+
+export interface FlowDiffDialogData {
+    versionControlInformation: VersionControlInformation;
+    versions: VersionedFlowSnapshotMetadata[];
+    currentVersion: string;
+    selectedVersion: string;
+    errorContext: ErrorContextKey;
+    formatTimestamp?: (flowVersion: VersionedFlowSnapshotMetadata) => string | undefined;
+}
+
+interface FlowDiffRow {
+    componentName: string;
+    changeType: string;
+    difference: string;
+}
+
+@Component({
+    selector: 'flow-diff-dialog',
+    imports: [
+        MatDialogModule,
+        MatTableModule,
+        MatSortModule,
+        ReactiveFormsModule,
+        MatFormFieldModule,
+        MatSelectModule,
+        MatInputModule,
+        MatButtonModule,
+        NifiSpinnerDirective,
+        ContextErrorBanner
+    ],
+    templateUrl: './flow-diff-dialog.html'
+})
+export class FlowDiffDialog extends CloseOnEscapeDialog {
+    private data = inject<FlowDiffDialogData>(MAT_DIALOG_DATA);
+    private registryService = inject(RegistryService);
+    private destroyRef = inject(DestroyRef);
+    private nifiCommon = inject(NiFiCommon);
+    private store = inject<Store<NiFiState>>(Store);
+
+    displayedColumns: string[] = ['componentName', 'changeType', 'difference'];
+    dataSource: MatTableDataSource<FlowDiffRow> = new MatTableDataSource<FlowDiffRow>();
+    filterControl: FormControl<string> = new FormControl<string>('', { nonNullable: true });
+    currentVersionControl: FormControl<string>;
+    selectedVersionControl: FormControl<string>;
+    sort: Sort = {
+        active: 'componentName',
+        direction: 'desc'
+    };
+
+    versionOptions: string[];
+    flowName: string;
+    comparisonSummary: { label: string; version: string; created?: string }[] = [];
+    isLoading = false;
+    hasError = false;
+    noDifferences = false;
+    private versionMetadataByVersion: Map<string, VersionedFlowSnapshotMetadata> = new Map();
+
+    readonly errorContext: ErrorContextKey;
+    private formatTimestampFn?: (flowVersion: VersionedFlowSnapshotMetadata) => string | undefined;
+
+    constructor() {
+        super();
+        const versions = this.sortVersions(this.data.versions);
+        this.versionOptions = versions.map((version) => version.version);
+        this.versionMetadataByVersion = new Map(versions.map((metadata) => [metadata.version, metadata]));
+        const vci = this.data.versionControlInformation;
+        this.flowName = vci.flowName || vci.flowId;
+        this.errorContext = this.data.errorContext;
+        this.formatTimestampFn = this.data.formatTimestamp;
+
+        this.currentVersionControl = new FormControl<string>(this.data.currentVersion, { nonNullable: true });
+        this.selectedVersionControl = new FormControl<string>(this.data.selectedVersion, { nonNullable: true });
+
+        this.dataSource.filterPredicate = (row: FlowDiffRow, filterTerm: string) => {
+            if (!filterTerm) {
+                return true;
+            }
+
+            const normalizedFilter = filterTerm.toLowerCase();
+            return (
+                (row.componentName || '').toLowerCase().includes(normalizedFilter) ||
+                (row.changeType || '').toLowerCase().includes(normalizedFilter) ||
+                (row.difference || '').toLowerCase().includes(normalizedFilter)
+            );
+        };
+
+        this.configureFiltering();
+        this.configureComparisonChanges();
+    }
+
+    formatVersionOption(version: string): string {
+        const metadata = this.versionMetadataByVersion.get(version);
+        const formattedVersion = version.length > 5 ? `${version.substring(0, 5)}...` : version;
+        const created = this.formatTimestampForMetadata(metadata);
+        return this.nifiCommon.isDefinedAndNotNull(created) ? `${formattedVersion} (${created})` : formattedVersion;
+    }
+
+    private configureFiltering(): void {
+        this.filterControl.valueChanges
+            .pipe(startWith(this.filterControl.value), debounceTime(200), takeUntilDestroyed(this.destroyRef))
+            .subscribe((value) => {
+                const filterTerm = value ? value.trim() : '';
+                this.dataSource.filter = filterTerm.toLowerCase();
+            });
+    }
+
+    private configureComparisonChanges(): void {
+        const currentVersion$ = this.currentVersionControl.valueChanges.pipe(
+            startWith(this.currentVersionControl.value)
+        );
+        const selectedVersion$ = this.selectedVersionControl.valueChanges.pipe(
+            startWith(this.selectedVersionControl.value)
+        );
+
+        combineLatest([currentVersion$, selectedVersion$])
+            .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                map(([current, selected]) => [current, selected] as [string | null, string | null]),
+                tap(([current, selected]) => {
+                    if (current && selected && current === selected) {
+                        this.comparisonSummary = [];
+                    }
+                }),
+                filter(([current, selected]) => !!current && !!selected && current !== selected),
+                distinctUntilChanged(
+                    ([currentA, selectedA], [currentB, selectedB]) => currentA === currentB && selectedA === selectedB
+                ),
+                switchMap(([current, selected]) => {
+                    this.isLoading = true;
+                    this.hasError = false;
+                    this.noDifferences = false;
+                    this.store.dispatch(ErrorActions.clearBannerErrors({ context: this.errorContext }));
+                    return this.fetchFlowDiff(current as string, selected as string).pipe(
+                        catchError((_error: unknown) => {
+                            this.isLoading = false;
+                            this.hasError = true;
+                            const message = 'Unable to retrieve version differences.';
+                            this.store.dispatch(
+                                ErrorActions.addBannerError({
+                                    errorContext: {
+                                        context: this.errorContext,
+                                        errors: [message]
+                                    }
+                                })
+                            );
+                            this.dataSource.data = [];
+                            this.noDifferences = false;
+                            return of(null);
+                        })
+                    );
+                })
+            )
+            .subscribe((comparison) => {
+                if (!comparison) {
+                    return;
+                }
+
+                this.isLoading = false;
+                this.hasError = false;
+                this.setComparisonSummary(this.currentVersionControl.value, this.selectedVersionControl.value);
+                const rows = this.toRows(comparison);
+                this.dataSource.data = this.sortRows(rows, this.sort);
+                this.noDifferences = rows.length === 0;
+            });
+    }
+
+    sortData(sort: Sort): void {
+        this.sort = sort;
+        this.dataSource.data = this.sortRows(this.dataSource.data, sort);
+    }
+
+    private fetchFlowDiff(versionA: string, versionB: string) {
+        const vci = this.data.versionControlInformation;
+        const branch = vci.branch ?? null;
+
+        return this.registryService
+            .getFlowDiff(vci.registryId, vci.bucketId, vci.flowId, versionA, versionB, branch)
+            .pipe(take(1));
+    }
+
+    private sortVersions(versions: VersionedFlowSnapshotMetadata[]): VersionedFlowSnapshotMetadata[] {
+        return versions.slice().sort((a, b) => {
+            const timestampA = this.nifiCommon.isDefinedAndNotNull(a.timestamp) ? a.timestamp : 0;
+            const timestampB = this.nifiCommon.isDefinedAndNotNull(b.timestamp) ? b.timestamp : 0;
+            const timestampComparison = this.nifiCommon.compareNumber(timestampB, timestampA);
+            if (timestampComparison !== 0) {
+                return timestampComparison;
+            }
+
+            if (this.nifiCommon.isNumber(a.version) && this.nifiCommon.isNumber(b.version)) {
+                return this.nifiCommon.compareNumber(parseInt(b.version, 10), parseInt(a.version, 10));
+            }
+
+            return this.nifiCommon.compareString(b.version, a.version);
+        });
+    }
+
+    private toRows(comparison: FlowComparisonEntity): FlowDiffRow[] {
+        if (!comparison || !comparison.componentDifferences) {
+            return [];
+        }
+
+        const rows: FlowDiffRow[] = [];
+        comparison.componentDifferences.forEach((component) => {
+            component.differences.forEach((difference) => {
+                rows.push({
+                    componentName: component.componentName || '',
+                    changeType: difference.differenceType,
+                    difference: difference.difference
+                });
+            });
+        });
+
+        return rows;
+    }
+
+    private sortRows(data: FlowDiffRow[], sort: Sort): FlowDiffRow[] {
+        if (!data) {
+            return [];
+        }
+
+        if (!sort.direction) {
+            return data.slice();
+        }
+
+        const direction = sort.direction === 'asc' ? 1 : -1;
+        return data.slice().sort((a, b) => {
+            const aValue = this.sortingValue(a, sort.active);
+            const bValue = this.sortingValue(b, sort.active);
+            return aValue.localeCompare(bValue) * direction;
+        });
+    }
+
+    private sortingValue(row: FlowDiffRow, property: string): string {
+        switch (property) {
+            case 'componentName':
+                return (row.componentName || '').toLowerCase();
+            case 'changeType':
+                return (row.changeType || '').toLowerCase();
+            case 'difference':
+                return (row.difference || '').toLowerCase();
+            default:
+                return '';
+        }
+    }
+
+    private setComparisonSummary(versionA: string, versionB: string): void {
+        this.comparisonSummary = [this.toSummary('Current Version', versionA), this.toSummary('Selected Version', versionB)];
+    }
+
+    private toSummary(label: string, version: string): { label: string; version: string; created?: string } {
+        const metadata = this.versionMetadataByVersion.get(version);
+        return {
+            label,
+            version,
+            created: this.formatTimestampForMetadata(metadata)
+        };
+    }
+
+    private formatTimestampForMetadata(metadata: VersionedFlowSnapshotMetadata | undefined): string | undefined {
+        if (!metadata) {
+            return undefined;
+        }
+
+        if (this.formatTimestampFn) {
+            return this.formatTimestampFn(metadata);
+        }
+
+        return metadata.timestamp ? metadata.timestamp.toString() : undefined;
+    }
+}

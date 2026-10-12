@@ -33,6 +33,23 @@
             .mat-column-created {
                 width: 180px;
             }
+
+            .mat-column-actions {
+                width: 42px;
+            }
+
+            .version-actions-button {
+                height: 32px;
+                width: 32px;
+                min-width: 32px;
+                padding: 0;
+
+                &:hover {
+                    cursor: pointer;
+                    background-color: var(--mat-sys-surface-variant);
+                    border-radius: 50%;
+                }
+            }
         }
     }
 }
