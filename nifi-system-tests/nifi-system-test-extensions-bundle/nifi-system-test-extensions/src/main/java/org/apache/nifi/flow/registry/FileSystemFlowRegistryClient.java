@@ -25,6 +25,8 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.flow.AbstractFlowRegistryClient;
 import org.apache.nifi.registry.flow.BucketLocation;
@@ -47,6 +49,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -54,6 +58,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -84,9 +89,31 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
         .defaultValue("target/flow-registry-storage")
         .build();
 
+    static final PropertyDescriptor VALIDATE_SLEEP_TIME = new PropertyDescriptor.Builder()
+        .name("Validate Sleep Time")
+        .description("The amount of time to sleep during validation")
+        .required(false)
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .defaultValue("0 sec")
+        .build();
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return List.of(DIRECTORY, SYNCHRONIZATION_INTERVAL);
+        return List.of(DIRECTORY, SYNCHRONIZATION_INTERVAL, VALIDATE_SLEEP_TIME);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final long sleepMillis = validationContext.getProperty(VALIDATE_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
+        if (sleepMillis > 0) {
+            try {
+                Thread.sleep(sleepMillis);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        return Collections.emptyList();
     }
 
     @Override
