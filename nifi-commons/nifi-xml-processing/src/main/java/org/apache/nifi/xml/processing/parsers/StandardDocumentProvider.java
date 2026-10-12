@@ -35,11 +35,19 @@ import javax.xml.validation.Schema;
  * Standard implementation of Document Provider with secure processing enabled
  */
 public class StandardDocumentProvider implements DocumentProvider {
+    private static final String MAXIMUM_GENERAL_ENTITY_SIZE_LIMIT = "jdk.xml.maxGeneralEntitySizeLimit";
+
+    private static final String MAXIMUM_TOTAL_ENTITY_SIZE_LIMIT = "jdk.xml.totalEntitySizeLimit";
+
     private boolean namespaceAware;
 
     private Schema schema;
 
     private ErrorHandler errorHandler;
+
+    private Integer maximumGeneralEntitySizeLimit;
+
+    private Integer maximumTotalEntitySizeLimit;
 
     /**
      * Set Error Handler
@@ -68,6 +76,24 @@ public class StandardDocumentProvider implements DocumentProvider {
         this.schema = schema;
     }
 
+    /**
+     * Set maximum size limit for a single general entity or null to use the effective JVM XML processing configuration
+     *
+     * @param maximumGeneralEntitySizeLimit maximum general entity size limit
+     */
+    public void setMaximumGeneralEntitySizeLimit(final Integer maximumGeneralEntitySizeLimit) {
+        this.maximumGeneralEntitySizeLimit = maximumGeneralEntitySizeLimit;
+    }
+
+    /**
+     * Set maximum cumulative size limit for all entities or null to use the effective JVM XML processing configuration
+     *
+     * @param maximumTotalEntitySizeLimit maximum total entity size limit
+     */
+    public void setMaximumTotalEntitySizeLimit(final Integer maximumTotalEntitySizeLimit) {
+        this.maximumTotalEntitySizeLimit = maximumTotalEntitySizeLimit;
+    }
+
     @Override
     public Document newDocument() {
         final DocumentBuilderFactory documentBuilderFactory = getDocumentBuilderFactory();
@@ -75,6 +101,7 @@ public class StandardDocumentProvider implements DocumentProvider {
         try {
             documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, ProcessingFeature.SECURE_PROCESSING.isEnabled());
             documentBuilderFactory.setFeature(ProcessingFeature.DISALLOW_DOCTYPE_DECL.getFeature(), ProcessingFeature.DISALLOW_DOCTYPE_DECL.isEnabled());
+            configureEntitySizeLimits(documentBuilderFactory);
 
             final DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
             documentBuilder.setErrorHandler(errorHandler);
@@ -98,6 +125,7 @@ public class StandardDocumentProvider implements DocumentProvider {
         try {
             documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, ProcessingFeature.SECURE_PROCESSING.isEnabled());
             documentBuilderFactory.setFeature(ProcessingFeature.DISALLOW_DOCTYPE_DECL.getFeature(), isDisallowDocumentTypeDeclaration());
+            configureEntitySizeLimits(documentBuilderFactory);
 
             final DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
             documentBuilder.setErrorHandler(errorHandler);
@@ -122,5 +150,15 @@ public class StandardDocumentProvider implements DocumentProvider {
         documentBuilderFactory.setExpandEntityReferences(false);
 
         return documentBuilderFactory;
+    }
+
+    private void configureEntitySizeLimits(final DocumentBuilderFactory documentBuilderFactory) {
+        if (maximumGeneralEntitySizeLimit != null) {
+            documentBuilderFactory.setAttribute(MAXIMUM_GENERAL_ENTITY_SIZE_LIMIT, maximumGeneralEntitySizeLimit.toString());
+        }
+
+        if (maximumTotalEntitySizeLimit != null) {
+            documentBuilderFactory.setAttribute(MAXIMUM_TOTAL_ENTITY_SIZE_LIMIT, maximumTotalEntitySizeLimit.toString());
+        }
     }
 }

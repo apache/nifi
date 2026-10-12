@@ -26,11 +26,14 @@ import org.w3c.dom.Document;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXParseException;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import javax.xml.validation.Schema;
 import javax.xml.validation.ValidatorHandler;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -64,11 +67,16 @@ class StandardDocumentProviderTest {
             final Document document = provider.parse(inputStream);
             assertNotNull(document);
         }
+
+        assertEscapedCharacterReferenceLimitBehavior(new StandardDocumentProvider());
+        assertEscapedCharacterReferenceLimitBehavior(new DocumentTypeAllowedStandardDocumentProvider());
     }
 
     @Test
     void testParseDocumentTypeDeclarationException() throws IOException {
         final StandardDocumentProvider provider = new StandardDocumentProvider();
+        provider.setMaximumGeneralEntitySizeLimit(1024);
+        provider.setMaximumTotalEntitySizeLimit(1024);
 
         try (final InputStream inputStream = ResourceProvider.getStandardDocumentDocType()) {
             assertParsingException(inputStream, provider);
@@ -78,6 +86,8 @@ class StandardDocumentProviderTest {
     @Test
     void testParseExternalEntityException() throws IOException {
         final StandardDocumentProvider provider = new StandardDocumentProvider();
+        provider.setMaximumGeneralEntitySizeLimit(1024);
+        provider.setMaximumTotalEntitySizeLimit(1024);
 
         assertParsingException(provider);
     }
@@ -90,6 +100,8 @@ class StandardDocumentProviderTest {
         provider.setNamespaceAware(true);
         provider.setSchema(schema);
         provider.setErrorHandler(errorHandler);
+        provider.setMaximumGeneralEntitySizeLimit(1024);
+        provider.setMaximumTotalEntitySizeLimit(1024);
 
         assertParsingException(provider);
     }
@@ -103,5 +115,68 @@ class StandardDocumentProviderTest {
     private void assertParsingException(final InputStream inputStream, final StandardDocumentProvider provider) {
         final ProcessingException processingException = assertThrows(ProcessingException.class, () -> provider.parse(inputStream));
         assertInstanceOf(SAXParseException.class, processingException.getCause());
+    }
+
+    private void assertEscapedCharacterReferenceLimitBehavior(final StandardDocumentProvider provider) {
+        provider.setMaximumGeneralEntitySizeLimit(64);
+
+        ProcessingException processingException = assertThrows(ProcessingException.class,
+                () -> provider.parse(getEscapedCharacterReferenceDocument(128)));
+        assertInstanceOf(SAXParseException.class, processingException.getCause());
+
+        provider.setMaximumGeneralEntitySizeLimit(null);
+
+        Document document = provider.parse(getEscapedCharacterReferenceDocument(128));
+        assertEquals(getEscapedCharacterReferenceValue(128), document.getDocumentElement().getElementsByTagName("subNode").item(0).getAttributes().getNamedItem("value").getNodeValue());
+
+        provider.setMaximumTotalEntitySizeLimit(64);
+
+        processingException = assertThrows(ProcessingException.class,
+                () -> provider.parse(getEscapedCharacterReferenceDocument(128)));
+        assertInstanceOf(SAXParseException.class, processingException.getCause());
+
+        provider.setMaximumTotalEntitySizeLimit(null);
+
+        document = provider.parse(getEscapedCharacterReferenceDocument(128));
+        assertEquals(getEscapedCharacterReferenceValue(128), document.getDocumentElement().getElementsByTagName("subNode").item(0).getAttributes().getNamedItem("value").getNodeValue());
+    }
+
+    private InputStream getEscapedCharacterReferenceDocument(final int characterLength) {
+        final String document = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <standard>
+                    <subNode value="%s"/>
+                </standard>
+                """.formatted(getEscapedCharacterReferenceMarkup(characterLength));
+        return new ByteArrayInputStream(document.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private String getEscapedCharacterReferenceMarkup(final int characterLength) {
+        final String[] escapedCharacters = {"&lt;", "&gt;", "&amp;"};
+        final StringBuilder builder = new StringBuilder(characterLength * 4);
+
+        for (int i = 0; i < characterLength; i++) {
+            builder.append(escapedCharacters[i % escapedCharacters.length]);
+        }
+
+        return builder.toString();
+    }
+
+    private String getEscapedCharacterReferenceValue(final int characterLength) {
+        final char[] expandedCharacters = {'<', '>', '&'};
+        final StringBuilder builder = new StringBuilder(characterLength);
+
+        for (int i = 0; i < characterLength; i++) {
+            builder.append(expandedCharacters[i % expandedCharacters.length]);
+        }
+
+        return builder.toString();
+    }
+
+    private static class DocumentTypeAllowedStandardDocumentProvider extends StandardDocumentProvider {
+        @Override
+        protected boolean isDisallowDocumentTypeDeclaration() {
+            return false;
+        }
     }
 }
