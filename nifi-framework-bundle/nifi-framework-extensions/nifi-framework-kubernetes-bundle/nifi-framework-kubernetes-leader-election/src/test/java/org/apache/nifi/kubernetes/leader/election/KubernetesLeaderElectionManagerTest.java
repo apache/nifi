@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.kubernetes.leader.election;
 
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import org.apache.nifi.controller.leader.election.LeaderElectionRole;
 import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
 import org.apache.nifi.kubernetes.leader.election.command.LeaderElectionCommandProvider;
@@ -149,6 +150,24 @@ class KubernetesLeaderElectionManagerTest {
     }
 
     @Test
+    void testRegisterParticipatingStartLeadingFailToDetermineLeader() {
+        manager.register(ROLE, changeListener, PARTICIPANT_ID);
+
+        setSubmitStartLeading();
+
+        manager.start();
+
+        captureRunCommand();
+        assertActiveParticipantLeader();
+
+        leaderElectionCommandProvider.failOnFindLeader = true;
+
+        assertActiveParticipantFailToDetermineLeader();
+
+        assertEquals(LEADER_ELECTION_ROLE.getRoleId(), leaderElectionCommandProvider.findLeaderName);
+    }
+
+    @Test
     void testRegisterParticipatingIsActiveParticipantTrue() {
         manager.register(ROLE, changeListener, PARTICIPANT_ID);
 
@@ -231,6 +250,7 @@ class KubernetesLeaderElectionManagerTest {
         leaderElectionCommandProvider.runNewLeader = true;
         leaderElectionCommandProvider.runStopLeading = true;
         leaderElectionCommandProvider.leader = PARTICIPANT_ID;
+        leaderElectionCommandProvider.failOnFindLeader = false;
     }
 
     private void captureRunCommand() {
@@ -263,6 +283,16 @@ class KubernetesLeaderElectionManagerTest {
         assertFalse(leaderId.isPresent(), "Leader found for unregistered election");
     }
 
+    private void assertActiveParticipantFailToDetermineLeader() {
+        final boolean activeParticipant = manager.isActiveParticipant(ROLE);
+        assertTrue(activeParticipant);
+
+        final boolean leader = manager.isLeader(ROLE);
+        assertFalse(leader);
+
+        assertThrows(KubernetesClientException.class, () -> manager.getLeader(ROLE));
+    }
+
     private class MockKubernetesLeaderElectionManager extends KubernetesLeaderElectionManager {
         public MockKubernetesLeaderElectionManager(NiFiProperties nifiProperties) {
             super(nifiProperties);
@@ -291,9 +321,12 @@ class KubernetesLeaderElectionManagerTest {
 
         private boolean runNewLeader;
 
+        private boolean failOnFindLeader;
+
         private boolean closed;
 
         private String leader;
+
 
         @Override
         public Runnable getCommand(
@@ -320,6 +353,9 @@ class KubernetesLeaderElectionManagerTest {
         @Override
         public Optional<String> findLeader(final String name) {
             this.findLeaderName = name;
+            if (failOnFindLeader) {
+                throw new KubernetesClientException(String.format("Cannot find leader %s", name));
+            }
             return Optional.ofNullable(leader);
         }
 
