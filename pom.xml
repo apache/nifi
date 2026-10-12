@@ -1329,7 +1329,7 @@
                         <executions>
                             <execution>
                                 <id>check</id>
-                                <phase>compile</phase>
+                                <phase>test-compile</phase>
                                 <goals>
                                     <goal>check</goal>
                                 </goals>
