@@ -215,9 +215,8 @@ final class ProtobufSchemaCompiler {
             Files.createDirectories(parentDirectory);
         }
 
-        final String preparedSchemaText = ProtobufCustomOptionRemover.remove(schemaText, Location.get(relativePath), logger);
-        Files.write(schemaFile, preparedSchemaText.getBytes(StandardCharsets.UTF_8), CREATE, WRITE, TRUNCATE_EXISTING);
-        logger.debug("Successfully wrote schema to file: {} (string length: {})", schemaFile, preparedSchemaText.length());
+        Files.write(schemaFile, schemaText.getBytes(StandardCharsets.UTF_8), CREATE, WRITE, TRUNCATE_EXISTING);
+        logger.debug("Successfully wrote schema to file: {} (string length: {})", schemaFile, schemaText.length());
     }
 
     /**

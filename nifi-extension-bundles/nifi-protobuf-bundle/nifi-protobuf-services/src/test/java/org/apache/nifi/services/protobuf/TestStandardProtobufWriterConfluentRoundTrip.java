@@ -73,9 +73,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  */
 class TestStandardProtobufWriterConfluentRoundTrip {
 
-    private static final int SCHEMA_ID = 42;
+    private static final long SCHEMA_ID = 42;
     // Confluent header: magic byte 0x00 followed by the big-endian schema id (42).
     private static final byte[] EXPECTED_HEADER = {0x00, 0x00, 0x00, 0x00, 0x2A};
+    private static final int HEADER_LENGTH = EXPECTED_HEADER.length;
+
+    private static final String REGISTRY_ID = "registry";
+    private static final String REFERENCE_WRITER_ID = "referenceWriter";
+    private static final String INDEX_WRITER_ID = "indexWriter";
+    private static final String REFERENCE_READER_ID = "referenceReader";
+    private static final String MESSAGE_NAME_RESOLVER_ID = "messageNameResolver";
 
     private static final String SCHEMA_TEXT_VALUE = """
         syntax = "proto3";
@@ -89,6 +96,44 @@ class TestStandardProtobufWriterConfluentRoundTrip {
         message Company {
           string name = 1;
         }""";
+
+    private static final String CUSTOM_OPTIONS_SCHEMA_TEXT_VALUE = """
+        syntax = "proto3";
+        message User {
+          int32 id = 1 [(confluent.field_meta) = {
+            params: [
+              {
+                key: "connect.type",
+                value: "int16"
+              }
+            ]
+          }];
+          string name = 2 [(confluent.field_meta) = { doc: "name" }];
+          message Profile {
+            string bio = 1 [(confluent.field_meta) = { params: [ { key: "k", value: "v" } ] }];
+          }
+        }
+        message Company {
+          string name = 1 [(confluent.field_meta) = { doc: "company" }];
+        }""";
+
+    private static final String USER_MESSAGE = "User";
+    private static final String PROFILE_MESSAGE = "User.Profile";
+    private static final String COMPANY_MESSAGE = "Company";
+
+    // Nested message User.Profile -> declaration path [0, 0] -> length 2 then indexes 0, 0 (zigzag varints).
+    private static final byte[] NESTED_PROFILE_MESSAGE_INDEX = {0x04, 0x00, 0x00};
+    // Root message Company -> declaration path [1] -> length 1 then index 1 (zigzag varints).
+    private static final byte[] COMPANY_MESSAGE_INDEX = {0x02, 0x02};
+
+    private static final String ID_FIELD = "id";
+    private static final String NAME_FIELD = "name";
+    private static final String BIO_FIELD = "bio";
+
+    private static final int ID_VALUE = 7;
+    private static final String USER_NAME_VALUE = "Alice";
+    private static final String COMPANY_NAME_VALUE = "Acme";
+    private static final String BIO_VALUE = "hello";
 
     private TestRunner runner;
     private MockSchemaRegistry schemaRegistry;
@@ -107,45 +152,72 @@ class TestStandardProtobufWriterConfluentRoundTrip {
         referenceReader = new ConfluentEncodedSchemaReferenceReader();
         messageNameResolver = new ConfluentProtobufMessageNameResolver();
 
-        enableService("registry", schemaRegistry);
-        enableService("referenceWriter", referenceWriter);
-        enableService("indexWriter", indexWriter);
-        enableService("referenceReader", referenceReader);
-        enableService("messageNameResolver", messageNameResolver);
+        enableService(REGISTRY_ID, schemaRegistry);
+        enableService(REFERENCE_WRITER_ID, referenceWriter);
+        enableService(INDEX_WRITER_ID, indexWriter);
+        enableService(REFERENCE_READER_ID, referenceReader);
+        enableService(MESSAGE_NAME_RESOLVER_ID, messageNameResolver);
     }
 
     @Test
     void testFirstRootMessageSingleByteIndexAndRoundTrip() throws Exception {
         final Map<String, Object> values = new HashMap<>();
-        values.put("id", 7);
-        values.put("name", "Alice");
-        final MapRecord userRecord = new MapRecord(recordSchema("id", "name"), values);
+        values.put(ID_FIELD, ID_VALUE);
+        values.put(NAME_FIELD, USER_NAME_VALUE);
+        final MapRecord userRecord = new MapRecord(recordSchema(ID_FIELD, NAME_FIELD), values);
 
-        final byte[] output = writeConfluent("User", userRecord);
+        final byte[] output = writeConfluent(USER_MESSAGE, userRecord);
 
         // [header][message index][payload]; the first root message collapses to the single index byte 0x00.
-        assertArrayEquals(EXPECTED_HEADER, slice(output, 0, 5));
-        assertEquals(0x00, output[5]);
+        assertArrayEquals(EXPECTED_HEADER, slice(output, 0, HEADER_LENGTH));
+        assertEquals(0x00, output[HEADER_LENGTH]);
 
         final Record readBack = readConfluent(output);
-        assertEquals(7, readBack.getValue("id"));
-        assertEquals("Alice", readBack.getValue("name"));
+        assertEquals(ID_VALUE, readBack.getValue(ID_FIELD));
+        assertEquals(USER_NAME_VALUE, readBack.getValue(NAME_FIELD));
     }
 
     @Test
     void testNestedMessageIndexAndRoundTrip() throws Exception {
         final Map<String, Object> values = new HashMap<>();
-        values.put("bio", "hello");
-        final MapRecord profileRecord = new MapRecord(recordSchema("bio"), values);
+        values.put(BIO_FIELD, BIO_VALUE);
+        final MapRecord profileRecord = new MapRecord(recordSchema(BIO_FIELD), values);
 
-        final byte[] output = writeConfluent("User.Profile", profileRecord);
+        final byte[] output = writeConfluent(PROFILE_MESSAGE, profileRecord);
 
-        // Nested message User.Profile -> declaration path [0, 0] -> length 2 then indexes 0, 0 (zigzag varints).
-        assertArrayEquals(EXPECTED_HEADER, slice(output, 0, 5));
-        assertArrayEquals(new byte[] {0x04, 0x00, 0x00}, slice(output, 5, 8));
+        assertArrayEquals(EXPECTED_HEADER, slice(output, 0, HEADER_LENGTH));
+        assertArrayEquals(NESTED_PROFILE_MESSAGE_INDEX, slice(output, HEADER_LENGTH, NESTED_PROFILE_MESSAGE_INDEX.length));
 
         final Record readBack = readConfluent(output);
-        assertEquals("hello", readBack.getValue("bio"));
+        assertEquals(BIO_VALUE, readBack.getValue(BIO_FIELD));
+    }
+
+    @Test
+    void testCustomOptionsNestedMessageRoundTrip() throws Exception {
+        schemaRegistry.returnSchemaText(CUSTOM_OPTIONS_SCHEMA_TEXT_VALUE);
+        final MapRecord profileRecord = new MapRecord(recordSchema(BIO_FIELD), Map.of(BIO_FIELD, BIO_VALUE));
+
+        final byte[] output = writeConfluent(PROFILE_MESSAGE, profileRecord);
+
+        assertArrayEquals(EXPECTED_HEADER, slice(output, 0, HEADER_LENGTH));
+        assertArrayEquals(NESTED_PROFILE_MESSAGE_INDEX, slice(output, HEADER_LENGTH, NESTED_PROFILE_MESSAGE_INDEX.length));
+
+        final Record readBack = readConfluent(output);
+        assertEquals(BIO_VALUE, readBack.getValue(BIO_FIELD));
+    }
+
+    @Test
+    void testCustomOptionsSecondRootMessageRoundTrip() throws Exception {
+        schemaRegistry.returnSchemaText(CUSTOM_OPTIONS_SCHEMA_TEXT_VALUE);
+        final MapRecord companyRecord = new MapRecord(recordSchema(NAME_FIELD), Map.of(NAME_FIELD, COMPANY_NAME_VALUE));
+
+        final byte[] output = writeConfluent(COMPANY_MESSAGE, companyRecord);
+
+        assertArrayEquals(EXPECTED_HEADER, slice(output, 0, HEADER_LENGTH));
+        assertArrayEquals(COMPANY_MESSAGE_INDEX, slice(output, HEADER_LENGTH, COMPANY_MESSAGE_INDEX.length));
+
+        final Record readBack = readConfluent(output);
+        assertEquals(COMPANY_NAME_VALUE, readBack.getValue(NAME_FIELD));
     }
 
     @Test
@@ -154,11 +226,11 @@ class TestStandardProtobufWriterConfluentRoundTrip {
         runner.addControllerService("schemaTextWriter", writer);
         runner.setProperty(writer, SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY.getValue());
         runner.setProperty(writer, SCHEMA_TEXT, SCHEMA_TEXT_VALUE);
-        runner.setProperty(writer, StandardProtobufWriter.MESSAGE_NAME, "User");
+        runner.setProperty(writer, StandardProtobufWriter.MESSAGE_NAME, USER_MESSAGE);
         runner.assertValid(writer);
 
         // Inline schema text has no registry identifier or version for the Confluent header
-        runner.setProperty(writer, StandardProtobufWriter.SCHEMA_REFERENCE_WRITER, "referenceWriter");
+        runner.setProperty(writer, StandardProtobufWriter.SCHEMA_REFERENCE_WRITER, REFERENCE_WRITER_ID);
         runner.assertNotValid(writer);
     }
 
@@ -166,13 +238,13 @@ class TestStandardProtobufWriterConfluentRoundTrip {
         final StandardProtobufWriter writer = new StandardProtobufWriter();
         runner.addControllerService("writer-" + messageName, writer);
         runner.setProperty(writer, SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY.getValue());
-        runner.setProperty(writer, SCHEMA_REGISTRY, "registry");
+        runner.setProperty(writer, SCHEMA_REGISTRY, REGISTRY_ID);
         runner.setProperty(writer, SCHEMA_NAME, "user");
         runner.setProperty(writer, StandardProtobufWriter.MESSAGE_NAME_RESOLUTION_STRATEGY,
             StandardProtobufWriter.MessageNameResolverStrategy.MESSAGE_NAME_PROPERTY.getValue());
         runner.setProperty(writer, StandardProtobufWriter.MESSAGE_NAME, messageName);
-        runner.setProperty(writer, StandardProtobufWriter.SCHEMA_REFERENCE_WRITER, "referenceWriter");
-        runner.setProperty(writer, StandardProtobufWriter.MESSAGE_INDEX_WRITER, "indexWriter");
+        runner.setProperty(writer, StandardProtobufWriter.SCHEMA_REFERENCE_WRITER, REFERENCE_WRITER_ID);
+        runner.setProperty(writer, StandardProtobufWriter.MESSAGE_INDEX_WRITER, INDEX_WRITER_ID);
         runner.enableControllerService(writer);
 
         final RecordSchema writeSchema = writer.getSchema(emptyMap(), null);
@@ -190,11 +262,11 @@ class TestStandardProtobufWriterConfluentRoundTrip {
         final StandardProtobufReader reader = new StandardProtobufReader();
         runner.addControllerService("reader", reader);
         runner.setProperty(reader, SCHEMA_ACCESS_STRATEGY, SCHEMA_REFERENCE_READER_PROPERTY.getValue());
-        runner.setProperty(reader, SCHEMA_REFERENCE_READER, "referenceReader");
-        runner.setProperty(reader, SCHEMA_REGISTRY, "registry");
+        runner.setProperty(reader, SCHEMA_REFERENCE_READER, REFERENCE_READER_ID);
+        runner.setProperty(reader, SCHEMA_REGISTRY, REGISTRY_ID);
         runner.setProperty(reader, StandardProtobufReader.MESSAGE_NAME_RESOLUTION_STRATEGY,
             StandardProtobufReader.MessageNameResolverStrategy.MESSAGE_NAME_RESOLVER.getValue());
-        runner.setProperty(reader, StandardProtobufReader.MESSAGE_NAME_RESOLVER, "messageNameResolver");
+        runner.setProperty(reader, StandardProtobufReader.MESSAGE_NAME_RESOLVER, MESSAGE_NAME_RESOLVER_ID);
         runner.enableControllerService(reader);
 
         final RecordReader recordReader = reader.createRecordReader(emptyMap(), new ByteArrayInputStream(data), data.length, runner.getLogger());
@@ -206,7 +278,7 @@ class TestStandardProtobufWriterConfluentRoundTrip {
     private RecordSchema recordSchema(final String... fieldNames) {
         final RecordField[] fields = new RecordField[fieldNames.length];
         for (int i = 0; i < fieldNames.length; i++) {
-            final RecordFieldType type = "id".equals(fieldNames[i]) ? RecordFieldType.INT : RecordFieldType.STRING;
+            final RecordFieldType type = ID_FIELD.equals(fieldNames[i]) ? RecordFieldType.INT : RecordFieldType.STRING;
             fields[i] = new RecordField(fieldNames[i], type.getDataType());
         }
         return new SimpleRecordSchema(List.of(fields));
@@ -217,9 +289,9 @@ class TestStandardProtobufWriterConfluentRoundTrip {
         runner.enableControllerService(service);
     }
 
-    private byte[] slice(final byte[] data, final int from, final int to) {
-        final byte[] out = new byte[to - from];
-        System.arraycopy(data, from, out, 0, to - from);
+    private byte[] slice(final byte[] data, final int from, final int length) {
+        final byte[] out = new byte[length];
+        System.arraycopy(data, from, out, 0, length);
         return out;
     }
 
@@ -228,10 +300,11 @@ class TestStandardProtobufWriterConfluentRoundTrip {
      * both the writer's name-based lookup and the reader's Confluent-header-based lookup resolve the same schema.
      */
     static class MockSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
-        private final SchemaDefinition schemaDefinition = new StandardSchemaDefinition(
-            SchemaIdentifier.builder().name("user.proto").id((long) SCHEMA_ID).version(1).build(),
-            SCHEMA_TEXT_VALUE,
-            SchemaDefinition.SchemaType.PROTOBUF);
+        private volatile String schemaText = SCHEMA_TEXT_VALUE;
+
+        void returnSchemaText(final String schemaText) {
+            this.schemaText = schemaText;
+        }
 
         @Override
         public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) {
@@ -240,7 +313,8 @@ class TestStandardProtobufWriterConfluentRoundTrip {
 
         @Override
         public SchemaDefinition retrieveSchemaDefinition(final SchemaIdentifier schemaIdentifier) throws SchemaNotFoundException {
-            return schemaDefinition;
+            final SchemaIdentifier identifier = SchemaIdentifier.builder().name("user.proto").id(SCHEMA_ID).version(1).build();
+            return new StandardSchemaDefinition(identifier, schemaText, SchemaDefinition.SchemaType.PROTOBUF);
         }
 
         @Override

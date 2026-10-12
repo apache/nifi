@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.services.protobuf;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.internal.parser.EnumConstantElement;
 import com.squareup.wire.schema.internal.parser.EnumElement;
@@ -32,26 +34,58 @@ import com.squareup.wire.schema.internal.parser.RpcElement;
 import com.squareup.wire.schema.internal.parser.ServiceElement;
 import com.squareup.wire.schema.internal.parser.TypeElement;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.schemaregistry.services.SchemaDefinition;
+import org.apache.nifi.schemaregistry.services.StandardSchemaDefinition;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-final class ProtobufCustomOptionRemover {
+final class ProtobufSchemaDefinitionSanitizer {
 
-    private ProtobufCustomOptionRemover() {
+    private static final Duration SANITIZED_SCHEMAS_CACHE_TTL = Duration.ofHours(1);
+    private static final int SANITIZED_SCHEMAS_CACHE_SIZE = 200;
+
+    private final Cache<SchemaIdentifier, SchemaDefinition> sanitizedSchemaCache;
+    private final ComponentLog logger;
+
+    ProtobufSchemaDefinitionSanitizer(final ComponentLog logger) {
+        this.logger = logger;
+        this.sanitizedSchemaCache = Caffeine.newBuilder()
+            .expireAfterAccess(SANITIZED_SCHEMAS_CACHE_TTL)
+            .maximumSize(SANITIZED_SCHEMAS_CACHE_SIZE)
+            .build();
     }
 
     /**
-     * Removes custom (parenthesized) Protocol Buffer options from schema text.
+     * Removes custom (parenthesized) Protocol Buffer options from a schema definition and its references.
      * Built-in options such as {@code packed} and {@code java_package} are retained.
-     * When the text cannot be parsed, the original string is returned.
      *
-     * @param schemaText source proto schema to remove custom options from
-     * @param location   source location used for parse diagnostics and regenerated comments
-     * @param logger     component logger
-     * @return schema text without custom options, or the original text when parsing fails or no custom options are present
+     * @param schemaDefinition original schema definition
+     * @return sanitized schema definition
      */
-    static String remove(final String schemaText, final Location location, final ComponentLog logger) {
+    SchemaDefinition sanitizeOrGetFromCache(final SchemaDefinition schemaDefinition) {
+        return sanitizedSchemaCache.get(schemaDefinition.getIdentifier(),
+            identifier -> sanitize(schemaDefinition, identifier.toString()));
+    }
+
+    private SchemaDefinition sanitize(final SchemaDefinition schemaDefinition, final String schemaLocation) {
+        final String sanitizedText = removeCustomOptions(schemaDefinition.getText(), Location.get(schemaLocation));
+
+        final Map<String, SchemaDefinition> references = schemaDefinition.getReferences();
+        final Map<String, SchemaDefinition> sanitizedReferences = HashMap.newHashMap(references.size());
+        for (final Map.Entry<String, SchemaDefinition> reference : references.entrySet()) {
+            final String referencePath = reference.getKey();
+            sanitizedReferences.put(referencePath, sanitize(reference.getValue(), referencePath));
+        }
+
+        return new StandardSchemaDefinition(schemaDefinition.getIdentifier(), sanitizedText, schemaDefinition.getSchemaType(), sanitizedReferences);
+    }
+
+    private String removeCustomOptions(final String schemaText, final Location location) {
         if (schemaText == null || schemaText.isBlank()) {
             return schemaText;
         }
