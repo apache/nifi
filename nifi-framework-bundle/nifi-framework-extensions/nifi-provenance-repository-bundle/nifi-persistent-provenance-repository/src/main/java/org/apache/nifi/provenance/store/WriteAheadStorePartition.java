@@ -31,6 +31,7 @@ import org.apache.nifi.provenance.store.iterator.SelectiveRecordReaderEventItera
 import org.apache.nifi.provenance.store.iterator.SequentialRecordReaderEventIterator;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.util.DirectoryUtils;
+import org.apache.nifi.provenance.util.FileInfo;
 import org.apache.nifi.provenance.util.NamedThreadFactory;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
@@ -47,10 +48,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
@@ -169,6 +172,11 @@ public class WriteAheadStorePartition implements EventStorePartition {
         final long nextPartitionId = maxEventId + 1;
         final long updatedId = idGenerator.updateAndGet(curVal -> Math.max(curVal, nextPartitionId));
         logger.info("After recovering {}, next Event ID to be generated will be {}", partitionDirectory, updatedId);
+    }
+
+    @Override
+    public String getPartitionName() {
+        return this.partitionName;
     }
 
     @Override
@@ -494,23 +502,41 @@ public class WriteAheadStorePartition implements EventStorePartition {
     }
 
     @Override
-    public void purgeOldEvents(final long olderThan, final ChronoUnit timeUnit) {
+    public List<FileInfo> getAllFiles() throws IOException {
+        return DirectoryUtils.listFiles(partitionDirectory.toPath());
+    }
+
+    @Override
+    public long purgeOldEvents(final List<FileInfo> files, final long olderThan, final ChronoUnit timeUnit) {
         // Use ZDT to allow the system to handle a ChronoUnit that is otherwise "estimated"
         final long timeCutoff = ZonedDateTime.now()
                 .minus(olderThan, timeUnit)
                 .toInstant().toEpochMilli();
-        final List<File> removed = getEventFilesFromDisk().filter(file -> file.lastModified() < timeCutoff)
-            .sorted(DirectoryUtils.SMALLEST_ID_FIRST)
-            .filter(this::delete)
-            .collect(Collectors.toList());
+
+        final List<FileInfo> eventFilesToDelete = files.stream()
+                .filter(DirectoryUtils.EVENT_PATH_FILTER)
+                .filter(fileinfo -> fileinfo.lastModified().toInstant().toEpochMilli() < timeCutoff)
+                .toList();
+
+        Set<FileInfo> filesDeleted = new HashSet<>();
+        long bytesDeleted = 0;
+        for (FileInfo file : eventFilesToDelete) {
+            if (delete(file.path().toFile())) {
+                filesDeleted.add(file);
+                bytesDeleted += file.size();
+            }
+        }
+        files.removeIf(filesDeleted::contains);
 
         String thresholdWords = FormatUtils.formatDurationToWords(olderThan, timeUnit);
-
-        if (removed.isEmpty()) {
+        if (filesDeleted.isEmpty()) {
             logger.debug("No Provenance Event files that exceed time-based threshold of {}", thresholdWords);
         } else {
-            logger.info("Purged {} Provenance Event files from Provenance Repository because the events were older than {} : {}", removed.size(), thresholdWords, removed);
+            logger.info("Purged {} Provenance Event files from Provenance Repository because the events were older than {} : {}",
+                    filesDeleted.size(), thresholdWords, filesDeleted);
         }
+
+        return bytesDeleted;
     }
 
     private File getActiveEventFile() {
@@ -519,8 +545,12 @@ public class WriteAheadStorePartition implements EventStorePartition {
     }
 
     @Override
-    public long purgeOldestEvents() {
-        final List<File> eventFiles = getEventFilesFromDisk().sorted(DirectoryUtils.SMALLEST_ID_FIRST).collect(Collectors.toList());
+    public long purgeOldestEvents(final List<FileInfo> files) {
+        final List<FileInfo> eventFiles = files.stream()
+                .filter(DirectoryUtils.EVENT_PATH_FILTER)
+                .sorted(DirectoryUtils.OLDEST_FILEINFO_FIRST)
+                .toList();
+
         if (eventFiles.size() < 2) {
             // If there are no Event Files, there's nothing to do. If there is exactly 1 Event File, it means that the only Event File
             // that exists is the Active Event File, which we are writing to, so we don't want to remove it either.
@@ -533,19 +563,18 @@ public class WriteAheadStorePartition implements EventStorePartition {
             return 0L;
         }
 
-        for (final File eventFile : eventFiles) {
+        for (final FileInfo file : eventFiles) {
+            final File eventFile = file.path().toFile();
             if (eventFile.equals(currentFile)) {
-                break;
+                return 0L;
             }
 
-            final long fileSize = eventFile.length();
+            final long fileSize = file.size();
 
             if (delete(eventFile)) {
+                files.remove(file);
                 logger.info("{} Deleted {} event file ({}) due to storage limits", this, eventFile, FormatUtils.formatDataSize(fileSize));
                 return fileSize;
-            } else {
-                logger.warn("{} Failed to delete oldest event file {}. This file should be cleaned up manually.", this, eventFile);
-                continue;
             }
         }
 
@@ -566,14 +595,17 @@ public class WriteAheadStorePartition implements EventStorePartition {
 
         eventFileManager.obtainWriteLock(file);
         try {
-            if (file.exists() && !file.delete()) {
-                logger.warn("Failed to remove Provenance Event file {}; this file should be cleaned up manually", file);
-                return false;
-            }
+            if (file.exists()) {
+                if (!file.delete()) {
+                    logger.warn("Failed to remove Provenance Event file {}; this file should be cleaned up manually", file);
+                    return false;
+                }
 
-            final File tocFile = TocUtil.getTocFile(file);
-            if (tocFile.exists() && !tocFile.delete()) {
-                logger.warn("Failed to remove Provenance Table-of-Contents file {}; this file should be cleaned up manually", tocFile);
+                // delete Table-of-Contents file if event file was deleted
+                final File tocFile = TocUtil.getTocFile(file);
+                if (tocFile.exists() && !tocFile.delete()) {
+                    logger.warn("Failed to remove Provenance Table-of-Contents file {}; this file should be cleaned up manually", tocFile);
+                }
             }
 
             return true;

@@ -19,7 +19,16 @@ package org.apache.nifi.provenance.util;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,6 +40,8 @@ public class DirectoryUtils {
     public static final Comparator<File> LARGEST_ID_FIRST = SMALLEST_ID_FIRST.reversed();
     public static final Comparator<File> OLDEST_INDEX_FIRST = (a, b) -> Long.compare(getIndexTimestamp(a), getIndexTimestamp(b));
     public static final Comparator<File> NEWEST_INDEX_FIRST = OLDEST_INDEX_FIRST.reversed();
+    public static final Predicate<FileInfo> EVENT_PATH_FILTER = p -> p.path().toString().endsWith(".prov") || p.path().toString().endsWith(".prov.gz");
+    public static final Comparator<FileInfo> OLDEST_FILEINFO_FIRST = Comparator.comparing(FileInfo::lastModified);
 
     public static long getMinId(final File file) {
         final String filename = file.getName();
@@ -77,5 +88,29 @@ public class DirectoryUtils {
         }
 
         return total;
+    }
+
+    public static List<FileInfo> listFiles(final Path directory) throws IOException {
+        List<FileInfo> results = new ArrayList<>();
+
+        Files.walkFileTree(directory, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) {
+                results.add(new FileInfo(path, attrs.size(), attrs.lastModifiedTime()));
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFileFailed(Path path, IOException ex) throws IOException {
+                if (directory.equals(path)) {
+                    // if visit to root 'directory' fails, throw the IOException
+                    throw ex;
+                }
+                // otherwise, skip folders and files we cannot read instead of halting the whole process
+                return FileVisitResult.CONTINUE;
+            }
+        });
+
+        return results;
     }
 }
