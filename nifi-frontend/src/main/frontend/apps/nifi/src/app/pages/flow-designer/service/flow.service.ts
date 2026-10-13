@@ -227,7 +227,7 @@ export class FlowService implements PropertyDescriptorRetriever {
         payload.append('groupName', uploadProcessGroup.name);
         payload.append('positionX', uploadProcessGroup.position.x.toString());
         payload.append('positionY', uploadProcessGroup.position.y.toString());
-        payload.append('clientId', uploadProcessGroup.revision.clientId);
+        payload.append('clientId', uploadProcessGroup.revision.clientId ?? '');
         payload.append(
             'disconnectedNodeAcknowledged',
             String(this.clusterConnectionService.isDisconnectionAcknowledged())

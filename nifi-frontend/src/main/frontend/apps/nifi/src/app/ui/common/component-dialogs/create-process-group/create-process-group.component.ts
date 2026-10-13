@@ -137,7 +137,7 @@ export class CreateProcessGroup extends CloseOnEscapeDialog {
 
         this.createProcessGroupForm = this.formBuilder.group({
             newProcessGroupName: new FormControl('', Validators.required),
-            newProcessGroupParameterContext: new FormControl(null)
+            newProcessGroupParameterContext: new FormControl<string | null>(null)
         });
     }
 

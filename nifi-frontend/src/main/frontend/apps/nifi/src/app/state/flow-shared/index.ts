@@ -38,7 +38,8 @@ import {
     RemoteProcessGroupDTO,
     RemoteProcessGroupEntity,
     Revision,
-    RevisionRequest
+    RevisionRequest,
+    VersionControlInformationDTO
 } from '@nifi/shared';
 import { CopyResponseEntity, PasteRequestStrategy } from '../copy';
 import { ParameterContextEntity, RegistryClientEntity, SparseVersionedFlow } from '../shared';
@@ -115,6 +116,12 @@ export type ProcessGroupCreateBody = RequiredPosition<ProcessGroupDTO> &
         };
     };
 export type ProcessGroupCreateRequest = ComponentCreateRequest<ProcessGroupCreateBody>;
+
+export type ProcessGroupImportBody = RequiredPosition<ProcessGroupDTO> & {
+    versionControlInformation: Pick<VersionControlInformationDTO, 'registryId' | 'bucketId' | 'flowId' | 'version'> &
+        Partial<Pick<VersionControlInformationDTO, 'branch'>>;
+};
+export type ProcessGroupImportRequest = ComponentCreateRequest<ProcessGroupImportBody>;
 
 type RemoteProcessGroupCreateOptions = Pick<
     RemoteProcessGroupDTO,
@@ -252,7 +259,7 @@ export interface SelectedComponent {
 export interface CreateComponentRequest {
     type: ComponentType;
     position: Position;
-    revision: any;
+    revision: CreateRevisionRequest;
 }
 
 export interface CreateLabelRequest extends CreateComponentRequest {
@@ -275,7 +282,7 @@ export interface CreateConnectionDialogRequest {
 }
 
 export interface CreateConnection {
-    payload: any;
+    payload: ConnectionCreateRequest;
 }
 
 export interface CreateProcessGroupDialogRequest {
@@ -294,7 +301,7 @@ export interface ImportFromRegistryDialogRequest {
 }
 
 export interface ImportFromRegistryRequest {
-    payload: any;
+    payload: ProcessGroupImportRequest;
     keepExistingParameterContext: boolean;
 }
 
@@ -349,7 +356,7 @@ export interface CreateProcessorRequest extends CreateComponentRequest {
 
 export interface CreateProcessGroupRequest extends CreateComponentRequest {
     name: string;
-    parameterContextId: string;
+    parameterContextId: string | null;
 }
 
 export interface UploadProcessGroupRequest extends CreateComponentRequest {
@@ -383,7 +390,7 @@ export interface SnippetComponentRequest {
     id: string;
     uri: string;
     type: ComponentType;
-    entity: any;
+    entity: CanvasComponentEntity;
 }
 
 export type MoveComponentRequest = SnippetComponentRequest;

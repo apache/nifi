@@ -23,17 +23,16 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
-import {
-    ComponentType,
-    NifiSpinnerDirective,
-    SelectOption,
-    NifiTooltipDirective,
-    TextTip,
-    CloseOnEscapeDialog
-} from '@nifi/shared';
+import { ComponentType, NifiSpinnerDirective, NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../state/error';
 import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
 import { Observable, of } from 'rxjs';
+
+interface RemoteAccessOption {
+    text: string;
+    value: boolean;
+    description: string;
+}
 
 @Component({
     selector: 'create-port',
@@ -64,15 +63,15 @@ export class CreatePort extends CloseOnEscapeDialog {
     createPortForm: FormGroup;
     portTypeLabel: string;
 
-    allowRemoteAccessOptions: SelectOption[] = [
+    allowRemoteAccessOptions: RemoteAccessOption[] = [
         {
             text: 'Local connections',
-            value: 'false',
+            value: false,
             description: 'Receive FlowFiles from components in parent process groups'
         },
         {
             text: 'Remote connections (site-to-site)',
-            value: 'true',
+            value: true,
             description: 'Receive FlowFiles from remote process group (site-to-site)'
         }
     ];
@@ -87,11 +86,14 @@ export class CreatePort extends CloseOnEscapeDialog {
 
         this.createPortForm = this.formBuilder.group({
             newPortName: new FormControl('', Validators.required),
-            newPortAllowRemoteAccess: new FormControl(this.allowRemoteAccessOptions[0].value, Validators.required)
+            newPortAllowRemoteAccess: new FormControl<boolean>(this.allowRemoteAccessOptions[0].value, {
+                nonNullable: true,
+                validators: Validators.required
+            })
         });
     }
 
-    submitCreatePort() {
+    submitCreatePort(): void {
         this.createPort.emit({
             ...this.request,
             name: this.createPortForm.get('newPortName')?.value,

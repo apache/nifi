@@ -27,7 +27,11 @@ import {
     WritableSignal
 } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { ImportFromRegistryDialogRequest, ImportFromRegistryRequest } from '../../../../state/flow-shared';
+import {
+    ImportFromRegistryDialogRequest,
+    ImportFromRegistryRequest,
+    ProcessGroupImportRequest
+} from '../../../../state/flow-shared';
 import {
     BranchEntity,
     BucketEntity,
@@ -513,7 +517,7 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
 
     submitImportFromRegistry(): void {
         if (this.selectedFlowVersion != null) {
-            const payload: any = {
+            const payload: ProcessGroupImportRequest = {
                 revision: this.client.getRevision({
                     revision: {
                         version: 0

@@ -18,6 +18,8 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import {
+    ConnectionCreateBody,
+    ConnectionCreateRequest,
     CreateConnection as CreateConnectionPayload,
     CreateConnectionDialogRequest,
     SelectedComponent
@@ -223,77 +225,68 @@ export class CreateConnection extends CloseOnEscapeDialog {
     }
 
     submitCreateConnection(currentProcessGroupId: string): void {
-        const payload: any = {
+        const sourceType = getConnectableTypeForSource(this.source.componentType);
+        const destinationType = getConnectableTypeForDestination(this.destination.componentType);
+        if (!sourceType || !destinationType) {
+            throw new Error('Connection source and destination must be connectable component types');
+        }
+
+        const source = {
+            groupId:
+                this.source.componentType == ComponentType.ProcessGroup ||
+                this.source.componentType == ComponentType.RemoteProcessGroup
+                    ? this.source.id
+                    : currentProcessGroupId,
+            id:
+                this.source.componentType == ComponentType.ProcessGroup ||
+                this.source.componentType == ComponentType.RemoteProcessGroup
+                    ? this.createConnectionForm.get('source')?.value
+                    : this.source.entity.id,
+            type: sourceType
+        };
+        const destination = {
+            groupId:
+                this.destination.componentType == ComponentType.ProcessGroup ||
+                this.destination.componentType == ComponentType.RemoteProcessGroup
+                    ? this.destination.id
+                    : currentProcessGroupId,
+            id:
+                this.destination.componentType == ComponentType.ProcessGroup ||
+                this.destination.componentType == ComponentType.RemoteProcessGroup
+                    ? this.createConnectionForm.get('destination')?.value
+                    : this.destination.id,
+            type: destinationType
+        };
+        const component: ConnectionCreateBody = {
+            backPressureDataSizeThreshold: this.createConnectionForm.get('backPressureDataSizeThreshold')?.value,
+            backPressureObjectThreshold: this.createConnectionForm.get('backPressureObjectThreshold')?.value,
+            flowFileExpiration: this.createConnectionForm.get('flowFileExpiration')?.value,
+            loadBalanceStrategy: this.createConnectionForm.get('loadBalanceStrategy')?.value,
+            name: this.createConnectionForm.get('name')?.value,
+            labelIndex: 0,
+            prioritizers: this.createConnectionForm.get('prioritizers')?.value,
+            selectedRelationships:
+                this.source.componentType == ComponentType.Processor
+                    ? this.createConnectionForm.get('relationships')?.value
+                    : undefined,
+            source,
+            destination,
+            loadBalancePartitionAttribute: this.loadBalancePartitionAttributeRequired
+                ? this.createConnectionForm.get('partitionAttribute')?.value
+                : '',
+            loadBalanceCompression: this.loadBalanceCompressionRequired
+                ? this.createConnectionForm.get('compression')?.value
+                : 'DO_NOT_COMPRESS',
+            ...(this.dialogRequest.request.bends ? { bends: this.dialogRequest.request.bends } : {})
+        };
+        const payload: ConnectionCreateRequest = {
             revision: {
                 version: 0,
                 clientId: this.client.getClientId()
             },
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-            component: {
-                backPressureDataSizeThreshold: this.createConnectionForm.get('backPressureDataSizeThreshold')?.value,
-                backPressureObjectThreshold: this.createConnectionForm.get('backPressureObjectThreshold')?.value,
-                flowFileExpiration: this.createConnectionForm.get('flowFileExpiration')?.value,
-                loadBalanceStrategy: this.createConnectionForm.get('loadBalanceStrategy')?.value,
-                name: this.createConnectionForm.get('name')?.value,
-                labelIndex: 0,
-                prioritizers: this.createConnectionForm.get('prioritizers')?.value
-            }
+            component
         };
-
-        if (this.source.componentType == ComponentType.Processor) {
-            payload.component.selectedRelationships = this.createConnectionForm.get('relationships')?.value;
-        }
-
-        if (
-            this.source.componentType == ComponentType.ProcessGroup ||
-            this.source.componentType == ComponentType.RemoteProcessGroup
-        ) {
-            payload.component.source = {
-                groupId: this.source.id,
-                id: this.createConnectionForm.get('source')?.value,
-                type: getConnectableTypeForSource(this.source.componentType)
-            };
-        } else {
-            payload.component.source = {
-                groupId: currentProcessGroupId,
-                id: this.source.entity.id,
-                type: getConnectableTypeForSource(this.source.componentType)
-            };
-        }
-
-        if (
-            this.destination.componentType == ComponentType.ProcessGroup ||
-            this.destination.componentType == ComponentType.RemoteProcessGroup
-        ) {
-            payload.component.destination = {
-                groupId: this.destination.id,
-                id: this.createConnectionForm.get('destination')?.value,
-                type: getConnectableTypeForDestination(this.destination.componentType)
-            };
-        } else {
-            payload.component.destination = {
-                groupId: currentProcessGroupId,
-                id: this.destination.id,
-                type: getConnectableTypeForDestination(this.destination.componentType)
-            };
-        }
-
-        if (this.loadBalancePartitionAttributeRequired) {
-            payload.component.loadBalancePartitionAttribute =
-                this.createConnectionForm.get('partitionAttribute')?.value;
-        } else {
-            payload.component.loadBalancePartitionAttribute = '';
-        }
-
-        if (this.loadBalanceCompressionRequired) {
-            payload.component.loadBalanceCompression = this.createConnectionForm.get('compression')?.value;
-        } else {
-            payload.component.loadBalanceCompression = 'DO_NOT_COMPRESS';
-        }
-
-        if (this.dialogRequest.request.bends) {
-            payload.component.bends = this.dialogRequest.request.bends;
-        }
 
         this.createConnection.emit({
             payload

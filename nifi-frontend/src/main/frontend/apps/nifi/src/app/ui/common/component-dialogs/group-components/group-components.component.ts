@@ -82,7 +82,9 @@ export class GroupComponents {
 
         this.createProcessGroupForm = this.formBuilder.group({
             newProcessGroupName: new FormControl('', Validators.required),
-            newProcessGroupParameterContext: new FormControl(dialogRequest.currentParameterContextId)
+            newProcessGroupParameterContext: new FormControl<string | null>(
+                dialogRequest.currentParameterContextId ?? null
+            )
         });
     }
 

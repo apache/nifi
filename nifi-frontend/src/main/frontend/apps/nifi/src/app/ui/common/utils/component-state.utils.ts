@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, ConnectableComponentType } from '@nifi/shared';
 
 /**
  * Determines whether a runnable component (Processor or Port) currently supports modification.
@@ -82,7 +82,7 @@ export function getComponentTypeForDestination(connectableType: string): Compone
 /**
  * Returns the NiFi connectable type string for a given ComponentType source.
  */
-export function getConnectableTypeForSource(type: ComponentType): string {
+export function getConnectableTypeForSource(type: ComponentType): ConnectableComponentType | '' {
     switch (type) {
         case ComponentType.Processor:
             return 'PROCESSOR';
@@ -102,7 +102,7 @@ export function getConnectableTypeForSource(type: ComponentType): string {
 /**
  * Returns the NiFi connectable type string for a given ComponentType destination.
  */
-export function getConnectableTypeForDestination(type: ComponentType): string {
+export function getConnectableTypeForDestination(type: ComponentType): ConnectableComponentType | '' {
     switch (type) {
         case ComponentType.Processor:
             return 'PROCESSOR';

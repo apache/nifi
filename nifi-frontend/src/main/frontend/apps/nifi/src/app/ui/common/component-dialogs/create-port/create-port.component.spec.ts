@@ -61,19 +61,19 @@ describe('CreatePort', () => {
         expect(component).toBeTruthy();
     });
 
-    it('should emit createPort from the form', () => {
+    it.each([true, false])('should emit createPort with allowRemoteAccess %s', (allowRemoteAccess) => {
         const emitted: CreatePortRequest[] = [];
         component.createPort.subscribe((request) => emitted.push(request));
 
         component.createPortForm.get('newPortName')?.setValue('in');
-        component.createPortForm.get('newPortAllowRemoteAccess')?.setValue('true');
+        component.createPortForm.get('newPortAllowRemoteAccess')?.setValue(allowRemoteAccess);
         component.submitCreatePort();
 
         expect(emitted).toEqual([
             {
                 ...data,
                 name: 'in',
-                allowRemoteAccess: 'true'
+                allowRemoteAccess
             }
         ]);
     });
