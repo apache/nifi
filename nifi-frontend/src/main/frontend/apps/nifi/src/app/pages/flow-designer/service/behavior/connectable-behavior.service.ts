@@ -23,7 +23,7 @@ import { CanvasState } from '../../state';
 import { openNewConnectionDialog, selectComponents } from '../../state/flow/flow.actions';
 import { ConnectionManager } from '../manager/connection-manager.service';
 import { Position } from '@nifi/shared';
-import { CreateConnectionRequest } from '../../state/flow';
+import { CreateConnectionRequest } from '../../../../state/flow-shared';
 
 @Injectable({
     providedIn: 'root'

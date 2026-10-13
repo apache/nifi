@@ -39,7 +39,8 @@ import {
     stopComponents,
     stopCurrentProcessGroup
 } from '../state/flow/flow.actions';
-import { ChangeColorRequest, DeleteComponentRequest, MoveComponentRequest, SelectedComponent } from '../state/flow';
+import { ChangeColorRequest } from '../state/flow';
+import { DeleteComponentRequest, MoveComponentRequest, SelectedComponent } from '../../../state/flow-shared';
 import {
     DisableComponentRequest,
     EnableComponentRequest,

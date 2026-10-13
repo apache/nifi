@@ -18,18 +18,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreatePort } from './create-port.component';
-import { CreateComponentRequest } from '../../../../../state/flow';
+import { CreateComponentRequest, CreatePortRequest } from '../../../../state/flow-shared';
 import { ComponentType } from '@nifi/shared';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../../../state/flow/flow.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
-import { errorFeatureKey } from '../../../../../../../state/error';
-import { initialState as initialCurrentUserState } from '../../../../../../../state/current-user/current-user.reducer';
-import { currentUserFeatureKey } from '../../../../../../../state/current-user';
-import { canvasFeatureKey } from '../../../../../state';
-import { flowFeatureKey } from '../../../../../state/flow';
+import { MockComponent } from 'ng-mocks';
+import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
 
 describe('CreatePort', () => {
     let component: CreatePort;
@@ -52,17 +46,11 @@ describe('CreatePort', () => {
             imports: [CreatePort, NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
-                provideMockStore({
-                    initialState: {
-                        [errorFeatureKey]: initialErrorState,
-                        [currentUserFeatureKey]: initialCurrentUserState,
-                        [canvasFeatureKey]: {
-                            [flowFeatureKey]: initialState
-                        }
-                    }
-                }),
                 { provide: MatDialogRef, useValue: null }
             ]
+        }).overrideComponent(CreatePort, {
+            remove: { imports: [ContextErrorBanner] },
+            add: { imports: [MockComponent(ContextErrorBanner)] }
         });
         fixture = TestBed.createComponent(CreatePort);
         component = fixture.componentInstance;
@@ -71,5 +59,22 @@ describe('CreatePort', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it.each([true, false])('should emit createPort with allowRemoteAccess %s', (allowRemoteAccess) => {
+        const emitted: CreatePortRequest[] = [];
+        component.createPort.subscribe((request) => emitted.push(request));
+
+        component.createPortForm.get('newPortName')?.setValue('in');
+        component.createPortForm.get('newPortAllowRemoteAccess')?.setValue(allowRemoteAccess);
+        component.submitCreatePort();
+
+        expect(emitted).toEqual([
+            {
+                ...data,
+                name: 'in',
+                allowRemoteAccess
+            }
+        ]);
     });
 });

@@ -31,7 +31,7 @@
                 <input type="file" #flowUploadControl class="hidden" (change)="attachFlow($event)" />
             </button>
         </mat-form-field>
-        @if (!flowDefinition) {
+        @if (!flowDefinition && supportsParameters) {
             <div class="flex flew-row w-full justify-start items-start">
                 <mat-form-field>
                     <mat-label>Parameter Context</mat-label>
@@ -108,7 +108,7 @@
                     createProcessGroupForm.pending
                 "
                 type="submit"
-                (click)="createProcessGroup()"
+                (click)="submitCreateProcessGroup()"
                 mat-flat-button>
                 <span *nifiSpinner="saving.value">Add</span>
             </button>

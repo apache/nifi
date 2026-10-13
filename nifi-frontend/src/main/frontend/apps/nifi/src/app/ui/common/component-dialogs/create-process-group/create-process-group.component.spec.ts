@@ -18,21 +18,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreateProcessGroup } from './create-process-group.component';
-import { CreateProcessGroupDialogRequest } from '../../../../../state/flow';
+import { CreateProcessGroupDialogRequest, CreateProcessGroupRequest } from '../../../../state/flow-shared';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ComponentType } from '@nifi/shared';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../../../state/flow/flow.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { CurrentUser } from '../../../../../../../state/current-user';
+import { CurrentUser } from '../../../../state/current-user';
 import { of } from 'rxjs';
 import { By } from '@angular/platform-browser';
-import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
-import { errorFeatureKey } from '../../../../../../../state/error';
-import { initialState as initialCurrentUserState } from '../../../../../../../state/current-user/current-user.reducer';
-import { currentUserFeatureKey } from '../../../../../../../state/current-user';
-import { canvasFeatureKey } from '../../../../../state';
-import { flowFeatureKey } from '../../../../../state/flow';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
 
 const noPermissionsParameterContextId = '95d509b9-018b-1000-daff-b7957ea7935e';
 const parameterContextId = '95d509b9-018b-1000-daff-b7957ea7934f';
@@ -97,11 +92,7 @@ describe('CreateProcessGroup', () => {
                     { provide: MAT_DIALOG_DATA, useValue: data },
                     provideMockStore({
                         initialState: {
-                            [errorFeatureKey]: initialErrorState,
-                            [currentUserFeatureKey]: initialCurrentUserState,
-                            [canvasFeatureKey]: {
-                                [flowFeatureKey]: initialState
-                            }
+                            [errorFeatureKey]: initialErrorState
                         }
                     }),
                     { provide: MatDialogRef, useValue: null }
@@ -128,6 +119,39 @@ describe('CreateProcessGroup', () => {
             component.parameterContexts = parameterContexts;
             fixture.detectChanges();
             expect(component.parameterContextsOptions.length).toEqual(2);
+        });
+
+        it('hides the parameter context selector when supportsParameters is false', () => {
+            component.supportsParameters = false;
+            fixture.detectChanges();
+
+            const select = fixture.debugElement.query(
+                By.css('mat-select[formcontrolname="newProcessGroupParameterContext"]')
+            );
+            expect(select).toBeNull();
+        });
+
+        it('emits a null parameter context id when supportsParameters is false', () => {
+            component.supportsParameters = false;
+            component.createProcessGroupForm.get('newProcessGroupName')?.setValue('child');
+            const emitted: CreateProcessGroupRequest[] = [];
+            component.createProcessGroup.subscribe((request) => emitted.push(request));
+
+            component.submitCreateProcessGroup();
+
+            expect(emitted[0].parameterContextId).toBeNull();
+        });
+
+        it('emits a null parameter context id when no parameter context is selected', () => {
+            component.supportsParameters = true;
+            component.createProcessGroupForm.get('newProcessGroupName')?.setValue('child');
+            component.createProcessGroupForm.get('newProcessGroupParameterContext')?.setValue(null);
+            const emitted: CreateProcessGroupRequest[] = [];
+            component.createProcessGroup.subscribe((request) => emitted.push(request));
+
+            component.submitCreateProcessGroup();
+
+            expect(emitted[0].parameterContextId).toBeNull();
         });
     });
 
@@ -158,11 +182,7 @@ describe('CreateProcessGroup', () => {
                     { provide: MAT_DIALOG_DATA, useValue: data },
                     provideMockStore({
                         initialState: {
-                            [errorFeatureKey]: initialErrorState,
-                            [currentUserFeatureKey]: initialCurrentUserState,
-                            [canvasFeatureKey]: {
-                                [flowFeatureKey]: initialState
-                            }
+                            [errorFeatureKey]: initialErrorState
                         }
                     }),
                     { provide: MatDialogRef, useValue: null }

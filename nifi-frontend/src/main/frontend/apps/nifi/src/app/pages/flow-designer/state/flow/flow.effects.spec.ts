@@ -17,9 +17,14 @@
 
 import { FlowService } from '../../service/flow.service';
 import * as FlowActions from './flow.actions';
-import { firstValueFrom, of, ReplaySubject, Subject, take, throwError, toArray } from 'rxjs';
+import { firstValueFrom, Observable, of, ReplaySubject, Subject, take, throwError, toArray } from 'rxjs';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { ComponentHistoryEntity } from '../../../../state/shared';
+import {
+    ComponentHistoryEntity,
+    DocumentedType,
+    ParameterContextEntity,
+    RegistryClientEntity
+} from '../../../../state/shared';
 import { EditProcessor } from '../../../../ui/common/component-dialogs/edit-processor/edit-processor.component';
 import { ProcessorBacklogDialog } from '../../ui/canvas/items/processor/backlog-dialog/backlog-dialog.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
@@ -28,16 +33,25 @@ import { provideMockActions } from '@ngrx/effects/testing';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { TestBed } from '@angular/core/testing';
 import { Action, createSelector } from '@ngrx/store';
-import { selectCurrentProcessGroupId } from './flow.selectors';
+import { selectCurrentProcessGroupId, selectParentProcessGroupId } from './flow.selectors';
 import * as flowSelectors from './flow.selectors';
+import { flowFeatureKey, MoveToFrontRequest, StopSourcesResponse } from './index';
 import {
     CreateComponentRequest,
     CreateComponentResponse,
     CreateConnection,
-    flowFeatureKey,
-    MoveToFrontRequest,
-    StopSourcesResponse
-} from './index';
+    CreateConnectionRequest,
+    CreatePortRequest,
+    CreateProcessGroupDialogRequest,
+    CreateProcessGroupRequest,
+    CreateProcessorRequest,
+    CreateRemoteProcessGroupRequest,
+    GroupComponentsDialogRequest,
+    GroupComponentsRequest,
+    ImportFromRegistryDialogRequest,
+    ImportFromRegistryRequest,
+    UploadProcessGroupRequest
+} from '../../../../state/flow-shared';
 import {
     BacklogRequestEntity,
     DisableComponentRequest,
@@ -49,7 +63,10 @@ import {
 } from '../../../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import * as fromUser from '../../../../state/current-user/current-user.reducer';
-import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
+import {
+    selectFlowConfiguration,
+    selectTimeOffset
+} from '../../../../state/flow-configuration/flow-configuration.selectors';
 import * as fromFlowConfiguration from '../../../../state/flow-configuration/flow-configuration.reducer';
 import * as fromDocumentVisibility from '../../../../state/document-visibility/document-visibility.reducer';
 import { selectDocumentVisibilityState } from '../../../../state/document-visibility/document-visibility.selectors';
@@ -63,9 +80,10 @@ import { RegistryService } from '../../service/registry.service';
 import { SnippetService } from '../../service/snippet.service';
 import { CopyPasteService } from '../../service/copy-paste.service';
 import { CanvasView } from '../../service/canvas-view.service';
+import { CanvasUtils } from '../../service/canvas-utils.service';
 import { BirdseyeView } from '../../service/birdseye-view.service';
 import { selectDisconnectionAcknowledged } from '../../../../state/cluster-summary/cluster-summary.selectors';
-import { ComponentType, ComponentTypeNamePipe, YesNoDialog } from '@nifi/shared';
+import { ComponentType, ComponentTypeNamePipe, FunnelEntity, PortEntity, YesNoDialog } from '@nifi/shared';
 import { ParameterContextService } from '../../../parameter-contexts/service/parameter-contexts.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { provideRouter, Router } from '@angular/router';
@@ -82,6 +100,14 @@ import * as fromParameter from '../parameter/parameter.reducer';
 import { flowAnalysisFeatureKey } from '../flow-analysis';
 import * as fromFlowAnalysis from '../flow-analysis/flow-analysis.reducer';
 import * as EmptyQueueActions from '../../../../state/empty-queue/empty-queue.actions';
+import {
+    selectExtensionTypesLoadingStatus,
+    selectPrioritizerTypes,
+    selectProcessorTypes
+} from '../../../../state/extension-types/extension-types.selectors';
+import { ExtensionTypesLoadingStatus } from '../../../../state/extension-types';
+import * as ParameterActions from '../parameter/parameter.actions';
+import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
 
 describe('FlowEffects', () => {
     let action$: ReplaySubject<Action>;
@@ -835,7 +861,9 @@ describe('FlowEffects', () => {
                         createLabel: vi.fn(),
                         clearBulletinsForProcessGroup: vi.fn(),
                         submitProcessorBacklogRequest: vi.fn(),
-                        stopSources: vi.fn()
+                        stopSources: vi.fn(),
+                        getProcessGroup: vi.fn(),
+                        getFlow: vi.fn()
                     }
                 },
                 {
@@ -874,7 +902,11 @@ describe('FlowEffects', () => {
                 {
                     provide: RegistryService,
                     useValue: {
-                        getRegistryClients: vi.fn()
+                        getRegistryClients: vi.fn(),
+                        getBranches: vi.fn(),
+                        getBuckets: vi.fn(),
+                        getFlows: vi.fn(),
+                        getFlowVersions: vi.fn()
                     }
                 },
                 {
@@ -1054,7 +1086,14 @@ describe('FlowEffects', () => {
     describe('#createConnection', () => {
         it('enriches the call to createConnection with the max z index + 1', async () => {
             const REQUEST: CreateConnection = {
-                payload: {} // irrelevant
+                payload: {
+                    revision: { version: 0, clientId: 'client-1' },
+                    component: {
+                        labelIndex: 0,
+                        source: { id: 'source-1', groupId: 'group-1', type: 'FUNNEL' },
+                        destination: { id: 'destination-1', groupId: 'group-1', type: 'FUNNEL' }
+                    }
+                }
             };
 
             const MAX_Z_INDEX = 10;
@@ -1096,7 +1135,7 @@ describe('FlowEffects', () => {
             const REQUEST: CreateComponentRequest = {
                 type: ComponentType.Label,
                 position: { x: 0, y: 0 },
-                revision: 1
+                revision: { version: 0, clientId: 'client-1' }
             };
 
             const CREATE_COMPONENT_RESPONSE = {
@@ -1898,6 +1937,475 @@ describe('FlowEffects', () => {
                 route: ['/process-groups', 'pg-123', ComponentType.Processor, 'proc-2', 'edit'],
                 routeBoundary: ['/parameter-contexts'],
                 context: 'Processor'
+            });
+        });
+    });
+
+    describe('openNewConnectionDialog$', () => {
+        const createFunnelEntity = (id: string): FunnelEntity => ({
+            id,
+            uri: `https://localhost:4200/nifi-api/funnels/${id}`,
+            revision: { version: 0 },
+            permissions: { canRead: true, canWrite: true },
+            position: { x: 0, y: 0 },
+            component: { id, position: { x: 0, y: 0 } }
+        });
+        const createPortEntity = (id: string, portType: 'INPUT_PORT' | 'OUTPUT_PORT'): PortEntity => ({
+            id,
+            uri: `https://localhost:4200/nifi-api/${portType === 'INPUT_PORT' ? 'input-ports' : 'output-ports'}/${id}`,
+            revision: { version: 0 },
+            permissions: { canRead: true, canWrite: true },
+            operatePermissions: { canRead: true, canWrite: true },
+            position: { x: 0, y: 0 },
+            portType,
+            component: {
+                id,
+                position: { x: 0, y: 0 },
+                state: 'STOPPED',
+                type: portType,
+                portFunction: 'STANDARD',
+                concurrentlySchedulableTaskCount: 1,
+                name: id
+            }
+        });
+        const request: CreateConnectionRequest = {
+            source: {
+                id: 'src',
+                componentType: ComponentType.Funnel,
+                entity: createFunnelEntity('src')
+            },
+            destination: {
+                id: 'dst',
+                componentType: ComponentType.Funnel,
+                entity: createFunnelEntity('dst')
+            }
+        };
+
+        it('assigns dialog inputs and dispatches createConnection from the dialog output', async () => {
+            const afterClosed = new Subject<void>();
+            const createConnection = new EventEmitter<CreateConnection>();
+            const componentInstance: {
+                createConnection: EventEmitter<CreateConnection>;
+                saving$: Observable<boolean>;
+                breadcrumbs$: Observable<unknown>;
+                availablePrioritizers$: Observable<DocumentedType[]>;
+                getChildOutputPorts: (groupId: string) => Observable<PortEntity[]>;
+                getChildInputPorts: (groupId: string) => Observable<PortEntity[]>;
+            } = {
+                createConnection,
+                saving$: of(true),
+                breadcrumbs$: of(null),
+                availablePrioritizers$: of([]),
+                getChildOutputPorts: () => of([]),
+                getChildInputPorts: () => of([])
+            };
+            vi.spyOn(dialog, 'open').mockReturnValue({
+                componentInstance,
+                afterClosed: () => afterClosed.asObservable()
+            } as unknown as MatDialogRef<unknown>);
+            vi.spyOn(flowService, 'getProcessGroup').mockReturnValue(
+                of({
+                    component: {
+                        defaultFlowFileExpiration: '0 sec',
+                        defaultBackPressureObjectThreshold: 10000,
+                        defaultBackPressureDataSizeThreshold: '1 GB'
+                    }
+                })
+            );
+            const outputPorts = [createPortEntity('out-1', 'OUTPUT_PORT')];
+            const inputPorts = [createPortEntity('in-1', 'INPUT_PORT')];
+            vi.spyOn(flowService, 'getFlow').mockReturnValue(
+                of({
+                    processGroupFlow: {
+                        flow: {
+                            outputPorts,
+                            inputPorts
+                        }
+                    }
+                })
+            );
+            const prioritizers = [{ type: 'org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer' } as DocumentedType];
+            store.overrideSelector(selectCurrentProcessGroupId, 'pg-1');
+            store.overrideSelector(selectPrioritizerTypes, prioritizers);
+            store.refreshState();
+
+            effects.openNewConnectionDialog$.subscribe();
+            action$.next(FlowActions.openNewConnectionDialog({ request }));
+
+            expect(await firstValueFrom(componentInstance.saving$)).toBe(false);
+            expect(await firstValueFrom(componentInstance.breadcrumbs$)).toEqual(
+                fromFlow.initialState.flow.processGroupFlow.breadcrumb
+            );
+            expect(await firstValueFrom(componentInstance.availablePrioritizers$)).toEqual(prioritizers);
+            expect(await firstValueFrom(componentInstance.getChildOutputPorts('child-1'))).toEqual(outputPorts);
+            expect(await firstValueFrom(componentInstance.getChildInputPorts('child-1'))).toEqual(inputPorts);
+            expect(flowService.getFlow).toHaveBeenCalledWith('child-1');
+
+            const payload: CreateConnection = {
+                payload: {
+                    revision: { version: 0, clientId: 'client-1' },
+                    component: {
+                        labelIndex: 0,
+                        name: '',
+                        source: { id: 'src', groupId: 'pg-1', type: 'FUNNEL' },
+                        destination: { id: 'dst', groupId: 'pg-1', type: 'FUNNEL' }
+                    }
+                }
+            };
+            createConnection.emit(payload);
+
+            expect(store.dispatch).toHaveBeenCalledWith(FlowActions.createConnection({ request: payload }));
+        });
+
+        it('removes the temporary edge when the dialog closes', () => {
+            const afterClosed = new Subject<void>();
+            vi.spyOn(dialog, 'open').mockReturnValue({
+                componentInstance: { createConnection: new EventEmitter<CreateConnection>() },
+                afterClosed: () => afterClosed.asObservable()
+            } as unknown as MatDialogRef<unknown>);
+            vi.spyOn(flowService, 'getProcessGroup').mockReturnValue(
+                of({
+                    component: {
+                        defaultFlowFileExpiration: '0 sec',
+                        defaultBackPressureObjectThreshold: 10000,
+                        defaultBackPressureDataSizeThreshold: '1 GB'
+                    }
+                })
+            );
+            const canvasUtils = TestBed.inject(CanvasUtils);
+            vi.spyOn(canvasUtils, 'removeTempEdge');
+
+            effects.openNewConnectionDialog$.subscribe();
+            action$.next(FlowActions.openNewConnectionDialog({ request }));
+            afterClosed.next();
+
+            expect(canvasUtils.removeTempEdge).toHaveBeenCalled();
+        });
+
+        it('removes the temporary edge when process group defaults fail to load', () => {
+            vi.spyOn(flowService, 'getProcessGroup').mockReturnValue(
+                throwError(() => new HttpErrorResponse({ status: 500 }))
+            );
+            const canvasUtils = TestBed.inject(CanvasUtils);
+            vi.spyOn(canvasUtils, 'removeTempEdge');
+
+            effects.openNewConnectionDialog$.subscribe({ error: () => undefined });
+            action$.next(FlowActions.openNewConnectionDialog({ request }));
+
+            expect(canvasUtils.removeTempEdge).toHaveBeenCalled();
+        });
+    });
+
+    describe('create dialog outputs', () => {
+        const componentRequest: CreateComponentRequest = {
+            type: ComponentType.Processor,
+            position: { x: 0, y: 0 },
+            revision: { version: 0, clientId: 'client-1' }
+        };
+
+        type DialogOutputEmitters<TOutputs extends Record<string, unknown>> = {
+            [Key in keyof TOutputs]: EventEmitter<TOutputs[Key]>;
+        };
+
+        function openWith<TOutputs extends Record<string, unknown>>(
+            outputs: DialogOutputEmitters<TOutputs>
+        ): {
+            componentInstance: Record<string, unknown>;
+            afterClosed: Subject<void>;
+        } {
+            const afterClosed = new Subject<void>();
+            const componentInstance: Record<string, unknown> = { ...outputs };
+            vi.spyOn(dialog, 'open').mockReturnValue({
+                componentInstance,
+                afterClosed: () => afterClosed.asObservable()
+            } as unknown as MatDialogRef<unknown>);
+            return { componentInstance, afterClosed };
+        }
+
+        describe('openNewProcessorDialog$', () => {
+            it('assigns processor inputs, dispatches createProcessor, and clears dragging on close', async () => {
+                const processorTypes = [
+                    { type: 'org.apache.nifi.processors.attributes.UpdateAttribute' } as DocumentedType
+                ];
+                const loadingStatus: ExtensionTypesLoadingStatus = 'success';
+                store.overrideSelector(selectProcessorTypes, processorTypes);
+                store.overrideSelector(selectExtensionTypesLoadingStatus, loadingStatus);
+                store.refreshState();
+
+                const createProcessor = new EventEmitter<CreateProcessorRequest>();
+                const { componentInstance, afterClosed } = openWith({ createProcessor });
+
+                effects.openNewProcessorDialog$.subscribe();
+                action$.next(FlowActions.openNewProcessorDialog({ request: componentRequest }));
+
+                expect(await firstValueFrom(componentInstance['saving$'] as Observable<boolean>)).toBe(false);
+                expect(
+                    await firstValueFrom(componentInstance['processorTypes$'] as Observable<DocumentedType[]>)
+                ).toEqual(processorTypes);
+                expect(
+                    await firstValueFrom(
+                        componentInstance['processorTypesLoadingStatus$'] as Observable<ExtensionTypesLoadingStatus>
+                    )
+                ).toBe(loadingStatus);
+
+                const request: CreateProcessorRequest = {
+                    ...componentRequest,
+                    processorType: processorTypes[0].type,
+                    processorBundle: {
+                        group: 'org.apache.nifi',
+                        artifact: 'nifi-update-attribute-nar',
+                        version: '2.0.0'
+                    }
+                };
+                createProcessor.emit(request);
+                afterClosed.next();
+
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.createProcessor({ request }));
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.setDragging({ dragging: false }));
+            });
+        });
+
+        describe('openNewRemoteProcessGroupDialog$', () => {
+            it('dispatches createRemoteProcessGroup and clears dragging on close', async () => {
+                const createRemoteProcessGroup = new EventEmitter<CreateRemoteProcessGroupRequest>();
+                const { componentInstance, afterClosed } = openWith({ createRemoteProcessGroup });
+
+                effects.openNewRemoteProcessGroupDialog$.subscribe();
+                action$.next(FlowActions.openNewRemoteProcessGroupDialog({ request: componentRequest }));
+
+                expect(await firstValueFrom(componentInstance['saving$'] as Observable<boolean>)).toBe(false);
+
+                const request: CreateRemoteProcessGroupRequest = {
+                    ...componentRequest,
+                    type: ComponentType.RemoteProcessGroup,
+                    targetUris: 'http://localhost:8443/nifi',
+                    transportProtocol: 'RAW',
+                    localNetworkInterface: '',
+                    proxyHost: '',
+                    proxyPort: '',
+                    proxyUser: '',
+                    proxyPassword: '',
+                    communicationsTimeout: '30 sec',
+                    yieldDuration: '10 sec'
+                };
+                createRemoteProcessGroup.emit(request);
+                afterClosed.next();
+
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.createRemoteProcessGroup({ request }));
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.setDragging({ dragging: false }));
+            });
+        });
+
+        describe('openNewProcessGroupDialog$', () => {
+            const parameterContexts = [{ id: 'pc-1' } as ParameterContextEntity];
+            const dialogRequest: CreateProcessGroupDialogRequest = {
+                request: { ...componentRequest, type: ComponentType.ProcessGroup },
+                parameterContexts
+            };
+
+            it('forwards create, upload, and new parameter context, and clears dragging on close', async () => {
+                const createProcessGroup = new EventEmitter<CreateProcessGroupRequest>();
+                const uploadProcessGroup = new EventEmitter<UploadProcessGroupRequest>();
+                const openNewParameterContext = new EventEmitter<ParameterContextEntity[]>();
+                const { componentInstance, afterClosed } = openWith({
+                    createProcessGroup,
+                    uploadProcessGroup,
+                    openNewParameterContext
+                });
+
+                effects.openNewProcessGroupDialog$.subscribe();
+                action$.next(FlowActions.openNewProcessGroupDialog({ request: dialogRequest }));
+
+                expect(componentInstance['parameterContexts']).toBe(parameterContexts);
+                expect(componentInstance['supportsParameters']).toBeUndefined();
+                expect(await firstValueFrom(componentInstance['saving$'] as Observable<boolean>)).toBe(false);
+                expect(await firstValueFrom(componentInstance['currentUser$'] as Observable<unknown>)).toEqual(
+                    fromUser.initialState.user
+                );
+
+                const createRequest: CreateProcessGroupRequest = {
+                    ...dialogRequest.request,
+                    name: 'child',
+                    parameterContextId: 'pc-1'
+                };
+                const uploadRequest: UploadProcessGroupRequest = {
+                    ...dialogRequest.request,
+                    name: 'uploaded',
+                    flowDefinition: new File(['{}'], 'flow.json')
+                };
+                createProcessGroup.emit(createRequest);
+                uploadProcessGroup.emit(uploadRequest);
+                openNewParameterContext.emit(parameterContexts);
+                afterClosed.next();
+
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.createProcessGroup({ request: createRequest }));
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.uploadProcessGroup({ request: uploadRequest }));
+                expect(store.dispatch).toHaveBeenCalledWith(
+                    ParameterActions.openNewParameterContextDialog({ request: { parameterContexts } })
+                );
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.setDragging({ dragging: false }));
+            });
+        });
+
+        describe('openGroupComponentsDialog$', () => {
+            it('dispatches groupComponents with the parameter context id and clears dragging on close', () => {
+                const dialogRequest: GroupComponentsDialogRequest = {
+                    request: { position: { x: 1, y: 2 }, moveComponents: [] },
+                    parameterContexts: []
+                };
+                const groupComponents = new EventEmitter<GroupComponentsRequest>();
+                const { afterClosed } = openWith({ groupComponents });
+
+                effects.openGroupComponentsDialog$.subscribe();
+                action$.next(FlowActions.openGroupComponentsDialog({ request: dialogRequest }));
+
+                const request: GroupComponentsRequest = {
+                    ...componentRequest,
+                    type: ComponentType.ProcessGroup,
+                    name: 'grouped',
+                    parameterContextId: 'pc-1',
+                    components: []
+                };
+                groupComponents.emit(request);
+                afterClosed.next();
+
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.groupComponents({ request }));
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.setDragging({ dragging: false }));
+            });
+        });
+
+        describe('openNewPortDialog$', () => {
+            const portRequest: CreatePortRequest = {
+                ...componentRequest,
+                type: ComponentType.InputPort,
+                name: 'in',
+                allowRemoteAccess: true
+            };
+
+            it('marks the root group and dispatches createPort', () => {
+                const createPort = new EventEmitter<CreatePortRequest>();
+                const { componentInstance, afterClosed } = openWith({ createPort });
+
+                effects.openNewPortDialog$.subscribe();
+                action$.next(FlowActions.openNewPortDialog({ request: componentRequest }));
+
+                expect(componentInstance['isRootProcessGroup']).toBe(true);
+                createPort.emit(portRequest);
+                afterClosed.next();
+
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.createPort({ request: portRequest }));
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.setDragging({ dragging: false }));
+            });
+
+            it('clears the root flag when the current group has a parent', () => {
+                store.overrideSelector(selectParentProcessGroupId, 'parent-1');
+                store.refreshState();
+                const { componentInstance } = openWith({ createPort: new EventEmitter<CreatePortRequest>() });
+
+                effects.openNewPortDialog$.subscribe();
+                action$.next(FlowActions.openNewPortDialog({ request: componentRequest }));
+
+                expect(componentInstance['isRootProcessGroup']).toBe(false);
+            });
+        });
+
+        describe('openImportFromRegistryDialog$', () => {
+            const readableClient = { permissions: { canRead: true } } as RegistryClientEntity;
+
+            it('assigns registry lookups and time offset, then dispatches importFromRegistry', async () => {
+                const registryService = TestBed.inject(RegistryService);
+                vi.spyOn(registryService, 'getBranches').mockReturnValue(of({ branches: [{ id: 'branch-1' }] }));
+                vi.spyOn(registryService, 'getBuckets').mockReturnValue(of({ buckets: [{ id: 'bucket-1' }] }));
+                vi.spyOn(registryService, 'getFlows').mockReturnValue(of({ versionedFlows: [{ id: 'flow-1' }] }));
+                vi.spyOn(registryService, 'getFlowVersions').mockReturnValue(
+                    of({ versionedFlowSnapshotMetadataSet: [{ version: 1 }] })
+                );
+                store.overrideSelector(selectTimeOffset, 45000);
+                store.refreshState();
+
+                const importFromRegistry = new EventEmitter<ImportFromRegistryRequest>();
+                const { componentInstance, afterClosed } = openWith({ importFromRegistry });
+                const dialogRequest: ImportFromRegistryDialogRequest = {
+                    request: componentRequest,
+                    registryClients: [readableClient]
+                };
+
+                effects.openImportFromRegistryDialog$.subscribe();
+                action$.next(FlowActions.openImportFromRegistryDialog({ request: dialogRequest }));
+
+                expect(await firstValueFrom(componentInstance['saving$'] as Observable<boolean>)).toBe(false);
+                expect(await firstValueFrom(componentInstance['timeOffset$'] as Observable<number>)).toBe(45000);
+
+                const getBranches = componentInstance['getBranches'] as (registryId: string) => Observable<unknown[]>;
+                const getBuckets = componentInstance['getBuckets'] as (
+                    registryId: string,
+                    branch?: string | null
+                ) => Observable<unknown[]>;
+                const getFlows = componentInstance['getFlows'] as (
+                    registryId: string,
+                    bucketId: string,
+                    branch?: string | null
+                ) => Observable<unknown[]>;
+                const getFlowVersions = componentInstance['getFlowVersions'] as (
+                    registryId: string,
+                    bucketId: string,
+                    flowId: string,
+                    branch?: string | null
+                ) => Observable<unknown[]>;
+
+                expect(await firstValueFrom(getBranches('reg-1'))).toEqual([{ id: 'branch-1' }]);
+                expect(await firstValueFrom(getBuckets('reg-1', 'main'))).toEqual([{ id: 'bucket-1' }]);
+                expect(await firstValueFrom(getFlows('reg-1', 'bucket-1', 'main'))).toEqual([{ id: 'flow-1' }]);
+                expect(await firstValueFrom(getFlowVersions('reg-1', 'bucket-1', 'flow-1', 'main'))).toEqual([
+                    { version: 1 }
+                ]);
+
+                const request: ImportFromRegistryRequest = {
+                    payload: {
+                        revision: componentRequest.revision,
+                        component: {
+                            position: componentRequest.position,
+                            versionControlInformation: {
+                                registryId: 'reg-1',
+                                bucketId: 'bucket-1',
+                                flowId: 'flow-1',
+                                version: '1',
+                                branch: 'main'
+                            }
+                        }
+                    },
+                    keepExistingParameterContext: false
+                };
+                importFromRegistry.emit(request);
+                afterClosed.next();
+
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.importFromRegistry({ request }));
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.setDragging({ dragging: false }));
+            });
+
+            it('clears dragging when no registry client is readable', () => {
+                const afterClosed = new Subject<void>();
+                vi.spyOn(dialog, 'open').mockReturnValue({
+                    afterClosed: () => afterClosed.asObservable()
+                } as unknown as MatDialogRef<unknown>);
+                const dialogRequest: ImportFromRegistryDialogRequest = {
+                    request: componentRequest,
+                    registryClients: [{ permissions: { canRead: false } } as RegistryClientEntity]
+                };
+
+                effects.openImportFromRegistryDialog$.subscribe();
+                action$.next(FlowActions.openImportFromRegistryDialog({ request: dialogRequest }));
+                afterClosed.next();
+
+                expect(dialog.open).toHaveBeenCalledWith(
+                    NoRegistryClientsDialog,
+                    expect.objectContaining({
+                        data: {
+                            controllerPermissions: fromUser.initialState.user.controllerPermissions
+                        }
+                    })
+                );
+                expect(store.dispatch).toHaveBeenCalledWith(FlowActions.setDragging({ dragging: false }));
             });
         });
     });

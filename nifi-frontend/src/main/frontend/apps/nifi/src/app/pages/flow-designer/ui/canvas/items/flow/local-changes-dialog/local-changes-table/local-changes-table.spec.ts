@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { LocalChangesTable } from './local-changes-table';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ComponentType } from '@nifi/shared';
-import { ComponentDifference } from '../../../../../../state/flow';
+import { ComponentDifference } from '../../../../../../../../state/flow-shared';
 
 describe('LocalChangesTable', () => {
     let component: LocalChangesTable;

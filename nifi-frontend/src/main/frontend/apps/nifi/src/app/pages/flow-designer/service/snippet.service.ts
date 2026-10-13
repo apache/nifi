@@ -18,7 +18,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Snippet, SnippetComponentRequest } from '../state/flow';
+import { Snippet, SnippetComponentRequest } from '../../../state/flow-shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import { ComponentType } from '@nifi/shared';
 import { Client } from '../../../service/client.service';

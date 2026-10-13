@@ -15,13 +15,9 @@
  * limitations under the License.
  */
 
-import { Component, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { GroupComponentsDialogRequest } from '../../../../../state/flow';
-import { Store } from '@ngrx/store';
-import { CanvasState } from '../../../../../state';
-import { groupComponents } from '../../../../../state/flow/flow.actions';
-import { selectSaving } from '../../../../../state/flow/flow.selectors';
+import { GroupComponentsDialogRequest, GroupComponentsRequest } from '../../../../state/flow-shared';
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -31,7 +27,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ComponentType, NifiSpinnerDirective, SelectOption, TextTip, NifiTooltipDirective } from '@nifi/shared';
 import { MatIconModule } from '@angular/material/icon';
-import { Client } from '../../../../../../../service/client.service';
+import { Client } from '../../../../service/client.service';
+import { Observable, of } from 'rxjs';
 
 @Component({
     selector: 'group-components',
@@ -54,10 +51,11 @@ import { Client } from '../../../../../../../service/client.service';
 export class GroupComponents {
     private dialogRequest = inject<GroupComponentsDialogRequest>(MAT_DIALOG_DATA);
     private formBuilder = inject(FormBuilder);
-    private store = inject<Store<CanvasState>>(Store);
     private client = inject(Client);
 
-    saving$ = this.store.select(selectSaving);
+    @Input() saving$: Observable<boolean> = of(false);
+    @Input() supportsParameters = true;
+    @Output() groupComponents = new EventEmitter<GroupComponentsRequest>();
 
     protected readonly TextTip = TextTip;
 
@@ -84,25 +82,25 @@ export class GroupComponents {
 
         this.createProcessGroupForm = this.formBuilder.group({
             newProcessGroupName: new FormControl('', Validators.required),
-            newProcessGroupParameterContext: new FormControl(dialogRequest.currentParameterContextId)
+            newProcessGroupParameterContext: new FormControl<string | null>(
+                dialogRequest.currentParameterContextId ?? null
+            )
         });
     }
 
-    createProcessGroup(): void {
-        this.store.dispatch(
-            groupComponents({
-                request: {
-                    revision: {
-                        version: 0,
-                        clientId: this.client.getClientId()
-                    },
-                    type: ComponentType.ProcessGroup,
-                    position: this.dialogRequest.request.position,
-                    name: this.createProcessGroupForm.get('newProcessGroupName')?.value,
-                    parameterContextId: this.createProcessGroupForm.get('newProcessGroupParameterContext')?.value,
-                    components: this.dialogRequest.request.moveComponents
-                }
-            })
-        );
+    submitGroupComponents(): void {
+        this.groupComponents.emit({
+            revision: {
+                version: 0,
+                clientId: this.client.getClientId()
+            },
+            type: ComponentType.ProcessGroup,
+            position: this.dialogRequest.request.position,
+            name: this.createProcessGroupForm.get('newProcessGroupName')?.value,
+            parameterContextId: this.supportsParameters
+                ? this.createProcessGroupForm.get('newProcessGroupParameterContext')?.value
+                : null,
+            components: this.dialogRequest.request.moveComponents
+        });
     }
 }

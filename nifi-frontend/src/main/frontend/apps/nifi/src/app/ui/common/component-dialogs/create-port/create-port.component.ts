@@ -15,29 +15,24 @@
  * limitations under the License.
  */
 
-import { Component, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Store } from '@ngrx/store';
-import { CanvasState } from '../../../../../state';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { selectParentProcessGroupId, selectSaving } from '../../../../../state/flow/flow.selectors';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { createPort } from '../../../../../state/flow/flow.actions';
-import { CreateComponentRequest } from '../../../../../state/flow';
+import { CreateComponentRequest, CreatePortRequest } from '../../../../state/flow-shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
-import {
-    ComponentType,
-    NifiSpinnerDirective,
-    SelectOption,
-    NifiTooltipDirective,
-    TextTip,
-    CloseOnEscapeDialog
-} from '@nifi/shared';
-import { ErrorContextKey } from '../../../../../../../state/error';
-import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { ComponentType, NifiSpinnerDirective, NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared';
+import { ErrorContextKey } from '../../../../state/error';
+import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
+import { Observable, of } from 'rxjs';
+
+interface RemoteAccessOption {
+    text: string;
+    value: boolean;
+    description: string;
+}
 
 @Component({
     selector: 'create-port',
@@ -58,63 +53,52 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
 export class CreatePort extends CloseOnEscapeDialog {
     request = inject<CreateComponentRequest>(MAT_DIALOG_DATA);
     private formBuilder = inject(FormBuilder);
-    private store = inject<Store<CanvasState>>(Store);
 
-    saving$ = this.store.select(selectSaving);
+    @Input() saving$: Observable<boolean> = of(false);
+    @Input() isRootProcessGroup = false;
+    @Output() createPort = new EventEmitter<CreatePortRequest>();
 
     protected readonly TextTip = TextTip;
 
     createPortForm: FormGroup;
-    isRootProcessGroup = false;
     portTypeLabel: string;
 
-    allowRemoteAccessOptions: SelectOption[] = [
+    allowRemoteAccessOptions: RemoteAccessOption[] = [
         {
             text: 'Local connections',
-            value: 'false',
+            value: false,
             description: 'Receive FlowFiles from components in parent process groups'
         },
         {
             text: 'Remote connections (site-to-site)',
-            value: 'true',
+            value: true,
             description: 'Receive FlowFiles from remote process group (site-to-site)'
         }
     ];
 
     constructor() {
         super();
-        // set the port type name
         if (ComponentType.InputPort == this.request.type) {
             this.portTypeLabel = 'Input Port';
         } else {
             this.portTypeLabel = 'Output Port';
         }
 
-        // build the form
         this.createPortForm = this.formBuilder.group({
             newPortName: new FormControl('', Validators.required),
-            newPortAllowRemoteAccess: new FormControl(this.allowRemoteAccessOptions[0].value, Validators.required)
+            newPortAllowRemoteAccess: new FormControl<boolean>(this.allowRemoteAccessOptions[0].value, {
+                nonNullable: true,
+                validators: Validators.required
+            })
         });
-
-        // listen for changes to the parent process group id
-        this.store
-            .select(selectParentProcessGroupId)
-            .pipe(takeUntilDestroyed())
-            .subscribe((parentProcessGroupId) => {
-                this.isRootProcessGroup = parentProcessGroupId == null;
-            });
     }
 
-    createPort() {
-        this.store.dispatch(
-            createPort({
-                request: {
-                    ...this.request,
-                    name: this.createPortForm.get('newPortName')?.value,
-                    allowRemoteAccess: this.createPortForm.get('newPortAllowRemoteAccess')?.value
-                }
-            })
-        );
+    submitCreatePort(): void {
+        this.createPort.emit({
+            ...this.request,
+            name: this.createPortForm.get('newPortName')?.value,
+            allowRemoteAccess: this.createPortForm.get('newPortAllowRemoteAccess')?.value
+        });
     }
 
     protected readonly ComponentType = ComponentType;

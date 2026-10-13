@@ -15,16 +15,21 @@
  * limitations under the License.
  */
 
-import { Component, Input, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { CreateConnectionDialogRequest, SelectedComponent } from '../../../../../state/flow';
+import {
+    ConnectionCreateBody,
+    ConnectionCreateRequest,
+    ConnectionDialogEndpoint,
+    CreateConnection as CreateConnectionPayload,
+    CreateConnectionDialogRequest
+} from '../../../../state/flow-shared';
 import {
     BreadcrumbEntity,
+    DocumentedType,
     loadBalanceCompressionStrategies,
     loadBalanceStrategies
-} from '../../../../../../../state/shared';
-import { Store } from '@ngrx/store';
-import { selectBreadcrumbs, selectSaving } from '../../../../../state/flow/flow.selectors';
+} from '../../../../state/shared';
 import { AsyncPipe } from '@angular/common';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -33,27 +38,31 @@ import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
-import { ComponentType, NifiSpinnerDirective, TextTip, NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
-import { NiFiState } from '../../../../../../../state';
-import { selectPrioritizerTypes } from '../../../../../../../state/extension-types/extension-types.selectors';
-import { Prioritizers } from '../../../../../../../ui/common/component-dialogs/edit-connection/prioritizers/prioritizers.component';
-import { SourceProcessor } from '../../../../../../../ui/common/component-dialogs/edit-connection/source/source-processor/source-processor.component';
-import { DestinationFunnel } from '../../../../../../../ui/common/component-dialogs/edit-connection/destination/destination-funnel/destination-funnel.component';
-import { createConnection } from '../../../../../state/flow/flow.actions';
-import { Client } from '../../../../../../../service/client.service';
-import { SourceFunnel } from '../../../../../../../ui/common/component-dialogs/edit-connection/source/source-funnel/source-funnel.component';
-import { DestinationProcessor } from '../../../../../../../ui/common/component-dialogs/edit-connection/destination/destination-processor/destination-processor.component';
-import { DestinationOutputPort } from '../../../../../../../ui/common/component-dialogs/edit-connection/destination/destination-output-port/destination-output-port.component';
-import { SourceInputPort } from '../../../../../../../ui/common/component-dialogs/edit-connection/source/source-input-port/source-input-port.component';
-import { Observable, tap } from 'rxjs';
-import { SourceProcessGroup } from '../../../../../../../ui/common/component-dialogs/edit-connection/source/source-process-group/source-process-group.component';
-import { DestinationProcessGroup } from '../../../../../../../ui/common/component-dialogs/edit-connection/destination/destination-process-group/destination-process-group.component';
-import { SourceRemoteProcessGroup } from '../../../../../../../ui/common/component-dialogs/edit-connection/source/source-remote-process-group/source-remote-process-group.component';
-import { DestinationRemoteProcessGroup } from '../../../../../../../ui/common/component-dialogs/edit-connection/destination/destination-remote-process-group/destination-remote-process-group.component';
-import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
-import { CanvasUtils } from '../../../../../service/canvas-utils.service';
-import { ErrorContextKey } from '../../../../../../../state/error';
-import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
+import {
+    CloseOnEscapeDialog,
+    ComponentType,
+    NifiSpinnerDirective,
+    NifiTooltipDirective,
+    PortEntity,
+    TextTip
+} from '@nifi/shared';
+import { Prioritizers } from '../edit-connection/prioritizers/prioritizers.component';
+import { SourceProcessor } from '../edit-connection/source/source-processor/source-processor.component';
+import { DestinationFunnel } from '../edit-connection/destination/destination-funnel/destination-funnel.component';
+import { Client } from '../../../../service/client.service';
+import { SourceFunnel } from '../edit-connection/source/source-funnel/source-funnel.component';
+import { DestinationProcessor } from '../edit-connection/destination/destination-processor/destination-processor.component';
+import { DestinationOutputPort } from '../edit-connection/destination/destination-output-port/destination-output-port.component';
+import { SourceInputPort } from '../edit-connection/source/source-input-port/source-input-port.component';
+import { Observable, of, tap } from 'rxjs';
+import { SourceProcessGroup } from '../edit-connection/source/source-process-group/source-process-group.component';
+import { DestinationProcessGroup } from '../edit-connection/destination/destination-process-group/destination-process-group.component';
+import { SourceRemoteProcessGroup } from '../edit-connection/source/source-remote-process-group/source-remote-process-group.component';
+import { DestinationRemoteProcessGroup } from '../edit-connection/destination/destination-remote-process-group/destination-remote-process-group.component';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
+import { ErrorContextKey } from '../../../../state/error';
+import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
+import { getConnectableTypeForDestination, getConnectableTypeForSource } from '../../utils/component-state.utils';
 
 @Component({
     selector: 'create-connection',
@@ -89,12 +98,15 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
 export class CreateConnection extends CloseOnEscapeDialog {
     private dialogRequest = inject<CreateConnectionDialogRequest>(MAT_DIALOG_DATA);
     private formBuilder = inject(FormBuilder);
-    private store = inject<Store<NiFiState>>(Store);
-    private canvasUtils = inject(CanvasUtils);
     private clusterConnectionService = inject(ClusterConnectionService);
     private client = inject(Client);
 
-    @Input() set getChildOutputPorts(getChildOutputPorts: (groupId: string) => Observable<any>) {
+    @Input() saving$: Observable<boolean> = of(false);
+    @Input() availablePrioritizers$: Observable<DocumentedType[]> = of([]);
+    @Input() breadcrumbs$: Observable<BreadcrumbEntity | null> = of(null);
+    @Output() createConnection = new EventEmitter<CreateConnectionPayload>();
+
+    @Input() set getChildOutputPorts(getChildOutputPorts: (groupId: string) => Observable<PortEntity[]>) {
         if (this.source.componentType == ComponentType.ProcessGroup) {
             this.childOutputPorts$ = getChildOutputPorts(this.source.id).pipe(
                 tap((outputPorts) => {
@@ -106,7 +118,7 @@ export class CreateConnection extends CloseOnEscapeDialog {
         }
     }
 
-    @Input() set getChildInputPorts(getChildInputPorts: (groupId: string) => Observable<any>) {
+    @Input() set getChildInputPorts(getChildInputPorts: (groupId: string) => Observable<PortEntity[]>) {
         if (this.destination.componentType == ComponentType.ProcessGroup) {
             this.childInputPorts$ = getChildInputPorts(this.destination.id).pipe(
                 tap((inputPorts) => {
@@ -123,16 +135,12 @@ export class CreateConnection extends CloseOnEscapeDialog {
     protected readonly ComponentType = ComponentType;
     protected readonly TextTip = TextTip;
 
-    saving$ = this.store.select(selectSaving);
-    availablePrioritizers$ = this.store.select(selectPrioritizerTypes);
-    breadcrumbs$ = this.store.select(selectBreadcrumbs);
-
     createConnectionForm: FormGroup;
-    source: SelectedComponent;
-    destination: SelectedComponent;
+    source: ConnectionDialogEndpoint;
+    destination: ConnectionDialogEndpoint;
 
-    childOutputPorts$!: Observable<any> | null;
-    childInputPorts$!: Observable<any> | null;
+    childOutputPorts$!: Observable<PortEntity[]> | null;
+    childInputPorts$!: Observable<PortEntity[]> | null;
 
     loadBalancePartitionAttributeRequired = false;
     loadBalanceCompressionRequired = false;
@@ -165,7 +173,7 @@ export class CreateConnection extends CloseOnEscapeDialog {
 
         let sourceValue: string | null = null;
         if (this.source.componentType == ComponentType.RemoteProcessGroup) {
-            const outputPorts: any[] = this.source.entity.component.contents.outputPorts;
+            const outputPorts = this.source.entity.component.contents.outputPorts;
             if (outputPorts && outputPorts.length === 1) {
                 sourceValue = outputPorts[0].id;
             }
@@ -180,7 +188,7 @@ export class CreateConnection extends CloseOnEscapeDialog {
 
         let destinationValue: string | null = null;
         if (this.destination.componentType == ComponentType.RemoteProcessGroup) {
-            const inputPorts: any[] = this.destination.entity.component.contents.inputPorts;
+            const inputPorts = this.destination.entity.component.contents.inputPorts;
             if (inputPorts && inputPorts.length === 1) {
                 destinationValue = inputPorts[0].id;
             }
@@ -223,86 +231,73 @@ export class CreateConnection extends CloseOnEscapeDialog {
         }
     }
 
-    createConnection(currentProcessGroupId: string): void {
-        const payload: any = {
+    submitCreateConnection(currentProcessGroupId: string): void {
+        const sourceType = getConnectableTypeForSource(this.source.componentType);
+        const destinationType = getConnectableTypeForDestination(this.destination.componentType);
+        if (!sourceType || !destinationType) {
+            throw new Error('Connection source and destination must be connectable component types');
+        }
+
+        const source = {
+            groupId:
+                this.source.componentType == ComponentType.ProcessGroup ||
+                this.source.componentType == ComponentType.RemoteProcessGroup
+                    ? this.source.id
+                    : currentProcessGroupId,
+            id:
+                this.source.componentType == ComponentType.ProcessGroup ||
+                this.source.componentType == ComponentType.RemoteProcessGroup
+                    ? this.createConnectionForm.get('source')?.value
+                    : this.source.entity.id,
+            type: sourceType
+        };
+        const destination = {
+            groupId:
+                this.destination.componentType == ComponentType.ProcessGroup ||
+                this.destination.componentType == ComponentType.RemoteProcessGroup
+                    ? this.destination.id
+                    : currentProcessGroupId,
+            id:
+                this.destination.componentType == ComponentType.ProcessGroup ||
+                this.destination.componentType == ComponentType.RemoteProcessGroup
+                    ? this.createConnectionForm.get('destination')?.value
+                    : this.destination.id,
+            type: destinationType
+        };
+        const component: ConnectionCreateBody = {
+            backPressureDataSizeThreshold: this.createConnectionForm.get('backPressureDataSizeThreshold')?.value,
+            backPressureObjectThreshold: this.createConnectionForm.get('backPressureObjectThreshold')?.value,
+            flowFileExpiration: this.createConnectionForm.get('flowFileExpiration')?.value,
+            loadBalanceStrategy: this.createConnectionForm.get('loadBalanceStrategy')?.value,
+            name: this.createConnectionForm.get('name')?.value,
+            labelIndex: 0,
+            prioritizers: this.createConnectionForm.get('prioritizers')?.value,
+            selectedRelationships:
+                this.source.componentType == ComponentType.Processor
+                    ? this.createConnectionForm.get('relationships')?.value
+                    : undefined,
+            source,
+            destination,
+            loadBalancePartitionAttribute: this.loadBalancePartitionAttributeRequired
+                ? this.createConnectionForm.get('partitionAttribute')?.value
+                : '',
+            loadBalanceCompression: this.loadBalanceCompressionRequired
+                ? this.createConnectionForm.get('compression')?.value
+                : 'DO_NOT_COMPRESS',
+            ...(this.dialogRequest.request.bends ? { bends: this.dialogRequest.request.bends } : {})
+        };
+        const payload: ConnectionCreateRequest = {
             revision: {
                 version: 0,
                 clientId: this.client.getClientId()
             },
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-            component: {
-                backPressureDataSizeThreshold: this.createConnectionForm.get('backPressureDataSizeThreshold')?.value,
-                backPressureObjectThreshold: this.createConnectionForm.get('backPressureObjectThreshold')?.value,
-                flowFileExpiration: this.createConnectionForm.get('flowFileExpiration')?.value,
-                loadBalanceStrategy: this.createConnectionForm.get('loadBalanceStrategy')?.value,
-                name: this.createConnectionForm.get('name')?.value,
-                labelIndex: 0,
-                prioritizers: this.createConnectionForm.get('prioritizers')?.value
-            }
+            component
         };
 
-        if (this.source.componentType == ComponentType.Processor) {
-            payload.component.selectedRelationships = this.createConnectionForm.get('relationships')?.value;
-        }
-
-        if (
-            this.source.componentType == ComponentType.ProcessGroup ||
-            this.source.componentType == ComponentType.RemoteProcessGroup
-        ) {
-            payload.component.source = {
-                groupId: this.source.id,
-                id: this.createConnectionForm.get('source')?.value,
-                type: this.canvasUtils.getConnectableTypeForSource(this.source.componentType)
-            };
-        } else {
-            payload.component.source = {
-                groupId: currentProcessGroupId,
-                id: this.source.entity.id,
-                type: this.canvasUtils.getConnectableTypeForSource(this.source.componentType)
-            };
-        }
-
-        if (
-            this.destination.componentType == ComponentType.ProcessGroup ||
-            this.destination.componentType == ComponentType.RemoteProcessGroup
-        ) {
-            payload.component.destination = {
-                groupId: this.destination.id,
-                id: this.createConnectionForm.get('destination')?.value,
-                type: this.canvasUtils.getConnectableTypeForDestination(this.destination.componentType)
-            };
-        } else {
-            payload.component.destination = {
-                groupId: currentProcessGroupId,
-                id: this.destination.id,
-                type: this.canvasUtils.getConnectableTypeForDestination(this.destination.componentType)
-            };
-        }
-
-        if (this.loadBalancePartitionAttributeRequired) {
-            payload.component.loadBalancePartitionAttribute =
-                this.createConnectionForm.get('partitionAttribute')?.value;
-        } else {
-            payload.component.loadBalancePartitionAttribute = '';
-        }
-
-        if (this.loadBalanceCompressionRequired) {
-            payload.component.loadBalanceCompression = this.createConnectionForm.get('compression')?.value;
-        } else {
-            payload.component.loadBalanceCompression = 'DO_NOT_COMPRESS';
-        }
-
-        if (this.dialogRequest.request.bends) {
-            payload.component.bends = this.dialogRequest.request.bends;
-        }
-
-        this.store.dispatch(
-            createConnection({
-                request: {
-                    payload
-                }
-            })
-        );
+        this.createConnection.emit({
+            payload
+        });
     }
 
     override isDirty(): boolean {

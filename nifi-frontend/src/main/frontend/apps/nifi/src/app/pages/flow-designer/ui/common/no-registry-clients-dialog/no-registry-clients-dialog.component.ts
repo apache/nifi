@@ -18,7 +18,7 @@
 import { Component, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { NoRegistryClientsDialogRequest } from '../../../state/flow';
+import { NoRegistryClientsDialogRequest } from '../../../../../state/flow-shared';
 
 import { RouterLink } from '@angular/router';
 

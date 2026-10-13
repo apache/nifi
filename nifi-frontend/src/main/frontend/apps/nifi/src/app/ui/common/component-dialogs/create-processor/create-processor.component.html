@@ -20,4 +20,4 @@
     [documentedTypes]="(processorTypes$ | async)!"
     [extensionTypesLoadingStatus]="(processorTypesLoadingStatus$ | async)!"
     [saving]="(saving$ | async)!"
-    (extensionTypeSelected)="createProcessor($event)"></extension-creation>
+    (extensionTypeSelected)="onProcessorTypeSelected($event)"></extension-creation>

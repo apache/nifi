@@ -15,11 +15,23 @@
  * limitations under the License.
  */
 
-import { Component, inject, Input, OnInit, signal, WritableSignal } from '@angular/core';
+import {
+    Component,
+    DestroyRef,
+    EventEmitter,
+    inject,
+    Input,
+    OnInit,
+    Output,
+    signal,
+    WritableSignal
+} from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { ImportFromRegistryDialogRequest } from '../../../../../state/flow';
-import { Store } from '@ngrx/store';
-import { CanvasState } from '../../../../../state';
+import {
+    ImportFromRegistryDialogRequest,
+    ImportFromRegistryRequest,
+    ProcessGroupImportRequest
+} from '../../../../state/flow-shared';
 import {
     BranchEntity,
     BucketEntity,
@@ -28,8 +40,7 @@ import {
     VersionedFlowEntity,
     VersionedFlowSnapshotMetadata,
     VersionedFlowSnapshotMetadataEntity
-} from '../../../../../../../state/shared';
-import { selectSaving } from '../../../../../state/flow/flow.selectors';
+} from '../../../../state/shared';
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -51,14 +62,12 @@ import {
     SelectOption,
     TextTip
 } from '@nifi/shared';
-import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Client } from '../../../../../../../service/client.service';
-import { importFromRegistry } from '../../../../../state/flow/flow.actions';
-import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
-import { ErrorContextKey } from '../../../../../../../state/error';
-import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
-import { ErrorHelper } from '../../../../../../../service/error-helper.service';
+import { Client } from '../../../../service/client.service';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
+import { ErrorContextKey } from '../../../../state/error';
+import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
 
@@ -101,11 +110,11 @@ interface LoadVersionsRequest extends LoadFlowsRequest {
 export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
     private dialogRequest = inject<ImportFromRegistryDialogRequest>(MAT_DIALOG_DATA);
     private formBuilder = inject(FormBuilder);
-    private store = inject<Store<CanvasState>>(Store);
     private nifiCommon = inject(NiFiCommon);
     private client = inject(Client);
     private clusterConnectionService = inject(ClusterConnectionService);
     private errorHelper = inject(ErrorHelper);
+    private destroyRef = inject(DestroyRef);
 
     @Input() getBranches: (registryId: string) => Observable<BranchEntity[]> = () => of([]);
     @Input() getBuckets!: (registryId: string, branch?: string | null) => Observable<BucketEntity[]>;
@@ -121,7 +130,20 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
         branch?: string | null
     ) => Observable<VersionedFlowSnapshotMetadataEntity[]>;
 
-    saving$ = this.store.select(selectSaving);
+    @Input() saving$: Observable<boolean> = of(false);
+
+    /**
+     * Stream of the runtime's flow-configuration time offset (ms). The host
+     * effect feeds this from `selectTimeOffset` so the dialog does not inject Store.
+     */
+    @Input() set timeOffset$(stream: Observable<number | null | undefined>) {
+        stream.pipe(isDefinedAndNotNull(), takeUntilDestroyed(this.destroyRef)).subscribe((timeOffset: number) => {
+            this.timeOffset = timeOffset;
+        });
+    }
+
+    @Output() importFromRegistry = new EventEmitter<ImportFromRegistryRequest>();
+
     timeOffset = 0;
 
     protected readonly TextTip = TextTip;
@@ -160,13 +182,6 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
     constructor() {
         super();
         const dialogRequest = this.dialogRequest;
-
-        this.store
-            .select(selectTimeOffset)
-            .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
-            .subscribe((timeOffset: number) => {
-                this.timeOffset = timeOffset;
-            });
 
         const sortedRegistries = dialogRequest.registryClients
             .slice()
@@ -500,9 +515,9 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
         return false;
     }
 
-    importFromRegistry(): void {
+    submitImportFromRegistry(): void {
         if (this.selectedFlowVersion != null) {
-            const payload: any = {
+            const payload: ProcessGroupImportRequest = {
                 revision: this.client.getRevision({
                     revision: {
                         version: 0
@@ -527,14 +542,10 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
                 payload.component.versionControlInformation.branch = this.importFromRegistryForm.get('branch')?.value;
             }
 
-            this.store.dispatch(
-                importFromRegistry({
-                    request: {
-                        payload,
-                        keepExistingParameterContext: this.importFromRegistryForm.get('keepParameterContexts')?.value
-                    }
-                })
-            );
+            this.importFromRegistry.emit({
+                payload,
+                keepExistingParameterContext: this.importFromRegistryForm.get('keepParameterContexts')?.value
+            });
         }
     }
 

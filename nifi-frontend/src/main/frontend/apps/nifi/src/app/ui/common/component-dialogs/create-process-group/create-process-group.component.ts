@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, Input, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output, ViewChild, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { CreateProcessGroupDialogRequest } from '../../../../../state/flow';
-import { Store } from '@ngrx/store';
-import { CanvasState } from '../../../../../state';
-import { createProcessGroup, uploadProcessGroup } from '../../../../../state/flow/flow.actions';
-import { selectSaving } from '../../../../../state/flow/flow.selectors';
+import {
+    CreateProcessGroupDialogRequest,
+    CreateProcessGroupRequest,
+    UploadProcessGroupRequest
+} from '../../../../state/flow-shared';
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -30,9 +30,10 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { ErrorContextKey } from '../../../../../../../state/error';
-import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
-import { openNewParameterContextDialog } from '../../../../../state/parameter/parameter.actions';
+import { ErrorContextKey } from '../../../../state/error';
+import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
+import { Observable, of } from 'rxjs';
+import { CurrentUser } from '../../../../state/current-user';
 import {
     CloseOnEscapeDialog,
     NiFiCommon,
@@ -42,8 +43,7 @@ import {
     TextTip,
     NifiSpinnerDirective
 } from '@nifi/shared';
-import { ParameterContextEntity } from '../../../../../../../state/shared';
-import { selectCurrentUser } from '../../../../../../../state/current-user/current-user.selectors';
+import { ParameterContextEntity } from '../../../../state/shared';
 
 @Component({
     selector: 'create-process-group',
@@ -68,8 +68,18 @@ import { selectCurrentUser } from '../../../../../../../state/current-user/curre
 export class CreateProcessGroup extends CloseOnEscapeDialog {
     private dialogRequest = inject<CreateProcessGroupDialogRequest>(MAT_DIALOG_DATA);
     private formBuilder = inject(FormBuilder);
-    private store = inject<Store<CanvasState>>(Store);
     private nifiCommon = inject(NiFiCommon);
+
+    @Input() saving$: Observable<boolean> = of(false);
+    @Input() currentUser$: Observable<CurrentUser | null> = of(null);
+    /**
+     * When false, the parameter-context selector is hidden and submission sends
+     * no parameter context id. Defaults to true for the flow designer.
+     */
+    @Input() supportsParameters = true;
+    @Output() createProcessGroup = new EventEmitter<CreateProcessGroupRequest>();
+    @Output() uploadProcessGroup = new EventEmitter<UploadProcessGroupRequest>();
+    @Output() openNewParameterContext = new EventEmitter<ParameterContextEntity[]>();
 
     @Input() set parameterContexts(parameterContexts: ParameterContextEntity[]) {
         this.parameterContextsOptions = [];
@@ -111,8 +121,6 @@ export class CreateProcessGroup extends CloseOnEscapeDialog {
         return this._parameterContexts;
     }
 
-    saving$ = this.store.select(selectSaving);
-
     protected readonly TextTip = TextTip;
     private _parameterContexts: ParameterContextEntity[] = [];
 
@@ -123,14 +131,13 @@ export class CreateProcessGroup extends CloseOnEscapeDialog {
 
     flowNameAttached: string | null = null;
     flowDefinition: File | null = null;
-    currentUser$ = this.store.select(selectCurrentUser);
 
     constructor() {
         super();
 
         this.createProcessGroupForm = this.formBuilder.group({
             newProcessGroupName: new FormControl('', Validators.required),
-            newProcessGroupParameterContext: new FormControl(null)
+            newProcessGroupParameterContext: new FormControl<string | null>(null)
         });
     }
 
@@ -156,34 +163,26 @@ export class CreateProcessGroup extends CloseOnEscapeDialog {
         this.flowDefinition = null;
     }
 
-    createProcessGroup(): void {
+    submitCreateProcessGroup(): void {
         if (this.flowDefinition) {
-            this.store.dispatch(
-                uploadProcessGroup({
-                    request: {
-                        ...this.dialogRequest.request,
-                        name: this.createProcessGroupForm.get('newProcessGroupName')?.value,
-                        flowDefinition: this.flowDefinition
-                    }
-                })
-            );
+            this.uploadProcessGroup.emit({
+                ...this.dialogRequest.request,
+                name: this.createProcessGroupForm.get('newProcessGroupName')?.value,
+                flowDefinition: this.flowDefinition
+            });
         } else {
-            this.store.dispatch(
-                createProcessGroup({
-                    request: {
-                        ...this.dialogRequest.request,
-                        name: this.createProcessGroupForm.get('newProcessGroupName')?.value,
-                        parameterContextId: this.createProcessGroupForm.get('newProcessGroupParameterContext')?.value
-                    }
-                })
-            );
+            this.createProcessGroup.emit({
+                ...this.dialogRequest.request,
+                name: this.createProcessGroupForm.get('newProcessGroupName')?.value,
+                parameterContextId: this.supportsParameters
+                    ? this.createProcessGroupForm.get('newProcessGroupParameterContext')?.value
+                    : null
+            });
         }
     }
 
     openNewParameterContextDialog(): void {
-        this.store.dispatch(
-            openNewParameterContextDialog({ request: { parameterContexts: this.dialogRequest.parameterContexts } })
-        );
+        this.openNewParameterContext.emit(this.dialogRequest.parameterContexts);
     }
 
     protected readonly ErrorContextKey = ErrorContextKey;

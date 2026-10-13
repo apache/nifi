@@ -62,7 +62,7 @@
             <button
                 [disabled]="!createPortForm.dirty || createPortForm.invalid || saving.value || createPortForm.pending"
                 type="submit"
-                (click)="createPort()"
+                (click)="submitCreatePort()"
                 mat-flat-button>
                 <span *nifiSpinner="saving.value">Add</span>
             </button>

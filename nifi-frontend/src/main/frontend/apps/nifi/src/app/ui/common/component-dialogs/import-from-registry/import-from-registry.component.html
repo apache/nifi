@@ -175,7 +175,7 @@
                                 mat-row
                                 *matRowDef="let row; let even = even; columns: displayedColumns"
                                 (click)="select(row)"
-                                (dblclick)="importFromRegistry()"
+                                (dblclick)="submitImportFromRegistry()"
                                 [class.selected]="isSelected(row)"
                                 [class.even]="even"></tr>
                         </table>
@@ -192,7 +192,7 @@
                 importFromRegistryForm.invalid || saving || !selectedFlowVersion || importFromRegistryForm.pending
             "
             type="button"
-            (click)="importFromRegistry()"
+            (click)="submitImportFromRegistry()"
             mat-flat-button>
             <span *nifiSpinner="saving">Import</span>
         </button>

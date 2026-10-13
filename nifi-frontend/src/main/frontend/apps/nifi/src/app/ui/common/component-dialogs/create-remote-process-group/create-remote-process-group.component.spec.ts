@@ -21,15 +21,10 @@ import { CreateRemoteProcessGroup } from './create-remote-process-group.componen
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ComponentType } from '@nifi/shared';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState as initialFlowState } from '../../../../../state/flow/flow.reducer';
-import { flowFeatureKey } from '../../../../../state/flow';
-import { canvasFeatureKey } from '../../../../../state';
-import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
-import { errorFeatureKey } from '../../../../../../../state/error';
-import { initialState as initialCurrentUserState } from '../../../../../../../state/current-user/current-user.reducer';
-import { currentUserFeatureKey } from '../../../../../../../state/current-user';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { CreateComponentRequest } from '../../../../../state/flow';
+import { CreateComponentRequest } from '../../../../state/flow-shared';
 
 describe('CreateRemoteProcessGroup', () => {
     let component: CreateRemoteProcessGroup;
@@ -54,11 +49,7 @@ describe('CreateRemoteProcessGroup', () => {
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({
                     initialState: {
-                        [errorFeatureKey]: initialErrorState,
-                        [currentUserFeatureKey]: initialCurrentUserState,
-                        [canvasFeatureKey]: {
-                            [flowFeatureKey]: initialFlowState
-                        }
+                        [errorFeatureKey]: initialErrorState
                     }
                 }),
                 { provide: MatDialogRef, useValue: null }
@@ -71,5 +62,13 @@ describe('CreateRemoteProcessGroup', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('emits the remote process group request', () => {
+        const emitted: unknown[] = [];
+        component.createRemoteProcessGroup.subscribe((request) => emitted.push(request));
+        component.createRemoteProcessGroupForm.get('urls')?.setValue('http://localhost:8443/nifi');
+        component.submitCreateRemoteProcessGroup();
+        expect(emitted).toHaveLength(1);
     });
 });

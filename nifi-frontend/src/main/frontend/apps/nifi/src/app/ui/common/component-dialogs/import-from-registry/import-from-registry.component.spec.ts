@@ -18,18 +18,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ImportFromRegistry } from './import-from-registry.component';
-import { flowFeatureKey, ImportFromRegistryDialogRequest } from '../../../../../state/flow';
+import { ImportFromRegistryDialogRequest } from '../../../../state/flow-shared';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ComponentType } from '@nifi/shared';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState as initialFlowState } from '../../../../../state/flow/flow.reducer';
-import { canvasFeatureKey } from '../../../../../state';
-import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
-import { errorFeatureKey } from '../../../../../../../state/error';
-import { initialState as initialCurrentUserState } from '../../../../../../../state/current-user/current-user.reducer';
-import { currentUserFeatureKey } from '../../../../../../../state/current-user';
-import { flowConfigurationFeatureKey } from '../../../../../../../state/flow-configuration';
-import { initialState as flowConfigurationInitialState } from '../../../../../../../state/flow-configuration/flow-configuration.reducer';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EMPTY, Observable, Subject } from 'rxjs';
 import {
@@ -38,9 +32,9 @@ import {
     RegistryClientEntity,
     VersionedFlowEntity,
     VersionedFlowSnapshotMetadataEntity
-} from '../../../../../../../state/shared';
+} from '../../../../state/shared';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { By } from '@angular/platform-browser';
 
 describe('ImportFromRegistry', () => {
@@ -133,12 +127,7 @@ describe('ImportFromRegistry', () => {
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({
                     initialState: {
-                        [errorFeatureKey]: initialErrorState,
-                        [currentUserFeatureKey]: initialCurrentUserState,
-                        [flowConfigurationFeatureKey]: flowConfigurationInitialState,
-                        [canvasFeatureKey]: {
-                            [flowFeatureKey]: initialFlowState
-                        }
+                        [errorFeatureKey]: initialErrorState
                     }
                 }),
                 {
@@ -283,12 +272,7 @@ describe('ImportFromRegistry', () => {
                     },
                     provideMockStore({
                         initialState: {
-                            [errorFeatureKey]: initialErrorState,
-                            [currentUserFeatureKey]: initialCurrentUserState,
-                            [flowConfigurationFeatureKey]: flowConfigurationInitialState,
-                            [canvasFeatureKey]: {
-                                [flowFeatureKey]: initialFlowState
-                            }
+                            [errorFeatureKey]: initialErrorState
                         }
                     }),
                     {

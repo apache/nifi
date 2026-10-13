@@ -16,6 +16,7 @@
  */
 
 import {
+    Bundle,
     ComponentType,
     ConnectableDTO,
     ConnectionDTO,
@@ -25,8 +26,10 @@ import {
     FunnelEntity,
     LabelDTO,
     LabelEntity,
+    Permissions,
     PortDTO,
     PortEntity,
+    Position,
     PositionableComponentEntityBase,
     ProcessGroupDTO,
     ProcessGroupEntity,
@@ -34,8 +37,13 @@ import {
     ProcessorEntity,
     RemoteProcessGroupDTO,
     RemoteProcessGroupEntity,
-    RevisionRequest
+    Revision,
+    RevisionRequest,
+    VersionControlInformationDTO
 } from '@nifi/shared';
+import { CopyResponseEntity, PasteRequestStrategy } from '../copy';
+import { ParameterContextEntity, RegistryClientEntity, SparseVersionedFlow } from '../shared';
+import { VersionControlInformation } from '../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 
 /**
  * Lightweight reference to a canvas component.
@@ -63,6 +71,41 @@ export type CanvasConnectableEntity =
  * Union of every canonical entity kind rendered on the reusable canvas.
  */
 export type CanvasComponentEntity = CanvasConnectableEntity | ConnectionEntity | LabelEntity;
+
+/**
+ * Endpoint accepted by the Create Connection dialog.
+ *
+ * The component type discriminates the canonical entity so dialog consumers
+ * cannot omit an entity or pair one with the wrong endpoint kind.
+ */
+export type ConnectionDialogEndpoint =
+    | {
+          id: string;
+          componentType: ComponentType.Processor;
+          entity: ProcessorEntity;
+      }
+    | {
+          id: string;
+          componentType: ComponentType.InputPort | ComponentType.OutputPort;
+          entity: PortEntity;
+      }
+    | {
+          id: string;
+          componentType: ComponentType.ProcessGroup;
+          entity: ProcessGroupEntity;
+      }
+    | {
+          id: string;
+          componentType: ComponentType.RemoteProcessGroup;
+          entity: RemoteProcessGroupEntity & {
+              component: RemoteProcessGroupDTO;
+          };
+      }
+    | {
+          id: string;
+          componentType: ComponentType.Funnel;
+          entity: FunnelEntity;
+      };
 
 /**
  * Destination selected by an endpoint reconnect gesture.
@@ -108,6 +151,12 @@ export type ProcessGroupCreateBody = RequiredPosition<ProcessGroupDTO> &
         };
     };
 export type ProcessGroupCreateRequest = ComponentCreateRequest<ProcessGroupCreateBody>;
+
+export type ProcessGroupImportBody = RequiredPosition<ProcessGroupDTO> & {
+    versionControlInformation: Pick<VersionControlInformationDTO, 'registryId' | 'bucketId' | 'flowId' | 'version'> &
+        Partial<Pick<VersionControlInformationDTO, 'branch'>>;
+};
+export type ProcessGroupImportRequest = ComponentCreateRequest<ProcessGroupImportBody>;
 
 type RemoteProcessGroupCreateOptions = Pick<
     RemoteProcessGroupDTO,
@@ -230,4 +279,307 @@ export interface SnippetDeleteOptions {
 export interface SnippetDeleteRequest {
     id: string;
     options: SnippetDeleteOptions;
+}
+
+/*
+ * Requests shared by the flow designer and the reusable component dialogs.
+ */
+
+export interface SelectedComponent {
+    id: string;
+    componentType: ComponentType;
+    entity?: any;
+}
+
+export interface CreateComponentRequest {
+    type: ComponentType;
+    position: Position;
+    revision: CreateRevisionRequest;
+}
+
+export interface CreateLabelRequest extends CreateComponentRequest {
+    zIndex: number;
+}
+
+export interface CreateConnectionRequest {
+    source: ConnectionDialogEndpoint;
+    destination: ConnectionDialogEndpoint;
+    bends?: Position[];
+}
+
+export interface CreateConnectionDialogRequest {
+    request: CreateConnectionRequest;
+    defaults: {
+        flowfileExpiration: string;
+        objectThreshold: number;
+        dataSizeThreshold: string;
+    };
+}
+
+export interface CreateConnection {
+    payload: ConnectionCreateRequest;
+}
+
+export interface CreateProcessGroupDialogRequest {
+    request: CreateComponentRequest;
+    currentParameterContextId?: string;
+    parameterContexts: ParameterContextEntity[];
+}
+
+export interface NoRegistryClientsDialogRequest {
+    controllerPermissions: Permissions;
+}
+
+export interface ImportFromRegistryDialogRequest {
+    request: CreateComponentRequest;
+    registryClients: RegistryClientEntity[];
+}
+
+export interface ImportFromRegistryRequest {
+    payload: ProcessGroupImportRequest;
+    keepExistingParameterContext: boolean;
+}
+
+export interface SaveToVersionControlRequest {
+    processGroupId: string;
+    versionedFlow: SparseVersionedFlow;
+    processGroupRevision: Revision;
+}
+
+export interface StopVersionControlRequest {
+    revision: Revision;
+    processGroupId: string;
+}
+
+export interface VersionControlInformationEntity {
+    processGroupRevision: Revision;
+    versionControlInformation?: VersionControlInformation;
+    disconnectedNodeAcknowledged?: boolean;
+}
+
+export interface OpenGroupComponentsDialogRequest {
+    position: Position;
+    moveComponents: MoveComponentRequest[];
+}
+
+export interface GroupComponentsDialogRequest {
+    request: OpenGroupComponentsDialogRequest;
+    currentParameterContextId?: string;
+    parameterContexts: ParameterContextEntity[];
+}
+
+export interface GroupComponentsRequest extends CreateProcessGroupRequest {
+    components: MoveComponentRequest[];
+}
+
+export interface GroupComponentsSuccess extends CreateComponentResponse {
+    components: MoveComponentRequest[];
+}
+
+export interface CreateProcessorDialogRequest {
+    request: CreateComponentRequest;
+}
+
+export interface GoToRemoteProcessGroupRequest {
+    uri: string;
+}
+
+export interface CreateProcessorRequest extends CreateComponentRequest {
+    processorType: string;
+    processorBundle: Bundle;
+}
+
+export interface CreateProcessGroupRequest extends CreateComponentRequest {
+    name: string;
+    parameterContextId: string | null;
+}
+
+export interface UploadProcessGroupRequest extends CreateComponentRequest {
+    name: string;
+    flowDefinition: File;
+}
+
+export interface CreateRemoteProcessGroupRequest extends CreateComponentRequest {
+    targetUris: string;
+    transportProtocol: string;
+    localNetworkInterface: string;
+    proxyHost: string;
+    proxyPort: string;
+    proxyUser: string;
+    proxyPassword: string;
+    communicationsTimeout: string;
+    yieldDuration: string;
+}
+
+export interface CreatePortRequest extends CreateComponentRequest {
+    name: string;
+    allowRemoteAccess: boolean;
+}
+
+export interface CreateComponentResponse {
+    type: ComponentType;
+    payload: any;
+}
+
+export interface SnippetComponentRequest {
+    id: string;
+    uri: string;
+    type: ComponentType;
+    entity: CanvasComponentEntity;
+}
+
+export type MoveComponentRequest = SnippetComponentRequest;
+
+export interface PasteRequest {
+    copyResponse: CopyResponseEntity;
+    strategy: PasteRequestStrategy;
+    fitToScreen?: boolean;
+    bbox?: any;
+}
+
+export interface PasteRequestEntity {
+    copyResponse: CopyResponseEntity;
+    revision: Revision;
+    disconnectedNodeAcknowledged?: boolean;
+}
+
+export interface PasteRequestContext {
+    processGroupId: string;
+    pasteRequest: PasteRequestEntity;
+    pasteStrategy: PasteRequestStrategy;
+}
+
+export interface DeleteComponentRequest {
+    id: string;
+    uri: string;
+    type: ComponentType;
+    entity: any;
+}
+
+export interface ReplayLastProvenanceEventRequest {
+    componentId: string;
+    nodes: string;
+}
+
+export interface Snippet {
+    parentGroupId: string;
+    processors: {
+        [key: string]: any;
+    };
+    funnels: {
+        [key: string]: any;
+    };
+    inputPorts: {
+        [key: string]: any;
+    };
+    outputPorts: {
+        [key: string]: any;
+    };
+    remoteProcessGroups: {
+        [key: string]: any;
+    };
+    processGroups: {
+        [key: string]: any;
+    };
+    connections: {
+        [key: string]: any;
+    };
+    labels: {
+        [key: string]: any;
+    };
+}
+
+export interface Dimensions {
+    width: number;
+    height: number;
+}
+
+export interface RunOnceRequest {
+    id: string;
+    revision: Revision;
+}
+
+export interface EnableProcessGroupRequest {
+    id: string;
+    type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
+}
+
+export interface DisableProcessGroupRequest {
+    id: string;
+    type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
+}
+
+export interface StartProcessGroupRequest {
+    id: string;
+    type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
+}
+
+export interface ProcessGroupRunStatusRequest {
+    id: string;
+    state: string;
+    disconnectedNodeAcknowledged: boolean;
+}
+
+export interface StopProcessGroupRequest {
+    id: string;
+    type: ComponentType;
+    errorStrategy: 'snackbar' | 'banner';
+}
+
+export interface ControllerServiceStateRequest {
+    id: string;
+    state: string;
+    disconnectedNodeAcknowledged: boolean;
+}
+
+export interface TerminateThreadsRequest {
+    id: string;
+    uri: string;
+}
+
+export interface ClearBulletinsForGroupRequest {
+    processGroupId: string;
+    fromTimestamp: string;
+}
+
+export interface FlowUpdateRequest {
+    requestId: string;
+    processGroupId: string;
+    uri: string;
+    lastUpdated: string;
+    complete: boolean;
+    percentCompleted: number;
+    state: string;
+    failureReason?: string;
+}
+
+export interface FlowUpdateRequestEntity {
+    processGroupRevision: Revision;
+    request: FlowUpdateRequest;
+}
+
+export interface Difference {
+    differenceType: string;
+    difference: string;
+    environmental?: boolean;
+}
+
+export interface ComponentDifference {
+    componentType: ComponentType;
+    componentId: string;
+    processGroupId: string;
+    differences: Difference[];
+    componentName?: string;
+}
+
+export interface FlowComparisonEntity {
+    componentDifferences: ComponentDifference[];
+}
+
+export interface DownloadFlowRequest {
+    processGroupId: string;
+    includeReferencedServices: boolean;
 }

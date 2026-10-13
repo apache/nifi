@@ -18,22 +18,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreateProcessor } from './create-processor.component';
-import { CreateProcessorDialogRequest } from '../../../../../state/flow';
+import { CreateProcessorDialogRequest, CreateProcessorRequest } from '../../../../state/flow-shared';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialExtensionsTypesState } from '../../../../../../../state/extension-types/extension-types.reducer';
-import { extensionTypesFeatureKey } from '../../../../../../../state/extension-types';
-import { initialState as initialFlowState } from '../../../../../state/flow/flow.reducer';
-import { flowFeatureKey } from '../../../../../state/flow';
 import { ComponentType } from '@nifi/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { DocumentedType } from '../../../../../../../state/shared';
+import { DocumentedType } from '../../../../state/shared';
 import { MatIconTestingModule } from '@angular/material/icon/testing';
 import { MockComponent } from 'ng-mocks';
-import { ExtensionCreation } from '../../../../../../../ui/common/extension-creation/extension-creation.component';
+import { ExtensionCreation } from '../../extension-creation/extension-creation.component';
 import { of } from 'rxjs';
-import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
-import { errorFeatureKey } from '../../../../../../../state/error';
 
 describe('CreateProcessor', () => {
     let component: CreateProcessor;
@@ -73,15 +66,6 @@ describe('CreateProcessor', () => {
             imports: [CreateProcessor, NoopAnimationsModule, MatIconTestingModule, MockComponent(ExtensionCreation)],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
-                provideMockStore({
-                    initialState: {
-                        [errorFeatureKey]: initialErrorState,
-                        [extensionTypesFeatureKey]: initialExtensionsTypesState,
-                        canvas: {
-                            [flowFeatureKey]: initialFlowState
-                        }
-                    }
-                }),
                 { provide: MatDialogRef, useValue: null }
             ]
         });
@@ -94,5 +78,17 @@ describe('CreateProcessor', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should emit createProcessor when a type is selected', () => {
+        const emitted: CreateProcessorRequest[] = [];
+        component.createProcessor.subscribe((request) => emitted.push(request));
+
+        component.onProcessorTypeSelected(processorTypes[0]);
+
+        expect(emitted).toHaveLength(1);
+        expect(emitted[0].processorType).toEqual(processorTypes[0].type);
+        expect(emitted[0].processorBundle).toEqual(processorTypes[0].bundle);
+        expect(emitted[0].position).toEqual(data.request.position);
     });
 });
