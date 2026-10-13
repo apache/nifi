@@ -20,9 +20,9 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import {
     ConnectionCreateBody,
     ConnectionCreateRequest,
+    ConnectionDialogEndpoint,
     CreateConnection as CreateConnectionPayload,
-    CreateConnectionDialogRequest,
-    SelectedComponent
+    CreateConnectionDialogRequest
 } from '../../../../state/flow-shared';
 import {
     BreadcrumbEntity,
@@ -38,7 +38,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
-import { ComponentType, NifiSpinnerDirective, TextTip, NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
+import {
+    CloseOnEscapeDialog,
+    ComponentType,
+    NifiSpinnerDirective,
+    NifiTooltipDirective,
+    PortEntity,
+    TextTip
+} from '@nifi/shared';
 import { Prioritizers } from '../edit-connection/prioritizers/prioritizers.component';
 import { SourceProcessor } from '../edit-connection/source/source-processor/source-processor.component';
 import { DestinationFunnel } from '../edit-connection/destination/destination-funnel/destination-funnel.component';
@@ -99,7 +106,7 @@ export class CreateConnection extends CloseOnEscapeDialog {
     @Input() breadcrumbs$: Observable<BreadcrumbEntity | null> = of(null);
     @Output() createConnection = new EventEmitter<CreateConnectionPayload>();
 
-    @Input() set getChildOutputPorts(getChildOutputPorts: (groupId: string) => Observable<any>) {
+    @Input() set getChildOutputPorts(getChildOutputPorts: (groupId: string) => Observable<PortEntity[]>) {
         if (this.source.componentType == ComponentType.ProcessGroup) {
             this.childOutputPorts$ = getChildOutputPorts(this.source.id).pipe(
                 tap((outputPorts) => {
@@ -111,7 +118,7 @@ export class CreateConnection extends CloseOnEscapeDialog {
         }
     }
 
-    @Input() set getChildInputPorts(getChildInputPorts: (groupId: string) => Observable<any>) {
+    @Input() set getChildInputPorts(getChildInputPorts: (groupId: string) => Observable<PortEntity[]>) {
         if (this.destination.componentType == ComponentType.ProcessGroup) {
             this.childInputPorts$ = getChildInputPorts(this.destination.id).pipe(
                 tap((inputPorts) => {
@@ -129,11 +136,11 @@ export class CreateConnection extends CloseOnEscapeDialog {
     protected readonly TextTip = TextTip;
 
     createConnectionForm: FormGroup;
-    source: SelectedComponent;
-    destination: SelectedComponent;
+    source: ConnectionDialogEndpoint;
+    destination: ConnectionDialogEndpoint;
 
-    childOutputPorts$!: Observable<any> | null;
-    childInputPorts$!: Observable<any> | null;
+    childOutputPorts$!: Observable<PortEntity[]> | null;
+    childInputPorts$!: Observable<PortEntity[]> | null;
 
     loadBalancePartitionAttributeRequired = false;
     loadBalanceCompressionRequired = false;
@@ -166,7 +173,7 @@ export class CreateConnection extends CloseOnEscapeDialog {
 
         let sourceValue: string | null = null;
         if (this.source.componentType == ComponentType.RemoteProcessGroup) {
-            const outputPorts: any[] = this.source.entity.component.contents.outputPorts;
+            const outputPorts = this.source.entity.component.contents.outputPorts;
             if (outputPorts && outputPorts.length === 1) {
                 sourceValue = outputPorts[0].id;
             }
@@ -181,7 +188,7 @@ export class CreateConnection extends CloseOnEscapeDialog {
 
         let destinationValue: string | null = null;
         if (this.destination.componentType == ComponentType.RemoteProcessGroup) {
-            const inputPorts: any[] = this.destination.entity.component.contents.inputPorts;
+            const inputPorts = this.destination.entity.component.contents.inputPorts;
             if (inputPorts && inputPorts.length === 1) {
                 destinationValue = inputPorts[0].id;
             }

@@ -73,6 +73,41 @@ export type CanvasConnectableEntity =
 export type CanvasComponentEntity = CanvasConnectableEntity | ConnectionEntity | LabelEntity;
 
 /**
+ * Endpoint accepted by the Create Connection dialog.
+ *
+ * The component type discriminates the canonical entity so dialog consumers
+ * cannot omit an entity or pair one with the wrong endpoint kind.
+ */
+export type ConnectionDialogEndpoint =
+    | {
+          id: string;
+          componentType: ComponentType.Processor;
+          entity: ProcessorEntity;
+      }
+    | {
+          id: string;
+          componentType: ComponentType.InputPort | ComponentType.OutputPort;
+          entity: PortEntity;
+      }
+    | {
+          id: string;
+          componentType: ComponentType.ProcessGroup;
+          entity: ProcessGroupEntity;
+      }
+    | {
+          id: string;
+          componentType: ComponentType.RemoteProcessGroup;
+          entity: RemoteProcessGroupEntity & {
+              component: RemoteProcessGroupDTO;
+          };
+      }
+    | {
+          id: string;
+          componentType: ComponentType.Funnel;
+          entity: FunnelEntity;
+      };
+
+/**
  * Destination selected by an endpoint reconnect gesture.
  */
 export interface ConnectionEndpointReconnectDestination {
@@ -267,8 +302,8 @@ export interface CreateLabelRequest extends CreateComponentRequest {
 }
 
 export interface CreateConnectionRequest {
-    source: SelectedComponent;
-    destination: SelectedComponent;
+    source: ConnectionDialogEndpoint;
+    destination: ConnectionDialogEndpoint;
     bends?: Position[];
 }
 

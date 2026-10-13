@@ -36,6 +36,7 @@ import type {
     ConnectionCreateBody,
     ConnectionCreateRequest,
     ConnectionDestinationUpdate,
+    ConnectionDialogEndpoint,
     ConnectionEndpointReconnectDestination,
     ConnectionGeometryUpdate,
     FunnelCreateRequest,
@@ -83,6 +84,23 @@ describe('canvas contracts', () => {
         expectTypeOf<CanvasConnectableEntity>().toExtend<CanvasComponentEntity>();
         expectTypeOf<LabelEntity>().toExtend<CanvasComponentEntity>();
         expectTypeOf<ConnectionEntity>().toExtend<CanvasComponentEntity>();
+    });
+
+    it('requires a canonical entity matching the connection dialog endpoint type', () => {
+        expectTypeOf<Extract<ConnectionDialogEndpoint, { componentType: ComponentType.Processor }>>().toEqualTypeOf<{
+            id: string;
+            componentType: ComponentType.Processor;
+            entity: ProcessorEntity;
+        }>();
+        expectTypeOf<{
+            id: string;
+            componentType: ComponentType.Processor;
+        }>().not.toExtend<ConnectionDialogEndpoint>();
+        expectTypeOf<{
+            id: string;
+            componentType: ComponentType.Processor;
+            entity: LabelEntity;
+        }>().not.toExtend<ConnectionDialogEndpoint>();
     });
 });
 

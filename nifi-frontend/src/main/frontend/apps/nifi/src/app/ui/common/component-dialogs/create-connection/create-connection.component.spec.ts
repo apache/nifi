@@ -21,8 +21,12 @@ import { CreateConnection } from './create-connection.component';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { of } from 'rxjs';
-import { CreateConnectionDialogRequest } from '../../../../state/flow-shared';
-import { ComponentType } from '@nifi/shared';
+import {
+    ConnectionDialogEndpoint,
+    CreateConnection as CreateConnectionPayload,
+    CreateConnectionDialogRequest
+} from '../../../../state/flow-shared';
+import { ComponentType, ProcessorConfigDTO, RemoteProcessGroupPortDTO } from '@nifi/shared';
 import { DocumentedType } from '../../../../state/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
@@ -31,79 +35,195 @@ import { errorFeatureKey } from '../../../../state/error';
 import { Client } from '../../../../service/client.service';
 
 describe('CreateConnection', () => {
-    // Mock data factories
-    function createMockInputPort(id = 'input-port-id'): any {
+    const permissions = { canRead: true, canWrite: true };
+    const position = { x: 0, y: 0 };
+
+    function entityFields(id: string) {
+        return {
+            id,
+            uri: id,
+            revision: { version: 0 },
+            permissions,
+            position,
+            operatePermissions: permissions
+        };
+    }
+
+    function groupCounts() {
+        return {
+            runningCount: 0,
+            stoppedCount: 0,
+            invalidCount: 0,
+            disabledCount: 0,
+            activeRemotePortCount: 0,
+            inactiveRemotePortCount: 0,
+            upToDateCount: 0,
+            locallyModifiedCount: 0,
+            staleCount: 0,
+            locallyModifiedAndStaleCount: 0,
+            syncFailureCount: 0,
+            localInputPortCount: 0,
+            localOutputPortCount: 0,
+            publicInputPortCount: 0,
+            publicOutputPortCount: 0,
+            inputPortCount: 0,
+            outputPortCount: 0
+        };
+    }
+
+    function processorConfig(): ProcessorConfigDTO {
+        return {
+            schedulingPeriod: '0 sec',
+            schedulingStrategy: 'TIMER_DRIVEN',
+            executionNode: 'ALL',
+            penaltyDuration: '30 sec',
+            yieldDuration: '1 sec',
+            bulletinLevel: 'WARN',
+            runDurationMillis: 0,
+            concurrentlySchedulableTaskCount: 1,
+            autoTerminatedRelationships: [],
+            lossTolerant: false,
+            retryCount: 0,
+            retriedRelationships: [],
+            backoffMechanism: 'PENALIZE_FLOWFILE',
+            maxBackoffPeriod: '10 mins'
+        };
+    }
+
+    function remotePort(id: string, name: string, groupId: string): RemoteProcessGroupPortDTO {
+        return {
+            id,
+            name,
+            groupId,
+            concurrentlySchedulableTaskCount: 1,
+            transmitting: false,
+            useCompression: false,
+            exists: true,
+            targetRunning: false,
+            connected: false,
+            batchSettings: { count: 0 }
+        };
+    }
+
+    function createMockInputPort(id = 'input-port-id'): ConnectionDialogEndpoint {
         return {
             id,
             componentType: ComponentType.InputPort,
             entity: {
-                id,
-                permissions: {
-                    canRead: true,
-                    canWrite: true
-                },
+                ...entityFields(id),
+                portType: 'INPUT_PORT',
                 component: {
                     id,
+                    position,
+                    parentGroupId: 'group-id',
                     name: 'Input Port',
-                    parentGroupId: 'group-id'
+                    state: 'STOPPED',
+                    type: 'INPUT_PORT',
+                    portFunction: 'STANDARD',
+                    concurrentlySchedulableTaskCount: 1
                 }
             }
         };
     }
 
-    function createMockProcessor(id = 'processor-id'): any {
+    function createMockProcessor(id = 'processor-id'): ConnectionDialogEndpoint {
         return {
             id,
             componentType: ComponentType.Processor,
             entity: {
-                id,
-                permissions: {
-                    canRead: true,
-                    canWrite: true
-                },
+                ...entityFields(id),
+                inputRequirement: 'INPUT_REQUIRED',
+                physicalState: 'STOPPED',
                 component: {
                     id,
-                    name: 'Test Processor',
+                    position,
                     parentGroupId: 'group-id',
-                    relationships: [{ name: 'success', description: 'Success relationship', autoTerminate: false }]
+                    name: 'Test Processor',
+                    type: 'org.apache.nifi.processors.standard.GenerateFlowFile',
+                    bundle: { group: 'org.apache.nifi', artifact: 'nifi-standard-nar', version: '2.0.0' },
+                    state: 'STOPPED',
+                    relationships: [
+                        {
+                            name: 'success',
+                            description: 'Success relationship',
+                            autoTerminate: false,
+                            retry: false
+                        }
+                    ],
+                    supportsParallelProcessing: false,
+                    supportsBatching: false,
+                    supportsSensitiveDynamicProperties: false,
+                    supportsBacklogReporting: false,
+                    persistsState: false,
+                    restricted: false,
+                    deprecated: false,
+                    extensionMissing: false,
+                    executionNodeRestricted: false,
+                    multipleVersionsAvailable: false,
+                    inputRequirement: 'INPUT_REQUIRED',
+                    physicalState: 'STOPPED',
+                    config: processorConfig(),
+                    validationStatus: 'VALID'
                 }
             }
         };
     }
 
-    function createMockProcessGroup(id = 'process-group-id'): any {
+    function createMockProcessGroup(id = 'process-group-id'): ConnectionDialogEndpoint {
+        const counts = groupCounts();
         return {
             id,
             componentType: ComponentType.ProcessGroup,
             entity: {
-                id,
-                permissions: { canRead: true, canWrite: true },
+                ...entityFields(id),
+                ...counts,
+                resolvedExecutionEngine: 'STANDARD',
                 component: {
                     id,
+                    position,
+                    parentGroupId: 'group-id',
                     name: 'Test Process Group',
-                    parentGroupId: 'group-id'
+                    flowfileConcurrency: 'UNBOUNDED',
+                    flowfileOutboundPolicy: 'STREAM_WHEN_AVAILABLE',
+                    defaultFlowFileExpiration: '0 sec',
+                    defaultBackPressureObjectThreshold: 10000,
+                    defaultBackPressureDataSizeThreshold: '1 GB',
+                    executionEngine: 'INHERITED',
+                    resolvedExecutionEngine: 'STANDARD',
+                    maxConcurrentTasks: 1,
+                    statelessFlowTimeout: '1 min',
+                    statelessGroupScheduledState: 'STOPPED',
+                    ...counts
                 }
             }
         };
     }
 
-    function createMockRemoteProcessGroup(id = 'remote-group-id'): any {
+    function createMockRemoteProcessGroup(id = 'remote-group-id'): ConnectionDialogEndpoint {
         return {
             id,
             componentType: ComponentType.RemoteProcessGroup,
             entity: {
-                id,
-                permissions: {
-                    canRead: true,
-                    canWrite: true
-                },
+                ...entityFields(id),
+                inputPortCount: 1,
+                outputPortCount: 1,
                 component: {
                     id,
-                    name: 'Remote Process Group',
+                    position,
                     parentGroupId: 'group-id',
+                    name: 'Remote Process Group',
+                    targetUris: 'https://localhost:8443/nifi',
+                    communicationsTimeout: '30 sec',
+                    yieldDuration: '10 sec',
+                    transportProtocol: 'RAW',
+                    transmitting: false,
+                    activeRemoteInputPortCount: 0,
+                    inactiveRemoteInputPortCount: 1,
+                    activeRemoteOutputPortCount: 0,
+                    inactiveRemoteOutputPortCount: 1,
                     contents: {
-                        outputPorts: [{ id: 'output-1', name: 'Output 1' }],
-                        inputPorts: [{ id: 'input-1', name: 'Input 1' }]
+                        outputPorts: [remotePort('output-1', 'Output 1', id)],
+                        inputPorts: [remotePort('input-1', 'Input 1', id)]
                     }
                 }
             }
@@ -133,8 +253,8 @@ describe('CreateConnection', () => {
     // Setup function for component configuration
     async function setup(
         options: {
-            source?: any;
-            destination?: any;
+            source?: ConnectionDialogEndpoint;
+            destination?: ConnectionDialogEndpoint;
             bends?: Array<{ x: number; y: number }>;
         } = {}
     ) {
@@ -292,7 +412,7 @@ describe('CreateConnection', () => {
         it('emits a create connection payload whose revision uses the local client id', async () => {
             const { component } = await setup();
             const client = TestBed.inject(Client);
-            const emitted: Array<{ payload: { revision: { version: number; clientId: string } } }> = [];
+            const emitted: CreateConnectionPayload[] = [];
             component.createConnection.subscribe((request) => emitted.push(request));
 
             component.submitCreateConnection('root');
@@ -311,7 +431,7 @@ describe('CreateConnection', () => {
             component.createConnectionForm.patchValue({ relationships: ['success'] });
             fixture.detectChanges();
 
-            const emitted: Array<{ payload: { component: { selectedRelationships: string[] } } }> = [];
+            const emitted: CreateConnectionPayload[] = [];
             component.createConnection.subscribe((request) => emitted.push(request));
 
             component.submitCreateConnection('root');
@@ -335,7 +455,7 @@ describe('CreateConnection', () => {
                 compression: 'COMPRESS_ATTRIBUTES_ONLY',
                 prioritizers: ['org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer']
             });
-            const emitted: Array<{ payload: unknown }> = [];
+            const emitted: CreateConnectionPayload[] = [];
             component.createConnection.subscribe((request) => emitted.push(request));
 
             component.submitCreateConnection('root');

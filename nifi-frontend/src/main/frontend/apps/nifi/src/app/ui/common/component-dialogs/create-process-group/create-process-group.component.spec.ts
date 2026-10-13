@@ -141,6 +141,18 @@ describe('CreateProcessGroup', () => {
 
             expect(emitted[0].parameterContextId).toBeNull();
         });
+
+        it('emits a null parameter context id when no parameter context is selected', () => {
+            component.supportsParameters = true;
+            component.createProcessGroupForm.get('newProcessGroupName')?.setValue('child');
+            component.createProcessGroupForm.get('newProcessGroupParameterContext')?.setValue(null);
+            const emitted: CreateProcessGroupRequest[] = [];
+            component.createProcessGroup.subscribe((request) => emitted.push(request));
+
+            component.submitCreateProcessGroup();
+
+            expect(emitted[0].parameterContextId).toBeNull();
+        });
     });
 
     describe('user does NOT have permission to current parameter context', () => {

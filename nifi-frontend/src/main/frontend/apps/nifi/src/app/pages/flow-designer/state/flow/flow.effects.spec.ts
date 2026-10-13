@@ -40,6 +40,7 @@ import {
     CreateComponentRequest,
     CreateComponentResponse,
     CreateConnection,
+    CreateConnectionRequest,
     CreatePortRequest,
     CreateProcessGroupDialogRequest,
     CreateProcessGroupRequest,
@@ -82,7 +83,7 @@ import { CanvasView } from '../../service/canvas-view.service';
 import { CanvasUtils } from '../../service/canvas-utils.service';
 import { BirdseyeView } from '../../service/birdseye-view.service';
 import { selectDisconnectionAcknowledged } from '../../../../state/cluster-summary/cluster-summary.selectors';
-import { ComponentType, ComponentTypeNamePipe, YesNoDialog } from '@nifi/shared';
+import { ComponentType, ComponentTypeNamePipe, FunnelEntity, PortEntity, YesNoDialog } from '@nifi/shared';
 import { ParameterContextService } from '../../../parameter-contexts/service/parameter-contexts.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { provideRouter, Router } from '@angular/router';
@@ -1085,7 +1086,14 @@ describe('FlowEffects', () => {
     describe('#createConnection', () => {
         it('enriches the call to createConnection with the max z index + 1', async () => {
             const REQUEST: CreateConnection = {
-                payload: {} // irrelevant
+                payload: {
+                    revision: { version: 0, clientId: 'client-1' },
+                    component: {
+                        labelIndex: 0,
+                        source: { id: 'source-1', groupId: 'group-1', type: 'FUNNEL' },
+                        destination: { id: 'destination-1', groupId: 'group-1', type: 'FUNNEL' }
+                    }
+                }
             };
 
             const MAX_Z_INDEX = 10;
@@ -1127,7 +1135,7 @@ describe('FlowEffects', () => {
             const REQUEST: CreateComponentRequest = {
                 type: ComponentType.Label,
                 position: { x: 0, y: 0 },
-                revision: 1
+                revision: { version: 0, clientId: 'client-1' }
             };
 
             const CREATE_COMPONENT_RESPONSE = {
@@ -1934,9 +1942,43 @@ describe('FlowEffects', () => {
     });
 
     describe('openNewConnectionDialog$', () => {
-        const request = {
-            source: { id: 'src', componentType: ComponentType.Processor },
-            destination: { id: 'dst', componentType: ComponentType.Processor }
+        const createFunnelEntity = (id: string): FunnelEntity => ({
+            id,
+            uri: `https://localhost:4200/nifi-api/funnels/${id}`,
+            revision: { version: 0 },
+            permissions: { canRead: true, canWrite: true },
+            position: { x: 0, y: 0 },
+            component: { id, position: { x: 0, y: 0 } }
+        });
+        const createPortEntity = (id: string, portType: 'INPUT_PORT' | 'OUTPUT_PORT'): PortEntity => ({
+            id,
+            uri: `https://localhost:4200/nifi-api/${portType === 'INPUT_PORT' ? 'input-ports' : 'output-ports'}/${id}`,
+            revision: { version: 0 },
+            permissions: { canRead: true, canWrite: true },
+            operatePermissions: { canRead: true, canWrite: true },
+            position: { x: 0, y: 0 },
+            portType,
+            component: {
+                id,
+                position: { x: 0, y: 0 },
+                state: 'STOPPED',
+                type: portType,
+                portFunction: 'STANDARD',
+                concurrentlySchedulableTaskCount: 1,
+                name: id
+            }
+        });
+        const request: CreateConnectionRequest = {
+            source: {
+                id: 'src',
+                componentType: ComponentType.Funnel,
+                entity: createFunnelEntity('src')
+            },
+            destination: {
+                id: 'dst',
+                componentType: ComponentType.Funnel,
+                entity: createFunnelEntity('dst')
+            }
         };
 
         it('assigns dialog inputs and dispatches createConnection from the dialog output', async () => {
@@ -1947,8 +1989,8 @@ describe('FlowEffects', () => {
                 saving$: Observable<boolean>;
                 breadcrumbs$: Observable<unknown>;
                 availablePrioritizers$: Observable<DocumentedType[]>;
-                getChildOutputPorts: (groupId: string) => Observable<unknown>;
-                getChildInputPorts: (groupId: string) => Observable<unknown>;
+                getChildOutputPorts: (groupId: string) => Observable<PortEntity[]>;
+                getChildInputPorts: (groupId: string) => Observable<PortEntity[]>;
             } = {
                 createConnection,
                 saving$: of(true),
@@ -1970,8 +2012,8 @@ describe('FlowEffects', () => {
                     }
                 })
             );
-            const outputPorts = [{ id: 'out-1' }];
-            const inputPorts = [{ id: 'in-1' }];
+            const outputPorts = [createPortEntity('out-1', 'OUTPUT_PORT')];
+            const inputPorts = [createPortEntity('in-1', 'INPUT_PORT')];
             vi.spyOn(flowService, 'getFlow').mockReturnValue(
                 of({
                     processGroupFlow: {
@@ -2000,7 +2042,15 @@ describe('FlowEffects', () => {
             expect(flowService.getFlow).toHaveBeenCalledWith('child-1');
 
             const payload: CreateConnection = {
-                payload: { revision: { version: 0, clientId: 'client-1' }, component: { name: '' } }
+                payload: {
+                    revision: { version: 0, clientId: 'client-1' },
+                    component: {
+                        labelIndex: 0,
+                        name: '',
+                        source: { id: 'src', groupId: 'pg-1', type: 'FUNNEL' },
+                        destination: { id: 'dst', groupId: 'pg-1', type: 'FUNNEL' }
+                    }
+                }
             };
             createConnection.emit(payload);
 
@@ -2053,7 +2103,13 @@ describe('FlowEffects', () => {
             revision: { version: 0, clientId: 'client-1' }
         };
 
-        function openWith(outputs: Record<string, EventEmitter<unknown>>): {
+        type DialogOutputEmitters<TOutputs extends Record<string, unknown>> = {
+            [Key in keyof TOutputs]: EventEmitter<TOutputs[Key]>;
+        };
+
+        function openWith<TOutputs extends Record<string, unknown>>(
+            outputs: DialogOutputEmitters<TOutputs>
+        ): {
             componentInstance: Record<string, unknown>;
             afterClosed: Subject<void>;
         } {
@@ -2305,7 +2361,19 @@ describe('FlowEffects', () => {
                 ]);
 
                 const request: ImportFromRegistryRequest = {
-                    payload: { registryId: 'reg-1' },
+                    payload: {
+                        revision: componentRequest.revision,
+                        component: {
+                            position: componentRequest.position,
+                            versionControlInformation: {
+                                registryId: 'reg-1',
+                                bucketId: 'bucket-1',
+                                flowId: 'flow-1',
+                                version: '1',
+                                branch: 'main'
+                            }
+                        }
+                    },
                     keepExistingParameterContext: false
                 };
                 importFromRegistry.emit(request);

@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { GroupComponents } from './group-components.component';
-import { GroupComponentsDialogRequest } from '../../../../state/flow-shared';
+import { GroupComponentsDialogRequest, GroupComponentsRequest } from '../../../../state/flow-shared';
 import { ComponentType } from '@nifi/shared';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
@@ -81,12 +81,14 @@ describe('GroupComponents', () => {
                             supportsParallelProcessing: true,
                             supportsBatching: false,
                             supportsSensitiveDynamicProperties: false,
+                            supportsBacklogReporting: false,
                             persistsState: false,
                             restricted: false,
                             deprecated: false,
                             executionNodeRestricted: false,
                             multipleVersionsAvailable: false,
                             inputRequirement: 'INPUT_FORBIDDEN',
+                            physicalState: 'STOPPED',
                             config: {
                                 properties: {
                                     'bootstrap.servers': 'localhost:9092',
@@ -699,6 +701,7 @@ describe('GroupComponents', () => {
                             extensionMissing: false
                         },
                         inputRequirement: 'INPUT_FORBIDDEN',
+                        physicalState: 'STOPPED',
                         status: {
                             groupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
                             id: 'd90ac264-018b-1000-1827-a86c8156fd9e',
@@ -733,11 +736,6 @@ describe('GroupComponents', () => {
                         operatePermissions: {
                             canRead: false,
                             canWrite: false
-                        },
-                        type: 'Processor',
-                        dimensions: {
-                            width: 352,
-                            height: 128
                         }
                     }
                 }
@@ -881,5 +879,15 @@ describe('GroupComponents', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('emits a null parameter context id when no parameter context is selected', () => {
+        component.createProcessGroupForm.get('newProcessGroupName')?.setValue('grouped');
+        const emitted: GroupComponentsRequest[] = [];
+        component.groupComponents.subscribe((request) => emitted.push(request));
+
+        component.submitGroupComponents();
+
+        expect(emitted[0].parameterContextId).toBeNull();
     });
 });

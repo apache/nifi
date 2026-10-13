@@ -45,7 +45,7 @@
                                 @case (ComponentType.InputPort) {
                                     <source-input-port
                                         [groupName]="getCurrentGroupName(breadcrumbs)"
-                                        [inputPortName]="source.entity.component.name"></source-input-port>
+                                        [inputPortName]="source.entity.component?.name ?? source.id"></source-input-port>
                                 }
                                 @case (ComponentType.Funnel) {
                                     <source-funnel [groupName]="getCurrentGroupName(breadcrumbs)"></source-funnel>
@@ -73,7 +73,9 @@
                                 @case (ComponentType.OutputPort) {
                                     <destination-output-port
                                         [groupName]="getCurrentGroupName(breadcrumbs)"
-                                        [outputPortName]="destination.entity.component.name"></destination-output-port>
+                                        [outputPortName]="
+                                            destination.entity.component?.name ?? destination.id
+                                        "></destination-output-port>
                                 }
                                 @case (ComponentType.Funnel) {
                                     <destination-funnel

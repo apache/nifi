@@ -78,7 +78,7 @@ import {
     VersionControlInformationEntity
 } from '../../../../state/flow-shared';
 import { buildComponentIdToNameMap, collectEndpointGroupIds } from './component-connections.utils';
-import { Position } from '@nifi/shared';
+import { PortEntity, Position } from '@nifi/shared';
 import { Action, Store } from '@ngrx/store';
 import {
     selectAnySelectedComponentIds,
@@ -823,14 +823,18 @@ export class FlowEffects {
                     dialogReference.componentInstance.availablePrioritizers$ =
                         this.store.select(selectPrioritizerTypes);
 
-                    dialogReference.componentInstance.getChildOutputPorts = (groupId: string): Observable<any> => {
+                    dialogReference.componentInstance.getChildOutputPorts = (
+                        groupId: string
+                    ): Observable<PortEntity[]> => {
                         return this.flowService.getFlow(groupId).pipe(
                             take(1),
                             map((response) => response.processGroupFlow.flow.outputPorts)
                         );
                     };
 
-                    dialogReference.componentInstance.getChildInputPorts = (groupId: string): Observable<any> => {
+                    dialogReference.componentInstance.getChildInputPorts = (
+                        groupId: string
+                    ): Observable<PortEntity[]> => {
                         return this.flowService.getFlow(groupId).pipe(
                             take(1),
                             map((response) => response.processGroupFlow.flow.inputPorts)
