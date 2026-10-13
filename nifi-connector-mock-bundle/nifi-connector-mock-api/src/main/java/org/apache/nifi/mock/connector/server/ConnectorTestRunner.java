@@ -194,6 +194,22 @@ public interface ConnectorTestRunner extends Closeable {
      */
     List<ValidationResult> validate();
 
+    default Long getCounterValue(final String componentId, final String name) {
+        throw new UnsupportedOperationException();
+    }
+
+    default Long getCounterValue(final String componentId, final String name, final Map<String, String> attributes) {
+        throw new UnsupportedOperationException();
+    }
+
+    default List<Double> getGaugeValues(final String componentId, final String name) {
+        throw new UnsupportedOperationException();
+    }
+
+    default List<Double> getGaugeValues(final String componentId, final String name, final Map<String, String> attributes) {
+        throw new UnsupportedOperationException();
+    }
+
     /**
      * Returns the HTTP port on which the embedded Jetty server is listening, or -1 if no server is running.
      *
