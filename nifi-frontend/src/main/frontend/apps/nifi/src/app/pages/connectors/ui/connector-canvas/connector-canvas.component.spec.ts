@@ -26,11 +26,13 @@ import { Action } from '@ngrx/store';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { ReplaySubject, firstValueFrom } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { ComponentType, selectRouteParams, selectUrl } from '@nifi/shared';
+import { ComponentType, Position, RevisionRequest, selectRouteParams, selectUrl } from '@nifi/shared';
 
 import { ConnectorCanvasComponent } from './connector-canvas.component';
 import { CanvasComponent } from '../../../../ui/common/canvas/canvas.component';
-import { ContextMenuContext } from '../../../../ui/common/canvas/canvas.types';
+import { ContextMenuContext, DragEndBaselineItem } from '../../../../ui/common/canvas/canvas.types';
+import { CreateConnectionPayload } from '../../../../ui/common/canvas/connectable-behavior.helper';
+import { ConnectionEndpointReconnectDestination } from '../../../../state/flow-shared';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { ConnectorCanvasHeaderBarComponent } from './header-bar/connector-canvas-header-bar.component';
 import { ConnectorCanvasFooterComponent } from './footer/footer.component';
@@ -59,11 +61,22 @@ import {
     navigateToControllerServices,
     navigateToProvenanceForComponent,
     navigateToQueueListing,
+    createConnectionDialogClosed,
+    createConnectionFailure,
+    createConnectionRequested,
+    createConnectionSuccess,
+    editConnectionDialogClosed,
+    openReconnectConnectionDialog,
+    updateConnectionDestination,
+    updateConnectionDestinationFailure,
     resetConnectorCanvasState,
+    resizeLabel,
     selectComponents,
     setSkipTransform,
     startConnectorCanvasPolling,
     stopConnectorCanvasPolling,
+    updateComponentPositionsBulk,
+    updateConnectionBendPoints,
     viewComponentConfiguration
 } from '../../state/connector-canvas/connector-canvas.actions';
 import {
@@ -73,6 +86,7 @@ import {
 } from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
 import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../../../../state/empty-queue/empty-queue.actions';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
+import { Client } from '../../../../service/client.service';
 import {
     downloadContent as connectorProvenanceDownloadContent,
     loadLatestEventsForComponent as connectorProvenanceLoadLatest,
@@ -86,7 +100,14 @@ import {
     selectConnectorProvenanceEvents,
     selectConnectorProvenanceStatus
 } from '../../state/connector-provenance-preview/connector-provenance-preview.selectors';
-import { makeProcessor } from '../../testing/connector-canvas-entity-fixtures';
+import {
+    makeConnection,
+    makeProcessGroup,
+    makeProcessGroupDto,
+    makeProcessor,
+    makeRemoteProcessGroup,
+    makeRemoteProcessGroupDto
+} from '../../testing/connector-canvas-entity-fixtures';
 
 // Mock components to avoid loading complex real components
 @Component({
@@ -103,17 +124,33 @@ class MockReusableCanvasComponent {
     remoteProcessGroups = input<unknown[]>([]);
     processGroups = input<unknown[]>([]);
     connections = input<unknown[]>([]);
-    previewExtensions = input<unknown[]>([]);
     registryClients = input<unknown[]>([]);
     processGroupId = input<string | null>(null);
     selectedComponentIds = input<string[]>([]);
     dataReady = input(false);
     skipInitialCenter = input(false);
     menuProvider = input<unknown>(undefined);
+    connectable = input<unknown>(null);
     selectComponents = output<Array<{ id: string; type: ComponentType }>>();
     deselectAll = output<void>();
     initialized = output<void>();
     contextMenuOpened = output<unknown>();
+    componentsDragEnd = output<{ items: DragEndBaselineItem[]; delta: Position; targetGroupId?: string }>();
+    connectionBendPointsUpdate = output<{
+        id: string;
+        bends: Position[];
+        labelIndex?: number;
+        revision: RevisionRequest;
+    }>();
+    connectionLabelDragEnd = output<{ id: string; labelIndex: number; revision: RevisionRequest }>();
+    labelResizeEnd = output<{ id: string; dimensions: { width: number; height: number }; revision: RevisionRequest }>();
+    createConnectionRequested = output<CreateConnectionPayload>();
+    connectionDestinationChangeRequested = output<{
+        id: string;
+        revision: RevisionRequest;
+        newDestination: ConnectionEndpointReconnectDestination;
+        bends?: Position[];
+    }>();
     centerOnSelection = vi.fn();
     centerOnComponent = vi.fn();
     getBirdseyeComponentData = vi.fn().mockReturnValue([]);
@@ -125,6 +162,27 @@ class MockReusableCanvasComponent {
     setViewportPosition = vi.fn();
     birdseyeDragStart = vi.fn();
     birdseyeDragEnd = vi.fn();
+    confirmProcessorPosition = vi.fn();
+    revertProcessorPosition = vi.fn();
+    confirmPortPosition = vi.fn();
+    revertPortPosition = vi.fn();
+    confirmRemoteProcessGroupPosition = vi.fn();
+    revertRemoteProcessGroupPosition = vi.fn();
+    confirmProcessGroupPosition = vi.fn();
+    revertProcessGroupPosition = vi.fn();
+    confirmFunnelPosition = vi.fn();
+    revertFunnelPosition = vi.fn();
+    confirmLabelPosition = vi.fn();
+    revertLabelPosition = vi.fn();
+    confirmConnectionBendPoints = vi.fn();
+    revertConnectionBendPoints = vi.fn();
+    confirmConnectionLabelIndex = vi.fn();
+    revertConnectionLabelIndex = vi.fn();
+    confirmConnectionDestination = vi.fn();
+    revertConnectionDestination = vi.fn();
+    confirmLabelResize = vi.fn();
+    revertLabelDimensions = vi.fn();
+    clearConnectionPreview = vi.fn();
 }
 
 @Component({
@@ -230,6 +288,7 @@ interface SetupOptions {
     provenanceError?: string | null;
     connectedToCluster?: boolean;
     contentViewerUrl?: string | null;
+    connections?: ReturnType<typeof makeConnection>[];
 }
 
 const DEFAULT_CONNECTOR_ID = 'connector-1';
@@ -274,7 +333,7 @@ function buildMockSelectors(options: SetupOptions = {}) {
         { selector: ConnectorCanvasSelectors.selectOutputPorts, value: options.outputPorts ?? [] },
         { selector: ConnectorCanvasSelectors.selectRemoteProcessGroups, value: [] },
         { selector: ConnectorCanvasSelectors.selectProcessGroups, value: [] },
-        { selector: ConnectorCanvasSelectors.selectConnections, value: [] },
+        { selector: ConnectorCanvasSelectors.selectConnections, value: options.connections ?? [] },
         { selector: ConnectorCanvasSelectors.selectRegistryClients, value: [] },
         { selector: ConnectorCanvasSelectors.selectLoadingStatus, value: loadingStatus },
         { selector: ConnectorCanvasSelectors.selectSkipTransform, value: skipTransform },
@@ -2645,6 +2704,283 @@ describe('ConnectorCanvasComponent', () => {
             fixture.destroy();
 
             expect(dispatchSpy).toHaveBeenCalledWith(connectorProvenanceResetState());
+        });
+    });
+
+    describe('reusable canvas mutations', () => {
+        it('dispatches bulk positions with baseline versions and the local client id', () => {
+            const { component, dispatchSpy } = setup();
+            const client = TestBed.inject(Client);
+            component.currentProcessGroupId = 'pg-root';
+
+            component.onComponentsDragEnd({
+                items: [
+                    {
+                        id: 'processor-1',
+                        type: ComponentType.Processor,
+                        position: { x: 10, y: 20 },
+                        revision: { version: 9, clientId: 'peer-client' }
+                    }
+                ],
+                delta: { x: 5, y: 7 }
+            });
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                updateComponentPositionsBulk({
+                    processGroupId: 'pg-root',
+                    updates: [
+                        {
+                            componentId: 'processor-1',
+                            componentType: ComponentType.Processor,
+                            position: { x: 15, y: 27 },
+                            revision: { version: 9, clientId: client.getClientId() }
+                        }
+                    ],
+                    delta: { x: 5, y: 7 }
+                })
+            );
+        });
+
+        it('dispatches single connection and label mutations with local-client revisions', () => {
+            const { component, dispatchSpy } = setup();
+            const clientId = TestBed.inject(Client).getClientId();
+            component.currentProcessGroupId = 'pg-root';
+
+            component.onConnectionBendPointsUpdate({
+                id: 'connection-1',
+                bends: [{ x: 1, y: 2 }],
+                revision: { version: 4, clientId: 'peer-client' }
+            });
+            component.onLabelResizeEnd({
+                id: 'label-1',
+                dimensions: { width: 200, height: 100 },
+                revision: { version: 6, clientId: 'peer-client' }
+            });
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                updateConnectionBendPoints({
+                    processGroupId: 'pg-root',
+                    update: {
+                        id: 'connection-1',
+                        bends: [{ x: 1, y: 2 }],
+                        revision: { version: 4, clientId }
+                    }
+                })
+            );
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                resizeLabel({
+                    processGroupId: 'pg-root',
+                    labelId: 'label-1',
+                    dimensions: { width: 200, height: 100 },
+                    revision: { version: 6, clientId }
+                })
+            );
+        });
+
+        it('opens the reconnect dialog for a process group and keeps the direct update for a processor', () => {
+            const connection = makeConnection('conn-1');
+            const { component, dispatchSpy } = setup({ connections: [connection] });
+            component.currentProcessGroupId = 'pg-root';
+            dispatchSpy.mockClear();
+
+            component.onConnectionDestinationChangeRequested({
+                id: 'conn-1',
+                revision: { version: 3, clientId: 'peer-client' },
+                newDestination: {
+                    id: 'pg-child',
+                    componentType: ComponentType.ProcessGroup,
+                    entity: makeProcessGroup('pg-child', {
+                        component: makeProcessGroupDto({ id: 'pg-child', name: 'Child PG' })
+                    })
+                }
+            });
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                openReconnectConnectionDialog({
+                    request: {
+                        type: ComponentType.Connection,
+                        uri: connection.uri,
+                        entity: connection,
+                        newDestination: {
+                            type: ComponentType.ProcessGroup,
+                            groupId: 'pg-child',
+                            name: 'Child PG'
+                        }
+                    }
+                })
+            );
+
+            dispatchSpy.mockClear();
+            const processor = makeProcessor('proc-2');
+            component.onConnectionDestinationChangeRequested({
+                id: 'conn-1',
+                revision: { version: 3, clientId: 'peer-client' },
+                newDestination: {
+                    id: 'proc-2',
+                    componentType: ComponentType.Processor,
+                    entity: processor
+                },
+                bends: [{ x: 4, y: 5 }]
+            });
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                updateConnectionDestination({
+                    processGroupId: 'pg-root',
+                    connectionId: 'conn-1',
+                    revision: { version: 3, clientId: TestBed.inject(Client).getClientId() },
+                    newDestination: {
+                        id: 'proc-2',
+                        componentType: ComponentType.Processor,
+                        entity: processor
+                    },
+                    bends: [{ x: 4, y: 5 }]
+                })
+            );
+        });
+
+        it('uses the destination id when a remote process group name is not readable', () => {
+            const connection = makeConnection('conn-1');
+            const { component, dispatchSpy } = setup({ connections: [connection] });
+            component.currentProcessGroupId = 'pg-root';
+            dispatchSpy.mockClear();
+
+            component.onConnectionDestinationChangeRequested({
+                id: 'conn-1',
+                revision: { version: 3, clientId: 'peer-client' },
+                newDestination: {
+                    id: 'rpg-1',
+                    componentType: ComponentType.RemoteProcessGroup,
+                    entity: makeRemoteProcessGroup('rpg-1', {
+                        permissions: { canRead: false, canWrite: true },
+                        component: makeRemoteProcessGroupDto({ id: 'rpg-1', name: 'Hidden RPG' })
+                    })
+                }
+            });
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                openReconnectConnectionDialog({
+                    request: {
+                        type: ComponentType.Connection,
+                        uri: connection.uri,
+                        entity: connection,
+                        newDestination: {
+                            type: ComponentType.RemoteProcessGroup,
+                            groupId: 'rpg-1',
+                            name: 'rpg-1'
+                        }
+                    }
+                })
+            );
+        });
+
+        it('reverts a group reconnect when the connection is no longer loaded', () => {
+            const { fixture, component } = setup();
+            fixture.detectChanges();
+            const canvas = getCanvasMock(fixture);
+            attachCanvasMock(component, canvas);
+            component.currentProcessGroupId = 'pg-root';
+
+            component.onConnectionDestinationChangeRequested({
+                id: 'missing',
+                revision: { version: 1, clientId: 'peer-client' },
+                newDestination: {
+                    id: 'pg-child',
+                    componentType: ComponentType.ProcessGroup,
+                    entity: makeProcessGroup('pg-child')
+                }
+            });
+
+            expect(canvas.revertConnectionDestination).toHaveBeenCalledWith('missing');
+        });
+
+        it('reverts a group reconnect only when the dialog closes without saving', () => {
+            const { fixture, component } = setup();
+            fixture.detectChanges();
+            const canvas = getCanvasMock(fixture);
+            attachCanvasMock(component, canvas);
+
+            actions$.next(
+                updateConnectionDestinationFailure({ connectionId: 'conn-1', error: 'failed', dialogOpen: true })
+            );
+            expect(canvas.revertConnectionDestination).not.toHaveBeenCalled();
+
+            actions$.next(editConnectionDialogClosed({ connectionId: 'conn-1', cancelled: true }));
+            expect(canvas.revertConnectionDestination).toHaveBeenCalledWith('conn-1');
+        });
+
+        it('dispatches typed connection intent', () => {
+            const { component, dispatchSpy } = setup();
+            const source = makeProcessor('source');
+            const destination = makeProcessor('destination');
+            component.currentProcessGroupId = 'pg-root';
+            const request = {
+                source: { id: source.id, type: ComponentType.Processor, entity: source },
+                destination: { id: destination.id, type: ComponentType.Processor, entity: destination },
+                bends: [{ x: 10, y: 20 }]
+            };
+
+            component.onCreateConnectionRequested(request);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                createConnectionRequested({
+                    processGroupId: 'pg-root',
+                    request: {
+                        source: {
+                            id: source.id,
+                            componentType: ComponentType.Processor,
+                            entity: source
+                        },
+                        destination: {
+                            id: destination.id,
+                            componentType: ComponentType.Processor,
+                            entity: destination
+                        },
+                        bends: [{ x: 10, y: 20 }]
+                    }
+                })
+            );
+        });
+
+        it.each([
+            createConnectionSuccess({
+                connection: makeConnection('connection-new')
+            }),
+            createConnectionFailure({ error: 'failed' }),
+            createConnectionDialogClosed()
+        ])('clears the temporary connection preview for $type', (action) => {
+            const { fixture, component } = setup();
+            fixture.detectChanges();
+            const canvas = getCanvasMock(fixture);
+            attachCanvasMock(component, canvas);
+
+            actions$.next(action);
+
+            expect(canvas.clearConnectionPreview).toHaveBeenCalled();
+        });
+
+        it('exposes the policy only during troubleshooting', () => {
+            const { component } = setup();
+            const store = TestBed.inject(MockStore);
+            store.overrideSelector(selectConnectorCanvasEntity, {
+                id: 'connector-1',
+                uri: '/connectors/connector-1',
+                revision: { version: 1 },
+                permissions: { canRead: true, canWrite: true },
+                bulletins: [],
+                status: {} as never,
+                component: {
+                    id: 'connector-1',
+                    name: 'Connector',
+                    type: 'type',
+                    state: 'TROUBLESHOOTING',
+                    bundle: { group: 'group', artifact: 'artifact', version: '1' },
+                    availableActions: [],
+                    managedProcessGroupId: 'pg-root'
+                }
+            });
+            store.refreshState();
+
+            expect(component.connectablePolicy()).not.toBeNull();
         });
     });
 });

@@ -429,12 +429,9 @@ export class EditConnectionComponent extends TabbedDialog {
             payload.component.loadBalanceCompression = 'DO_NOT_COMPRESS';
         }
 
-        if (
-            this.previousDestination &&
-            this.nifiCommon.isEmpty(d.bends) &&
-            this.getConnectionSourceComponentId &&
-            this.calculateCollisionBends
-        ) {
+        if (this.previousDestination && !this.nifiCommon.isEmpty(d.bends)) {
+            payload.component.bends = d.bends;
+        } else if (this.previousDestination && this.getConnectionSourceComponentId && this.calculateCollisionBends) {
             const sourceComponentId = this.getConnectionSourceComponentId(d);
             const newDestinationComponentId =
                 payload.component.destination?.groupId ?? payload.component.destination?.id;

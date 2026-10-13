@@ -16,11 +16,11 @@
  */
 
 import { TestBed } from '@angular/core/testing';
+import { EventEmitter } from '@angular/core';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { Action } from '@ngrx/store';
 import { Router } from '@angular/router';
-import { firstValueFrom, Observable, of, Subject, throwError } from 'rxjs';
-import { toArray } from 'rxjs/operators';
+import { firstValueFrom, Observable, of, Subject, throwError, toArray } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
     ComponentType,
@@ -30,8 +30,9 @@ import {
     Position,
     ProcessorEntity
 } from '@nifi/shared';
-import { MatDialog } from '@angular/material/dialog';
-import { ParameterContextEntity, ProcessGroupFlowEntity } from '../../../../state/shared';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { ParameterContextEntity, ProcessGroupFlowEntity, UpdateConnectionRequest } from '../../../../state/shared';
+import { CreateConnection, CreateConnectionRequest } from '../../../../state/flow-shared';
 import { createParameterContextFixture } from '../../testing/parameter-context-fixture';
 import {
     makeConnection as makeConnectionEntity,
@@ -47,11 +48,17 @@ import { expectActionOfType } from '../../testing/expect-action-of-type';
 import type { ConnectorCanvasComponentEntity } from './index';
 import { ConnectorCanvasEffects } from './connector-canvas.effects';
 import { ConnectorService } from '../../service/connector.service';
+import { ConnectorEditService } from '../../service/connector-edit.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { ErrorContextKey } from '../../../../state/error';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import {
     deselectAllComponents,
+    createConnectionDialogClosed,
+    createConnectionFailure,
+    createConnectionRequested,
+    createConnectionSuccess,
     enterProcessGroup,
     leaveProcessGroup,
     loadConnectorFlow,
@@ -61,33 +68,53 @@ import {
     loadConnectorParameterContext,
     loadConnectorParameterContextFailure,
     loadConnectorParameterContextSuccess,
+    moveCanvasComponents,
     navigateToControllerService,
     navigateToControllerServices,
     navigateToProvenanceForComponent,
     navigateToQueueListing,
     navigateWithoutTransform,
+    editConnectionDialogClosed,
+    openCreateConnectionDialog,
+    openReconnectConnectionDialog,
+    saveEditedConnection,
     reloadConnectorFlow,
     resetConnectorCanvasState,
     selectComponents,
+    submitCreateConnection,
     startConnectorCanvasPolling,
     stopConnectorCanvasPolling,
+    updateComponentPositionSuccess,
+    updateComponentPositionsBulk,
+    updateComponentPositionsBulkComplete,
+    updateConnectionBendPoints,
+    updateConnectionBendPointsFailure,
+    updateConnectionBendPointsSuccess,
+    updateConnectionDestinationFailure,
+    updateConnectionDestinationSuccess,
     viewComponentConfiguration
 } from './connector-canvas.actions';
 import { loadConnectorControllerServicesSuccess } from '../connector-controller-services/connector-controller-services.actions';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { queueEmptied } from '../../../../state/empty-queue/empty-queue.actions';
 import {
+    selectBreadcrumbs,
+    selectConnections,
     selectConnectorId,
     selectConnectorIdFromRoute,
     selectConnectorParameterContext,
     selectLoadingStatus,
+    selectMaxConnectionZIndex,
     selectParentProcessGroupId,
     selectProcessGroupId,
-    selectProcessGroupIdFromRoute
+    selectProcessGroupIdFromRoute,
+    selectSaving
 } from './connector-canvas.selectors';
 import { selectDocumentVisibilityState } from '../../../../state/document-visibility/document-visibility.selectors';
 import { DocumentVisibility } from '../../../../state/document-visibility';
 import type { Mock } from 'vitest';
+import { selectPrioritizerTypes } from '../../../../state/extension-types/extension-types.selectors';
+import { EditConnectionComponent } from '../../../../ui/common/component-dialogs/edit-connection/edit-connection.component';
 
 describe('ConnectorCanvasEffects', () => {
     // Setup function following SIFERS pattern
@@ -118,6 +145,7 @@ describe('ConnectorCanvasEffects', () => {
         // Mock services
         const mockConnectorService = {
             getConnectorFlow: vi.fn(),
+            getProcessGroup: vi.fn(),
             getConnectorParameterContext: vi.fn(),
             getControllerService: vi.fn()
         };
@@ -136,6 +164,16 @@ describe('ConnectorCanvasEffects', () => {
             getErrorString: vi.fn().mockReturnValue('Error message'),
             handleLoadingError: vi.fn()
         };
+        const mockConnectorEditService = {
+            updateComponent: vi.fn(),
+            moveComponents: vi.fn(),
+            getProcessGroup: vi.fn(),
+            getProcessGroupFlow: vi.fn(),
+            createConnection: vi.fn()
+        };
+        const mockClusterConnectionService = {
+            isDisconnectionAcknowledged: vi.fn().mockReturnValue(false)
+        };
 
         const mockRouter = {
             navigate: vi.fn().mockResolvedValue(true)
@@ -153,7 +191,8 @@ describe('ConnectorCanvasEffects', () => {
             close: vi.fn()
         };
         const mockDialog = {
-            open: vi.fn().mockReturnValue(mockDialogRef)
+            open: vi.fn().mockReturnValue(mockDialogRef),
+            closeAll: vi.fn()
         };
 
         await TestBed.configureTestingModule({
@@ -168,6 +207,10 @@ describe('ConnectorCanvasEffects', () => {
                         { selector: selectParentProcessGroupId, value: parentProcessGroupId },
                         { selector: selectProcessGroupId, value: processGroupId },
                         { selector: selectProcessGroupIdFromRoute, value: processGroupIdFromRoute },
+                        { selector: selectConnections, value: [] },
+                        { selector: selectBreadcrumbs, value: null },
+                        { selector: selectSaving, value: false },
+                        { selector: selectMaxConnectionZIndex, value: 4 },
                         { selector: selectLoadingStatus, value: loadingStatus },
                         {
                             selector: selectDocumentVisibilityState,
@@ -180,6 +223,8 @@ describe('ConnectorCanvasEffects', () => {
                     ]
                 }),
                 { provide: ConnectorService, useValue: mockConnectorService },
+                { provide: ConnectorEditService, useValue: mockConnectorEditService },
+                { provide: ClusterConnectionService, useValue: mockClusterConnectionService },
                 { provide: ErrorHelper, useValue: mockErrorHelper },
                 { provide: Router, useValue: mockRouter },
                 { provide: MatDialog, useValue: mockDialog },
@@ -197,6 +242,7 @@ describe('ConnectorCanvasEffects', () => {
                 actions$ = stream;
             },
             mockConnectorService,
+            mockConnectorEditService,
             mockErrorHelper,
             mockRouter,
             mockDialog,
@@ -207,6 +253,293 @@ describe('ConnectorCanvasEffects', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    describe('create connection', () => {
+        const request: CreateConnectionRequest = {
+            source: {
+                id: 'source-1',
+                componentType: ComponentType.Funnel,
+                entity: makeFunnel('source-1')
+            },
+            destination: {
+                id: 'destination-1',
+                componentType: ComponentType.Funnel,
+                entity: makeFunnel('destination-1')
+            },
+            bends: [{ x: 10, y: 20 }]
+        };
+        const createRequest = {
+            payload: {
+                revision: { version: 0, clientId: 'local-client' },
+                disconnectedNodeAcknowledged: false,
+                component: {
+                    name: '',
+                    labelIndex: 0,
+                    source: { id: 'source-1', groupId: 'child-pg', type: 'FUNNEL' as const },
+                    destination: { id: 'destination-1', groupId: 'child-pg', type: 'FUNNEL' as const }
+                }
+            }
+        } as CreateConnection;
+
+        it('loads process-group defaults before opening the shared dialog', async () => {
+            const { effects, actions$, mockConnectorService } = await setup();
+            mockConnectorService.getProcessGroup.mockReturnValue(
+                of({
+                    component: {
+                        defaultFlowFileExpiration: '1 min',
+                        defaultBackPressureObjectThreshold: 123,
+                        defaultBackPressureDataSizeThreshold: '2 GB'
+                    }
+                })
+            );
+            actions$(of(createConnectionRequested({ processGroupId: 'child-pg', request })));
+
+            const result = await firstValueFrom(effects.createConnectionRequested$);
+
+            expect(mockConnectorService.getProcessGroup).toHaveBeenCalledWith('connector-1', 'child-pg');
+            expect(result).toEqual(
+                openCreateConnectionDialog({
+                    request: {
+                        request,
+                        defaults: {
+                            flowfileExpiration: '1 min',
+                            objectThreshold: 123,
+                            dataSizeThreshold: '2 GB'
+                        }
+                    }
+                })
+            );
+        });
+
+        it('wires dialog inputs and stops listening to its output after close', async () => {
+            const { effects, actions$, store, mockConnectorService, mockDialog, afterClosed$ } = await setup();
+            const createConnection = new EventEmitter<CreateConnection>();
+            mockDialog.open.mockReturnValue({
+                componentInstance: { createConnection },
+                afterClosed: () => afterClosed$.asObservable()
+            } as unknown as MatDialogRef<unknown>);
+            const dispatch = vi.spyOn(store, 'dispatch');
+            const prioritizers = [{ type: 'org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer' }];
+            store.overrideSelector(selectPrioritizerTypes, prioritizers);
+            store.refreshState();
+            mockConnectorService.getConnectorFlow.mockReturnValue(
+                of({
+                    processGroupFlow: {
+                        flow: {
+                            outputPorts: [{ id: 'output-1' }],
+                            inputPorts: [{ id: 'input-1' }]
+                        }
+                    }
+                })
+            );
+            const action = openCreateConnectionDialog({
+                request: {
+                    request,
+                    defaults: {
+                        flowfileExpiration: '0 sec',
+                        objectThreshold: 10000,
+                        dataSizeThreshold: '1 GB'
+                    }
+                }
+            });
+            const stream = new Subject<Action>();
+            actions$(stream);
+            effects.openCreateConnectionDialog$.subscribe();
+
+            stream.next(action);
+            const instance = mockDialog.open.mock.results[0].value.componentInstance;
+            expect(await firstValueFrom(instance.saving$)).toBe(false);
+            expect(await firstValueFrom(instance.breadcrumbs$)).toBeNull();
+            expect(await firstValueFrom(instance.availablePrioritizers$)).toEqual(prioritizers);
+            expect(await firstValueFrom(instance.getChildOutputPorts('source-group'))).toEqual([{ id: 'output-1' }]);
+            expect(await firstValueFrom(instance.getChildInputPorts('destination-group'))).toEqual([{ id: 'input-1' }]);
+            expect(mockConnectorService.getConnectorFlow).toHaveBeenCalledWith('connector-1', 'source-group');
+            expect(mockConnectorService.getConnectorFlow).toHaveBeenCalledWith('connector-1', 'destination-group');
+
+            createConnection.emit(createRequest);
+            expect(dispatch).toHaveBeenCalledWith(
+                submitCreateConnection({ processGroupId: 'child-pg', request: createRequest })
+            );
+
+            dispatch.mockClear();
+            afterClosed$.next(undefined);
+            expect(dispatch).toHaveBeenCalledWith(createConnectionDialogClosed());
+            dispatch.mockClear();
+            createConnection.emit(createRequest);
+            expect(dispatch).not.toHaveBeenCalled();
+        });
+
+        it('adds zIndex and returns the created connection', async () => {
+            const { effects, actions$, mockConnectorEditService } = await setup();
+            const connection = makeConnectionEntity('connection-new', { revision: { version: 0 } });
+            mockConnectorEditService.createConnection.mockReturnValue(of(connection));
+            actions$(of(submitCreateConnection({ processGroupId: 'child-pg', request: createRequest })));
+
+            const result = await firstValueFrom(effects.submitCreateConnection$);
+
+            expect(mockConnectorEditService.createConnection).toHaveBeenCalledWith('child-pg', {
+                payload: {
+                    ...createRequest.payload,
+                    component: { ...createRequest.payload.component, zIndex: 5 }
+                }
+            });
+            expect(result).toEqual(createConnectionSuccess({ connection }));
+        });
+
+        it('surfaces create failures in the connection dialog error context', async () => {
+            const { effects, actions$, mockConnectorEditService } = await setup();
+            mockConnectorEditService.createConnection.mockReturnValue(
+                throwError(() => new HttpErrorResponse({ status: 500 }))
+            );
+            actions$(of(submitCreateConnection({ processGroupId: 'child-pg', request: createRequest })));
+
+            const results = await firstValueFrom(effects.submitCreateConnection$.pipe(toArray()));
+
+            expect(results[0]).toEqual(createConnectionFailure({ error: 'Error message' }));
+            expect(results[1]).toEqual(
+                ErrorActions.addBannerError({
+                    errorContext: {
+                        errors: ['Error message'],
+                        context: ErrorContextKey.CONNECTION
+                    }
+                })
+            );
+        });
+
+        it('closes the dialog and selects the new connection after success', async () => {
+            const { effects, actions$, store, mockDialog } = await setup();
+            const dispatch = vi.spyOn(store, 'dispatch');
+            const connection = makeConnectionEntity('connection-new');
+            actions$(of(createConnectionSuccess({ connection })));
+
+            await firstValueFrom(effects.createConnectionSuccess$);
+
+            expect(mockDialog.closeAll).toHaveBeenCalled();
+            expect(dispatch).toHaveBeenCalledWith(
+                selectComponents({
+                    request: {
+                        components: [{ id: 'connection-new', componentType: ComponentType.Connection }]
+                    }
+                })
+            );
+        });
+    });
+
+    describe('reconnect connection dialog', () => {
+        const previousDestination = { id: 'proc-1', groupId: 'child-pg', type: 'PROCESSOR' as const };
+        const connection = makeConnectionEntity('conn-1', {
+            component: makeConnectionDto({
+                id: 'conn-1',
+                parentGroupId: 'child-pg',
+                destination: previousDestination
+            })
+        });
+
+        function reconnectRequest() {
+            return {
+                type: ComponentType.Connection,
+                uri: connection.uri,
+                entity: connection,
+                newDestination: {
+                    type: ComponentType.ProcessGroup,
+                    groupId: 'pg-child',
+                    name: 'Child PG'
+                }
+            };
+        }
+
+        it('persists the selected port and keeps the previous destination', async () => {
+            const { effects, actions$, store, mockDialog, mockDialogRef, afterClosed$ } = await setup();
+            const editConnection = new EventEmitter<UpdateConnectionRequest>();
+            mockDialogRef.componentInstance = { editConnection } as typeof mockDialogRef.componentInstance;
+            const dispatch = vi.spyOn(store, 'dispatch');
+            const stream = new Subject<Action>();
+            actions$(stream);
+            const subscription = effects.openReconnectConnectionDialog$.subscribe();
+
+            stream.next(openReconnectConnectionDialog({ request: reconnectRequest() }));
+
+            expect(mockDialog.open).toHaveBeenCalledWith(
+                EditConnectionComponent,
+                expect.objectContaining({ data: expect.objectContaining({ type: ComponentType.Connection }) })
+            );
+
+            const updateRequest: UpdateConnectionRequest = {
+                id: 'conn-1',
+                type: ComponentType.Connection,
+                uri: connection.uri,
+                payload: { revision: { version: 1 }, component: { id: 'conn-1' } },
+                errorStrategy: 'banner'
+            };
+            editConnection.emit(updateRequest);
+
+            expect(dispatch).toHaveBeenCalledWith(
+                saveEditedConnection({
+                    request: { ...updateRequest, previousDestination }
+                })
+            );
+
+            stream.next(
+                updateConnectionDestinationSuccess({
+                    connectionId: 'conn-1',
+                    connection
+                })
+            );
+            expect(mockDialogRef.close).toHaveBeenCalledWith('SAVED');
+
+            dispatch.mockClear();
+            afterClosed$.next('SAVED');
+            expect(dispatch).toHaveBeenCalledWith(
+                editConnectionDialogClosed({ connectionId: 'conn-1', cancelled: false })
+            );
+            subscription.unsubscribe();
+        });
+
+        it('saves the dialog payload and reports dialog failures in the connection context', async () => {
+            const { effects, actions$, mockConnectorEditService } = await setup();
+            const saved = makeConnectionEntity('conn-1', { revision: { version: 2 } });
+            mockConnectorEditService.updateComponent.mockReturnValue(of(saved));
+            const request: UpdateConnectionRequest = {
+                id: 'conn-1',
+                type: ComponentType.Connection,
+                uri: connection.uri,
+                payload: { revision: { version: 1 }, component: { id: 'conn-1', destination: previousDestination } },
+                errorStrategy: 'banner'
+            };
+            actions$(of(saveEditedConnection({ request })));
+
+            await expect(firstValueFrom(effects.saveEditedConnection$)).resolves.toEqual(
+                updateConnectionDestinationSuccess({ connectionId: 'conn-1', connection: saved })
+            );
+            expect(mockConnectorEditService.updateComponent).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    id: 'conn-1',
+                    payload: expect.objectContaining({ disconnectedNodeAcknowledged: false })
+                })
+            );
+
+            mockConnectorEditService.updateComponent.mockReturnValue(
+                throwError(() => new HttpErrorResponse({ status: 500 }))
+            );
+            const emitted: Action[] = [];
+            actions$(of(saveEditedConnection({ request })));
+            effects.saveEditedConnection$.subscribe((action) => emitted.push(action));
+
+            expect(emitted).toEqual([
+                updateConnectionDestinationFailure({
+                    connectionId: 'conn-1',
+                    error: 'Error message',
+                    dialogOpen: true
+                }),
+                ErrorActions.addBannerError({
+                    errorContext: {
+                        errors: ['Error message'],
+                        context: ErrorContextKey.CONNECTION
+                    }
+                })
+            ]);
+        });
     });
 
     describe('loadConnectorFlow$', () => {
@@ -1770,6 +2103,133 @@ describe('ConnectorCanvasEffects', () => {
             );
             expect(action.connections[0].bends[0]).toEqual({ x: 10, y: 20 });
             expect(action.connections[0].component!.bends).toEqual([]);
+        });
+    });
+
+    describe('canvas mutation persistence', () => {
+        it('does not reload a stale process group when a move fails after navigation', async () => {
+            const { effects, actions$, store, mockConnectorEditService } = await setup();
+            const actionSubject = new Subject<Action>();
+            const moveSubject = new Subject<unknown>();
+            mockConnectorEditService.moveComponents.mockReturnValue(moveSubject);
+            actions$(actionSubject);
+
+            const emitted: Action[] = [];
+            const subscription = effects.moveCanvasComponents$.subscribe((action) => emitted.push(action));
+            actionSubject.next(
+                moveCanvasComponents({
+                    processGroupId: 'child-pg',
+                    targetGroupId: 'target-pg',
+                    components: [
+                        {
+                            id: 'processor-1',
+                            type: ComponentType.Processor,
+                            revision: { version: 1 }
+                        }
+                    ]
+                })
+            );
+
+            store.overrideSelector(selectConnectorId, 'connector-2');
+            store.overrideSelector(selectProcessGroupId, 'other-pg');
+            store.refreshState();
+            moveSubject.error(new HttpErrorResponse({ status: 409 }));
+
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            subscription.unsubscribe();
+
+            expect(emitted.map((action) => action.type)).toEqual([
+                '[Connector Canvas] Move Canvas Components Failure',
+                '[Error] Add Banner Error'
+            ]);
+        });
+
+        it('persists the gesture baseline revision for a single bend update', async () => {
+            const { effects, actions$, mockConnectorEditService } = await setup();
+            const connection = makeConnectionEntity('connection-1', { revision: { version: 8 } });
+            mockConnectorEditService.updateComponent.mockReturnValue(of(connection));
+            actions$(
+                of(
+                    updateConnectionBendPoints({
+                        processGroupId: 'child-pg',
+                        update: {
+                            id: 'connection-1',
+                            bends: [{ x: 10, y: 20 }],
+                            revision: { version: 7, clientId: 'local-client' }
+                        }
+                    })
+                )
+            );
+
+            const result = await firstValueFrom(effects.updateConnectionBendPoints$);
+
+            expect(mockConnectorEditService.updateComponent).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    payload: expect.objectContaining({
+                        revision: { version: 7, clientId: 'local-client' }
+                    })
+                })
+            );
+            expect(result).toEqual(updateConnectionBendPointsSuccess({ connectionId: 'connection-1', connection }));
+        });
+
+        it('emits per-item outcomes and completion for bulk persistence', async () => {
+            const { effects, actions$, mockConnectorEditService } = await setup();
+            const processor = makeProcessor('processor-1', { revision: { version: 4 } });
+            mockConnectorEditService.updateComponent.mockReturnValueOnce(of(processor));
+            actions$(
+                of(
+                    updateComponentPositionsBulk({
+                        processGroupId: 'child-pg',
+                        updates: [
+                            {
+                                componentId: 'processor-1',
+                                componentType: ComponentType.Processor,
+                                position: { x: 30, y: 40 },
+                                revision: { version: 3, clientId: 'local-client' }
+                            }
+                        ],
+                        delta: { x: 5, y: 5 }
+                    })
+                )
+            );
+
+            const results = await firstValueFrom(effects.updateComponentPositionsBulk$.pipe(toArray()));
+
+            expect(results).toContainEqual(
+                updateComponentPositionSuccess({
+                    componentId: 'processor-1',
+                    componentType: ComponentType.Processor,
+                    component: processor
+                })
+            );
+            expect(results.at(-1)?.type).toBe(updateComponentPositionsBulkComplete.type);
+        });
+
+        it('emits a revert action and banner on persistence failure', async () => {
+            const { effects, actions$, mockConnectorEditService } = await setup();
+            mockConnectorEditService.updateComponent.mockReturnValue(
+                throwError(() => new HttpErrorResponse({ status: 409 }))
+            );
+            actions$(
+                of(
+                    updateConnectionBendPoints({
+                        processGroupId: 'child-pg',
+                        update: {
+                            id: 'connection-1',
+                            bends: [],
+                            revision: { version: 2, clientId: 'local-client' }
+                        }
+                    })
+                )
+            );
+
+            const results = await firstValueFrom(effects.updateConnectionBendPoints$.pipe(toArray()));
+
+            expect(results[0]).toEqual(
+                updateConnectionBendPointsFailure({ connectionId: 'connection-1', error: 'Error message' })
+            );
+            expect(results[1].type).toBe(ErrorActions.addBannerError.type);
         });
     });
 });

@@ -27,12 +27,13 @@ import {
     computed
 } from '@angular/core';
 import * as d3 from 'd3';
-import { CanvasLabel, CanvasRootResolver, CanvasRootSelection, CanvasSelection } from '../../canvas.types';
+import { CanvasLabel, CanvasRootResolver, CanvasRootSelection } from '../../canvas.types';
 import { LabelRenderer } from './label-renderer';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../../canvas-format-utils.service';
 import { NiFiCommon, Position } from '@nifi/shared';
 import { LabelRenderContext } from '../render-context.types';
+import { ViewportRect } from '../../utils/visibility.utils';
 
 @Component({
     // Attribute selector required: this component renders as an SVG <g> element, not a custom HTML element
@@ -49,6 +50,7 @@ export class LabelLayerComponent implements AfterViewInit {
     labels = input<CanvasLabel[]>([]);
 
     scale = input<number>(1);
+    viewportBounds = input<ViewportRect | null>(null);
 
     selectedIds = input<string[]>([]);
 
@@ -102,6 +104,7 @@ export class LabelLayerComponent implements AfterViewInit {
     private renderContext = computed<LabelRenderContext>(() => ({
         containerSelection: this.containerSelection!,
         scale: this.scale(),
+        viewportBounds: this.viewportBounds(),
         textEllipsis: this.textEllipsis(),
         formatUtils: this.formatUtils(),
         nifiCommon: this.nifiCommon(),
@@ -120,6 +123,7 @@ export class LabelLayerComponent implements AfterViewInit {
         // Access signals to track dependencies
         const _labels = this.labels();
         const _disabledLabelIds = this.disabledLabelIds();
+        const _viewportBounds = this.viewportBounds();
 
         // Render if container is initialized
         if (this.containerSelection) {
@@ -162,11 +166,6 @@ export class LabelLayerComponent implements AfterViewInit {
 
         // Call static renderer with computed context
         LabelRenderer.render(this.renderContext());
-        this.applySelectionStyling();
-    }
-
-    public pan(selection: CanvasSelection<CanvasLabel>): void {
-        LabelRenderer.pan(selection, this.renderContext());
         this.applySelectionStyling();
     }
 }

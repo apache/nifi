@@ -81,9 +81,14 @@ function createMockContext(options: SetupOptions = {}): FunnelRenderContext {
     return {
         containerSelection: d3.select(container),
         funnels: options.funnels || [],
-        canSelect: options.canSelect ?? true,
-        disabledFunnelIds: options.disabledFunnelIds,
+        getDisabledFunnelIds: () => options.disabledFunnelIds ?? new Set(),
         getCanEdit: () => options.canEdit ?? true,
+        getCanSelect: () => options.canSelect ?? true,
+        getSelectedIds: () => new Set(),
+        canvasRootResolver: () => d3.select(container),
+        textEllipsis: {} as any,
+        formatUtils: {} as any,
+        nifiCommon: {} as any,
         callbacks: {
             onClick: options.callbacks?.onClick,
             onDoubleClick: options.callbacks?.onDoubleClick,
@@ -435,36 +440,26 @@ describe('FunnelRenderer', () => {
         });
     });
 
-    describe('pan', () => {
-        it('should update funnel elements during pan', async () => {
+    describe('re-render updates', () => {
+        it('should render funnel at correct position', async () => {
             const funnel = createMockFunnel({
                 entity: { position: { x: 500, y: 600 } }
             });
-            const { context, getFunnelElements, cleanup } = await setup({
+            const { getFunnelElements, cleanup } = await setup({
                 funnels: [funnel]
             });
 
-            // Mark as entering (becoming visible)
-            getFunnelElements().classed('entering', true).classed('visible', true);
-
-            // Call pan to update
-            FunnelRenderer.pan(getFunnelElements(), context);
-
-            // Funnel should still have correct transform
             expect(getFunnelElements().attr('transform')).toBe('translate(500, 600)');
 
             cleanup();
         });
 
-        it('should update cursor during pan based on canSelect', async () => {
+        it('should set pointer cursor when canSelect is true', async () => {
             const funnel = createMockFunnel();
-            const { context, getFunnelElements, cleanup } = await setup({
+            const { getFunnelElements, cleanup } = await setup({
                 funnels: [funnel],
                 canSelect: true
             });
-
-            // Call pan
-            FunnelRenderer.pan(getFunnelElements(), context);
 
             expect(getFunnelElements().style('cursor')).toBe('pointer');
 
@@ -569,13 +564,13 @@ describe('FunnelRenderer', () => {
             expect(getFunnelElements().classed('disabled')).toBe(false);
 
             // Add to disabled set and re-render
-            context.disabledFunnelIds = new Set(['funnel-1']);
+            context.getDisabledFunnelIds = () => new Set(['funnel-1']);
             FunnelRenderer.render(context);
 
             expect(getFunnelElements().classed('disabled')).toBe(true);
 
             // Remove from disabled set and re-render
-            context.disabledFunnelIds = new Set();
+            context.getDisabledFunnelIds = () => new Set();
             FunnelRenderer.render(context);
 
             expect(getFunnelElements().classed('disabled')).toBe(false);
@@ -613,6 +608,163 @@ describe('FunnelRenderer', () => {
 
             expect(getFunnelElements().select('rect.border').classed('unauthorized')).toBe(false);
             expect(getFunnelElements().select('rect.body').classed('unauthorized')).toBe(false);
+
+            cleanup();
+        });
+    });
+
+    describe('drag attachment lifecycle (moveable diff)', () => {
+        function makeContext(funnel: CanvasFunnel, onDragEnd = vi.fn()): FunnelRenderContext {
+            const container = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            container.classList.add('funnel-container');
+            document.body.appendChild(container);
+            return {
+                containerSelection: d3.select(container),
+                funnels: [funnel],
+                getCanEdit: () => true,
+                getCanSelect: () => true,
+                getDisabledFunnelIds: () => new Set(),
+                textEllipsis: {} as any,
+                formatUtils: {} as any,
+                nifiCommon: {} as any,
+                callbacks: { onDragEnd }
+            };
+        }
+
+        it('marks writable funnels as moveable on first render and attaches a drag listener', () => {
+            const funnel = createMockFunnel({ entity: { permissions: { canRead: true, canWrite: true } } });
+            const ctx = makeContext(funnel);
+
+            FunnelRenderer.render(ctx);
+
+            const el = ctx.containerSelection.select<SVGGElement>('g.funnel');
+            expect(el.classed('moveable')).toBe(true);
+            expect(el.on('mousedown.drag')).toBeTruthy();
+        });
+
+        it('does NOT mark funnels as moveable when write permission is missing', () => {
+            const funnel = createMockFunnel({ entity: { permissions: { canRead: true, canWrite: false } } });
+            const ctx = makeContext(funnel);
+
+            FunnelRenderer.render(ctx);
+
+            const el = ctx.containerSelection.select<SVGGElement>('g.funnel');
+            expect(el.classed('moveable')).toBe(false);
+            expect(el.on('mousedown.drag')).toBeFalsy();
+        });
+
+        it('detaches drag and clears moveable when write permission is revoked between renders', () => {
+            const funnel = createMockFunnel({ entity: { permissions: { canRead: true, canWrite: true } } });
+            const ctx = makeContext(funnel);
+
+            FunnelRenderer.render(ctx);
+            const el = ctx.containerSelection.select<SVGGElement>('g.funnel');
+            expect(el.classed('moveable')).toBe(true);
+
+            funnel.entity.permissions.canWrite = false;
+            FunnelRenderer.render(ctx);
+
+            expect(el.classed('moveable')).toBe(false);
+            expect(el.on('mousedown.drag')).toBeFalsy();
+        });
+
+        it('reattaches drag when write permission is granted between renders', () => {
+            const funnel = createMockFunnel({ entity: { permissions: { canRead: true, canWrite: false } } });
+            const ctx = makeContext(funnel);
+
+            FunnelRenderer.render(ctx);
+            const el = ctx.containerSelection.select<SVGGElement>('g.funnel');
+            expect(el.classed('moveable')).toBe(false);
+
+            funnel.entity.permissions.canWrite = true;
+            FunnelRenderer.render(ctx);
+
+            expect(el.classed('moveable')).toBe(true);
+            expect(el.on('mousedown.drag')).toBeTruthy();
+        });
+
+        it('does NOT re-attach the drag listener on a no-op steady-state render', () => {
+            const funnel = createMockFunnel({ entity: { permissions: { canRead: true, canWrite: true } } });
+            const ctx = makeContext(funnel);
+
+            FunnelRenderer.render(ctx);
+            const el = ctx.containerSelection.select<SVGGElement>('g.funnel');
+            const firstHandler = el.on('mousedown.drag');
+            expect(firstHandler).toBeTruthy();
+
+            FunnelRenderer.render(ctx);
+
+            expect(el.on('mousedown.drag')).toBe(firstHandler);
+        });
+    });
+
+    // The mousedown.selection handler is attached ONCE per element. The
+    // `getCanSelect` getter MUST be re-read at fire-time so consumers that
+    // toggle selection mode at runtime get correct behavior without
+    // re-attachment churn.
+    describe('canSelect runtime gating (attach-once getter)', () => {
+        it('does NOT fire onClick when canSelect was true at attach but false at fire-time', async () => {
+            const onClick = vi.fn();
+            const funnel = createMockFunnel({ entity: { id: 'funnel-1' } });
+            const options: SetupOptions = { funnels: [funnel], canSelect: true, callbacks: { onClick } };
+
+            const { getFunnelElements, cleanup } = await setup(options);
+
+            options.canSelect = false;
+            getFunnelElements()
+                .node()!
+                .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
+
+            expect(onClick).not.toHaveBeenCalled();
+
+            cleanup();
+        });
+
+        it('fires onClick when canSelect was false at attach but true at fire-time', async () => {
+            const onClick = vi.fn();
+            const funnel = createMockFunnel({ entity: { id: 'funnel-1' } });
+            const options: SetupOptions = { funnels: [funnel], canSelect: false, callbacks: { onClick } };
+
+            const { getFunnelElements, cleanup } = await setup(options);
+
+            options.canSelect = true;
+            getFunnelElements()
+                .node()!
+                .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
+
+            expect(onClick).toHaveBeenCalledTimes(1);
+
+            cleanup();
+        });
+    });
+
+    // The drag filter is attached ONCE per element. The `getDisabledFunnelIds`
+    // getter MUST be re-read at fire-time so saving-state toggles take effect
+    // immediately without forcing a re-render to refresh a captured field.
+    describe('drag filter live disabledFunnelIds (attach-once getter)', () => {
+        it('blocks drag-end when the live disabled set includes the id, even though the filter was attached when the set was empty', async () => {
+            const onDragEnd = vi.fn();
+            const funnel = createMockFunnel({ entity: { id: 'funnel-1' } });
+            const disabledFunnelIds = new Set<string>();
+
+            const { getFunnelElements, cleanup } = await setup({
+                funnels: [funnel],
+                disabledFunnelIds,
+                callbacks: { onDragEnd }
+            });
+
+            const el = getFunnelElements().node()!;
+
+            el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, view: window }));
+            window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0, view: window }));
+            expect(onDragEnd).toHaveBeenCalledTimes(1);
+
+            onDragEnd.mockClear();
+            disabledFunnelIds.add('funnel-1');
+
+            el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, view: window }));
+            window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0, view: window }));
+            expect(onDragEnd).not.toHaveBeenCalled();
 
             cleanup();
         });

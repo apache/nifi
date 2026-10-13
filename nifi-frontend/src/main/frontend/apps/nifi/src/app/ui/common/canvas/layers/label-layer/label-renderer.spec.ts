@@ -98,8 +98,10 @@ function createMockContext(options: SetupOptions = {}): LabelRenderContext {
         labels: options.labels || [],
         canSelect: options.canSelect ?? true,
         disabledLabelIds: options.disabledLabelIds,
+        getDisabledLabelIds: () => options.disabledLabelIds ?? new Set(),
         scale: options.scale ?? 1,
         getCanEdit: () => options.canEdit ?? true,
+        getCanSelect: () => options.canSelect ?? true,
         ...createBaseRenderContextFixture({
             textEllipsis: {
                 applyEllipsis: vi.fn((selection, text, _className) => {
@@ -636,50 +638,29 @@ describe('LabelRenderer', () => {
         });
     });
 
-    describe('pan', () => {
-        it('should update label elements during pan', async () => {
+    describe('re-render updates', () => {
+        it('should update label position when re-rendered', async () => {
             const label = createMockLabel({
                 entity: { position: { x: 500, y: 600 } }
             });
-            const { context, getLabelElements, cleanup } = await setup({
+            const { getLabelElements, cleanup } = await setup({
                 labels: [label]
             });
 
-            // Mark as entering (becoming visible)
-            getLabelElements().classed('entering', true).classed('visible', true);
-
-            // Call pan to update
-            LabelRenderer.pan(getLabelElements(), context);
-
-            // Label should still have correct transform
+            // Label should have the correct transform
             expect(getLabelElements().attr('transform')).toBe('translate(500, 600)');
 
             cleanup();
         });
 
-        it('should update cursor during pan based on canSelect', async () => {
+        it('should update cursor on re-render based on canSelect', async () => {
             const label = createMockLabel();
-            const { context, getLabelElements, cleanup } = await setup({
+            const { getLabelElements, cleanup } = await setup({
                 labels: [label],
                 canSelect: true
             });
 
-            // Call pan
-            LabelRenderer.pan(getLabelElements(), context);
-
             expect(getLabelElements().style('cursor')).toBe('pointer');
-
-            cleanup();
-        });
-
-        it('should handle empty selection gracefully', async () => {
-            const { context, cleanup } = await setup({
-                labels: []
-            });
-
-            // Call pan with empty selection - should not throw
-            const emptySelection = context.containerSelection.selectAll<SVGGElement, CanvasLabel>('g.label');
-            expect(() => LabelRenderer.pan(emptySelection, context)).not.toThrow();
 
             cleanup();
         });
@@ -782,13 +763,13 @@ describe('LabelRenderer', () => {
             expect(getLabelElements().classed('disabled')).toBe(false);
 
             // Add to disabled set and re-render
-            context.disabledLabelIds = new Set(['label-1']);
+            context.getDisabledLabelIds = () => new Set(['label-1']);
             LabelRenderer.render(context);
 
             expect(getLabelElements().classed('disabled')).toBe(true);
 
             // Remove from disabled set and re-render
-            context.disabledLabelIds = new Set();
+            context.getDisabledLabelIds = () => new Set();
             LabelRenderer.render(context);
 
             expect(getLabelElements().classed('disabled')).toBe(false);

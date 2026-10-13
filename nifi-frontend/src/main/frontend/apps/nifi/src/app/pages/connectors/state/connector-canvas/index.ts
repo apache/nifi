@@ -53,11 +53,14 @@ export interface ConnectorCanvasState {
     processGroups: ProcessGroupEntity[];
     processors: ProcessorEntity[];
     connections: ConnectionEntity[];
+    addedCache: string[];
+    removedCache: string[];
     registryClients: RegistryClientEntity[];
     skipTransform: boolean;
     loadingStatus: 'pending' | 'loading' | 'success' | 'error';
     error: string | null;
     parameterContext: ParameterContextEntity | null;
+    saving: boolean;
 }
 
 export const initialConnectorCanvasState: ConnectorCanvasState = {
@@ -73,9 +76,12 @@ export const initialConnectorCanvasState: ConnectorCanvasState = {
     processGroups: [],
     processors: [],
     connections: [],
+    addedCache: [],
+    removedCache: [],
     registryClients: [],
     skipTransform: false,
     loadingStatus: 'pending',
     error: null,
-    parameterContext: null
+    parameterContext: null,
+    saving: false
 };

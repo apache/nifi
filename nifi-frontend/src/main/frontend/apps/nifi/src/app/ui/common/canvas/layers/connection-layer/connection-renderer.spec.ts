@@ -664,35 +664,47 @@ describe('ConnectionRenderer', () => {
         });
     });
 
-    describe('pan', () => {
-        it('should update connection elements during pan', async () => {
-            const connection = createMockConnection();
+    describe('visibility', () => {
+        it('should create connection label when connection enters the viewport', async () => {
+            const connection = createMockConnection({
+                ui: { start: { x: 0, y: 26 }, end: { x: 300, y: 26 } }
+            });
+            // Start with connection outside the viewport
+            const { context, getConnectionElements, cleanup } = await setup({
+                connections: [connection],
+                sourceComponent: { id: 'source-1', position: { x: 0, y: 0 }, dimensions: { width: 184, height: 52 } },
+                destComponent: { id: 'dest-1', position: { x: 300, y: 0 }, dimensions: { width: 184, height: 52 } }
+            });
+            context.viewportBounds = { left: 9000, top: 9000, right: 10000, bottom: 10000 };
+            ConnectionRenderer.render(context);
+            expect(getConnectionElements().select('g.connection-label-container').empty()).toBe(true);
+
+            // Expand viewport to include the connection — label should be created
+            context.viewportBounds = { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity };
+            ConnectionRenderer.render(context);
+            expect(getConnectionElements().select('g.connection-label-container').empty()).toBe(false);
+
+            cleanup();
+        });
+
+        it('should remove connection label when connection leaves the viewport', async () => {
+            const connection = createMockConnection({
+                ui: { start: { x: 0, y: 26 }, end: { x: 300, y: 26 } }
+            });
             const { context, getConnectionElements, cleanup } = await setup({
                 connections: [connection],
                 sourceComponent: { id: 'source-1', position: { x: 0, y: 0 }, dimensions: { width: 184, height: 52 } },
                 destComponent: { id: 'dest-1', position: { x: 300, y: 0 }, dimensions: { width: 184, height: 52 } }
             });
 
-            // Mark as entering (becoming visible)
-            getConnectionElements().classed('entering', true).classed('visible', true);
+            // Connection is in-viewport — label created
+            ConnectionRenderer.render(context);
+            expect(getConnectionElements().select('g.connection-label-container').empty()).toBe(false);
 
-            // Call pan to update
-            ConnectionRenderer.pan(getConnectionElements(), context);
-
-            // Connection should still exist
-            expect(getConnectionElements().size()).toBe(1);
-
-            cleanup();
-        });
-
-        it('should handle empty selection gracefully', async () => {
-            const { context, cleanup } = await setup({
-                connections: []
-            });
-
-            // Call pan with empty selection - should not throw
-            const emptySelection = context.containerSelection.selectAll<SVGGElement, CanvasConnection>('g.connection');
-            expect(() => ConnectionRenderer.pan(emptySelection, context)).not.toThrow();
+            // Connection scrolls out of viewport — label removed
+            context.viewportBounds = { left: 9000, top: 9000, right: 10000, bottom: 10000 };
+            ConnectionRenderer.render(context);
+            expect(getConnectionElements().select('g.connection-label-container').empty()).toBe(true);
 
             cleanup();
         });
@@ -1406,13 +1418,13 @@ describe('ConnectionRenderer', () => {
             expect(getConnectionElements().classed('disabled')).toBe(false);
 
             // Add to disabled set and re-render
-            context.disabledConnectionIds = new Set(['conn-1']);
+            context.getDisabledConnectionIds = () => new Set(['conn-1']);
             ConnectionRenderer.render(context);
 
             expect(getConnectionElements().classed('disabled')).toBe(true);
 
             // Remove from disabled set and re-render
-            context.disabledConnectionIds = new Set();
+            context.getDisabledConnectionIds = () => new Set();
             ConnectionRenderer.render(context);
 
             expect(getConnectionElements().classed('disabled')).toBe(false);
@@ -1468,35 +1480,10 @@ describe('ConnectionRenderer', () => {
                 destComponent: { id: 'dest-1', position: { x: 300, y: 0 }, dimensions: { width: 184, height: 52 } }
             });
 
-            // Mark as visible
-            getConnectionElements().classed('visible', true);
-
-            // Re-render to trigger label creation
-            ConnectionRenderer.render({
-                ...(
-                    await setup({
-                        connections: [connection],
-                        sourceComponent: {
-                            id: 'source-1',
-                            position: { x: 0, y: 0 },
-                            dimensions: { width: 184, height: 52 }
-                        },
-                        destComponent: {
-                            id: 'dest-1',
-                            position: { x: 300, y: 0 },
-                            dimensions: { width: 184, height: 52 }
-                        }
-                    })
-                ).context,
-                containerSelection: getConnectionElements().node()?.parentElement
-                    ? d3.select(getConnectionElements().node()!.parentElement!)
-                    : d3.select(document.body)
-            });
-
-            // Label container should exist
+            // setup() renders with a wide viewport, so the connection is visible and
+            // its label container should already be created.
             const labelContainer = getConnectionElements().select('g.connection-label-container');
-            // Note: Label may or may not exist depending on visibility state
-            expect(labelContainer.empty() || !labelContainer.empty()).toBe(true);
+            expect(labelContainer.empty()).toBe(false);
 
             cleanup();
         });
@@ -1649,6 +1636,405 @@ describe('ConnectionRenderer', () => {
 
             const connectionEl = getConnectionElements();
             expect(connectionEl.classed('grouped')).toBe(true);
+
+            cleanup();
+        });
+    });
+
+    // Selection / dblclick / bend handlers are attached unconditionally at
+    // element entry to keep the per-element listener list stable across renders.
+    // The render-time `canSelect` / `canEdit` values MUST NOT be captured by
+    // closure — `getCanSelect()` / `getCanEdit()` are re-read at fire-time so
+    // consumers that toggle selection or edit mode at runtime get correct
+    // behavior without re-attachment churn.
+    describe('canSelect runtime gating', () => {
+        function setupControllable(opts: {
+            initialCanSelect: boolean;
+            initialCanEdit?: boolean;
+            bends?: Position[];
+            disabled?: boolean;
+        }) {
+            const container = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            container.classList.add('connection-container');
+            document.body.appendChild(container);
+
+            // Source / destination components needed for path calculation
+            container.appendChild(createMockComponent('source-1', { x: 0, y: 0 }, { width: 184, height: 52 }, 'root'));
+            container.appendChild(createMockComponent('dest-1', { x: 300, y: 0 }, { width: 184, height: 52 }, 'root'));
+
+            let canSelectFlag = opts.initialCanSelect;
+            let canEditFlag = opts.initialCanEdit ?? true;
+
+            const onClick = vi.fn();
+            const onBendPointAdd = vi.fn();
+            const onBendPointRemove = vi.fn();
+
+            const connection = createMockConnection({
+                entity: {
+                    bends: opts.bends ?? [],
+                    permissions: { canRead: true, canWrite: true }
+                }
+            });
+
+            const disabledConnectionIds = opts.disabled ? new Set(['connection-1']) : undefined;
+
+            const context: ConnectionRenderContext = {
+                containerSelection: d3.select(container),
+                connections: [connection],
+                processGroupId: 'root',
+                getDisabledConnectionIds: () => disabledConnectionIds ?? new Set(),
+                getCanEdit: () => canEditFlag,
+                getCanSelect: () => canSelectFlag,
+                getSelectedIds: () => new Set(),
+                canvasRootResolver: () => d3.select(container),
+                scale: 1,
+                viewportBounds: { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity },
+                getReconnect: () => undefined,
+                textEllipsis: {
+                    applyEllipsis: vi.fn((sel, text) => sel.text(text)),
+                    determineContrastColor: vi.fn(() => '#000000')
+                } as any,
+                formatUtils: {
+                    formatQueuedStats: vi.fn(() => ({ count: '0', size: ' (0 bytes)' }))
+                } as any,
+                nifiCommon: {
+                    compareNumber: vi.fn((a, b) => (a ?? 0) - (b ?? 0))
+                } as any,
+                componentUtils: {
+                    canvasTooltip: vi.fn(),
+                    formatPredictedDuration: vi.fn((ms) => `${ms}ms`)
+                } as any,
+                callbacks: {
+                    onClick,
+                    onBendPointAdd,
+                    onBendPointRemove
+                }
+            };
+
+            ConnectionRenderer.render(context);
+            const element = container.querySelector('g.connection') as SVGGElement;
+
+            return {
+                element,
+                connection,
+                onClick,
+                onBendPointAdd,
+                onBendPointRemove,
+                setCanSelect: (v: boolean) => {
+                    canSelectFlag = v;
+                },
+                setCanEdit: (v: boolean) => {
+                    canEditFlag = v;
+                },
+                cleanup: () => container.remove()
+            };
+        }
+
+        it('should NOT fire onClick when canSelect was true at attach but false at fire-time', () => {
+            const { element, onClick, setCanSelect, cleanup } = setupControllable({ initialCanSelect: true });
+
+            setCanSelect(false);
+            element.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true }));
+
+            expect(onClick).not.toHaveBeenCalled();
+
+            cleanup();
+        });
+
+        it('should fire onClick when canSelect was false at attach but true at fire-time', () => {
+            const { element, onClick, setCanSelect, cleanup } = setupControllable({ initialCanSelect: false });
+
+            setCanSelect(true);
+            element.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true }));
+
+            expect(onClick).toHaveBeenCalledTimes(1);
+
+            cleanup();
+        });
+
+        it('should NOT fire onBendPointAdd when canSelect is false at fire-time', () => {
+            const { element, onBendPointAdd, setCanSelect, cleanup } = setupControllable({ initialCanSelect: true });
+
+            setCanSelect(false);
+            element.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+
+            expect(onBendPointAdd).not.toHaveBeenCalled();
+
+            cleanup();
+        });
+
+        it('should NOT fire onBendPointAdd when canEdit is false at fire-time', () => {
+            const { element, onBendPointAdd, setCanEdit, cleanup } = setupControllable({ initialCanSelect: true });
+
+            setCanEdit(false);
+            element.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+
+            expect(onBendPointAdd).not.toHaveBeenCalled();
+
+            cleanup();
+        });
+
+        it('should NOT fire onBendPointRemove when canSelect is false at fire-time', () => {
+            const { element, onBendPointRemove, setCanSelect, cleanup } = setupControllable({
+                initialCanSelect: true,
+                bends: [
+                    { x: 150, y: 50 },
+                    { x: 200, y: 100 }
+                ]
+            });
+
+            const midpoint = element.querySelector('rect.midpoint') as SVGRectElement;
+            expect(midpoint).toBeTruthy();
+
+            setCanSelect(false);
+            midpoint.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+
+            expect(onBendPointRemove).not.toHaveBeenCalled();
+
+            cleanup();
+        });
+
+        it('should fire onBendPointRemove when canSelect was false at attach but true at fire-time', () => {
+            const { element, onBendPointRemove, setCanSelect, cleanup } = setupControllable({
+                initialCanSelect: false,
+                bends: [
+                    { x: 150, y: 50 },
+                    { x: 200, y: 100 }
+                ]
+            });
+
+            const midpoint = element.querySelector('rect.midpoint') as SVGRectElement;
+            expect(midpoint).toBeTruthy();
+
+            setCanSelect(true);
+            midpoint.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+
+            expect(onBendPointRemove).toHaveBeenCalledTimes(1);
+
+            cleanup();
+        });
+    });
+
+    // The label-drag filter is attached ONCE per label container. The
+    // `getDisabledConnectionIds` getter MUST be re-read at fire-time so
+    // saving-state toggles take effect immediately without forcing a re-render
+    // to refresh a captured field.
+    describe('drag filter live disabledConnectionIds (attach-once getter)', () => {
+        it('blocks label drag-end when the live disabled set includes the id, even though the filter was attached when the set was empty', async () => {
+            const onLabelDragEnd = vi.fn();
+            const connection = createMockConnection({
+                entity: {
+                    id: 'connection-1',
+                    bends: [
+                        { x: 50, y: 50 },
+                        { x: 200, y: 100 }
+                    ],
+                    component: { labelIndex: 0 },
+                    permissions: { canRead: true, canWrite: true }
+                }
+            });
+            const disabledConnectionIds = new Set<string>();
+
+            const { container, cleanup } = await setup({
+                connections: [connection],
+                disabledConnectionIds,
+                sourceComponent: {
+                    id: 'source-1',
+                    position: { x: 0, y: 0 },
+                    dimensions: { width: 184, height: 52 }
+                },
+                destComponent: {
+                    id: 'dest-1',
+                    position: { x: 300, y: 0 },
+                    dimensions: { width: 184, height: 52 }
+                },
+                callbacks: { onLabelDragEnd }
+            });
+
+            const labelContainer = container.querySelector('g.connection-label-container') as SVGGElement;
+
+            // Baseline: filter passes, drag start/end fires (with movement to bend 1).
+            labelContainer.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, view: window }));
+            connection.ui.tempLabelIndex = 1;
+            window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0, view: window }));
+            expect(onLabelDragEnd).toHaveBeenCalledTimes(1);
+
+            onLabelDragEnd.mockClear();
+            connection.ui.tempLabelIndex = undefined;
+            // Mutate the LIVE disabled set without re-rendering.
+            disabledConnectionIds.add('connection-1');
+
+            labelContainer.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, view: window }));
+            connection.ui.tempLabelIndex = 1;
+            window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0, view: window }));
+            expect(onLabelDragEnd).not.toHaveBeenCalled();
+
+            cleanup();
+        });
+    });
+
+    // d3.drag emits `start` and `end` for any mousedown/mouseup pair, including a
+    // pure click with no movement (in which case `drag` never fires and
+    // `tempLabelIndex` is never assigned). The label-drag end handler MUST treat
+    // `tempLabelIndex === undefined` as "no movement, this was a click" and skip
+    // `onLabelDragEnd`. Without this guard, a `tempLabelIndex ?? 0` fallback
+    // resets the label to bend 0 on every click whenever the saved labelIndex
+    // is > 0.
+    describe('label drag click no-op (tempLabelIndex undefined)', () => {
+        async function setupLabelDrag(opts: { labelIndex: number; bends: Position[] }) {
+            const onLabelDragEnd = vi.fn();
+            const connection = createMockConnection({
+                entity: {
+                    bends: opts.bends,
+                    component: { labelIndex: opts.labelIndex },
+                    permissions: { canRead: true, canWrite: true }
+                }
+            });
+            const { container, cleanup } = await setup({
+                connections: [connection],
+                sourceComponent: {
+                    id: 'source-1',
+                    position: { x: 0, y: 0 },
+                    dimensions: { width: 184, height: 52 }
+                },
+                destComponent: {
+                    id: 'dest-1',
+                    position: { x: 300, y: 0 },
+                    dimensions: { width: 184, height: 52 }
+                },
+                callbacks: { onLabelDragEnd }
+            });
+
+            const labelContainer = container.querySelector('g.connection-label-container') as SVGGElement;
+            return { connection, labelContainer, onLabelDragEnd, cleanup };
+        }
+
+        it('should mark the label container as moveable so the drag listener is attached once', async () => {
+            const { labelContainer, cleanup } = await setupLabelDrag({
+                labelIndex: 1,
+                bends: [
+                    { x: 50, y: 50 },
+                    { x: 200, y: 100 }
+                ]
+            });
+
+            expect(labelContainer).toBeTruthy();
+            expect(labelContainer.classList.contains('moveable')).toBe(true);
+
+            cleanup();
+        });
+
+        it('should NOT fire onLabelDragEnd on a pure mousedown/mouseup click (no movement)', async () => {
+            const { connection, labelContainer, onLabelDragEnd, cleanup } = await setupLabelDrag({
+                labelIndex: 1,
+                bends: [
+                    { x: 50, y: 50 },
+                    { x: 200, y: 100 }
+                ]
+            });
+
+            labelContainer.dispatchEvent(
+                new MouseEvent('mousedown', {
+                    bubbles: true,
+                    button: 0,
+                    clientX: 100,
+                    clientY: 100,
+                    view: window
+                })
+            );
+            window.dispatchEvent(
+                new MouseEvent('mouseup', {
+                    bubbles: true,
+                    button: 0,
+                    clientX: 100,
+                    clientY: 100,
+                    view: window
+                })
+            );
+
+            expect(onLabelDragEnd).not.toHaveBeenCalled();
+            // No movement occurred — tempLabelIndex must remain unset so the
+            // saved labelIndex is preserved.
+            expect(connection.ui.tempLabelIndex).toBeUndefined();
+            expect(connection.entity.component?.labelIndex).toBe(1);
+
+            cleanup();
+        });
+
+        it('should fire onLabelDragEnd when end fires with tempLabelIndex defined and changed', async () => {
+            const { connection, labelContainer, onLabelDragEnd, cleanup } = await setupLabelDrag({
+                labelIndex: 0,
+                bends: [
+                    { x: 50, y: 50 },
+                    { x: 200, y: 100 }
+                ]
+            });
+
+            // Simulate that a real drag tick assigned tempLabelIndex (the
+            // `drag` handler computes the closest bend; we bypass that here
+            // because d3-drag's window-level mousemove dispatch is unreliable
+            // in happy-dom). The end handler MUST fire onLabelDragEnd for any
+            // defined tempLabelIndex that differs from the saved labelIndex.
+            labelContainer.dispatchEvent(
+                new MouseEvent('mousedown', {
+                    bubbles: true,
+                    button: 0,
+                    clientX: 100,
+                    clientY: 100,
+                    view: window
+                })
+            );
+            connection.ui.tempLabelIndex = 1;
+            window.dispatchEvent(
+                new MouseEvent('mouseup', {
+                    bubbles: true,
+                    button: 0,
+                    clientX: 100,
+                    clientY: 100,
+                    view: window
+                })
+            );
+
+            expect(onLabelDragEnd).toHaveBeenCalledTimes(1);
+            expect(onLabelDragEnd).toHaveBeenCalledWith(connection, 1);
+
+            cleanup();
+        });
+
+        it('should NOT fire onLabelDragEnd when end fires with tempLabelIndex defined but unchanged', async () => {
+            const { connection, labelContainer, onLabelDragEnd, cleanup } = await setupLabelDrag({
+                labelIndex: 1,
+                bends: [
+                    { x: 50, y: 50 },
+                    { x: 200, y: 100 }
+                ]
+            });
+
+            // The user dragged but ended up back on the same bend — newIndex
+            // matches currentIndex, so the callback is skipped and
+            // tempLabelIndex is cleared (no save needed).
+            labelContainer.dispatchEvent(
+                new MouseEvent('mousedown', {
+                    bubbles: true,
+                    button: 0,
+                    clientX: 100,
+                    clientY: 100,
+                    view: window
+                })
+            );
+            connection.ui.tempLabelIndex = 1;
+            window.dispatchEvent(
+                new MouseEvent('mouseup', {
+                    bubbles: true,
+                    button: 0,
+                    clientX: 100,
+                    clientY: 100,
+                    view: window
+                })
+            );
+
+            expect(onLabelDragEnd).not.toHaveBeenCalled();
+            expect(connection.ui.tempLabelIndex).toBeUndefined();
 
             cleanup();
         });

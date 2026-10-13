@@ -114,7 +114,13 @@ function createMockContext(options: SetupOptions = {}): PortRenderContext {
         ports: options.ports || [],
         canSelect: options.canSelect ?? true,
         disabledPortIds: options.disabledPortIds,
+        getDisabledPortIds: () => options.disabledPortIds ?? new Set(),
         getCanEdit: () => options.canEdit ?? true,
+        getCanSelect: () => options.canSelect ?? true,
+        getSelectedIds: () => new Set(),
+        canvasRootResolver: () => d3.select(container),
+        scale: 1,
+        viewportBounds: { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity },
         textEllipsis: {
             applyEllipsis: vi.fn((selection, text, _className) => {
                 selection.text(text);
@@ -533,19 +539,18 @@ describe('PortRenderer', () => {
                 cleanup();
             });
 
-            it('should remove details when port becomes not visible', async () => {
+            it('should remove details when port scrolls out of viewport', async () => {
                 const port = createMockPort();
                 const { context, getPortElements, cleanup } = await setup({
                     ports: [port]
                 });
 
-                // First make visible and render details
-                getPortElements().classed('visible', true);
+                // Port is in-viewport — details created
                 PortRenderer.render(context);
                 expect(getPortElements().select('g.port-details').empty()).toBe(false);
 
-                // Now make not visible and re-render
-                getPortElements().classed('visible', false);
+                // Port scrolls out of viewport — details removed
+                context.viewportBounds = { left: 9000, top: 9000, right: 10000, bottom: 10000 };
                 PortRenderer.render(context);
                 expect(getPortElements().select('g.port-details').empty()).toBe(true);
 
@@ -841,45 +846,38 @@ describe('PortRenderer', () => {
         });
     });
 
-    describe('pan', () => {
-        it('should update port elements for entering/leaving ports', async () => {
-            const port = createMockPort({
-                entity: { position: { x: 500, y: 600 } }
-            });
+    describe('visibility', () => {
+        it('should create details when port enters the viewport', async () => {
+            const port = createMockPort();
+            // Start with port outside the viewport
             const { context, getPortElements, cleanup } = await setup({
                 ports: [port]
             });
+            context.viewportBounds = { left: 9000, top: 9000, right: 10000, bottom: 10000 };
+            PortRenderer.render(context);
+            expect(getPortElements().select('g.port-details').empty()).toBe(true);
 
-            // Mark as entering (becoming visible)
-            getPortElements().classed('entering', true).classed('visible', true);
-
-            // Call pan to update
-            PortRenderer.pan(getPortElements(), context);
-
-            // Should have created details since it's now visible
+            // Expand viewport to include the port — details should be created
+            context.viewportBounds = { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity };
+            PortRenderer.render(context);
             expect(getPortElements().select('g.port-details').empty()).toBe(false);
 
             cleanup();
         });
 
-        it('should remove details for leaving ports', async () => {
+        it('should remove details when port leaves the viewport', async () => {
             const port = createMockPort();
             const { context, getPortElements, cleanup } = await setup({
                 ports: [port]
             });
 
-            // First make visible
-            getPortElements().classed('visible', true);
+            // Port is in-viewport — details created
             PortRenderer.render(context);
             expect(getPortElements().select('g.port-details').empty()).toBe(false);
 
-            // Now mark as leaving (becoming not visible)
-            getPortElements().classed('visible', false).classed('leaving', true);
-
-            // Call pan to update
-            PortRenderer.pan(getPortElements(), context);
-
-            // Details should be removed
+            // Port scrolls out of viewport — details removed
+            context.viewportBounds = { left: 9000, top: 9000, right: 10000, bottom: 10000 };
+            PortRenderer.render(context);
             expect(getPortElements().select('g.port-details').empty()).toBe(true);
 
             cleanup();
@@ -968,8 +966,8 @@ describe('PortRenderer', () => {
                 ports: [port]
             });
 
-            // Make sure port is NOT visible
-            getPortElements().classed('visible', false);
+            // Place port outside the viewport so it is NOT visible
+            context.viewportBounds = { left: 9000, top: 9000, right: 10000, bottom: 10000 };
             PortRenderer.render(context);
 
             const portName = getPortElements().select('text.port-name');
@@ -990,12 +988,176 @@ describe('PortRenderer', () => {
                 ports: [port]
             });
 
-            // Make sure port is NOT visible
-            getPortElements().classed('visible', false);
+            // Place port outside the viewport so it is NOT visible
+            context.viewportBounds = { left: 9000, top: 9000, right: 10000, bottom: 10000 };
             PortRenderer.render(context);
 
             const portName = getPortElements().select('text.port-name');
             expect(portName.text()).toBe('');
+
+            cleanup();
+        });
+    });
+
+    describe('drag attachment lifecycle (moveable diff)', () => {
+        function makeContext(port: CanvasPort, onDragEnd = vi.fn()): PortRenderContext {
+            const container = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            container.classList.add('port-container');
+            document.body.appendChild(container);
+            return {
+                containerSelection: d3.select(container),
+                ports: [port],
+                getCanEdit: () => true,
+                getCanSelect: () => true,
+                getDisabledPortIds: () => new Set(),
+                textEllipsis: { applyEllipsis: vi.fn((sel, text) => sel.text(text)) } as any,
+                formatUtils: {} as any,
+                nifiCommon: {} as any,
+                componentUtils: {
+                    bulletins: vi.fn(),
+                    activeThreadCount: vi.fn(),
+                    comments: vi.fn(),
+                    canvasTooltip: vi.fn(),
+                    resetCanvasTooltip: vi.fn()
+                } as any,
+                callbacks: { onDragEnd }
+            };
+        }
+
+        it('marks writable ports as moveable on first render and attaches a drag listener', () => {
+            const port = createMockPort({ entity: { permissions: { canRead: true, canWrite: true } } });
+            const ctx = makeContext(port);
+
+            PortRenderer.render(ctx);
+
+            const el = ctx.containerSelection.select<SVGGElement>('g.input-port, g.output-port');
+            expect(el.classed('moveable')).toBe(true);
+            expect(el.on('mousedown.drag')).toBeTruthy();
+        });
+
+        it('does NOT mark ports as moveable when write permission is missing', () => {
+            const port = createMockPort({ entity: { permissions: { canRead: true, canWrite: false } } });
+            const ctx = makeContext(port);
+
+            PortRenderer.render(ctx);
+
+            const el = ctx.containerSelection.select<SVGGElement>('g.input-port, g.output-port');
+            expect(el.classed('moveable')).toBe(false);
+            expect(el.on('mousedown.drag')).toBeFalsy();
+        });
+
+        it('detaches drag and clears moveable when write permission is revoked between renders', () => {
+            const port = createMockPort({ entity: { permissions: { canRead: true, canWrite: true } } });
+            const ctx = makeContext(port);
+
+            PortRenderer.render(ctx);
+            const el = ctx.containerSelection.select<SVGGElement>('g.input-port, g.output-port');
+            expect(el.classed('moveable')).toBe(true);
+
+            port.entity.permissions.canWrite = false;
+            PortRenderer.render(ctx);
+
+            expect(el.classed('moveable')).toBe(false);
+            expect(el.on('mousedown.drag')).toBeFalsy();
+        });
+
+        it('reattaches drag when write permission is granted between renders', () => {
+            const port = createMockPort({ entity: { permissions: { canRead: true, canWrite: false } } });
+            const ctx = makeContext(port);
+
+            PortRenderer.render(ctx);
+            const el = ctx.containerSelection.select<SVGGElement>('g.input-port, g.output-port');
+            expect(el.classed('moveable')).toBe(false);
+
+            port.entity.permissions.canWrite = true;
+            PortRenderer.render(ctx);
+
+            expect(el.classed('moveable')).toBe(true);
+            expect(el.on('mousedown.drag')).toBeTruthy();
+        });
+
+        it('does NOT re-attach the drag listener on a no-op steady-state render', () => {
+            const port = createMockPort({ entity: { permissions: { canRead: true, canWrite: true } } });
+            const ctx = makeContext(port);
+
+            PortRenderer.render(ctx);
+            const el = ctx.containerSelection.select<SVGGElement>('g.input-port, g.output-port');
+            const firstHandler = el.on('mousedown.drag');
+            expect(firstHandler).toBeTruthy();
+
+            PortRenderer.render(ctx);
+
+            expect(el.on('mousedown.drag')).toBe(firstHandler);
+        });
+    });
+
+    // The mousedown.selection handler is attached ONCE per element. The
+    // `getCanSelect` getter MUST be re-read at fire-time so consumers that
+    // toggle selection mode at runtime get correct behavior without
+    // re-attachment churn.
+    describe('canSelect runtime gating (attach-once getter)', () => {
+        it('does NOT fire onClick when canSelect was true at attach but false at fire-time', async () => {
+            const onClick = vi.fn();
+            const port = createMockPort({ entity: { id: 'port-1' } });
+            const options: SetupOptions = { ports: [port], canSelect: true, callbacks: { onClick } };
+
+            const { getPortElements, cleanup } = await setup(options);
+
+            options.canSelect = false;
+            getPortElements()
+                .node()!
+                .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
+
+            expect(onClick).not.toHaveBeenCalled();
+
+            cleanup();
+        });
+
+        it('fires onClick when canSelect was false at attach but true at fire-time', async () => {
+            const onClick = vi.fn();
+            const port = createMockPort({ entity: { id: 'port-1' } });
+            const options: SetupOptions = { ports: [port], canSelect: false, callbacks: { onClick } };
+
+            const { getPortElements, cleanup } = await setup(options);
+
+            options.canSelect = true;
+            getPortElements()
+                .node()!
+                .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
+
+            expect(onClick).toHaveBeenCalledTimes(1);
+
+            cleanup();
+        });
+    });
+
+    // The drag filter is attached ONCE per element. The `getDisabledPortIds`
+    // getter MUST be re-read at fire-time so saving-state toggles take effect
+    // immediately without forcing a re-render to refresh a captured field.
+    describe('drag filter live disabledPortIds (attach-once getter)', () => {
+        it('blocks drag-end when the live disabled set includes the id, even though the filter was attached when the set was empty', async () => {
+            const onDragEnd = vi.fn();
+            const port = createMockPort({ entity: { id: 'port-1' } });
+            const disabledPortIds = new Set<string>();
+
+            const { getPortElements, cleanup } = await setup({
+                ports: [port],
+                disabledPortIds,
+                callbacks: { onDragEnd }
+            });
+
+            const el = getPortElements().node()!;
+
+            el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, view: window }));
+            window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0, view: window }));
+            expect(onDragEnd).toHaveBeenCalledTimes(1);
+
+            onDragEnd.mockClear();
+            disabledPortIds.add('port-1');
+
+            el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, view: window }));
+            window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0, view: window }));
+            expect(onDragEnd).not.toHaveBeenCalled();
 
             cleanup();
         });

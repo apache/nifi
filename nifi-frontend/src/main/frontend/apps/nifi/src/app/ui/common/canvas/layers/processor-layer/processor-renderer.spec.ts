@@ -30,7 +30,6 @@ interface SetupOptions {
     canSelect?: boolean;
     canEdit?: boolean;
     disabledProcessorIds?: Set<string>;
-    previewExtensions?: ProcessorRenderContext['previewExtensions'];
     callbacks?: Partial<ProcessorRenderContext['callbacks']>;
 }
 
@@ -135,8 +134,9 @@ function createMockContext(options: SetupOptions = {}): ProcessorRenderContext {
         processors: options.processors || [],
         canSelect: options.canSelect ?? true,
         disabledProcessorIds: options.disabledProcessorIds,
-        previewExtensions: options.previewExtensions || [],
+        getDisabledProcessorIds: () => options.disabledProcessorIds ?? new Set(),
         getCanEdit: () => options.canEdit ?? true,
+        getCanSelect: () => options.canSelect ?? true,
         ...createBaseRenderContextFixture({
             textEllipsis: {
                 applyEllipsis: vi.fn((selection, text, _className) => {
@@ -262,24 +262,6 @@ describe('ProcessorRenderer', () => {
                 const processorEl = getProcessorElements();
                 expect(processorEl.select('circle.is-primary-background').empty()).toBe(false);
                 expect(processorEl.select('text.is-primary').empty()).toBe(false);
-
-                cleanup();
-            });
-
-            it('should create preview badge elements (hidden by default)', async () => {
-                const processor = createMockProcessor();
-                const { getProcessorElements, cleanup } = await setup({
-                    processors: [processor]
-                });
-
-                const processorEl = getProcessorElements();
-                const previewBadge = processorEl.select('rect.processor-preview-badge');
-                const previewText = processorEl.select('text.processor-preview-text');
-
-                expect(previewBadge.empty()).toBe(false);
-                expect(previewText.empty()).toBe(false);
-                expect(previewBadge.style('visibility')).toBe('hidden');
-                expect(previewText.style('visibility')).toBe('hidden');
 
                 cleanup();
             });
@@ -537,19 +519,18 @@ describe('ProcessorRenderer', () => {
                 cleanup();
             });
 
-            it('should remove details when processor becomes not visible', async () => {
+            it('should remove details when processor scrolls out of viewport', async () => {
                 const processor = createMockProcessor();
                 const { context, getProcessorElements, cleanup } = await setup({
                     processors: [processor]
                 });
 
-                // First make visible and render details
-                getProcessorElements().classed('visible', true);
+                // First render with wide viewport — details created
                 ProcessorRenderer.render(context);
                 expect(getProcessorElements().select('g.processor-canvas-details').empty()).toBe(false);
 
-                // Now make not visible and re-render
-                getProcessorElements().classed('visible', false);
+                // Re-render with processor outside viewport — details removed
+                context.viewportBounds = { left: 9000, top: 9000, right: 10000, bottom: 10000 };
                 ProcessorRenderer.render(context);
                 expect(getProcessorElements().select('g.processor-canvas-details').empty()).toBe(true);
 
@@ -763,87 +744,6 @@ describe('ProcessorRenderer', () => {
             });
         });
 
-        describe('UPDATE phase - preview badge', () => {
-            it('should show preview badge when processor is a preview extension', async () => {
-                const processor = createMockProcessor({
-                    entity: {
-                        component: {
-                            type: 'org.apache.nifi.processors.PreviewProcessor',
-                            bundle: {
-                                group: 'org.apache.nifi',
-                                artifact: 'nifi-preview-nar',
-                                version: '2.0.0'
-                            }
-                        }
-                    }
-                });
-                const previewExtensions = [
-                    {
-                        type: 'org.apache.nifi.processors.PreviewProcessor',
-                        bundle: {
-                            group: 'org.apache.nifi',
-                            artifact: 'nifi-preview-nar',
-                            version: '2.0.0'
-                        }
-                    }
-                ];
-                const { context, getProcessorElements, cleanup } = await setup({
-                    processors: [processor],
-                    previewExtensions
-                });
-
-                getProcessorElements().classed('visible', true);
-                ProcessorRenderer.render(context);
-
-                expect(getProcessorElements().select('rect.processor-preview-badge').style('visibility')).toBe(
-                    'visible'
-                );
-                expect(getProcessorElements().select('text.processor-preview-text').style('visibility')).toBe(
-                    'visible'
-                );
-
-                cleanup();
-            });
-
-            it('should adjust processor name position when preview badge is shown', async () => {
-                const processor = createMockProcessor({
-                    entity: {
-                        component: {
-                            type: 'org.apache.nifi.processors.PreviewProcessor',
-                            bundle: {
-                                group: 'org.apache.nifi',
-                                artifact: 'nifi-preview-nar',
-                                version: '2.0.0'
-                            }
-                        }
-                    }
-                });
-                const previewExtensions = [
-                    {
-                        type: 'org.apache.nifi.processors.PreviewProcessor',
-                        bundle: {
-                            group: 'org.apache.nifi',
-                            artifact: 'nifi-preview-nar',
-                            version: '2.0.0'
-                        }
-                    }
-                ];
-                const { context, getProcessorElements, cleanup } = await setup({
-                    processors: [processor],
-                    previewExtensions
-                });
-
-                getProcessorElements().classed('visible', true);
-                ProcessorRenderer.render(context);
-
-                // When preview badge is shown, the preview badge should be visible
-                const previewBadge = getProcessorElements().select('rect.processor-preview-badge');
-                expect(previewBadge.style('visibility')).toBe('visible');
-
-                cleanup();
-            });
-        });
-
         describe('UPDATE phase - custom styling', () => {
             it('should apply custom background color to icon container', async () => {
                 const processor = createMockProcessor({
@@ -1010,47 +910,56 @@ describe('ProcessorRenderer', () => {
         });
     });
 
-    describe('pan', () => {
-        it('should update processor elements for entering/leaving processors', async () => {
-            const processor = createMockProcessor({
-                entity: { position: { x: 500, y: 600 } }
-            });
+    describe('visibility', () => {
+        it('should create details when processor enters the viewport', async () => {
+            const processor = createMockProcessor();
+            // Start with processor outside the viewport
             const { context, getProcessorElements, cleanup } = await setup({
                 processors: [processor]
             });
+            context.viewportBounds = { left: 9000, top: 9000, right: 10000, bottom: 10000 };
+            ProcessorRenderer.render(context);
+            expect(getProcessorElements().select('g.processor-canvas-details').empty()).toBe(true);
 
-            // Mark as entering (becoming visible)
-            getProcessorElements().classed('entering', true).classed('visible', true);
-
-            // Call pan to update
-            ProcessorRenderer.pan(getProcessorElements(), context);
-
-            // Should have created details since it's now visible
+            // Expand viewport to include the processor — details should be created
+            context.viewportBounds = { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity };
+            ProcessorRenderer.render(context);
             expect(getProcessorElements().select('g.processor-canvas-details').empty()).toBe(false);
 
             cleanup();
         });
 
-        it('should remove details for leaving processors', async () => {
+        it('should remove details when processor leaves the viewport', async () => {
             const processor = createMockProcessor();
             const { context, getProcessorElements, cleanup } = await setup({
                 processors: [processor]
             });
 
-            // First make visible
-            getProcessorElements().classed('visible', true);
+            // Processor is in-viewport — details created
             ProcessorRenderer.render(context);
             expect(getProcessorElements().select('g.processor-canvas-details').empty()).toBe(false);
 
-            // Now mark as leaving (becoming not visible)
-            getProcessorElements().classed('visible', false).classed('leaving', true);
-
-            // Call pan to update
-            ProcessorRenderer.pan(getProcessorElements(), context);
-
-            // Details should be removed
+            // Processor scrolls out of viewport — details removed
+            context.viewportBounds = { left: 9000, top: 9000, right: 10000, bottom: 10000 };
+            ProcessorRenderer.render(context);
             expect(getProcessorElements().select('g.processor-canvas-details').empty()).toBe(true);
 
+            cleanup();
+        });
+
+        it('should classify visibility using the optimistic current position', async () => {
+            const processor = createMockProcessor({
+                entity: { position: { x: 9000, y: 9000 } },
+                ui: { currentPosition: { x: 100, y: 200 } }
+            });
+            const { context, getProcessorElements, cleanup } = await setup({
+                processors: [processor]
+            });
+            context.viewportBounds = { left: 0, top: 0, right: 1000, bottom: 1000 };
+
+            ProcessorRenderer.render(context);
+
+            expect(getProcessorElements().select('g.processor-canvas-details').empty()).toBe(false);
             cleanup();
         });
     });
