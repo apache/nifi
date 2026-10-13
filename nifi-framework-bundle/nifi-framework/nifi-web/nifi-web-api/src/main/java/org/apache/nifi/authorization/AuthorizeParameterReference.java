@@ -31,6 +31,7 @@ import org.apache.nifi.web.NiFiServiceFacade;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -133,7 +134,9 @@ public class AuthorizeParameterReference {
     /**
      * Ensures that any Parameter Context that is referenced by the given VersionedParameterContext is readable by the given user. If the Versioned Parameter Context references a Parameter Context
      * (by name) that does not exist in the current flow, ensures that the user has permissions to create a new Parameter Context. If the Versioned Parameter Context contains any Parameters that
-     * do not currently exist in the Parameter Context that is referenced, ensures that the usre has permissions to WRITE to the Parameter Context so that the additional Parameter can be added.
+     * do not currently exist in the Parameter Context that is referenced, changes the inherited Parameter Context list, or attaches a Parameter Provider to a context that does not already have one,
+     * ensures that the user has permissions to WRITE to the Parameter Context. When a Parameter Provider association is proposed for a Parameter Provider that already exists locally, also requires
+     * READ on that provider.
      *
      * @param versionedParameterContext the Versioned Parameter Context
      * @param serviceFacade the Service Facade
@@ -144,10 +147,12 @@ public class AuthorizeParameterReference {
     public static void authorizeParameterContextAddition(final VersionedParameterContext versionedParameterContext, final NiFiServiceFacade serviceFacade, final Authorizer authorizer,
                                                          final AuthorizableLookup lookup, final NiFiUser user) {
         final ParameterContext parameterContext = serviceFacade.getParameterContextByName(versionedParameterContext.getName(), user);
+        final String proposedProviderId = versionedParameterContext.getParameterProvider();
 
         if (parameterContext == null) {
             // If Parameter Context does not yet exist, authorize that the user is allowed to create it.
             lookup.getParameterContexts().authorize(authorizer, RequestAction.WRITE, user);
+            authorizeLocalParameterProviderRead(proposedProviderId, authorizer, lookup, user);
             return;
         }
 
@@ -160,6 +165,7 @@ public class AuthorizeParameterReference {
             .collect(Collectors.toSet());
 
         final List<String> existingParameterContextNames = parameterContext.getInheritedParameterContextNames();
+        final boolean providerAttaching = proposedProviderId != null && parameterContext.getParameterProvider() == null;
 
         boolean requiresAddition = false;
         for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
@@ -173,9 +179,27 @@ public class AuthorizeParameterReference {
             }
         }
 
-        if (requiresAddition || !existingParameterContextNames.equals(versionedParameterContext.getInheritedParameterContexts())) {
-            // User is required to have WRITE permission to the Parameter Context in order to add one or more parameters.
+        if (requiresAddition || providerAttaching || !existingParameterContextNames.equals(versionedParameterContext.getInheritedParameterContexts())) {
+            // User is required to have WRITE permission to the Parameter Context in order to add parameters, change inheritance, or attach a Parameter Provider.
             parameterContext.authorize(authorizer, RequestAction.WRITE, user);
         }
+
+        if (providerAttaching) {
+            authorizeLocalParameterProviderRead(proposedProviderId, authorizer, lookup, user);
+        }
+    }
+
+    private static void authorizeLocalParameterProviderRead(
+            final String parameterProviderId,
+            final Authorizer authorizer,
+            final AuthorizableLookup lookup,
+            final NiFiUser user
+    ) {
+        if (parameterProviderId == null) {
+            return;
+        }
+
+        lookup.getParameterProviders(parameterProvider -> Objects.equals(parameterProviderId, parameterProvider.getIdentifier()))
+                .forEach(componentAuthorizable -> componentAuthorizable.getAuthorizable().authorize(authorizer, RequestAction.READ, user));
     }
 }
