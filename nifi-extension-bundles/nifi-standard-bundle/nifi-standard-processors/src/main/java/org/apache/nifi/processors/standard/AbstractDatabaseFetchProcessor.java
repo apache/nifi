@@ -244,24 +244,30 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
         synchronized (setupComplete) {
             setupComplete.set(false);
             final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(flowFile).getValue();
-
-            // If there are no max-value column names specified, we don't need to perform this processing
-            if (StringUtils.isEmpty(maxValueColumnNames)) {
-                setupComplete.set(true);
-                return;
-            }
-
-            // Try to fill the columnTypeMap with the types of the desired max-value columns
-            final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
             final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
             final String sqlQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions().getValue();
+            final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
 
             try (final Connection con = dbcpService.getConnection(flowFile == null ? Collections.emptyMap() : flowFile.getAttributes());
                  final Statement st = con.createStatement()) {
 
-                // Try a query that returns no rows, for the purposes of getting metadata about the columns. It is possible
-                // to use DatabaseMetaData.getColumns(), but not all drivers support this, notably the schema-on-read
-                // approach as in Apache Drill
+                if (StringUtils.isEmpty(maxValueColumnNames)) {
+                    final String customWhereClause = context.getProperty(WHERE_CLAUSE).evaluateAttributeExpressions(flowFile).getValue();
+                    final QueryStatementRequest metadataRequest = getMetadataStatementRequest(tableName, sqlQuery, customWhereClause);
+                    final StatementResponse metadataResponse = databaseDialectService.getStatement(metadataRequest);
+
+                    try (final ResultSet resultSet = st.executeQuery(metadataResponse.sql())) {
+                        ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+                        int numCols = resultSetMetaData.getColumnCount();
+                        if (numCols > 0 && shouldCleanCache) {
+                            columnTypeMap.clear();
+                        }
+                    }
+                    setupComplete.set(true);
+                    return;
+                }
+
+                // Execute max-value column metadata query
                 final QueryStatementRequest statementRequest = getMaxValueStatementRequest(tableName, maxValueColumnNames, sqlQuery);
                 final StatementResponse statementResponse = databaseDialectService.getStatement(statementRequest);
                 final String query = statementResponse.sql();
@@ -286,7 +292,6 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                         String colName = resultSetMetaData.getColumnName(i).toLowerCase();
                         String colKey = getStateKey(tableName, colName);
 
-                        //only include columns that are part of the maximum value tracking column list
                         if (!maxValueQualifiedColumnNameList.contains(colKey)) {
                             continue;
                         }
@@ -329,6 +334,23 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 tableDefinition,
                 Optional.ofNullable(derivedTableQuery),
                 Optional.of(ZERO_RESULT_WHERE_CLAUSE),
+                Optional.empty(),
+                Optional.empty()
+        );
+    }
+
+    protected QueryStatementRequest getMetadataStatementRequest(final String tableName, final String derivedTableQuery, final String customWhereClause) {
+        final TableDefinition tableDefinition = new TableDefinition(Optional.empty(), Optional.empty(), tableName, Collections.emptyList());
+
+        final String metadataWhereClause = StringUtils.isEmpty(customWhereClause)
+                ? ZERO_RESULT_WHERE_CLAUSE
+                : "(" + customWhereClause + ") AND " + ZERO_RESULT_WHERE_CLAUSE;
+
+        return new StandardQueryStatementRequest(
+                StatementType.SELECT,
+                tableDefinition,
+                Optional.ofNullable(derivedTableQuery),
+                Optional.of(metadataWhereClause),
                 Optional.empty(),
                 Optional.empty()
         );

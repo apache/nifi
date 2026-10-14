@@ -559,13 +559,6 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                 .map(ColumnDefinition.class::cast)
                 .toList();
         final TableDefinition tableDefinition = new TableDefinition(Optional.empty(), Optional.empty(), tableName, columnDefinitions);
-        final QueryStatementRequest statementRequest = new StandardQueryStatementRequest(
-                StatementType.SELECT, tableDefinition, derivedTableQuery, Optional.empty(), Optional.empty(), Optional.empty()
-        );
-        final StatementResponse statementResponse = databaseDialectService.getStatement(statementRequest);
-
-        final StringBuilder query = new StringBuilder();
-        query.append(statementResponse.sql());
 
         List<String> whereClauses = new ArrayList<>();
         // Check state map for last max values
@@ -596,12 +589,16 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             whereClauses.add("(" + customWhereClause + ")");
         }
 
-        if (!whereClauses.isEmpty()) {
-            query.append(" WHERE ");
-            query.append(StringUtils.join(whereClauses, " AND "));
-        }
+        final Optional<String> whereClauseOptional = whereClauses.isEmpty()
+                ? Optional.empty()
+                : Optional.of(StringUtils.join(whereClauses, " AND "));
 
-        return query.toString();
+        final QueryStatementRequest statementRequest = new StandardQueryStatementRequest(
+                StatementType.SELECT, tableDefinition, derivedTableQuery, whereClauseOptional, Optional.empty(), Optional.empty()
+        );
+        final StatementResponse statementResponse = databaseDialectService.getStatement(statementRequest);
+
+        return statementResponse.sql();
     }
 
     public class MaxValueResultSetRowCollector implements JdbcCommon.ResultSetRowCallback {
