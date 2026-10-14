@@ -30,13 +30,17 @@ import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.opentest4j.AssertionFailedError;
 
 import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -46,8 +50,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -62,25 +66,53 @@ public class DBCPServiceTest {
     private static final String NON_JDBC_URL = "http://localhost:3306/database";
 
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
-    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:mem:%s;shutdown=true";
+    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s/nifi_test_db";
 
     private TestRunner runner;
 
     private DBCPConnectionPool service;
 
+    private String connectionUrl;
+
+    private Path databasePath;
+
     @BeforeEach
-    public void setService() throws InitializationException {
+    public void setService(@TempDir final Path tempDir) throws InitializationException {
         service = new DBCPConnectionPool();
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService(SERVICE_ID, service);
 
-        // Each test instance gets its own independent database context path
-        final String uniqueDbName = UUID.randomUUID().toString();
-        final String url = CONNECTION_URL_FORMAT.formatted(uniqueDbName);
-        runner.setProperty(service, DBCPProperties.DATABASE_URL, url);
+        databasePath = tempDir.toAbsolutePath();
+        connectionUrl = CONNECTION_URL_FORMAT.formatted(databasePath);
+        runner.setProperty(service, DBCPProperties.DATABASE_URL, connectionUrl);
         runner.setProperty(service, DBCPProperties.DB_USER, String.class.getSimpleName());
         runner.setProperty(service, DBCPProperties.DB_PASSWORD, String.class.getName());
         runner.setProperty(service, DBCPProperties.DB_DRIVERNAME, DRIVER_CLASS);
+    }
+
+    @AfterEach
+    public void shutdownDatabase() throws Exception {
+        runner.shutdown();
+
+        // Property validation tests may never create the database.
+        // Do not create it just to shut it down.
+        final Path propertiesFile = databasePath.resolve("nifi_test_db.properties");
+        if (Files.exists(propertiesFile)) {
+            final Properties properties = new Properties();
+            properties.setProperty("user", String.class.getSimpleName());
+            properties.setProperty("password", String.class.getName());
+
+            // Connect directly through HSQLDB's driver so cleanup still works
+            // when testDeregisterDriver has deregistered it from DriverManager.
+            try (Connection connection = new org.hsqldb.jdbc.JDBCDriver().connect(connectionUrl, properties)) {
+                if (connection == null) {
+                    throw new SQLException("HSQLDB driver did not accept the test database URL");
+                }
+                try (final Statement statement = connection.createStatement()) {
+                    statement.execute("SHUTDOWN");
+                }
+            }
+        }
     }
 
     @Test
@@ -205,15 +237,16 @@ public class DBCPServiceTest {
     }
 
     @Test
-    public void testGetConnectionMaxTotalConnectionsExceeded() {
+    public void testGetConnectionMaxTotalConnectionsExceeded() throws SQLException {
         runner.setProperty(service, DBCPProperties.MAX_TOTAL_CONNECTIONS, "1");
         runner.setProperty(service, DBCPProperties.MAX_WAIT_TIME, "1 ms");
         runner.enableControllerService(service);
         runner.assertValid(service);
 
-        final Connection connection = service.getConnection();
-        assertNotNull(connection);
-        assertThrows(ProcessException.class, service::getConnection);
+        try (Connection connection = service.getConnection()) {
+            assertNotNull(connection);
+            assertThrows(ProcessException.class, service::getConnection);
+        }
     }
 
     @Test
