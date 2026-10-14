@@ -66,7 +66,7 @@ public class DBCPServiceTest {
     private static final String NON_JDBC_URL = "http://localhost:3306/database";
 
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
-    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s/nifi_test_db";
+    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s/nifi";
 
     private TestRunner runner;
 
@@ -96,7 +96,7 @@ public class DBCPServiceTest {
 
         // Property validation tests may never create the database.
         // Do not create it just to shut it down.
-        final Path propertiesFile = databasePath.resolve("nifi_test_db.properties");
+        final Path propertiesFile = databasePath.resolve("nifi.properties");
         if (Files.exists(propertiesFile)) {
             final Properties properties = new Properties();
             properties.setProperty("user", String.class.getSimpleName());
@@ -109,6 +109,7 @@ public class DBCPServiceTest {
                     throw new SQLException("HSQLDB driver did not accept the test database URL");
                 }
                 try (final Statement statement = connection.createStatement()) {
+                    // Engine shutdown closes all connections regardless of status
                     statement.execute("SHUTDOWN");
                 }
             }
