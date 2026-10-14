@@ -124,9 +124,9 @@
         <nifi.nar.maven.plugin.version>2.4.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.55.14</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.55.16</software.amazon.awssdk.version>
         <software.amazon.encryption.s3.version>4.0.3</software.amazon.encryption.s3.version>
-        <azure.sdk.bom.version>1.3.8</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
+        <azure.sdk.bom.version>1.3.9</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
         <!-- Apache Commons -->
         <org.apache.commons.cli.version>1.11.0</org.apache.commons.cli.version>
@@ -152,7 +152,7 @@
         <hsqldb.version>2.7.4</hsqldb.version>
 
         <!-- Data formats and serialization -->
-        <kafka-clients.version>4.3.1</kafka-clients.version>
+        <kafka-clients.version>4.4.0</kafka-clients.version>
         <kafka.docker.image>apache/kafka:4.3.1</kafka.docker.image>
         <avro.version>1.12.2</avro.version>
         <calcite.version>1.42.0</calcite.version>
@@ -194,7 +194,7 @@
         <org.bouncycastle.provider.version>1.86</org.bouncycastle.provider.version>
 
         <!-- Utilities -->
-        <caffeine.version>3.3.0</caffeine.version>
+        <caffeine.version>3.3.1</caffeine.version>
         <velocity-engine-core.version>2.4.1</velocity-engine-core.version>
 
         <!-- Web and API frameworks -->
