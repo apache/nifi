@@ -92,7 +92,7 @@ public class DatabaseRecordSinkTest {
     private static final String SERVICE_ID = DBCPConnectionPool.class.getName();
 
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
-    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s/nifi_test_db";
+    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s/nifi";
 
     private String connectionUrl;
     private DBCPConnectionPool dbcpService;
@@ -116,9 +116,9 @@ public class DatabaseRecordSinkTest {
         runner.shutdown();
         dbcpService.shutdown();
 
-        try (Connection conn = DriverManager.getConnection(connectionUrl, "SA", "");
+        try (Connection conn = DriverManager.getConnection(connectionUrl);
              Statement stmt = conn.createStatement()) {
-            // Forces the engine to close immediately, bypassing active pool connection state leaks
+            // Engine shutdown closes all connections regardless of status
             stmt.execute("SHUTDOWN");
         }
     }
