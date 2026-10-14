@@ -56,6 +56,7 @@ import org.apache.nifi.c2.serializer.C2JacksonSerializer;
 import org.apache.nifi.c2.serializer.C2Serializer;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.Triggerable;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParser;
 import org.apache.nifi.groups.ProcessGroup;
@@ -97,6 +98,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
@@ -356,10 +358,8 @@ public class C2NifiClientService {
     }
 
     private Map<String, FlowQueueStatus> getQueueStatus() {
-        return flowController.getEventAccess()
-            .getGroupStatus(ROOT_GROUP_ID)
-            .getConnectionStatus()
-            .stream()
+        return getAllGroupStatuses()
+            .flatMap(groupStatus -> groupStatus.getConnectionStatus().stream())
             .map(connectionStatus -> {
                 FlowQueueStatus flowQueueStatus = new FlowQueueStatus();
                 flowQueueStatus.setSize((long) connectionStatus.getQueuedCount());
@@ -373,12 +373,8 @@ public class C2NifiClientService {
 
     private List<ProcessorBulletin> getBulletins(int processorBulletinLimit) {
         if (processorBulletinLimit > 0) {
-            String groupId = flowController.getEventAccess()
-                    .getGroupStatus(ROOT_GROUP_ID)
-                    .getId();
             BulletinQuery query = new BulletinQuery.Builder()
                     .sourceType(ComponentType.PROCESSOR)
-                    .groupIdMatches(groupId)
                     .limit(processorBulletinLimit)
                     .build();
 
@@ -407,14 +403,22 @@ public class C2NifiClientService {
 
     private List<ProcessorStatus> getProcessorStatus(boolean processorStatusEnabled) {
         if (processorStatusEnabled) {
-            return flowController.getEventAccess()
-                    .getGroupStatus(ROOT_GROUP_ID)
-                    .getProcessorStatus()
-                    .stream()
+            return getAllGroupStatuses()
+                    .flatMap(groupStatus -> groupStatus.getProcessorStatus().stream())
                     .map(this::convertProcessorStatus)
                     .toList();
         }
         return null;
+    }
+
+    private Stream<ProcessGroupStatus> getAllGroupStatuses() {
+        return flattenGroupStatus(flowController.getEventAccess().getGroupStatus(ROOT_GROUP_ID));
+    }
+
+    private Stream<ProcessGroupStatus> flattenGroupStatus(ProcessGroupStatus groupStatus) {
+        return Stream.concat(
+            Stream.of(groupStatus),
+            groupStatus.getProcessGroupStatus().stream().flatMap(this::flattenGroupStatus));
     }
 
     private ProcessorStatus convertProcessorStatus(org.apache.nifi.controller.status.ProcessorStatus processorStatus) {
