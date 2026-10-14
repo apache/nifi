@@ -68,9 +68,7 @@ function createMockCurrentUser(): CurrentUser {
         policiesPermissions: { canRead: true, canWrite: true },
         systemPermissions: { canRead: true, canWrite: true },
         parameterContextPermissions: { canRead: true, canWrite: true },
-        restrictedComponentsPermissions: { canRead: true, canWrite: true },
         connectorsPermissions: { canRead: true, canWrite: true },
-        componentRestrictionPermissions: [],
         canVersionFlows: true,
         logoutSupported: true
     };
