@@ -28,7 +28,7 @@ import java.sql.Statement;
 
 abstract class AbstractConnectionTest {
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
-    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%1$s/nifi_test_db";
+    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%1$s/nifi";
 
     private static String connectionUrl;
 
@@ -44,12 +44,10 @@ abstract class AbstractConnectionTest {
 
     @AfterAll
     public static void shutdownDatabase() throws SQLException {
-        if (connectionUrl != null) {
-            try (Connection conn = DriverManager.getConnection(connectionUrl, "SA", "");
-                 Statement stmt = conn.createStatement()) {
-                // Forces the engine to close immediately, bypassing active pool connection state leaks
-                stmt.execute("SHUTDOWN");
-            }
+        try (Connection conn = DriverManager.getConnection(connectionUrl);
+             Statement stmt = conn.createStatement()) {
+            // Engine shutdown closes all connections regardless of status
+            stmt.execute("SHUTDOWN");
         }
     }
 
