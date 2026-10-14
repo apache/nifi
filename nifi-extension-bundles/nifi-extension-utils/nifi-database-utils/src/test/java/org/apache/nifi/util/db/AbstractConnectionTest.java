@@ -18,42 +18,38 @@ package org.apache.nifi.util.db;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.UUID;
+import java.sql.Statement;
 
 abstract class AbstractConnectionTest {
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
-    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:mem:%s;shutdown=true";
+    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%1$s/nifi_test_db";
 
     private static String connectionUrl;
-    // Keeps a single connection alive to prevent the memory DB from evaporating
-    private static Connection keepAliveConnection;
 
     @BeforeAll
-    static void setConnectionUrl() throws SQLException {
+    static void setConnectionUrl(@TempDir final Path tempDir) {
         try {
             Class.forName(DRIVER_CLASS);
         } catch (final ClassNotFoundException e) {
             throw new IllegalStateException("Driver Class [%s] not found".formatted(DRIVER_CLASS), e);
         }
-
-        // Each test instance gets its own independent database context path
-        final String uniqueDbName = UUID.randomUUID().toString();
-        connectionUrl = CONNECTION_URL_FORMAT.formatted(uniqueDbName);
-
-        // Open a lease connection right away. While this remains open, connection count > 0,
-        // which completely prevents HSQLDB from wiping tables prematurely.
-        keepAliveConnection = DriverManager.getConnection(connectionUrl);
+        connectionUrl = CONNECTION_URL_FORMAT.formatted(tempDir.toAbsolutePath());
     }
 
     @AfterAll
-    public static void teardownConnection() throws Exception {
-        // Explicitly release the keep-alive connection when the entire test class is done
-        if (keepAliveConnection != null && !keepAliveConnection.isClosed()) {
-            keepAliveConnection.close();
+    public static void shutdownDatabase() throws SQLException {
+        if (connectionUrl != null) {
+            try (Connection conn = DriverManager.getConnection(connectionUrl, "SA", "");
+                 Statement stmt = conn.createStatement()) {
+                // Forces the engine to close immediately, bypassing active pool connection state leaks
+                stmt.execute("SHUTDOWN");
+            }
         }
     }
 
