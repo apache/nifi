@@ -154,6 +154,10 @@ public class HiveMqV5ClientAdapter implements MqttClient {
             logger.debug("Received response: {}", response);
             return response;
         } catch (Exception e) {
+            future.cancel(true);
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             throw new MqttException("An error has occurred while communicating with the broker", e);
         }
     }
