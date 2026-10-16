@@ -114,9 +114,9 @@ public class AllowListClassLoader extends ClassLoader {
             if (module == null) {
                 return false;
             }
-
             final Method getName = module.getClass().getMethod("getName");
             final String moduleName = (String) getName.invoke(module);
+
             if (isModuleAllowed(moduleName)) {
                 logger.debug("Allowing Class {} because its module is {}", name, moduleName);
                 return true;
@@ -128,8 +128,11 @@ public class AllowListClassLoader extends ClassLoader {
             return false;
         }
     }
-
-    private boolean isModuleAllowed(final String moduleName) {
+    // Package-private for testing
+    boolean isModuleAllowed(final String moduleName) {
+        if (moduleName == null) {
+            return false;
+        }
         for (final String prefix : allowedModulePrefixes) {
             if (moduleName.startsWith(prefix)) {
                 return true;
