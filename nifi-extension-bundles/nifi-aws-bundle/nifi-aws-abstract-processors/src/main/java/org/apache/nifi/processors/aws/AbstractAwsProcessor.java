@@ -193,7 +193,7 @@ public abstract class AbstractAwsProcessor<C extends AwsClient, B extends AwsCli
     }
 
     private void migrateAuthenticationProperties(final PropertyConfiguration config) {
-        if (!config.isPropertySet(AWS_CREDENTIALS_PROVIDER_SERVICE)) {
+        if (config.getRawPropertyValue(AWS_CREDENTIALS_PROVIDER_SERVICE).isEmpty()) {
             if (config.isPropertySet(OBSOLETE_ACCESS_KEY) && config.isPropertySet(OBSOLETE_SECRET_KEY)) {
                 final String serviceId = config.createControllerService(CREDENTIALS_SERVICE_CLASSNAME, Map.of(
                         AUTH_SERVICE_ACCESS_KEY, config.getRawPropertyValue(OBSOLETE_ACCESS_KEY).get(),
