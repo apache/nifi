@@ -44,6 +44,7 @@ import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -51,6 +52,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -90,22 +92,35 @@ public class DatabaseRecordSinkTest {
     private static final String SERVICE_ID = DBCPConnectionPool.class.getName();
 
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
-    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s";
+    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s/nifi";
 
     private String connectionUrl;
     private DBCPConnectionPool dbcpService;
+    private TestRunner runner;
 
     @BeforeEach
     public void setService(@TempDir final Path tempDir) throws InitializationException {
         dbcpService = new DBCPConnectionPool();
-        TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService(SERVICE_ID, dbcpService);
 
-        connectionUrl = CONNECTION_URL_FORMAT.formatted(tempDir);
+        connectionUrl = CONNECTION_URL_FORMAT.formatted(tempDir.toAbsolutePath());
         runner.setProperty(dbcpService, DATABASE_URL, connectionUrl);
         runner.setProperty(dbcpService, DB_USER, String.class.getSimpleName());
         runner.setProperty(dbcpService, DB_PASSWORD, String.class.getName());
         runner.setProperty(dbcpService, DB_DRIVERNAME, DRIVER_CLASS);
+    }
+
+    @AfterEach
+    public void shutdownDatabase() throws SQLException {
+        runner.shutdown();
+        dbcpService.shutdown();
+
+        try (Connection conn = DriverManager.getConnection(connectionUrl);
+             Statement stmt = conn.createStatement()) {
+            // Engine shutdown closes all connections regardless of status
+            stmt.execute("SHUTDOWN");
+        }
     }
 
     @Test
@@ -113,66 +128,66 @@ public class DatabaseRecordSinkTest {
         final DatabaseRecordSink task = initTask("TESTTABLE");
 
         // Create the table
-        final Connection con = dbcpService.getConnection();
-        final Statement stmt = con.createStatement();
-        try (stmt) {
+        try (Connection con = dbcpService.getConnection();
+             Statement stmt = con.createStatement()) {
             try {
                 stmt.execute("drop table TESTTABLE");
             } catch (final SQLException ignored) {
                 // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
             }
             stmt.executeUpdate("CREATE TABLE testTable (field1 integer, field2 varchar(20))");
+
+            final List<RecordField> recordFields = Arrays.asList(
+                    new RecordField("field1", RecordFieldType.INT.getDataType()),
+                    new RecordField("field2", RecordFieldType.STRING.getDataType())
+            );
+            final RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
+
+            final Map<String, Object> row1 = new HashMap<>();
+            row1.put("field1", 15);
+            row1.put("field2", "Hello");
+
+            final Map<String, Object> row2 = new HashMap<>();
+            row2.put("field1", 6);
+            row2.put("field2", "World!");
+
+            final RecordSet recordSet = new ListRecordSet(recordSchema, Arrays.asList(
+                    new MapRecord(recordSchema, row1),
+                    new MapRecord(recordSchema, row2)
+            ));
+
+            final WriteResult writeResult = task.sendData(recordSet, Collections.singletonMap("a", "Hello"), true);
+            assertNotNull(writeResult);
+            assertEquals(2, writeResult.getRecordCount());
+            assertEquals("Hello", writeResult.getAttributes().get("a"));
+
+            final Statement st = con.createStatement();
+            final ResultSet resultSet = st.executeQuery("select * from testTable");
+            assertTrue(resultSet.next());
+
+            Object f1 = resultSet.getObject(1);
+            assertNotNull(f1);
+            assertInstanceOf(Integer.class, f1);
+            assertEquals(15, f1);
+            Object f2 = resultSet.getObject(2);
+            assertNotNull(f2);
+            assertInstanceOf(String.class, f2);
+            assertEquals("Hello", f2);
+
+            assertTrue(resultSet.next());
+
+            f1 = resultSet.getObject(1);
+            assertNotNull(f1);
+            assertInstanceOf(Integer.class, f1);
+            assertEquals(6, f1);
+            f2 = resultSet.getObject(2);
+            assertNotNull(f2);
+            assertInstanceOf(String.class, f2);
+            assertEquals("World!", f2);
+
+            assertFalse(resultSet.next());
+            resultSet.close();
         }
-
-        final List<RecordField> recordFields = Arrays.asList(
-                new RecordField("field1", RecordFieldType.INT.getDataType()),
-                new RecordField("field2", RecordFieldType.STRING.getDataType())
-        );
-        final RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
-
-        final Map<String, Object> row1 = new HashMap<>();
-        row1.put("field1", 15);
-        row1.put("field2", "Hello");
-
-        final Map<String, Object> row2 = new HashMap<>();
-        row2.put("field1", 6);
-        row2.put("field2", "World!");
-
-        final RecordSet recordSet = new ListRecordSet(recordSchema, Arrays.asList(
-                new MapRecord(recordSchema, row1),
-                new MapRecord(recordSchema, row2)
-        ));
-
-        final WriteResult writeResult = task.sendData(recordSet, Collections.singletonMap("a", "Hello"), true);
-        assertNotNull(writeResult);
-        assertEquals(2, writeResult.getRecordCount());
-        assertEquals("Hello", writeResult.getAttributes().get("a"));
-
-        final Statement st = con.createStatement();
-        final ResultSet resultSet = st.executeQuery("select * from testTable");
-        assertTrue(resultSet.next());
-
-        Object f1 = resultSet.getObject(1);
-        assertNotNull(f1);
-        assertInstanceOf(Integer.class, f1);
-        assertEquals(15, f1);
-        Object f2 = resultSet.getObject(2);
-        assertNotNull(f2);
-        assertInstanceOf(String.class, f2);
-        assertEquals("Hello", f2);
-
-        assertTrue(resultSet.next());
-
-        f1 = resultSet.getObject(1);
-        assertNotNull(f1);
-        assertInstanceOf(Integer.class, f1);
-        assertEquals(6, f1);
-        f2 = resultSet.getObject(2);
-        assertNotNull(f2);
-        assertInstanceOf(String.class, f2);
-        assertEquals("World!", f2);
-
-        assertFalse(resultSet.next());
     }
 
     @Test
@@ -199,9 +214,8 @@ public class DatabaseRecordSinkTest {
         final DatabaseRecordSink task = initTask("TESTTABLE");
 
         // Create the table
-        final Connection con = dbcpService.getConnection();
-        final Statement stmt = con.createStatement();
-        try (stmt) {
+        try (Connection con = dbcpService.getConnection();
+             Statement stmt = con.createStatement()) {
             try {
                 stmt.execute("drop table TESTTABLE");
             } catch (final SQLException ignored) {
@@ -231,15 +245,17 @@ public class DatabaseRecordSinkTest {
         final DatabaseRecordSink task = initTask("TESTTABLE");
 
         // Create the table
-        final Connection con = dbcpService.getConnection();
-        final Statement stmt = con.createStatement();
-        try (stmt) {
+        try (Connection con = dbcpService.getConnection();
+             Statement stmt = con.createStatement()) {
             try {
                 stmt.execute("drop table TESTTABLE");
             } catch (final SQLException ignored) {
                 // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
             }
-            stmt.executeUpdate("CREATE TABLE testTable (field1 integer, field2 varchar(20))");
+
+            stmt.executeUpdate(
+                    "CREATE TABLE testTable (field1 integer, field2 varchar(20))"
+            );
         }
 
         final List<RecordField> recordFields = Arrays.asList(
