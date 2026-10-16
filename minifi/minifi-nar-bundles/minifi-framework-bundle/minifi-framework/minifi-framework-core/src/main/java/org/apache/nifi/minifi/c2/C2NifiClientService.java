@@ -28,6 +28,8 @@ import org.apache.nifi.c2.client.service.FlowIdHolder;
 import org.apache.nifi.c2.client.service.ManifestHashProvider;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
 import org.apache.nifi.c2.client.service.operation.C2OperationHandlerProvider;
+import org.apache.nifi.c2.client.service.operation.ClearConnectionOperationHandler;
+import org.apache.nifi.c2.client.service.operation.ConnectionQueueStrategy;
 import org.apache.nifi.c2.client.service.operation.DescribeManifestOperationHandler;
 import org.apache.nifi.c2.client.service.operation.EmptyOperandPropertiesProvider;
 import org.apache.nifi.c2.client.service.operation.FlowStateStrategy;
@@ -63,6 +65,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.manifest.RuntimeManifestService;
 import org.apache.nifi.manifest.StandardRuntimeManifestService;
 import org.apache.nifi.minifi.bootstrap.BootstrapCommunicator;
+import org.apache.nifi.minifi.c2.command.DefaultConnectionQueueStrategy;
 import org.apache.nifi.minifi.c2.command.DefaultFlowStateStrategy;
 import org.apache.nifi.minifi.c2.command.DefaultProcessorStateStrategy;
 import org.apache.nifi.minifi.c2.command.DefaultUpdateConfigurationStrategy;
@@ -253,6 +256,7 @@ public class C2NifiClientService {
         PropertiesPersister propertiesPersister = new PropertiesPersister(updatePropertiesPropertyProvider, bootstrapConfigFileLocation);
         FlowStateStrategy defaultFlowStateStrategy = new DefaultFlowStateStrategy(flowController);
         ProcessorStateStrategy defaultProcessorStateStrategy = new DefaultProcessorStateStrategy(flowController);
+        ConnectionQueueStrategy defaultConnectionQueueStrategy = new DefaultConnectionQueueStrategy(flowController);
         FlowPropertyAssetReferenceResolver flowPropertyAssetReferenceResolver = new StandardFlowPropertyAssetReferenceResolverService(resourceRepository::getAbsolutePath);
 
         FlowPropertyEncryptor flowPropertyEncryptor = new StandardFlowPropertyEncryptor(
@@ -282,7 +286,8 @@ public class C2NifiClientService {
             new StartFlowOperationHandler(defaultFlowStateStrategy),
             new StopFlowOperationHandler(defaultFlowStateStrategy),
             new StartProcessorOperationHandler(defaultProcessorStateStrategy),
-            new StopProcessorOperationHandler(defaultProcessorStateStrategy)
+            new StopProcessorOperationHandler(defaultProcessorStateStrategy),
+            new ClearConnectionOperationHandler(defaultConnectionQueueStrategy)
         ));
     }
 
