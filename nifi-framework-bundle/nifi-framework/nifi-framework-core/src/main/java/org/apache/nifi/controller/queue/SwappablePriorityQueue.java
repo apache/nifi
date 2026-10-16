@@ -547,6 +547,26 @@ public class SwappablePriorityQueue {
         }
     }
 
+    /**
+     * Adds the given FlowFile to the active queue regardless of whether this queue is in swap mode. This is intended only for FlowFiles that
+     * were previously polled from the active queue and are being returned. Such a FlowFile was ahead of everything in the swap queue and swap files,
+     * so adding it back to the active queue keeps it ahead of them. This may cause the active queue to temporarily exceed the swap threshold.
+     *
+     * @param flowFile the FlowFile to add to the active queue
+     */
+    public void putToActive(final FlowFileRecord flowFile) {
+        writeLock.lock();
+        try {
+            incrementActiveQueueSize(1, flowFile.getSize());
+            activeQueue.add(flowFile);
+
+            updateTopPenaltyExpiration();
+            logger.trace("{} put to active queue of {}", flowFile, this);
+        } finally {
+            writeLock.unlock("putToActive");
+        }
+    }
+
     public void putAll(final Collection<FlowFileRecord> flowFiles) {
         final int numFiles = flowFiles.size();
         long bytes = 0L;

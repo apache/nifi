@@ -120,6 +120,11 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     }
 
     @Override
+    public void putToActive(final FlowFileRecord file) {
+        queue.putToActive(file);
+    }
+
+    @Override
     public void putAll(final Collection<FlowFileRecord> files) {
         queue.putAll(files);
     }

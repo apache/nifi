@@ -1441,7 +1441,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     /**
      * Rolls back the Record in a manner that is appropriate for the context. The default implementation
-     * is to place the queue back on its original queue, if it exists, or just ignore it if it has no original queue.
+     * is to place the FlowFile back on the active portion of its original queue, if it exists, so that it stays ahead of
+     * any FlowFiles that have been swapped out, or just ignore it if it has no original queue.
      * However, subclasses may wish to change the behavior for how Records are handled when a rollback occurs.
      * @param record the Record that is to be rolled back
      * @param penalize whether or not the Record should be penalized
@@ -1453,9 +1454,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 if (penalize) {
                     final long expirationEpochMillis = System.currentTimeMillis() + context.getConnectable().getPenalizationPeriod(TimeUnit.MILLISECONDS);
                     final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getOriginal()).penaltyExpirationTime(expirationEpochMillis).build();
-                    originalQueue.put(newFile);
+                    originalQueue.putToActive(newFile);
                 } else {
-                    originalQueue.put(record.getOriginal());
+                    originalQueue.putToActive(record.getOriginal());
                 }
             }
         }
@@ -2014,7 +2015,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         LOG.error("Attempted to pull {} from {} but the Session already has a FlowFile with the same ID ({}): {}, which was pulled from {}. This means that the system has two FlowFiles with the" +
             " same ID, which should not happen.", flowFile, connection, flowFile.getId(), conflict.getCurrent(), conflict.getOriginalQueue());
-        connection.getFlowFileQueue().put(flowFile);
+        connection.getFlowFileQueue().putToActive(flowFile);
 
         rollback(true, false);
         throw new FlowFileAccessException("Attempted to pull a FlowFile with ID " + flowFile.getId() + " from Connection "

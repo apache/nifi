@@ -98,6 +98,11 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     }
 
     @Override
+    public void putToActive(final FlowFileRecord flowFile) {
+        priorityQueue.putToActive(flowFile);
+    }
+
+    @Override
     public void putAll(final Collection<FlowFileRecord> flowFiles) {
         priorityQueue.putAll(flowFiles);
     }
