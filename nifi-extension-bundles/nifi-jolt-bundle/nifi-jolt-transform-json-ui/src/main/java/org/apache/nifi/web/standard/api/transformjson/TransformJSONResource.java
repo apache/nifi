@@ -25,11 +25,13 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
-import org.apache.nifi.attribute.expression.language.StandardEvaluationContext;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.jolt.util.TransformFactory;
 import org.apache.nifi.jolt.util.TransformUtils;
+import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.web.standard.api.AbstractStandardResource;
 import org.apache.nifi.web.standard.api.transformjson.dto.JoltSpecificationDTO;
 import org.apache.nifi.web.standard.api.transformjson.dto.ValidationDTO;
@@ -39,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @Path("/standard/transformjson")
 public class TransformJSONResource extends AbstractStandardResource {
@@ -53,10 +56,10 @@ public class TransformJSONResource extends AbstractStandardResource {
             final String specification;
 
             if (evaluateAttributes) {
-                PreparedQuery preparedQuery = Query.prepare(specificationDTO.getSpecification());
-                Map<String, String> attributes = specificationDTO.getExpressionLanguageAttributes() == null ? Collections.unmodifiableMap(new HashMap<>())
+                final PreparedQuery preparedQuery = Query.prepare(specificationDTO.getSpecification());
+                final Map<String, String> attributes = specificationDTO.getExpressionLanguageAttributes() == null ? Collections.unmodifiableMap(new HashMap<>())
                         : specificationDTO.getExpressionLanguageAttributes();
-                specification = preparedQuery.evaluateExpressions(new StandardEvaluationContext(attributes), null);
+                specification = preparedQuery.evaluateExpressions(new AttributeEvaluationContext(attributes), null);
             } else {
                 specification = specificationDTO.getSpecification().replaceAll("\\$\\{", "\\\\\\\\\\$\\{");
             }
@@ -115,5 +118,42 @@ public class TransformJSONResource extends AbstractStandardResource {
 
         Object specJson = getSpecificationJsonObject(specificationDTO, evaluateAttributes);
         return TransformFactory.getTransform(getClass().getClassLoader(), specificationDTO.getTransform(), specJson);
+    }
+
+    /**
+     * Evaluates Expression Language using only the attributes supplied with the specification.
+     */
+    private static final class AttributeEvaluationContext implements EvaluationContext {
+        private final Map<String, String> attributes;
+        private final EvaluatorState evaluatorState = new EvaluatorState();
+
+        private AttributeEvaluationContext(final Map<String, String> attributes) {
+            this.attributes = attributes;
+        }
+
+        @Override
+        public String getExpressionValue(final String name) {
+            return attributes.get(name);
+        }
+
+        @Override
+        public Set<String> getExpressionKeys() {
+            return attributes.keySet();
+        }
+
+        @Override
+        public String getState(final String key) {
+            return null;
+        }
+
+        @Override
+        public Parameter getParameter(final String parameterName) {
+            return null;
+        }
+
+        @Override
+        public EvaluatorState getEvaluatorState() {
+            return evaluatorState;
+        }
     }
 }
