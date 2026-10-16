@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.annotation.behavior.AllowsAutoScheduling;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
@@ -25,13 +26,16 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,6 +62,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -208,6 +213,36 @@ class StandardProcessorDAOTest {
     }
 
     @Test
+    void testVerifyRejectsAutoSchedulingForProcessorWithoutAutoScheduling(@TempDir final File tempDir) {
+        final ProcessorConfigDTO config = new ProcessorConfigDTO();
+        config.setSchedulingStrategy(SchedulingStrategy.AUTO.name());
+        final ProcessorDTO processorDTO = new ProcessorDTO();
+        processorDTO.setId("test-processor-id");
+        processorDTO.setConfig(config);
+        when(processorNode.isAutoSchedulingSupported()).thenReturn(false);
+        when(processorNode.getName()).thenReturn("Unsupported Processor");
+
+        final ValidationException updateException = assertThrows(ValidationException.class, () -> dao.verifyUpdate(processorDTO));
+        assertEquals(1, updateException.getValidationErrors().size());
+        assertTrue(updateException.getValidationErrors().getFirst().contains("AUTO"));
+
+        final String processorType = ProcessorWithoutAutoScheduling.class.getName();
+        processorDTO.setType(processorType);
+        final BundleCoordinate bundleCoordinate = new BundleCoordinate(BUNDLE_GROUP_ID, processorType, BUNDLE_VERSION);
+        final BundleDetails bundleDetails = new BundleDetails.Builder().coordinate(bundleCoordinate).workingDir(tempDir).build();
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        when(extensionManager.getBundles(processorType)).thenReturn(List.of(new Bundle(bundleDetails, getClass().getClassLoader())));
+        when(extensionManager.getTempComponent(processorType, bundleCoordinate)).thenReturn(mock(ProcessorWithoutAutoScheduling.class));
+
+        final ValidationException createException = assertThrows(ValidationException.class, () -> dao.verifyCreate(processorDTO));
+        assertEquals(1, createException.getValidationErrors().size());
+        assertTrue(createException.getValidationErrors().getFirst().contains("AUTO"));
+
+        when(extensionManager.getTempComponent(processorType, bundleCoordinate)).thenReturn(processor);
+        dao.verifyCreate(processorDTO);
+    }
+
+    @Test
     void testGetBacklogProvidesRealStateManagerToProcessor() throws Exception {
         final String processorId = "test-processor-id";
         final Backlog expectedBacklog = Backlog.caughtUp();
@@ -263,5 +298,9 @@ class StandardProcessorDAOTest {
 
         assertEquals(processorNode, createdProcessorNode);
         verify(processorNode).setProcessGroup(processGroup);
+    }
+
+    @AllowsAutoScheduling(false)
+    private abstract static class ProcessorWithoutAutoScheduling implements Processor {
     }
 }

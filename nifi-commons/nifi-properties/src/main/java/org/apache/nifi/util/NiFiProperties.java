@@ -85,6 +85,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String BORED_YIELD_DURATION = "nifi.bored.yield.duration";
     public static final String SCHEDULING_STRATEGY = "nifi.scheduling.strategy";
     public static final String PROCESSOR_SCHEDULING_TIMEOUT = "nifi.processor.scheduling.timeout";
+    public static final String PROCESSOR_AUTO_MAX_CONCURRENT_TASKS = "nifi.processor.auto.max.concurrent.tasks";
     public static final String BACKPRESSURE_COUNT = "nifi.queue.backpressure.count";
     public static final String BACKPRESSURE_SIZE = "nifi.queue.backpressure.size";
     public static final String UPLOAD_WORKING_DIRECTORY = "nifi.upload.working.directory";
@@ -1475,6 +1476,22 @@ public class NiFiProperties extends ApplicationProperties {
 
     public String getSchedulingStrategy() {
         return getProperty(SCHEDULING_STRATEGY, DEFAULT_SCHEDULING_STRATEGY);
+    }
+
+    public int getProcessorAutoMaxConcurrentTasks() {
+        final String configuredMaximum = getProperty(PROCESSOR_AUTO_MAX_CONCURRENT_TASKS, "12");
+        final int maximum;
+        try {
+            maximum = Integer.parseInt(configuredMaximum.trim());
+        } catch (final NumberFormatException e) {
+            throw new IllegalArgumentException(PROCESSOR_AUTO_MAX_CONCURRENT_TASKS + " must be a positive integer: " + configuredMaximum, e);
+        }
+
+        if (maximum < 1) {
+            throw new IllegalArgumentException(PROCESSOR_AUTO_MAX_CONCURRENT_TASKS + " must be a positive integer: " + configuredMaximum);
+        }
+
+        return (int) Math.min(maximum, 4L * Runtime.getRuntime().availableProcessors());
     }
 
     public File getStateManagementConfigFile() {

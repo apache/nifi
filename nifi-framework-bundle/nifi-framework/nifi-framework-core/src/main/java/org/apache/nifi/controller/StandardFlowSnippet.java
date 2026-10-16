@@ -422,8 +422,8 @@ public class StandardFlowSnippet implements FlowSnippet {
 
                 // Notify the processor node that the configuration (properties, e.g.) has been restored
                 final Class<?> componentClass = procNode.getProcessor() == null ? null : procNode.getProcessor().getClass();
-                final StandardProcessContext processContext = new StandardProcessContext(procNode, flowController.getControllerServiceProvider(),
-                        flowController.getStateManagerProvider().getStateManager(procNode.getProcessor().getIdentifier(), componentClass), () -> false, flowController);
+                final StandardProcessContext processContext = StandardProcessContext.createBuilder(procNode, flowController.getControllerServiceProvider(),
+                        flowController.getStateManagerProvider().getStateManager(procNode.getProcessor().getIdentifier(), componentClass), () -> false, flowController).build();
                 procNode.onConfigurationRestored(processContext);
             } finally {
                 procNode.resumeValidationTrigger();

@@ -22,28 +22,39 @@ public interface InvocationResult {
 
     String getYieldExplanation();
 
-    InvocationResult DO_NOT_YIELD = new InvocationResult() {
-        @Override
-        public boolean isYield() {
-            return false;
-        }
+    default InvocationOutcome getOutcome() {
+        return isYield() ? InvocationOutcome.YIELDED : InvocationOutcome.INVOKED_WITH_ACTIVITY;
+    }
 
-        @Override
-        public String getYieldExplanation() {
-            return null;
-        }
-    };
+    InvocationResult DO_NOT_YIELD = result(InvocationOutcome.INVOKED_WITH_ACTIVITY, false, null);
 
     static InvocationResult yield(final String explanation) {
+        return result(InvocationOutcome.YIELDED, true, explanation);
+    }
+
+    static InvocationResult yield(final InvocationOutcome outcome, final String explanation) {
+        return result(outcome, true, explanation);
+    }
+
+    static InvocationResult completed(final InvocationOutcome outcome) {
+        return result(outcome, false, null);
+    }
+
+    private static InvocationResult result(final InvocationOutcome outcome, final boolean yield, final String explanation) {
         return new InvocationResult() {
             @Override
             public boolean isYield() {
-                return true;
+                return yield;
             }
 
             @Override
             public String getYieldExplanation() {
                 return explanation;
+            }
+
+            @Override
+            public InvocationOutcome getOutcome() {
+                return outcome;
             }
         };
     }

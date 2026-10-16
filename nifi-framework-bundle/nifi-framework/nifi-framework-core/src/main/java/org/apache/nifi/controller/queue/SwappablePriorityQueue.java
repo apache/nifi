@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -509,6 +510,11 @@ public class SwappablePriorityQueue {
         }
 
         return FlowFileAvailability.FLOWFILE_AVAILABLE;
+    }
+
+    public Instant getNextFlowFileAvailabilityTime() {
+        final long expiration = topPenaltyExpiration;
+        return expiration > System.currentTimeMillis() ? Instant.ofEpochMilli(expiration) : Instant.EPOCH;
     }
 
     public void acknowledge(final FlowFileRecord flowFile) {

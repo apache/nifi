@@ -35,6 +35,8 @@ public class ProcessorDiagnosticsDTO {
     private JVMDiagnosticsDTO jvmDiagnostics;
     private List<ThreadDumpDTO> threadDumps;
     private ClassLoaderDiagnosticsDTO classLoaderDiagnostics;
+    private AutoSchedulingDiagnosticsDTO autoSchedulingDiagnostics;
+    private List<NodeAutoSchedulingDiagnosticsDTO> nodeAutoSchedulingDiagnostics;
 
     @Schema(description = "Information about the Processor for which the Diagnostic Report is generated")
     public ProcessorDTO getProcessor() {
@@ -106,5 +108,23 @@ public class ProcessorDiagnosticsDTO {
 
     public void setClassLoaderDiagnostics(ClassLoaderDiagnosticsDTO classLoaderDiagnostics) {
         this.classLoaderDiagnostics = classLoaderDiagnostics;
+    }
+
+    @Schema(description = "Automatic scheduling details for this node")
+    public AutoSchedulingDiagnosticsDTO getAutoSchedulingDiagnostics() {
+        return autoSchedulingDiagnostics;
+    }
+
+    public void setAutoSchedulingDiagnostics(final AutoSchedulingDiagnosticsDTO autoSchedulingDiagnostics) {
+        this.autoSchedulingDiagnostics = autoSchedulingDiagnostics;
+    }
+
+    @Schema(description = "Node-specific automatic scheduling details for a cluster")
+    public List<NodeAutoSchedulingDiagnosticsDTO> getNodeAutoSchedulingDiagnostics() {
+        return nodeAutoSchedulingDiagnostics;
+    }
+
+    public void setNodeAutoSchedulingDiagnostics(final List<NodeAutoSchedulingDiagnosticsDTO> nodeAutoSchedulingDiagnostics) {
+        this.nodeAutoSchedulingDiagnostics = nodeAutoSchedulingDiagnostics;
     }
 }

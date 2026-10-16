@@ -30,6 +30,7 @@ import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.metrics.ComponentMetricReporter;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
+import org.apache.nifi.controller.scheduling.auto.AutoSchedulingDiagnostics;
 import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.events.VolatileBulletinRepository;
@@ -38,6 +39,7 @@ import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.provenance.MockProvenanceRepository;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
 import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
 import org.apache.nifi.services.FlowService;
@@ -73,7 +75,9 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class FlowControllerTest {
@@ -186,6 +190,17 @@ class FlowControllerTest {
             lifecycleExecutor.shutdownNow();
             lifecycleExecutor.awaitTermination(5, TimeUnit.SECONDS);
         }
+    }
+
+    @Test
+    void testPlatformAutomaticDiagnosticsUseProcessorActiveCount() {
+        final FlowController flowController = mock(FlowController.class, CALLS_REAL_METHODS);
+        final ProcessorNode processorNode = mock(ProcessorNode.class);
+        when(processorNode.getSchedulingStrategy()).thenReturn(SchedulingStrategy.AUTO);
+        when(processorNode.getActiveThreadCount()).thenReturn(7);
+
+        final AutoSchedulingDiagnostics diagnostics = flowController.getAutoSchedulingDiagnostics(processorNode);
+        assertEquals(7, diagnostics.activeProcessorInvocations());
     }
 
     private FlowController createStandaloneFlowController() throws IOException {

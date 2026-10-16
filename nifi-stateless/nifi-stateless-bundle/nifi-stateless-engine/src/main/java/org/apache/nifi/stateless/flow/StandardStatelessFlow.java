@@ -47,6 +47,7 @@ import org.apache.nifi.controller.repository.StandardRepositoryRecord;
 import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.tracking.StatsTracker;
 import org.apache.nifi.controller.scheduling.LifecycleStateManager;
+import org.apache.nifi.controller.scheduling.SessionSchedulingObserver;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -810,7 +811,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
 
         final RepositoryContext repositoryContext = repositoryContextFactory.createRepositoryContext(inputPort, new StatelessProvenanceRepository(10));
-        final ProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(repositoryContext, () -> false, new NopPerformanceTracker());
+        final ProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(repositoryContext, () -> false, new NopPerformanceTracker(), SessionSchedulingObserver.NO_OP);
         final ProcessSession session = sessionFactory.createSession();
         try {
             // Get one of the outgoing connections for the Input Port so that we can return QueueSize for it.

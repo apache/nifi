@@ -19,6 +19,7 @@ package org.apache.nifi.tests.system.pg;
 
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -164,6 +165,7 @@ public class CopyPasteIT extends NiFiSystemIT {
     public void testGhostComponent() throws NiFiClientException, IOException {
         final ProcessGroupEntity topLevel = getClientUtil().createProcessGroup("parent group", "root");
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile", topLevel.getId());
+        getClientUtil().updateProcessorSchedulingStrategy(generate, "AUTO");
 
         final CopyRequestEntity copyRequestEntity = new CopyRequestEntity();
         copyRequestEntity.setProcessors(Set.of(generate.getId()));
@@ -181,7 +183,9 @@ public class CopyPasteIT extends NiFiSystemIT {
         final PasteResponseEntity pasteResponseEntity = getNifiClient().getProcessGroupClient().paste(topLevel.getId(), pasteRequestEntity);
         final FlowDTO flowDto = pasteResponseEntity.getFlow();
         assertEquals(1, flowDto.getProcessors().size());
-        assertTrue(flowDto.getProcessors().iterator().next().getComponent().getExtensionMissing());
+        final ProcessorDTO ghostProcessor = flowDto.getProcessors().iterator().next().getComponent();
+        assertTrue(ghostProcessor.getExtensionMissing());
+        assertEquals("AUTO", ghostProcessor.getConfig().getSchedulingStrategy());
     }
 
     @Test

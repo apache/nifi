@@ -27,6 +27,7 @@ import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.MockSwapManager;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.queue.FlowFileQueueSnapshot;
+import org.apache.nifi.controller.queue.IllegalClusterStateException;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientRegistry;
 import org.apache.nifi.controller.queue.clustered.partition.FlowFilePartitioner;
@@ -64,8 +65,9 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -195,6 +197,28 @@ public class TestSocketLoadBalancedFlowFileQueue {
         queue.acknowledge(penalizedFlowFile);
         queue.acknowledge(readyFlowFile);
         assertTrue(queue.isEmpty());
+    }
+
+    @Test
+    public void testSchedulingNotificationsForPeerReceiptTransferAndAbort() throws IllegalClusterStateException {
+        when(clusterCoordinator.isConnected()).thenReturn(true);
+        queue.setFlowFilePartitioner(new StaticFlowFilePartitioner(determineLocalPartitionIndex()));
+        final AtomicInteger notifications = new AtomicInteger();
+        queue.addSchedulingListener(notifications::incrementAndGet);
+
+        final MockFlowFileRecord received = new MockFlowFileRecord(10L);
+        queue.receiveFromPeer(List.of(received));
+        assertEquals(1, notifications.getAndSet(0));
+        assertEquals(new QueueSize(1, 10L), queue.getLocalQueueSize());
+
+        queue.onTransfer(List.of(received));
+        assertEquals(1, notifications.getAndSet(0));
+
+        final MockFlowFileRecord aborted = new MockFlowFileRecord(20L);
+        queue.put(aborted);
+        notifications.set(0);
+        queue.onAbort(List.of(aborted));
+        assertEquals(1, notifications.get());
     }
 
     @Test
@@ -338,11 +362,13 @@ public class TestSocketLoadBalancedFlowFileQueue {
         assertFalse(queue.isEmpty());
         assertTrue(queue.isActiveQueueEmpty());
         assertEquals(new QueueSize(1, 0L), queue.size());
+        assertEquals(new QueueSize(0, 0L), queue.getLocalQueueSize());
 
         assertNull(queue.poll(new HashSet<>()));
         assertFalse(queue.isEmpty());
         assertTrue(queue.isActiveQueueEmpty());
         assertEquals(new QueueSize(1, 0L), queue.size());
+        assertEquals(new QueueSize(0, 0L), queue.getLocalQueueSize());
     }
 
     @Test
@@ -360,10 +386,12 @@ public class TestSocketLoadBalancedFlowFileQueue {
         assertFalse(queue.isEmpty());
         assertFalse(queue.isActiveQueueEmpty());
         assertEquals(new QueueSize(1, 0L), queue.size());
+        assertEquals(new QueueSize(1, 0L), queue.getLocalQueueSize());
 
         // Ensure that we get the same FlowFile back. This will not decrement
         // the queue size, only acknowledging the FlowFile will do that.
         assertSame(flowFile, queue.poll(new HashSet<>()));
+        assertEquals(new QueueSize(0, 0L), queue.getLocalQueueSize());
         assertFalse(queue.isEmpty());
         assertTrue(queue.isActiveQueueEmpty());
         assertEquals(new QueueSize(1, 0L), queue.size());
@@ -801,7 +829,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
     private void assertPartitionSizes(final int[] expectedSizes) {
         final int[] partitionSizes = new int[queue.getPartitionCount()];
         while (!Arrays.equals(expectedSizes, partitionSizes)) {
-            assertDoesNotThrow(() -> Thread.sleep(10L));
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10L));
 
             for (int i = 0; i < partitionSizes.length; i++) {
                 partitionSizes[i] = queue.getPartition(i).size().getObjectCount();

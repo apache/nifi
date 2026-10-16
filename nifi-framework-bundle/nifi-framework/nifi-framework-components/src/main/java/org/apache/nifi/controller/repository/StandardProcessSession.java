@@ -47,6 +47,8 @@ import org.apache.nifi.controller.repository.metrics.ConnectionStatusEventBuilde
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.PerformanceTrackingInputStream;
 import org.apache.nifi.controller.repository.metrics.ProcessSessionEventBuilder;
+import org.apache.nifi.controller.scheduling.CommittedSchedulingWork;
+import org.apache.nifi.controller.scheduling.SessionSchedulingObserver;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.status.LoadBalanceStatus;
@@ -164,6 +166,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private final long sessionId;
     private final String connectableDescription;
     private final PerformanceTracker performanceTracker;
+    private final SessionSchedulingObserver schedulingObserver;
 
     private Map<CounterKey, Long> countersOnCommit;
     private Map<CounterKey, Long> immediateCounters;
@@ -210,10 +213,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private final String retryAttribute;
     private final FlowFileLinkage flowFileLinkage = new FlowFileLinkage();
 
-    public StandardProcessSession(final RepositoryContext context, final TaskTermination taskTermination, final PerformanceTracker performanceTracker) {
+    public StandardProcessSession(final RepositoryContext context, final TaskTermination taskTermination, final PerformanceTracker performanceTracker,
+                                  final SessionSchedulingObserver schedulingObserver) {
         this.context = context;
         this.taskTermination = taskTermination;
         this.performanceTracker = performanceTracker;
+        this.schedulingObserver = Objects.requireNonNull(schedulingObserver, "Scheduling observer is required");
 
         this.provenanceReporter = context.createProvenanceReporter(this::isFlowFileKnown, this);
         this.sessionId = idGenerator.getAndIncrement();
@@ -754,13 +759,29 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 }
             }
 
+            final CommittedSchedulingWork committedSchedulingWork = schedulingObserver == SessionSchedulingObserver.NO_OP ? null : getCommittedSchedulingWork(checkpoint);
+
             // Acknowledge records in order to update counts for incoming connections' queues
             acknowledgeRecords();
 
             // Reset the internal state, now that the session has been committed
             resetState();
+
+            if (committedSchedulingWork != null) {
+                try {
+                    schedulingObserver.onCommit(committedSchedulingWork);
+                } catch (final Throwable observerFailure) {
+                    LOG.warn("Scheduling observer failed after Process Session commit for {}", connectableDescription, observerFailure);
+                }
+            }
         } catch (final Exception e) {
             LOG.error("Failed to commit session {}. Will roll back.", this, e);
+
+            try {
+                schedulingObserver.onCommitFailure();
+            } catch (final Throwable observerFailure) {
+                LOG.warn("Scheduling observer failed after Process Session commit failure for {}", connectableDescription, observerFailure);
+            }
 
             try {
                 // if we fail to commit the session, we need to roll back
@@ -779,6 +800,26 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         } finally {
             performanceTracker.endSessionCommit();
         }
+    }
+
+    private CommittedSchedulingWork getCommittedSchedulingWork(final Checkpoint checkpoint) {
+        long committedInputFlowFiles = 0L;
+        long producedFlowFiles = 0L;
+        for (final StandardRepositoryRecord record : checkpoint.records.values()) {
+            final FlowFileRecord current = record.getCurrent();
+            final FlowFileRecord original = record.getOriginal();
+            if (original != null && record.getOriginalQueue() != null && record.getDestination() != record.getOriginalQueue()) {
+                committedInputFlowFiles++;
+            }
+
+            final boolean committedProduction = record.getOriginalQueue() == null && !record.isMarkedForAbort()
+                    && (!record.isMarkedForDelete() || record.getTransferRelationship() != null);
+            if (current != null && committedProduction) {
+                producedFlowFiles++;
+            }
+        }
+
+        return new CommittedSchedulingWork(committedInputFlowFiles, producedFlowFiles);
     }
 
     private void updateEventRepository(final Checkpoint checkpoint) {
@@ -1821,6 +1862,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             }
 
             provenanceReporter.migrate(newOwner.provenanceReporter, flowFileIds);
+            notifySchedulingObserverOfActivity();
+            newOwner.notifySchedulingObserverOfActivity();
         }
     }
 
@@ -2004,6 +2047,15 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         set.add(flowFile);
 
         incrementConnectionOutputCounts(connection, flowFile);
+        notifySchedulingObserverOfActivity();
+    }
+
+    private void notifySchedulingObserverOfActivity() {
+        try {
+            schedulingObserver.onActivity();
+        } catch (final Throwable observerFailure) {
+            LOG.warn("Scheduling observer failed while recording Process Session activity for {}", connectableDescription, observerFailure);
+        }
     }
 
     private void handleConflictingId(final FlowFileRecord flowFile, final Connection connection, final StandardRepositoryRecord conflict) {
@@ -2043,6 +2095,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             }
             gaugeRecordsSessionCommitted.add(gaugeRecord);
         }
+
+        notifySchedulingObserverOfActivity();
     }
 
     @Override
@@ -2090,6 +2144,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         if (immediate) {
             context.adjustCounter(name, delta, counterAttributes);
         }
+
+        notifySchedulingObserverOfActivity();
     }
 
     @Override
@@ -2240,6 +2296,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         createdFlowFiles.add(uuid);
         createdFlowFilesWithoutLineage.add(uuid);
 
+        notifySchedulingObserverOfActivity();
         return fFile;
     }
 
@@ -2282,6 +2339,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         registerForkEvent(parent, fFile);
         flowFileLinkage.addLink(parent.getId(), fFile.getId());
+        notifySchedulingObserverOfActivity();
         return fFile;
     }
 
@@ -2337,6 +2395,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             flowFileLinkage.addLink(flowFileId, parent.getId());
         }
 
+        notifySchedulingObserverOfActivity();
         return fFile;
     }
 
@@ -3944,6 +4003,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             throw new FlowFileHandlingException(flowFile + " has already been marked for removal");
         }
 
+        notifySchedulingObserverOfActivity();
         return record.getCurrent();
     }
 
@@ -4030,6 +4090,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         } else {
             clusterState = stateMap;
         }
+
+        notifySchedulingObserverOfActivity();
     }
 
     @Override

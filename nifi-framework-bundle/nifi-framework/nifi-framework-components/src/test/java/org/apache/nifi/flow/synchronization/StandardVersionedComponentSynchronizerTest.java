@@ -17,6 +17,7 @@
 
 package org.apache.nifi.flow.synchronization;
 
+import org.apache.nifi.annotation.behavior.AllowsAutoScheduling;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -77,6 +78,7 @@ import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
@@ -213,6 +215,7 @@ public class StandardVersionedComponentSynchronizerTest {
     private ControllerServiceNode controllerServiceNode;
     private BundleCoordinate bundleCoordinate;
     private FlowManager flowManager;
+    private ExtensionManager extensionManager;
 
     private final ArgumentCaptor<Map<String, String>> propertiesCaptor = ArgumentCaptor.captor();
 
@@ -221,7 +224,7 @@ public class StandardVersionedComponentSynchronizerTest {
 
     @BeforeEach
     public void setup() {
-        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        extensionManager = mock(ExtensionManager.class);
         flowManager = mock(FlowManager.class);
         controllerServiceProvider = mock(ControllerServiceProvider.class);
         final Function<ProcessorNode, ProcessContext> processContextFactory = proc -> mock(ProcessContext.class);
@@ -586,6 +589,26 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(processorA).setProperties(versionedProcessor.getProperties(), true, Collections.emptySet());
         verify(processorA).setName(versionedProcessor.getName());
         verify(componentScheduler, times(0)).startComponent(any(Connectable.class));
+    }
+
+    /**
+     * Synchronization is used to load the flow on startup and when joining a cluster, so a Processor configured with a scheduling
+     * strategy that its implementation does not support must still be created and updated. Validation marks such a Processor invalid.
+     */
+    @Test
+    void testSynchronizeAppliesAutoSchedulingToProcessorWithoutAutoScheduling() throws FlowSynchronizationException, TimeoutException, InterruptedException {
+        final VersionedProcessor versionedProcessor = createVersionedProcessorWithoutAutoScheduling();
+        final BundleCoordinate coordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+        when(extensionManager.getTempComponent(versionedProcessor.getType(), coordinate)).thenReturn(mock(ProcessorWithoutAutoScheduling.class));
+        final ProcessorNode processorNode = createMockProcessor();
+        when(flowManager.createProcessor(any(), any(), any(), eq(true))).thenReturn(processorNode);
+
+        synchronizer.synchronize(null, versionedProcessor, group, synchronizationOptions);
+        verify(flowManager).createProcessor(eq(versionedProcessor.getType()), anyString(), any(BundleCoordinate.class), eq(true));
+        verify(processorNode).setSchedulingStrategy(SchedulingStrategy.AUTO);
+
+        synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions);
+        verify(processorA).setSchedulingStrategy(SchedulingStrategy.AUTO);
     }
 
     @Test
@@ -2100,6 +2123,13 @@ public class StandardVersionedComponentSynchronizerTest {
         return versionedProcessor;
     }
 
+    private VersionedProcessor createVersionedProcessorWithoutAutoScheduling() {
+        final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+        versionedProcessor.setType(ProcessorWithoutAutoScheduling.class.getName());
+        versionedProcessor.setSchedulingStrategy(SchedulingStrategy.AUTO.name());
+        return versionedProcessor;
+    }
+
     private VersionedControllerService createMinimalVersionedControllerService() {
         final VersionedControllerService versionedService = new VersionedControllerService();
         versionedService.setIdentifier("12345");
@@ -2189,6 +2219,10 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     private record ScheduledStateUpdate<T>(T component, org.apache.nifi.controller.ScheduledState state) {
+    }
+
+    @AllowsAutoScheduling(false)
+    private abstract static class ProcessorWithoutAutoScheduling implements Processor {
     }
 
     private record ControllerServiceStateUpdate(ControllerServiceNode controllerService, ControllerServiceState state) {

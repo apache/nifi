@@ -66,6 +66,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -101,6 +102,24 @@ public class TestVersionedComponentFlowMapper {
         final Map<String, String> versionedProperties = versionedProcessor.getProperties();
         assertEquals("A", versionedProperties.get("Property A"));
         assertNull(versionedProperties.get("Sensitive Property B"));
+    }
+
+    @Test
+    public void testMappingAutoScheduledProcessorUsesCanonicalConfiguration() {
+        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(mock(ExtensionManager.class), FlowMappingOptions.DEFAULT_OPTIONS);
+        final ProcessorNode processorNode = createProcessorNode(Collections.emptyMap());
+        when(processorNode.getSchedulingStrategy()).thenReturn(SchedulingStrategy.AUTO);
+        when(processorNode.getMaxConcurrentTasks()).thenReturn(1);
+        when(processorNode.getSchedulingPeriod()).thenReturn("0 sec");
+        when(processorNode.getRunDuration(TimeUnit.MILLISECONDS)).thenReturn(0L);
+
+        final VersionedProcessor versionedProcessor = mapper.mapProcessor(processorNode, mock(ControllerServiceProvider.class),
+                Collections.emptySet(), Collections.emptyMap());
+
+        assertEquals(SchedulingStrategy.AUTO.name(), versionedProcessor.getSchedulingStrategy());
+        assertEquals(1, versionedProcessor.getConcurrentlySchedulableTaskCount());
+        assertEquals("0 sec", versionedProcessor.getSchedulingPeriod());
+        assertEquals(0L, versionedProcessor.getRunDurationMillis());
     }
 
     @Test
