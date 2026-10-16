@@ -1920,6 +1920,29 @@ public class StandardProcessSessionIT {
     }
 
     @Test
+    public void testRollbackReturnsFlowFileToFrontOfSwappingQueue() {
+        // The queue's swap threshold is 10,000, so the last FlowFile queued goes to the swap queue and the queue enters swap mode
+        final int flowFileCount = 10_001;
+        for (int i = 0; i < flowFileCount; i++) {
+            final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+                .id(i)
+                .addAttribute("uuid", String.format("00000000-0000-0000-0000-%012d", i))
+                .entryDate(System.currentTimeMillis())
+                .size(0L)
+                .build();
+            flowFileQueue.put(flowFileRecord);
+        }
+
+        final FlowFile firstFlowFile = session.get();
+        assertEquals(0, firstFlowFile.getId());
+        session.rollback();
+
+        final FlowFile flowFileAfterRollback = session.get();
+        assertEquals(0, flowFileAfterRollback.getId());
+        assertEquals(flowFileCount, flowFileQueue.size().getObjectCount());
+    }
+
+    @Test
     public void testCreateEmitted() throws IOException {
         final FlowFile newFlowFile = session.create();
         session.transfer(newFlowFile, new Relationship.Builder().name("A").build());

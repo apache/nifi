@@ -182,6 +182,12 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     }
 
     @Override
+    public void putToActive(final FlowFileRecord flowFile) {
+        // This queue never swaps FlowFiles out, so every FlowFile is already on the active queue
+        put(flowFile);
+    }
+
+    @Override
     public void putAll(final Collection<FlowFileRecord> flowFiles) {
         // Order the FlowFiles in the same order they were transferred by the Processor. This ensures that we keep the ordering provided by the Processor.
         // This is not important for the Standard NiFi engine because it uses the StandardFlowFileQueue, which maintains the order of FlowFiles as configured.
