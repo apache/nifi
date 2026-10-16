@@ -17,6 +17,7 @@
 
 package org.apache.nifi.flow.synchronization;
 
+import jakarta.annotation.Nullable;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
@@ -66,6 +67,7 @@ import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedExternalFlowMetadata;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedFunnel;
@@ -308,12 +310,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         // update ports to final names
         updatePortsToFinalNames(proposedPortFinalNames);
 
+        final String groupIdentity = determineProcessGroupIdentity(group);
         for (final CreatedOrModifiedExtension createdOrModifiedExtension : createdAndModifiedExtensions) {
             final ComponentNode extension = createdOrModifiedExtension.extension();
             final Map<String, String> originalPropertyValues = createdOrModifiedExtension.propertyValues();
 
+            final String owningGroupIdentity = getOwningProcessGroupIdentity(extension, group, groupIdentity);
             final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(context.getExtensionManager(), context.getFlowManager(),
-                    context.getControllerServiceProvider(), extension);
+                    context.getControllerServiceProvider(), extension, owningGroupIdentity);
 
             if (extension instanceof final ProcessorNode processor) {
                 processor.migrateConfiguration(originalPropertyValues, serviceFactory);
@@ -418,12 +422,15 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 }
             });
 
+            final VersionedExternalFlowMetadata metadata = versionedExternalFlow.getMetadata();
+            final String flowIdentifier = metadata == null ? null : metadata.getFlowIdentifier();
             for (final CreatedOrModifiedExtension createdOrModifiedExtension : createdAndModifiedExtensions) {
                 final ComponentNode extension = createdOrModifiedExtension.extension();
                 final Map<String, String> originalPropertyValues = createdOrModifiedExtension.propertyValues();
 
+                final String owningGroupIdentity = getOwningProcessGroupIdentity(extension, group, flowIdentifier);
                 final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(context.getExtensionManager(), context.getFlowManager(),
-                    context.getControllerServiceProvider(), extension);
+                    context.getControllerServiceProvider(), extension, owningGroupIdentity);
 
                 if (extension instanceof final ProcessorNode processor) {
                     processor.migrateConfiguration(originalPropertyValues, serviceFactory);
@@ -439,6 +446,26 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         group.onComponentModified();
+    }
+
+    private @Nullable String getOwningProcessGroupIdentity(final ComponentNode extension, final ProcessGroup topLevelGroup, final @Nullable String topLevelGroupIdentity) {
+        final ProcessGroup extensionGroup = extension.getParentProcessGroup().orElse(null);
+        if (extensionGroup == null) {
+            return null;
+        }
+
+        // The synchronized group's versioned component ID is not a reliable identity across flow instances.
+        // Use the supplied flow identity instead; the group's VCI may have been cleared during synchronization.
+        return extensionGroup.getIdentifier().equals(topLevelGroup.getIdentifier())
+                ? topLevelGroupIdentity
+                : determineProcessGroupIdentity(extensionGroup);
+    }
+
+    private @Nullable String determineProcessGroupIdentity(final ProcessGroup group) {
+        // A child group can be independently version-controlled.
+        // Use its own flow ID so migration-created service identities match whether the child flow is imported standalone or nested.
+        final VersionControlInformation versionControl = group.getVersionControlInformation();
+        return versionControl == null ? group.getVersionedComponentId().orElse(null) : versionControl.getFlowIdentifier();
     }
 
     private void synchronize(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,
@@ -1173,8 +1200,20 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private void removeMissingControllerServices(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, ControllerServiceNode> servicesByVersionedId) {
-        final BiConsumer<ProcessGroup, ControllerServiceNode> componentRemoval = (grp, service) -> context.getControllerServiceProvider().removeControllerService(service);
-        removeMissingComponents(group, proposed, servicesByVersionedId, VersionedProcessGroup::getControllerServices, componentRemoval);
+        // Do not remove Controller Services created by migrateProperties.
+        final Map<String, ControllerServiceNode> servicesEligibleForRemoval = HashMap.newHashMap(servicesByVersionedId.size());
+        for (final Map.Entry<String, ControllerServiceNode> entry : servicesByVersionedId.entrySet()) {
+            final ControllerServiceNode service = entry.getValue();
+            if (StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT.equals(service.getComments())) {
+                LOG.debug("Keeping {} in {} because it was created by property migration", service, group);
+                continue;
+            }
+
+            servicesEligibleForRemoval.put(entry.getKey(), service);
+        }
+
+        final BiConsumer<ProcessGroup, ControllerServiceNode> componentRemoval = (procGroup, service) -> context.getControllerServiceProvider().removeControllerService(service);
+        removeMissingComponents(group, proposed, servicesEligibleForRemoval, VersionedProcessGroup::getControllerServices, componentRemoval);
     }
 
     private void removeMissingChildGroups(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, ProcessGroup> groupsByVersionedId) {

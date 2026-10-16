@@ -52,6 +52,8 @@ import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedExternalFlowMetadata;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedPort;
@@ -67,6 +69,9 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ScheduledStateChangeListener;
 import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.migration.ControllerServiceCreationDetails;
+import org.apache.nifi.migration.ControllerServiceFactory;
+import org.apache.nifi.migration.StandardControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -78,6 +83,8 @@ import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
@@ -92,6 +99,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
 import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
@@ -124,6 +132,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -342,6 +351,7 @@ public class StandardVersionedComponentSynchronizerTest {
         when(service.getState()).thenReturn(ControllerServiceState.DISABLED);
         when(service.getBulletinLevel()).thenReturn(LogLevel.WARN);
         when(service.getControllerServiceImplementation()).thenReturn(new TestControllerService());
+        setReferences(service);
 
         return service;
     }
@@ -374,6 +384,15 @@ public class StandardVersionedComponentSynchronizerTest {
         when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
         when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.BATCH_OUTPUT);
         when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+        when(processGroup.getProcessors()).thenReturn(Collections.emptySet());
+        when(processGroup.getControllerServices(anyBoolean())).thenReturn(Collections.emptySet());
+        when(processGroup.getConnections()).thenReturn(Collections.emptySet());
+        when(processGroup.getInputPorts()).thenReturn(Collections.emptySet());
+        when(processGroup.getOutputPorts()).thenReturn(Collections.emptySet());
+        when(processGroup.getFunnels()).thenReturn(Collections.emptySet());
+        when(processGroup.getLabels()).thenReturn(Collections.emptySet());
+        when(processGroup.getProcessGroups()).thenReturn(Collections.emptySet());
+        when(processGroup.getRemoteProcessGroups()).thenReturn(Collections.emptySet());
 
         return processGroup;
     }
@@ -550,6 +569,274 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(processorNode).migrateConfiguration(propertiesCaptor.capture(), any());
         final Map<String, String> migratedProperties = propertiesCaptor.getValue();
         assertEquals(controllerServiceNode.getIdentifier(), migratedProperties.get("cs"));
+    }
+
+    @Test
+    public void testUserAddedControllerServiceRemovedWhenAbsentFromProposedFlow() {
+        final ProcessGroup processGroup = createMockProcessGroup();
+
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name(PARAM_ABC).build();
+        final ControllerServiceNode serviceNode = createMockControllerService();
+        when(serviceNode.getComments()).thenReturn("Added by a user");
+        when(serviceNode.getName()).thenReturn("name");
+        when(serviceNode.getCanonicalClassName()).thenReturn("ControllerServiceImpl");
+        when(serviceNode.getProperties()).thenReturn(Map.of(descriptor, new PropertyConfiguration(VALUE_123, null, null, null)));
+        when(serviceNode.getRawPropertyValues()).thenReturn(Map.of(descriptor, VALUE_123));
+        when(serviceNode.getVersionedComponentId()).thenReturn(Optional.empty());
+        when(processGroup.getControllerServices(false)).thenReturn(Set.of(serviceNode));
+
+        final VersionedProcessGroup versionedGroup = new VersionedProcessGroup();
+        versionedGroup.setIdentifier("pg-v2");
+        versionedGroup.setControllerServices(Collections.emptySet());
+        versionedGroup.setProcessors(Collections.emptySet());
+
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(versionedGroup);
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        verify(controllerServiceProvider).removeControllerService(serviceNode);
+    }
+
+    @Nested
+    class MigrationCreatedControllerService {
+
+        private static final String DECLARED_SERVICE_VERSIONED_ID = "declared-service-versioned-id";
+
+        private static final String SNAPSHOT_ROOT_ID = "snapshot-root-id";
+        private static final String LOCAL_CHILD_ID = "local-child";
+        private static final String CHILD_GROUP_ID = "child-group-id";
+        private static final String PARENT_GROUP_ID = "parent-group-id";
+        private static final String CHILD_PLACEMENT_ID = "child-placement-id";
+        private static final String DESTINATION_GROUP_ID = "destination-group-id";
+
+        private static final String INCOMING_FLOW_ID = "incoming-flow-id";
+        private static final String DESTINATION_FLOW_ID = "destination-flow-id";
+        private static final String PARENT_FLOW_ID = "parent-flow-id";
+        private static final String CHILD_FLOW_ID = "child-flow-id";
+
+        private static final String REGISTRY_ID = "registry-id";
+        private static final String SERVICE_TYPE = TestControllerService.class.getName();
+        private static final Map<String, String> SERVICE_PROPERTIES = Map.of("mode", "read");
+
+        @Test
+        void migrationInSynchronizedGroupUsesIncomingFlowIdAfterVersionControlIsCleared() {
+            final ProcessGroup targetGroup = createMockProcessGroup();
+            final VersionControlInformation oldVersionControl = mock(VersionControlInformation.class);
+            when(oldVersionControl.getFlowIdentifier()).thenReturn("old-flow-id");
+
+            final AtomicReference<VersionControlInformation> liveVersionControl = new AtomicReference<>(oldVersionControl);
+            when(targetGroup.getVersionControlInformation()).thenAnswer(invocation -> liveVersionControl.get());
+            doAnswer(invocation -> {
+                liveVersionControl.set(null);
+                return null;
+            }).when(targetGroup).disconnectVersionControl();
+
+            final VersionedProcessGroup proposed = new VersionedProcessGroup();
+            proposed.setIdentifier(SNAPSHOT_ROOT_ID);
+            proposed.setProcessors(Set.of(createMinimalVersionedProcessor()));
+
+            final VersionedExternalFlow incoming = new VersionedExternalFlow();
+            incoming.setFlowContents(proposed);
+
+            final VersionedExternalFlowMetadata metadata = new VersionedExternalFlowMetadata();
+            metadata.setFlowIdentifier(INCOMING_FLOW_ID);
+            incoming.setMetadata(metadata);
+
+            mockMigratingProcessorIn(targetGroup);
+
+            synchronizer.synchronize(targetGroup, incoming, synchronizationOptions);
+
+            assertNull(targetGroup.getVersionControlInformation());
+            verify(controllerServiceNode).setVersionedComponentId(expectedMigrationServiceId(INCOMING_FLOW_ID));
+        }
+
+        @Test
+        void migrationInChildWithoutOwnFlowUsesChildVersionedId() {
+            final ProcessGroup parentGroup = createMockProcessGroup();
+            final ProcessGroup childGroup = createMockProcessGroup();
+            when(childGroup.getIdentifier()).thenReturn(LOCAL_CHILD_ID);
+            when(childGroup.getParent()).thenReturn(parentGroup);
+            when(childGroup.getVersionedComponentId()).thenReturn(Optional.of(CHILD_GROUP_ID));
+            when(parentGroup.getProcessGroups()).thenReturn(Set.of(childGroup));
+
+            final VersionedProcessGroup proposedChild = new VersionedProcessGroup();
+            proposedChild.setIdentifier(CHILD_GROUP_ID);
+            proposedChild.setProcessors(Set.of(createMinimalVersionedProcessor()));
+
+            final VersionedProcessGroup proposedParent = new VersionedProcessGroup();
+            proposedParent.setIdentifier(PARENT_GROUP_ID);
+            proposedParent.setProcessGroups(Set.of(proposedChild));
+
+            final VersionedExternalFlow incoming = new VersionedExternalFlow();
+            incoming.setFlowContents(proposedParent);
+
+            final VersionedExternalFlowMetadata metadata = new VersionedExternalFlowMetadata();
+            metadata.setFlowIdentifier(PARENT_FLOW_ID);
+            incoming.setMetadata(metadata);
+
+            mockMigratingProcessorIn(childGroup);
+
+            synchronizer.synchronize(parentGroup, incoming, synchronizationOptions);
+
+            verify(controllerServiceNode).setVersionedComponentId(expectedMigrationServiceId(CHILD_GROUP_ID));
+        }
+
+        @Test
+        void migrationInIndependentlyVersionedChildUsesChildFlowId() {
+            final ProcessGroup parentGroup = createMockProcessGroup();
+            final ProcessGroup childGroup = createMockProcessGroup();
+            when(childGroup.getIdentifier()).thenReturn(LOCAL_CHILD_ID);
+            when(childGroup.getParent()).thenReturn(parentGroup);
+            when(childGroup.getVersionedComponentId()).thenReturn(Optional.of(CHILD_PLACEMENT_ID));
+            when(parentGroup.getProcessGroups()).thenReturn(Set.of(childGroup));
+
+            final AtomicReference<VersionControlInformation> childVersionControl = new AtomicReference<>();
+            when(childGroup.getVersionControlInformation()).thenAnswer(invocation -> childVersionControl.get());
+            doAnswer(invocation -> {
+                childVersionControl.set(invocation.getArgument(0));
+                return null;
+            }).when(childGroup).setVersionControlInformation(any(), anyMap());
+
+            when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(mock(FlowRegistryClientNode.class));
+            final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
+            coordinates.setRegistryId(REGISTRY_ID);
+            coordinates.setBucketId("bucket");
+            coordinates.setFlowId(CHILD_FLOW_ID);
+            coordinates.setVersion("1");
+
+            final VersionedProcessGroup proposedChild = new VersionedProcessGroup();
+            proposedChild.setIdentifier(CHILD_PLACEMENT_ID);
+            proposedChild.setVersionedFlowCoordinates(coordinates);
+            proposedChild.setProcessors(Set.of(createMinimalVersionedProcessor()));
+
+            final VersionedProcessGroup proposedParent = new VersionedProcessGroup();
+            proposedParent.setIdentifier(PARENT_GROUP_ID);
+            proposedParent.setProcessGroups(Set.of(proposedChild));
+
+            final VersionedExternalFlow incoming = new VersionedExternalFlow();
+            incoming.setFlowContents(proposedParent);
+
+            final VersionedExternalFlowMetadata metadata = new VersionedExternalFlowMetadata();
+            metadata.setFlowIdentifier(PARENT_FLOW_ID);
+            incoming.setMetadata(metadata);
+
+            mockMigratingProcessorIn(childGroup);
+
+            synchronizer.synchronize(parentGroup, incoming, synchronizationOptions);
+
+            assertNotNull(childGroup.getVersionControlInformation());
+            assertEquals(CHILD_FLOW_ID, childGroup.getVersionControlInformation().getFlowIdentifier());
+            verify(controllerServiceNode).setVersionedComponentId(expectedMigrationServiceId(CHILD_FLOW_ID));
+        }
+
+        @Test
+        void pasteIntoVersionControlledGroupUsesDestinationFlowId() {
+            final ProcessGroup destination = createMockProcessGroup();
+            when(destination.getVersionedComponentId()).thenReturn(Optional.of(DESTINATION_GROUP_ID));
+
+            final VersionControlInformation versionControl = mock(VersionControlInformation.class);
+            when(versionControl.getFlowIdentifier()).thenReturn(DESTINATION_FLOW_ID);
+            when(destination.getVersionControlInformation()).thenReturn(versionControl);
+
+            mockMigratingProcessorIn(destination);
+
+            synchronizer.addVersionedComponentsToProcessGroup(destination, legacyProcessorAdditions(), synchronizationOptions);
+
+            verify(controllerServiceNode).setVersionedComponentId(expectedMigrationServiceId(DESTINATION_FLOW_ID));
+        }
+
+        @Test
+        void pasteIntoGroupWithoutOwnFlowUsesDestinationVersionedId() {
+            final ProcessGroup destination = createMockProcessGroup();
+            when(destination.getVersionedComponentId()).thenReturn(Optional.of(DESTINATION_GROUP_ID));
+            mockMigratingProcessorIn(destination);
+
+            synchronizer.addVersionedComponentsToProcessGroup(destination, legacyProcessorAdditions(), synchronizationOptions);
+
+            verify(controllerServiceNode).setVersionedComponentId(expectedMigrationServiceId(DESTINATION_GROUP_ID));
+        }
+
+        @Test
+        void pasteWithoutDestinationIdentityLeavesServiceUnversioned() {
+            final ProcessGroup destination = createMockProcessGroup();
+            mockMigratingProcessorIn(destination);
+
+            synchronizer.addVersionedComponentsToProcessGroup(destination, legacyProcessorAdditions(), synchronizationOptions);
+
+            verify(destination).addControllerService(controllerServiceNode);
+            verify(controllerServiceNode, never()).setVersionedComponentId(any());
+        }
+
+        @Test
+        void synchronizationRetainsUnversionedMigrationServiceWhenAnotherServiceIsDeclared() {
+            final ProcessGroup targetGroup = createMockProcessGroup();
+            final ControllerServiceNode service = createMockControllerService();
+            when(service.getComments()).thenReturn(StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT);
+            when(targetGroup.getControllerServices(false)).thenReturn(Set.of(service));
+
+            final VersionedProcessGroup proposed = new VersionedProcessGroup();
+            proposed.setIdentifier(SNAPSHOT_ROOT_ID);
+            proposed.setControllerServices(Set.of(createMinimalVersionedControllerService()));
+
+            final VersionedExternalFlow incoming = new VersionedExternalFlow();
+            incoming.setFlowContents(proposed);
+
+            synchronizer.synchronize(targetGroup, incoming, synchronizationOptions);
+
+            verify(controllerServiceProvider, never()).removeControllerService(service);
+            verify(service, never()).setVersionedComponentId(any());
+            verify(targetGroup).addControllerService(controllerServiceNode);
+        }
+
+        @Test
+        void synchronizationRetainsVersionedMigrationServiceAbsentFromIncomingFlow() {
+            final ProcessGroup targetGroup = createMockProcessGroup();
+            final ControllerServiceNode service = createMockControllerService();
+            when(service.getComments()).thenReturn(StandardControllerServiceFactory.MIGRATION_CREATED_COMMENT);
+            when(service.getVersionedComponentId()).thenReturn(Optional.of(DECLARED_SERVICE_VERSIONED_ID));
+            when(targetGroup.getControllerServices(false)).thenReturn(Set.of(service));
+
+            final VersionedProcessGroup proposed = new VersionedProcessGroup();
+            proposed.setIdentifier(SNAPSHOT_ROOT_ID);
+
+            final VersionedExternalFlow incoming = new VersionedExternalFlow();
+            incoming.setFlowContents(proposed);
+
+            synchronizer.synchronize(targetGroup, incoming, synchronizationOptions);
+
+            verify(controllerServiceProvider, never()).removeControllerService(service);
+            verify(service, never()).setVersionedComponentId(any());
+        }
+
+        private void mockMigratingProcessorIn(final ProcessGroup owner) {
+            final ProcessorNode processor = createMockProcessor();
+            when(processor.getParentProcessGroup()).thenReturn(Optional.of(owner));
+            when(flowManager.createProcessor(any(), any(), any(), eq(true))).thenReturn(processor);
+
+            final ControllerServiceCreationDetails details = mock(ControllerServiceCreationDetails.class);
+            when(details.serviceIdentifier()).thenReturn("new-service");
+            when(details.type()).thenReturn(SERVICE_TYPE);
+            when(details.serviceBundleCoordinate()).thenReturn(bundleCoordinate);
+            when(details.serviceProperties()).thenReturn(SERVICE_PROPERTIES);
+
+            doAnswer(invocation -> {
+                final ControllerServiceFactory serviceFactory = invocation.getArgument(1);
+                serviceFactory.create(details);
+                return null;
+            }).when(processor).migrateConfiguration(anyMap(), any(ControllerServiceFactory.class));
+        }
+
+        private VersionedComponentAdditions legacyProcessorAdditions() {
+            final VersionedProcessor processor = createMinimalVersionedProcessor();
+            processor.setGroupIdentifier("source-group-not-destination");
+            return new VersionedComponentAdditions.Builder().setProcessors(Set.of(processor)).build();
+        }
+
+        private String expectedMigrationServiceId(final String owningGroupIdentity) {
+            final String description = owningGroupIdentity + SERVICE_TYPE + SERVICE_PROPERTIES;
+            return UUID.nameUUIDFromBytes(description.getBytes(StandardCharsets.UTF_8)).toString();
+        }
     }
 
     @Test
