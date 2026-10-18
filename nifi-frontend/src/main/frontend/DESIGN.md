@@ -373,3 +373,74 @@ background-color: var(--nf-canvas-background);
 color: #303030;
 background-color: #e5ebed;
 ```
+
+
+## Opt-in Modern Designer Workspace
+
+The designer's **Modern workspace** control enables a scoped shell migration.
+Classic presentation remains the default. The workspace preference now persists
+across authenticated routes and reloads through the existing browser Storage service.
+Canvas presentation continues to migrate separately. The screenshot reference guides hierarchy and palette;
+metrics always use the verified API contracts.
+
+Palette source: `apps/nifi/src/app/ui/common/modern-workspace/_workspace-tokens.scss`.
+Keep all new palette literals in that file. Workspace components consume semantic
+`--workspace-*` tokens, mapped locally to existing `--mat-sys-*` and `--nf-*`
+properties. The shared MD3 palette and the other frontend applications are unchanged.
+Both light and `.darkMode` palettes are supported; CDK overlays outside the workspace
+continue using the existing application theme during this migration.
+
+| Role | Light | Dark |
+|---|---|---|
+| Canvas background | `#f2f6fb` | `#09151f` |
+| Chrome | `#ffffff` | `#0d1b27` |
+| Card | `#ffffff` | `#142433` |
+| Primary text | `#172b43` | `#e6eef8` |
+| Secondary text | `#4d6179` | `#aabed3` |
+| Accent | `#0869b4` | `#60baff` |
+| Border | `#c7d4e2` | `#334e65` |
+| Success | `#137342` | `#44df98` |
+| Warning | `#8c570c` | `#ffc56b` |
+| Error | `#b62c40` | `#ff7d8d` |
+
+The shell preserves the existing authenticated header, creation toolbar, global
+menu, Flow Analysis, search, breadcrumbs and D3 geometry. Sidebar destinations use
+the same permission fields as the global menu. A sidebar is not an authorization
+boundary; existing guards and the server remain authoritative.
+
+At widths up to 1100px the sidebar collapses to named icon controls. At widths up
+to 1000px the details drawer overlays the canvas and has an explicit close action,
+so it does not force the diagram into a narrow column. The operational panel has a
+bounded scroll area and sticky controls; the narrow header status strip scrolls
+horizontally. Focus, status text and icons supplement semantic colors.
+
+This shell does not introduce a health score, error-rate definition, time-series
+store, environment switcher, animation loop or additional polling. Those features
+require their own contracts and qualification before appearing as runtime facts.
+
+The common `WorkspacePageComponent` now supplies one authenticated header and the
+optional sidebar for operational and configuration routes, including documentation.
+Each route retains its original BannerText owner. Designer retains its specialized
+creation toolbar and status strip. Login, logout-complete, error, 404, content viewer
+and separate extension applications retain their original utility layouts. The
+preference is `workspace-presentation` with the recognized `modern-v1` value; unknown
+formats default to classic, and selecting classic removes the preference. It is a
+browser presentation preference, not a NiFi parameter or server configuration.
+
+The opt-in Flow Designer now scopes its SVG presentation through
+`pages/flow-designer/ui/canvas/_modern-canvas.scss`. Processor cards retain their
+352 × 128 bounds and connection labels their 240px width. The existing designer
+`ProcessorManager` and `ConnectionManager` add hidden SVG status/header text;
+modern styles reveal it without changing the classic layout or event handlers.
+Use `visibility`, rather than `display`, for these extra text elements so D3 can
+measure and truncate their text before the user switches modes. The common canvas
+renderers used by connector configuration are a separate rendering path and remain
+unchanged. Bundle metadata remains in the status tooltip; relationship names are
+included in the queue header tooltip, with the classic labels still available.
+
+Queue header percentages use valid server-reported count/byte utilization values
+and show their maximum. Missing/invalid data displays an em dash. Colors retain
+the existing canvas thresholds (61–85 warning, above 85 high); these are visual
+categories, not a claim about scheduler enforcement. Count/byte bars and their
+existing threshold tooltips remain available. No geometry constants, API payloads,
+flow execution behavior or polling ownership change as part of this presentation.

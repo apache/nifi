@@ -15,8 +15,13 @@
   ~ limitations under the License.
   -->
 
-<div class="h-8 flex justify-around search-container border-l" [class.open]="searchInputVisible">
-    <button class="w-8" (click)="toggleSearchVisibility()"><i class="fa fa-search primary-color"></i></button>
+<div
+    class="h-8 flex justify-around search-container border-l"
+    [class.open]="searchInputVisible || inline"
+    [class.inline-search]="inline">
+    <button type="button" aria-label="Search flow" class="w-8" (click)="toggleSearchVisibility()">
+        <i class="fa fa-search primary-color"></i>
+    </button>
     <form [formGroup]="searchForm">
         <ng-template
             cdkConnectedOverlay
@@ -27,7 +32,9 @@
             [cdkConnectedOverlayHasBackdrop]="true"
             [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
             (overlayOutsideClick)="backdropClicked($event)">
-            <div class="search-results w-96 border p-2 text-base max-h-96 overflow-y-auto">
+            <div
+                class="search-results w-96 border p-2 text-base max-h-96 overflow-y-auto"
+                (click)="resultClicked($event)">
                 @if (searching) {
                     <div class="unset neutral-color italic">Searching</div>
                 } @else {
@@ -179,10 +186,11 @@
         <input
             type="text"
             matInput
-            placeholder="Search"
+            aria-label="Search processors, queues, or components"
+            [placeholder]="inline ? 'Search processors, queues, or components…' : 'Search'"
             class="search-input neutral-contrast"
             (keydown)="onKeydown($event)"
-            [class.open]="searchInputVisible"
+            [class.open]="searchInputVisible || inline"
             cdkOverlayOrigin
             #searchInput="cdkOverlayOrigin"
             formControlName="searchBar" />

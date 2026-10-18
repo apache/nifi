@@ -163,7 +163,7 @@ export const selectViewStatusHistoryComponent = createSelector(selectCurrentRout
 
 export const selectViewStatusHistoryCurrentProcessGroup = createSelector(selectCurrentRoute, (route) => {
     if (route?.routeConfig?.path == 'history') {
-        if (route.params.processGroupId) {
+        if (route.params.processGroupId && route.params.id == null && route.params.type == null) {
             return route.params.processGroupId;
         }
     }

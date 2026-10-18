@@ -21,8 +21,8 @@ import { Queue } from './queue.component';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockComponent } from 'ng-mocks';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 
 describe('Queue', () => {
     let component: Queue;
@@ -31,7 +31,12 @@ describe('Queue', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Queue],
-            imports: [RouterModule, RouterTestingModule, MockComponent(BannerText), MockComponent(Navigation)]
+            imports: [
+                RouterModule,
+                RouterTestingModule,
+                MockComponent(WorkspacePageComponent),
+                MockComponent(BannerText)
+            ]
         });
         fixture = TestBed.createComponent(Queue);
         component = fixture.componentInstance;

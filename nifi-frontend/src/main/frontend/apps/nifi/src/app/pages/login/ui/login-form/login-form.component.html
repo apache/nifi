@@ -15,38 +15,26 @@
   ~ limitations under the License.
   -->
 
-<div class="login-form w-96 flex flex-col gap-y-5">
-    <div class="flex justify-between items-start">
-        <h3 class="primary-color">Log In</h3>
-        <div class="flex gap-x-2">
-            @if (logoutSupported()) {
-                <a (click)="logout()">log out</a>
-            }
-            <a (click)="resetRoutedToFullScreenError()" [routerLink]="['/']">home</a>
-        </div>
-    </div>
-    <div>
-        <form [formGroup]="loginForm" (ngSubmit)="login()" class="my-2">
-            <div>
-                <mat-form-field>
-                    <mat-label>Username</mat-label>
-                    <input matInput formControlName="username" type="text" autofocus />
-                </mat-form-field>
-            </div>
-            <div>
-                <mat-form-field>
-                    <mat-label>Password</mat-label>
-                    <input matInput formControlName="password" type="password" />
-                </mat-form-field>
-            </div>
-            <div class="flex justify-end">
-                <button
-                    [disabled]="!loginForm.dirty || loginForm.invalid || loginForm.pending"
-                    type="submit"
-                    mat-flat-button>
-                    Log in
-                </button>
-            </div>
-        </form>
-    </div>
+<div class="login-form">
+    <h1>Sign in to NiFi Flow</h1>
+    <p class="login-description">Use your NiFi account to continue.</p>
+    <form [formGroup]="loginForm" (ngSubmit)="login()" [attr.aria-busy]="submitting()">
+        <mat-form-field>
+            <mat-label>Username</mat-label>
+            <input matInput formControlName="username" type="text" autocomplete="username" autofocus />
+        </mat-form-field>
+        <mat-form-field>
+            <mat-label>Password</mat-label>
+            <input matInput formControlName="password" type="password" autocomplete="current-password" />
+        </mat-form-field>
+        <button
+            [disabled]="!loginForm.dirty || loginForm.invalid || loginForm.pending || submitting()"
+            type="submit"
+            mat-flat-button>
+            {{ submitting() ? 'Signing in…' : 'Sign in' }}
+        </button>
+    </form>
+    @if (logoutSupported()) {
+        <button type="button" mat-button (click)="logout()">Sign out of the current session</button>
+    }
 </div>

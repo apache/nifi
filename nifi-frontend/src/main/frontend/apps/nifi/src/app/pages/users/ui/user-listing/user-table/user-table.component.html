@@ -40,7 +40,11 @@
         </div>
         <div class="flex flex-col justify-center">
             @if (canModifyTenants(currentUser)) {
-                <button mat-icon-button class="primary-icon-button" (click)="createClicked()">
+                <button
+                    mat-icon-button
+                    class="primary-icon-button"
+                    aria-label="Create user or group"
+                    (click)="createClicked()">
                     <i class="fa fa-plus"></i>
                 </button>
             }
@@ -85,6 +89,7 @@
                                 <button
                                     mat-icon-button
                                     type="button"
+                                    aria-label="User or group actions"
                                     [matMenuTriggerFor]="actionMenu"
                                     class="h-16 w-16 flex items-center justify-center icon global-menu">
                                     <i class="fa fa-ellipsis-v"></i>

@@ -70,3 +70,13 @@
         }
     }
 }
+
+@media (max-width: 1100px) {
+    :host-context(.modern-workspace) .flow-status {
+        overflow-x: auto;
+        height: 40px;
+        > div {
+            min-width: 1000px;
+        }
+    }
+}

@@ -41,7 +41,11 @@
             }
             <div class="flex justify-between">
                 <div class="text-sm flex items-center gap-x-2">
-                    <button mat-icon-button class="primary-icon-button" (click)="refreshUserListing()">
+                    <button
+                        mat-icon-button
+                        class="primary-icon-button"
+                        aria-label="Refresh users and groups"
+                        (click)="refreshUserListing()">
                         <i class="fa fa-refresh" [class.fa-spin]="userListingState.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>

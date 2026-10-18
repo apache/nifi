@@ -31,7 +31,7 @@ import { ComponentType, selectRouteParams, selectUrl } from '@nifi/shared';
 import { ConnectorCanvasComponent } from './connector-canvas.component';
 import { CanvasComponent } from '../../../../ui/common/canvas/canvas.component';
 import { ContextMenuContext } from '../../../../ui/common/canvas/canvas.types';
-import { Navigation } from '../../../../ui/common/navigation/navigation.component';
+import { WorkspacePageComponent } from '../../../../ui/common/modern-workspace/workspace-page.component';
 import { ConnectorCanvasHeaderBarComponent } from './header-bar/connector-canvas-header-bar.component';
 import { ConnectorCanvasFooterComponent } from './footer/footer.component';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
@@ -128,13 +128,14 @@ class MockReusableCanvasComponent {
 }
 
 @Component({
-    selector: 'navigation',
+    selector: 'workspace-page',
     standalone: true,
     imports: [CommonModule],
-    template: ''
+    template: '<ng-content></ng-content>'
 })
-class MockNavigationComponent {
-    heading = input<string>('');
+class MockWorkspacePageComponent {
+    spacedHeader = input(true);
+    canvas = input(false);
 }
 
 @Component({
@@ -331,7 +332,7 @@ function configureConnectorCanvasTestBed(options: SetupOptions = {}, storage?: R
         remove: {
             imports: [
                 CanvasComponent,
-                Navigation,
+                WorkspacePageComponent,
                 ConnectorCanvasHeaderBarComponent,
                 ConnectorCanvasFooterComponent,
                 ConnectorGraphControls,
@@ -341,7 +342,7 @@ function configureConnectorCanvasTestBed(options: SetupOptions = {}, storage?: R
         add: {
             imports: [
                 MockReusableCanvasComponent,
-                MockNavigationComponent,
+                MockWorkspacePageComponent,
                 MockConnectorCanvasHeaderBarComponent,
                 MockConnectorCanvasFooterComponent,
                 MockConnectorGraphControls,

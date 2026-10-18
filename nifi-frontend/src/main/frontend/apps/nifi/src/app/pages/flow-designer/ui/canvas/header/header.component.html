@@ -17,6 +17,34 @@
 
 <header class="nifi-header">
     <navigation>
+        @if (!workspace.enabled()) {
+            <ng-container *ngTemplateOutlet="creationTools"></ng-container>
+        } @else {
+            <div class="modern-designer-search">
+                <search [currentProcessGroupId]="(currentProcessGroupId$ | async)!" [inline]="true"></search>
+            </div>
+            <div class="modern-header-metrics" aria-label="Current group component counts">
+                <span
+                    ><strong>{{ overview().status === 'ready' ? overview().visibleProcessors : '—' }}</strong
+                    >Processors</span
+                >
+                <span
+                    ><strong>{{ overview().status === 'ready' ? overview().visibleConnections : '—' }}</strong
+                    >Connections</span
+                >
+            </div>
+        }
+    </navigation>
+    @if (workspace.enabled()) {
+        <div class="designer-toolstrip" aria-label="Create flow components">
+            <fd-footer class="modern-breadcrumbs"></fd-footer>
+            <operation-control [toolbar]="true"></operation-control>
+            <ng-container *ngTemplateOutlet="runtimeTools"></ng-container>
+            <span class="toolstrip-label">Add</span>
+            <ng-container *ngTemplateOutlet="creationTools"></ng-container>
+        </div>
+    }
+    <ng-template #creationTools>
         @if (canvasPermissions$ | async; as canvasPermissions) {
             <new-canvas-item
                 [type]="ComponentType.Processor"
@@ -67,15 +95,23 @@
                 iconHoverClass="icon-label-add"
                 tooltip="Label"></new-canvas-item>
         }
-    </navigation>
-    <flow-status
-        [flowAnalysisOpen]="(flowAnalysisOpen$ | async)!"
-        [controllerStatus]="(controllerStatus$ | async)!"
-        [lastRefreshed]="(lastRefreshed$ | async)!"
-        [clusterSummary]="(clusterSummary$ | async)!"
-        [bulletins]="(controllerBulletins$ | async)!"
-        [currentProcessGroupId]="(currentProcessGroupId$ | async)!"
-        [loadingStatus]="(loadingService.status$ | async)!"
-        [flowAnalysisState]="(flowAnalysisState$ | async)!">
-    </flow-status>
+    </ng-template>
+    @if (!workspace.enabled()) {
+        <ng-container *ngTemplateOutlet="runtimeTools"></ng-container>
+    }
+    <ng-template #runtimeTools>
+        <details class="runtime-status-details" [open]="!workspace.enabled()">
+            <summary>Runtime status &amp; tools</summary>
+            <flow-status
+                [flowAnalysisOpen]="(flowAnalysisOpen$ | async)!"
+                [controllerStatus]="(controllerStatus$ | async)!"
+                [lastRefreshed]="(lastRefreshed$ | async)!"
+                [clusterSummary]="(clusterSummary$ | async)!"
+                [bulletins]="(controllerBulletins$ | async)!"
+                [currentProcessGroupId]="(currentProcessGroupId$ | async)!"
+                [loadingStatus]="(loadingService.status$ | async)!"
+                [flowAnalysisState]="(flowAnalysisState$ | async)!">
+            </flow-status>
+        </details>
+    </ng-template>
 </header>

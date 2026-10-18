@@ -307,9 +307,12 @@ export class FlowEffects {
                             }
                         });
                     }),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(hasFlowData, errorResponse))
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        this.store.dispatch(
+                            FlowActions.loadProcessGroupFailure({ id: request.id, status: errorResponse.status })
+                        );
+                        return of(this.errorHelper.handleLoadingError(hasFlowData, errorResponse));
+                    })
                 )
             )
         )

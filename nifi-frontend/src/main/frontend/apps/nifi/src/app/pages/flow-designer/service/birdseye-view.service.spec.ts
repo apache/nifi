@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import * as d3 from 'd3';
 import { TestBed } from '@angular/core/testing';
 
 import { BirdseyeView } from './birdseye-view.service';
@@ -79,6 +80,59 @@ describe('BirdseyeView', () => {
 
     it('should be created', () => {
         expect(service).toBeTruthy();
+    });
+
+    it('keeps the minimap scale independent of the header and sidebar screen offsets', () => {
+        const host = document.createElement('div');
+        host.innerHTML =
+            '<div id="canvas-container"><svg id="canvas"></svg></div><div id="birdseye"><canvas id="birdseye-canvas"></canvas><svg><g class="test-birdseye"><g class="test-components"></g></g><rect class="birdseye-brush"></rect></svg></div>';
+        document.body.appendChild(host);
+        const container = host.querySelector('#canvas-container')!;
+        const canvas = host.querySelector('#canvas')!;
+        const birdseye = host.querySelector('#birdseye')!;
+        const context = {
+            save: vi.fn(),
+            restore: vi.fn(),
+            setTransform: vi.fn(),
+            clearRect: vi.fn(),
+            translate: vi.fn(),
+            scale: vi.fn()
+        };
+        vi.spyOn(host.querySelector('canvas')!, 'getContext').mockReturnValue(context as any);
+        for (const manager of [
+            'processorManager',
+            'processGroupManager',
+            'remoteProcessGroupManager',
+            'portManager',
+            'funnelManager',
+            'labelManager'
+        ] as const) {
+            vi.spyOn(service[manager], 'selectAll').mockReturnValue(d3.selectAll([]) as any);
+        }
+        service['birdseyeGroup'] = d3.select(host.querySelector('.test-birdseye'));
+        service['componentGroup'] = d3.select(host.querySelector('.test-components'));
+        d3.select(host.querySelector('.birdseye-brush')).datum({ x: 0, y: 0 });
+        service['initialized'] = true;
+        service['navigationCollapsed'] = false;
+        service['k'] = 1;
+        service['x'] = 0;
+        service['y'] = 0;
+        birdseye.getBoundingClientRect = () => ({ width: 200, height: 150 }) as DOMRect;
+        try {
+            for (const [left, top] of [
+                [0, 0],
+                [182, 132]
+            ]) {
+                container.getBoundingClientRect = () => ({ left, top, width: 800, height: 600 }) as DOMRect;
+                canvas.getBoundingClientRect = () =>
+                    ({ left: left + 100, top: top + 100, right: left + 1200, bottom: top + 800 }) as DOMRect;
+                service.refresh();
+                expect(service['birdseyeGroup'].attr('transform')).toBe('scale(' + 1 / 6 + ')');
+                expect(service['componentGroup'].attr('transform')).toBe('translate(0,0)');
+            }
+        } finally {
+            host.remove();
+        }
     });
 
     describe('refresh() — magnitude guard', () => {

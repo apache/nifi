@@ -24,7 +24,7 @@ import { Client } from '../../../../../../service/client.service';
 import { selectDragging } from '../../../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CanvasView } from '../../../../service/canvas-view.service';
-import { ComponentType, NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { ComponentType, NifiTooltipDirective, TextTip, Position } from '@nifi/shared';
 import { ConnectedPosition } from '@angular/cdk/overlay';
 
 @Component({
@@ -91,23 +91,33 @@ export class NewCanvasItem {
         );
     }
 
+    onActivation(event: MouseEvent): void {
+        // Native keyboard and assistive-technology clicks have detail 0. Pointer
+        // placement remains CDK drag/drop; do not issue a second request after a drag.
+        if (event.detail !== 0 || this.disabled || this.dragging) return;
+        const bounds = this.canvasView.getCanvasBoundingClientRect();
+        if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
+        const position = this.canvasView.getCanvasPosition({
+            x: bounds.left + bounds.width / 2,
+            y: bounds.top + bounds.height / 2
+        });
+        if (position) this.createAt(position);
+    }
+
+    private createAt(position: Position): void {
+        this.store.dispatch(
+            createComponentRequest({
+                request: { revision: { clientId: this.client.getClientId(), version: 0 }, type: this.type, position }
+            })
+        );
+    }
+
     onDragEnded(event: CdkDragEnd): void {
         const dropPoint = event.dropPoint;
 
         const position = this.canvasView.getCanvasPosition(dropPoint);
         if (position) {
-            this.store.dispatch(
-                createComponentRequest({
-                    request: {
-                        revision: {
-                            clientId: this.client.getClientId(),
-                            version: 0
-                        },
-                        type: this.type,
-                        position
-                    }
-                })
-            );
+            this.createAt(position);
         } else {
             this.store.dispatch(setDragging({ dragging: false }));
         }

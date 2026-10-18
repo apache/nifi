@@ -46,6 +46,8 @@ import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 import { ComponentType, NiFiCommon, Position, SelectOption } from '@nifi/shared';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
+import { WorkspacePreferencesService } from '../../../../ui/common/modern-workspace/workspace-preferences.service';
+import { reportedQueueUtilization } from './modern-canvas-presentation';
 import { wouldRemovalCauseOverlap } from '../../../../ui/common/overlap-detection.utils';
 
 export class ConnectionRenderOptions {
@@ -58,6 +60,7 @@ export class ConnectionRenderOptions {
 })
 export class ConnectionManager implements OnDestroy {
     private store = inject<Store<CanvasState>>(Store);
+    private workspace = inject(WorkspacePreferencesService);
     private canvasUtils = inject(CanvasUtils);
     private nifiCommon = inject(NiFiCommon);
     private client = inject(Client);
@@ -1554,6 +1557,21 @@ export class ConnectionManager implements OnDestroy {
 
                                 connectionName
                                     .append('text')
+                                    .attr('class', 'workspace-connection-name workspace-canvas-detail')
+                                    .attr('visibility', 'hidden')
+                                    .attr('x', 8)
+                                    .attr('y', 14)
+                                    .attr('width', 168);
+                                connectionName
+                                    .append('text')
+                                    .attr('class', 'workspace-connection-utilization workspace-canvas-detail')
+                                    .attr('visibility', 'hidden')
+                                    .attr('x', 232)
+                                    .attr('y', 14)
+                                    .attr('text-anchor', 'end');
+
+                                connectionName
+                                    .append('text')
                                     .attr('class', 'stats-label')
                                     .attr('x', 5)
                                     .attr('y', 14)
@@ -1594,12 +1612,41 @@ export class ConnectionManager implements OnDestroy {
                                 })
                                 .append('title')
                                 .text(() => connectionNameValue);
+                            const modernName = connectionName.select('text.workspace-connection-name');
+                            modernName.text(null);
+                            this.canvasUtils.ellipsis(modernName, connectionNameValue, 'workspace-connection-name');
+                            modernName
+                                .append('title')
+                                .text(
+                                    `${connectionNameValue} — Relationships: ${d.component.selectedRelationships?.join(', ') || 'none'}`
+                                );
+                            const percent = reportedQueueUtilization(d.status?.aggregateSnapshot);
+                            connectionLabelContainer.attr(
+                                'data-utilization-level',
+                                percent === undefined
+                                    ? 'unknown'
+                                    : percent > 85
+                                      ? 'high'
+                                      : percent >= 61
+                                        ? 'warning'
+                                        : 'normal'
+                            );
+                            connectionName
+                                .select('text.workspace-connection-utilization')
+                                .text(percent === undefined ? '—' : `${percent}%`)
+                                .append('title')
+                                .text(
+                                    percent === undefined
+                                        ? 'Reported queue utilization unavailable'
+                                        : `Highest reported queue utilization: ${percent}%. In a cluster this is the highest node value, not a scheduler pause indicator.`
+                                );
                         } else {
                             // there is no connection name, remove the previous if necessary
                             connectionName.remove();
                         }
                     } else {
                         // no permissions to read to remove previous if necessary
+                        connectionLabelContainer.attr('data-utilization-level', null);
                         connectionFrom.remove();
                         connectionTo.remove();
                         connectionName.remove();
@@ -1985,6 +2032,7 @@ export class ConnectionManager implements OnDestroy {
                 }
             }
 
+            this.updateModernBadge(connection);
             // update the position of the label if possible
             this.transitionBehavior
                 .transition(connection.select('g.connection-label-container'), this.transitionRequired)
@@ -1994,6 +2042,98 @@ export class ConnectionManager implements OnDestroy {
                     return 'translate(' + position.x + ', ' + position.y + ')';
                 });
         });
+    }
+
+    private updateModernBadge(connection: any): void {
+        const container = connection.select('g.connection-label-container');
+        if (container.empty() || !this.workspace.enabled()) return;
+        const d = connection.datum();
+        let badge = container.select('g.modern-queue-badge');
+        if (badge.empty()) {
+            badge = container
+                .append('g')
+                .attr('class', 'modern-queue-badge workspace-canvas-detail')
+                .attr('visibility', 'hidden')
+                .attr('pointer-events', 'all');
+            badge
+                .append('rect')
+                .attr('class', 'modern-queue-surface')
+                .attr('x', 60)
+                .attr('y', -14)
+                .attr('width', 120)
+                .attr('height', 84)
+                .attr('rx', 8);
+            badge.append('text').attr('class', 'modern-queue-name').attr('x', 70).attr('y', 4).attr('width', 100);
+            badge.append('text').attr('class', 'modern-queue-count').attr('x', 70).attr('y', 26).attr('width', 100);
+            badge.append('text').attr('class', 'modern-queue-bytes').attr('x', 70).attr('y', 42);
+            badge
+                .append('rect')
+                .attr('class', 'modern-queue-track')
+                .attr('x', 70)
+                .attr('y', 51)
+                .attr('width', 100)
+                .attr('height', 4)
+                .attr('rx', 2);
+            badge
+                .append('rect')
+                .attr('class', 'modern-queue-progress')
+                .attr('x', 70)
+                .attr('y', 51)
+                .attr('height', 4)
+                .attr('rx', 2);
+            badge
+                .append('text')
+                .attr('class', 'modern-queue-percent')
+                .attr('x', 170)
+                .attr('y', 65)
+                .attr('text-anchor', 'end');
+        }
+        const readable = d.permissions.canRead;
+        const snapshot = readable ? d.status?.aggregateSnapshot : undefined;
+        const percent = reportedQueueUtilization(snapshot);
+        const name = readable
+            ? d.component?.name?.trim() || d.component?.selectedRelationships?.join(', ') || 'Connection'
+            : 'Restricted';
+        this.canvasUtils.ellipsis(badge.select('text.modern-queue-name'), name, 'modern-queue-name');
+        const count = snapshot?.flowFilesQueued;
+        const countText =
+            typeof count === 'number' && Number.isFinite(count) && count >= 0
+                ? count.toLocaleString() + ' queued'
+                : 'Unavailable';
+        this.canvasUtils.ellipsis(badge.select('text.modern-queue-count'), countText, 'modern-queue-count');
+        const bytes = snapshot?.bytesQueued;
+        badge
+            .select('text.modern-queue-bytes')
+            .text(
+                typeof bytes === 'number' && Number.isFinite(bytes) && bytes >= 0
+                    ? this.nifiCommon.formatDataSize(bytes)
+                    : 'Bytes unavailable'
+            );
+        badge.select('rect.modern-queue-progress').attr('width', percent === undefined ? 0 : Math.min(100, percent));
+        badge.select('text.modern-queue-percent').text(percent === undefined ? '—' : percent + '%');
+        badge.attr(
+            'data-utilization-level',
+            percent === undefined ? 'unknown' : percent >= 85 ? 'high' : percent >= 61 ? 'warning' : 'normal'
+        );
+        badge.selectAll('title').remove();
+        badge
+            .append('title')
+            .text(
+                name +
+                    '\n' +
+                    countText +
+                    ' (aggregate)\nHighest reported node utilization: ' +
+                    (percent === undefined ? 'Unavailable' : percent + '%') +
+                    '\nThis is a rounded observation, not a scheduler pause indicator.' +
+                    (readable
+                        ? '\nExpiration: ' +
+                          d.component.flowFileExpiration +
+                          '\nLoad balance: ' +
+                          d.component.loadBalanceStrategy +
+                          '\nRetried relationships: ' +
+                          (d.component.retriedRelationships?.join(', ') || 'None')
+                        : '')
+            );
     }
 
     private updateConnectionStatus(updated: any): void {

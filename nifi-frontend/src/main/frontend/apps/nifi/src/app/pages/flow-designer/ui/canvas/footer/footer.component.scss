@@ -19,3 +19,11 @@
     z-index: 3;
     background-color: var(--mat-sys-background);
 }
+
+:host-context(.modern-workspace) {
+    .breadcrumb-container {
+        border: 0;
+        background: transparent;
+        padding: 0;
+    }
+}

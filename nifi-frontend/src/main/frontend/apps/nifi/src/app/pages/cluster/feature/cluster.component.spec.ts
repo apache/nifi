@@ -26,8 +26,8 @@ import { selectClusterListing } from '../state/cluster-listing/cluster-listing.s
 import { clusterListingFeatureKey } from '../state/cluster-listing';
 import { clusterFeatureKey } from '../state';
 import { MockComponent } from 'ng-mocks';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 import { ContextErrorBanner } from '../../../ui/common/context-error-banner/context-error-banner.component';
 import { initialState as initialErrorState } from '../../../state/error/error.reducer';
 import { errorFeatureKey } from '../../../state/error';
@@ -55,8 +55,8 @@ describe('Cluster', () => {
                 ClusterNodeListing,
                 MatTabsModule,
                 RouterTestingModule,
+                MockComponent(WorkspacePageComponent),
                 MockComponent(BannerText),
-                MockComponent(Navigation),
                 MockComponent(ContextErrorBanner)
             ],
             providers: [

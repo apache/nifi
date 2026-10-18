@@ -33,6 +33,7 @@ const routes: Routes = [
             { path: '', pathMatch: 'full', redirectTo: 'processors' },
             {
                 path: 'processors',
+                title: 'Processors',
                 component: ProcessorStatusListing,
                 children: [
                     {
@@ -49,6 +50,7 @@ const routes: Routes = [
             },
             {
                 path: 'input-ports',
+                title: 'Input Ports',
                 component: InputPortStatusListing,
                 children: [
                     {
@@ -59,6 +61,7 @@ const routes: Routes = [
             },
             {
                 path: 'output-ports',
+                title: 'Output Ports',
                 component: OutputPortStatusListing,
                 children: [
                     {
@@ -69,6 +72,7 @@ const routes: Routes = [
             },
             {
                 path: 'remote-process-groups',
+                title: 'Remote Process Groups',
                 component: RemoteProcessGroupStatusListing,
                 children: [
                     {
@@ -85,6 +89,7 @@ const routes: Routes = [
             },
             {
                 path: 'connections',
+                title: 'Connections',
                 component: ConnectionStatusListing,
                 children: [
                     {
@@ -101,6 +106,7 @@ const routes: Routes = [
             },
             {
                 path: 'process-groups',
+                title: 'Process Groups',
                 component: ProcessGroupStatusListing,
                 children: [
                     {

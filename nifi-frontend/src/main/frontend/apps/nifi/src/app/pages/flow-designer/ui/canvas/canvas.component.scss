@@ -15,6 +15,63 @@
  * limitations under the License.
  */
 
+@use '../../../../ui/common/modern-workspace/workspace-tokens' as workspace;
+@use 'modern-canvas';
+
+.workspace-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.designer-workspace {
+    min-width: 0;
+}
+.modern-workspace {
+    @include workspace.light;
+    @include workspace.semantics;
+    background: var(--workspace-bg);
+    color: var(--workspace-text);
+    fd-header {
+        flex-shrink: 0;
+        border-bottom: 1px solid var(--workspace-border);
+    }
+    fd-footer {
+        order: 1;
+        border-bottom: 1px solid var(--workspace-border);
+    }
+    .workspace-body {
+        order: 2;
+    }
+    .workspace-main {
+        overflow: hidden;
+    }
+    operational-overview {
+        order: 2;
+        flex-shrink: 0;
+        max-height: min(280px, 36vh);
+        overflow-y: auto;
+        border-top: 1px solid var(--workspace-border);
+    }
+    .workspace-canvas-area {
+        order: 1;
+    }
+    .canvas-background {
+        background-color: var(--workspace-bg);
+        background-image: radial-gradient(circle, var(--workspace-grid) 1px, transparent 1px);
+        background-size: 16px 16px;
+    }
+    mat-sidenav {
+        border-left: 1px solid var(--workspace-border);
+        border-radius: 0;
+    }
+    mat-sidenav-container,
+    mat-sidenav-content {
+        background: var(--workspace-bg);
+    }
+}
+:host-context(.darkMode) .modern-workspace {
+    @include workspace.dark;
+}
 .canvas-overlap-banner {
     position: absolute;
     z-index: 99;
@@ -782,5 +839,87 @@
 
     text.remote-process-group-last-refresh {
         fill: var(--mat-sys-primary);
+    }
+}
+
+:host ::ng-deep .modern-workspace svg.canvas-svg {
+    @include modern-canvas.presentation;
+}
+
+:host ::ng-deep .modern-workspace svg.canvas-svg {
+    @include modern-canvas.compact-cards;
+}
+.modern-workspace {
+    operational-overview {
+        max-height: min(248px, 32vh);
+    }
+    .canvas-overlap-banner,
+    .canvas-overlap-banner.palettes-expanded {
+        left: 16px;
+        right: 150px;
+    }
+}
+
+:host ::ng-deep .modern-workspace svg.canvas-svg g.processor {
+    text.processor-icon {
+        font-family: FontAwesome;
+        font-size: 29px;
+    }
+    &[data-icon-family='storage'] text.processor-icon {
+        fill: var(--workspace-error);
+    }
+    &[data-icon-family='routing'] text.processor-icon,
+    &[data-icon-family='file'] text.processor-icon {
+        fill: var(--workspace-warning);
+    }
+}
+
+:host ::ng-deep .modern-workspace svg.canvas-svg g.connection {
+    .connection-label-container > rect.body,
+    .connection-label-container > rect.border,
+    .connection-label-container > g:not(.modern-queue-badge) * {
+        visibility: hidden;
+    }
+    .modern-queue-badge {
+        --queue-color: var(--workspace-accent);
+    }
+    .modern-queue-badge[data-utilization-level='high'] {
+        --queue-color: var(--workspace-error);
+    }
+    .modern-queue-badge[data-utilization-level='warning'] {
+        --queue-color: var(--workspace-warning);
+    }
+    rect.modern-queue-surface {
+        fill: var(--workspace-card);
+        stroke: var(--workspace-border);
+        stroke-width: 1;
+    }
+    &.selected rect.modern-queue-surface {
+        stroke: var(--workspace-accent);
+        stroke-width: 2;
+    }
+    .modern-queue-badge[data-utilization-level='high'] rect.modern-queue-surface {
+        stroke: var(--workspace-error);
+    }
+    text.modern-queue-name {
+        font-size: 10px;
+        fill: var(--workspace-text);
+        font-weight: 500;
+    }
+    text.modern-queue-count {
+        font-size: 14px;
+        fill: var(--queue-color);
+        font-weight: 600;
+    }
+    text.modern-queue-bytes,
+    text.modern-queue-percent {
+        font-size: 10px;
+        fill: var(--workspace-muted);
+    }
+    rect.modern-queue-track {
+        fill: var(--workspace-border);
+    }
+    rect.modern-queue-progress {
+        fill: var(--queue-color);
     }
 }

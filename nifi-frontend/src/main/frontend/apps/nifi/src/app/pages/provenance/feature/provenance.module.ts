@@ -25,20 +25,20 @@ import { provenanceFeatureKey, reducers } from '../state';
 import { ProvenanceEventListingEffects } from '../state/provenance-event-listing/provenance-event-listing.effects';
 import { MatDialogModule } from '@angular/material/dialog';
 import { LineageEffects } from '../state/lineage/lineage.effects';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 
 @NgModule({
     declarations: [Provenance],
     exports: [Provenance],
     imports: [
+        BannerText,
         CommonModule,
         MatDialogModule,
         ProvenanceRoutingModule,
         StoreModule.forFeature(provenanceFeatureKey, reducers),
         EffectsModule.forFeature(ProvenanceEventListingEffects, LineageEffects),
-        Navigation,
-        BannerText
+        WorkspacePageComponent
     ]
 })
 export class ProvenanceModule {}

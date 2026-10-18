@@ -26,20 +26,20 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { AccessPolicyEffects } from '../state/access-policy/access-policy.effects';
 import { TenantsEffects } from '../state/tenants/tenants.effects';
 import { PolicyComponentEffects } from '../state/policy-component/policy-component.effects';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 
 @NgModule({
     declarations: [AccessPolicies],
     exports: [AccessPolicies],
     imports: [
+        BannerText,
         CommonModule,
         AccessPoliciesRoutingModule,
         StoreModule.forFeature(accessPoliciesFeatureKey, reducers),
         EffectsModule.forFeature(AccessPolicyEffects, TenantsEffects, PolicyComponentEffects),
         MatDialogModule,
-        Navigation,
-        BannerText
+        WorkspacePageComponent
     ]
 })
 export class AccessPoliciesModule {}

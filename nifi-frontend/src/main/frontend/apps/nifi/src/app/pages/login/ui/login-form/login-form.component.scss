@@ -16,7 +16,28 @@
  */
 
 .login-form {
+    h1 {
+        font-size: 24px;
+        line-height: 1.3;
+        font-weight: 600;
+        margin: 0 0 10px;
+    }
+    .login-description {
+        color: var(--workspace-muted);
+        font-size: 14px;
+        margin: 0 0 26px;
+    }
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
     .mat-mdc-form-field {
         width: 100%;
+    }
+    button[type='submit'] {
+        width: 100%;
+        height: 44px;
+        border-radius: 8px;
     }
 }

@@ -27,6 +27,7 @@ import { Logout } from './pages/logout/feature/logout.component';
 const routes: Routes = [
     {
         path: 'login',
+        title: 'Sign in',
         canMatch: [
             checkLoginConfiguration((loginConfiguration: LoginConfiguration) => loginConfiguration.loginSupported)
         ],
@@ -34,34 +35,41 @@ const routes: Routes = [
     },
     {
         path: 'logout-complete',
+        title: 'Signed out',
         loadComponent: () => Logout
     },
     {
         path: 'error',
+        title: 'Error',
         loadComponent: () => Error
     },
     {
         path: '404',
+        title: 'Page not found',
         component: RouteNotFound
     },
     {
         path: 'documentation',
+        title: 'Documentation',
         canMatch: [authenticationGuard],
         loadChildren: () =>
             import('./pages/documentation/feature/documentation.module').then((m) => m.DocumentationModule)
     },
     {
         path: 'settings',
+        title: 'Controller Settings',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/settings/feature/settings.module').then((m) => m.SettingsModule)
     },
     {
         path: 'provenance',
+        title: 'Data Provenance',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/provenance/feature/provenance.module').then((m) => m.ProvenanceModule)
     },
     {
         path: 'parameter-contexts',
+        title: 'Parameter Contexts',
         canMatch: [authenticationGuard],
         loadChildren: () =>
             import('./pages/parameter-contexts/feature/parameter-contexts.module').then(
@@ -70,37 +78,44 @@ const routes: Routes = [
     },
     {
         path: 'counters',
+        title: 'Counters',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/counters/feature/counters.module').then((m) => m.CountersModule)
     },
     {
         path: 'users',
+        title: 'Users',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/users/feature/users.module').then((m) => m.UsersModule)
     },
     {
         path: 'access-policies',
+        title: 'Access Policies',
         canMatch: [authenticationGuard],
         loadChildren: () =>
             import('./pages/access-policies/feature/access-policies.module').then((m) => m.AccessPoliciesModule)
     },
     {
         path: 'summary',
+        title: 'Summary',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/summary/feature/summary.module').then((m) => m.SummaryModule)
     },
     {
         path: 'bulletins',
+        title: 'Bulletin Board',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/bulletins/feature/bulletins.module').then((m) => m.BulletinsModule)
     },
     {
         path: 'queue',
+        title: 'Queue',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/queue/feature/queue.module').then((m) => m.QueueModule)
     },
     {
         path: 'flow-configuration-history',
+        title: 'Flow Configuration History',
         canMatch: [authenticationGuard],
         loadChildren: () =>
             import('./pages/flow-configuration-history/feature/flow-configuration-history.module').then(
@@ -109,28 +124,33 @@ const routes: Routes = [
     },
     {
         path: 'cluster',
+        title: 'Cluster',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/cluster/feature/cluster.module').then((m) => m.ClusterModule)
     },
     {
         path: 'connectors',
+        title: 'Connectors',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/connectors/feature/connectors.module').then((m) => m.ConnectorsModule)
     },
     {
         path: 'content-viewer',
+        title: 'Content Viewer',
         canMatch: [authenticationGuard],
         loadChildren: () =>
             import('./pages/content-viewer/feature/content-viewer.module').then((m) => m.ContentViewerModule)
     },
     {
         path: '',
+        title: 'Designer',
         canMatch: [authenticationGuard],
         loadChildren: () =>
             import('./pages/flow-designer/feature/flow-designer.module').then((m) => m.FlowDesignerModule)
     },
     {
         path: '**',
+        title: 'Page not found',
         component: RouteNotFound
     }
 ];

@@ -15,10 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col h-full">
-    <header class="nifi-header">
-        <navigation></navigation>
-    </header>
+<workspace-page [spacedHeader]="false" [canvas]="false">
     @if (!backNavigation() && !loading && !errorMessage) {
         <div class="pl-5 pt-2">
             <a (click)="returnToConnectorListing()" data-qa="fallback-back-link">
@@ -63,4 +60,4 @@
             <connector-details-content class="w-full h-full" [connector]="connector"></connector-details-content>
         }
     </div>
-</div>
+</workspace-page>

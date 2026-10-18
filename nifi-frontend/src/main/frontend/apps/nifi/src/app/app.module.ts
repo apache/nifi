@@ -18,6 +18,8 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
+import { TitleStrategy } from '@angular/router';
+import { PageTitleStrategy } from './service/page-title.strategy';
 import { AppComponent } from './app.component';
 import {
     BrowserAnimationsModule,
@@ -126,6 +128,7 @@ export const customTooltipDefaults: MatTooltipDefaultOptions = {
         MatSnackBarModule
     ],
     providers: [
+        { provide: TitleStrategy, useClass: PageTitleStrategy },
         disableAnimations === 'true' ? provideNoopAnimations() : provideAnimations(),
         { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
         provideHttpClient(

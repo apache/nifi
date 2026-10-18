@@ -22,7 +22,6 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 import { ManageRemotePortsRoutingModule } from './manage-remote-ports-routing.module';
 import { Breadcrumbs } from '../../../../ui/common/breadcrumbs/breadcrumbs.component';
-import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
 import { NifiTooltipDirective } from '@nifi/shared';
@@ -34,10 +33,13 @@ import { manageRemotePortsReducer } from '../../state/manage-remote-ports/manage
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
+import { WorkspacePageComponent } from '../../../../ui/common/modern-workspace/workspace-page.component';
+
 @NgModule({
     declarations: [ManageRemotePorts],
     exports: [ManageRemotePorts],
     imports: [
+        WorkspacePageComponent,
         CommonModule,
         NgxSkeletonLoaderModule,
         ManageRemotePortsRoutingModule,
@@ -45,7 +47,6 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
         EffectsModule.forFeature(ManageRemotePortsEffects),
         ControllerServiceTable,
         Breadcrumbs,
-        Navigation,
         MatTableModule,
         MatSortModule,
         NifiTooltipDirective,

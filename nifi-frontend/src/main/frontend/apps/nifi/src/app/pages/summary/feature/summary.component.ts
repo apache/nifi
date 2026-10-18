@@ -31,7 +31,7 @@ interface TabLink {
 }
 
 @Component({
-    selector: 'summary',
+    selector: 'nifi-summary',
     templateUrl: './summary.component.html',
     styleUrls: ['./summary.component.scss'],
     standalone: false

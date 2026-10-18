@@ -35,3 +35,19 @@
         fill: transparent;
     }
 }
+
+:host-context(.modern-workspace) ::ng-deep #birdseye {
+    width: 236px;
+    height: 96px;
+    background: var(--workspace-bg);
+    border: 1px solid var(--workspace-border);
+}
+
+:host-context(.modern-workspace) ::ng-deep #birdseye {
+    position: relative;
+    canvas,
+    svg {
+        left: 0;
+        top: 0;
+    }
+}

@@ -233,7 +233,11 @@
                     <div class="flex-1">
                         @if (instances.length > 0 && fieldDescriptors.length > 0) {
                             <div class="text-sm flex items-center gap-x-2">
-                                <button mat-icon-button class="primary-icon-button" (click)="refresh()">
+                                <button
+                                    mat-icon-button
+                                    class="primary-icon-button"
+                                    aria-label="Refresh status history"
+                                    (click)="refresh()">
                                     <i
                                         class="fa fa-refresh"
                                         [class.fa-spin]="statusHistoryState.status === 'loading'"></i>

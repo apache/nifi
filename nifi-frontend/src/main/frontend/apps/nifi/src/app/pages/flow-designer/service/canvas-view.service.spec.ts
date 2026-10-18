@@ -238,6 +238,63 @@ describe('CanvasView', () => {
             });
         });
 
+        describe('canvas offset from a workspace sidebar', () => {
+            it('fits to the same local coordinates with or without a horizontal container offset', () => {
+                const { container, svgEl, cleanup } = mountCanvasDom(service);
+                const center = vi.spyOn(service, 'centerBoundingBox').mockImplementation(() => undefined);
+                service['k'] = 1;
+                service['x'] = 0;
+                service['y'] = 0;
+                try {
+                    for (const left of [0, 182]) {
+                        container.getBoundingClientRect = () =>
+                            ({ left, top: 132, width: 800, height: 600 }) as DOMRect;
+                        svgEl.getBoundingClientRect = () =>
+                            ({ left: left + 200, top: 332, width: 200, height: 100 }) as DOMRect;
+                        service.fit(false);
+                        expect(center).toHaveBeenLastCalledWith({ x: -75, y: -25, width: 750, height: 550, scale: 1 });
+                    }
+                } finally {
+                    cleanup();
+                }
+            });
+            it('normalizes selection bounds and actual-size centering on both axes after zoom and pan', () => {
+                const { container, cleanup } = mountCanvasDom(service);
+                const node = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                container.appendChild(node);
+                container.getBoundingClientRect = () => ({ left: 182, top: 132, width: 800, height: 600 }) as DOMRect;
+                node.getBoundingClientRect = () =>
+                    ({
+                        x: 222,
+                        left: 222,
+                        y: 192,
+                        top: 192,
+                        right: 422,
+                        bottom: 292,
+                        width: 200,
+                        height: 100
+                    }) as DOMRect;
+                service['k'] = 2;
+                service['x'] = 10;
+                service['y'] = 20;
+                const selection = d3.select(node);
+                try {
+                    expect(service.getSelectionBoundingClientRect(selection)).toMatchObject({
+                        x: 15,
+                        y: 20,
+                        width: 100,
+                        height: 50
+                    });
+                    vi.spyOn(service['canvasUtils'], 'getSelection').mockReturnValue(selection as any);
+                    const center = vi.spyOn(service, 'centerBoundingBox').mockImplementation(() => undefined);
+                    service.actualSize();
+                    expect(center).toHaveBeenCalledWith({ x: 15, y: 20, width: 100, height: 50, scale: 1 });
+                } finally {
+                    cleanup();
+                }
+            });
+        });
+
         describe('fit() — zero-dimension container guard', () => {
             it('returns early without throwing when container has zero width', () => {
                 const { container, cleanup } = mountCanvasDom(service);

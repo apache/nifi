@@ -15,28 +15,62 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col h-full">
+<div class="designer-workspace flex flex-col h-full" [class.modern-workspace]="modernWorkspace()">
     <fd-header></fd-header>
-    <div class="flex-1">
-        <mat-sidenav-container class="h-full">
-            <mat-sidenav mode="side" [opened]="flowAnalysisOpen()" position="end">
-                <flow-analysis-drawer></flow-analysis-drawer>
-            </mat-sidenav>
-            <mat-sidenav-content>
-                <graph-controls></graph-controls>
-                <overlapping-connections-banner
-                    class="canvas-overlap-banner"
-                    [class.palettes-expanded]="!navigationCollapsed() || !operationCollapsed()"
-                    [overlappingGroups]="(overlappingConnections$ | async) || []"
-                    (navigateToGroup)="navigateToOverlappingConnections($event)">
-                </overlapping-connections-banner>
-                <div
-                    id="canvas-container"
-                    class="canvas-background select-none h-full w-full"
-                    [cdkContextMenuTriggerFor]="contextMenu.menu"></div>
-                <fd-context-menu #contextMenu [menuProvider]="canvasContextMenu" menuId="root"></fd-context-menu>
-            </mat-sidenav-content>
-        </mat-sidenav-container>
+    <div class="workspace-body flex flex-1 min-h-0">
+        @if (modernWorkspace()) {
+            <modern-navigation
+                [designer]="true"
+                (overviewRequested)="focusOverview()"
+                (canvasRequested)="focusCanvas()"></modern-navigation>
+        }
+        <main class="workspace-main flex flex-col flex-1 min-w-0 min-h-0" aria-label="Flow designer">
+            <div class="workspace-canvas flex-1 min-h-0">
+                <mat-sidenav-container class="h-full" [autosize]="operationalPreview()" [hasBackdrop]="false">
+                    <mat-sidenav
+                        [mode]="modernWorkspace() && compactWorkspace() ? 'over' : 'side'"
+                        [opened]="flowAnalysisOpen() || (operationalPreview() && operationalSelection() !== null)"
+                        position="end">
+                        <div [hidden]="!flowAnalysisOpen()">
+                            <flow-analysis-drawer></flow-analysis-drawer>
+                        </div>
+                        @if (!flowAnalysisOpen() && operationalPreview()) {
+                            @if (operationalSelection(); as selection) {
+                                <operational-inspector [selection]="selection"></operational-inspector>
+                            }
+                        }
+                    </mat-sidenav>
+                    <mat-sidenav-content class="workspace-content flex flex-col h-full">
+                        <operational-overview
+                            [expanded]="operationalPreview()"
+                            [modernWorkspace]="modernWorkspace()"
+                            (workspaceChange)="toggleModernWorkspace()"
+                            (expandedChange)="operationalPreview.set($event)"></operational-overview>
+                        <div class="workspace-canvas-area relative flex-1 min-h-0">
+                            <graph-controls></graph-controls>
+                            <overlapping-connections-banner
+                                class="canvas-overlap-banner"
+                                [class.palettes-expanded]="!navigationCollapsed() || !operationCollapsed()"
+                                [overlappingGroups]="(overlappingConnections$ | async) || []"
+                                (navigateToGroup)="navigateToOverlappingConnections($event)">
+                            </overlapping-connections-banner>
+                            <div
+                                id="canvas-container"
+                                class="canvas-background select-none h-full w-full"
+                                tabindex="-1"
+                                aria-label="Flow canvas"
+                                [cdkContextMenuTriggerFor]="contextMenu.menu"></div>
+                            <fd-context-menu
+                                #contextMenu
+                                [menuProvider]="canvasContextMenu"
+                                menuId="root"></fd-context-menu>
+                        </div>
+                    </mat-sidenav-content>
+                </mat-sidenav-container>
+            </div>
+        </main>
     </div>
-    <fd-footer></fd-footer>
+    @if (!modernWorkspace()) {
+        <fd-footer></fd-footer>
+    }
 </div>

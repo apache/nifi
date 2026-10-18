@@ -53,9 +53,10 @@ const routes: Routes = [
         canMatch: [authorizationGuard((user: CurrentUser) => user.controllerPermissions.canRead)],
         children: [
             { path: '', pathMatch: 'full', redirectTo: 'general' },
-            { path: 'general', component: General },
+            { path: 'general', title: 'General Settings', component: General },
             {
                 path: 'management-controller-services',
+                title: 'Controller Services',
                 component: ManagementControllerServices,
                 children: [
                     {
@@ -72,6 +73,7 @@ const routes: Routes = [
             },
             {
                 path: 'reporting-tasks',
+                title: 'Reporting Tasks',
                 component: ReportingTasks,
                 children: [
                     {
@@ -88,6 +90,7 @@ const routes: Routes = [
             },
             {
                 path: 'flow-analysis-rules',
+                title: 'Flow Analysis Rules',
                 component: FlowAnalysisRules,
                 children: [
                     {
@@ -104,6 +107,7 @@ const routes: Routes = [
             },
             {
                 path: 'registry-clients',
+                title: 'Registry Clients',
                 component: RegistryClients,
                 children: [
                     {
@@ -120,6 +124,7 @@ const routes: Routes = [
             },
             {
                 path: 'parameter-providers',
+                title: 'Parameter Providers',
                 component: ParameterProviders,
                 children: [
                     {

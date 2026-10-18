@@ -24,6 +24,19 @@ div.operation-control {
     --mat-icon-button-icon-size: 17px;
 
     .operation-control-header {
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+
+        &:focus-visible {
+            outline: 2px solid var(--mat-sys-primary);
+            outline-offset: -2px;
+        }
+
         .fa {
             height: 34px;
             width: 34px;
@@ -46,5 +59,47 @@ div.operation-control {
                 transparent 35px
             );
         }
+    }
+}
+
+.modern-flow-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.modern-flow-actions button {
+    height: 32px;
+    min-width: 32px;
+    border: 1px solid var(--workspace-border);
+    border-radius: 6px;
+    padding-inline: 10px;
+    font-size: 11px;
+    color: var(--workspace-text);
+}
+.modern-flow-actions i {
+    margin-right: 6px;
+    color: var(--workspace-accent);
+    font-size: 11px;
+}
+.modern-flow-actions button:first-child:not(:disabled) {
+    color: var(--workspace-success);
+    background: color-mix(in srgb, var(--workspace-success) 8%, transparent);
+}
+.modern-flow-actions button:disabled {
+    opacity: 0.4;
+}
+
+:host-context(.modern-workspace) {
+    .operation-control-header[aria-expanded='false'] {
+        width: 34px;
+        height: 34px;
+    }
+    .operation-control-header[aria-expanded='false'] .text-sm,
+    .operation-control-header[aria-expanded='false'] .operation-control-expansion {
+        display: none;
+    }
+    .operation-control {
+        border-radius: 6px;
+        border-color: var(--workspace-border);
     }
 }

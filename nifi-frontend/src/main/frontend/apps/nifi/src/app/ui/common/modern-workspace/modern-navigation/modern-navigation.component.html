@@ -1,0 +1,59 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<aside class="modern-sidebar" aria-label="Workspace navigation">
+    <p class="sidebar-caption">WORKSPACE</p>
+    <nav aria-label="Workspace">
+        @if (designer()) {
+            <button type="button" title="Show current group summary below the canvas" (click)="overviewRequested.emit()">
+                <i class="fa fa-th-large" aria-hidden="true"></i><span>Flow overview</span>
+            </button>
+            <button type="button" title="Designer" aria-current="page" (click)="canvasRequested.emit()">
+                <i class="icon icon-group" aria-hidden="true"></i><span>Designer</span>
+            </button>
+        } @else {
+            <a [routerLink]="canvasLink()" title="Designer"
+                ><i class="icon icon-group" aria-hidden="true"></i><span>Designer</span></a
+            >
+        }
+        @for (link of links(); track link.route) {
+            <a [routerLink]="link.route" routerLinkActive="active" ariaCurrentWhenActive="page" [title]="link.title">
+                <i [class]="link.icon" aria-hidden="true"></i><span>{{ link.label }}</span>
+            </a>
+        }
+    </nav>
+    <div class="sidebar-runtime">
+        <i class="fa fa-server" aria-hidden="true"></i>
+        <div>
+            <p class="runtime-label">Current instance</p>
+            @if (cluster(); as nodes) {
+                <p>
+                    {{
+                        nodes.clustered
+                            ? nodes.connectedNodeCount + ' / ' + nodes.totalNodeCount + ' nodes'
+                            : 'Standalone'
+                    }}
+                </p>
+                @if (nodes.clustered && !nodes.connectedToCluster) {
+                    <p>Disconnected</p>
+                }
+            } @else {
+                <p>Connectivity unavailable</p>
+            }
+        </div>
+    </div>
+</aside>

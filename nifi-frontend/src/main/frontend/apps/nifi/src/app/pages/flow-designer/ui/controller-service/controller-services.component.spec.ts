@@ -23,7 +23,7 @@ import { initialState } from '../../state/controller-services/controller-service
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MockComponent } from 'ng-mocks';
-import { Navigation } from '../../../../ui/common/navigation/navigation.component';
+import { WorkspacePageComponent } from '../../../../ui/common/modern-workspace/workspace-page.component';
 import { canvasFeatureKey } from '../../state';
 import { controllerServicesFeatureKey } from '../../state/controller-services';
 import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
@@ -272,7 +272,7 @@ describe('ControllerServices', () => {
                 HttpClientTestingModule,
                 FormsModule,
                 MatCheckboxModule,
-                MockComponent(Navigation),
+                MockComponent(WorkspacePageComponent),
                 MockComponent(NgxSkeletonLoaderComponent),
                 MockComponent(Breadcrumbs),
                 MockComponent(ControllerServiceTable)

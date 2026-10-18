@@ -23,22 +23,23 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 import { ControllerServicesRoutingModule } from './controller-services-routing.module';
 import { Breadcrumbs } from '../../../../ui/common/breadcrumbs/breadcrumbs.component';
-import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NifiTooltipDirective } from '@nifi/shared';
+
+import { WorkspacePageComponent } from '../../../../ui/common/modern-workspace/workspace-page.component';
 
 @NgModule({
     declarations: [ControllerServices],
     exports: [ControllerServices],
     imports: [
+        WorkspacePageComponent,
         CommonModule,
         FormsModule,
         NgxSkeletonLoaderModule,
         ControllerServicesRoutingModule,
         ControllerServiceTable,
         Breadcrumbs,
-        Navigation,
         MatButtonModule,
         MatCheckboxModule,
         NifiTooltipDirective

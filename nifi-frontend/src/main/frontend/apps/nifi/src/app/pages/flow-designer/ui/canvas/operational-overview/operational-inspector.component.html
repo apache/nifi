@@ -1,0 +1,209 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<section class="inspector p-4" aria-label="Component details">
+    @let detail = selection();
+    <div class="inspector-title flex items-center justify-between pb-3">
+        <div class="inspector-tabs" role="tablist" aria-label="Component inspection" (keydown)="selectTab($event)">
+            <button
+                type="button"
+                role="tab"
+                [attr.tabindex]="tab() === 'details' ? 0 : -1"
+                [attr.aria-selected]="tab() === 'details'"
+                aria-controls="inspector-details"
+                (click)="tab.set('details')">
+                Details
+            </button>
+            <button
+                type="button"
+                role="tab"
+                [attr.tabindex]="tab() === 'configuration' ? 0 : -1"
+                [attr.aria-selected]="tab() === 'configuration'"
+                aria-controls="inspector-configuration"
+                (click)="tab.set('configuration')">
+                Configuration
+            </button>
+            <button
+                type="button"
+                role="tab"
+                [attr.tabindex]="tab() === 'comments' ? 0 : -1"
+                [attr.aria-selected]="tab() === 'comments'"
+                aria-controls="inspector-comments"
+                (click)="tab.set('comments')">
+                Comments
+            </button>
+        </div>
+        <button mat-icon-button aria-label="Close details" (click)="close()">
+            <i class="fa fa-times" aria-hidden="true"></i>
+        </button>
+    </div>
+    @if (!detail.readable) {
+        <p role="status">Access to this component is restricted.</p>
+    } @else {
+        <h3 class="text-base font-medium break-words">{{ detail.name }}</h3>
+        <p class="text-xs tertiary-color pt-1 pb-4">
+            {{ detail.kind === 'connection' ? 'Connection' : 'Processor' }} · Read-only snapshot
+        </p>
+        <div id="inspector-configuration" role="tabpanel" [hidden]="tab() !== 'configuration'">
+            <h4 class="font-medium mb-3">Configuration snapshot</h4>
+            <dl class="queue-details flex flex-col gap-3 text-sm">
+                <div>
+                    <dt>Id</dt>
+                    <dd>{{ detail.id }}</dd>
+                </div>
+                @if (metadata(); as component) {
+                    <div>
+                        <dt>Type</dt>
+                        <dd>{{ component.type || detail.kind }}</dd>
+                    </div>
+                    @if (detail.kind === 'processor') {
+                        <div>
+                            <dt>Schedule</dt>
+                            <dd>{{ component.schedulingPeriod }}</dd>
+                        </div>
+                        <div>
+                            <dt>Execution</dt>
+                            <dd>{{ component.executionNode }}</dd>
+                        </div>
+                    }
+                }
+                @if (detail.kind === 'connection') {
+                    <div>
+                        <dt>Object threshold · per node</dt>
+                        <dd>{{ detail.objectThreshold ?? 'Unavailable' }}</dd>
+                    </div>
+                    <div>
+                        <dt>Data threshold · per node</dt>
+                        <dd>{{ detail.dataThreshold || 'Unavailable' }}</dd>
+                    </div>
+                }
+            </dl>
+            <p class="text-xs tertiary-color pt-4">
+                Use Configure in the component menu to edit with your existing permissions.
+            </p>
+        </div>
+        <div id="inspector-comments" role="tabpanel" [hidden]="tab() !== 'comments'">
+            <h4 class="font-medium mb-3">Comments</h4>
+            <p class="text-sm whitespace-pre-wrap">
+                {{ detail.comments || 'No comments' }}
+            </p>
+        </div>
+        <div id="inspector-details" role="tabpanel" [hidden]="tab() !== 'details'">
+            @if (detail.kind === 'processor') {
+                <dl class="flex flex-col gap-3 text-sm">
+                    <div>
+                        <dt class="tertiary-color">Reported state</dt>
+                        <dd>{{ detail.state || 'Unavailable' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="tertiary-color">Validation</dt>
+                        <dd>{{ detail.validation || 'Unavailable' }}</dd>
+                    </div>
+                </dl>
+            } @else {
+                @if (utilization(); as percent) {
+                    <div
+                        class="utilization-summary"
+                        [class.limit]="percent >= 100"
+                        [class.warning]="percent >= 80 && percent < 100">
+                        <svg
+                            viewBox="0 0 100 100"
+                            role="img"
+                            [attr.aria-label]="'Highest reported utilization ' + percent + '%'">
+                            <circle class="ring-track" cx="50" cy="50" r="40"></circle>
+                            <circle
+                                class="ring-value"
+                                cx="50"
+                                cy="50"
+                                r="40"
+                                pathLength="100"
+                                [attr.stroke-dasharray]="(percent > 100 ? 100 : percent) + ' 100'"></circle>
+                            <text x="50" y="55" text-anchor="middle">{{ percent }}%</text>
+                        </svg>
+                        <div>
+                            <p class="font-medium">Reported utilization</p>
+                            <p class="text-xs tertiary-color pt-1">Highest count or byte percentage</p>
+                        </div>
+                    </div>
+                } @else if (utilization() === 0) {
+                    <p class="text-sm py-3">Reported utilization: 0%</p>
+                }
+                <dl class="queue-details flex flex-col gap-3 text-sm">
+                    <div>
+                        <dt class="tertiary-color">From</dt>
+                        <dd class="break-words">{{ detail.source || 'Unavailable' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="tertiary-color">To</dt>
+                        <dd class="break-words">{{ detail.destination || 'Unavailable' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="tertiary-color">Queued FlowFiles · Aggregate</dt>
+                        <dd>
+                            {{
+                                detail.queuedFlowFiles === undefined ? 'Unavailable' : (detail.queuedFlowFiles | number)
+                            }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="tertiary-color">Queued bytes · Aggregate</dt>
+                        <dd>{{ detail.queuedBytes === undefined ? 'Unavailable' : (detail.queuedBytes | number) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="tertiary-color">Object threshold · Per node</dt>
+                        <dd>
+                            {{
+                                detail.objectThreshold === undefined
+                                    ? 'Unavailable'
+                                    : detail.objectThreshold === 0
+                                      ? 'Disabled (0)'
+                                      : (detail.objectThreshold | number)
+                            }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="tertiary-color">Data size threshold · Per node</dt>
+                        <dd>{{ detail.dataThreshold || 'Unavailable' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="tertiary-color">Reported object utilization</dt>
+                        <dd>{{ detail.percentCount === undefined ? 'Unavailable' : detail.percentCount + '%' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="tertiary-color">Reported byte utilization</dt>
+                        <dd>{{ detail.percentBytes === undefined ? 'Unavailable' : detail.percentBytes + '%' }}</dd>
+                    </div>
+                </dl>
+                <button mat-stroked-button class="mt-4" (click)="listQueue()">List queue</button>
+                <p class="text-xs tertiary-color pt-2">
+                    Queue contents require data access. NiFi checks permission when requesting the listing.
+                </p>
+                <p class="text-xs tertiary-color pt-4">
+                    Utilization is rounded and can summarize different nodes. A full indicator alone does not prove that
+                    a processor is paused.
+                </p>
+            }
+            <button mat-stroked-button class="mt-4" (click)="history()">Status history</button>
+            @if (detail.kind === 'connection') {
+                <queue-node-status [selection]="detail"></queue-node-status>
+            }
+        </div>
+        <p class="text-xs tertiary-color pt-4">
+            Use the existing component menu for configuration and permitted operational actions.
+        </p>
+    }
+</section>

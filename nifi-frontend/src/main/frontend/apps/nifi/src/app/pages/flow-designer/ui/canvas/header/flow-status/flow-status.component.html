@@ -130,6 +130,8 @@
         <div class="flex">
             <search [currentProcessGroupId]="currentProcessGroupId"></search>
             <button
+                aria-label="Flow analysis"
+                [attr.aria-expanded]="flowAnalysisOpen"
                 class="flow-analysis-notifications w-8 border-l flex justify-center items-center pointer"
                 (click)="toggleFlowAnalysis()"
                 [ngClass]="flowAnalysisNotificationClass">
@@ -137,6 +139,7 @@
             </button>
             @if (hasBulletins()) {
                 <button
+                    aria-label="Controller bulletins"
                     nifiTooltip
                     [delayClose]="true"
                     [tooltipComponentType]="BulletinsTip"
@@ -147,7 +150,7 @@
                     <i class="fa fa-sticky-note-o"></i>
                 </button>
             } @else {
-                <button class="h-8 w-8 controller-bulletins border-l">
+                <button class="h-8 w-8 controller-bulletins border-l" aria-label="No controller bulletins" disabled>
                     <i class="fa fa-sticky-note-o"></i>
                 </button>
             }

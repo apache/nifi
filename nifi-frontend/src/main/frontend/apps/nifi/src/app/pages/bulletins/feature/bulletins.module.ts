@@ -24,20 +24,20 @@ import { EffectsModule } from '@ngrx/effects';
 import { BulletinBoardEffects } from '../state/bulletin-board/bulletin-board.effects';
 import { BulletinsRoutingModule } from './bulletins-routing.module';
 import { BulletinBoard } from '../ui/bulletin-board/bulletin-board.component';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 
 @NgModule({
     declarations: [Bulletins],
     exports: [Bulletins],
     imports: [
+        BannerText,
         CommonModule,
         BulletinsRoutingModule,
         StoreModule.forFeature(bulletinsFeatureKey, reducers),
         EffectsModule.forFeature(BulletinBoardEffects),
         BulletinBoard,
-        Navigation,
-        BannerText
+        WorkspacePageComponent
     ]
 })
 export class BulletinsModule {}

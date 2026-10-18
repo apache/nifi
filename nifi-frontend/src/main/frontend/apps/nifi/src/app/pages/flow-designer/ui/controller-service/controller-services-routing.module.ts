@@ -40,8 +40,10 @@ const routes: Routes = [
     }
 ];
 
+import { WorkspacePageComponent } from '../../../../ui/common/modern-workspace/workspace-page.component';
+
 @NgModule({
-    imports: [RouterModule.forChild(routes)],
+    imports: [WorkspacePageComponent, RouterModule.forChild(routes)],
     exports: [RouterModule]
 })
 export class ControllerServicesRoutingModule {}

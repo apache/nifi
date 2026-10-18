@@ -27,6 +27,10 @@ import { HeaderComponent } from './header/header.component';
 import { FooterComponent } from './footer/footer.component';
 import { FlowAnalysisDrawerComponent } from './header/flow-analysis-drawer/flow-analysis-drawer.component';
 import { OverlappingConnectionsBannerComponent } from '../../../../ui/common/overlapping-connections-banner/overlapping-connections-banner.component';
+import { OperationalOverviewComponent } from './operational-overview/operational-overview.component';
+import { OperationalInspectorComponent } from './operational-overview/operational-inspector.component';
+
+import { ModernNavigationComponent } from '../../../../ui/common/modern-workspace/modern-navigation/modern-navigation.component';
 
 @NgModule({
     declarations: [Canvas],
@@ -44,7 +48,10 @@ import { OverlappingConnectionsBannerComponent } from '../../../../ui/common/ove
         FooterComponent,
         MatSidenavModule,
         FlowAnalysisDrawerComponent,
-        OverlappingConnectionsBannerComponent
+        OverlappingConnectionsBannerComponent,
+        ModernNavigationComponent,
+        OperationalOverviewComponent,
+        OperationalInspectorComponent
     ]
 })
 export class CanvasModule {}

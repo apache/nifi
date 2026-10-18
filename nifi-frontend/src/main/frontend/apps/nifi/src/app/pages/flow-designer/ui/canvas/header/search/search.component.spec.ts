@@ -54,4 +54,26 @@ describe('Search', () => {
     it('should create', () => {
         expect(component).toBeTruthy();
     });
+    it('closes search results and clears the query after keyboard or pointer link activation', () => {
+        component.searchingResultsVisible = true;
+        component.searching = true;
+        component.searchForm.get('searchBar')?.setValue('processor', { emitEvent: false });
+        const link = document.createElement('a');
+        const child = document.createElement('span');
+        link.append(child);
+        const event = new MouseEvent('click');
+        Object.defineProperty(event, 'target', { value: child });
+        component.resultClicked(event);
+        expect(component.searchingResultsVisible).toBe(false);
+        expect(component.searching).toBe(false);
+        expect(component.searchForm.get('searchBar')?.value).toBe('');
+    });
+
+    it('keeps the result overlay open when interacting with non-navigation content', () => {
+        component.searchingResultsVisible = true;
+        const event = new MouseEvent('click');
+        Object.defineProperty(event, 'target', { value: document.createElement('i') });
+        component.resultClicked(event);
+        expect(component.searchingResultsVisible).toBe(true);
+    });
 });

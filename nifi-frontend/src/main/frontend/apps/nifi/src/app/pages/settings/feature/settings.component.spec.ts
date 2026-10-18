@@ -24,14 +24,14 @@ import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { initialState } from '../state/general/general.reducer';
 import { MockComponent } from 'ng-mocks';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 import { settingsFeatureKey } from '../state';
 import { generalFeatureKey } from '../state/general';
 import { initialState as initialErrorState } from '../../../state/error/error.reducer';
 import { errorFeatureKey } from '../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
 import { currentUserFeatureKey } from '../../../state/current-user';
-import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 describe('Settings', () => {
     let component: Settings;
@@ -44,8 +44,8 @@ describe('Settings', () => {
                 MatTabsModule,
                 RouterModule,
                 RouterTestingModule,
-                MockComponent(BannerText),
-                MockComponent(Navigation)
+                MockComponent(WorkspacePageComponent),
+                MockComponent(BannerText)
             ],
             providers: [
                 provideMockStore({

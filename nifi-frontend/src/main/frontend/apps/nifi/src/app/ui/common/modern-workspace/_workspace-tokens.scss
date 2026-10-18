@@ -1,0 +1,80 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Opt-in designer palette. Keep values here; shared application themes are unchanged.
+@mixin light {
+    --workspace-bg: #f2f6fb;
+    --workspace-chrome: #ffffff;
+    --workspace-card: #ffffff;
+    --workspace-border: #c7d4e2;
+    --workspace-text: #172b43;
+    --workspace-muted: #4d6179;
+    --workspace-accent: #0869b4;
+    --workspace-accent-contrast: #ffffff;
+    --workspace-error-contrast: #ffffff;
+    --workspace-selected: #e2efff;
+    --workspace-hover: #eef4fc;
+    --workspace-grid: #b8c9db;
+    --workspace-success: #137342;
+    --workspace-warning: #8c570c;
+    --workspace-error: #b62c40;
+}
+@mixin dark {
+    --workspace-bg: #09151f;
+    --workspace-chrome: #0d1b27;
+    --workspace-card: #142433;
+    --workspace-border: #334e65;
+    --workspace-text: #e6eef8;
+    --workspace-muted: #aabed3;
+    --workspace-accent: #60baff;
+    --workspace-accent-contrast: #03233c;
+    --workspace-error-contrast: #250910;
+    --workspace-selected: #173b5c;
+    --workspace-hover: #193044;
+    --workspace-grid: #294254;
+    --workspace-success: #44df98;
+    --workspace-warning: #ffc56b;
+    --workspace-error: #ff7d8d;
+}
+@mixin semantics {
+    --workspace-sidebar-width: 182px;
+    --mat-sys-background: var(--workspace-bg);
+    --mat-sys-surface: var(--workspace-chrome);
+    --mat-sys-surface-container: var(--workspace-card);
+    --mat-sys-surface-container-low: var(--workspace-card);
+    --mat-sys-surface-container-high: var(--workspace-card);
+    --mat-sys-surface-container-highest: var(--workspace-hover);
+    --mat-sys-secondary: var(--workspace-chrome);
+    --mat-sys-on-secondary: var(--workspace-text);
+    --mat-sys-on-background: var(--workspace-text);
+    --mat-sys-on-surface: var(--workspace-text);
+    --mat-sys-on-surface-variant: var(--workspace-muted);
+    --mat-sys-primary: var(--workspace-accent);
+    --mat-sys-tertiary: var(--workspace-muted);
+    --mat-sys-outline: var(--workspace-border);
+    --mat-sys-outline-variant: var(--workspace-border);
+    --mat-sys-error: var(--workspace-error);
+    --mat-sys-on-error: var(--workspace-error-contrast);
+    --mat-sys-on-primary: var(--workspace-accent-contrast);
+    --nf-success-default: var(--workspace-success);
+    --nf-caution-default: var(--workspace-warning);
+    --nf-neutral: var(--workspace-muted);
+    --nf-canvas-background: var(--workspace-bg);
+    --nf-odd: var(--workspace-card);
+    --nf-even: var(--workspace-card);
+    --nf-banner: var(--workspace-hover);
+}

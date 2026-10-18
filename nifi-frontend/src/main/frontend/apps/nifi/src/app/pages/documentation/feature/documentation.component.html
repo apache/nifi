@@ -16,10 +16,7 @@
   -->
 
 <banner-text>
-    <div class="flex flex-col h-full">
-        <header class="nifi-header">
-            <navigation></navigation>
-        </header>
+    <workspace-page [spacedHeader]="false" [canvas]="true">
         <div class="documentation flex flex-1">
             <div class="w-1/4 relative">
                 <div class="absolute inset-0 overflow-y-auto p-2 border-b flex flex-col gap-y-2">
@@ -173,5 +170,5 @@
                 </div>
             </div>
         </div>
-    </div>
+    </workspace-page>
 </banner-text>

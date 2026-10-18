@@ -1,0 +1,267 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// D3 owns these descendants. Scope to the opt-in designer; connector canvases
+// and classic presentation retain their original styling and geometry.
+@mixin presentation {
+    .workspace-canvas-detail {
+        visibility: visible;
+    }
+    marker#normal path {
+        fill: var(--workspace-accent);
+    }
+    marker#ghost path {
+        fill: var(--workspace-muted);
+    }
+    marker#full path,
+    marker#unauthorized path {
+        fill: var(--workspace-error);
+    }
+    g.processor {
+        rect.body,
+        rect.border {
+            rx: 10px;
+            ry: 10px;
+        }
+        rect.body {
+            fill: var(--workspace-card);
+            stroke: var(--workspace-border);
+            stroke-width: 1px;
+        }
+        &:hover rect.body {
+            stroke: var(--workspace-accent);
+        }
+        rect.processor-icon-container:not(.unauthorized) {
+            rx: 8px;
+            ry: 8px;
+            fill: var(--workspace-hover);
+        }
+        text.processor-name {
+            font-weight: 600;
+        }
+        text.processor-type {
+            fill: var(--workspace-muted);
+        }
+        // D3 still measures classic text on refresh. display:none makes SVG
+        // substring measurement fail and can abort rendering the remaining cards.
+        text.processor-bundle {
+            visibility: hidden;
+        }
+        text.processor-run-status {
+            font-size: 11px;
+            font-weight: 600;
+            fill: var(--workspace-muted);
+            &[data-run-status='Running'] {
+                fill: var(--workspace-success);
+            }
+            &[data-run-status='Invalid'],
+            &[data-run-status='Validating'] {
+                fill: var(--workspace-warning);
+            }
+            &[data-run-status='Stopped'] {
+                fill: var(--workspace-error);
+            }
+        }
+        rect.processor-stats-in-out,
+        rect.processor-read-write-stats {
+            fill: transparent;
+        }
+        rect.processor-stats-border {
+            fill: var(--workspace-border);
+            opacity: 0.45;
+        }
+        text.stats-label,
+        text.stats-info {
+            fill: var(--workspace-muted);
+            font-size: 11px;
+        }
+        text.stats-value {
+            fill: var(--workspace-text);
+            font-weight: 600;
+        }
+        rect.bulletin-background {
+            rx: 6px;
+            ry: 6px;
+        }
+        &.selected rect.border {
+            stroke: var(--workspace-accent) !important;
+            stroke-width: 3px;
+        }
+        &.connectable-destination rect.border {
+            stroke: var(--workspace-success) !important;
+        }
+        rect.border.unauthorized {
+            stroke: var(--workspace-error) !important;
+            stroke-dasharray: 4;
+        }
+    }
+    g.connection {
+        path.connection-path {
+            stroke: var(--workspace-accent);
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: none;
+            &.full,
+            &.unauthorized {
+                stroke: var(--workspace-error);
+            }
+        }
+        &.ghost path.connection-path {
+            stroke: var(--workspace-muted);
+        }
+        .connection-label-container > rect.body,
+        .connection-label-container > rect.border {
+            rx: 7px;
+            ry: 7px;
+        }
+        .connection-label-container > rect.body {
+            fill: var(--workspace-card);
+            stroke: var(--workspace-border);
+            stroke-width: 1px;
+        }
+        rect.connection-label-background {
+            fill: transparent;
+        }
+        rect.connection-label-border {
+            fill: var(--workspace-border);
+            opacity: 0.45;
+            &.transparent {
+                fill: transparent;
+            }
+        }
+        .connection-name-container > text.stats-label,
+        .connection-name-container > text.connection-name {
+            visibility: hidden;
+        }
+        text.workspace-connection-name {
+            font-size: 11px;
+            font-weight: 600;
+            fill: var(--workspace-text);
+        }
+        text.workspace-connection-utilization {
+            font-size: 11px;
+            font-weight: 600;
+            fill: var(--workspace-accent);
+        }
+        text.stats-value {
+            fill: var(--workspace-text);
+        }
+        text.stats-label {
+            fill: var(--workspace-muted);
+        }
+        .connection-label-container[data-utilization-level='warning'] text.workspace-connection-utilization {
+            fill: var(--workspace-warning);
+        }
+        .connection-label-container[data-utilization-level='high'] {
+            > rect.body {
+                stroke: var(--workspace-error);
+            }
+            text.workspace-connection-utilization {
+                fill: var(--workspace-error);
+            }
+        }
+        &.full {
+            .connection-label-container > rect.body {
+                stroke: var(--workspace-error);
+            }
+            text.workspace-connection-utilization {
+                fill: var(--workspace-error);
+            }
+        }
+        &.selected {
+            .connection-label-container > rect.body,
+            rect.border {
+                stroke: var(--workspace-accent);
+            }
+            path.connection-selection-path {
+                stroke: var(--workspace-accent);
+                stroke-width: 4px;
+                stroke-opacity: 0.35;
+            }
+        }
+        rect.backpressure-object,
+        rect.backpressure-data-size {
+            fill: var(--workspace-border);
+            &.not-configured {
+                fill: transparent;
+            }
+        }
+        rect.backpressure-percent {
+            fill: var(--workspace-success);
+            &.warning {
+                fill: var(--workspace-warning);
+            }
+            &.error {
+                fill: var(--workspace-error);
+            }
+        }
+        rect.linepoint {
+            stroke: var(--workspace-bg);
+            stroke-width: 1px;
+        }
+        rect.startpoint {
+            fill: var(--workspace-success);
+        }
+        rect.midpoint {
+            fill: var(--workspace-warning);
+        }
+        rect.endpoint {
+            fill: var(--workspace-accent);
+        }
+    }
+}
+
+// Compact cards replace the classic table in Modern; the classic rows stay
+// measurable for the original renderer and are restored when switching back.
+@mixin compact-cards {
+    g.processor {
+        text.processor-type {
+            font-size: 11px;
+        }
+        rect.processor-stats-in-out,
+        rect.processor-read-write-stats,
+        rect.processor-stats-border,
+        .processor-canvas-details > g:not(.modern-processor-summary) {
+            visibility: hidden;
+        }
+        .processor-canvas-details > text.stats-info {
+            visibility: hidden;
+        }
+        text.processor-name {
+            font-size: 13px;
+        }
+        text.processor-icon {
+            font-size: 29px;
+            fill: var(--workspace-accent);
+        }
+        text.modern-output-value {
+            font-size: 21px;
+            fill: var(--workspace-text);
+            font-weight: 600;
+        }
+        text.modern-output-label,
+        text.modern-footer {
+            font-size: 11px;
+            fill: var(--workspace-muted);
+        }
+        .modern-card-divider {
+            fill: none;
+            stroke: var(--workspace-border);
+            stroke-width: 1;
+        }
+    }
+}

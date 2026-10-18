@@ -1,0 +1,169 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.overview {
+    background: var(--mat-sys-surface);
+    border-color: var(--mat-sys-outline-variant);
+}
+
+.metric-card {
+    background: var(--mat-sys-surface-container-low);
+    border: 1px solid var(--mat-sys-outline-variant);
+}
+
+.state-running {
+    color: var(--nf-success-default);
+}
+
+.state-invalid {
+    color: var(--nf-caution-default);
+}
+
+.metric-card dl.grid-cols-5 {
+    grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+}
+
+.overview > div:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--mat-sys-surface);
+}
+.metric-card h3 {
+    font-size: 13px;
+    line-height: 1.5;
+    font-weight: 600;
+}
+.metric-card h3 span {
+    font-size: 12px;
+}
+
+:host-context(.modern-workspace) {
+    .overview {
+        border: 0;
+    }
+    .overview > div:first-child {
+        height: 42px;
+        border-bottom: 1px solid var(--workspace-border);
+        padding: 0 18px;
+    }
+    .overview-heading {
+        height: 42px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 2px solid var(--workspace-accent);
+        color: var(--workspace-text);
+        font-size: 12px;
+    }
+    .overview-content {
+        padding: 10px 18px 12px;
+    }
+    .overview-content > .text-xs {
+        font-size: 10px;
+    }
+    .metric-card {
+        padding: 13px 15px;
+        border-radius: 10px;
+        background: linear-gradient(120deg, var(--workspace-card), var(--workspace-chrome));
+        min-height: 144px;
+    }
+    .metric-card h3 {
+        font-size: 12px;
+        margin: 0;
+        color: var(--workspace-muted);
+        font-weight: 500;
+    }
+    .metric-card .text-2xl {
+        font-size: 27px;
+    }
+    .processor-state-visual {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding-top: 6px;
+    }
+    .processor-state-visual svg {
+        width: 95px;
+        flex-shrink: 0;
+    }
+    .state-ring-track {
+        fill: none;
+        stroke: var(--workspace-border);
+        stroke-width: 10;
+    }
+    .state-ring-value {
+        fill: none;
+        stroke: var(--workspace-success);
+        stroke-width: 10;
+        transform: rotate(-90deg);
+        transform-origin: center;
+    }
+    svg text {
+        fill: var(--workspace-text);
+        font-size: 24px;
+        font-weight: 600;
+    }
+    svg .ring-caption {
+        font-size: 10px;
+        fill: var(--workspace-muted);
+        font-weight: 400;
+    }
+    .metric-card dl.grid-cols-5 {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        gap: 3px;
+        padding: 0;
+    }
+    .metric-card dl > div {
+        display: flex;
+        justify-content: space-between;
+        gap: 5px;
+        align-items: center;
+    }
+    .metric-card dt {
+        font-size: 10px;
+        color: var(--workspace-muted);
+    }
+    .metric-card dd {
+        font-size: 11px;
+        line-height: 16px;
+        padding: 0;
+    }
+    .metric-card button {
+        max-width: 100%;
+        padding-inline: 0;
+        text-align: left;
+    }
+}
+
+:host-context(.modern-workspace) {
+    .processor-state-visual svg {
+        height: 95px;
+    }
+    .metric-card p {
+        font-size: 10px;
+        line-height: 1.5;
+    }
+    .metric-card button {
+        line-height: 1.5;
+        font-size: 11px;
+        height: auto;
+        min-height: 24px;
+    }
+}

@@ -23,10 +23,10 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { Summary } from './summary.component';
 import { initialState } from '../state/summary-listing/summary-listing.reducer';
 import { MockComponent } from 'ng-mocks';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 import { summaryFeatureKey } from '../state';
 import { summaryListingFeatureKey } from '../state/summary-listing';
-import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 import { initialState as initialClusterSummaryState } from '../../../state/cluster-summary/cluster-summary.reducer';
 import { clusterSummaryFeatureKey } from '../../../state/cluster-summary';
 
@@ -41,8 +41,8 @@ describe('Summary', () => {
                 MatTabsModule,
                 RouterModule,
                 RouterTestingModule,
-                MockComponent(BannerText),
-                MockComponent(Navigation)
+                MockComponent(WorkspacePageComponent),
+                MockComponent(BannerText)
             ],
             providers: [
                 provideMockStore({

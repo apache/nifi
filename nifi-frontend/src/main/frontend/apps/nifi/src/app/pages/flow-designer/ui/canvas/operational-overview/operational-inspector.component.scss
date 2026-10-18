@@ -1,0 +1,127 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.inspector-title {
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    margin-bottom: 18px;
+}
+.utilization-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    --ring-color: var(--mat-sys-primary);
+}
+.utilization-summary.limit {
+    --ring-color: var(--mat-sys-error);
+}
+.utilization-summary.warning {
+    --ring-color: var(--nf-caution-default);
+}
+svg {
+    width: 90px;
+    height: 90px;
+    flex-shrink: 0;
+}
+circle {
+    fill: none;
+    stroke-width: 9px;
+}
+.ring-track {
+    stroke: var(--mat-sys-outline-variant);
+}
+.ring-value {
+    stroke: var(--ring-color);
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+}
+svg text {
+    fill: var(--mat-sys-on-surface);
+    font-size: 20px;
+    font-weight: 600;
+}
+.queue-details > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+dt {
+    max-width: 58%;
+}
+dd {
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+:host-context(.modern-workspace) {
+    .inspector {
+        padding: 0 20px 20px;
+    }
+    .inspector-title {
+        height: 56px;
+        margin-inline: -20px;
+        padding: 0 12px;
+        margin-bottom: 20px;
+    }
+    .inspector-tabs {
+        display: flex;
+        height: 56px;
+        flex: 1;
+    }
+    .inspector-tabs button {
+        border: 0;
+        background: none;
+        color: var(--workspace-muted);
+        font-size: 11px;
+        padding: 0 8px;
+        border-radius: 0;
+    }
+    .inspector-tabs button[aria-selected='true'] {
+        color: var(--workspace-text);
+        border-bottom: 3px solid var(--workspace-accent);
+    }
+    .inspector-tabs button:focus-visible {
+        outline: 2px solid var(--workspace-accent);
+        outline-offset: -3px;
+    }
+    .inspector-title > button {
+        width: 28px;
+        height: 32px;
+        padding: 0;
+    }
+    h3 {
+        font-size: 17px;
+        line-height: 1.5;
+    }
+    .queue-details {
+        font-size: 11px;
+    }
+    .queue-details dt {
+        color: var(--workspace-muted);
+    }
+    .queue-details dd {
+        font-weight: 600;
+    }
+    .utilization-summary {
+        border-block: 1px solid var(--workspace-border);
+        padding: 18px 0;
+    }
+    .utilization-summary svg {
+        width: 100px;
+        height: 100px;
+    }
+}

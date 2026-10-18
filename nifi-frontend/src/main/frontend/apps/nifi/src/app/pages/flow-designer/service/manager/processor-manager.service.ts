@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import { WorkspacePreferencesService } from '../../../../ui/common/modern-workspace/workspace-preferences.service';
 import { Injectable, OnDestroy, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
@@ -34,6 +35,7 @@ import { ValidationErrorsTip } from '../../../../ui/common/tooltips/validation-e
 import { ComponentType, TextTip, NiFiCommon } from '@nifi/shared';
 import { Dimension } from '../../state/shared';
 import { filter, Subject, switchMap, takeUntil } from 'rxjs';
+import { processorVisualIdentity, processorRunStatus } from './modern-canvas-presentation';
 
 @Injectable({
     providedIn: 'root'
@@ -49,10 +51,19 @@ export class ProcessorManager implements OnDestroy {
 
     private destroyed$: Subject<boolean> = new Subject();
 
-    private dimensions: Dimension = {
-        width: 352,
-        height: 128
-    };
+    private workspace = inject(WorkspacePreferencesService);
+    private get dimensions(): Dimension {
+        return this.workspace.enabled() ? { width: 210, height: 176 } : { width: 352, height: 128 };
+    }
+
+    public updatePresentation(): void {
+        if (!this.processorContainer) return;
+        const updated = this.selectAll();
+        updated.each((d: any) => {
+            d.dimensions = this.dimensions;
+        });
+        this.updateProcessors(updated);
+    }
 
     private static readonly PREVIEW_NAME_LENGTH: number = 25;
 
@@ -157,6 +168,23 @@ export class ProcessorManager implements OnDestroy {
             return;
         }
 
+        const modern = this.workspace.enabled();
+        updated
+            .selectAll('rect.body, rect.border')
+            .attr('width', (d: any) => d.dimensions.width)
+            .attr('height', (d: any) => d.dimensions.height);
+        updated
+            .select('text.processor-name')
+            .attr('x', modern ? 62 : 75)
+            .attr('y', modern ? 29 : 18)
+            .attr('width', modern ? 136 : 230);
+        updated
+            .select('text.processor-type')
+            .attr('x', modern ? 62 : 75)
+            .attr('y', modern ? 48 : 32)
+            .attr('width', modern ? 136 : 230);
+        updated.classed('modern-processor', modern);
+
         // processor border authorization
         updated
             .select('rect.border')
@@ -192,6 +220,13 @@ export class ProcessorManager implements OnDestroy {
                         .attr('y', 23)
                         .attr('width', 14)
                         .attr('height', 14);
+
+                    details
+                        .append('text')
+                        .attr('class', 'processor-run-status workspace-canvas-detail')
+                        .attr('visibility', 'hidden')
+                        .attr('x', 75)
+                        .attr('y', 45);
 
                     // processor type
                     details
@@ -419,6 +454,19 @@ export class ProcessorManager implements OnDestroy {
                         .attr('class', 'stats-info')
                         .text('5 min');
 
+                    const summary = details
+                        .append('g')
+                        .attr('class', 'modern-processor-summary workspace-canvas-detail')
+                        .attr('visibility', 'hidden');
+                    summary.append('text').attr('class', 'modern-output-value').attr('x', 16).attr('y', 121);
+                    summary
+                        .append('text')
+                        .attr('class', 'modern-output-label')
+                        .attr('x', 16)
+                        .attr('y', 139)
+                        .text('FlowFiles out · 5 min');
+                    summary.append('path').attr('d', 'M 14 150 H 196').attr('class', 'modern-card-divider');
+                    summary.append('text').attr('class', 'modern-footer').attr('x', 16).attr('y', 166);
                     // --------
                     // comments
                     // --------
@@ -677,6 +725,16 @@ export class ProcessorManager implements OnDestroy {
             return;
         }
 
+        updated
+            .select('text.processor-run-status')
+            .attr('data-run-status', (d) => processorRunStatus(d.status?.aggregateSnapshot?.runStatus))
+            .text((d) => processorRunStatus(d.status?.aggregateSnapshot?.runStatus))
+            .append('title')
+            .text((d) => {
+                const bundle = d.permissions.canRead ? d.component?.bundle : undefined;
+                return bundle ? `${bundle.group} — ${bundle.artifact} ${bundle.version}` : '';
+            });
+
         // update the run status
         updated
             .select('text.run-status-icon')
@@ -776,6 +834,76 @@ export class ProcessorManager implements OnDestroy {
             // ---------
 
             this.canvasUtils.bulletins(processor, d.bulletins);
+            if (this.workspace.enabled()) {
+                processor
+                    .select('rect.processor-icon-container')
+                    .attr('x', 12)
+                    .attr('y', 16)
+                    .attr('width', 38)
+                    .attr('height', 40);
+                const identity = processorVisualIdentity(d.permissions.canRead ? d.component?.type : undefined);
+                processor.attr('data-icon-family', identity.family);
+                processor.select('text.processor-icon').attr('x', 16).attr('y', 46).text(identity.glyph);
+                processor
+                    .select('text.processor-type')
+                    .attr('x', 62)
+                    .attr('y', 48)
+                    .attr('width', 136)
+                    .each((datum: any, index, elements) => {
+                        this.canvasUtils.ellipsis(
+                            d3.select(elements[index]),
+                            this.nifiCommon.formatType(datum.component),
+                            'processor-type'
+                        );
+                    });
+                processor.select('text.processor-run-status').attr('x', 34).attr('y', 92);
+                processor.select('text.run-status-icon').attr('x', 16).attr('y', 92);
+                processor
+                    .select('text.modern-output-value')
+                    .text(d.permissions.canRead ? (d.status.aggregateSnapshot.flowFilesOut ?? '—') : '—');
+                processor
+                    .select('text.modern-footer')
+                    .text(
+                        d.permissions.canRead
+                            ? (d.status.aggregateSnapshot.tasks ?? '—') + ' tasks · 5 min'
+                            : 'Restricted'
+                    );
+                processor.select('g.modern-processor-summary').selectAll('title').remove();
+                if (d.permissions.canRead)
+                    processor
+                        .select('g.modern-processor-summary')
+                        .append('title')
+                        .text(
+                            'In: ' +
+                                d.status.aggregateSnapshot.input +
+                                '\nRead/Write: ' +
+                                d.status.aggregateSnapshot.read +
+                                ' / ' +
+                                d.status.aggregateSnapshot.written +
+                                '\nOut: ' +
+                                d.status.aggregateSnapshot.output +
+                                '\nTasks/time: ' +
+                                d.status.aggregateSnapshot.tasks +
+                                ' / ' +
+                                d.status.aggregateSnapshot.tasksDuration +
+                                '\nFive-minute counters'
+                        );
+                processor.select('rect.bulletin-background').attr('x', 180).attr('y', 148);
+                processor.select('text.bulletin-icon').attr('x', 186).attr('y', 165);
+            } else {
+                processor
+                    .select('rect.processor-icon-container')
+                    .attr('x', 0)
+                    .attr('y', 0)
+                    .attr('width', 50)
+                    .attr('height', 50);
+                processor.select('text.processor-icon').attr('x', 9).attr('y', 35).text('\ue807');
+                processor.select('text.processor-type').attr('x', 75).attr('y', 32).attr('width', 230);
+                processor.select('text.processor-run-status').attr('x', 75).attr('y', 45);
+                processor.select('text.run-status-icon').attr('x', 55).attr('y', 23);
+                processor.select('rect.bulletin-background').attr('x', 328).attr('y', 0);
+                processor.select('text.bulletin-icon').attr('x', 335).attr('y', 17);
+            }
         });
     }
 

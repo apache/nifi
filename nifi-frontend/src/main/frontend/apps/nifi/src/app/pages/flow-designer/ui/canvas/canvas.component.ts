@@ -15,7 +15,10 @@
  * limitations under the License.
  */
 
-import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
+import { WorkspacePreferencesService } from '../../../../ui/common/modern-workspace/workspace-preferences.service';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, HostListener, OnDestroy, OnInit, effect, inject, signal } from '@angular/core';
 import { CanvasState } from '../../state';
 import { Position } from '@nifi/shared';
 import { Store } from '@ngrx/store';
@@ -79,6 +82,7 @@ import { CanvasActionsService } from '../../service/canvas-actions.service';
 import { MatDialog } from '@angular/material/dialog';
 import { CopyResponseEntity } from '../../../../state/copy';
 import { snackBarError } from '../../../../state/error/error.actions';
+import { selectOperationalSelection } from '../../state/operational-overview/operational-overview.selectors';
 
 @Component({
     selector: 'fd-canvas',
@@ -103,6 +107,35 @@ export class Canvas implements OnInit, OnDestroy {
     private canvasClicked = false;
 
     flowAnalysisOpen = this.store.selectSignal(selectFlowAnalysisOpen);
+    private workspace = inject(WorkspacePreferencesService);
+    modernWorkspace = this.workspace.enabled;
+    operationalPreview = signal(this.modernWorkspace());
+    compactWorkspace = toSignal(
+        inject(BreakpointObserver)
+            .observe('(max-width: 1000px)')
+            .pipe(map((result) => result.matches)),
+        { initialValue: false }
+    );
+
+    toggleModernWorkspace(): void {
+        this.workspace.toggle();
+        if (this.modernWorkspace()) this.operationalPreview.set(true);
+    }
+
+    focusOverview(): void {
+        this.operationalPreview.set(true);
+        requestAnimationFrame(() => {
+            const content = document.getElementById('operational-overview-content');
+            content?.focus({ preventScroll: true });
+            content?.closest('operational-overview')?.scrollTo({ top: 0 });
+        });
+    }
+
+    focusCanvas(): void {
+        document.getElementById('canvas-container')?.focus();
+    }
+
+    operationalSelection = this.store.selectSignal(selectOperationalSelection);
     navigationCollapsed = this.store.selectSignal(selectNavigationCollapsed);
     operationCollapsed = this.store.selectSignal(selectOperationCollapsed);
     overlappingConnections$ = this.store.select(selectOverlappingConnections);
@@ -113,6 +146,9 @@ export class Canvas implements OnInit, OnDestroy {
     }
 
     constructor() {
+        effect(() => {
+            if (this.modernWorkspace()) this.operationalPreview.set(true);
+        });
         this.store
             .select(selectTransform)
             .pipe(takeUntilDestroyed())
@@ -124,7 +160,7 @@ export class Canvas implements OnInit, OnDestroy {
             .select(selectUrl)
             .pipe(takeUntilDestroyed())
             .subscribe((route) => {
-                if (!route.endsWith('/edit') && !route.endsWith('/history')) {
+                if (route.startsWith('/process-groups/') && !route.endsWith('/edit') && !route.endsWith('/history')) {
                     this.storage.setItem('current-canvas-route', route);
                 }
             });

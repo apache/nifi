@@ -15,22 +15,36 @@
   ~ limitations under the License.
   -->
 
-@if (loading) {
-    <div class="splash h-full p-20">
-        <div class="splash-img h-full flex items-center justify-center">
-            <mat-spinner class="tertiary-spinner"></mat-spinner>
+<main class="login-background">
+    <div class="login-shell">
+        <div class="login-brand" aria-label="Apache NiFi">
+            <i class="icon icon-drop" aria-hidden="true"></i>
+            <span>Apache NiFi</span>
         </div>
-    </div>
-} @else {
-    <div class="login-background pt-24 pl-24 h-full">
-        @if (currentUserState$ | async; as userState) {
-            @if (userState.status === 'success') {
-                <page-content [title]="'Success'">
-                    <div class="text-base">Already logged in. Click home to return to canvas.</div>
-                </page-content>
+        <section class="login-card" aria-label="NiFi Flow sign in">
+            @if (loading) {
+                <div class="login-loading" role="status">
+                    <mat-spinner diameter="32"></mat-spinner>
+                    <p>
+                        {{
+                            loginConfiguration()?.externalLoginRequired
+                                ? 'Redirecting to your identity provider…'
+                                : 'Loading sign-in options…'
+                        }}
+                    </p>
+                </div>
             } @else {
-                <login-form></login-form>
+                @if (currentUserState$ | async; as userState) {
+                    @if (userState.status === 'success') {
+                        <h1>Welcome back</h1>
+                        <p>You are already signed in.</p>
+                        <a class="canvas-link" [routerLink]="['/']">Continue to NiFi Flow</a>
+                    } @else {
+                        <login-form></login-form>
+                    }
+                }
             }
-        }
+        </section>
+        <p class="login-caption">Apache NiFi · NiFi Flow</p>
     </div>
-}
+</main>

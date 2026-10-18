@@ -16,22 +16,28 @@
   -->
 
 <div class="navigation-control border flex flex-col gap-y-2">
-    <div class="navigation-control-header pointer flex justify-between" (click)="toggleCollapsed()">
-        <div class="flex items-center">
-            <div class="fa fa-compass primary-color"></div>
+    <button
+        type="button"
+        class="navigation-control-header pointer flex justify-between"
+        aria-label="Navigation controls"
+        [attr.aria-expanded]="!navigationCollapsed"
+        [attr.aria-controls]="!navigationCollapsed ? 'navigation-controls-content' : null"
+        (click)="toggleCollapsed()">
+        <span class="flex items-center">
+            <span class="fa fa-compass primary-color" aria-hidden="true"></span>
             @if (!navigationCollapsed || !shouldDockWhenCollapsed) {
-                <div class="text-sm">Navigation</div>
+                <span class="text-sm">Navigation</span>
             }
-        </div>
+        </span>
         @if (!navigationCollapsed || !shouldDockWhenCollapsed) {
-            <div
+            <span
                 class="fa navigation-control-expansion primary-color"
                 [class.fa-minus-square-o]="!navigationCollapsed"
-                [class.fa-plus-square-o]="navigationCollapsed"></div>
+                [class.fa-plus-square-o]="navigationCollapsed"></span>
         }
-    </div>
+    </button>
     @if (!navigationCollapsed) {
-        <div class="w-72 px-2.5 pb-2.5 flex flex-col gap-y-2">
+        <div id="navigation-controls-content" class="w-72 px-2.5 pb-2.5 flex flex-col gap-y-2">
             <div class="flex justify-between">
                 <div class="flex gap-x-1">
                     <button
@@ -39,6 +45,7 @@
                         class="primary-icon-button"
                         type="button"
                         matTooltip="Zoom In"
+                        aria-label="Zoom In"
                         (click)="zoomIn()">
                         <i class="fa fa-search-plus"></i>
                     </button>
@@ -47,6 +54,7 @@
                         class="primary-icon-button mr-2"
                         type="button"
                         matTooltip="Zoom Out"
+                        aria-label="Zoom Out"
                         (click)="zoomOut()">
                         <i class="fa fa-search-minus"></i>
                     </button>
@@ -55,6 +63,7 @@
                         class="primary-icon-button"
                         type="button"
                         matTooltip="Fit to Screen"
+                        aria-label="Fit to Screen"
                         (click)="zoomFit()">
                         <i class="ml-1 icon icon-zoom-fit"></i>
                     </button>
@@ -63,6 +72,7 @@
                         class="primary-icon-button"
                         type="button"
                         matTooltip="Zoom to Actual Size"
+                        aria-label="Zoom to Actual Size"
                         (click)="zoomActual()">
                         <i class="ml-1 icon icon-zoom-actual"></i>
                     </button>
@@ -73,6 +83,7 @@
                         class="primary-icon-button"
                         type="button"
                         matTooltip="Leave Group"
+                        aria-label="Leave Group"
                         (click)="leaveProcessGroup()">
                         <i class="fa fa-level-up"></i>
                     </button>

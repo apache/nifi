@@ -20,8 +20,8 @@ import { CommonModule } from '@angular/common';
 import { Queue } from './queue.component';
 import { QueueRoutingModule } from './queue-routing.module';
 import { MatDialogModule } from '@angular/material/dialog';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 import { StoreModule } from '@ngrx/store';
 import { queueFeatureKey, reducers } from '../state';
 import { EffectsModule } from '@ngrx/effects';
@@ -34,7 +34,7 @@ import { QueueListingEffects } from '../state/queue-listing/queue-listing.effect
         CommonModule,
         MatDialogModule,
         QueueRoutingModule,
-        Navigation,
+        WorkspacePageComponent,
         BannerText,
         StoreModule.forFeature(queueFeatureKey, reducers),
         EffectsModule.forFeature(QueueListingEffects)

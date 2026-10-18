@@ -1,0 +1,186 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<section class="overview border-b" aria-label="Operational overview">
+    <div class="flex items-center justify-between gap-3 px-4 py-1">
+        <h2 class="text-sm font-medium overview-heading">
+            <i class="fa fa-line-chart" aria-hidden="true"></i> Flow overview
+        </h2>
+        <div class="flex items-center gap-2">
+            <button mat-button (click)="workspaceChange.emit()" [attr.aria-pressed]="modernWorkspace()">
+                {{ modernWorkspace() ? 'Classic workspace' : 'Modern workspace' }}
+            </button>
+            <button
+                mat-button
+                [attr.aria-expanded]="expanded()"
+                aria-controls="operational-overview-content"
+                (click)="expandedChange.emit(!expanded())">
+                {{ expanded() ? 'Hide overview' : 'Show overview' }}
+            </button>
+        </div>
+    </div>
+    @if (expanded()) {
+        @let data = model();
+        <div id="operational-overview-content" tabindex="-1" class="px-4 pb-3 overview-content">
+            @if (data.status === 'loading') {
+                <p role="status">Loading group overview…</p>
+            } @else if (data.status === 'error') {
+                <p role="alert">Unable to load this group. Use Refresh to try again.</p>
+            } @else if (data.status === 'forbidden') {
+                <p role="status">You do not have permission to view this group.</p>
+            } @else {
+                @if (data.refreshFailed) {
+                    <p class="text-sm pb-2" role="alert">
+                        Refresh failed. Showing the last successful snapshot; current values may have changed.
+                    </p>
+                }
+                <div class="flex flex-wrap justify-between gap-2 pb-2 text-xs tertiary-color">
+                    <span>{{ data.name }} · Direct, readable processors and connections; nested groups excluded</span>
+                    <span
+                        >{{ data.refreshing ? 'Refreshing snapshot…' : 'Snapshot refreshed' }}
+                        {{ data.lastRefreshed || 'Unavailable' }}</span
+                    >
+                </div>
+                @if (data.restricted) {
+                    <p class="text-xs pb-2">Restricted components are omitted.</p>
+                }
+                @if (data.visibleProcessors === 0 && data.visibleConnections === 0) {
+                    <p class="text-sm pb-2">No readable processors or connections in this group.</p>
+                }
+                <div class="metric-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                    <article class="metric-card rounded-xl p-3" aria-label="Visible processor states">
+                        <h3 class="text-sm font-medium">
+                            Visible processors <span class="tertiary-color">{{ data.visibleProcessors | number }}</span>
+                        </h3>
+                        <div class="processor-state-visual">
+                            <svg
+                                viewBox="0 0 100 100"
+                                role="img"
+                                aria-label="Running processors as a share of visible processors">
+                                <circle class="state-ring-track" cx="50" cy="50" r="40"></circle>
+                                <circle
+                                    class="state-ring-value"
+                                    cx="50"
+                                    cy="50"
+                                    r="40"
+                                    pathLength="100"
+                                    [attr.stroke-dasharray]="
+                                        (data.visibleProcessors
+                                            ? (data.processors.running / data.visibleProcessors) * 100
+                                            : 0) + ' 100'
+                                    "></circle>
+                                <text x="50" y="52" text-anchor="middle">{{ data.processors.running }}</text>
+                                <text class="ring-caption" x="50" y="67" text-anchor="middle">running</text>
+                            </svg>
+                            <dl class="grid grid-cols-5 gap-2 pt-3 text-xs">
+                                <div>
+                                    <dt><span aria-hidden="true" class="fa fa-play state-running"></span> Running</dt>
+                                    <dd class="text-xl font-semibold pt-1">{{ data.processors.running }}</dd>
+                                </div>
+                                <div>
+                                    <dt><span aria-hidden="true" class="fa fa-stop"></span> Stopped</dt>
+                                    <dd class="text-xl font-semibold pt-1">{{ data.processors.stopped }}</dd>
+                                </div>
+                                <div>
+                                    <dt>
+                                        <span aria-hidden="true" class="fa fa-warning state-invalid"></span> Invalid
+                                    </dt>
+                                    <dd class="text-xl font-semibold pt-1">{{ data.processors.invalid }}</dd>
+                                </div>
+                                <div>
+                                    <dt><span aria-hidden="true" class="fa fa-ban"></span> Disabled</dt>
+                                    <dd class="text-xl font-semibold pt-1">{{ data.processors.disabled }}</dd>
+                                </div>
+                                <div>
+                                    <dt>Unknown</dt>
+                                    <dd class="text-xl font-semibold pt-1">{{ data.processors.unknown }}</dd>
+                                </div>
+                            </dl>
+                        </div>
+                    </article>
+                    <article class="metric-card rounded-xl p-3" aria-label="Visible queued data">
+                        <h3 class="text-sm font-medium">Queued FlowFiles</h3>
+                        <div class="text-2xl font-semibold pt-2">
+                            {{ data.queuedFlowFiles === null ? 'Unavailable' : (data.queuedFlowFiles | number) }}
+                        </div>
+                        <p class="text-xs tertiary-color pt-1">
+                            {{
+                                data.queuedBytes === null ? 'Bytes unavailable' : (data.queuedBytes | number) + ' bytes'
+                            }}
+                            · {{ data.visibleConnections }} visible connections
+                        </p>
+                    </article>
+                    <article class="metric-card rounded-xl p-3" aria-label="Highest reported queue utilization">
+                        <h3 class="text-sm font-medium">Highest queue utilization</h3>
+                        @if (data.highestUtilization; as queue) {
+                            <div class="flex items-center gap-2 pt-2">
+                                <span class="text-2xl font-semibold">{{ queue.percent }}%</span>
+                                @if (queue.percent >= 85) {
+                                    <span class="text-xs state-invalid">High reported utilization</span>
+                                }
+                            </div>
+                            <button
+                                mat-button
+                                (click)="inspectConnection(queue.id)"
+                                [attr.aria-label]="'Inspect connection ' + queue.name">
+                                {{ queue.name }}
+                            </button>
+                        } @else {
+                            <p class="text-sm pt-2">No reported utilization available.</p>
+                        }
+                        <p class="text-xs tertiary-color">
+                            {{ data.measuredConnections }} / {{ data.visibleConnections }} queues observed · Rounded
+                            snapshot
+                        </p>
+                    </article>
+                    <article class="metric-card rounded-xl p-3" aria-label="Runtime connectivity">
+                        <h3 class="text-sm font-medium">Runtime <span class="tertiary-color">· Global</span></h3>
+                        @if (cluster(); as nodes) {
+                            @if (!nodes.clustered) {
+                                <p class="text-xl font-semibold pt-2">Standalone</p>
+                            } @else {
+                                <p class="text-xl font-semibold pt-2">
+                                    {{ nodes.connectedNodeCount }} / {{ nodes.totalNodeCount }} nodes
+                                </p>
+                                <p class="text-xs pt-1">
+                                    {{
+                                        !nodes.connectedToCluster
+                                            ? 'Disconnected'
+                                            : nodes.connectedNodeCount === nodes.totalNodeCount
+                                              ? 'Connected'
+                                              : 'Partial connectivity'
+                                    }}
+                                </p>
+                            }
+                        } @else {
+                            <p class="text-sm pt-2">Connectivity unavailable.</p>
+                        }
+                    </article>
+                </div>
+                <div class="text-xs pt-2">
+                    <span class="font-medium">Controller bulletins · Global: </span>
+                    @if (data.controllerBulletins.length === 0) {
+                        <span class="tertiary-color">No visible controller bulletins</span>
+                    }
+                    @for (bulletin of data.controllerBulletins | slice: 0 : 3; track $index) {
+                        <p>{{ bulletin.level }} · {{ bulletin.message }}</p>
+                    }
+                </div>
+            }
+        </div>
+    }
+</section>

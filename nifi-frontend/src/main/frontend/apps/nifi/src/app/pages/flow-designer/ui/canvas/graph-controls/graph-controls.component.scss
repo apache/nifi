@@ -21,3 +21,22 @@ div.graph-controls {
     top: 16px;
     z-index: 2;
 }
+
+:host-context(.modern-workspace) {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    > .relative {
+        position: static;
+    }
+    div.graph-controls {
+        top: auto;
+        left: 18px;
+        bottom: 18px;
+        flex-direction: row;
+        align-items: flex-end;
+        gap: 8px;
+        pointer-events: auto;
+    }
+}

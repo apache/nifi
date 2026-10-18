@@ -378,6 +378,7 @@ export interface FlowState {
     versionSaving: boolean;
     changeVersionRequest: FlowUpdateRequestEntity | null;
     pollingProcessor: StartPollingProcessorUntilStoppedRequest | null;
+    loadError?: { id: string; status: number } | null;
     status: 'pending' | 'loading' | 'success' | 'complete';
 }
 

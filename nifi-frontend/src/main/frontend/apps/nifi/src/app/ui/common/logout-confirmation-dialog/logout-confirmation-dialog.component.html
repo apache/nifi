@@ -1,0 +1,30 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="logout-heading">
+    <h2 mat-dialog-title id="logout-confirm-title">Logout</h2>
+    <button type="button" mat-icon-button [mat-dialog-close]="false" aria-label="Cancel logout">
+        <i class="fa fa-times" aria-hidden="true"></i>
+    </button>
+</div>
+<mat-dialog-content id="logout-confirm-message">
+    <p>You are about to log out of Apache NiFi.</p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+    <button id="logout-cancel" type="button" mat-stroked-button [mat-dialog-close]="false">Cancel</button>
+    <button type="button" mat-flat-button [mat-dialog-close]="true">Confirm</button>
+</mat-dialog-actions>

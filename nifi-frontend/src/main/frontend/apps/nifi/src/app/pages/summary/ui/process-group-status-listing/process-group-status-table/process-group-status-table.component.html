@@ -308,6 +308,7 @@
                                     <div class="flex items-center justify-end gap-x-2">
                                         <button
                                             mat-icon-button
+                                            aria-label="Process group actions"
                                             type="button"
                                             [matMenuTriggerFor]="actionMenu"
                                             class="h-16 w-16 flex items-center justify-center icon global-menu">
@@ -352,7 +353,11 @@
     </div>
     <div class="flex justify-between align-middle">
         <div class="text-sm flex items-center gap-x-2">
-            <button mat-icon-button class="primary-icon-button" (click)="refresh.next()">
+            <button
+                mat-icon-button
+                class="primary-icon-button"
+                (click)="refresh.next()"
+                aria-label="Refresh process group summary">
                 <i class="fa fa-refresh" [class.fa-spin]="summaryListingStatus === 'loading'"></i>
             </button>
             <div>Last updated:</div>

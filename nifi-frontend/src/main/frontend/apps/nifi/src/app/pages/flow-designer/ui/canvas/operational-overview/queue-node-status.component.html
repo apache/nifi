@@ -1,0 +1,81 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<section class="border-t pt-4 mt-4" aria-label="Queue node comparison">
+    <h4 class="font-medium">Queue by node</h4>
+    <p class="text-xs tertiary-color pt-1">
+        Compare each observed queue with its configured threshold. This is not a scheduler pause indicator.
+    </p>
+    <button mat-stroked-button class="mt-3" [disabled]="status() === 'loading'" (click)="load()">
+        {{ status() === 'idle' ? 'Load node status' : 'Refresh node status' }}
+    </button>
+    @switch (status()) {
+        @case ('loading') {
+            <p role="status" class="text-sm pt-2">Loading node status…</p>
+        }
+        @case ('forbidden') {
+            <p role="status" class="text-sm pt-2">Node status access is restricted.</p>
+        }
+        @case ('error') {
+            <p role="alert" class="text-sm pt-2">Unable to load node status. Retry to get a new snapshot.</p>
+        }
+        @case ('ready') {
+            <p class="text-xs tertiary-color pt-2">{{ coverage() }}</p>
+            <p class="text-xs tertiary-color pt-1">Received {{ receivedAt() | date: 'medium' }}</p>
+            <p class="text-xs tertiary-color pt-1">
+                Server snapshot: {{ response()?.connectionStatus?.statsLastRefreshed || 'Unavailable' }}
+            </p>
+            @for (row of rows(); track row.id) {
+                <article class="border rounded-lg p-3 mt-3" [attr.aria-label]="'Queue on ' + row.name">
+                    <h5 class="text-sm font-medium break-all">{{ row.name }}</h5>
+                    @for (
+                        metric of [
+                            { name: 'FlowFiles', value: row.count },
+                            { name: 'Bytes', value: row.bytes }
+                        ];
+                        track metric.name
+                    ) {
+                        <div class="pt-2 text-xs">
+                            <span
+                                >{{ metric.name }}:
+                                {{
+                                    metric.value.used === undefined ? 'Unavailable' : (metric.value.used | number)
+                                }}</span
+                            >
+                            <span>
+                                /
+                                {{
+                                    metric.value.limit === undefined ? 'Unavailable' : (metric.value.limit | number)
+                                }}</span
+                            >
+                            <p class="pt-1" [class.error-color]="metric.value.state === 'at-or-above'">
+                                {{ label(metric.value) }}
+                            </p>
+                            @if (metric.value.percent !== undefined) {
+                                <p>{{ metric.value.percent | number: '1.0-1' }}% observed</p>
+                            }
+                        </div>
+                    }
+                </article>
+            } @empty {
+                <p role="status" class="text-sm pt-2">
+                    No per-node snapshots available. Aggregate totals cannot establish a node threshold state.
+                </p>
+            }
+        }
+    }
+</section>

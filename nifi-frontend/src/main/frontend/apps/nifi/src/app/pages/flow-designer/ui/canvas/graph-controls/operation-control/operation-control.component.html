@@ -15,127 +15,174 @@
   ~ limitations under the License.
   -->
 
-<div class="operation-control border flex flex-col gap-y-2">
-    <div class="operation-control-header pointer flex justify-between" (click)="toggleCollapsed()">
-        <div class="flex items-center">
-            <div class="fa fa-hand-o-up primary-color"></div>
-            @if (!operationCollapsed || !shouldDockWhenCollapsed) {
-                <div class="text-sm">Operation</div>
-            }
+@if (toolbar) {
+    @if (canvasUtils.getSelection(); as selection) {
+        <div class="modern-flow-actions" aria-label="Selected flow actions">
+            <button
+                mat-stroked-button
+                type="button"
+                aria-label="Start selected components"
+                [disabled]="!canStart(selection)"
+                (click)="start(selection)">
+                <i class="fa fa-play" aria-hidden="true"></i> Start
+            </button>
+            <button
+                mat-stroked-button
+                type="button"
+                aria-label="Stop selected components"
+                [disabled]="!canStop(selection)"
+                (click)="stop(selection)">
+                <i class="fa fa-stop" aria-hidden="true"></i> Stop
+            </button>
+            <button
+                mat-icon-button
+                type="button"
+                aria-label="Configure selected components"
+                [disabled]="!canConfigure(selection)"
+                (click)="configure(selection)">
+                <i class="fa fa-cog" aria-hidden="true"></i>
+            </button>
         </div>
-        @if (!operationCollapsed || !shouldDockWhenCollapsed) {
-            <div
-                class="fa operation-control-expansion primary-color"
-                [class.fa-minus-square-o]="!operationCollapsed"
-                [class.fa-plus-square-o]="operationCollapsed"></div>
-        }
-    </div>
-    @if (!operationCollapsed) {
-        @if (canvasUtils.getSelection(); as selection) {
-            <div class="w-72 px-2.5 pb-2.5 flex flex-col gap-y-2">
-                <component-context
-                    [type]="getContextType(selection)"
-                    [name]="getContextName(selection)"
-                    [id]="getContextId(selection)"></component-context>
-                <div class="flex flex-col gap-y-1">
-                    <div class="flex gap-x-1">
-                        <button
-                            mat-icon-button
-                            class="primary-icon-button"
-                            type="button"
-                            matTooltip="Configure"
-                            [disabled]="!canConfigure(selection)"
-                            (click)="configure(selection)">
-                            <i class="fa fa-cog"></i>
-                        </button>
-                        @if (supportsManagedAuthorizer()) {
+    }
+} @else {
+    <div class="operation-control border flex flex-col gap-y-2">
+        <button
+            type="button"
+            class="operation-control-header pointer flex justify-between"
+            aria-label="Operation controls"
+            [attr.aria-expanded]="!collapsed"
+            [attr.aria-controls]="!collapsed ? 'operation-controls-content' : null"
+            (click)="toggleCollapsed()">
+            <span class="flex items-center">
+                <span class="fa fa-hand-o-up primary-color" aria-hidden="true"></span>
+                @if (!collapsed || !shouldDockWhenCollapsed) {
+                    <span class="text-sm">Operation</span>
+                }
+            </span>
+            @if (!collapsed || !shouldDockWhenCollapsed) {
+                <span
+                    class="fa operation-control-expansion primary-color"
+                    [class.fa-minus-square-o]="!collapsed"
+                    [class.fa-plus-square-o]="collapsed"></span>
+            }
+        </button>
+        @if (!collapsed) {
+            @if (canvasUtils.getSelection(); as selection) {
+                <div id="operation-controls-content" class="w-72 px-2.5 pb-2.5 flex flex-col gap-y-2">
+                    <component-context
+                        [type]="getContextType(selection)"
+                        [name]="getContextName(selection)"
+                        [id]="getContextId(selection)"></component-context>
+                    <div class="flex flex-col gap-y-1">
+                        <div class="flex gap-x-1">
+                            <button
+                                mat-icon-button
+                                class="primary-icon-button"
+                                type="button"
+                                matTooltip="Configure"
+                                aria-label="Configure"
+                                [disabled]="!canConfigure(selection)"
+                                (click)="configure(selection)">
+                                <i class="fa fa-cog"></i>
+                            </button>
+                            @if (supportsManagedAuthorizer()) {
+                                <button
+                                    mat-icon-button
+                                    class="primary-icon-button mr-2"
+                                    type="button"
+                                    matTooltip="Policies"
+                                    aria-label="Policies"
+                                    [disabled]="!canManageAccess(selection)"
+                                    (click)="manageAccess(selection)">
+                                    <i class="fa fa-key"></i>
+                                </button>
+                            }
+                            <button
+                                mat-icon-button
+                                class="primary-icon-button"
+                                type="button"
+                                matTooltip="Enable"
+                                aria-label="Enable"
+                                [disabled]="!canEnable(selection)"
+                                (click)="enable(selection)">
+                                <i class="fa fa-flash"></i>
+                            </button>
                             <button
                                 mat-icon-button
                                 class="primary-icon-button mr-2"
                                 type="button"
-                                matTooltip="Policies"
-                                [disabled]="!canManageAccess(selection)"
-                                (click)="manageAccess(selection)">
-                                <i class="fa fa-key"></i>
+                                matTooltip="Disable"
+                                aria-label="Disable"
+                                [disabled]="!canDisable(selection)"
+                                (click)="disable(selection)">
+                                <i class="ml-1 icon icon-enable-false"></i>
                             </button>
-                        }
-                        <button
-                            mat-icon-button
-                            class="primary-icon-button"
-                            type="button"
-                            matTooltip="Enable"
-                            [disabled]="!canEnable(selection)"
-                            (click)="enable(selection)">
-                            <i class="fa fa-flash"></i>
-                        </button>
-                        <button
-                            mat-icon-button
-                            class="primary-icon-button mr-2"
-                            type="button"
-                            matTooltip="Disable"
-                            [disabled]="!canDisable(selection)"
-                            (click)="disable(selection)">
-                            <i class="ml-1 icon icon-enable-false"></i>
-                        </button>
-                        <button
-                            mat-icon-button
-                            class="primary-icon-button"
-                            type="button"
-                            matTooltip="Start"
-                            [disabled]="!canStart(selection)"
-                            (click)="start(selection)">
-                            <i class="fa fa-play"></i>
-                        </button>
-                        <button
-                            mat-icon-button
-                            class="primary-icon-button"
-                            type="button"
-                            matTooltip="Stop"
-                            [disabled]="!canStop(selection)"
-                            (click)="stop(selection)">
-                            <i class="fa fa-stop"></i>
-                        </button>
-                    </div>
-                    <div class="flex gap-x-1">
-                        <button
-                            mat-icon-button
-                            class="primary-icon-button"
-                            type="button"
-                            matTooltip="Copy"
-                            [disabled]="!canCopy(selection)"
-                            (click)="copy(selection)">
-                            <i class="fa fa-copy"></i>
-                        </button>
-                        <button
-                            mat-icon-button
-                            class="primary-icon-button"
-                            type="button"
-                            matTooltip="Group"
-                            [disabled]="!canGroup(selection)"
-                            (click)="group(selection)">
-                            <i class="ml-1 icon icon-group"></i>
-                        </button>
-                        <button
-                            mat-icon-button
-                            class="primary-icon-button mr-2"
-                            type="button"
-                            matTooltip="Change Color"
-                            [disabled]="!canColor(selection)"
-                            (click)="color(selection)">
-                            <i class="fa fa-paint-brush"></i>
-                        </button>
-                        <button
-                            mat-icon-button
-                            class="primary-icon-button"
-                            type="button"
-                            matTooltip="Delete"
-                            [disabled]="!canDelete(selection)"
-                            (click)="delete(selection)">
-                            <i class="fa fa-trash"></i>
-                        </button>
+                            <button
+                                mat-icon-button
+                                class="primary-icon-button"
+                                type="button"
+                                matTooltip="Start"
+                                aria-label="Start"
+                                [disabled]="!canStart(selection)"
+                                (click)="start(selection)">
+                                <i class="fa fa-play"></i>
+                            </button>
+                            <button
+                                mat-icon-button
+                                class="primary-icon-button"
+                                type="button"
+                                matTooltip="Stop"
+                                aria-label="Stop"
+                                [disabled]="!canStop(selection)"
+                                (click)="stop(selection)">
+                                <i class="fa fa-stop"></i>
+                            </button>
+                        </div>
+                        <div class="flex gap-x-1">
+                            <button
+                                mat-icon-button
+                                class="primary-icon-button"
+                                type="button"
+                                matTooltip="Copy"
+                                aria-label="Copy"
+                                [disabled]="!canCopy(selection)"
+                                (click)="copy(selection)">
+                                <i class="fa fa-copy"></i>
+                            </button>
+                            <button
+                                mat-icon-button
+                                class="primary-icon-button"
+                                type="button"
+                                matTooltip="Group"
+                                aria-label="Group"
+                                [disabled]="!canGroup(selection)"
+                                (click)="group(selection)">
+                                <i class="ml-1 icon icon-group"></i>
+                            </button>
+                            <button
+                                mat-icon-button
+                                class="primary-icon-button mr-2"
+                                type="button"
+                                matTooltip="Change Color"
+                                aria-label="Change Color"
+                                [disabled]="!canColor(selection)"
+                                (click)="color(selection)">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <button
+                                mat-icon-button
+                                class="primary-icon-button"
+                                type="button"
+                                matTooltip="Delete"
+                                aria-label="Delete"
+                                [disabled]="!canDelete(selection)"
+                                (click)="delete(selection)">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            }
         }
-    }
-</div>
+    </div>
+}

@@ -17,6 +17,7 @@
 
 import { Component, Input, inject } from '@angular/core';
 import { setOperationCollapsed } from '../../../../state/flow/flow.actions';
+import { WorkspacePreferencesService } from '../../../../../../ui/common/modern-workspace/workspace-preferences.service';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../state';
 import { CanvasUtils } from '../../../../service/canvas-utils.service';
@@ -37,6 +38,12 @@ import { CanvasActionsService } from '../../../../service/canvas-actions.service
     styleUrls: ['./operation-control.component.scss']
 })
 export class OperationControl {
+    @Input() toolbar = false;
+    private workspace = inject(WorkspacePreferencesService);
+    private modernCollapsed = true;
+    get collapsed(): boolean {
+        return this.workspace.enabled() ? this.modernCollapsed : this.operationCollapsed;
+    }
     private store = inject<Store<CanvasState>>(Store);
     canvasUtils = inject(CanvasUtils);
     private canvasView = inject(CanvasView);
@@ -67,6 +74,11 @@ export class OperationControl {
     }
 
     toggleCollapsed(): void {
+        if (this.workspace.enabled()) {
+            this.modernCollapsed = !this.modernCollapsed;
+            this.store.dispatch(setOperationCollapsed({ operationCollapsed: this.modernCollapsed }));
+            return;
+        }
         this.operationCollapsed = !this.operationCollapsed;
         this.store.dispatch(setOperationCollapsed({ operationCollapsed: this.operationCollapsed }));
 

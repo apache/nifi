@@ -28,6 +28,7 @@ const routes: Routes = [
         children: [
             {
                 path: 'controller-services',
+                title: 'Controller Services',
                 loadChildren: () =>
                     import('../ui/controller-service/controller-services.module').then(
                         (m) => m.ControllerServicesModule
@@ -45,6 +46,7 @@ const routes: Routes = [
         children: [
             {
                 path: 'manage-remote-ports',
+                title: 'Remote Ports',
                 loadChildren: () =>
                     import('../ui/manage-remote-ports/manage-remote-ports.module').then(
                         (m) => m.ManageRemotePortsModule

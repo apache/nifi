@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import { ModernNavigationComponent } from '../../../../ui/common/modern-workspace/modern-navigation/modern-navigation.component';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -51,6 +52,8 @@ import { initialState as initialParameterState } from '../../state/parameter/par
 import { flowAnalysisFeatureKey } from '../../state/flow-analysis';
 import { initialState as initialFlowAnalysisState } from '../../state/flow-analysis/flow-analysis.reducer';
 import { selectUrl } from '@nifi/shared';
+import { OperationalOverviewComponent } from './operational-overview/operational-overview.component';
+import { OperationalInspectorComponent } from './operational-overview/operational-inspector.component';
 
 describe('Canvas', () => {
     let component: Canvas;
@@ -83,6 +86,9 @@ describe('Canvas', () => {
                 MockComponent(HeaderComponent),
                 MockComponent(FooterComponent),
                 MockComponent(OverlappingConnectionsBannerComponent),
+                MockComponent(ModernNavigationComponent),
+                MockComponent(OperationalOverviewComponent),
+                MockComponent(OperationalInspectorComponent),
                 FlowAnalysisDrawerComponent
             ],
             providers: [
@@ -116,6 +122,17 @@ describe('Canvas', () => {
         fixture = TestBed.createComponent(Canvas);
         component = fixture.componentInstance;
         fixture.detectChanges();
+    });
+
+    it('enables the modern shell locally and leaves its overview available when switching back', () => {
+        const component = fixture.componentInstance;
+        expect(component.modernWorkspace()).toBe(false);
+        component.toggleModernWorkspace();
+        expect(component.modernWorkspace()).toBe(true);
+        expect(component.operationalPreview()).toBe(true);
+        component.toggleModernWorkspace();
+        expect(component.modernWorkspace()).toBe(false);
+        expect(component.operationalPreview()).toBe(true);
     });
 
     it('should create', () => {

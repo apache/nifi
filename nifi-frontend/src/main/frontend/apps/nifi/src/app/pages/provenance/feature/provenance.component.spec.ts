@@ -23,10 +23,10 @@ import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { initialState } from '../state/provenance-event-listing/provenance-event-listing.reducer';
 import { MockComponent } from 'ng-mocks';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 import { provenanceFeatureKey } from '../state';
 import { provenanceEventListingFeatureKey } from '../state/provenance-event-listing';
-import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 import { initialState as initialErrorState } from '../../../state/error/error.reducer';
 import { errorFeatureKey } from '../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
@@ -39,7 +39,12 @@ describe('Provenance', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Provenance],
-            imports: [RouterModule, RouterTestingModule, MockComponent(BannerText), MockComponent(Navigation)],
+            imports: [
+                RouterModule,
+                RouterTestingModule,
+                MockComponent(WorkspacePageComponent),
+                MockComponent(BannerText)
+            ],
             providers: [
                 provideMockStore({
                     initialState: {

@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-import { Injectable, inject } from '@angular/core';
+import { WorkspacePreferencesService } from '../../../ui/common/modern-workspace/workspace-preferences.service';
+import { Injectable, effect, inject } from '@angular/core';
 import * as d3 from 'd3';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
@@ -46,6 +47,7 @@ import {
 })
 export class CanvasView {
     private store = inject<Store<CanvasState>>(Store);
+    private workspace = inject(WorkspacePreferencesService);
     private canvasUtils = inject(CanvasUtils);
     private processorManager = inject(ProcessorManager);
     private processGroupManager = inject(ProcessGroupManager);
@@ -73,6 +75,15 @@ export class CanvasView {
     private canvasInitialized = false;
 
     constructor() {
+        effect(() => {
+            this.workspace.enabled();
+            if (this.canvasInitialized) {
+                this.processorManager.updatePresentation();
+                this.updateCanvasVisibility();
+                this.connectionManager.render({ updatePath: true, updateLabel: true });
+                this.store.dispatch(refreshBirdseyeView());
+            }
+        });
         let refreshed: Promise<void> | null;
         let panning = false;
 
@@ -469,11 +480,14 @@ export class CanvasView {
             return null;
         }
 
+        let xOffset = 0;
         let yOffset = 0;
 
         const canvasContainer: any = document.getElementById('canvas-container');
         if (canvasContainer) {
-            yOffset = canvasContainer.getBoundingClientRect().top;
+            const bounds = canvasContainer.getBoundingClientRect();
+            xOffset = bounds.left;
+            yOffset = bounds.top;
         }
 
         // Use POSITIVE/NEGATIVE_INFINITY as sentinel seeds so that selections
@@ -498,9 +512,9 @@ export class CanvasView {
         }, initialBBox);
 
         // normalize the bounding box with scale and translate
-        bbox.x = (bbox.x - this.x) / this.k;
+        bbox.x = (bbox.x - xOffset - this.x) / this.k;
         bbox.y = (bbox.y - yOffset - this.y) / this.k;
-        bbox.right = (bbox.right - this.x) / this.k;
+        bbox.right = (bbox.right - xOffset - this.x) / this.k;
         bbox.bottom = (bbox.bottom - yOffset - this.y) / this.k;
 
         bbox.width = bbox.right - bbox.x;
@@ -701,7 +715,7 @@ export class CanvasView {
         const graphBox = graph.node().getBoundingClientRect();
         const graphWidth: number = graphBox.width / scale;
         const graphHeight: number = graphBox.height / scale;
-        let graphLeft: number = graphBox.left / scale;
+        let graphLeft: number = (graphBox.left - canvasBoundingBox.left) / scale;
         let graphTop: number = (graphBox.top - canvasBoundingBox.top) / scale;
         const x = translate[0] / scale;
         const y = translate[1] / scale;
@@ -762,7 +776,7 @@ export class CanvasView {
 
             // get the bounding box for the selected components
             box = {
-                x: selectionBox.left / scale - translate[0] / scale,
+                x: (selectionBox.left - canvasBoundingBox.left) / scale - translate[0] / scale,
                 y: (selectionBox.top - canvasBoundingBox.top) / scale - translate[1] / scale,
                 width: selectionBox.width / scale,
                 height: selectionBox.height / scale,

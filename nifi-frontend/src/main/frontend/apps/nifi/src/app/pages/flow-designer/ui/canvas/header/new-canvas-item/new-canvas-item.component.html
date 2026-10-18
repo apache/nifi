@@ -26,6 +26,10 @@
         class="h-[64px] w-[64px] pl-1.5 flex items-center justify-center relative icon text-3xl"
         [class]="iconClass"></div>
     <button
+        type="button"
+        [attr.aria-label]="tooltip"
+        aria-description="Drag onto the canvas, or use Enter or Space to add at the canvas center."
+        (click)="onActivation($event)"
         class="h-[64px] w-[64px] pl-1.5 -mt-[64px] flex items-center justify-center relative icon text-3xl"
         [class]="isHovering() ? iconHoverClass + ' hovering' : iconClass"
         [class.dragging]="dragging"

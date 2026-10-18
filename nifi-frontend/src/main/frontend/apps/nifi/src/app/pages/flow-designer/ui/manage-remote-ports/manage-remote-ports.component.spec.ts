@@ -23,7 +23,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { initialState } from '../../state/manage-remote-ports/manage-remote-ports.reducer';
 import { MockComponent } from 'ng-mocks';
-import { Navigation } from '../../../../ui/common/navigation/navigation.component';
+import { WorkspacePageComponent } from '../../../../ui/common/modern-workspace/workspace-page.component';
 import { remotePortsFeatureKey } from '../../state/manage-remote-ports';
 import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
 import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
@@ -43,7 +43,7 @@ describe('ManageRemotePorts', () => {
             declarations: [ManageRemotePorts],
             imports: [
                 RouterTestingModule,
-                MockComponent(Navigation),
+                MockComponent(WorkspacePageComponent),
                 HttpClientTestingModule,
                 MockComponent(NgxSkeletonLoaderComponent)
             ],

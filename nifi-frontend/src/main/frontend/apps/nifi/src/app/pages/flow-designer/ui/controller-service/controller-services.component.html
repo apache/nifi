@@ -15,10 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col h-full">
-    <header class="mb-5 nifi-header">
-        <navigation></navigation>
-    </header>
+<workspace-page [spacedHeader]="true" [canvas]="false">
     <div class="pb-5 px-5 flex-1 flex flex-col">
         <h3 class="primary-color">Controller Services</h3>
         @if (serviceState(); as serviceState) {
@@ -37,7 +34,10 @@
                         <div class="flex items-center gap-x-3 shrink-0">
                             @if (shouldShowFilter()) {
                                 <div class="flex items-center justify-between gap-x-2 current-scope-only">
-                                    <mat-checkbox [(ngModel)]="showCurrentScopeOnly" data-qa="current-scope-filter">
+                                    <mat-checkbox
+                                        aria-label="Show current scope only"
+                                        [(ngModel)]="showCurrentScopeOnly"
+                                        data-qa="current-scope-filter">
                                     </mat-checkbox>
                                     <div class="flex items-center justify-between gap-x-1">
                                         <label
@@ -59,6 +59,7 @@
                                 <button
                                     mat-icon-button
                                     class="primary-icon-button"
+                                    aria-label="Create controller service"
                                     (click)="openNewControllerServiceDialog()">
                                     <i class="fa fa-plus"></i>
                                 </button>
@@ -96,6 +97,7 @@
                             <button
                                 mat-icon-button
                                 class="primary-icon-button"
+                                aria-label="Refresh controller services"
                                 (click)="refreshControllerServiceListing()">
                                 <i class="fa fa-refresh" [class.fa-spin]="serviceState.status === 'loading'"></i>
                             </button>
@@ -109,4 +111,4 @@
             }
         }
     </div>
-</div>
+</workspace-page>

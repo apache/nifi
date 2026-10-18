@@ -22,7 +22,7 @@ import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Navigation } from '../../../../ui/common/navigation/navigation.component';
+import { WorkspacePageComponent } from '../../../../ui/common/modern-workspace/workspace-page.component';
 import {
     CONNECTOR_MESSAGE_NAMESPACE,
     ConnectorConfigurationService,
@@ -74,7 +74,7 @@ function connectorWizardConfigFactory(): ConnectorWizardConfig {
     selector: 'connector-configure',
     standalone: true,
     imports: [
-        Navigation,
+        WorkspacePageComponent,
         ConnectorWizard,
         MatButton,
         ContextErrorBanner,

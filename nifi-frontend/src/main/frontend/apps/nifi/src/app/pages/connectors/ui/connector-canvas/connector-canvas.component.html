@@ -14,10 +14,7 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<div class="flex flex-col h-full">
-    <header class="nifi-header">
-        <navigation></navigation>
-    </header>
+<workspace-page [spacedHeader]="false" [canvas]="true">
     <connector-canvas-header-bar
         [connectorId]="currentConnectorId"
         [selectedComponentId]="selectedComponentIds.length === 1 ? selectedComponentIds[0] : null"
@@ -103,4 +100,4 @@
         </mat-sidenav-container>
     </div>
     <connector-canvas-footer [connectorId]="currentConnectorId"></connector-canvas-footer>
-</div>
+</workspace-page>

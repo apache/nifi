@@ -23,8 +23,8 @@ import { ParameterContexts } from './parameter-contexts.component';
 import { ParameterContextsRoutingModule } from './parameter-contexts-routing.module';
 import { parameterContextsFeatureKey, reducers } from '../state';
 import { ParameterContextListingEffects } from '../state/parameter-context-listing/parameter-context-listing.effects';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 import { ParameterContextListing } from '../ui/parameter-context-listing/parameter-context-listing.component';
 import { ProcessGroupReferences } from '../../../ui/common/process-group-references/process-group-references.component';
 
@@ -37,7 +37,7 @@ import { ProcessGroupReferences } from '../../../ui/common/process-group-referen
         StoreModule.forFeature(parameterContextsFeatureKey, reducers),
         EffectsModule.forFeature(ParameterContextListingEffects),
         ParameterContextListing,
-        Navigation,
+        WorkspacePageComponent,
         BannerText,
         ProcessGroupReferences
     ]

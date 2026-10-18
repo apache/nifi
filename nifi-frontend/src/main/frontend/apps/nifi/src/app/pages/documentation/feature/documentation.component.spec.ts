@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideMockStore } from '@ngrx/store/testing';
 import { RouterModule } from '@angular/router';
 import { MockComponent } from 'ng-mocks';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 import { Documentation } from './documentation.component';
 import { extensionTypesFeatureKey } from '../../../state/extension-types';
 import { initialExtensionsTypesState } from '../../../state/extension-types/extension-types.reducer';
@@ -55,7 +55,7 @@ describe('Documentation', () => {
                 ReactiveFormsModule,
                 NoopAnimationsModule,
                 MockComponent(BannerText),
-                MockComponent(Navigation)
+                MockComponent(WorkspacePageComponent)
             ],
             providers: [
                 provideMockStore({

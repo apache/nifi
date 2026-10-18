@@ -64,7 +64,7 @@ import {
     ContextMenuDefinitionProvider,
     ContextMenuItemDefinition
 } from '../../../../ui/common/context-menu/context-menu.component';
-import { Navigation } from '../../../../ui/common/navigation/navigation.component';
+import { WorkspacePageComponent } from '../../../../ui/common/modern-workspace/workspace-page.component';
 import { ConnectorCanvasHeaderBarComponent } from './header-bar/connector-canvas-header-bar.component';
 import { ConnectorCanvasFooterComponent } from './footer/footer.component';
 import { ConnectorGraphControls } from './graph-controls/connector-graph-controls.component';
@@ -104,7 +104,7 @@ import { getComponentStateAndOpenDialog } from '../../../../state/component-stat
         MatSidenav,
         MatSidenavContainer,
         MatSidenavContent,
-        Navigation,
+        WorkspacePageComponent,
         ConnectorCanvasHeaderBarComponent,
         ConnectorCanvasFooterComponent,
         ConnectorGraphControls,

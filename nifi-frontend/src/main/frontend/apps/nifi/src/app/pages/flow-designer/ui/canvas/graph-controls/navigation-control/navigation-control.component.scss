@@ -24,6 +24,19 @@ div.navigation-control {
     --mat-icon-button-icon-size: 17px;
 
     .navigation-control-header {
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+
+        &:focus-visible {
+            outline: 2px solid var(--mat-sys-primary);
+            outline-offset: -2px;
+        }
+
         .fa {
             height: 34px;
             width: 34px;
@@ -46,5 +59,56 @@ div.navigation-control {
                 transparent 35px
             );
         }
+    }
+}
+
+:host-context(.modern-workspace) {
+    .navigation-control {
+        border-radius: 8px;
+        border-color: var(--workspace-border);
+        background: var(--workspace-chrome);
+    }
+    .navigation-control-header {
+        font-size: 11px;
+    }
+    #navigation-controls-content {
+        width: 250px;
+        display: flex;
+        flex-direction: column-reverse;
+        padding: 6px;
+    }
+}
+
+:host-context(.modern-workspace) {
+    .navigation-control {
+        position: relative;
+        padding-top: 8px;
+    }
+    .navigation-control-header {
+        position: absolute;
+        right: 2px;
+        top: -26px;
+        width: 26px;
+        height: 26px;
+        border: 1px solid var(--workspace-border);
+        border-radius: 5px;
+        background: var(--workspace-chrome);
+    }
+    .navigation-control-header .text-sm,
+    .navigation-control-header .navigation-control-expansion {
+        display: none;
+    }
+    .navigation-control-header .fa {
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+    }
+    .navigation-control:has(.navigation-control-header[aria-expanded='false']) {
+        width: 28px;
+        padding: 0;
+        height: 28px;
+    }
+    .navigation-control:has(.navigation-control-header[aria-expanded='false']) .navigation-control-header {
+        position: static;
     }
 }

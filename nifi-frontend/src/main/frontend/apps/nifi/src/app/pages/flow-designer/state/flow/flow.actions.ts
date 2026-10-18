@@ -150,6 +150,11 @@ export const loadProcessGroup = createAction(
     props<{ request: LoadProcessGroupRequest }>()
 );
 
+export const loadProcessGroupFailure = createAction(
+    `${CANVAS_PREFIX} Load Process Group Failure`,
+    props<{ id: string; status: number }>()
+);
+
 export const loadProcessGroupSuccess = createAction(
     `${CANVAS_PREFIX} Load Process Group Success`,
     props<{ response: LoadProcessGroupResponse }>()

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { login } from '../../state/access/access.actions';
@@ -24,8 +24,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { selectLogoutSupported } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
 import { setRoutedToFullScreenError } from '../../../../state/error/error.actions';
-import { logout } from '../../../../state/current-user/current-user.actions';
-import { RouterLink } from '@angular/router';
+import { promptLogout } from '../../../../state/current-user/current-user.actions';
 import { MatFormField } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { MatLabel } from '@angular/material/select';
@@ -34,7 +33,7 @@ import { MatButtonModule } from '@angular/material/button';
 @Component({
     selector: 'login-form',
     templateUrl: './login-form.component.html',
-    imports: [RouterLink, ReactiveFormsModule, MatFormField, MatInput, MatLabel, MatButtonModule],
+    imports: [ReactiveFormsModule, MatFormField, MatInput, MatLabel, MatButtonModule],
     styleUrls: ['./login-form.component.scss']
 })
 export class LoginForm {
@@ -44,6 +43,7 @@ export class LoginForm {
     logoutSupported = this.store.selectSignal(selectLogoutSupported);
 
     loginForm: FormGroup;
+    submitting = signal(false);
 
     constructor() {
         // build the form
@@ -57,13 +57,14 @@ export class LoginForm {
             .pipe(takeUntilDestroyed())
             .subscribe((loginFailure) => {
                 if (loginFailure) {
+                    this.submitting.set(false);
                     this.loginForm.get('password')?.setValue('');
                 }
             });
     }
 
     logout(): void {
-        this.store.dispatch(logout());
+        this.store.dispatch(promptLogout());
     }
 
     resetRoutedToFullScreenError(): void {
@@ -71,6 +72,8 @@ export class LoginForm {
     }
 
     login() {
+        if (this.loginForm.invalid || this.submitting()) return;
+        this.submitting.set(true);
         const username: string = this.loginForm.get('username')?.value;
         const password: string = this.loginForm.get('password')?.value;
 

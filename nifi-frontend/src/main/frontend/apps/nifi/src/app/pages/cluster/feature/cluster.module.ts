@@ -18,7 +18,8 @@
 import { NgModule } from '@angular/core';
 import { Cluster } from './cluster.component';
 import { CommonModule } from '@angular/common';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 import { StoreModule } from '@ngrx/store';
 import { clusterFeatureKey, reducers } from '../state';
 import { EffectsModule } from '@ngrx/effects';
@@ -28,7 +29,6 @@ import { RouterModule } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconButton } from '@angular/material/button';
 import { ErrorBanner } from '@nifi/shared';
-import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 import { ContextErrorBanner } from '../../../ui/common/context-error-banner/context-error-banner.component';
 
 @NgModule({
@@ -36,7 +36,8 @@ import { ContextErrorBanner } from '../../../ui/common/context-error-banner/cont
     exports: [Cluster],
     imports: [
         CommonModule,
-        Navigation,
+        WorkspacePageComponent,
+        BannerText,
         ClusterRoutingModule,
         StoreModule.forFeature(clusterFeatureKey, reducers),
         EffectsModule.forFeature(ClusterListingEffects),
@@ -44,7 +45,6 @@ import { ContextErrorBanner } from '../../../ui/common/context-error-banner/cont
         MatIconButton,
         RouterModule,
         ErrorBanner,
-        BannerText,
         ContextErrorBanner
     ]
 })

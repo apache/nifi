@@ -18,7 +18,7 @@
 import { Component, DestroyRef, ElementRef, inject, Input, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { initialState } from '../../../../state/flow/flow.reducer';
-import { debounceTime, filter, take, tap } from 'rxjs';
+import { debounceTime, filter, take } from 'rxjs';
 import { SearchService } from '../../../../service/search.service';
 import {
     CdkConnectedOverlay,
@@ -66,6 +66,7 @@ export class Search implements OnInit {
     protected readonly ComponentType = ComponentType;
     protected readonly SearchMatchTip = SearchMatchTip;
 
+    @Input() inline = false;
     @Input() currentProcessGroupId: string = initialState.id;
     @ViewChild('searchInput') searchInput!: CdkOverlayOrigin;
 
@@ -123,15 +124,17 @@ export class Search implements OnInit {
             ?.valueChanges.pipe(
                 takeUntilDestroyed(this.destroyRef),
                 filter((data) => data?.trim().length > 0),
-                debounceTime(500),
-                tap(() => (this.searching = true))
+                debounceTime(500)
             )
             .subscribe((query) => {
+                if (query !== this.searchForm.get('searchBar')?.value) return;
+                this.searching = true;
                 this.searchService
                     .search(query, this.currentProcessGroupId)
                     .pipe(take(1))
                     .subscribe({
                         next: (response) => {
+                            if (query !== this.searchForm.get('searchBar')?.value) return;
                             const results = response.searchResultsDTO;
 
                             this.processorResults = results.processorResults;
@@ -151,12 +154,21 @@ export class Search implements OnInit {
                             this.searching = false;
                         },
                         error: (errorResponse: HttpErrorResponse) => {
+                            if (query !== this.searchForm.get('searchBar')?.value) return;
                             this.searchingResultsVisible = false;
                             this.searching = false;
                             this.snackBarOrFullScreenError(errorResponse);
                         }
                     });
             });
+    }
+
+    resultClicked(event: MouseEvent): void {
+        if (event.target instanceof Element && event.target.closest('a')) {
+            this.searchingResultsVisible = false;
+            this.searching = false;
+            this.searchForm.get('searchBar')?.setValue('', { emitEvent: false });
+        }
     }
 
     toggleSearchVisibility() {

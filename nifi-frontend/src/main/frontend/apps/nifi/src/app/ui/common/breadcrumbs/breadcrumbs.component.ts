@@ -15,10 +15,9 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, Input, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, Input, ViewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { BreadcrumbEntity } from '../../../state/shared';
-import { Title } from '@angular/platform-browser';
 
 export type BreadcrumbRouteGenerator = (processGroupId: string) => string[];
 
@@ -31,8 +30,6 @@ const defaultRouteGenerator: BreadcrumbRouteGenerator = (processGroupId: string)
     styleUrls: ['./breadcrumbs.component.scss']
 })
 export class Breadcrumbs {
-    private title = inject(Title);
-
     @Input() entity: BreadcrumbEntity | null = null;
     @Input() currentProcessGroupId = '';
     @Input() routeGenerator: BreadcrumbRouteGenerator = defaultRouteGenerator;
@@ -60,12 +57,6 @@ export class Breadcrumbs {
 
         if (breadcrumbEntity.parentBreadcrumb) {
             this.prepareBreadcrumb(breadcrumbs, breadcrumbEntity.parentBreadcrumb);
-        } else {
-            if (breadcrumbEntity.permissions.canRead) {
-                this.title.setTitle(breadcrumbEntity.breadcrumb.name);
-            } else {
-                this.title.setTitle('NiFi Flow');
-            }
         }
     }
 

@@ -21,7 +21,7 @@ import { selectLogoutSupported } from '../../../state/current-user/current-user.
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { setRoutedToFullScreenError } from '../../../state/error/error.actions';
-import { logout } from '../../../state/current-user/current-user.actions';
+import { promptLogout } from '../../../state/current-user/current-user.actions';
 
 @Component({
     selector: 'page-content',
@@ -41,6 +41,6 @@ export class PageContent {
     }
 
     logout(): void {
-        this.store.dispatch(logout());
+        this.store.dispatch(promptLogout());
     }
 }

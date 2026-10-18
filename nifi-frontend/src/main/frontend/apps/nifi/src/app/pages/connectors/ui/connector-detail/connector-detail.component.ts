@@ -22,7 +22,7 @@ import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Navigation } from '../../../../ui/common/navigation/navigation.component';
+import { WorkspacePageComponent } from '../../../../ui/common/modern-workspace/workspace-page.component';
 import {
     SystemTokensService,
     ConnectorEntity,
@@ -42,7 +42,7 @@ import { ConnectorMessageHost } from '../../service/connector-message-host.servi
 
 @Component({
     selector: 'connector-detail',
-    imports: [Navigation, ConnectorDetailsContent, MatButton, NifiSpinnerDirective, ContextErrorBanner],
+    imports: [WorkspacePageComponent, ConnectorDetailsContent, MatButton, NifiSpinnerDirective, ContextErrorBanner],
     templateUrl: './connector-detail.component.html',
     styleUrls: ['./connector-detail.component.scss']
 })

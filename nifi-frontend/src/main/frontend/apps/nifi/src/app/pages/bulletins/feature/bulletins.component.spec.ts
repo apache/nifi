@@ -20,9 +20,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { BulletinBoard } from '../ui/bulletin-board/bulletin-board.component';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
-import { MockComponent } from 'ng-mocks';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
+import { MockComponent } from 'ng-mocks';
 
 describe('Bulletins', () => {
     let component: Bulletins;
@@ -34,8 +34,8 @@ describe('Bulletins', () => {
             imports: [
                 RouterModule,
                 RouterTestingModule,
+                MockComponent(WorkspacePageComponent),
                 MockComponent(BannerText),
-                MockComponent(Navigation),
                 MockComponent(BulletinBoard)
             ]
         });

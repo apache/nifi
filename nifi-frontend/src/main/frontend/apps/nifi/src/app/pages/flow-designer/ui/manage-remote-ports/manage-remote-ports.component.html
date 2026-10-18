@@ -15,10 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col h-full">
-    <header class="mb-5 nifi-header">
-        <navigation></navigation>
-    </header>
+<workspace-page [spacedHeader]="true" [canvas]="false">
     <div class="pb-5 px-5 flex-1 flex flex-col">
         <h3 class="primary-color">Manage Remote Ports</h3>
         @if (portsState$ | async; as portsState) {
@@ -267,4 +264,4 @@
             }
         }
     </div>
-</div>
+</workspace-page>

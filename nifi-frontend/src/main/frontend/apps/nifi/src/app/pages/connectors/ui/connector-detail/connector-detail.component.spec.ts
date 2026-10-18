@@ -20,7 +20,7 @@ import { ConnectorDetail } from './connector-detail.component';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { SystemTokensService, ConnectorEntity, ConnectorConfigurationService } from '@nifi/shared';
 import { MockComponent } from 'ng-mocks';
-import { Navigation } from '../../../../ui/common/navigation/navigation.component';
+import { WorkspacePageComponent } from '../../../../ui/common/modern-workspace/workspace-page.component';
 import { ConnectorDetailsContent } from '../connector-details-content/connector-details-content.component';
 import { of, throwError } from 'rxjs';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
@@ -115,7 +115,7 @@ describe('ConnectorDetail', () => {
         await TestBed.configureTestingModule({
             imports: [
                 ConnectorDetail,
-                MockComponent(Navigation),
+                MockComponent(WorkspacePageComponent),
                 MockComponent(ConnectorDetailsContent),
                 MatIconTestingModule
             ],

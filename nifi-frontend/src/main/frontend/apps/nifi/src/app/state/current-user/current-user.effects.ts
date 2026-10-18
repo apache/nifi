@@ -18,7 +18,19 @@
 import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as UserActions from './current-user.actions';
-import { asyncScheduler, catchError, from, interval, map, of, switchMap, takeUntil, tap } from 'rxjs';
+import {
+    asyncScheduler,
+    catchError,
+    exhaustMap,
+    filter,
+    from,
+    interval,
+    map,
+    of,
+    switchMap,
+    takeUntil,
+    tap
+} from 'rxjs';
 import { CurrentUserService } from '../../service/current-user.service';
 import { ErrorHelper } from '../../service/error-helper.service';
 import { concatLatestFrom } from '@ngrx/operators';
@@ -28,6 +40,8 @@ import { selectLogoutUri } from '../login-configuration/login-configuration.sele
 import { Router } from '@angular/router';
 import { AuthService } from '../../service/auth.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { MatDialog } from '@angular/material/dialog';
+import { LogoutConfirmationDialog } from '../../ui/common/logout-confirmation-dialog/logout-confirmation-dialog.component';
 
 @Injectable()
 export class CurrentUserEffects {
@@ -37,6 +51,7 @@ export class CurrentUserEffects {
     private userService = inject(CurrentUserService);
     private authService = inject(AuthService);
     private errorHelper = inject(ErrorHelper);
+    private dialog = inject(MatDialog);
 
     loadCurrentUser$ = createEffect(() =>
         this.actions$.pipe(
@@ -79,6 +94,30 @@ export class CurrentUserEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    promptLogout$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(UserActions.promptLogout),
+            exhaustMap(() =>
+                this.dialog
+                    .open<LogoutConfirmationDialog, undefined, boolean>(LogoutConfirmationDialog, {
+                        width: '560px',
+                        maxWidth: 'calc(100vw - 32px)',
+                        autoFocus: '#logout-cancel',
+                        restoreFocus: true,
+                        disableClose: false,
+                        closeOnNavigation: true,
+                        ariaLabelledBy: 'logout-confirm-title',
+                        ariaDescribedBy: 'logout-confirm-message'
+                    })
+                    .afterClosed()
+                    .pipe(
+                        filter((confirmed) => confirmed === true),
+                        map(() => UserActions.logout())
+                    )
+            )
+        )
     );
 
     logout$ = createEffect(() =>

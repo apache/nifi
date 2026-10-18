@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import * as FlowActions from './flow.actions';
 import { flowReducer, initialState } from './flow.reducer';
 import { clearBulletinsForComponentSuccess } from './flow.actions';
 import { FlowState } from './index';
@@ -351,5 +352,31 @@ describe('Flow Reducer', () => {
             expect(inputPortWithSameId!.bulletins).toHaveLength(1);
             expect(inputPortWithSameId!.bulletins![0].id).toBe(99); // Unchanged
         });
+    });
+});
+
+describe('Flow refresh failure state', () => {
+    it('retains a failure during retry and clears it on a successful snapshot', () => {
+        const failed = flowReducer(initialState, FlowActions.loadProcessGroupFailure({ id: 'group-a', status: 503 }));
+        expect(failed.loadError).toEqual({ id: 'group-a', status: 503 });
+        const retry = flowReducer(
+            failed,
+            FlowActions.loadProcessGroup({ request: { id: 'group-a', transitionRequired: false } })
+        );
+        expect(retry.loadError).toEqual(failed.loadError);
+        const recovered = flowReducer(
+            retry,
+            FlowActions.loadProcessGroupSuccess({
+                response: {
+                    id: 'group-a',
+                    flow: initialState.flow,
+                    flowStatus: initialState.flowStatus,
+                    controllerBulletins: initialState.controllerBulletins,
+                    connectedStateChanged: false,
+                    registryClients: []
+                }
+            })
+        );
+        expect(recovered.loadError).toBeNull();
     });
 });

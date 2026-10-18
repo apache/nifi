@@ -37,6 +37,7 @@
                     <button
                         mat-icon-button
                         class="primary-icon-button"
+                        aria-label="Refresh bulletin board"
                         (click)="refreshBulletinBoard(bulletinBoardState.lastBulletinId)">
                         <i class="fa fa-refresh" [class.fa-spin]="bulletinBoardState.status === 'loading'"></i>
                     </button>

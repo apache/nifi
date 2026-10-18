@@ -25,22 +25,22 @@ import { reducers, summaryFeatureKey } from '../state';
 import { EffectsModule } from '@ngrx/effects';
 import { SummaryListingEffects } from '../state/summary-listing/summary-listing.effects';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
-import { ComponentClusterStatusEffects } from '../state/component-cluster-status/component-cluster-status.effects';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
+import { ComponentClusterStatusEffects } from '../state/component-cluster-status/component-cluster-status.effects';
 
 @NgModule({
     declarations: [Summary],
     exports: [Summary],
     imports: [
+        BannerText,
         CommonModule,
         SummaryRoutingModule,
         MatTabsModule,
         StoreModule.forFeature(summaryFeatureKey, reducers),
         EffectsModule.forFeature(SummaryListingEffects, ComponentClusterStatusEffects),
         NgxSkeletonLoaderModule,
-        Navigation,
-        BannerText
+        WorkspacePageComponent
     ]
 })
 export class SummaryModule {}

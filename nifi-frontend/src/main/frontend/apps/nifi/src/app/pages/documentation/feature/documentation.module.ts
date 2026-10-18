@@ -19,7 +19,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Documentation } from './documentation.component';
 import { DocumentationRoutingModule } from './documentation-routing.module';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 import { MatAccordion, MatExpansionModule } from '@angular/material/expansion';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -56,7 +56,7 @@ import { ConnectorDefinitionEffects } from '../state/connector-definition/connec
             AdditionalDetailsEffects,
             DocumentationEffects
         ),
-        Navigation,
+        WorkspacePageComponent,
         BannerText,
         MatAccordion,
         MatExpansionModule,

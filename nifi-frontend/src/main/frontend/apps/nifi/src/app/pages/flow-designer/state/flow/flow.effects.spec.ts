@@ -1011,6 +1011,9 @@ describe('FlowEffects', () => {
             // Assert
             expect(errorHelper.handleLoadingError).toHaveBeenCalledWith(false, expect.any(HttpErrorResponse));
             expect(result).toEqual(errorAction);
+            expect(store.dispatch).toHaveBeenCalledWith(
+                FlowActions.loadProcessGroupFailure({ id: 'pg-1', status: 500 })
+            );
         });
 
         it('dispatches snackbar/banner error on refresh (hasExistingData=true)', async () => {
@@ -1040,6 +1043,9 @@ describe('FlowEffects', () => {
             // Assert
             expect(errorHelper.handleLoadingError).toHaveBeenCalledWith(true, expect.any(HttpErrorResponse));
             expect(result).toEqual(errorAction);
+            expect(store.dispatch).toHaveBeenCalledWith(
+                FlowActions.loadProcessGroupFailure({ id: 'pg-1', status: 500 })
+            );
         });
     });
 

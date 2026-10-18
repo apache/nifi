@@ -22,8 +22,8 @@ import { ParameterContextListing } from '../ui/parameter-context-listing/paramet
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockComponent } from 'ng-mocks';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 
 describe('ParameterContexts', () => {
     let component: ParameterContexts;
@@ -35,8 +35,8 @@ describe('ParameterContexts', () => {
             imports: [
                 RouterModule,
                 RouterTestingModule,
+                MockComponent(WorkspacePageComponent),
                 MockComponent(BannerText),
-                MockComponent(Navigation),
                 MockComponent(ParameterContextListing)
             ]
         });

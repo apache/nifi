@@ -41,6 +41,8 @@ import { MatMenuTrigger } from '@angular/material/menu';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
+import { selectAbout } from '../../../state/about/about.selectors';
+import { openAboutDialog } from '../../../state/about/about.actions';
 
 describe('Navigation', () => {
     let component: Navigation;
@@ -88,6 +90,28 @@ describe('Navigation', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('shows the runtime version when available and opens the existing About dialog', () => {
+        vi.spyOn(component.workspace, 'enabled').mockReturnValue(true);
+        fixture.changeDetectorRef.markForCheck();
+        fixture.detectChanges();
+        expect(fixture.nativeElement.querySelector('.nifi-version')).toBeNull();
+
+        store.overrideSelector(selectAbout, {
+            title: 'NiFi',
+            version: '2.13.0-SNAPSHOT',
+            uri: '',
+            contentViewerUrl: '',
+            timezone: 'Asia/Bangkok'
+        });
+        store.refreshState();
+        fixture.detectChanges();
+        const badge: HTMLButtonElement = fixture.nativeElement.querySelector('.nifi-version');
+        expect(badge.textContent?.trim()).toBe('2.13.0-SNAPSHOT');
+        const dispatch = vi.spyOn(store, 'dispatch');
+        badge.click();
+        expect(dispatch).toHaveBeenCalledWith(openAboutDialog());
     });
 
     it('should pop back navigation', () => {

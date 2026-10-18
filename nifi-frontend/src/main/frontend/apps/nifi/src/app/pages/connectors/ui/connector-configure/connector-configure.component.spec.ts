@@ -27,7 +27,7 @@ import {
     SystemTokensService
 } from '@nifi/shared';
 import { MockComponent } from 'ng-mocks';
-import { Navigation } from '../../../../ui/common/navigation/navigation.component';
+import { WorkspacePageComponent } from '../../../../ui/common/modern-workspace/workspace-page.component';
 import { of, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { provideRouter, Router } from '@angular/router';
@@ -176,7 +176,7 @@ describe('ConnectorConfigure', () => {
         await TestBed.configureTestingModule({
             imports: [
                 ConnectorConfigure,
-                MockComponent(Navigation),
+                MockComponent(WorkspacePageComponent),
                 MockComponent(ContextErrorBanner),
                 MockComponent(ConnectorWizard),
                 MatIconTestingModule

@@ -15,11 +15,77 @@
  * limitations under the License.
  */
 
-.splash {
-    background-color: var(--mat-sys-secondary);
-}
+@use '../../../ui/common/modern-workspace/workspace-tokens' as workspace;
 
+:host {
+    @include workspace.light;
+    @include workspace.semantics;
+    display: block;
+    height: 100%;
+}
+:host-context(.darkMode) {
+    @include workspace.dark;
+}
 .login-background {
-    background: var(--mat-sys-background) url(../../../../../../../libs/shared/src/assets/icons/bg-error.png) left top
-        no-repeat;
+    min-height: 100%;
+    display: grid;
+    place-items: center;
+    padding: 32px 20px;
+    overflow-y: auto;
+    color: var(--workspace-text);
+    background: radial-gradient(ellipse at top, var(--workspace-card), var(--workspace-bg) 75%);
+}
+.login-shell {
+    width: min(420px, 100%);
+}
+.login-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    font-size: 25px;
+    font-weight: 650;
+    .icon {
+        font-size: 42px;
+        color: var(--workspace-accent);
+    }
+}
+.login-card {
+    padding: 32px;
+    border: 1px solid var(--workspace-border);
+    border-radius: 16px;
+    background: var(--workspace-chrome);
+    box-shadow: 0 16px 60px #0002;
+    h1 {
+        font-size: 24px;
+        font-weight: 600;
+        margin: 0 0 12px;
+    }
+    p {
+        color: var(--workspace-muted);
+    }
+}
+.login-caption {
+    text-align: center;
+    font-size: 12px;
+    color: var(--workspace-muted);
+    margin-top: 20px;
+}
+.login-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    text-align: center;
+}
+.canvas-link {
+    display: inline-block;
+    margin-top: 20px;
+    color: var(--workspace-accent);
+}
+@media (max-width: 480px) {
+    .login-card {
+        padding: 24px;
+    }
 }

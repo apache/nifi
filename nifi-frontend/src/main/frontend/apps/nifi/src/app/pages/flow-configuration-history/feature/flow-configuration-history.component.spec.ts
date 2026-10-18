@@ -22,8 +22,8 @@ import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { FlowConfigurationHistoryListing } from '../ui/flow-configuration-history-listing/flow-configuration-history-listing.component';
 import { MockComponent } from 'ng-mocks';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 
 describe('FlowConfigurationHistory', () => {
     let component: FlowConfigurationHistory;
@@ -35,8 +35,8 @@ describe('FlowConfigurationHistory', () => {
             imports: [
                 RouterModule,
                 RouterTestingModule,
+                MockComponent(WorkspacePageComponent),
                 MockComponent(BannerText),
-                MockComponent(Navigation),
                 MockComponent(FlowConfigurationHistoryListing)
             ]
         });

@@ -33,7 +33,7 @@ import { Storage, DARK_THEME, LIGHT_THEME, OS_SETTING, ThemingService } from '@n
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { loadFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.actions';
 import {
-    logout,
+    promptLogout,
     startCurrentUserPolling,
     stopCurrentUserPolling
 } from '../../../state/current-user/current-user.actions';
@@ -47,6 +47,7 @@ import { selectClusterSummary } from '../../../state/cluster-summary/cluster-sum
 import { selectLoginConfiguration } from '../../../state/login-configuration/login-configuration.selectors';
 import { selectBackNavigation } from '../../../state/navigation/navigation.selectors';
 import { popBackNavigation } from '../../../state/navigation/navigation.actions';
+import { WorkspacePreferencesService } from '../modern-workspace/workspace-preferences.service';
 import { selectAbout } from '../../../state/about/about.selectors';
 
 @Component({
@@ -66,6 +67,7 @@ import { selectAbout } from '../../../state/about/about.selectors';
     styleUrls: ['./navigation.component.scss']
 })
 export class Navigation implements OnInit, OnDestroy {
+    workspace = inject(WorkspacePreferencesService);
     private store = inject<Store<NiFiState>>(Store);
     private storage = inject(Storage);
     private themingService = inject(ThemingService);
@@ -119,7 +121,7 @@ export class Navigation implements OnInit, OnDestroy {
     }
 
     logout(): void {
-        this.store.dispatch(logout());
+        this.store.dispatch(promptLogout());
     }
 
     viewNodeStatusHistory(): void {

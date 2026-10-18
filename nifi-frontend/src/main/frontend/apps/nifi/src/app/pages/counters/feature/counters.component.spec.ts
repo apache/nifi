@@ -24,8 +24,8 @@ import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { countersFeatureKey } from '../state';
 import { MockComponent } from 'ng-mocks';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 
 describe('Counters', () => {
     let component: Counters;
@@ -38,8 +38,8 @@ describe('Counters', () => {
                 RouterModule,
                 RouterTestingModule,
                 MockComponent(CounterListing),
-                MockComponent(BannerText),
-                MockComponent(Navigation)
+                MockComponent(WorkspacePageComponent),
+                MockComponent(BannerText)
             ],
             providers: [
                 provideMockStore({

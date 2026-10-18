@@ -16,10 +16,7 @@
   -->
 
 <banner-text>
-    <div class="flex flex-col h-full">
-        <header class="mb-5 nifi-header">
-            <navigation></navigation>
-        </header>
+    <workspace-page>
         <div class="pb-5 px-5 flex-1 flex flex-col">
             <h3 class="primary-color">NiFi Cluster</h3>
             <context-error-banner [context]="ErrorContextKey.CLUSTER"></context-error-banner>
@@ -62,5 +59,5 @@
                 </div>
             </div>
         </div>
-    </div>
+    </workspace-page>
 </banner-text>

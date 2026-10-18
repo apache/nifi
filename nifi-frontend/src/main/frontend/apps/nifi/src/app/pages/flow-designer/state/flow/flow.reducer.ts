@@ -45,6 +45,7 @@ import {
     loadInputPortSuccess,
     loadProcessGroup,
     loadProcessGroupComplete,
+    loadProcessGroupFailure,
     loadProcessGroupSuccess,
     loadProcessorSuccess,
     loadRemoteProcessGroupSuccess,
@@ -179,6 +180,7 @@ export const initialState: FlowState = {
     navigationCollapsed: false,
     operationCollapsed: false,
     flowAnalysisOpen: false,
+    loadError: null,
     status: 'pending'
 };
 
@@ -212,8 +214,14 @@ export const flowReducer = createReducer(
         transitionRequired: request.transitionRequired,
         status: 'loading' as const
     })),
+    on(loadProcessGroupFailure, (state, { id, status }) => ({
+        ...state,
+        loadError: { id, status },
+        status: 'complete' as const
+    })),
     on(loadProcessGroupSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
+            draftState.loadError = null;
             draftState.id = response.flow.processGroupFlow.id;
             draftState.flow = {
                 ...response.flow,

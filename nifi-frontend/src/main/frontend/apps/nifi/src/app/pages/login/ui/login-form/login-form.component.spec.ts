@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { LoginForm } from './login-form.component';
-import { provideMockStore } from '@ngrx/store/testing';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/current-user/current-user.reducer';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -33,6 +33,8 @@ import { initialState as initialAccessState } from '../../state/access/access.re
 import { loginFeatureKey } from '../../state';
 import { initialState as initialLoginConfigurationState } from '../../../../state/login-configuration/login-configuration.reducer';
 import { loginConfigurationFeatureKey } from '../../../../state/login-configuration';
+import { login } from '../../state/access/access.actions';
+import { selectLoginFailure } from '../../state/access/access.selectors';
 
 describe('LoginForm', () => {
     let component: LoginForm;
@@ -70,5 +72,25 @@ describe('LoginForm', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('does not submit invalid or duplicate sign-ins and allows retry after failure', () => {
+        const store = TestBed.inject(MockStore);
+        const dispatch = vi.spyOn(store, 'dispatch');
+        component.login();
+        expect(dispatch).not.toHaveBeenCalled();
+        component.loginForm.setValue({ username: 'test-user', password: 'test-password' });
+        component.login();
+        component.login();
+        expect(dispatch).toHaveBeenCalledExactlyOnceWith(
+            login({ request: { username: 'test-user', password: 'test-password' } })
+        );
+        expect(component.submitting()).toBe(true);
+
+        store.overrideSelector(selectLoginFailure, 'Invalid credentials');
+        store.refreshState();
+        expect(component.submitting()).toBe(false);
+        expect(component.loginForm.get('password')?.value).toBe('');
+        expect(component.loginForm.get('username')?.value).toBe('test-user');
     });
 });

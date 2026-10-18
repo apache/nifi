@@ -27,7 +27,6 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { NifiTooltipDirective } from '@nifi/shared';
 import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 import { Breadcrumbs } from '../../../../ui/common/breadcrumbs/breadcrumbs.component';
-import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { ContextErrorBanner } from '../../../../ui/common/context-error-banner/context-error-banner.component';
 import { connectorControllerServicesFeatureKey } from '../../state/connector-controller-services';
 import { connectorControllerServicesReducer } from '../../state/connector-controller-services/connector-controller-services.reducer';
@@ -47,10 +46,13 @@ const routes: Routes = [
     }
 ];
 
+import { WorkspacePageComponent } from '../../../../ui/common/modern-workspace/workspace-page.component';
+
 @NgModule({
     declarations: [ConnectorControllerServicesComponent],
     exports: [ConnectorControllerServicesComponent],
     imports: [
+        WorkspacePageComponent,
         CommonModule,
         FormsModule,
         RouterModule.forChild(routes),
@@ -62,8 +64,7 @@ const routes: Routes = [
         NifiTooltipDirective,
         Breadcrumbs,
         ContextErrorBanner,
-        ControllerServiceTable,
-        Navigation
+        ControllerServiceTable
     ]
 })
 export class ConnectorControllerServicesModule {}

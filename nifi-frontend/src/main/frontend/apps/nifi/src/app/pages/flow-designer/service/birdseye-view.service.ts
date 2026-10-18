@@ -177,10 +177,10 @@ export class BirdseyeView {
 
         // get the bounding box for the graph and convert into canvas space
         const graphBox = canvas.getBoundingClientRect();
-        const graphLeft: number = graphBox.left / this.k - translate[0];
+        const graphLeft: number = (graphBox.left - canvasBoundingBox.left) / this.k - translate[0];
         const graphTop: number = (graphBox.top - canvasBoundingBox.top) / this.k - translate[1];
-        const graphRight: number = graphBox.right / this.k - translate[0];
-        const graphBottom: number = graphBox.bottom / this.k - translate[1];
+        const graphRight: number = (graphBox.right - canvasBoundingBox.left) / this.k - translate[0];
+        const graphBottom: number = (graphBox.bottom - canvasBoundingBox.top) / this.k - translate[1];
 
         // get the screen bounding box and convert into canvas space
         const screenWidth: number = canvasBoundingBox.width / this.k;
@@ -201,6 +201,13 @@ export class BirdseyeView {
         // get the width/height we have to work with
         const birdseye: any = document.getElementById('birdseye');
         const birdseyeBox: any = birdseye.getBoundingClientRect();
+        const imageWidth = Math.max(0, birdseyeBox.width - 2);
+        const imageHeight = Math.max(0, birdseyeBox.height - 2);
+        const image = d3.select('#birdseye-canvas');
+        if (Number(image.attr('width')) !== imageWidth || Number(image.attr('height')) !== imageHeight) {
+            image.attr('width', imageWidth).attr('height', imageHeight);
+            d3.select('#birdseye svg').attr('width', imageWidth).attr('height', imageHeight);
+        }
         const birdseyeWidth: number = birdseyeBox.width;
         const birdseyeHeight: number = birdseyeBox.height;
 

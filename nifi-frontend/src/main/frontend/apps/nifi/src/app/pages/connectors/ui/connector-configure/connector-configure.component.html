@@ -15,10 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col h-full">
-    <header class="nifi-header">
-        <navigation></navigation>
-    </header>
+<workspace-page [spacedHeader]="false" [canvas]="false">
     <context-error-banner class="wizard-context-banner" [context]="ErrorContextKey.CONNECTORS"></context-error-banner>
     <div class="flex flex-1 overflow-hidden">
         @if (loading) {
@@ -62,4 +59,4 @@
             </connector-wizard>
         }
     </div>
-</div>
+</workspace-page>

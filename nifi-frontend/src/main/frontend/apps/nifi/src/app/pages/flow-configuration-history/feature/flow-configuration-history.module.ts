@@ -18,24 +18,24 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FlowConfigurationHistory } from './flow-configuration-history.component';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 import { FlowConfigurationHistoryRoutingModule } from './flow-configuration-history-routing.module';
 import { FlowConfigurationHistoryListing } from '../ui/flow-configuration-history-listing/flow-configuration-history-listing.component';
 import { StoreModule } from '@ngrx/store';
 import { flowConfigurationHistoryFeatureKey, reducers } from '../state';
 import { EffectsModule } from '@ngrx/effects';
 import { FlowConfigurationHistoryListingEffects } from '../state/flow-configuration-history-listing/flow-configuration-history-listing.effects';
-import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
 
 @NgModule({
     imports: [
         CommonModule,
-        Navigation,
+        WorkspacePageComponent,
+        BannerText,
         FlowConfigurationHistoryRoutingModule,
         FlowConfigurationHistoryListing,
         StoreModule.forFeature(flowConfigurationHistoryFeatureKey, reducers),
-        EffectsModule.forFeature(FlowConfigurationHistoryListingEffects),
-        BannerText
+        EffectsModule.forFeature(FlowConfigurationHistoryListingEffects)
     ],
     declarations: [FlowConfigurationHistory],
     exports: [FlowConfigurationHistory]

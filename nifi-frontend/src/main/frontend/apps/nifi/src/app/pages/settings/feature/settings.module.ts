@@ -28,14 +28,15 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { ReportingTasksEffects } from '../state/reporting-tasks/reporting-tasks.effects';
 import { RegistryClientsEffects } from '../state/registry-clients/registry-clients.effects';
 import { FlowAnalysisRulesEffects } from '../state/flow-analysis-rules/flow-analysis-rules.effects';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
-import { ParameterProvidersEffects } from '../state/parameter-providers/parameter-providers.effects';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
+import { ParameterProvidersEffects } from '../state/parameter-providers/parameter-providers.effects';
 
 @NgModule({
     declarations: [Settings],
     exports: [Settings],
     imports: [
+        BannerText,
         CommonModule,
         SettingsRoutingModule,
         StoreModule.forFeature(settingsFeatureKey, reducers),
@@ -48,8 +49,7 @@ import { BannerText } from '../../../ui/common/banner-text/banner-text.component
             ParameterProvidersEffects
         ),
         MatTabsModule,
-        Navigation,
-        BannerText
+        WorkspacePageComponent
     ]
 })
 export class SettingsModule {}

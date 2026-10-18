@@ -24,22 +24,22 @@ import { usersFeatureKey, reducers } from '../state';
 import { EffectsModule } from '@ngrx/effects';
 import { MatDialogModule } from '@angular/material/dialog';
 import { UserListingEffects } from '../state/user-listing/user-listing.effects';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 import { UserListing } from '../ui/user-listing/user-listing.component';
 
 @NgModule({
     declarations: [Users],
     exports: [Users],
     imports: [
+        BannerText,
         CommonModule,
         UsersRoutingModule,
         StoreModule.forFeature(usersFeatureKey, reducers),
         EffectsModule.forFeature(UserListingEffects),
         MatDialogModule,
         UserListing,
-        Navigation,
-        BannerText
+        WorkspacePageComponent
     ]
 })
 export class UsersModule {}

@@ -24,21 +24,21 @@ import { ConnectorsRoutingModule } from './connectors-routing.module';
 import { connectorsFeatureKey, reducers } from '../state';
 import { ConnectorsListingEffects } from '../state/connectors-listing/connectors-listing.effects';
 import { PurgeConnectorEffects } from '../state/purge-connector/purge-connector.effects';
-import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { WorkspacePageComponent } from '../../../ui/common/modern-workspace/workspace-page.component';
 import { ConnectorsListing } from '../ui/connectors-listing/connectors-listing.component';
 
 @NgModule({
     declarations: [Connectors],
     exports: [Connectors],
     imports: [
+        BannerText,
         CommonModule,
         ConnectorsRoutingModule,
         StoreModule.forFeature(connectorsFeatureKey, reducers),
         EffectsModule.forFeature(ConnectorsListingEffects, PurgeConnectorEffects),
         ConnectorsListing,
-        Navigation,
-        BannerText
+        WorkspacePageComponent
     ]
 })
 export class ConnectorsModule {}
