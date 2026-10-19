@@ -1708,6 +1708,7 @@ public class TestDataTypeUtils {
 
         final List<DataType> subTypes = ((ChoiceDataType) merged).getPossibleSubTypes();
         assertEquals(2, subTypes.size());
+        assertEquals(RecordFieldType.STRING.getDataType(), subTypes.get(0));
         final RecordSchema mergedSchema = ((RecordDataType) subTypes.get(1)).getChildSchema();
         assertEquals(List.of("content", "a", "b"), mergedSchema.getFieldNames());
     }
@@ -1719,7 +1720,10 @@ public class TestDataTypeUtils {
         final DataType merged = assertTimeoutPreemptively(Duration.ofSeconds(10),
             () -> DataTypeUtils.mergeDataTypes(choice, RecordFieldType.ARRAY.getArrayDataType(createNestedRecordType(40, "b"))));
 
-        assertEquals(3, ((ChoiceDataType) merged).getPossibleSubTypes().size());
+        assertEquals(List.of(RecordFieldType.STRING.getDataType(),
+                RecordFieldType.ARRAY.getArrayDataType(createNestedRecordType(40, "a")),
+                RecordFieldType.ARRAY.getArrayDataType(createNestedRecordType(40, "b"))),
+            ((ChoiceDataType) merged).getPossibleSubTypes());
     }
 
     @Test
@@ -1729,6 +1733,33 @@ public class TestDataTypeUtils {
             RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.ARRAY.getArrayDataType(createNestedRecordType(40, "b")))));
 
         assertEquals(RecordFieldType.CHOICE, merged.getFieldType());
+    }
+
+    @ParameterizedTest
+    @MethodSource("nestedArrayWiderRecordData")
+    public void testGetWiderTypeWithNestedArrayFields(final DataType widerArrayType, final DataType narrowerArrayType, final boolean expectedWider) {
+        final DataType wider = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(List.of(
+            new RecordField("items", widerArrayType), new RecordField("extra", RecordFieldType.STRING.getDataType()))));
+        final DataType narrower = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(List.of(new RecordField("items", narrowerArrayType))));
+
+        final Optional<DataType> expected = expectedWider ? Optional.of(wider) : Optional.empty();
+        assertEquals(expected, DataTypeUtils.getWiderType(wider, narrower));
+        assertEquals(expected, DataTypeUtils.getWiderType(narrower, wider));
+    }
+
+    private static Stream<Arguments> nestedArrayWiderRecordData() {
+        final DataType intType = RecordFieldType.INT.getDataType();
+        final DataType longType = RecordFieldType.LONG.getDataType();
+        return Stream.of(
+            Arguments.argumentSet("nullable elements over non-nullable elements",
+                RecordFieldType.ARRAY.getArrayDataType(intType, true), RecordFieldType.ARRAY.getArrayDataType(intType, false), false),
+            Arguments.argumentSet("non-nullable elements over nullable elements",
+                RecordFieldType.ARRAY.getArrayDataType(intType, false), RecordFieldType.ARRAY.getArrayDataType(intType, true), true),
+            Arguments.argumentSet("wider elements",
+                RecordFieldType.ARRAY.getArrayDataType(longType, false), RecordFieldType.ARRAY.getArrayDataType(intType, false), true),
+            Arguments.argumentSet("narrower elements",
+                RecordFieldType.ARRAY.getArrayDataType(intType, false), RecordFieldType.ARRAY.getArrayDataType(longType, false), false)
+        );
     }
 
     private DataType createNestedRecordType(final int depth, final String... fieldNames) {
