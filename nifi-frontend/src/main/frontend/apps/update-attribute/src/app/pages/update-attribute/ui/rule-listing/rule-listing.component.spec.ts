@@ -26,7 +26,7 @@ import { initialState as advancedUiParametersInitialState } from '../../state/ad
 import { updateAttributeFeatureKey } from '../../state';
 import { advancedUiParametersFeatureKey } from '../../state/advanced-ui-parameters';
 import { evaluationContextFeatureKey } from '../../state/evaluation-context';
-import { rulesFeatureKey } from '../../state/rules';
+import { Rule, rulesFeatureKey } from '../../state/rules';
 
 describe('RuleListing', () => {
     let component: RuleListing;
@@ -120,7 +120,7 @@ describe('RuleListing', () => {
         fixture.detectChanges();
 
         expect(fixture.nativeElement.textContent).toContain('Displaying 0 of 4');
-        expect(fixture.nativeElement.textContent).not.toContain('NO Matches');
+        expect(fixture.nativeElement.textContent).not.toContain('No matching rules');
     });
 
     it('should display nothing when there are no rules', () => {
