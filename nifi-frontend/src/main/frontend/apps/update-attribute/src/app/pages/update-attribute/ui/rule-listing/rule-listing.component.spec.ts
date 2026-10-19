@@ -67,13 +67,13 @@ describe('RuleListing', () => {
         expect(component).toBeTruthy();
     });
 
-    it('should display the number of filtered rules and total rules', fakeAsync(() => {
+    it('should display the number of filtered rules and total rules', () => {
         component.rules = [createRule('1', 'Rule One'), createRule('2', 'Rule Two')];
 
         fixture.detectChanges();
 
         expect(fixture.nativeElement.textContent).toContain('Displaying 2 of 2');
-    }));
+    });
 
     it('should display one matching rule out of four when filtered', fakeAsync(() => {
         component.rules = [
