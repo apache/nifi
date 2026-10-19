@@ -27,6 +27,7 @@ import { updateAttributeFeatureKey } from '../../state';
 import { advancedUiParametersFeatureKey } from '../../state/advanced-ui-parameters';
 import { evaluationContextFeatureKey } from '../../state/evaluation-context';
 import { Rule, rulesFeatureKey } from '../../state/rules';
+import { fakeAsync, tick } from '@angular/core/testing';
 
 describe('RuleListing', () => {
     let component: RuleListing;
@@ -66,15 +67,15 @@ describe('RuleListing', () => {
         expect(component).toBeTruthy();
     });
 
-    it('should display the number of filtered rules and total rules', () => {
+    it('should display the number of filtered rules and total rules', fakeAsync(() => {
         component.rules = [createRule('1', 'Rule One'), createRule('2', 'Rule Two')];
 
         fixture.detectChanges();
 
         expect(fixture.nativeElement.textContent).toContain('Displaying 2 of 2');
-    });
+    }));
 
-    it('should display one matching rule out of four when filtered', () => {
+    it('should display one matching rule out of four when filtered', fakeAsync(() => {
         component.rules = [
             createRule('1', 'Apple'),
             createRule('2', 'Apricot'),
@@ -83,14 +84,13 @@ describe('RuleListing', () => {
         ];
 
         component.searchForm.get('searchRules')?.setValue('Ba');
-        component.filterRules();
-
+        tick(500);
         fixture.detectChanges();
 
         expect(fixture.nativeElement.textContent).toContain('Displaying 1 of 4');
-    });
+    }));
 
-    it('should display two matching rules out of four when filtered', () => {
+    it('should display two matching rules out of four when filtered', fakeAsync(() => {
         component.rules = [
             createRule('1', 'Apple'),
             createRule('2', 'Apricot'),
@@ -99,14 +99,13 @@ describe('RuleListing', () => {
         ];
 
         component.searchForm.get('searchRules')?.setValue('Ap');
-        component.filterRules();
-
+        tick(500);
         fixture.detectChanges();
 
         expect(fixture.nativeElement.textContent).toContain('Displaying 2 of 4');
-    });
+    }));
 
-    it('should display zero matching rules when no rules match the search', () => {
+    it('should display zero matching rules when no rules match the search', fakeAsync(() => {
         component.rules = [
             createRule('1', 'Apple'),
             createRule('2', 'Apricot'),
@@ -115,13 +114,12 @@ describe('RuleListing', () => {
         ];
 
         component.searchForm.get('searchRules')?.setValue('Plum');
-        component.filterRules();
-
+        tick(500);
         fixture.detectChanges();
 
         expect(fixture.nativeElement.textContent).toContain('Displaying 0 of 4');
         expect(fixture.nativeElement.textContent).not.toContain('No matching rules');
-    });
+    }));
 
     it('should display nothing when there are no rules', () => {
         component.rules = [];
