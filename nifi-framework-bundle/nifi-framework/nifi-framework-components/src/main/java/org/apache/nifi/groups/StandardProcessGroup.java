@@ -1113,7 +1113,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             try {
                 remoteGroup.onRemove();
             } catch (final Exception e) {
-                LOG.warn("Failed to clean up resources for {} due to {}", remoteGroup, e);
+                LOG.warn("Failed to clean up resources for {}", remoteGroup, e);
             }
 
             remoteGroup.getInputPorts().forEach(scheduler::onPortRemoved);

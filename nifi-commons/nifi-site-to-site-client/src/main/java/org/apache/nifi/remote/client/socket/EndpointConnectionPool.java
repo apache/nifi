@@ -491,7 +491,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                     try {
                         connection.getSocketClientProtocol().shutdown(connection.getPeer());
                     } catch (final Exception e) {
-                        logger.debug("Failed to shut down {} using {} due to {}",
+                        logger.debug("Failed to shut down {} using {}",
                                 connection.getSocketClientProtocol(), connection.getPeer(), e);
                     }
 

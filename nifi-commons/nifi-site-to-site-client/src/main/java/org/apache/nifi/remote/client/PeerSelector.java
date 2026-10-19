@@ -126,7 +126,7 @@ public class PeerSelector {
             }
             this.peerStatusCache = restoredPeerStatusCache;
         } catch (final IOException ioe) {
-            logger.warn("Failed to recover peer statuses from {} due to {}; will continue without loading information from file",
+            logger.warn("Failed to recover peer statuses from {}; will continue without loading information from file",
                     peerPersistence.getClass().getSimpleName(), ioe);
         }
     }

@@ -520,7 +520,7 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
                 try {
                     listener.onStartLeading();
                 } catch (final Exception e) {
-                    logger.error("This node was elected Leader for Role '{}' but failed to take leadership. Will relinquish leadership role. Failure was due to: {}", roleName, e);
+                    logger.error("This node was elected Leader for Role '{}' but failed to take leadership. Will relinquish leadership role.", roleName, e);
                     setLeader(false);
                     Thread.sleep(1000L);
                     return;
