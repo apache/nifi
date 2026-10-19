@@ -118,7 +118,7 @@ describe('RuleListing', () => {
         fixture.detectChanges();
 
         expect(fixture.nativeElement.textContent).toContain('Displaying 0 of 4');
-        expect(fixture.nativeElement.textContent).not.toContain('No matching rules');
+        expect(fixture.nativeElement.textContent).toContain('No matching rules');
     }));
 
     it('should display nothing when there are no rules', () => {

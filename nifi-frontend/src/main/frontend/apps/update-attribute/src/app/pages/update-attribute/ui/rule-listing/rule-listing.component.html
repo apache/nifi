@@ -76,9 +76,13 @@
             </div>
         </div>
         @if (!newRule && rulesList.length > 0) {
-        <div class="text-sm unset">
-            Displaying {{ filteredRulesList.length }} of {{ rulesList.length }}
-        </div>
+            <div class="tertiary-color font-medium">
+                Displaying {{ filteredRulesList.length }} of {{ rulesList.length }}
+            </div>
+        }
+
+        @if (rulesList.length > 0 && filteredRulesList.length === 0) {
+            <div class="unset">No matching rules</div>
         }
 
         @if (allowRuleReordering) {
