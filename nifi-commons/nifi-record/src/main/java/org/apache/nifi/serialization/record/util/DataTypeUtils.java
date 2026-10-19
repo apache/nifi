@@ -1922,17 +1922,33 @@ public class DataTypeUtils {
                 continue;
             }
 
-            final Optional<DataType> widerType = getWiderType(widerField.get().getDataType(), narrowerField.getDataType());
-            if (widerType.isEmpty()) {
-                return false;
-            }
-
-            if (!widerType.get().equals(widerField.get().getDataType())) {
+            if (!isWiderOrEqual(widerField.get().getDataType(), narrowerField.getDataType())) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    private static boolean isWiderOrEqual(final DataType potentiallyWider, final DataType potentiallyNarrower) {
+        final RecordFieldType widerFieldType = potentiallyWider.getFieldType();
+        final RecordFieldType narrowerFieldType = potentiallyNarrower.getFieldType();
+
+        if (widerFieldType == RecordFieldType.RECORD && narrowerFieldType == RecordFieldType.RECORD) {
+            final RecordSchema widerSchema = ((RecordDataType) potentiallyWider).getChildSchema();
+            final RecordSchema narrowerSchema = ((RecordDataType) potentiallyNarrower).getChildSchema();
+            if (widerSchema != null && narrowerSchema != null) {
+                return isRecordWider(widerSchema, narrowerSchema);
+            }
+        } else if (widerFieldType == RecordFieldType.ARRAY && narrowerFieldType == RecordFieldType.ARRAY) {
+            final DataType widerElementType = ((ArrayDataType) potentiallyWider).getElementType();
+            final DataType narrowerElementType = ((ArrayDataType) potentiallyNarrower).getElementType();
+            if (widerElementType != null && narrowerElementType != null) {
+                return isWiderOrEqual(widerElementType, narrowerElementType) && RecordFieldType.ARRAY.getArrayDataType(widerElementType).equals(potentiallyWider);
+            }
+        }
+
+        return getWiderType(potentiallyWider, potentiallyNarrower).map(potentiallyWider::equals).orElse(false);
     }
 
     private static boolean isDecimalType(final RecordFieldType fieldType) {

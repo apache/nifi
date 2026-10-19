@@ -30,15 +30,19 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestJsonSchemaInference {
@@ -178,17 +182,43 @@ class TestJsonSchemaInference {
         assertSame(RecordFieldType.STRING, arrayElementType.getFieldType());
     }
 
+    @Test
+    void testDeeplyNestedNonWiderRecordsCompleteQuickly() {
+        final String json = "[{\"doc\":[" + createNestedJson("a", 40) + "," + createNestedJson("b", 40) + "]}]";
+
+        final RecordSchema schema = assertTimeoutPreemptively(Duration.ofSeconds(10),
+            () -> inferSchema(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8))));
+
+        final DataType elementType = ((ArrayDataType) schema.getDataType("doc").get()).getElementType();
+        assertEquals(List.of("content", "a", "b"), ((RecordDataType) elementType).getChildSchema().getFieldNames());
+    }
+
+    @Test
+    void testNestedRecordWithSupersetOfFieldsKeepsItsFieldOrder() throws IOException {
+        final String json = "[{\"n\":[{\"a\":1}]},{\"n\":[{\"b\":1,\"a\":1}]}]";
+
+        final RecordSchema schema = inferSchema(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
+
+        final DataType elementType = ((ArrayDataType) schema.getDataType("n").get()).getElementType();
+        assertEquals(List.of("b", "a"), ((RecordDataType) elementType).getChildSchema().getFieldNames());
+    }
+
+    private String createNestedJson(final String fieldName, final int depth) {
+        return "{\"content\":[".repeat(depth) + "\"item\"" + ("],\"" + fieldName + "\":\"item\"}").repeat(depth);
+    }
+
     private RecordSchema inferSchema(final File jsonFile) throws IOException {
         try (final InputStream in = new FileInputStream(jsonFile);
              final InputStream bufferedIn = new BufferedInputStream(in)) {
-
-            final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                (variables, content) -> new JsonRecordSource(content),
-                new JsonSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
-
-            final RecordSchema schema = accessStrategy.getSchema(null, bufferedIn, null);
-            return schema;
+            return inferSchema(bufferedIn);
         }
+    }
 
+    private RecordSchema inferSchema(final InputStream in) throws IOException {
+        final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
+            (variables, content) -> new JsonRecordSource(content),
+            new JsonSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
+
+        return accessStrategy.getSchema(null, in, null);
     }
 }

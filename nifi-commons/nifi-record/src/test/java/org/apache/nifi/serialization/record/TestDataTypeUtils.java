@@ -34,6 +34,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Types;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -61,6 +62,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestDataTypeUtils {
@@ -1687,5 +1689,58 @@ public class TestDataTypeUtils {
         assertFalse(merged.getField("id").orElseThrow().isNullable());
         assertTrue(merged.getField("tags").orElseThrow().isNullable());
         assertFalse(((ArrayDataType) merged.getField("tags").orElseThrow().getDataType()).isElementsNullable());
+    }
+
+    @Test
+    public void testMergeDataTypesWithDeeplyNestedNonWiderRecordsCompletesQuickly() {
+        final DataType merged = assertTimeoutPreemptively(Duration.ofSeconds(10),
+            () -> DataTypeUtils.mergeDataTypes(createNestedRecordType(40, "a"), createNestedRecordType(40, "b")));
+
+        final RecordSchema mergedSchema = ((RecordDataType) merged).getChildSchema();
+        assertEquals(List.of("content", "a", "b"), mergedSchema.getFieldNames());
+    }
+
+    @Test
+    public void testMergeDataTypesWithChoiceOfDeeplyNestedNonWiderRecordsCompletesQuickly() {
+        final DataType choice = RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.STRING.getDataType(), createNestedRecordType(40, "a"));
+        final DataType merged = assertTimeoutPreemptively(Duration.ofSeconds(10),
+            () -> DataTypeUtils.mergeDataTypes(choice, createNestedRecordType(40, "b")));
+
+        final List<DataType> subTypes = ((ChoiceDataType) merged).getPossibleSubTypes();
+        assertEquals(2, subTypes.size());
+        final RecordSchema mergedSchema = ((RecordDataType) subTypes.get(1)).getChildSchema();
+        assertEquals(List.of("content", "a", "b"), mergedSchema.getFieldNames());
+    }
+
+    @Test
+    public void testMergeDataTypesWithChoiceOfDeeplyNestedNonWiderRecordArraysCompletesQuickly() {
+        final DataType choice = RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.STRING.getDataType(),
+            RecordFieldType.ARRAY.getArrayDataType(createNestedRecordType(40, "a")));
+        final DataType merged = assertTimeoutPreemptively(Duration.ofSeconds(10),
+            () -> DataTypeUtils.mergeDataTypes(choice, RecordFieldType.ARRAY.getArrayDataType(createNestedRecordType(40, "b"))));
+
+        assertEquals(3, ((ChoiceDataType) merged).getPossibleSubTypes().size());
+    }
+
+    @Test
+    public void testMergeDataTypesWithNestedArraysOfDeeplyNestedNonWiderRecordsCompletesQuickly() {
+        final DataType merged = assertTimeoutPreemptively(Duration.ofSeconds(10), () -> DataTypeUtils.mergeDataTypes(
+            RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.ARRAY.getArrayDataType(createNestedRecordType(40, "a"))),
+            RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.ARRAY.getArrayDataType(createNestedRecordType(40, "b")))));
+
+        assertEquals(RecordFieldType.CHOICE, merged.getFieldType());
+    }
+
+    private DataType createNestedRecordType(final int depth, final String... fieldNames) {
+        DataType dataType = RecordFieldType.STRING.getDataType();
+        for (int i = 0; i < depth; i++) {
+            final List<RecordField> fields = new ArrayList<>();
+            fields.add(new RecordField("content", RecordFieldType.ARRAY.getArrayDataType(dataType)));
+            for (final String fieldName : fieldNames) {
+                fields.add(new RecordField(fieldName, RecordFieldType.STRING.getDataType()));
+            }
+            dataType = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(fields));
+        }
+        return dataType;
     }
 }
