@@ -976,4 +976,17 @@ public class TestSwappablePriorityQueue {
         assertEquals(totalNow - totalQueueDate, queue.getTotalQueuedDuration(now));
         assertEquals(minQueueDate, queue.getMinLastQueueDate());
     }
+
+    @Test
+    public void testMinLastQueueDateWithEmptyActiveQueue() {
+        queue = new SwappablePriorityQueue(swapManager, 2, eventReporter, flowFileQueue, dropAction, "local");
+        queue.put(new MockFlowFileRecord());
+        queue.put(new MockFlowFileRecord());
+
+        final MockFlowFileRecord swapQueueFlowFile = new MockFlowFileRecord();
+        queue.put(swapQueueFlowFile);
+        queue.poll(2, Collections.emptySet(), -1);
+
+        assertEquals(swapQueueFlowFile.getLastQueueDate().longValue(), queue.getMinLastQueueDate());
+    }
 }

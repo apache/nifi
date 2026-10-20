@@ -1269,7 +1269,7 @@ public class SwappablePriorityQueue {
         try {
             // We want the oldest timestamp, which will be the min
             long min = getMinLastQueueDate(activeQueue, 0L);
-            min = Long.min(min, getMinLastQueueDate(swapQueue, min));
+            min = getMinLastQueueDate(swapQueue, min);
 
             for (Long minSwapQueueDate: minQueueDateInSwapLocation.values()) {
                 min = min == 0 ? minSwapQueueDate : Long.min(min, minSwapQueueDate);
@@ -1281,14 +1281,15 @@ public class SwappablePriorityQueue {
         }
     }
 
-    private long getMinLastQueueDate(Iterable<FlowFileRecord> iterable, long defaultMin) {
-        long min = 0;
+    private long getMinLastQueueDate(final Iterable<FlowFileRecord> iterable, final long initialMin) {
+        long min = initialMin;
 
-        for (FlowFileRecord flowFileRecord : iterable) {
-            min = min == 0 ? flowFileRecord.getLastQueueDate() : Long.min(flowFileRecord.getLastQueueDate(), min);
+        for (final FlowFileRecord flowFileRecord : iterable) {
+            final long lastQueueDate = flowFileRecord.getLastQueueDate();
+            min = min == 0 ? lastQueueDate : Long.min(lastQueueDate, min);
         }
 
-        return min == 0 ? defaultMin : min;
+        return min;
     }
 
     public long getTotalQueuedDuration(long fromTimestamp) {

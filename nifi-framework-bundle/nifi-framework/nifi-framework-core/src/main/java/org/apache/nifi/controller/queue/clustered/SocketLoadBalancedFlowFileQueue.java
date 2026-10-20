@@ -602,9 +602,13 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public long getMinLastQueueDate() {
         long min = 0;
-        for (QueuePartition queuePartition : queuePartitions) {
-            min = min == 0 ? queuePartition.getMinLastQueueDate() : Long.min(min, queuePartition.getMinLastQueueDate());
+        for (final QueuePartition queuePartition : queuePartitions) {
+            final long partitionMin = queuePartition.getMinLastQueueDate();
+            if (partitionMin > 0) {
+                min = min == 0 ? partitionMin : Long.min(min, partitionMin);
+            }
         }
+
         return min;
     }
 
