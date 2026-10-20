@@ -983,6 +983,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
         }
 
         assertEquals(1, swapManager.swappedOut.size());
+        assertEquals(new QueueSize(20000, 20000L), queue.getLocalQueueSize());
 
         repoRecords.clear();
         provRecords.clear();

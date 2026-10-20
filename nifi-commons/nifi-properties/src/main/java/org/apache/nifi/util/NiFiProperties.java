@@ -382,6 +382,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String STANDARD_SCHEDULING_STRATEGY = "STANDARD";
     public static final String VIRTUAL_SCHEDULING_STRATEGY = "VIRTUAL";
     public static final String DEFAULT_SCHEDULING_STRATEGY = AUTO_SCHEDULING_STRATEGY;
+    public static final String DEFAULT_PROCESSOR_AUTO_MAX_CONCURRENT_TASKS = "12";
     public static final String DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT = "3 secs";
     public static final String DEFAULT_ZOOKEEPER_SESSION_TIMEOUT = "3 secs";
     public static final String DEFAULT_ZOOKEEPER_ROOT_NODE = "/nifi";
@@ -1479,7 +1480,7 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     public int getProcessorAutoMaxConcurrentTasks() {
-        final String configuredMaximum = getProperty(PROCESSOR_AUTO_MAX_CONCURRENT_TASKS, "12");
+        final String configuredMaximum = getProperty(PROCESSOR_AUTO_MAX_CONCURRENT_TASKS, DEFAULT_PROCESSOR_AUTO_MAX_CONCURRENT_TASKS);
         final int maximum;
         try {
             maximum = Integer.parseInt(configuredMaximum.trim());
@@ -1491,7 +1492,7 @@ public class NiFiProperties extends ApplicationProperties {
             throw new IllegalArgumentException(PROCESSOR_AUTO_MAX_CONCURRENT_TASKS + " must be a positive integer: " + configuredMaximum);
         }
 
-        return (int) Math.min(maximum, 4L * Runtime.getRuntime().availableProcessors());
+        return maximum;
     }
 
     public File getStateManagementConfigFile() {

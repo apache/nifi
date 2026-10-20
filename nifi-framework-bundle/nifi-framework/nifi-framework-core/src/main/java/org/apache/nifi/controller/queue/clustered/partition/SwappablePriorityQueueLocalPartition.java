@@ -74,6 +74,11 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     }
 
     @Override
+    public QueueSize getWaitingQueueSize() {
+        return priorityQueue.getFlowFileQueueSize().waitingQueueSize();
+    }
+
+    @Override
     public long getTotalActiveQueuedDuration(long fromTimestamp) {
         return priorityQueue.getTotalQueuedDuration(fromTimestamp);
     }

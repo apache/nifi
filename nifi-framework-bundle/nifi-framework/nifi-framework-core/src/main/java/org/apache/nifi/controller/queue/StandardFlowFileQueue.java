@@ -182,6 +182,11 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     }
 
     @Override
+    public QueueSize getLocalQueueSize() {
+        return queue.getFlowFileQueueSize().waitingQueueSize();
+    }
+
+    @Override
     public FlowFileQueueSnapshot getQueueSnapshot() {
         return queue.getQueueSnapshot();
     }
