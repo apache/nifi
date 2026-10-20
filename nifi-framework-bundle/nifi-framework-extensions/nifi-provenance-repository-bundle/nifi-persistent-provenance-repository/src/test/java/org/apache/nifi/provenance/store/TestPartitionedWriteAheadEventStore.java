@@ -34,6 +34,8 @@ import org.apache.nifi.provenance.store.iterator.EventIterator;
 import org.apache.nifi.provenance.toc.StandardTocWriter;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
+import org.apache.nifi.provenance.util.DirectoryUtils;
+import org.apache.nifi.provenance.util.FileInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
@@ -43,6 +45,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -325,11 +332,9 @@ public class TestPartitionedWriteAheadEventStore {
         store.initialize();
 
         final int numEvents = 20;
-        final List<ProvenanceEventRecord> events = new ArrayList<>(numEvents);
         for (int i = 0; i < numEvents; i++) {
             final ProvenanceEventRecord event = createEvent();
             store.addEvents(Collections.singleton(event));
-            events.add(event);
         }
 
         final EventAuthorizer allowEventNumberedEventIds = EventAuthorizer.DENY_ALL;
@@ -486,6 +491,112 @@ public class TestPartitionedWriteAheadEventStore {
         }
 
         assertEquals(600, count);
+    }
+
+    @Test
+    public void testPerformMaintenanceExceedMaxAge() throws IOException {
+        final int numberOfPartitions = 3;
+        final RepositoryConfiguration config = createConfig(numberOfPartitions);
+        config.setMaxEventFileCount(5);
+        config.setCompressOnRollover(false);
+        config.setMaxRecordLife(0, TimeUnit.MILLISECONDS);
+
+        final PartitionedWriteAheadEventStore store = new PartitionedWriteAheadEventStore(config, writerFactory, readerFactory, EventReporter.NO_OP, new EventFileManager());
+        store.initialize();
+
+        for (int i = 0; i < 300; i++) {
+            final ProvenanceEventRecord event = createEvent();
+            store.addEvents(Collections.singleton(event));
+        }
+
+        // Max Age of 0 milliseconds should cause all files except the active event files to be purged
+        store.performMaintenance();
+
+        int fileCount = 0;
+        for (File dir : config.getStorageDirectories().values()) {
+            List<FileInfo> files = DirectoryUtils.listFiles(dir.toPath());
+            fileCount += files.size();
+        }
+        assertEquals(2 * numberOfPartitions, fileCount);
+
+        // Maintenance when only active event files exist should effectively do nothing
+        store.performMaintenance();
+
+        fileCount = 0;
+        for (File dir : config.getStorageDirectories().values()) {
+            List<FileInfo> files = DirectoryUtils.listFiles(dir.toPath());
+            fileCount += files.size();
+        }
+        assertEquals(2 * numberOfPartitions, fileCount);
+    }
+
+    @Test
+    public void testPerformMaintenanceExceedMaxSize() throws IOException {
+        final int numberOfPartitions = 3;
+        final RepositoryConfiguration config = createConfig(numberOfPartitions);
+        config.setMaxEventFileCount(5);
+        config.setCompressOnRollover(false);
+        config.setMaxStorageCapacity(0);
+
+        final PartitionedWriteAheadEventStore store = new PartitionedWriteAheadEventStore(config, writerFactory, readerFactory, EventReporter.NO_OP, new EventFileManager());
+        store.initialize();
+
+        for (int i = 0; i < 300; i++) {
+            final ProvenanceEventRecord event = createEvent();
+            store.addEvents(Collections.singleton(event));
+        }
+
+        // Max Size of 0 bytes should cause all files except the active event files to be purged
+        store.performMaintenance();
+
+        int fileCount = 0;
+        for (File dir : config.getStorageDirectories().values()) {
+            List<FileInfo> files = DirectoryUtils.listFiles(dir.toPath());
+            fileCount += files.size();
+        }
+        assertEquals(2 * numberOfPartitions, fileCount);
+
+        // Maintenance when only active event files exist should effectively do nothing
+        store.performMaintenance();
+
+        fileCount = 0;
+        for (File dir : config.getStorageDirectories().values()) {
+            List<FileInfo> files = DirectoryUtils.listFiles(dir.toPath());
+            fileCount += files.size();
+        }
+        assertEquals(2 * numberOfPartitions, fileCount);
+    }
+
+    @Test
+    public void testPerformMaintenanceOrderByAge() throws IOException {
+        final RepositoryConfiguration config = createConfig(1);
+        config.setMaxEventFileCount(5);
+        config.setCompressOnRollover(false);
+        config.setMaxRecordLife(1, TimeUnit.MINUTES);
+
+        final PartitionedWriteAheadEventStore store = new PartitionedWriteAheadEventStore(config, writerFactory, readerFactory, EventReporter.NO_OP, new EventFileManager());
+        store.initialize();
+
+        for (int i = 0; i < 300; i++) {
+            final ProvenanceEventRecord event = createEvent();
+            store.addEvents(Collections.singleton(event));
+        }
+
+        assertEquals(1, config.getStorageDirectories().size());
+        File storageDir = config.getStorageDirectories().values().stream().findFirst().orElse(null);
+        assertNotNull(storageDir);
+        List<FileInfo> files = DirectoryUtils.listFiles(storageDir.toPath());
+        int initialFileCount = files.size();
+
+        // Insert 1 file that exceeds Max Age
+        Path newFile = storageDir.toPath().resolve("987654321.prov");
+        Files.createFile(newFile);
+        Files.setLastModifiedTime(newFile, FileTime.from(Instant.now().minus(1, ChronoUnit.HOURS)));
+
+        store.performMaintenance();
+
+        // The old file we inserted above should be deleted
+        assertEquals(initialFileCount, DirectoryUtils.listFiles(storageDir.toPath()).size());
     }
 
     private RepositoryConfiguration createConfig() {
