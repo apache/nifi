@@ -24,6 +24,7 @@ import org.apache.nifi.toolkit.client.FlowClient;
 import org.apache.nifi.toolkit.client.NiFiClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ConnectorActionDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -37,6 +38,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -92,6 +94,32 @@ public class TestChangeVersionConnector {
         verify(connectorClient).updateConnector(updateCaptor.capture());
         assertEquals(3L, updateCaptor.getValue().getRevision().getVersion());
         assertEquals(TARGET_VERSION, updateCaptor.getValue().getComponent().getBundle().getVersion());
+    }
+
+    @Test
+    public void testChangeVersionStopsUpdatedConnectorWhileThreadsAreActive() throws Exception {
+        stubClients();
+
+        final ConnectorEntity updatedWithThreads = connectorEntity("UPDATED", 1L);
+        updatedWithThreads.getComponent().setAvailableActions(List.of(
+                action("CHANGE_VERSION", false, "Connector must be stopped"),
+                action("STOP", true, null)));
+        final ConnectorEntity stillUpdated = connectorEntity("UPDATED", 2L);
+        stillUpdated.getComponent().setAvailableActions(List.of(action("CHANGE_VERSION", false, "Connector must be stopped")));
+        final ConnectorEntity readyToChange = connectorEntity("UPDATED", 3L);
+        readyToChange.getComponent().setAvailableActions(List.of(action("CHANGE_VERSION", true, null)));
+
+        stubListedConnectors(updatedWithThreads);
+        when(connectorClient.getConnector(CONNECTOR_ID)).thenReturn(stillUpdated, readyToChange, readyToChange);
+        when(connectorClient.updateConnector(any())).thenReturn(readyToChange);
+
+        new ChangeVersionConnector().doExecute(niFiClient, changeVersionProperties());
+
+        final ArgumentCaptor<ConnectorEntity> updateCaptor = ArgumentCaptor.forClass(ConnectorEntity.class);
+        verify(connectorClient).stopConnector(updatedWithThreads);
+        verify(connectorClient).updateConnector(updateCaptor.capture());
+        assertEquals(3L, updateCaptor.getValue().getRevision().getVersion());
+        verify(connectorClient, never()).startConnector(any(ConnectorEntity.class));
     }
 
     @Test
@@ -186,6 +214,8 @@ public class TestChangeVersionConnector {
         connectorDto.setType(CONNECTOR_TYPE);
         connectorDto.setState(state);
         connectorDto.setBundle(bundle);
+        final boolean changeVersionAllowed = "STOPPED".equals(state) || "UPDATED".equals(state) || "UPDATE_FAILED".equals(state);
+        connectorDto.setAvailableActions(List.of(action("CHANGE_VERSION", changeVersionAllowed, changeVersionAllowed ? null : "Connector must be stopped")));
 
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(CLIENT_ID);
@@ -196,6 +226,15 @@ public class TestChangeVersionConnector {
         entity.setComponent(connectorDto);
         entity.setRevision(revision);
         return entity;
+    }
+
+    private ConnectorActionDTO action(final String name, final boolean allowed, final String reasonNotAllowed) {
+        final ConnectorActionDTO action = new ConnectorActionDTO();
+        action.setName(name);
+        action.setDescription(name);
+        action.setAllowed(allowed);
+        action.setReasonNotAllowed(reasonNotAllowed);
+        return action;
     }
 
     private ConnectorEntity unreadableConnector() {

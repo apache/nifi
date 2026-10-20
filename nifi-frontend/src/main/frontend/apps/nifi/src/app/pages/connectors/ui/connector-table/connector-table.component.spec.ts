@@ -17,13 +17,7 @@
 
 import { TestBed } from '@angular/core/testing';
 import { ConnectorTable } from './connector-table.component';
-import {
-    ConnectorAction,
-    ConnectorActionName,
-    ConnectorEntity,
-    ConnectorStatus,
-    NiFiCommon
-} from '@nifi/shared';
+import { ConnectorAction, ConnectorActionName, ConnectorEntity, ConnectorStatus, NiFiCommon } from '@nifi/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
 import { FlowConfiguration } from '../../../../state/flow-configuration';

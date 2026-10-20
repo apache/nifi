@@ -28,6 +28,7 @@ import org.apache.nifi.toolkit.client.FlowClient;
 import org.apache.nifi.toolkit.client.NiFiClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ConnectorActionDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -35,6 +36,7 @@ import org.apache.nifi.web.api.entity.ConnectorsEntity;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -43,6 +45,8 @@ import java.util.concurrent.TimeUnit;
  * Command to update the NAR version of Connector instances.
  */
 public class ChangeVersionConnector extends AbstractNiFiCommand<ConnectorsResult> {
+    private static final String CHANGE_VERSION_ACTION = "CHANGE_VERSION";
+    private static final String STOP_ACTION = "STOP";
 
     public ChangeVersionConnector() {
         super("change-version-connector", ConnectorsResult.class);
@@ -103,16 +107,16 @@ public class ChangeVersionConnector extends AbstractNiFiCommand<ConnectorsResult
                     throw new CommandException("Cannot change version of Connector " + connector.getId() + " while it is in Troubleshooting");
                 }
 
-                final boolean isRunning = "RUNNING".equals(currentState) || "STARTING".equals(currentState);
-                if (isRunning) {
+                final boolean wasRunning = "RUNNING".equals(currentState) || "STARTING".equals(currentState);
+                final boolean changeVersionAllowed = isActionAllowed(connector, CHANGE_VERSION_ACTION);
+                if (wasRunning || (!changeVersionAllowed && isActionAllowed(connector, STOP_ACTION))) {
                     connectorClient.stopConnector(connector);
                 }
 
                 try {
-                    final boolean shouldWaitForReloadable = isRunning || !isReloadableState(currentState);
                     final ConnectorEntity reloadableConnector;
-                    if (shouldWaitForReloadable) {
-                        reloadableConnector = waitForConnectorReloadable(connectorClient, connector.getId());
+                    if (wasRunning || !changeVersionAllowed) {
+                        reloadableConnector = waitForChangeVersionAllowed(connectorClient, connector.getId());
                     } else {
                         reloadableConnector = connector;
                     }
@@ -129,7 +133,7 @@ public class ChangeVersionConnector extends AbstractNiFiCommand<ConnectorsResult
 
                     connectorClient.updateConnector(updatedEntity);
                 } catch (final NiFiClientException | IOException | CommandException changeVersionFailure) {
-                    if (isRunning) {
+                    if (wasRunning) {
                         try {
                             final ConnectorEntity currentConnector = connectorClient.getConnector(connector.getId());
                             connectorClient.startConnector(currentConnector);
@@ -141,7 +145,7 @@ public class ChangeVersionConnector extends AbstractNiFiCommand<ConnectorsResult
                     throw changeVersionFailure;
                 }
 
-                if (isRunning) {
+                if (wasRunning) {
                     final ConnectorEntity connectorToStart = connectorClient.getConnector(connector.getId());
                     connectorClient.startConnector(connectorToStart);
                 }
@@ -169,13 +173,12 @@ public class ChangeVersionConnector extends AbstractNiFiCommand<ConnectorsResult
         return Boolean.FALSE.equals(permissions.getCanRead());
     }
 
-    private ConnectorEntity waitForConnectorReloadable(final ConnectorClient connectorClient, final String connectorId)
+    private ConnectorEntity waitForChangeVersionAllowed(final ConnectorClient connectorClient, final String connectorId)
             throws NiFiClientException, IOException, CommandException {
         final long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(60);
         ConnectorEntity connector = connectorClient.getConnector(connectorId);
         while (System.currentTimeMillis() < deadline) {
-            final String state = connector.getComponent().getState();
-            if (isReloadableState(state)) {
+            if (isActionAllowed(connector, CHANGE_VERSION_ACTION)) {
                 return connector;
             }
 
@@ -183,17 +186,28 @@ public class ChangeVersionConnector extends AbstractNiFiCommand<ConnectorsResult
                 Thread.sleep(200L);
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new CommandException("Interrupted while waiting for Connector " + connectorId + " to stop");
+                throw new CommandException("Interrupted while waiting for Connector " + connectorId + " to allow a version change");
             }
 
             connector = connectorClient.getConnector(connectorId);
         }
 
-        throw new CommandException("Timed out waiting for Connector " + connectorId + " to stop; current state is "
+        throw new CommandException("Timed out waiting for Connector " + connectorId + " to allow a version change; current state is "
                 + connector.getComponent().getState());
     }
 
-    private boolean isReloadableState(final String state) {
-        return "STOPPED".equals(state) || "UPDATED".equals(state) || "UPDATE_FAILED".equals(state);
+    private boolean isActionAllowed(final ConnectorEntity connector, final String actionName) {
+        final List<ConnectorActionDTO> actions = connector.getComponent().getAvailableActions();
+        if (actions == null) {
+            return false;
+        }
+
+        for (final ConnectorActionDTO action : actions) {
+            if (actionName.equals(action.getName())) {
+                return Boolean.TRUE.equals(action.getAllowed());
+            }
+        }
+
+        return false;
     }
 }
