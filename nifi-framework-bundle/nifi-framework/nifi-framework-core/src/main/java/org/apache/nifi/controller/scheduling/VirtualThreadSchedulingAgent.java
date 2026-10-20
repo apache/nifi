@@ -23,16 +23,12 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.queue.QueueSchedulingRegistration;
 import org.apache.nifi.controller.scheduling.auto.AutoSchedulingDiagnostics;
 import org.apache.nifi.controller.scheduling.auto.AutoSchedulingResetReason;
-import org.apache.nifi.controller.scheduling.auto.ConcurrencyEvaluationState;
-import org.apache.nifi.controller.scheduling.auto.ConcurrencyUpdateStatus;
 import org.apache.nifi.controller.scheduling.auto.ConcurrentTaskMoveCoordinator;
 import org.apache.nifi.controller.scheduling.auto.ConcurrentTaskMoveSelector;
 import org.apache.nifi.controller.scheduling.auto.ConcurrentTaskMoveSelector.ProcessorDemand;
 import org.apache.nifi.controller.scheduling.auto.ProcessorSchedulingDecision;
-import org.apache.nifi.controller.scheduling.auto.ProcessorSchedulingDecisionReason;
 import org.apache.nifi.controller.scheduling.auto.ProcessorSchedulingMeasurements;
 import org.apache.nifi.controller.scheduling.auto.ProcessorSchedulingSnapshot;
 import org.apache.nifi.controller.scheduling.auto.StandardAutoSchedulingController;
@@ -45,7 +41,6 @@ import org.apache.nifi.controller.tasks.InvocationResult;
 import org.apache.nifi.controller.tasks.ReportingTaskWrapper;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.util.Connectables;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -56,7 +51,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -65,7 +59,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -75,10 +68,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -92,8 +82,6 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     private static final Logger logger = LoggerFactory.getLogger(VirtualThreadSchedulingAgent.class);
 
     private static final long PERMIT_POLL_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(1L);
-    private static final long MAX_REPEATED_INVOCATION_NANOS = TimeUnit.MILLISECONDS.toNanos(10L);
-
     private final FlowController flowController;
     private final RepositoryContextFactory contextFactory;
     private final DynamicSemaphore globalSemaphore;
@@ -229,12 +217,14 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
             final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, lifecycleState, generation::isRunning);
             if (connectable.getSchedulingStrategy() == SchedulingStrategy.AUTO) {
                 final int maxConcurrentTasks = getProcessContextConcurrencyLimit(connectable);
-                final ProcessorAutoSchedulingState autoSchedulingState = new ProcessorAutoSchedulingState(connectable, connectableTask, lifecycleState, generation,
-                        maxConcurrentTasks, connectable.isSessionBatchingSupported(),
-                        connectable instanceof ProcessorNode processorNode && processorNode.isTriggeredSerially());
+                final boolean triggeredSerially = connectable instanceof ProcessorNode processorNode && processorNode.isTriggeredSerially();
+                final StandardAutoSchedulingController controller = new StandardAutoSchedulingController(maxConcurrentTasks, connectable.isSessionBatchingSupported(),
+                        triggeredSerially, autoMaxConcurrentTasksBasedOnAvailableProcessors, availableProcessorCount);
+                final ProcessorAutoSchedulingState autoSchedulingState = new ProcessorAutoSchedulingState(connectableTask, lifecycleState, generation, controller,
+                        noWorkYieldNanos, flowController::isPrimary, globalSemaphore::getMaxPermits, this::startAutoWorker);
                 generation.setAutoSchedulingState(autoSchedulingState);
                 registerQueueListeners(connectable, generation);
-                startAutoWorkers(autoSchedulingState, 1);
+                autoSchedulingState.setWorkerCount(1);
                 logger.info("Scheduled {} for automatic scheduling with a maximum of {} concurrent tasks", connectable, maxConcurrentTasks);
                 return;
             }
@@ -273,12 +263,10 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         }
     }
 
-    private void startAutoWorkers(final ProcessorAutoSchedulingState state, final int desiredWorkerCount) {
-        final List<ProcessorTaskWorker> workers = state.resizeWorkers(desiredWorkerCount);
-        for (final ProcessorTaskWorker worker : workers) {
-            final String threadName = buildThreadName(state.getConnectable(), Math.toIntExact(worker.getIdentifier()));
-            submitTask(threadName, state.getGeneration(), () -> runAutoSchedulingLoop(state, worker));
-        }
+    private void startAutoWorker(final ProcessorTaskWorker worker) {
+        final ProcessorAutoSchedulingState state = worker.getState();
+        final String threadName = buildThreadName(state.getConnectable(), Math.toIntExact(worker.getIdentifier()));
+        submitTask(threadName, state.getGeneration(), () -> runAutoSchedulingLoop(state, worker));
     }
 
     private void runAutoSchedulingLoop(final ProcessorAutoSchedulingState state, final ProcessorTaskWorker worker) {
@@ -605,7 +593,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                 }
 
                 state.recordReadiness(nowNanos);
-                startAutoWorkers(state, state.getConcurrentTasks());
+                state.setWorkerCount(state.getConcurrentTasks());
                 if (!state.isEvaluationDue(nowNanos)) {
                     continue;
                 }
@@ -628,7 +616,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                     final SchedulingSettings settings = new SchedulingSettings(selectedConcurrentTasks,
                             state.isBatchingSupported() ? Math.min(decision.settings().runDurationNanos(), TimeUnit.MILLISECONDS.toNanos(25L)) : 0L);
                     state.applySettings(settings);
-                    startAutoWorkers(state, selectedConcurrentTasks);
+                    state.setWorkerCount(selectedConcurrentTasks);
                 }
 
                 concurrentTaskMoveCoordinator.recordDecision(state, decision.reason());
@@ -750,7 +738,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
             final int selectedConcurrentTasks = Math.min(currentSettings.concurrentTasks(), globalSemaphore.getMaxPermits());
             final SchedulingSettings clampedSettings = new SchedulingSettings(selectedConcurrentTasks, currentSettings.runDurationNanos());
             state.applySettings(clampedSettings);
-            startAutoWorkers(state, selectedConcurrentTasks);
+            state.setWorkerCount(selectedConcurrentTasks);
         }
 
         state.restartEvaluation();
@@ -793,7 +781,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
             }
 
             state.applySettings(settings);
-            startAutoWorkers(state, settings.concurrentTasks());
+            state.setWorkerCount(settings.concurrentTasks());
         });
     }
 
@@ -832,7 +820,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     public AutoSchedulingDiagnostics getAutoSchedulingDiagnostics(final String componentIdentifier) {
         final SchedulingGeneration generation = schedulingGenerations.get(componentIdentifier);
         final ProcessorAutoSchedulingState state = generation == null ? null : generation.getAutoSchedulingState();
-        return state == null ? null : state.getDiagnostics();
+        return state == null ? null : state.getDiagnostics(concurrentTaskMoveCoordinator.getRole(state));
     }
 
     private void runSchedulingLoop(final Connectable connectable, final ConnectableTask connectableTask, final long schedulingNanos,
@@ -1073,667 +1061,5 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     private static OffsetDateTime getNextCronSchedule(final OffsetDateTime currentSchedule, final CronExpression cronExpression) {
         final OffsetDateTime now = OffsetDateTime.now();
         return cronExpression.next(now.isAfter(currentSchedule) ? now : currentSchedule);
-    }
-
-    private static class ProcessorTaskWorker {
-        private final ProcessorAutoSchedulingState state;
-        private final long identifier;
-        private final AtomicBoolean retired = new AtomicBoolean();
-
-        ProcessorTaskWorker(final ProcessorAutoSchedulingState state, final long identifier) {
-            this.state = state;
-            this.identifier = identifier;
-        }
-
-        long getIdentifier() {
-            return identifier;
-        }
-
-        boolean isRetired() {
-            return retired.get();
-        }
-
-        void retire() {
-            retired.set(true);
-        }
-
-        /**
-         * @return <code>true</code> if the Processor is still scheduled to run and this worker has not been retired
-         */
-        boolean isActive() {
-            return state.isScheduledToRun() && !isRetired();
-        }
-
-        /**
-         * @return <code>true</code> if this worker is still active and the Processor's automatic scheduling settings are still the given settings
-         */
-        boolean canKeepRunning(final SchedulingSettings schedulingSettings) {
-            return isActive() && state.areSchedulingSettingsCurrent(schedulingSettings);
-        }
-    }
-
-    private record WaitingProcessorTask(Thread thread, ProcessorTaskWorker worker) {
-    }
-
-    private class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinator.Participant {
-        private final Connectable connectable;
-        private final ConnectableTask connectableTask;
-        private final LifecycleState lifecycleState;
-        private final SchedulingGeneration generation;
-        private final int maxConcurrentTasks;
-        private final boolean batchingSupported;
-        private final boolean sourceProcessor;
-        private final StandardAutoSchedulingController controller;
-        private final ProcessorSchedulingMeasurements measurements = new ProcessorSchedulingMeasurements();
-        private final AtomicReference<SchedulingSettings> schedulingSettings;
-        private final AtomicInteger activeProcessorInvocations = new AtomicInteger();
-        private final ConcurrentMap<Long, ProcessorTaskWorker> workers = new ConcurrentHashMap<>();
-        private final AtomicLong workerSequence = new AtomicLong();
-        private final AtomicBoolean sourceWorkCheckInProgress = new AtomicBoolean();
-        private final AtomicLong resetSequence = new AtomicLong();
-        private final long evaluationIntervalNanos;
-        private final long baseSourceDelayNanos;
-        private final long maximumSourceDelayNanos;
-
-        private volatile long nextEvaluationNanos;
-        private volatile long lastEvaluationNanos = System.nanoTime();
-        private volatile long lastReadinessMeasurementNanos = System.nanoTime();
-        private volatile long previousInputQueueSize;
-        private volatile long sourceDelayNanos;
-        private volatile long nextSourceWorkCheckNanos;
-        private volatile long lastSourceActivityNanos;
-        private volatile ProcessorSchedulingDecision lastDecision;
-        private volatile ProcessorSchedulingDecision lastChangeDecision;
-        private volatile ProcessorSchedulingSnapshot lastProcessorSchedulingSnapshot;
-        private volatile boolean previousPrimaryNode;
-        private volatile boolean measurementsSupported;
-        private volatile double demandScore;
-
-        ProcessorAutoSchedulingState(final Connectable connectable, final ConnectableTask connectableTask, final LifecycleState lifecycleState, final SchedulingGeneration generation,
-                                     final int maxConcurrentTasks, final boolean batchingSupported, final boolean processorTriggeredSerially) {
-            this.connectable = connectable;
-            this.connectableTask = connectableTask;
-            this.lifecycleState = lifecycleState;
-            this.generation = generation;
-            this.maxConcurrentTasks = maxConcurrentTasks;
-            this.batchingSupported = batchingSupported;
-            schedulingSettings = new AtomicReference<>(new SchedulingSettings(1, batchingSupported ? TimeUnit.MILLISECONDS.toNanos(25L) : 0L));
-            sourceProcessor = connectable.isTriggerWhenEmpty() || !connectable.hasIncomingConnection() || !Connectables.hasNonLoopConnection(connectable);
-            controller = new StandardAutoSchedulingController(maxConcurrentTasks, batchingSupported, processorTriggeredSerially,
-                    autoMaxConcurrentTasksBasedOnAvailableProcessors, availableProcessorCount);
-            final double stagger = ((Math.floorMod(connectable.getIdentifier().hashCode(), 201) - 100) / 1000D);
-            this.evaluationIntervalNanos = (long) (TimeUnit.SECONDS.toNanos(1L) * (1D + stagger));
-            this.nextEvaluationNanos = lastEvaluationNanos + evaluationIntervalNanos;
-            this.baseSourceDelayNanos = Math.max(noWorkYieldNanos, TimeUnit.MILLISECONDS.toNanos(1L));
-            this.maximumSourceDelayNanos = Math.max(baseSourceDelayNanos, TimeUnit.MILLISECONDS.toNanos(100L));
-            this.previousPrimaryNode = flowController.isPrimary();
-        }
-
-        Connectable getConnectable() {
-            return connectable;
-        }
-
-        ConnectableTask getConnectableTask() {
-            return connectableTask;
-        }
-
-        LifecycleState getLifecycleState() {
-            return lifecycleState;
-        }
-
-        SchedulingGeneration getGeneration() {
-            return generation;
-        }
-
-        int getMaxConcurrentTasks() {
-            return maxConcurrentTasks;
-        }
-
-        boolean isBatchingSupported() {
-            return batchingSupported;
-        }
-
-        boolean isSourceProcessor() {
-            return sourceProcessor;
-        }
-
-        StandardAutoSchedulingController getController() {
-            return controller;
-        }
-
-        ProcessorSchedulingMeasurements getMeasurements() {
-            return measurements;
-        }
-
-        SchedulingSettings getSchedulingSettings() {
-            return schedulingSettings.get();
-        }
-
-        ProcessorSchedulingSnapshot getLastProcessorSchedulingSnapshot() {
-            return lastProcessorSchedulingSnapshot;
-        }
-
-        void setDemandScore(final double demandScore) {
-            this.demandScore = demandScore;
-        }
-
-        long getResetSequence() {
-            return resetSequence.get();
-        }
-
-        long incrementResetSequence() {
-            return resetSequence.incrementAndGet();
-        }
-
-        synchronized List<ProcessorTaskWorker> resizeWorkers(final int targetWorkerCount) {
-            final List<ProcessorTaskWorker> activeWorkers = new ArrayList<>();
-            for (final ProcessorTaskWorker worker : workers.values()) {
-                if (!worker.isRetired()) {
-                    activeWorkers.add(worker);
-                }
-            }
-
-            if (activeWorkers.size() > targetWorkerCount) {
-                activeWorkers.sort(Comparator.comparingLong(ProcessorTaskWorker::getIdentifier));
-                for (int index = targetWorkerCount; index < activeWorkers.size(); index++) {
-                    activeWorkers.get(index).retire();
-                }
-
-                generation.signalChange();
-                generation.signalTaskSlotUpdate();
-                return List.of();
-            }
-
-            final List<ProcessorTaskWorker> newWorkers = new ArrayList<>();
-            for (int index = activeWorkers.size(); index < targetWorkerCount; index++) {
-                final ProcessorTaskWorker worker = new ProcessorTaskWorker(this, workerSequence.getAndIncrement());
-                workers.put(worker.getIdentifier(), worker);
-                newWorkers.add(worker);
-            }
-
-            return newWorkers;
-        }
-
-        void workerStopped(final ProcessorTaskWorker worker) {
-            workers.remove(worker.getIdentifier(), worker);
-            generation.signalChange();
-            generation.signalTaskSlotUpdate();
-        }
-
-        /**
-         * @return <code>true</code> if NiFi is not shutting down, the Processor is scheduled, and this scheduling generation has not been stopped
-         */
-        boolean isScheduledToRun() {
-            return VirtualThreadSchedulingAgent.this.isActive(lifecycleState, generation);
-        }
-
-        /**
-         * @return <code>true</code> if the given settings are still the Processor's current automatic scheduling settings
-         */
-        boolean areSchedulingSettingsCurrent(final SchedulingSettings settings) {
-            return schedulingSettings.get() == settings;
-        }
-
-        boolean tryAcquireConcurrentTaskSlot(final SchedulingSettings expectedSettings) {
-            while (true) {
-                if (!areSchedulingSettingsCurrent(expectedSettings)) {
-                    return false;
-                }
-
-                final int currentActiveProcessorInvocations = activeProcessorInvocations.get();
-                if (currentActiveProcessorInvocations >= expectedSettings.concurrentTasks()) {
-                    return false;
-                }
-
-                if (activeProcessorInvocations.compareAndSet(currentActiveProcessorInvocations, currentActiveProcessorInvocations + 1)) {
-                    if (areSchedulingSettingsCurrent(expectedSettings)) {
-                        return true;
-                    }
-
-                    activeProcessorInvocations.decrementAndGet();
-                    generation.signalTaskSlotUpdate();
-                    return false;
-                }
-            }
-        }
-
-        void releaseConcurrentTaskSlot() {
-            activeProcessorInvocations.decrementAndGet();
-            generation.signalTaskSlotUpdate();
-        }
-
-        /**
-         * @return <code>true</code> unless this is a source Processor that recently found no new data and is either not yet due to check
-         * again or is already being checked by another concurrent task
-         */
-        boolean isSourceWorkCheckAllowed() {
-            if (!isSourceWorkCheckRequired()) {
-                return true;
-            }
-
-            if (sourceWorkCheckInProgress.get()) {
-                return false;
-            }
-
-            return System.nanoTime() >= nextSourceWorkCheckNanos;
-        }
-
-        boolean reserveSourceWorkCheck() {
-            return sourceWorkCheckInProgress.compareAndSet(false, true);
-        }
-
-        /**
-         * @return <code>true</code> if this is a source Processor that has no queued input and recently found no new data, so only one
-         * concurrent task at a time should check it for new data
-         */
-        boolean isSourceWorkCheckRequired() {
-            if (!sourceProcessor || sourceDelayNanos == 0L) {
-                return false;
-            }
-
-            return !connectableTask.hasLocallyConsumableInput();
-        }
-
-        void releaseSourceWorkCheck() {
-            sourceWorkCheckInProgress.set(false);
-            generation.signalChange();
-        }
-
-        /**
-         * Returns how long a worker may keep invoking the Processor before releasing its global permit, as long as each invocation finds
-         * work to do. Each invocation uses its own Process Session and commit. Invoking a Processor that does not support session batching
-         * several times in a row keeps its very short invocations from repeatedly waiting behind long-running invocations of other Processors,
-         * while the time limit keeps it from holding the permit for too long. Processors that support session batching already do more work
-         * in each invocation, and source Processors have no queue to drain, so neither is invoked repeatedly.
-         *
-         * @return the maximum time to keep invoking the Processor, or zero if it should be invoked only once per global permit
-         */
-        long getMaxRepeatedInvocationNanos() {
-            if (batchingSupported || sourceProcessor) {
-                return 0L;
-            }
-
-            return MAX_REPEATED_INVOCATION_NANOS;
-        }
-
-        long getSourceWorkCheckDelayNanos() {
-            return Math.max(0L, nextSourceWorkCheckNanos - System.nanoTime());
-        }
-
-        void recordInvocationResult(final InvocationResult result) {
-            if (!sourceProcessor) {
-                return;
-            }
-
-            if (result.getOutcome() == InvocationOutcome.INVOKED_WITH_ACTIVITY) {
-                sourceDelayNanos = 0L;
-                nextSourceWorkCheckNanos = 0L;
-                lastSourceActivityNanos = System.nanoTime();
-                generation.signalChange();
-            } else if (result.getOutcome() == InvocationOutcome.INVOKED_WITHOUT_ACTIVITY
-                    && activeProcessorInvocations.get() <= 1
-                    && !connectableTask.hasLocallyConsumableInput()) {
-                sourceDelayNanos = sourceDelayNanos == 0L ? baseSourceDelayNanos : Math.min(maximumSourceDelayNanos, sourceDelayNanos * 2L);
-                nextSourceWorkCheckNanos = System.nanoTime() + sourceDelayNanos;
-            }
-        }
-
-        boolean isEvaluationDue(final long nowNanos) {
-            if (nowNanos < nextEvaluationNanos) {
-                return false;
-            }
-
-            nextEvaluationNanos = nowNanos + evaluationIntervalNanos;
-            return true;
-        }
-
-        void recordReadiness(final long nowNanos) {
-            final long measurementNanos = Math.max(1L, nowNanos - lastReadinessMeasurementNanos);
-            lastReadinessMeasurementNanos = nowNanos;
-            measurements.recordReadiness(connectableTask.getReadinessOutcome(), measurementNanos);
-        }
-
-        ProcessorSchedulingSnapshot captureProcessorSchedulingSnapshot(final long nowNanos, final boolean globalCapacityTestAllowed) {
-            final SchedulingSettings currentSettings = schedulingSettings.get();
-            long inputQueueSize = 0L;
-            for (final Connection connection : connectable.getIncomingConnections()) {
-                inputQueueSize += connection.getFlowFileQueue().getLocalQueueSize().getObjectCount();
-            }
-
-            final boolean inputQueueHasFlowFiles = connectableTask.hasLocallyConsumableInput();
-            final double inputQueueGrowth = inputQueueSize - previousInputQueueSize;
-            previousInputQueueSize = inputQueueSize;
-            final long measurementWindowNanos = Math.max(1L, nowNanos - lastEvaluationNanos);
-            lastEvaluationNanos = nowNanos;
-            final boolean currentPrimaryNode = flowController.isPrimary();
-            final boolean primaryNodeChanged = currentPrimaryNode != previousPrimaryNode;
-            previousPrimaryNode = currentPrimaryNode;
-            final boolean sourceProcessorRecentlyReportedActivity = hasSourceProcessorRecentlyReportedActivity(nowNanos);
-            final ProcessorSchedulingSnapshot snapshot = measurements.captureSnapshot(nowNanos, measurementWindowNanos, currentSettings, connectableTask.isReady(),
-                    inputQueueHasFlowFiles, inputQueueSize, inputQueueGrowth, sourceProcessorRecentlyReportedActivity, primaryNodeChanged, globalCapacityTestAllowed);
-            if (snapshot.committedFlowFiles() > 0L) {
-                measurementsSupported = true;
-            }
-
-            lastProcessorSchedulingSnapshot = snapshot;
-            return snapshot;
-        }
-
-        /**
-         * @return <code>true</code> if this is a source Processor that has not come up empty since it last found new data, and it is either
-         * running now or found new data within the last two seconds
-         */
-        private boolean hasSourceProcessorRecentlyReportedActivity(final long nowNanos) {
-            if (!sourceProcessor || sourceDelayNanos > 0L) {
-                return false;
-            }
-
-            if (activeProcessorInvocations.get() > 0) {
-                return true;
-            }
-
-            if (lastSourceActivityNanos == 0L) {
-                return false;
-            }
-
-            return nowNanos - lastSourceActivityNanos < TimeUnit.SECONDS.toNanos(2);
-        }
-
-        void resetMeasurementsAfterEvent() {
-            final long nowNanos = System.nanoTime();
-            final SchedulingSettings currentSettings = schedulingSettings.get();
-            // Workers compare settings by identity so a reset also ends batches whose values have not changed.
-            schedulingSettings.set(new SchedulingSettings(currentSettings.concurrentTasks(), currentSettings.runDurationNanos()));
-            lastEvaluationNanos = nowNanos;
-            lastReadinessMeasurementNanos = nowNanos;
-            long inputQueueSize = 0L;
-            for (final Connection connection : connectable.getIncomingConnections()) {
-                inputQueueSize += connection.getFlowFileQueue().getLocalQueueSize().getObjectCount();
-            }
-
-            previousInputQueueSize = inputQueueSize;
-            lastProcessorSchedulingSnapshot = null;
-            generation.signalChange();
-        }
-
-        void applySettings(final SchedulingSettings settings) {
-            final SchedulingSettings currentSettings = schedulingSettings.get();
-            if (!currentSettings.equals(settings)) {
-                schedulingSettings.set(new SchedulingSettings(settings.concurrentTasks(), settings.runDurationNanos()));
-                generation.signalChange();
-                generation.signalTaskSlotUpdate();
-                logger.info("Automatic scheduling settings changed for {} from {} to {}", connectable, currentSettings, settings);
-            }
-        }
-
-        void recordDecision(final ProcessorSchedulingDecision decision) {
-            lastDecision = decision;
-            final boolean comparisonEnded = switch (decision.reason()) {
-                case HIGHER_CONCURRENCY_INCREASED_THROUGHPUT, HIGHER_CONCURRENCY_DID_NOT_INCREASE_THROUGHPUT, LOWER_CONCURRENCY_MAINTAINED_THROUGHPUT,
-                     LOWER_CONCURRENCY_REDUCED_THROUGHPUT_OR_INCREASED_INPUT_QUEUE, COMPARISON_EXPIRED_WITHOUT_ENOUGH_MEASUREMENTS, PERFORMANCE_MEASUREMENTS_RESET -> true;
-                default -> false;
-            };
-
-            if (comparisonEnded) {
-                lastChangeDecision = decision;
-            }
-        }
-
-        /**
-         * Starts the controller's evaluation over, keeping the current scheduling settings.
-         */
-        void restartEvaluation() {
-            controller.reset();
-            lastDecision = new ProcessorSchedulingDecision(schedulingSettings.get(), ConcurrencyEvaluationState.USING_CURRENT_CONCURRENCY,
-                    ProcessorSchedulingDecisionReason.PERFORMANCE_MEASUREMENTS_RESET, false);
-        }
-
-        @Override
-        public boolean isActive() {
-            return !generation.isStopped() && schedulingGenerations.get(connectable.getIdentifier()) == generation;
-        }
-
-        @Override
-        public int getConcurrentTasks() {
-            return schedulingSettings.get().concurrentTasks();
-        }
-
-        @Override
-        public boolean isConcurrencyComparisonActive() {
-            return controller.isConcurrencyComparisonActive();
-        }
-
-        /**
-         * Changes the concurrent task setting for a concurrent task move and restarts the measurements without counting a failed test.
-         */
-        @Override
-        public boolean changeConcurrentTasks(final int change) {
-            final SchedulingSettings currentSettings = schedulingSettings.get();
-            final int updatedConcurrentTasks = currentSettings.concurrentTasks() + change;
-            if (!isActive() || updatedConcurrentTasks < 1 || updatedConcurrentTasks > Math.min(maxConcurrentTasks, globalSemaphore.getMaxPermits())) {
-                return false;
-            }
-
-            applySettings(new SchedulingSettings(updatedConcurrentTasks, currentSettings.runDurationNanos()));
-            startAutoWorkers(this, updatedConcurrentTasks);
-            resetController(generation, this, AutoSchedulingResetReason.CONCURRENT_TASK_MOVED);
-            return true;
-        }
-
-        @Override
-        public String toString() {
-            return connectable.toString();
-        }
-
-        AutoSchedulingDiagnostics getDiagnostics() {
-            final SchedulingSettings currentSettings = schedulingSettings.get();
-            final ProcessorSchedulingDecision currentDecision = lastDecision;
-            final ProcessorSchedulingDecision currentChangeDecision = lastChangeDecision;
-            final ProcessorSchedulingSnapshot currentSnapshot = lastProcessorSchedulingSnapshot;
-            final long committedFlowFiles = currentSnapshot == null ? 0L : currentSnapshot.committedFlowFiles();
-            final long measurementWindowNanos = currentSnapshot == null ? 0L : currentSnapshot.measurementWindowNanos();
-            final double throughput = measurementWindowNanos == 0L ? 0D : committedFlowFiles / (measurementWindowNanos / (double) TimeUnit.SECONDS.toNanos(1L));
-            final String evaluationState = currentDecision == null ? ConcurrencyEvaluationState.USING_CURRENT_CONCURRENCY.name() : currentDecision.state().name();
-            final ProcessorSchedulingDecisionReason reason = currentDecision == null ? ProcessorSchedulingDecisionReason.COLLECTING_COMPARISON_MEASUREMENTS : currentDecision.reason();
-            final ConcurrencyUpdateStatus concurrencyUpdateStatus = controller.getConcurrencyUpdateStatus();
-            final String lastChangeReason = currentChangeDecision == null ? null : currentChangeDecision.reason().name();
-
-            return AutoSchedulingDiagnostics.createBuilder()
-                    .setExecutionMode("adaptive")
-                    .setMaxConcurrentTasks(maxConcurrentTasks)
-                    .setCurrentConcurrentTasks(currentSettings.concurrentTasks())
-                    .setActiveProcessorInvocations(activeProcessorInvocations.get())
-                    .setCurrentRunDurationMillis(TimeUnit.NANOSECONDS.toMillis(currentSettings.runDurationNanos()))
-                    .setConcurrencyEvaluationState(evaluationState)
-                    .setConcurrencyUpdateReason(concurrencyUpdateStatus.reason().name())
-                    .setFlowFilesPerSecond(throughput)
-                    .setMeasurementWindowMillis(TimeUnit.NANOSECONDS.toMillis(measurementWindowNanos))
-                    .setLastConcurrencyUpdateReason(lastChangeReason)
-                    .setCollectingMeasurements(reason == ProcessorSchedulingDecisionReason.COLLECTING_COMPARISON_MEASUREMENTS)
-                    .setFlowFileMeasurementsAvailable(measurementsSupported)
-                    .setConcurrencyIncreaseExplanation(concurrencyUpdateStatus.explanation())
-                    .setLocalInputQueueCount(currentSnapshot == null ? 0L : currentSnapshot.localInputQueueCount())
-                    .setDemandScore(demandScore)
-                    .setTaskMoveRole(concurrentTaskMoveCoordinator.getRole(this))
-                    .build();
-        }
-    }
-
-    private class SchedulingGeneration {
-        private final CountDownLatch stopSignal = new CountDownLatch(1);
-        private final Set<Thread> threads = ConcurrentHashMap.newKeySet();
-        private final Set<WaitingProcessorTask> waiters = ConcurrentHashMap.newKeySet();
-        private final Set<WaitingProcessorTask> taskSlotWaiters = ConcurrentHashMap.newKeySet();
-        private final Set<FlowFileQueue> queues = ConcurrentHashMap.newKeySet();
-        private final List<QueueSchedulingRegistration> queueRegistrations = new ArrayList<>();
-        private final AtomicBoolean interruptRequested = new AtomicBoolean();
-        private final AtomicLong changeSequence = new AtomicLong();
-        private final AtomicLong taskSlotUpdateCount = new AtomicLong();
-        private volatile ProcessorAutoSchedulingState autoSchedulingState;
-
-        void setAutoSchedulingState(final ProcessorAutoSchedulingState autoSchedulingState) {
-            this.autoSchedulingState = autoSchedulingState;
-        }
-
-        ProcessorAutoSchedulingState getAutoSchedulingState() {
-            return autoSchedulingState;
-        }
-
-        void addQueue(final FlowFileQueue queue) {
-            queues.add(queue);
-        }
-
-        synchronized void addQueueRegistration(final QueueSchedulingRegistration registration) {
-            if (isStopped()) {
-                registration.close();
-            } else {
-                queueRegistrations.add(registration);
-            }
-        }
-
-        synchronized void clearQueueRegistrations() {
-            for (final QueueSchedulingRegistration registration : queueRegistrations) {
-                registration.close();
-            }
-
-            queueRegistrations.clear();
-            queues.clear();
-        }
-
-        /**
-         * @return the earliest time at which the FlowFile at the front of one of the Processor's queues becomes available, or
-         * {@link Instant#EPOCH} if none of the queues knows of such a time
-         */
-        Instant getNextQueueDeadline() {
-            Instant earliestDeadline = Instant.EPOCH;
-            for (final FlowFileQueue queue : queues) {
-                final Instant deadline = queue.getNextFlowFileAvailabilityTime();
-                if (!deadline.isAfter(Instant.EPOCH)) {
-                    continue;
-                }
-
-                if (earliestDeadline.equals(Instant.EPOCH) || deadline.isBefore(earliestDeadline)) {
-                    earliestDeadline = deadline;
-                }
-            }
-
-            return earliestDeadline;
-        }
-
-        long getChangeSequence() {
-            return changeSequence.get();
-        }
-
-        int getWaiterCount() {
-            return waiters.size();
-        }
-
-        /**
-         * @return a count that increases each time a concurrent task slot may have become available: a slot is released, a worker stops
-         * or is retired, the scheduling settings change, or scheduling stops
-         */
-        long getTaskSlotUpdateCount() {
-            return taskSlotUpdateCount.get();
-        }
-
-        int getTaskSlotWaiterCount() {
-            return taskSlotWaiters.size();
-        }
-
-        void signalChange() {
-            changeSequence.incrementAndGet();
-            final ProcessorAutoSchedulingState state = autoSchedulingState;
-            final int wakeLimit = state == null ? waiters.size() : state.getConcurrentTasks();
-            int awakened = 0;
-            for (final WaitingProcessorTask waiter : waiters) {
-                if (waiter.worker().isRetired()) {
-                    waiters.remove(waiter);
-                    continue;
-                }
-
-                LockSupport.unpark(waiter.thread());
-                if (++awakened >= wakeLimit) {
-                    break;
-                }
-            }
-        }
-
-        void awaitChange(final long expectedSequence, final long delayNanos, final ProcessorTaskWorker worker) {
-            final Thread currentThread = Thread.currentThread();
-            final WaitingProcessorTask waiter = new WaitingProcessorTask(currentThread, worker);
-            waiters.add(waiter);
-            try {
-                if (!isStopped() && !worker.isRetired() && changeSequence.get() == expectedSequence) {
-                    LockSupport.parkNanos(Math.max(1L, delayNanos));
-                }
-            } finally {
-                waiters.remove(waiter);
-            }
-        }
-
-        void signalTaskSlotUpdate() {
-            taskSlotUpdateCount.incrementAndGet();
-            // Retired waiters are woken as well so that they observe retirement and exit.
-            for (final WaitingProcessorTask waiter : taskSlotWaiters) {
-                LockSupport.unpark(waiter.thread());
-            }
-        }
-
-        /**
-         * Waits until the task slot update count differs from the given count, the worker is retired, or scheduling stops.
-         */
-        void waitForTaskSlotUpdate(final long previousUpdateCount, final ProcessorTaskWorker worker) {
-            final Thread currentThread = Thread.currentThread();
-            final WaitingProcessorTask waiter = new WaitingProcessorTask(currentThread, worker);
-            taskSlotWaiters.add(waiter);
-            try {
-                while (!isStopped() && !worker.isRetired() && taskSlotUpdateCount.get() == previousUpdateCount) {
-                    LockSupport.park();
-                }
-            } finally {
-                taskSlotWaiters.remove(waiter);
-            }
-        }
-
-        void addThread(final Thread thread) {
-            threads.add(thread);
-
-            if (interruptRequested.get()) {
-                thread.interrupt();
-            }
-        }
-
-        void removeThread(final Thread thread) {
-            threads.remove(thread);
-        }
-
-        void stop(final boolean interrupt) {
-            if (interrupt) {
-                interruptRequested.set(true);
-            }
-
-            stopSignal.countDown();
-            signalChange();
-            signalTaskSlotUpdate();
-            clearQueueRegistrations();
-
-            if (interruptRequested.get()) {
-                for (final Thread thread : threads) {
-                    thread.interrupt();
-                }
-            }
-        }
-
-        boolean isStopped() {
-            return stopSignal.getCount() == 0L;
-        }
-
-        boolean isRunning() {
-            return !isStopped();
-        }
-
-        void awaitStop(final long timeout, final TimeUnit timeUnit) throws InterruptedException {
-            stopSignal.await(timeout, timeUnit);
-        }
     }
 }
