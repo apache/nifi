@@ -1299,6 +1299,33 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    void testChooseDataTypeForNestedArraysInChoice() {
+        final RecordSchema entrySchema = new SimpleRecordSchema(List.of(
+                new RecordField("key", RecordFieldType.STRING.getDataType()),
+                new RecordField("value", RecordFieldType.STRING.getDataType())));
+        final MapRecord entry = new MapRecord(entrySchema, Map.of("key", "a", "value", "b"));
+
+        final DataType stringArray = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
+        final DataType recordArray = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(entrySchema));
+        final DataType twoLevelRecordArray = RecordFieldType.ARRAY.getArrayDataType(recordArray);
+        final DataType threeLevelRecordArray = RecordFieldType.ARRAY.getArrayDataType(twoLevelRecordArray);
+        final List<DataType> choices = Arrays.asList(stringArray, threeLevelRecordArray);
+
+        final Object[] emptyBranch = new Object[] {new Object[0]};
+        final Object[] entries = new Object[] {entry};
+        final Object[] populatedBranch = new Object[] {entries};
+
+        final Object[] emptyAndPopulatedBranches = new Object[] {emptyBranch, populatedBranch};
+        testChooseDataTypeAlsoReverseTypes(emptyAndPopulatedBranches, choices, threeLevelRecordArray);
+
+        final Object[] onlyEmptyBranches = new Object[] {emptyBranch};
+        testChooseDataTypeAlsoReverseTypes(onlyEmptyBranches, choices, threeLevelRecordArray);
+
+        final Object[] strings = new Object[] {"a", "b"};
+        testChooseDataTypeAlsoReverseTypes(strings, choices, stringArray);
+    }
+
+    @Test
     public void testMergeDataTypesMergesRecordSchemasInsteadOfCreatingChoice() {
         final RecordSchema schemaA = new SimpleRecordSchema(List.of(
             new RecordField("firstName", RecordFieldType.STRING.getDataType(), false),
