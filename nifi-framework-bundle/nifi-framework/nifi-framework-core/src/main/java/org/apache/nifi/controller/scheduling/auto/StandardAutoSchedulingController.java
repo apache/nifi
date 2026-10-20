@@ -87,6 +87,13 @@ public class StandardAutoSchedulingController {
     }
 
     /**
+     * @return the largest number of concurrent tasks this controller may choose, which is 1 for a Processor that must be triggered serially
+     */
+    public int getMaxConcurrentTasks() {
+        return maxConcurrentTasks;
+    }
+
+    /**
      * Reviews the latest processor and system measurements and determines whether the current settings should change.
      *
      * @param processorMeasurements measurements for this processor
