@@ -87,7 +87,7 @@ public class ConfigurationChangeCoordinator implements Closeable, ConfigurationC
             return listenerHandleResult;
         } catch (ConfigurationChangeException ex) {
             ListenerHandleResult listenerHandleResult = new ListenerHandleResult(listener, ex);
-            LOGGER.error("Listener notification result {} with failure {}", listenerHandleResult, ex);
+            LOGGER.error("Listener notification result {} with failure", listenerHandleResult, ex);
             return listenerHandleResult;
         }
     }

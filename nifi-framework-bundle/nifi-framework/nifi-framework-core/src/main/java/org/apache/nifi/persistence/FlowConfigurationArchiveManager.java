@@ -155,7 +155,7 @@ public class FlowConfigurationArchiveManager {
                     try {
                         totalArchiveSize.getAndAdd(Files.size(p));
                     } catch (IOException e) {
-                        logger.warn("Failed to get file size of {} due to {}", p, e);
+                        logger.warn("Failed to get file size of {}", p, e);
                     }
                     return true;
                 }
@@ -188,7 +188,7 @@ public class FlowConfigurationArchiveManager {
             try {
                 Files.delete(archives.get(i));
             } catch (IOException e) {
-                logger.warn("Failed to delete {} to reduce storage usage, due to {}", archives.get(i), e);
+                logger.warn("Failed to delete {} to reduce storage usage", archives.get(i), e);
             }
         });
 
