@@ -498,7 +498,8 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
     private Map<String, StepConfiguration> migratePersistedProperties(final Connector connector, final Map<String, StepConfiguration> initial) {
         final StandardConnectorPropertyConfiguration propertyConfiguration = new StandardConnectorPropertyConfiguration(initial, this.toString());
-        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connector.getClass(), getIdentifier())) {
+        // During a version change the identifier is still registered to the previous version's ClassLoader, so the Connector's own ClassLoader is used
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(connector.getClass().getClassLoader())) {
             connector.migrateProperties(propertyConfiguration);
             return retainDeclaredProperties(propertyConfiguration.getMutatedProperties(), connector.getConfigurationSteps());
         }

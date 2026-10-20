@@ -44,6 +44,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.ConnectorPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -849,7 +850,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testReplaceConnectorRemovesConfigurationNotDeclaredByReplacement() throws FlowUpdateException {
+    public void testReplaceConnectorMigratesConfigurationUsingReplacement() throws FlowUpdateException, IOException {
         final StandardConnectorNode connectorNode = createConnectorNode(new TrackingConnector());
         connectorNode.setConfiguration("legacy", createStepConfiguration());
 
@@ -861,11 +862,17 @@ public class TestStandardConnectorNode {
             "Obsolete Property", new AssetReference(Set.of("asset-1")))));
 
         final FrameworkFlowContext workingFlowContext = connectorNode.getWorkingFlowContext();
-        final Connector replacement = new LegacyStepRemovingConnector();
+        final LegacyStepRemovingConnector replacement = new LegacyStepRemovingConnector();
         final BundleCoordinate replacementCoordinate = new BundleCoordinate("org.apache.nifi", "test-standard-connector-node", "2.0.0");
 
-        connectorNode.replaceConnector(replacement, replacementCoordinate, new MockComponentLog("ReplacementConnector", replacement));
+        // While the replacement is migrating, the Connector identifier is still registered to the previous version's
+        // ClassLoader. Migration must run with the replacement's own ClassLoader instead.
+        try (final InstanceClassLoader previousVersionClassLoader = new InstanceClassLoader(connectorNode.getIdentifier(), TrackingConnector.class.getName(), Set.of(), Set.of(), null)) {
+            when(extensionManager.getInstanceClassLoader(connectorNode.getIdentifier())).thenReturn(previousVersionClassLoader);
+            connectorNode.replaceConnector(replacement, replacementCoordinate, new MockComponentLog("ReplacementConnector", replacement));
+        }
 
+        assertEquals(Set.of(LegacyStepRemovingConnector.class.getClassLoader()), replacement.getMigrationClassLoaders());
         assertSame(replacement, connectorNode.getConnector());
         assertSame(workingFlowContext, connectorNode.getWorkingFlowContext());
 
@@ -2964,6 +2971,7 @@ public class TestStandardConnectorNode {
 
     private static class LegacyStepRemovingConnector extends AbstractConnector {
         private final Set<String> configuredStepNames = new HashSet<>();
+        private final Set<ClassLoader> migrationClassLoaders = new HashSet<>();
 
         @Override
         public VersionedExternalFlow getInitialFlow() {
@@ -2981,7 +2989,12 @@ public class TestStandardConnectorNode {
 
         @Override
         public void migrateProperties(final ConnectorPropertyConfiguration configuration) {
+            migrationClassLoaders.add(Thread.currentThread().getContextClassLoader());
             configuration.removeStep("legacy");
+        }
+
+        Set<ClassLoader> getMigrationClassLoaders() {
+            return migrationClassLoaders;
         }
 
         @Override

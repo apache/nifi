@@ -33,6 +33,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorPropertyGrou
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorPropertyGroupNamesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorPurgeRequestEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorStatusEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorTypesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerBulletinsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerConfigurationEndpointMerger;
@@ -198,6 +199,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new ReportingTaskTypesEndpointMerger());
         endpointMergers.add(new FlowAnalysisRuleTypesEndpointMerger());
         endpointMergers.add(new PrioritizerTypesEndpointMerger());
+        endpointMergers.add(new ConnectorTypesEndpointMerger());
         endpointMergers.add(new ControllerConfigurationEndpointMerger());
         endpointMergers.add(new CurrentUserEndpointMerger());
         endpointMergers.add(new FlowConfigurationEndpointMerger());
