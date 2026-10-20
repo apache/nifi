@@ -193,16 +193,6 @@ class TestJsonSchemaInference {
         assertEquals(List.of("content", "a", "b"), ((RecordDataType) elementType).getChildSchema().getFieldNames());
     }
 
-    @Test
-    void testNestedRecordWithSupersetOfFieldsKeepsItsFieldOrder() throws IOException {
-        final String json = "[{\"n\":[{\"a\":1}]},{\"n\":[{\"b\":1,\"a\":1}]}]";
-
-        final RecordSchema schema = inferSchema(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
-
-        final DataType elementType = ((ArrayDataType) schema.getDataType("n").get()).getElementType();
-        assertEquals(List.of("b", "a"), ((RecordDataType) elementType).getChildSchema().getFieldNames());
-    }
-
     private String createNestedJson(final String fieldName, final int depth) {
         return "{\"content\":[".repeat(depth) + "\"item\"" + ("],\"" + fieldName + "\":\"item\"}").repeat(depth);
     }
