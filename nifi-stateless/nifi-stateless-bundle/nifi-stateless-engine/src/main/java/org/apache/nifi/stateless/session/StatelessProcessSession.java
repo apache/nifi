@@ -264,6 +264,7 @@ public class StatelessProcessSession extends StandardProcessSession {
         try {
             connectable.onTrigger(connectableContext, connectableSessionFactory);
         } catch (final Throwable t) {
+            executionProgress.notifyComponentTriggerFailed(connectable, t);
             abortProcessing(t);
             throw t;
         }
