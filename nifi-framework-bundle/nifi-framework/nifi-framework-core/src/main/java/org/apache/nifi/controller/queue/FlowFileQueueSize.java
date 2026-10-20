@@ -85,6 +85,14 @@ public class FlowFileQueueSize {
         return new QueueSize(swappedCount, swappedBytes);
     }
 
+    /**
+     * @return the size of the FlowFiles waiting to be pulled from the queue, including swapped out FlowFiles but not
+     * FlowFiles that have been pulled and not yet acknowledged
+     */
+    public QueueSize waitingQueueSize() {
+        return new QueueSize(activeQueueCount + swappedCount, activeQueueBytes + swappedBytes);
+    }
+
     @Override
     public String toString() {
         return "FlowFile Queue Size[ ActiveQueue=[" + activeQueueCount + ", " + activeQueueBytes +

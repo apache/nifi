@@ -679,9 +679,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             flowAnalyzer.initialize(controllerServiceProvider);
         }
 
-        final int autoMaxConcurrentTasks = nifiProperties.getProcessorAutoMaxConcurrentTasks();
         if (virtualThreadSchedulingEnabled) {
-            this.virtualThreadSchedulingAgent = new VirtualThreadSchedulingAgent(this, repositoryContextFactory, this.nifiProperties, maxTimerDrivenThreads.get(), autoMaxConcurrentTasks);
+            this.virtualThreadSchedulingAgent = new VirtualThreadSchedulingAgent(this, repositoryContextFactory, this.nifiProperties, maxTimerDrivenThreads.get());
             processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, virtualThreadSchedulingAgent);
             processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, virtualThreadSchedulingAgent);
             processScheduler.setSchedulingAgent(SchedulingStrategy.AUTO, virtualThreadSchedulingAgent);
@@ -2267,7 +2266,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 return diagnostics;
             }
 
-            final int maxConcurrentTasks = processorNode.isTriggeredSerially() ? 1 : nifiProperties.getProcessorAutoMaxConcurrentTasks();
+            final int maxConcurrentTasks = virtualThreadSchedulingAgent.getProcessContextConcurrencyLimit(processorNode);
             return AutoSchedulingDiagnostics.createBuilder()
                     .setExecutionMode("adaptive")
                     .setMaxConcurrentTasks(maxConcurrentTasks)

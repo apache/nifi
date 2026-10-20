@@ -21,6 +21,7 @@ import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.FlowFileQueueSnapshot;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.PollStrategy;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -50,6 +51,12 @@ public interface LocalQueuePartition extends QueuePartition {
      * @return <code>true</code> if there is at least one FlowFile that has not yet been acknowledged, <code>false</code> if all FlowFiles have been acknowledged.
      */
     boolean isUnacknowledgedFlowFile();
+
+    /**
+     * @return the size of the FlowFiles waiting to be pulled from the partition, including swapped out FlowFiles but not
+     * FlowFiles that have been pulled and not yet acknowledged
+     */
+    QueueSize getWaitingQueueSize();
 
     Instant getNextFlowFileAvailabilityTime();
 

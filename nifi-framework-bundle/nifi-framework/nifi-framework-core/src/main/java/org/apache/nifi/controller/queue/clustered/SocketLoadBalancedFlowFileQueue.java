@@ -555,7 +555,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
     @Override
     public QueueSize getLocalQueueSize() {
-        return localPartition.getQueueDiagnostics().getActiveQueueSize();
+        return localPartition.getWaitingQueueSize();
     }
 
     /**
@@ -1379,30 +1379,35 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
         @Override
         public void onNodeStateChange(final NodeIdentifier nodeId, final NodeConnectionState newState) {
-            if (!offloaded) {
-                switch (newState) {
-                    case OFFLOADING:
-                        onNodeRemoved(nodeId);
-                        break;
-                    case CONNECTED:
-                        onNodeAdded(nodeId);
-                        break;
+            partitionWriteLock.lock();
+            try {
+                if (!offloaded) {
+                    switch (newState) {
+                        case OFFLOADING:
+                            onNodeRemoved(nodeId);
+                            break;
+                        case CONNECTED:
+                            onNodeAdded(nodeId);
+                            break;
+                    }
+                } else {
+                    switch (newState) {
+                        case CONNECTED:
+                            if (nodeId != null && nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
+                                // the node with this queue was connected to the cluster, make sure the queue is not offloaded
+                                resetOffloadedQueue();
+                            }
+                            break;
+                        case OFFLOADED:
+                        case OFFLOADING:
+                        case DISCONNECTED:
+                        case DISCONNECTING:
+                            onNodeRemoved(nodeId);
+                            break;
+                    }
                 }
-            } else {
-                switch (newState) {
-                    case CONNECTED:
-                        if (nodeId != null && nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
-                            // the node with this queue was connected to the cluster, make sure the queue is not offloaded
-                            resetOffloadedQueue();
-                        }
-                        break;
-                    case OFFLOADED:
-                    case OFFLOADING:
-                    case DISCONNECTED:
-                    case DISCONNECTING:
-                        onNodeRemoved(nodeId);
-                        break;
-                }
+            } finally {
+                partitionWriteLock.unlock();
             }
         }
     }

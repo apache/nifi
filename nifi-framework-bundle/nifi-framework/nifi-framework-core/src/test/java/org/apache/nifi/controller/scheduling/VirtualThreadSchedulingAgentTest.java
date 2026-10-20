@@ -49,6 +49,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -164,12 +166,12 @@ class VirtualThreadSchedulingAgentTest {
     }
 
     @Test
-    void testInvocationBurstContinuesWhileActivityAndTimeRemain() {
+    void testInvokeWhileConditionTrueContinuesWhileActivityAndTimeRemain() {
         final AtomicInteger invocationCount = new AtomicInteger();
         final AtomicInteger continuationCount = new AtomicInteger();
         final AtomicLong nanoTime = new AtomicLong();
 
-        final InvocationResult result = VirtualThreadSchedulingAgent.invokeWithBurst(10L, () -> nanoTime.getAndAdd(4L),
+        final InvocationResult result = VirtualThreadSchedulingAgent.invokeWhileConditionTrue(10L, () -> nanoTime.getAndAdd(4L),
                 () -> {
                     continuationCount.incrementAndGet();
                     return true;
@@ -185,16 +187,16 @@ class VirtualThreadSchedulingAgentTest {
     }
 
     @Test
-    void testInvocationBurstStopsWithoutActivityOrContinuation() {
+    void testInvokeWhileConditionTrueStopsWithoutActivityOrWhenConditionFalse() {
         final AtomicInteger noActivityInvocations = new AtomicInteger();
-        VirtualThreadSchedulingAgent.invokeWithBurst(10L, () -> 0L, () -> true, () -> {
+        VirtualThreadSchedulingAgent.invokeWhileConditionTrue(10L, () -> 0L, () -> true, () -> {
             noActivityInvocations.incrementAndGet();
             return InvocationResult.completed(InvocationOutcome.INVOKED_WITHOUT_ACTIVITY);
         });
         assertEquals(1, noActivityInvocations.get());
 
         final AtomicInteger stoppedInvocations = new AtomicInteger();
-        VirtualThreadSchedulingAgent.invokeWithBurst(10L, () -> 0L, () -> false, () -> {
+        VirtualThreadSchedulingAgent.invokeWhileConditionTrue(10L, () -> 0L, () -> false, () -> {
             stoppedInvocations.incrementAndGet();
             return InvocationResult.completed(InvocationOutcome.INVOKED_WITH_ACTIVITY);
         });
@@ -441,17 +443,17 @@ class VirtualThreadSchedulingAgentTest {
             agent.requestAutoSchedulingSettings(COMPONENT_ID, new SchedulingSettings(1, 0L));
             waitForAutoCount(1, () -> agent.getAutoSchedulingDiagnostics(COMPONENT_ID).currentConcurrentTasks());
             releaseFirstWorker.countDown();
-            waitForAutoCount(1, () -> agent.getAutoSchedulingConcurrentTaskSlotWaiterCount(COMPONENT_ID));
+            waitForAutoCount(1, () -> agent.getAutoSchedulingTaskSlotWaiterCount(COMPONENT_ID));
             assertEquals(2, invocationCount.get());
             assertEquals(MAX_THREADS - 1, agent.getGlobalSemaphore().availablePermits());
 
-            final long concurrentTaskSlotChangeCount = agent.getAutoSchedulingConcurrentTaskSlotChangeCount(COMPONENT_ID);
+            final long taskSlotUpdateCount = agent.getAutoSchedulingTaskSlotUpdateCount(COMPONENT_ID);
             for (int signal = 0; signal < 100; signal++) {
                 listenerReference.get().onQueueStateChanged();
             }
 
-            assertEquals(concurrentTaskSlotChangeCount, agent.getAutoSchedulingConcurrentTaskSlotChangeCount(COMPONENT_ID));
-            assertEquals(1, agent.getAutoSchedulingConcurrentTaskSlotWaiterCount(COMPONENT_ID));
+            assertEquals(taskSlotUpdateCount, agent.getAutoSchedulingTaskSlotUpdateCount(COMPONENT_ID));
+            assertEquals(1, agent.getAutoSchedulingTaskSlotWaiterCount(COMPONENT_ID));
             assertEquals(2, invocationCount.get());
             assertEquals(MAX_THREADS - 1, agent.getGlobalSemaphore().availablePermits());
 
@@ -794,12 +796,22 @@ class VirtualThreadSchedulingAgentTest {
         assertEquals(1, schedulingPeriodCalls.get());
     }
 
-    @Test
-    void testSchedulingLoopContinuesAfterUnexpectedError() throws InterruptedException {
+    @ParameterizedTest
+    @EnumSource(value = SchedulingStrategy.class, names = {"TIMER_DRIVEN", "AUTO"})
+    void testSchedulingLoopContinuesAfterUnexpectedError(final SchedulingStrategy schedulingStrategy) throws InterruptedException {
         agent.setAdministrativeYieldDuration("1 millis");
         final CountDownLatch invocationCompleted = new CountDownLatch(1);
-        final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.TIMER_DRIVEN, new AtomicInteger(), invocationCompleted);
-        when(connectable.isIsolated()).thenThrow(new AssertionError("Simulated scheduling error")).thenReturn(false);
+        final Connectable connectable = createMockedConnectable(1, schedulingStrategy, new AtomicInteger(), invocationCompleted);
+
+        // Scheduling threads are virtual; the automatic scheduling evaluation thread is not and catches its own errors.
+        final AtomicBoolean errorThrown = new AtomicBoolean();
+        when(connectable.isIsolated()).thenAnswer(invocation -> {
+            if (Thread.currentThread().isVirtual() && errorThrown.compareAndSet(false, true)) {
+                throw new AssertionError("Simulated scheduling error");
+            }
+
+            return false;
+        });
 
         final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
         scheduleConnectable(connectable, lifecycleState);
@@ -811,6 +823,8 @@ class VirtualThreadSchedulingAgentTest {
             waitForRunningThreadCount(0, 2, TimeUnit.SECONDS);
         }
 
+        assertTrue(errorThrown.get());
+        verify(connectable).yield(TimeUnit.MILLISECONDS.toNanos(1L), TimeUnit.NANOSECONDS);
         assertEquals(MAX_THREADS, agent.getGlobalSemaphore().availablePermits());
     }
 

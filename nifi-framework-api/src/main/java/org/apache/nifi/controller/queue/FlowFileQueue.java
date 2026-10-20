@@ -118,12 +118,15 @@ public interface FlowFileQueue {
     QueueSize size();
 
     /**
-     * Returns work held in the local partition and available to this node.
+     * Returns the size of the FlowFiles that are waiting in this queue for this node to process, including swapped out FlowFiles.
      *
-     * @return local queue size
+     * @implNote The scheduler calls this method frequently, so implementations should not read swap files or iterate over queued
+     * FlowFiles. The default implementation returns {@link #size()}, which suits queues that are not partitioned across a cluster.
+     *
+     * @return the size of the FlowFiles waiting for this node to process
      */
     default QueueSize getLocalQueueSize() {
-        return getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize();
+        return size();
     }
 
     /**

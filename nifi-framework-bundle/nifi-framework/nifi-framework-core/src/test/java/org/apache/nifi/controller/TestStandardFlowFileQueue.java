@@ -361,6 +361,7 @@ public class TestStandardFlowFileQueue {
         assertEquals(20999, queue.size().getByteCount());
 
         assertEquals(10000, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(new QueueSize(20000, 20999L), queue.getLocalQueueSize());
     }
 
     @Test
