@@ -31,6 +31,8 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.AfterAll;
@@ -345,6 +347,39 @@ public class TestExcelStartingRowSchemaInference {
             final RecordSchema schema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
             assertEquals(6, schema.getFieldNames().size());
             assertEquals(List.of("Frequency", "Intervals", "Frequency_1", "Name", "Frequency_2", "Intervals_1"), schema.getFieldNames());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(RowEvaluationStrategy.class)
+    void testWithFormulaInHeader(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+
+            final Sheet firstSheet = workbook.createSheet("First Sheet");
+            final Row headerRow = firstSheet.createRow(0);
+            headerRow.createCell(0).setCellValue("test_col1");
+            headerRow.createCell(1).setCellFormula(
+                    "\"value_in_\"&'Second Sheet'!B1");
+            headerRow.createCell(2).setCellValue("test_col3");
+
+            final Sheet secondSheet = workbook.createSheet("Second Sheet");
+            final Row firstRow = secondSheet.createRow(0);
+            firstRow.createCell(0).setCellValue("Currency");
+            firstRow.createCell(1).setCellValue("USD");
+
+            // Calculate the formula and save its cached result in the workbook.
+            workbook.getCreationHelper()
+                    .createFormulaEvaluator()
+                    .evaluateAll();
+
+            workbook.write(outputStream);
+            final byte[] output = outputStream.toByteArray();
+            final InputStream inputStream = new ByteArrayInputStream(output);
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
+
+            final RecordSchema schema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
+            assertEquals(List.of("test_col1", "value_in_USD", "test_col3"), schema.getFieldNames());
         }
     }
 

@@ -63,6 +63,7 @@ public class ExcelStartingRowSchemaInference implements SchemaInferenceEngine<Ro
         this.firstRow = firstRow;
         this.cellFieldTypeReader = new StandardCellFieldTypeReader(timeValueInference);
         this.dataFormatter = new DataFormatter();
+        this.dataFormatter.setUseCachedValuesForFormulaCells(true);
         this.ignoreCellsBeyondHeader = ignoreCellsBeyondHeader;
         this.logger = logger;
     }
