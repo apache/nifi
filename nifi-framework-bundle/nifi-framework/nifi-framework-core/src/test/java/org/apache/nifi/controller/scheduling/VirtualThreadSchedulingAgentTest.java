@@ -262,13 +262,23 @@ class VirtualThreadSchedulingAgentTest {
     void testAutomaticSchedulingDoesNotBypassProcessorYield() throws InterruptedException {
         final AtomicInteger invocationCount = new AtomicInteger();
         final CountDownLatch firstInvocation = new CountDownLatch(1);
+        final CountDownLatch secondInvocation = new CountDownLatch(1);
         final AtomicLong yieldExpiration = new AtomicLong();
+        final AtomicLong firstInvocationMillis = new AtomicLong();
+        final AtomicLong secondInvocationMillis = new AtomicLong();
         final Connectable connectable = createMockedConnectable(1, SchedulingStrategy.AUTO, invocationCount, firstInvocation);
         when(connectable.getYieldExpiration()).thenAnswer(invocation -> yieldExpiration.get());
         doAnswer(invocation -> {
-            invocationCount.incrementAndGet();
-            yieldExpiration.set(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(1L));
-            firstInvocation.countDown();
+            final long nowMillis = System.currentTimeMillis();
+            if (invocationCount.incrementAndGet() == 1) {
+                firstInvocationMillis.set(nowMillis);
+                yieldExpiration.set(nowMillis + 50L);
+                firstInvocation.countDown();
+            } else {
+                secondInvocationMillis.compareAndSet(0L, nowMillis);
+                secondInvocation.countDown();
+            }
+
             return null;
         }).when(connectable).onTrigger(any(), any());
         final LifecycleState lifecycleState = new LifecycleState(COMPONENT_ID);
@@ -276,8 +286,12 @@ class VirtualThreadSchedulingAgentTest {
         scheduleConnectable(connectable, lifecycleState);
         try {
             assertTrue(firstInvocation.await(2, TimeUnit.SECONDS));
-            Thread.sleep(300L);
-            assertEquals(1, invocationCount.get());
+            assertTrue(secondInvocation.await(2, TimeUnit.SECONDS));
+            assertTrue(secondInvocationMillis.get() >= yieldExpiration.get(), "Processor was invoked before its yield expired");
+
+            // Nothing signals the end of a yield, so the worker must wake up on its own once the yield expires
+            final long millisBetweenInvocations = secondInvocationMillis.get() - firstInvocationMillis.get();
+            assertTrue(millisBetweenInvocations < 500L, "Processor yielded for 50 milliseconds was invoked again after " + millisBetweenInvocations + " milliseconds");
         } finally {
             unscheduleConnectable(connectable, lifecycleState);
         }

@@ -350,10 +350,10 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
     }
 
     void resetMeasurementsAfterEvent() {
-        final long nowNanos = System.nanoTime();
         final SchedulingSettings currentSettings = schedulingSettings.get();
         // Workers compare settings by identity so a reset also ends batches whose values have not changed.
         schedulingSettings.set(new SchedulingSettings(currentSettings.concurrentTasks(), currentSettings.runDurationNanos()));
+        final long nowNanos = measurements.resetMeasurementWindow();
         lastEvaluationNanos = nowNanos;
         lastReadinessMeasurementNanos = nowNanos;
         long inputQueueSize = 0L;
@@ -363,7 +363,9 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
 
         previousInputQueueSize = inputQueueSize;
         lastProcessorSchedulingSnapshot = null;
+        // A worker that read the settings before they were replaced fails to take a task slot and waits for a task slot update.
         waitingWorkers.signalChange();
+        waitingWorkers.signalTaskSlotUpdate();
     }
 
     void applySettings(final SchedulingSettings settings) {

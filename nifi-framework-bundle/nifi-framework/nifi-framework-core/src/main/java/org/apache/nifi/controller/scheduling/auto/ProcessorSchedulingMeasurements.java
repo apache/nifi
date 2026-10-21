@@ -155,6 +155,32 @@ public class ProcessorSchedulingMeasurements {
     }
 
     /**
+     * Discards everything measured since the previous snapshot, so that the next snapshot covers only what happens from now on. Tasks that
+     * are busy remain busy, observers that were already created keep reporting to these measurements, and the recent demand history is kept.
+     *
+     * @return the time at which the new measurement window starts, from the same clock used for the measurements
+     */
+    public long resetMeasurementWindow() {
+        previousCommittedFlowFiles = committedFlowFiles.sum();
+        previousCommittedInputFlowFiles = committedInputFlowFiles.sum();
+        previousCompletedInvocations = completedInvocations.sum();
+        previousFailedInvocations = failedInvocations.sum();
+        previousProcessorInvocationNanos = processorInvocationNanos.sum();
+
+        final long windowStartNanos;
+        synchronized (busyTaskLock) {
+            windowStartNanos = nanoTimeSupplier.getAsLong();
+            busyTaskNanos = 0L;
+            busyTaskChangeNanos = windowStartNanos;
+            busyTaskWindowStartNanos = windowStartNanos;
+        }
+
+        backpressureNanos = 0L;
+        processorYieldNanos = 0L;
+        return windowStartNanos;
+    }
+
+    /**
      * Adds the busy time since the last change. Must be called while holding the busy task lock; reading the
      * clock under the lock keeps the change timestamp from moving backward.
      */
