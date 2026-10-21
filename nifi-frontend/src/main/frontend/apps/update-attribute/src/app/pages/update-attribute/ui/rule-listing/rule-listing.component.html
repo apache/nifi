@@ -75,125 +75,131 @@
                 }
             </div>
         </div>
-        @if (filteredRulesList.length === 0 && !newRule) {
+        @if (!newRule && rulesList.length > 0) {
+            <div class="tertiary-color font-medium">
+                Displaying {{ filteredRulesList.length }} of {{ rulesList.length }}
+            </div>
+        }
+
+        @if (!newRule && rulesList.length > 0 && filteredRulesList.length === 0) {
             <div class="unset">No matching rules</div>
+        }
+
+        @if (allowRuleReordering) {
+            <mat-accordion
+                [multi]="true"
+                cdkDropList
+                [cdkDropListDisabled]="!isEditable"
+                [cdkDropListData]="rulesList"
+                (cdkDropListDropped)="reorderRules($event)">
+                @for (rule of filteredRulesList; track rule.id) {
+                    <mat-expansion-panel cdkDrag cdkDragPreviewContainer="parent">
+                        <mat-expansion-panel-header
+                            class="reorder-header"
+                            [collapsedHeight]="'42px'"
+                            [expandedHeight]="'42px'">
+                            <mat-panel-title>
+                                <div class="flex justify-between items-center">
+                                    <span class="grip -mt-0.5 mr-5 cursor-grab"></span>
+                                    <div class="flex-1 truncate">
+                                        {{ rule.name }}
+                                    </div>
+                                </div>
+                            </mat-panel-title>
+                            <mat-panel-description>
+                                {{ rule.comments }}
+                            </mat-panel-description>
+                        </mat-expansion-panel-header>
+                        <edit-rule
+                            [id]="rule.id"
+                            [name]="rule.name"
+                            [existingRuleNames]="getExistingRuleNames()"
+                            [comments]="rule.comments"
+                            [conditions]="rule.conditions"
+                            [actions]="rule.actions"
+                            [editable]="false"></edit-rule>
+                    </mat-expansion-panel>
+                }
+            </mat-accordion>
         } @else {
-            @if (allowRuleReordering) {
-                <mat-accordion
-                    [multi]="true"
-                    cdkDropList
-                    [cdkDropListDisabled]="!isEditable"
-                    [cdkDropListData]="rulesList"
-                    (cdkDropListDropped)="reorderRules($event)">
-                    @for (rule of filteredRulesList; track rule.id) {
-                        <mat-expansion-panel cdkDrag cdkDragPreviewContainer="parent">
-                            <mat-expansion-panel-header
-                                class="reorder-header"
-                                [collapsedHeight]="'42px'"
-                                [expandedHeight]="'42px'">
-                                <mat-panel-title>
-                                    <div class="flex justify-between items-center">
-                                        <span class="grip -mt-0.5 mr-5 cursor-grab"></span>
-                                        <div class="flex-1 truncate">
-                                            {{ rule.name }}
-                                        </div>
+            <mat-accordion [multi]="true">
+                @for (rule of filteredRulesList; track rule.id) {
+                    <mat-expansion-panel
+                        #expansionPanel
+                        (opened)="panelOpened()"
+                        (closed)="panelClosed()"
+                        [disabled]="isDirty(rule.id)">
+                        <mat-expansion-panel-header
+                            class="editable-header"
+                            [collapsedHeight]="'42px'"
+                            [expandedHeight]="'42px'">
+                            <mat-panel-title>
+                                {{ rule.name }}
+                            </mat-panel-title>
+                            <mat-panel-description>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex-1 truncate">
+                                        {{ rule.comments }}
                                     </div>
-                                </mat-panel-title>
-                                <mat-panel-description>
-                                    {{ rule.comments }}
-                                </mat-panel-description>
-                            </mat-expansion-panel-header>
-                            <edit-rule
-                                [id]="rule.id"
-                                [name]="rule.name"
-                                [existingRuleNames]="getExistingRuleNames()"
-                                [comments]="rule.comments"
-                                [conditions]="rule.conditions"
-                                [actions]="rule.actions"
-                                [editable]="false"></edit-rule>
-                        </mat-expansion-panel>
-                    }
-                </mat-accordion>
-            } @else {
-                <mat-accordion [multi]="true">
-                    @for (rule of filteredRulesList; track rule.id) {
-                        <mat-expansion-panel
-                            #expansionPanel
-                            (opened)="panelOpened()"
-                            (closed)="panelClosed()"
-                            [disabled]="isDirty(rule.id)">
-                            <mat-expansion-panel-header
-                                class="editable-header"
-                                [collapsedHeight]="'42px'"
-                                [expandedHeight]="'42px'">
-                                <mat-panel-title>
-                                    {{ rule.name }}
-                                </mat-panel-title>
-                                <mat-panel-description>
-                                    <div class="flex justify-between items-center">
-                                        <div class="flex-1 truncate">
-                                            {{ rule.comments }}
-                                        </div>
-                                        @if (isEditable) {
-                                            <button
-                                                mat-icon-button
-                                                type="button"
-                                                [matMenuTriggerFor]="actionMenu"
-                                                (click)="$event.stopPropagation()"
-                                                (keydown)="$event.stopPropagation()"
-                                                class="flex items-center justify-center icon global-menu">
-                                                <i class="fa fa-ellipsis-v"></i>
+                                    @if (isEditable) {
+                                        <button
+                                            mat-icon-button
+                                            type="button"
+                                            [matMenuTriggerFor]="actionMenu"
+                                            (click)="$event.stopPropagation()"
+                                            (keydown)="$event.stopPropagation()"
+                                            class="flex items-center justify-center icon global-menu">
+                                            <i class="fa fa-ellipsis-v"></i>
+                                        </button>
+                                        <mat-menu #actionMenu="matMenu" xPosition="before">
+                                            <button mat-menu-item title="Clone Rule" (click)="cloneRule(rule)">
+                                                <i class="fa fa-clone primary-color mr-2"></i>
+                                                Clone
                                             </button>
-                                            <mat-menu #actionMenu="matMenu" xPosition="before">
-                                                <button mat-menu-item title="Clone Rule" (click)="cloneRule(rule)">
-                                                    <i class="fa fa-clone primary-color mr-2"></i>
-                                                    Clone
-                                                </button>
-                                                <button mat-menu-item title="Delete" (click)="deleteRule(rule)">
-                                                    <i class="fa fa-trash primary-color mr-2"></i>
-                                                    Delete
-                                                </button>
-                                            </mat-menu>
-                                        }
-                                    </div>
-                                </mat-panel-description>
-                            </mat-expansion-panel-header>
-                            <edit-rule
-                                [id]="rule.id"
-                                [name]="rule.name"
-                                [existingRuleNames]="getExistingRuleNames()"
-                                [comments]="rule.comments"
-                                [conditions]="rule.conditions"
-                                [actions]="rule.actions"
-                                [editable]="isEditable"
-                                [ruleUpdate]="(getRuleUpdates(rule.id) | async)!"
-                                (editRule)="editRule($event)"
-                                (dirty)="setDirty(rule.id, $event)"
-                                (exit)="expansionPanel.close()"></edit-rule>
-                        </mat-expansion-panel>
-                    }
-                    @if (newRule) {
-                        <mat-expansion-panel expanded="true" disabled="true">
-                            <mat-expansion-panel-header>
-                                <mat-panel-title class="items-center">
-                                    <span class="unset">New rule</span>
-                                </mat-panel-title>
-                            </mat-expansion-panel-header>
-                            <edit-rule
-                                class="new-rule"
-                                [name]="newRule.name"
-                                [existingRuleNames]="getExistingRuleNames()"
-                                [comments]="newRule.comments"
-                                [conditions]="newRule.conditions"
-                                [actions]="newRule.actions"
-                                [editable]="isEditable"
-                                (afterInit)="newRuleExpanded()"
-                                (addRule)="createRule($event)"
-                                (exit)="cancelNewRule()"></edit-rule>
-                        </mat-expansion-panel>
-                    }
-                </mat-accordion>
-            }
+                                            <button mat-menu-item title="Delete" (click)="deleteRule(rule)">
+                                                <i class="fa fa-trash primary-color mr-2"></i>
+                                                Delete
+                                            </button>
+                                        </mat-menu>
+                                    }
+                                </div>
+                            </mat-panel-description>
+                        </mat-expansion-panel-header>
+                        <edit-rule
+                            [id]="rule.id"
+                            [name]="rule.name"
+                            [existingRuleNames]="getExistingRuleNames()"
+                            [comments]="rule.comments"
+                            [conditions]="rule.conditions"
+                            [actions]="rule.actions"
+                            [editable]="isEditable"
+                            [ruleUpdate]="(getRuleUpdates(rule.id) | async)!"
+                            (editRule)="editRule($event)"
+                            (dirty)="setDirty(rule.id, $event)"
+                            (exit)="expansionPanel.close()"></edit-rule>
+                    </mat-expansion-panel>
+                }
+                @if (newRule) {
+                    <mat-expansion-panel expanded="true" disabled="true">
+                        <mat-expansion-panel-header>
+                            <mat-panel-title class="items-center">
+                                <span class="unset">New rule</span>
+                            </mat-panel-title>
+                        </mat-expansion-panel-header>
+                        <edit-rule
+                            class="new-rule"
+                            [name]="newRule.name"
+                            [existingRuleNames]="getExistingRuleNames()"
+                            [comments]="newRule.comments"
+                            [conditions]="newRule.conditions"
+                            [actions]="newRule.actions"
+                            [editable]="isEditable"
+                            (afterInit)="newRuleExpanded()"
+                            (addRule)="createRule($event)"
+                            (exit)="cancelNewRule()"></edit-rule>
+                    </mat-expansion-panel>
+                }
+            </mat-accordion>
         }
     </div>
 }
