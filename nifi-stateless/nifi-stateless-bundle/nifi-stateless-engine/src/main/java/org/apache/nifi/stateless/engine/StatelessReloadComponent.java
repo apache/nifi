@@ -19,6 +19,7 @@ package org.apache.nifi.stateless.engine;
 
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
@@ -29,6 +30,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.TerminationAwareLogger;
+import org.apache.nifi.controller.exception.ConnectorInstantiationException;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
@@ -305,5 +307,10 @@ public class StatelessReloadComponent implements ReloadComponent {
     @Override
     public void reload(FlowAnalysisRuleNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws FlowAnalysisRuleInstantiationException {
         // Flow Analysis is not supported in stateless NiFi
+    }
+
+    @Override
+    public void reload(final ConnectorNode existingNode, final String newType, final BundleCoordinate bundleCoordinate) throws ConnectorInstantiationException {
+        throw new UnsupportedOperationException("Connectors are not supported in stateless NiFi, so a Connector cannot be reloaded");
     }
 }

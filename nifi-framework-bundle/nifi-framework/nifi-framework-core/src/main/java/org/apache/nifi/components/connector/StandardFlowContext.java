@@ -33,16 +33,12 @@ import java.util.Map;
 
 public class StandardFlowContext implements FrameworkFlowContext {
     private final ProcessGroup managedProcessGroup;
-    private final MutableConnectorConfigurationContext configurationContext;
     private final ProcessGroupFacadeFactory groupFacadeFactory;
     private final ParameterContextFacadeFactory parameterContextFacadeFactory;
-    private final ComponentLog connectorLog;
     private final FlowContextType flowContextType;
-    private final Bundle bundle;
 
-    private volatile ProcessGroupFacade rootGroup;
+    private volatile ReloadableState reloadableState;
     private volatile ParameterContextFacade parameterContext;
-
 
     public StandardFlowContext(final ProcessGroup managedProcessGroup, final MutableConnectorConfigurationContext configurationContext,
                 final ProcessGroupFacadeFactory groupFacadeFactory, final ParameterContextFacadeFactory parameterContextFacadeFactory,
@@ -52,18 +48,16 @@ public class StandardFlowContext implements FrameworkFlowContext {
         this.managedProcessGroup = managedProcessGroup;
         this.groupFacadeFactory = groupFacadeFactory;
         this.parameterContextFacadeFactory = parameterContextFacadeFactory;
-        this.connectorLog = connectorLog;
-        this.configurationContext = configurationContext;
         this.flowContextType = flowContextType;
-        this.bundle = bundle;
 
-        this.rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
+        final ProcessGroupFacade rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
+        this.reloadableState = new ReloadableState(configurationContext, connectorLog, bundle, rootGroup);
         this.parameterContext = parameterContextFacadeFactory.create(managedProcessGroup);
     }
 
     @Override
     public ProcessGroupFacade getRootGroup() {
-        return rootGroup;
+        return reloadableState.rootGroup();
     }
 
     @Override
@@ -73,7 +67,7 @@ public class StandardFlowContext implements FrameworkFlowContext {
 
     @Override
     public MutableConnectorConfigurationContext getConfigurationContext() {
-        return configurationContext;
+        return reloadableState.configurationContext();
     }
 
     @Override
@@ -102,7 +96,9 @@ public class StandardFlowContext implements FrameworkFlowContext {
 
         managedProcessGroup.updateFlow(externalFlowWithResolvedParameters, managedProcessGroup.getIdentifier(), false, true, true);
 
-        rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
+        final ReloadableState currentState = reloadableState;
+        final ProcessGroupFacade rootGroup = groupFacadeFactory.create(managedProcessGroup, currentState.connectorLog());
+        reloadableState = new ReloadableState(currentState.configurationContext(), currentState.connectorLog(), currentState.bundle(), rootGroup);
 
         final ConnectorParameterLookup parameterLookup = new ConnectorParameterLookup(versionedExternalFlow.getParameterContexts().values(), assetManager);
         getParameterContext().updateParameters(parameterLookup.getParameterValues());
@@ -122,7 +118,9 @@ public class StandardFlowContext implements FrameworkFlowContext {
 
         managedProcessGroup.restoreFlowPreservingIdentifiers(externalFlow);
 
-        rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
+        final ReloadableState currentState = reloadableState;
+        final ProcessGroupFacade rootGroup = groupFacadeFactory.create(managedProcessGroup, currentState.connectorLog());
+        reloadableState = new ReloadableState(currentState.configurationContext(), currentState.connectorLog(), currentState.bundle(), rootGroup);
         parameterContext = parameterContextFacadeFactory.create(managedProcessGroup);
     }
 
@@ -137,7 +135,13 @@ public class StandardFlowContext implements FrameworkFlowContext {
 
     @Override
     public Bundle getBundle() {
-        return bundle;
+        return reloadableState.bundle();
+    }
+
+    @Override
+    public void reload(final Bundle bundle, final ComponentLog connectorLog, final MutableConnectorConfigurationContext configurationContext) {
+        final ProcessGroupFacade rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
+        reloadableState = new ReloadableState(configurationContext, connectorLog, bundle, rootGroup);
     }
 
     @Override
@@ -148,5 +152,8 @@ public class StandardFlowContext implements FrameworkFlowContext {
     @Override
     public ProcessGroup getManagedProcessGroup() {
         return managedProcessGroup;
+    }
+
+    private record ReloadableState(MutableConnectorConfigurationContext configurationContext, ComponentLog connectorLog, Bundle bundle, ProcessGroupFacade rootGroup) {
     }
 }

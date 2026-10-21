@@ -128,6 +128,15 @@
                                     Rename
                                 </button>
                             }
+                            @if (canChangeVersion(item)) {
+                                <button
+                                    mat-menu-item
+                                    data-qa="change-version-action"
+                                    (click)="changeVersionClicked(item)">
+                                    <i class="fa fa-exchange mr-2"></i>
+                                    Change Version
+                                </button>
+                            }
                             @if (canOperate(item)) {
                                 @if (canStart(item)) {
                                     <button mat-menu-item data-qa="start-action" (click)="startClicked(item)">

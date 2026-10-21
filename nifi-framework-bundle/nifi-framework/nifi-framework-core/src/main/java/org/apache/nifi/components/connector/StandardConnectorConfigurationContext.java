@@ -259,6 +259,17 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
     }
 
     @Override
+    public void removeStep(final String stepName) {
+        writeLock.lock();
+        try {
+            propertyConfigurations.remove(stepName);
+            resolvedPropertyConfigurations.remove(stepName);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
     public ConfigurationUpdateResult replaceConfiguration(final Map<String, StepConfiguration> configuration) {
         final Map<String, StepConfiguration> replacementConfigurations = new HashMap<>();
         final Set<SecretReference> secretReferences = new HashSet<>();
