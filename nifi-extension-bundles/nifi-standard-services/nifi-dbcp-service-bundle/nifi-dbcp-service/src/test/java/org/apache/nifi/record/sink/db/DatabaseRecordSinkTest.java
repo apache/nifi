@@ -252,10 +252,7 @@ public class DatabaseRecordSinkTest {
             } catch (final SQLException ignored) {
                 // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
             }
-
-            stmt.executeUpdate(
-                    "CREATE TABLE testTable (field1 integer, field2 varchar(20))"
-            );
+            stmt.executeUpdate("CREATE TABLE testTable (field1 integer, field2 varchar(20))");
         }
 
         final List<RecordField> recordFields = Arrays.asList(
