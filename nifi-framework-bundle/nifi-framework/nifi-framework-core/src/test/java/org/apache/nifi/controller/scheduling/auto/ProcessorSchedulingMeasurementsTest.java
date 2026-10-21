@@ -103,6 +103,56 @@ class ProcessorSchedulingMeasurementsTest {
     }
 
     @Test
+    void testResetStartsNewMeasurementWindow() {
+        final AtomicLong nowNanos = new AtomicLong();
+        final ProcessorSchedulingMeasurements measurements = new ProcessorSchedulingMeasurements(nowNanos::get);
+        final SchedulingSettings settings = new SchedulingSettings(1, 0L);
+        final long millisecondNanos = TimeUnit.MILLISECONDS.toNanos(1);
+
+        final InvocationObserver firstObserver = measurements.createInvocationObserver();
+        firstObserver.onCommit(new CommittedSchedulingWork(10, 0));
+        firstObserver.onInvocationCompleted(InvocationResult.completed(InvocationOutcome.INVOKED_WITH_ACTIVITY));
+        nowNanos.set(1000 * millisecondNanos);
+        final ProcessorSchedulingSnapshot beforeReset = measurements.captureSnapshot(nowNanos.get(), nowNanos.get(), settings, true, true, 0L, 0D, false, false, false);
+        assertEquals(10, beforeReset.committedFlowFiles());
+
+        // Work recorded between the previous snapshot and the reset, including a task that is still busy when the reset happens
+        final InvocationObserver retainedObserver = measurements.createInvocationObserver();
+        retainedObserver.onCommit(new CommittedSchedulingWork(500, 0));
+        measurements.createInvocationObserver().onInvocationCompleted(InvocationResult.completed(InvocationOutcome.FAILED));
+        measurements.recordInvocationDuration(400 * millisecondNanos);
+        measurements.recordReadiness(InvocationOutcome.YIELDED, 100 * millisecondNanos);
+        measurements.recordReadiness(InvocationOutcome.BACKPRESSURED, 100 * millisecondNanos);
+        measurements.recordTaskBusy();
+        nowNanos.set(1500 * millisecondNanos);
+        final long windowStartNanos = measurements.resetMeasurementWindow();
+        assertEquals(1500 * millisecondNanos, windowStartNanos);
+
+        // The busy task becomes idle 500 milliseconds after the reset, and an observer created before the reset reports another commit
+        nowNanos.set(2000 * millisecondNanos);
+        retainedObserver.onCommit(new CommittedSchedulingWork(3, 0));
+        measurements.recordTaskIdle();
+        nowNanos.set(2500 * millisecondNanos);
+        final long windowNanos = nowNanos.get() - windowStartNanos;
+        final ProcessorSchedulingSnapshot afterReset = measurements.captureSnapshot(nowNanos.get(), windowNanos, settings, true, true, 0L, 0D, false, false, false);
+        assertEquals(3, afterReset.committedFlowFiles());
+        assertEquals(0, afterReset.completedInvocations());
+        assertEquals(0, afterReset.failedInvocations());
+        assertEquals(0L, afterReset.processorInvocationNanos());
+        assertEquals(0L, afterReset.processorYieldNanos());
+        assertEquals(0L, afterReset.backpressureNanos());
+        // 500 milliseconds of busy time out of the 1000 milliseconds since the reset
+        assertEquals(0.5D, afterReset.concurrentTaskUtilization(), 0.000001D);
+        // Recent demand continues from the history before the reset rather than starting over
+        assertEquals(beforeReset.recentDemand().add(windowNanos, 3, 0, 0), afterReset.recentDemand());
+
+        nowNanos.set(3500 * millisecondNanos);
+        final ProcessorSchedulingSnapshot later = measurements.captureSnapshot(nowNanos.get(), 1000 * millisecondNanos, settings, true, true, 0L, 0D, false, false, false);
+        assertEquals(0, later.committedFlowFiles());
+        assertEquals(0D, later.concurrentTaskUtilization(), 0.000001D);
+    }
+
+    @Test
     void testBatchActivityDistinguishesEachTrigger() {
         final InvocationObserver observer = new ProcessorSchedulingMeasurements().createInvocationObserver();
         observer.onActivity();

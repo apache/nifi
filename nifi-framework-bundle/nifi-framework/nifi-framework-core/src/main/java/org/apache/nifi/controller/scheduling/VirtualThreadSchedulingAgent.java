@@ -413,12 +413,19 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     private void waitForAutoReadiness(final ProcessorAutoSchedulingState state, final ProcessorTaskWorker worker) {
         final WaitingWorkers waitingWorkers = state.getWaitingWorkers();
         final long changeSequence = waitingWorkers.getChangeSequence();
+        // Nothing signals the end of a yield, so the wait must end when the yield does. The yield expiration is read before checking readiness
+        // so that a yield that expires during the check still shortens the wait.
+        final Instant now = Instant.now();
+        final Instant yieldDeadline = Instant.ofEpochMilli(state.getConnectable().getYieldExpiration());
         if (state.isReadyToRun()) {
             return;
         }
 
-        final Instant now = Instant.now();
         long delayNanos = TimeUnit.SECONDS.toNanos(1L);
+        if (yieldDeadline.isAfter(now)) {
+            delayNanos = Math.min(delayNanos, Duration.between(now, yieldDeadline).toNanos());
+        }
+
         final Instant queueDeadline = waitingWorkers.getNextQueueDeadline();
         if (queueDeadline.isAfter(now)) {
             delayNanos = Math.min(delayNanos, Duration.between(now, queueDeadline).toNanos());
