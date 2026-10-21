@@ -67,6 +67,8 @@ public class DBCPServiceTest {
 
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
     private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s/nifi";
+    private static final String USERNAME = String.class.getSimpleName();
+    private static final String PASSWORD = String.class.getName();
 
     private TestRunner runner;
 
@@ -85,8 +87,8 @@ public class DBCPServiceTest {
         databasePath = tempDir.toAbsolutePath();
         connectionUrl = CONNECTION_URL_FORMAT.formatted(databasePath);
         runner.setProperty(service, DBCPProperties.DATABASE_URL, connectionUrl);
-        runner.setProperty(service, DBCPProperties.DB_USER, String.class.getSimpleName());
-        runner.setProperty(service, DBCPProperties.DB_PASSWORD, String.class.getName());
+        runner.setProperty(service, DBCPProperties.DB_USER, USERNAME);
+        runner.setProperty(service, DBCPProperties.DB_PASSWORD, PASSWORD);
         runner.setProperty(service, DBCPProperties.DB_DRIVERNAME, DRIVER_CLASS);
     }
 
@@ -99,15 +101,12 @@ public class DBCPServiceTest {
         final Path propertiesFile = databasePath.resolve("nifi.properties");
         if (Files.exists(propertiesFile)) {
             final Properties properties = new Properties();
-            properties.setProperty("user", String.class.getSimpleName());
-            properties.setProperty("password", String.class.getName());
+            properties.setProperty("user", USERNAME);
+            properties.setProperty("password", PASSWORD);
 
             // Connect directly through HSQLDB's driver so cleanup still works
             // when testDeregisterDriver has deregistered it from DriverManager.
             try (Connection connection = new org.hsqldb.jdbc.JDBCDriver().connect(connectionUrl, properties)) {
-                if (connection == null) {
-                    throw new SQLException("HSQLDB driver did not accept the test database URL");
-                }
                 try (final Statement statement = connection.createStatement()) {
                     // Engine shutdown closes all connections regardless of status
                     statement.execute("SHUTDOWN");
