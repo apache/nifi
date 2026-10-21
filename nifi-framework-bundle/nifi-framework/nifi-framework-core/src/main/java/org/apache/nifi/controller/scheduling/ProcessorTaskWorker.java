@@ -23,13 +23,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * concurrent tasks are lowered, and it stops once it notices that it has been retired.
  */
 final class ProcessorTaskWorker {
-    private final ProcessorAutoSchedulingState state;
     private final long identifier;
+    private final ProcessorAutoSchedulingState state;
     private final AtomicBoolean retired = new AtomicBoolean();
 
-    ProcessorTaskWorker(final ProcessorAutoSchedulingState state, final long identifier) {
-        this.state = state;
+    ProcessorTaskWorker(final long identifier, final ProcessorAutoSchedulingState state) {
         this.identifier = identifier;
+        this.state = state;
     }
 
     ProcessorAutoSchedulingState getState() {

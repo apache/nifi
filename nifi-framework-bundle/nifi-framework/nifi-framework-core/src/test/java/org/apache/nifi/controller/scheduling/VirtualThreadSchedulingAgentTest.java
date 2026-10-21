@@ -309,7 +309,7 @@ class VirtualThreadSchedulingAgentTest {
     }
 
     @Test
-    void testAutomaticSchedulingGenerationWakesForQueueListenerNotification() throws InterruptedException {
+    void testAutomaticSchedulingWakesWaitingWorkerForQueueListenerNotification() throws InterruptedException {
         final AtomicBoolean inputAvailable = new AtomicBoolean();
         final AtomicReference<QueueSchedulingListener> listenerReference = new AtomicReference<>();
         final CountDownLatch invocation = new CountDownLatch(1);
@@ -330,7 +330,7 @@ class VirtualThreadSchedulingAgentTest {
 
         scheduleConnectable(connectable, lifecycleState);
         try {
-            waitForAutoCount(1, () -> agent.getAutoSchedulingWaiterCount(COMPONENT_ID));
+            waitForAutoCount(1, () -> agent.getAutoSchedulingChangeWaiterCount(COMPONENT_ID));
             inputAvailable.set(true);
             listenerReference.get().onQueueStateChanged();
             assertTrue(invocation.await(2L, TimeUnit.SECONDS));
