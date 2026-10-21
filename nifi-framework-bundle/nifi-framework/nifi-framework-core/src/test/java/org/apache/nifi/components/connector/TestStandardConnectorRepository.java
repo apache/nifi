@@ -62,6 +62,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -514,7 +515,7 @@ public class TestStandardConnectorRepository {
         final ConnectorConfigurationProviderException exception = assertThrows(
             ConnectorConfigurationProviderException.class, () -> repository.addConnector(connector));
 
-        assertTrue(exception.getCause() instanceof FlowUpdateException);
+        assertInstanceOf(FlowUpdateException.class, exception.getCause());
         assertNull(repository.getConnector("connector-1", ConnectorSyncMode.LOCAL_ONLY));
         verify(connector, never()).setName(anyString());
     }
@@ -1369,7 +1370,7 @@ public class TestStandardConnectorRepository {
         final ConnectorConfigurationProviderException exception = assertThrows(
             ConnectorConfigurationProviderException.class, () -> repository.applyUpdate(connector, updateContext));
 
-        assertTrue(exception.getCause() instanceof FlowUpdateException);
+        assertInstanceOf(FlowUpdateException.class, exception.getCause());
         verify(provider).syncAssets("connector-1");
         verify(connector, never()).setName(anyString());
         verify(connector, never()).transitionStateForUpdating();
