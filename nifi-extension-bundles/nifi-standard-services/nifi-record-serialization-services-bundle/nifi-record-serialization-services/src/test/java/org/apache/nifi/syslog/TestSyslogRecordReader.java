@@ -24,7 +24,6 @@ import org.apache.nifi.syslog.parsers.SyslogParser;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -168,7 +167,7 @@ public class TestSyslogRecordReader {
 
     @Test
     public void testParseSingleLine5424() throws IOException, MalformedRecordException {
-        try (final InputStream fis = new FileInputStream(new File("src/test/resources/syslog/syslog5424/log_all.txt"))) {
+        try (final InputStream fis = new FileInputStream("src/test/resources/syslog/syslog5424/log_all.txt")) {
             SyslogParser parser = new SyslogParser(CHARSET);
             final SyslogRecordReader deserializer = new SyslogRecordReader(parser, true, fis, SyslogReader.createRecordSchema());
 
