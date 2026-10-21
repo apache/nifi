@@ -28,7 +28,6 @@ import org.apache.nifi.controller.scheduling.auto.ProcessorSchedulingMeasurement
 import org.apache.nifi.controller.scheduling.auto.ProcessorSchedulingSnapshot;
 import org.apache.nifi.controller.scheduling.auto.StandardAutoSchedulingController;
 import org.apache.nifi.controller.tasks.ConnectableTask;
-import org.apache.nifi.controller.tasks.InvocationOutcome;
 import org.apache.nifi.controller.tasks.InvocationResult;
 import org.apache.nifi.util.Connectables;
 import org.slf4j.Logger;
@@ -40,7 +39,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -61,6 +59,7 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
     private final ConnectableTask connectableTask;
     private final LifecycleState lifecycleState;
     private final SchedulingGeneration generation;
+    private final WaitingWorkers waitingWorkers;
     private final StandardAutoSchedulingController controller;
     private final BooleanSupplier primaryNodeCheck;
     private final IntSupplier globalConcurrentTaskLimit;
@@ -73,19 +72,14 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
     private final AtomicInteger activeProcessorInvocations = new AtomicInteger();
     private final ConcurrentMap<Long, ProcessorTaskWorker> workers = new ConcurrentHashMap<>();
     private final AtomicLong workerSequence = new AtomicLong();
-    private final AtomicBoolean sourceWorkCheckInProgress = new AtomicBoolean();
     private final AtomicLong resetSequence = new AtomicLong();
+    private final SourceWorkCheck sourceWorkCheck;
     private final long evaluationIntervalNanos;
-    private final long baseSourceDelayNanos;
-    private final long maximumSourceDelayNanos;
 
     private volatile long nextEvaluationNanos;
     private volatile long lastEvaluationNanos = System.nanoTime();
     private volatile long lastReadinessMeasurementNanos = System.nanoTime();
     private volatile long previousInputQueueSize;
-    private volatile long sourceDelayNanos;
-    private volatile long nextSourceWorkCheckNanos;
-    private volatile long lastSourceActivityNanos;
     private volatile ProcessorSchedulingDecision lastDecision;
     private volatile ProcessorSchedulingDecision lastChangeDecision;
     private volatile ProcessorSchedulingSnapshot lastProcessorSchedulingSnapshot;
@@ -107,6 +101,7 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
         this.connectableTask = connectableTask;
         this.lifecycleState = lifecycleState;
         this.generation = generation;
+        this.waitingWorkers = new WaitingWorkers(generation, this::getConcurrentTasks);
         this.controller = controller;
         this.primaryNodeCheck = primaryNodeCheck;
         this.globalConcurrentTaskLimit = globalConcurrentTaskLimit;
@@ -115,11 +110,10 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
         this.batchingSupported = connectable.isSessionBatchingSupported();
         schedulingSettings = new AtomicReference<>(new SchedulingSettings(1, batchingSupported ? TimeUnit.MILLISECONDS.toNanos(25L) : 0L));
         sourceProcessor = connectable.isTriggerWhenEmpty() || !connectable.hasIncomingConnection() || !Connectables.hasNonLoopConnection(connectable);
+        this.sourceWorkCheck = new SourceWorkCheck(connectableTask, sourceProcessor, noWorkYieldNanos, waitingWorkers::signalChange);
         final double stagger = ((Math.floorMod(connectable.getIdentifier().hashCode(), 201) - 100) / 1000D);
         this.evaluationIntervalNanos = (long) (TimeUnit.SECONDS.toNanos(1L) * (1D + stagger));
         this.nextEvaluationNanos = lastEvaluationNanos + evaluationIntervalNanos;
-        this.baseSourceDelayNanos = Math.max(noWorkYieldNanos, TimeUnit.MILLISECONDS.toNanos(1L));
-        this.maximumSourceDelayNanos = Math.max(baseSourceDelayNanos, TimeUnit.MILLISECONDS.toNanos(100L));
         this.previousPrimaryNode = primaryNodeCheck.getAsBoolean();
     }
 
@@ -137,6 +131,14 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
 
     SchedulingGeneration getGeneration() {
         return generation;
+    }
+
+    WaitingWorkers getWaitingWorkers() {
+        return waitingWorkers;
+    }
+
+    SourceWorkCheck getSourceWorkCheck() {
+        return sourceWorkCheck;
     }
 
     int getMaxConcurrentTasks() {
@@ -188,6 +190,12 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
         }
     }
 
+    /**
+     * Retires the newest workers if there are more than the target number of active workers, or creates new workers if there are fewer.
+     * New workers are returned rather than started here so that their threads are started outside of this lock.
+     *
+     * @return the newly created workers, which the caller must start; empty if no workers needed to be created
+     */
     private synchronized List<ProcessorTaskWorker> resizeWorkers(final int targetWorkerCount) {
         final List<ProcessorTaskWorker> activeWorkers = new ArrayList<>();
         for (final ProcessorTaskWorker worker : workers.values()) {
@@ -202,14 +210,14 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
                 activeWorkers.get(index).retire();
             }
 
-            generation.signalChange();
-            generation.signalTaskSlotUpdate();
+            waitingWorkers.signalChange();
+            waitingWorkers.signalTaskSlotUpdate();
             return List.of();
         }
 
         final List<ProcessorTaskWorker> newWorkers = new ArrayList<>();
         for (int index = activeWorkers.size(); index < targetWorkerCount; index++) {
-            final ProcessorTaskWorker worker = new ProcessorTaskWorker(this, workerSequence.getAndIncrement());
+            final ProcessorTaskWorker worker = new ProcessorTaskWorker(workerSequence.getAndIncrement(), this);
             workers.put(worker.getIdentifier(), worker);
             newWorkers.add(worker);
         }
@@ -217,10 +225,10 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
         return newWorkers;
     }
 
-    void workerStopped(final ProcessorTaskWorker worker) {
+    void onWorkerStopped(final ProcessorTaskWorker worker) {
         workers.remove(worker.getIdentifier(), worker);
-        generation.signalChange();
-        generation.signalTaskSlotUpdate();
+        waitingWorkers.signalChange();
+        waitingWorkers.signalTaskSlotUpdate();
     }
 
     /**
@@ -255,7 +263,7 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
                 }
 
                 activeProcessorInvocations.decrementAndGet();
-                generation.signalTaskSlotUpdate();
+                waitingWorkers.signalTaskSlotUpdate();
                 return false;
             }
         }
@@ -263,44 +271,20 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
 
     void releaseConcurrentTaskSlot() {
         activeProcessorInvocations.decrementAndGet();
-        generation.signalTaskSlotUpdate();
+        waitingWorkers.signalTaskSlotUpdate();
     }
 
     /**
-     * @return <code>true</code> unless this is a source Processor that recently found no new data and is either not yet due to check
-     * again or is already being checked by another concurrent task
+     * @return <code>true</code> if the Processor could do useful work if invoked now. It is not ready if, for example, it is yielded, its
+     * outgoing connections are full, it has no input, or it is a source Processor that recently found no new data and is not yet due to
+     * be checked again.
      */
-    boolean isSourceWorkCheckAllowed() {
-        if (!isSourceWorkCheckRequired()) {
-            return true;
-        }
-
-        if (sourceWorkCheckInProgress.get()) {
+    boolean isReadyToRun() {
+        if (!connectableTask.isReady()) {
             return false;
         }
 
-        return System.nanoTime() >= nextSourceWorkCheckNanos;
-    }
-
-    boolean reserveSourceWorkCheck() {
-        return sourceWorkCheckInProgress.compareAndSet(false, true);
-    }
-
-    /**
-     * @return <code>true</code> if this is a source Processor that has no queued input and recently found no new data, so only one
-     * concurrent task at a time should check it for new data
-     */
-    boolean isSourceWorkCheckRequired() {
-        if (!sourceProcessor || sourceDelayNanos == 0L) {
-            return false;
-        }
-
-        return !connectableTask.hasLocallyConsumableInput();
-    }
-
-    void releaseSourceWorkCheck() {
-        sourceWorkCheckInProgress.set(false);
-        generation.signalChange();
+        return sourceWorkCheck.isInvocationAllowed();
     }
 
     /**
@@ -320,26 +304,8 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
         return MAX_REPEATED_INVOCATION_NANOS;
     }
 
-    long getSourceWorkCheckDelayNanos() {
-        return Math.max(0L, nextSourceWorkCheckNanos - System.nanoTime());
-    }
-
     void recordInvocationResult(final InvocationResult result) {
-        if (!sourceProcessor) {
-            return;
-        }
-
-        if (result.getOutcome() == InvocationOutcome.INVOKED_WITH_ACTIVITY) {
-            sourceDelayNanos = 0L;
-            nextSourceWorkCheckNanos = 0L;
-            lastSourceActivityNanos = System.nanoTime();
-            generation.signalChange();
-        } else if (result.getOutcome() == InvocationOutcome.INVOKED_WITHOUT_ACTIVITY
-                && activeProcessorInvocations.get() <= 1
-                && !connectableTask.hasLocallyConsumableInput()) {
-            sourceDelayNanos = sourceDelayNanos == 0L ? baseSourceDelayNanos : Math.min(maximumSourceDelayNanos, sourceDelayNanos * 2L);
-            nextSourceWorkCheckNanos = System.nanoTime() + sourceDelayNanos;
-        }
+        sourceWorkCheck.recordInvocationResult(result, activeProcessorInvocations.get());
     }
 
     boolean isEvaluationDue(final long nowNanos) {
@@ -372,7 +338,7 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
         final boolean currentPrimaryNode = primaryNodeCheck.getAsBoolean();
         final boolean primaryNodeChanged = currentPrimaryNode != previousPrimaryNode;
         previousPrimaryNode = currentPrimaryNode;
-        final boolean sourceProcessorRecentlyReportedActivity = hasSourceProcessorRecentlyReportedActivity(nowNanos);
+        final boolean sourceProcessorRecentlyReportedActivity = sourceWorkCheck.hasRecentlyFoundData(nowNanos, activeProcessorInvocations.get());
         final ProcessorSchedulingSnapshot snapshot = measurements.captureSnapshot(nowNanos, measurementWindowNanos, currentSettings, connectableTask.isReady(),
                 inputQueueHasFlowFiles, inputQueueSize, inputQueueGrowth, sourceProcessorRecentlyReportedActivity, primaryNodeChanged, globalCapacityTestAllowed);
         if (snapshot.committedFlowFiles() > 0L) {
@@ -381,26 +347,6 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
 
         lastProcessorSchedulingSnapshot = snapshot;
         return snapshot;
-    }
-
-    /**
-     * @return <code>true</code> if this is a source Processor that has not come up empty since it last found new data, and it is either
-     * running now or found new data within the last two seconds
-     */
-    private boolean hasSourceProcessorRecentlyReportedActivity(final long nowNanos) {
-        if (!sourceProcessor || sourceDelayNanos > 0L) {
-            return false;
-        }
-
-        if (activeProcessorInvocations.get() > 0) {
-            return true;
-        }
-
-        if (lastSourceActivityNanos == 0L) {
-            return false;
-        }
-
-        return nowNanos - lastSourceActivityNanos < TimeUnit.SECONDS.toNanos(2);
     }
 
     void resetMeasurementsAfterEvent() {
@@ -417,15 +363,15 @@ final class ProcessorAutoSchedulingState implements ConcurrentTaskMoveCoordinato
 
         previousInputQueueSize = inputQueueSize;
         lastProcessorSchedulingSnapshot = null;
-        generation.signalChange();
+        waitingWorkers.signalChange();
     }
 
     void applySettings(final SchedulingSettings settings) {
         final SchedulingSettings currentSettings = schedulingSettings.get();
         if (!currentSettings.equals(settings)) {
             schedulingSettings.set(new SchedulingSettings(settings.concurrentTasks(), settings.runDurationNanos()));
-            generation.signalChange();
-            generation.signalTaskSlotUpdate();
+            waitingWorkers.signalChange();
+            waitingWorkers.signalTaskSlotUpdate();
             logger.info("Automatic scheduling settings changed for {} from {} to {}", connectable, currentSettings, settings);
         }
     }

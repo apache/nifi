@@ -223,7 +223,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                 final ProcessorAutoSchedulingState autoSchedulingState = new ProcessorAutoSchedulingState(connectableTask, lifecycleState, generation, controller,
                         noWorkYieldNanos, flowController::isPrimary, globalSemaphore::getMaxPermits, this::startAutoWorker);
                 generation.setAutoSchedulingState(autoSchedulingState);
-                registerQueueListeners(connectable, generation);
+                registerQueueListeners(autoSchedulingState);
                 autoSchedulingState.setWorkerCount(1);
                 logger.info("Scheduled {} for automatic scheduling with a maximum of {} concurrent tasks", connectable, maxConcurrentTasks);
                 return;
@@ -247,7 +247,8 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         }
     }
 
-    private void registerQueueListeners(final Connectable connectable, final SchedulingGeneration generation) {
+    private void registerQueueListeners(final ProcessorAutoSchedulingState state) {
+        final Connectable connectable = state.getConnectable();
         final Set<FlowFileQueue> queues = new HashSet<>();
         for (final Connection connection : connectable.getIncomingConnections()) {
             queues.add(connection.getFlowFileQueue());
@@ -258,8 +259,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         }
 
         for (final FlowFileQueue queue : queues) {
-            generation.addQueue(queue);
-            generation.addQueueRegistration(queue.addSchedulingListener(generation::signalChange));
+            state.getWaitingWorkers().addQueueListener(queue);
         }
     }
 
@@ -292,7 +292,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                 }
             }
         } finally {
-            state.workerStopped(worker);
+            state.onWorkerStopped(worker);
         }
     }
 
@@ -302,19 +302,18 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
      * @return <code>false</code> if a global permit could not be acquired because scheduling stopped, <code>true</code> otherwise
      */
     private boolean runAutoSchedulingIteration(final ProcessorAutoSchedulingState state, final ProcessorTaskWorker worker) {
-        // Wait without taking a global permit while the Processor cannot do anything useful: for example, it is yielded, its outgoing
-        // connections are full, or it has no input. A source Processor that recently found no new data also waits until it is due to check again.
-        if (!state.getConnectableTask().isReady() || !state.isSourceWorkCheckAllowed()) {
+        // Wait without taking a global permit while the Processor cannot do anything useful.
+        if (!state.isReadyToRun()) {
             waitForAutoReadiness(state, worker);
             return true;
         }
 
-        final SchedulingGeneration generation = state.getGeneration();
+        final WaitingWorkers waitingWorkers = state.getWaitingWorkers();
         // Read the count before trying for a task slot, so that a slot released after the attempt still wakes this worker.
-        final long taskSlotUpdateCount = generation.getTaskSlotUpdateCount();
+        final long taskSlotUpdateCount = waitingWorkers.getTaskSlotUpdateCount();
         final ProcessorSchedulingMeasurements measurements = state.getMeasurements();
         measurements.recordTaskBusy();
-        if (!acquirePermitWithPolling(state.getLifecycleState(), generation)) {
+        if (!acquirePermitWithPolling(state.getLifecycleState(), state.getGeneration())) {
             measurements.recordTaskIdle();
             return false;
         }
@@ -333,7 +332,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         }
 
         if (!concurrentTaskSlotAvailable) {
-            generation.waitForTaskSlotUpdate(taskSlotUpdateCount, worker);
+            waitingWorkers.waitForTaskSlotUpdate(taskSlotUpdateCount, worker);
         }
 
         return true;
@@ -357,8 +356,8 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         }
 
         try {
-            final boolean sourceWorkCheckRequired = state.isSourceWorkCheckRequired();
-            if (sourceWorkCheckRequired && !state.reserveSourceWorkCheck()) {
+            final SourceWorkCheck sourceWorkCheck = state.getSourceWorkCheck();
+            if (!sourceWorkCheck.tryStart()) {
                 return true;
             }
 
@@ -368,9 +367,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                 invokeWhileConditionTrue(state.getMaxRepeatedInvocationNanos(), System::nanoTime, keepInvoking, () -> invokeProcessor(state, worker, schedulingSettings));
             } finally {
                 state.getMeasurements().recordInvocationDuration(System.nanoTime() - invocationStartNanos);
-                if (sourceWorkCheckRequired) {
-                    state.releaseSourceWorkCheck();
-                }
+                sourceWorkCheck.finish();
             }
         } finally {
             state.releaseConcurrentTaskSlot();
@@ -414,25 +411,25 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     }
 
     private void waitForAutoReadiness(final ProcessorAutoSchedulingState state, final ProcessorTaskWorker worker) {
-        final SchedulingGeneration generation = state.getGeneration();
-        final long changeSequence = generation.getChangeSequence();
-        if (state.getConnectableTask().isReady() && state.isSourceWorkCheckAllowed()) {
+        final WaitingWorkers waitingWorkers = state.getWaitingWorkers();
+        final long changeSequence = waitingWorkers.getChangeSequence();
+        if (state.isReadyToRun()) {
             return;
         }
 
         final Instant now = Instant.now();
         long delayNanos = TimeUnit.SECONDS.toNanos(1L);
-        final Instant queueDeadline = generation.getNextQueueDeadline();
+        final Instant queueDeadline = waitingWorkers.getNextQueueDeadline();
         if (queueDeadline.isAfter(now)) {
             delayNanos = Math.min(delayNanos, Duration.between(now, queueDeadline).toNanos());
         }
 
-        final long sourceDelayNanos = state.getSourceWorkCheckDelayNanos();
+        final long sourceDelayNanos = state.getSourceWorkCheck().getDelayUntilNextCheckNanos();
         if (sourceDelayNanos > 0L) {
             delayNanos = Math.min(delayNanos, sourceDelayNanos);
         }
 
-        generation.awaitChange(changeSequence, delayNanos, worker);
+        waitingWorkers.waitForChange(changeSequence, delayNanos, worker);
     }
 
     @Override
@@ -666,9 +663,8 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
             final ProcessorAutoSchedulingState state = generation.getAutoSchedulingState();
             if (state != null) {
                 requestControllerReset(generation, state, AutoSchedulingResetReason.PROCESSOR_CONNECTIONS_CHANGED);
+                state.getWaitingWorkers().signalChange();
             }
-
-            generation.signalChange();
         }
     }
 
@@ -700,7 +696,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
             final ProcessorAutoSchedulingState state = generation.getAutoSchedulingState();
             if (state != null) {
                 requestControllerReset(generation, state, AutoSchedulingResetReason.GLOBAL_CONCURRENT_TASK_LIMIT_CHANGED);
-                generation.signalChange();
+                state.getWaitingWorkers().signalChange();
             }
         }
     }
@@ -714,7 +710,7 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
                     return;
                 }
 
-                resetController(generation, state, reason);
+                resetController(state, reason);
             });
         } catch (final RejectedExecutionException e) {
             if (!shutdown.get()) {
@@ -726,10 +722,10 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     /**
      * Restarts a Processor's measurements after an event that makes them no longer comparable. Runs on the evaluation thread.
      */
-    private void resetController(final SchedulingGeneration generation, final ProcessorAutoSchedulingState state, final AutoSchedulingResetReason reason) {
+    private void resetController(final ProcessorAutoSchedulingState state, final AutoSchedulingResetReason reason) {
         if (reason == AutoSchedulingResetReason.PROCESSOR_CONNECTIONS_CHANGED) {
-            generation.clearQueueRegistrations();
-            registerQueueListeners(state.getConnectable(), generation);
+            state.getWaitingWorkers().removeQueueListeners();
+            registerQueueListeners(state);
         }
 
         state.resetMeasurementsAfterEvent();
@@ -785,9 +781,9 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
         });
     }
 
-    int getAutoSchedulingWaiterCount(final String componentIdentifier) {
-        final SchedulingGeneration generation = schedulingGenerations.get(componentIdentifier);
-        return generation == null ? 0 : generation.getWaiterCount();
+    int getAutoSchedulingChangeWaiterCount(final String componentIdentifier) {
+        final WaitingWorkers waitingWorkers = getWaitingWorkers(componentIdentifier);
+        return waitingWorkers == null ? 0 : waitingWorkers.getChangeWaiterCount();
     }
 
     ProcessorSchedulingMeasurements getAutoSchedulingMeasurements(final String componentIdentifier) {
@@ -797,13 +793,19 @@ public class VirtualThreadSchedulingAgent implements SchedulingAgent {
     }
 
     int getAutoSchedulingTaskSlotWaiterCount(final String componentIdentifier) {
-        final SchedulingGeneration generation = schedulingGenerations.get(componentIdentifier);
-        return generation == null ? 0 : generation.getTaskSlotWaiterCount();
+        final WaitingWorkers waitingWorkers = getWaitingWorkers(componentIdentifier);
+        return waitingWorkers == null ? 0 : waitingWorkers.getTaskSlotWaiterCount();
     }
 
     long getAutoSchedulingTaskSlotUpdateCount(final String componentIdentifier) {
+        final WaitingWorkers waitingWorkers = getWaitingWorkers(componentIdentifier);
+        return waitingWorkers == null ? -1L : waitingWorkers.getTaskSlotUpdateCount();
+    }
+
+    private WaitingWorkers getWaitingWorkers(final String componentIdentifier) {
         final SchedulingGeneration generation = schedulingGenerations.get(componentIdentifier);
-        return generation == null ? -1L : generation.getTaskSlotUpdateCount();
+        final ProcessorAutoSchedulingState state = generation == null ? null : generation.getAutoSchedulingState();
+        return state == null ? null : state.getWaitingWorkers();
     }
 
     boolean isShutdown() {
