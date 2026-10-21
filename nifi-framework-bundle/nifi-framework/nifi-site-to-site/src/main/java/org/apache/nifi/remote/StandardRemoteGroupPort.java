@@ -180,12 +180,12 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         }
 
         final String batchSize = getBatchSize();
-        if (batchSize != null && batchSize.length() > 0) {
+        if (batchSize != null && !batchSize.isEmpty()) {
             clientBuilder.requestBatchSize(DataUnit.parseDataSize(batchSize.trim(), DataUnit.B).intValue());
         }
 
         final String batchDuration = getBatchDuration();
-        if (batchDuration != null && batchDuration.length() > 0) {
+        if (batchDuration != null && !batchDuration.isEmpty()) {
             clientBuilder.requestBatchDuration(FormatUtils.getTimeDuration(batchDuration.trim(), TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
         }
 

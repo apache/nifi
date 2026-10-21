@@ -1905,7 +1905,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
 
         // don't add processing time if we did nothing, because we don't log the summary anyway
-        if (sb.length() > 0) {
+        if (!sb.isEmpty()) {
             final long processingNanos = checkpoint.processingTime;
             sb.append(", Processing Time = ");
             formatNanos(processingNanos, sb);

@@ -1085,7 +1085,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         }
 
         final JsonNode errorsNode = jsonResponse.get(FIELD_ERRORS);
-        if (errorsNode != null && errorsNode.isArray() && errorsNode.size() > 0) {
+        if (errorsNode != null && errorsNode.isArray() && !errorsNode.isEmpty()) {
             final JsonNode firstError = errorsNode.get(0);
             return firstError.path(FIELD_MESSAGE_TEXT).asText(firstError.toString());
         }

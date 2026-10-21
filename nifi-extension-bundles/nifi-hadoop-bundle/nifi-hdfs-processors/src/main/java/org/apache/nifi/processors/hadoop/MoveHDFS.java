@@ -545,7 +545,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                 }
                 final String pathToCompare;
                 String relativePath = getPathDifference(dir, path);
-                if (relativePath.length() == 0) {
+                if (relativePath.isEmpty()) {
                     pathToCompare = path.getName();
                 } else {
                     pathToCompare = relativePath + Path.SEPARATOR + path.getName();

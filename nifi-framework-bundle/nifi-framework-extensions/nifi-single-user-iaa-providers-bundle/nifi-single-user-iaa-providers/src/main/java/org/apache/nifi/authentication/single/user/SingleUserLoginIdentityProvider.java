@@ -113,7 +113,7 @@ public class SingleUserLoginIdentityProvider implements LoginIdentityProvider {
     public void onConfigured(final LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
         LOGGER.debug("Configuring Provider");
         final String password = configurationContext.getProperty(PASSWORD_PROPERTY);
-        if (password == null || password.length() == 0) {
+        if (password == null || password.isEmpty()) {
             try {
                 configuredCredentials = generateLoginCredentials();
                 LOGGER.info("Updating Login Identity Providers Configuration [{}]", loginIdentityProviderConfigurationFile);

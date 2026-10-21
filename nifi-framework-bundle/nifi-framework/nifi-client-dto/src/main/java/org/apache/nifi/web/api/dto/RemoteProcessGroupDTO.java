@@ -85,10 +85,10 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
                     " If neither target uri nor uris are set, then returns null."
     )
     public String getTargetUri() {
-        if (targetUri == null || targetUri.length() == 0) {
+        if (targetUri == null || targetUri.isEmpty()) {
             synchronized (this) {
-                if (targetUri == null || targetUri.length() == 0) {
-                    if (targetUris != null && targetUris.length() > 0) {
+                if (targetUri == null || targetUri.isEmpty()) {
+                    if (targetUris != null && !targetUris.isEmpty()) {
                         if (targetUris.indexOf(',') > -1) {
                             targetUri = targetUris.substring(0, targetUris.indexOf(','));
                         } else {
@@ -117,9 +117,9 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
                     " If neither target uris nor uris are set, then returns null."
     )
     public String getTargetUris() {
-        if (targetUris == null || targetUris.length() == 0) {
+        if (targetUris == null || targetUris.isEmpty()) {
             synchronized (this) {
-                if (targetUris == null || targetUris.length() == 0) {
+                if (targetUris == null || targetUris.isEmpty()) {
                     targetUris = targetUri;
                 }
             }

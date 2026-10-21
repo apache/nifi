@@ -58,7 +58,7 @@ public interface StringSelector {
         @Override
         public StringSelector or(String... strings) {
             for (String string : strings) {
-                if (string != null && string.length() > 0) {
+                if (string != null && !string.isEmpty()) {
                     return new StringSelector() {
                         @Override
                         public StringSelector or(String... string) {

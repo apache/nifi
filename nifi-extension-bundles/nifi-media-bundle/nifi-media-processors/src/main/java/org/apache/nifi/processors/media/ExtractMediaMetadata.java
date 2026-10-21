@@ -146,7 +146,7 @@ public class ExtractMediaMetadata extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         String metadataKeyFilterInput = context.getProperty(METADATA_KEY_FILTER).getValue();
-        if (metadataKeyFilterInput != null && metadataKeyFilterInput.length() > 0) {
+        if (metadataKeyFilterInput != null && !metadataKeyFilterInput.isEmpty()) {
             metadataKeyFilterRef.set(Pattern.compile(metadataKeyFilterInput));
         } else {
             metadataKeyFilterRef.set(null);
