@@ -20,6 +20,7 @@ package org.apache.nifi.controller.state.providers.local;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.controller.state.StateMapUpdate;
@@ -134,6 +135,69 @@ public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider 
             assertEquals(Collections.singletonMap("iteration", "99"), recoveredProvider.getState(testComponentId).toMap());
         } finally {
             recoveredProvider.shutdown();
+        }
+    }
+
+    /**
+     * Verifies that patching state writes only the patches to the journal, so that many small patches of a large state do not fill
+     * the journal, and that the patched state and its version are recovered both from the journal and from a journal applied on top of a snapshot.
+     */
+    @Test
+    public void testPatchStateWritesPatchesAndRecovers() throws IOException {
+        final Path storageDirectory = temporaryDirectory.resolve("patch-journal");
+        final String testComponentId = "test-patch-component";
+        final String largeValue = "v".repeat(100);
+
+        final Map<String, String> expectedState = new HashMap<>();
+        for (int i = 0; i < 2000; i++) {
+            expectedState.put("key" + i, largeValue);
+        }
+
+        final StateMap patchedStateMap;
+        final WriteAheadLocalStateProvider firstProvider = initializeProvider(storageDirectory.toString(), "1 MB");
+        try {
+            firstProvider.setState(expectedState, testComponentId);
+            for (int i = 0; i < 20; i++) {
+                final Map<String, String> patch = new HashMap<>();
+                patch.put("patched" + i, String.valueOf(i));
+                patch.put("key" + i, null);
+                firstProvider.patchState(patch, testComponentId);
+
+                expectedState.put("patched" + i, String.valueOf(i));
+                expectedState.remove("key" + i);
+            }
+
+            final List<File> journalFiles = getJournalFiles(storageDirectory);
+            assertEquals(1, journalFiles.size());
+            assertEquals("0.journal", journalFiles.getFirst().getName());
+
+            patchedStateMap = firstProvider.getState(testComponentId);
+            assertEquals(expectedState, patchedStateMap.toMap());
+        } finally {
+            firstProvider.shutdown();
+        }
+
+        final StateMap secondPatchedStateMap;
+        final WriteAheadLocalStateProvider secondProvider = initializeProvider(storageDirectory.toString(), "1 MB");
+        try {
+            final StateMap recoveredStateMap = secondProvider.getState(testComponentId);
+            assertEquals(expectedState, recoveredStateMap.toMap());
+            assertEquals(patchedStateMap.getStateVersion(), recoveredStateMap.getStateVersion());
+
+            secondProvider.patchState(Map.of("afterRecovery", "1"), testComponentId);
+            expectedState.put("afterRecovery", "1");
+            secondPatchedStateMap = secondProvider.getState(testComponentId);
+        } finally {
+            secondProvider.shutdown();
+        }
+
+        final WriteAheadLocalStateProvider thirdProvider = initializeProvider(storageDirectory.toString(), "1 MB");
+        try {
+            final StateMap recoveredStateMap = thirdProvider.getState(testComponentId);
+            assertEquals(expectedState, recoveredStateMap.toMap());
+            assertEquals(secondPatchedStateMap.getStateVersion(), recoveredStateMap.getStateVersion());
+        } finally {
+            thirdProvider.shutdown();
         }
     }
 

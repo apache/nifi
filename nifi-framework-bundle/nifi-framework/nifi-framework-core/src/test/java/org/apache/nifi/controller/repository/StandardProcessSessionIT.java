@@ -118,9 +118,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.notNull;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -229,7 +231,7 @@ public class StandardProcessSessionIT {
         contentRepo.initialize(new StandardContentRepositoryContext(new StandardResourceClaimManager(), EventReporter.NO_OP));
         flowFileRepo = new MockFlowFileRepository(contentRepo);
 
-        stateManager = new MockStateManager(connectable);
+        stateManager = spy(new MockStateManager(connectable));
         stateManager.setIgnoreAnnotations(true);
 
         context = new StandardRepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepository,
@@ -2502,6 +2504,43 @@ public class StandardProcessSessionIT {
         session.commit();
         stateManager.assertStateEquals("abc", "123", Scope.CLUSTER);
         stateManager.assertStateNotSet(Scope.LOCAL);
+
+        stateManager.reset();
+        session.patchState(Collections.emptyMap(), Scope.LOCAL);
+        session.commit();
+        stateManager.assertStateNotSet();
+
+        // Patches made in one session are combined and sent to the State Manager as a single patch
+        session.setState(Collections.singletonMap("abc", "123"), Scope.LOCAL);
+        session.commit();
+        clearInvocations(stateManager);
+
+        session.patchState(Map.of("def", "456"), Scope.LOCAL);
+        final Map<String, String> secondPatch = new HashMap<>();
+        secondPatch.put("def", "789");
+        secondPatch.put("abc", null);
+        session.patchState(secondPatch, Scope.LOCAL);
+        stateManager.assertStateEquals(Map.of("abc", "123"), Scope.LOCAL);
+
+        session.commit();
+        verify(stateManager).patchState(secondPatch, Scope.LOCAL);
+        verify(stateManager, never()).setState(any(), any());
+        stateManager.assertStateEquals(Map.of("def", "789"), Scope.LOCAL);
+
+        // A patch is applied on commit even if another writer updated the state after the session retrieved it
+        session.patchState(Map.of("ghi", "1"), Scope.LOCAL);
+        stateManager.setState(Map.of("def", "789", "other", "1"), Scope.LOCAL);
+        session.commit();
+        stateManager.assertStateEquals(Map.of("def", "789", "other", "1", "ghi", "1"), Scope.LOCAL);
+
+        // A whole-state update made after a patch sends the whole state
+        clearInvocations(stateManager);
+        session.patchState(Map.of("ghi", "1"), Scope.LOCAL);
+        session.setState(Map.of("xyz", "1"), Scope.LOCAL);
+        session.commit();
+        verify(stateManager).setState(Map.of("xyz", "1"), Scope.LOCAL);
+        verify(stateManager, never()).patchState(any(), any());
+        stateManager.assertStateEquals(Map.of("xyz", "1"), Scope.LOCAL);
     }
 
     @Test
@@ -2554,16 +2593,33 @@ public class StandardProcessSessionIT {
         retrieved = session.getState(Scope.LOCAL);
         assertNotNull(retrieved);
         assertTrue(retrieved.getStateVersion().isPresent());
+
+        stateManager.reset();
+        final Map<String, String> patch = new HashMap<>();
+        patch.put("x", "1");
+        patch.put("y", null);
+        session.patchState(patch, Scope.LOCAL);
+        retrieved = session.getState(Scope.LOCAL);
+        assertEquals(Map.of("x", "1"), retrieved.toMap());
+        assertTrue(retrieved.getStateVersion().isPresent());
+        stateManager.assertStateNotSet();
+
+        session.patchState(Map.of("z", "2"), Scope.LOCAL);
+        assertEquals(Map.of("x", "1", "z", "2"), session.getState(Scope.LOCAL).toMap());
+        session.commit();
+        stateManager.assertStateEquals(Map.of("x", "1", "z", "2"), Scope.LOCAL);
     }
 
     @Test
     public void testRollbackDoesNotStoreState() throws IOException {
         session.setState(Collections.singletonMap("abc", "1"), Scope.LOCAL);
+        session.patchState(Map.of("def", "2"), Scope.CLUSTER);
         session.rollback();
         stateManager.assertStateNotSet();
 
         session.commit();
         stateManager.assertStateNotSet();
+        verify(stateManager, never()).patchState(any(), any());
     }
 
     @Test
@@ -2575,6 +2631,17 @@ public class StandardProcessSessionIT {
         session.commit();
 
         stateManager.assertStateEquals("abc", "1", Scope.LOCAL);
+
+        // Patches made before and after a checkpoint are sent together as one patch
+        stateManager.reset();
+        clearInvocations(stateManager);
+        session.patchState(Map.of("abc", "1"), Scope.LOCAL);
+        session.checkpoint();
+        session.patchState(Map.of("def", "2"), Scope.LOCAL);
+        session.commit();
+
+        verify(stateManager).patchState(Map.of("abc", "1", "def", "2"), Scope.LOCAL);
+        stateManager.assertStateEquals(Map.of("abc", "1", "def", "2"), Scope.LOCAL);
     }
 
     @Test
@@ -2587,6 +2654,18 @@ public class StandardProcessSessionIT {
 
         session.commit();
         stateManager.assertStateEquals("abc", "2", Scope.LOCAL);
+
+        // A patch made after a checkpointed whole-state update sends the whole state
+        stateManager.reset();
+        clearInvocations(stateManager);
+        session.setState(Map.of("abc", "1"), Scope.LOCAL);
+        session.checkpoint();
+        session.patchState(Map.of("def", "2"), Scope.LOCAL);
+        session.commit();
+
+        verify(stateManager).setState(Map.of("abc", "1", "def", "2"), Scope.LOCAL);
+        verify(stateManager, never()).patchState(any(), any());
+        stateManager.assertStateEquals(Map.of("abc", "1", "def", "2"), Scope.LOCAL);
     }
 
     @Test
@@ -2597,12 +2676,14 @@ public class StandardProcessSessionIT {
         session.checkpoint();
 
         session.setState(Collections.singletonMap("abc", "2"), Scope.LOCAL);
+        session.patchState(Map.of("def", "2"), Scope.LOCAL);
         session.rollback();
 
         stateManager.assertStateNotSet();
         session.commit();
 
-        stateManager.assertStateEquals("abc", "1", Scope.LOCAL);
+        stateManager.assertStateEquals(Map.of("abc", "1"), Scope.LOCAL);
+        verify(stateManager, never()).patchState(any(), any());
     }
 
     @Test

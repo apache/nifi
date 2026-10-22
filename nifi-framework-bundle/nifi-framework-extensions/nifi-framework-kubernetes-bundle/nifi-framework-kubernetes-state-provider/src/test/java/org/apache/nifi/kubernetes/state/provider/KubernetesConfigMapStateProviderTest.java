@@ -57,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -307,6 +308,11 @@ class KubernetesConfigMapStateProviderTest {
         final Optional<String> replacedVersion = replacedStateMap.getStateVersion();
         assertTrue(replacedVersion.isPresent());
         assertEquals(SECOND_VERSION, replacedVersion.get());
+
+        provider.patchState(Collections.singletonMap(STATE_PROPERTY, STATE_VALUE), COMPONENT_ID);
+        final StateMap patchedStateMap = provider.getState(COMPONENT_ID);
+        assertEquals(state, patchedStateMap.toMap());
+        assertNotEquals(replacedVersion, patchedStateMap.getStateVersion());
     }
 
     @Test
