@@ -21,6 +21,7 @@ import { ProcessGroupRenderContext } from '../render-context.types';
 import { DragUtils } from '../../utils/drag.utils';
 import { VersionControlTip } from '../../../tooltips/version-control-tip/version-control-tip.component';
 import { CanvasConstants } from '../../canvas.constants';
+import { isInViewport } from '../../utils/visibility.utils';
 
 /**
  * ProcessGroupRenderer
@@ -46,7 +47,7 @@ export class ProcessGroupRenderer {
      * Main render method - orchestrates the D3 data join pattern
      */
     public static render(context: ProcessGroupRenderContext): void {
-        const { containerSelection, processGroups, canSelect, callbacks } = context;
+        const { containerSelection, processGroups, callbacks } = context;
 
         // D3 data join
         const selection = containerSelection
@@ -61,13 +62,13 @@ export class ProcessGroupRenderer {
         const merged = selection.merge(appendedGroups);
         ProcessGroupRenderer.updateProcessGroupElements(merged, context);
 
-        // Attach event listeners if selection is enabled
+        // Attach event listeners once and evaluate selection state when fired.
         // Use mousedown for selection to ensure single, deterministic event firing
-        if (canSelect && callbacks) {
+        if (callbacks) {
             if (callbacks.onClick) {
                 merged.on('mousedown.selection', function (event: MouseEvent, d: CanvasProcessGroup) {
                     // Only handle left mouse button
-                    if (event.button !== 0) {
+                    if (event.button !== 0 || !context.getCanSelect()) {
                         return;
                     }
 
@@ -77,6 +78,9 @@ export class ProcessGroupRenderer {
             }
             if (callbacks.onDoubleClick) {
                 merged.on('dblclick', function (event: MouseEvent, d: CanvasProcessGroup) {
+                    if (!context.getCanSelect()) {
+                        return;
+                    }
                     event.stopPropagation();
                     callbacks.onDoubleClick!(d, event);
                 });
@@ -594,11 +598,11 @@ export class ProcessGroupRenderer {
 
         // Apply disabled state (during save operation)
         selection
-            .classed('disabled', (d) => context.disabledProcessGroupIds?.has(d.entity.id) || false)
-            .style('opacity', (d) => (context.disabledProcessGroupIds?.has(d.entity.id) ? 0.6 : null))
+            .classed('disabled', (d) => context.getDisabledProcessGroupIds().has(d.entity.id))
+            .style('opacity', (d) => (context.getDisabledProcessGroupIds().has(d.entity.id) ? 0.6 : null))
             .style('cursor', (d) => {
-                if (context.disabledProcessGroupIds?.has(d.entity.id)) return 'not-allowed';
-                return context.canSelect ? 'pointer' : 'default';
+                if (context.getDisabledProcessGroupIds().has(d.entity.id)) return 'not-allowed';
+                return context.getCanSelect() ? 'pointer' : 'default';
             });
 
         // Update border
@@ -702,6 +706,21 @@ export class ProcessGroupRenderer {
                     context.componentUtils.resetCanvasTooltip(versionControlContainer);
                 }
             }
+        });
+
+        const { viewportBounds, scale } = context;
+        selection.each(function (d: CanvasProcessGroup) {
+            const node = d3.select(this);
+            const wasVisible = node.classed('visible');
+            const isVisible = isInViewport(
+                d.ui.currentPosition ?? d.entity.position,
+                d.ui.dimensions,
+                viewportBounds,
+                scale
+            );
+            node.classed('visible', isVisible)
+                .classed('entering', isVisible && !wasVisible)
+                .classed('leaving', !isVisible && wasVisible);
         });
 
         // Handle details group (conditionally render based on visibility)
@@ -1187,15 +1206,6 @@ export class ProcessGroupRenderer {
                 }
             }
         });
-    }
-
-    /**
-     * Pan process groups - update entering/leaving components during zoom/pan
-     * This is more efficient than full re-render - only updates components transitioning visibility
-     */
-    public static pan(selection: CanvasSelection<CanvasProcessGroup>, context: ProcessGroupRenderContext): void {
-        // The update method will check the 'visible' class and render/remove details accordingly
-        ProcessGroupRenderer.updateProcessGroupElements(selection, context);
     }
 
     /**

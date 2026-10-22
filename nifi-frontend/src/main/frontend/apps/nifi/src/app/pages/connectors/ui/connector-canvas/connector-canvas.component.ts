@@ -46,19 +46,25 @@ import {
     ProcessGroupEntity,
     ProcessorEntity,
     RemoteProcessGroupEntity,
+    RevisionRequest,
     selectRouteParams,
     selectUrl,
     Storage
 } from '@nifi/shared';
-import { DocumentedType, RegistryClientEntity } from '../../../../state/shared';
-import { combineLatest, distinctUntilChanged, filter, map, Observable, of } from 'rxjs';
+import { RegistryClientEntity } from '../../../../state/shared';
+import { combineLatest, distinctUntilChanged, filter, map, Observable } from 'rxjs';
 import { NiFiState } from '../../../../state';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { CanvasConfiguration } from '../../../../state/canvas-ui';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import { CanvasComponent } from '../../../../ui/common/canvas/canvas.component';
 import { BirdseyeComponentData, BirdseyeTransform } from '../../../../ui/common/birdseye/birdseye.types';
-import { ContextMenuContext, Dimension, isProcessorDatum } from '../../../../ui/common/canvas/canvas.types';
+import {
+    ContextMenuContext,
+    Dimension,
+    DragEndBaselineItem,
+    isProcessorDatum
+} from '../../../../ui/common/canvas/canvas.types';
 import {
     ContextMenuDefinition,
     ContextMenuDefinitionProvider,
@@ -93,6 +99,10 @@ import {
     selectConnectorCanvasEntitySaving
 } from '../../state/connector-canvas-entity/connector-canvas-entity.selectors';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
+import { Client } from '../../../../service/client.service';
+import { ConnectablePolicy, CreateConnectionPayload } from '../../../../ui/common/canvas/connectable-behavior.helper';
+import { ConnectionEndpointReconnectDestination, CreateConnectionRequest } from '../../../../state/flow-shared';
+import { ConnectorConnectablePolicy } from './connector-connectable.policy';
 
 @Component({
     selector: 'connector-canvas',
@@ -120,6 +130,7 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     private router = inject(Router);
     private dialog = inject(MatDialog);
     private storage = inject(Storage);
+    private client = inject(Client);
 
     private static readonly CONTROL_VISIBILITY_KEY = 'graph-control-visibility';
     private static readonly GRAPH_CONTROL_KEY = 'connector-graph-controls';
@@ -141,6 +152,13 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
     connectorEntity = this.store.selectSignal(selectConnectorCanvasEntity);
     entitySaving = this.store.selectSignal(selectConnectorCanvasEntitySaving);
+    private readonly connectorConnectablePolicy = new ConnectorConnectablePolicy(
+        () => this.canvasComponent().canvasRootResolver(),
+        () => this.currentProcessGroupId
+    );
+    connectablePolicy = computed<ConnectablePolicy | null>(() =>
+        this.connectorEntity()?.component.state === 'TROUBLESHOOTING' ? this.connectorConnectablePolicy : null
+    );
 
     provenanceEvents = this.store.selectSignal(selectConnectorProvenanceEvents);
     provenanceStatus = this.store.selectSignal(selectConnectorProvenanceStatus);
@@ -180,10 +198,10 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     );
     processGroups$: Observable<ProcessGroupEntity[]> = this.store.select(ConnectorCanvasSelectors.selectProcessGroups);
     connections$: Observable<ConnectionEntity[]> = this.store.select(ConnectorCanvasSelectors.selectConnections);
+    private connections = this.store.selectSignal(ConnectorCanvasSelectors.selectConnections);
     registryClients$: Observable<RegistryClientEntity[]> = this.store.select(
         ConnectorCanvasSelectors.selectRegistryClients
     );
-    previewExtensions$: Observable<DocumentedType[]> = of([]);
 
     private currentUser = this.store.selectSignal(selectCurrentUser);
     canAccessProvenance = computed(() => this.currentUser().provenancePermissions.canRead);
@@ -348,10 +366,8 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
         };
     }
 
-    // Data ready signal for canvas - true when flow data is successfully loaded
-    dataReady$: Observable<boolean> = this.store
-        .select(ConnectorCanvasSelectors.selectLoadingStatus)
-        .pipe(map((status) => status === 'success'));
+    // Once loaded, data remains ready while same-canvas refreshes run or fail.
+    dataReady$: Observable<boolean> = this.store.select(ConnectorCanvasSelectors.selectHasLoadedFlow);
 
     // Error state - true when flow load failed
     hasError$: Observable<boolean> = this.store
@@ -435,6 +451,75 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                 queueMicrotask(() => this.refreshBirdseye());
             });
 
+        this.actions$
+            .pipe(ofType(ConnectorCanvasActions.updateComponentPositionSuccess), takeUntilDestroyed(this.destroyRef))
+            .subscribe(({ componentId, componentType }) => this.confirmComponentPosition(componentId, componentType));
+
+        this.actions$
+            .pipe(ofType(ConnectorCanvasActions.updateComponentPositionFailure), takeUntilDestroyed(this.destroyRef))
+            .subscribe(({ componentId, componentType }) => this.revertComponentPosition(componentId, componentType));
+
+        this.actions$
+            .pipe(ofType(ConnectorCanvasActions.updateConnectionBendPointsSuccess), takeUntilDestroyed(this.destroyRef))
+            .subscribe(({ connectionId }) => this.canvasComponent().confirmConnectionBendPoints(connectionId));
+
+        this.actions$
+            .pipe(ofType(ConnectorCanvasActions.updateConnectionBendPointsFailure), takeUntilDestroyed(this.destroyRef))
+            .subscribe(({ connectionId }) => this.canvasComponent().revertConnectionBendPoints(connectionId));
+
+        this.actions$
+            .pipe(ofType(ConnectorCanvasActions.updateConnectionLabelIndexSuccess), takeUntilDestroyed(this.destroyRef))
+            .subscribe(({ connectionId }) => this.canvasComponent().confirmConnectionLabelIndex(connectionId));
+
+        this.actions$
+            .pipe(ofType(ConnectorCanvasActions.updateConnectionLabelIndexFailure), takeUntilDestroyed(this.destroyRef))
+            .subscribe(({ connectionId }) => this.canvasComponent().revertConnectionLabelIndex(connectionId));
+
+        this.actions$
+            .pipe(
+                ofType(ConnectorCanvasActions.updateConnectionDestinationSuccess),
+                takeUntilDestroyed(this.destroyRef)
+            )
+            .subscribe(({ connectionId }) => this.canvasComponent().confirmConnectionDestination(connectionId));
+
+        this.actions$
+            .pipe(
+                ofType(ConnectorCanvasActions.updateConnectionDestinationFailure),
+                takeUntilDestroyed(this.destroyRef)
+            )
+            .subscribe(({ connectionId, dialogOpen }) => {
+                if (!dialogOpen) {
+                    this.canvasComponent().revertConnectionDestination(connectionId);
+                }
+            });
+
+        this.actions$
+            .pipe(ofType(ConnectorCanvasActions.editConnectionDialogClosed), takeUntilDestroyed(this.destroyRef))
+            .subscribe(({ connectionId, cancelled }) => {
+                if (cancelled) {
+                    this.canvasComponent().revertConnectionDestination(connectionId);
+                }
+            });
+
+        this.actions$
+            .pipe(ofType(ConnectorCanvasActions.resizeLabelSuccess), takeUntilDestroyed(this.destroyRef))
+            .subscribe(({ labelId }) => this.canvasComponent().confirmLabelResize(labelId));
+
+        this.actions$
+            .pipe(ofType(ConnectorCanvasActions.resizeLabelFailure), takeUntilDestroyed(this.destroyRef))
+            .subscribe(({ labelId }) => this.canvasComponent().revertLabelDimensions(labelId));
+
+        this.actions$
+            .pipe(
+                ofType(
+                    ConnectorCanvasActions.createConnectionSuccess,
+                    ConnectorCanvasActions.createConnectionFailure,
+                    ConnectorCanvasActions.createConnectionDialogClosed
+                ),
+                takeUntilDestroyed(this.destroyRef)
+            )
+            .subscribe(() => this.canvasComponent().clearConnectionPreview());
+
         // Derive provenance eligibility from the route + loaded canvas entities. The eligible
         // set covers Processor / Connection / RemoteProcessGroup, plus InputPort / OutputPort
         // gated on allowRemoteAccess. All other types (Funnel, Label, ProcessGroup, multi-select,
@@ -505,6 +590,238 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
     onDeselectAll(): void {
         this.store.dispatch(ConnectorCanvasActions.deselectAllComponents());
+    }
+
+    onComponentsDragEnd(event: { items: DragEndBaselineItem[]; delta: Position; targetGroupId?: string }): void {
+        if (!this.currentProcessGroupId || event.items.length === 0) {
+            return;
+        }
+
+        if (event.targetGroupId) {
+            this.store.dispatch(ConnectorCanvasActions.deselectAllComponents());
+            event.items.forEach((item) => this.confirmComponentPosition(item.id, item.type));
+            this.store.dispatch(
+                ConnectorCanvasActions.moveCanvasComponents({
+                    processGroupId: this.currentProcessGroupId,
+                    targetGroupId: event.targetGroupId,
+                    components: event.items.map((item) => ({
+                        id: item.id,
+                        type: item.type,
+                        revision: this.withLocalClientId(item.revision)
+                    }))
+                })
+            );
+            return;
+        }
+
+        this.store.dispatch(
+            ConnectorCanvasActions.updateComponentPositionsBulk({
+                processGroupId: this.currentProcessGroupId,
+                updates: event.items.map((item) => this.buildBulkUpdate(item, event.delta)),
+                delta: event.delta
+            })
+        );
+    }
+
+    onConnectionBendPointsUpdate(event: {
+        id: string;
+        bends: Position[];
+        labelIndex?: number;
+        revision: RevisionRequest;
+    }): void {
+        if (!this.currentProcessGroupId) return;
+        this.store.dispatch(
+            ConnectorCanvasActions.updateConnectionBendPoints({
+                processGroupId: this.currentProcessGroupId,
+                update: {
+                    id: event.id,
+                    bends: event.bends,
+                    labelIndex: event.labelIndex,
+                    revision: this.withLocalClientId(event.revision)
+                }
+            })
+        );
+    }
+
+    onConnectionLabelDragEnd(event: { id: string; labelIndex: number; revision: RevisionRequest }): void {
+        if (!this.currentProcessGroupId) return;
+        this.store.dispatch(
+            ConnectorCanvasActions.updateConnectionLabelIndex({
+                processGroupId: this.currentProcessGroupId,
+                connectionId: event.id,
+                labelIndex: event.labelIndex,
+                revision: this.withLocalClientId(event.revision)
+            })
+        );
+    }
+
+    onLabelResizeEnd(event: {
+        id: string;
+        dimensions: { width: number; height: number };
+        revision: RevisionRequest;
+    }): void {
+        if (!this.currentProcessGroupId) return;
+        this.store.dispatch(
+            ConnectorCanvasActions.resizeLabel({
+                processGroupId: this.currentProcessGroupId,
+                labelId: event.id,
+                dimensions: event.dimensions,
+                revision: this.withLocalClientId(event.revision)
+            })
+        );
+    }
+
+    onCreateConnectionRequested(payload: CreateConnectionPayload): void {
+        if (!this.currentProcessGroupId) return;
+        this.store.dispatch(
+            ConnectorCanvasActions.createConnectionRequested({
+                processGroupId: this.currentProcessGroupId,
+                request: {
+                    source: {
+                        id: payload.source.id,
+                        componentType: payload.source.type,
+                        entity: payload.source.entity
+                    },
+                    destination: {
+                        id: payload.destination.id,
+                        componentType: payload.destination.type,
+                        entity: payload.destination.entity
+                    },
+                    bends: payload.bends
+                } as CreateConnectionRequest
+            })
+        );
+    }
+
+    onConnectionDestinationChangeRequested(event: {
+        id: string;
+        revision: RevisionRequest;
+        newDestination: ConnectionEndpointReconnectDestination;
+        bends?: Position[];
+    }): void {
+        if (!this.currentProcessGroupId) {
+            this.canvasComponent().revertConnectionDestination(event.id);
+            return;
+        }
+
+        const destinationType = event.newDestination.componentType;
+        if (destinationType === ComponentType.ProcessGroup || destinationType === ComponentType.RemoteProcessGroup) {
+            const connection = this.connections().find((candidate) => candidate.id === event.id);
+            if (!connection) {
+                this.canvasComponent().revertConnectionDestination(event.id);
+                return;
+            }
+
+            const destinationComponent = event.newDestination.entity.component;
+            const destinationName =
+                destinationComponent && 'name' in destinationComponent && typeof destinationComponent.name === 'string'
+                    ? destinationComponent.name
+                    : undefined;
+            this.store.dispatch(
+                ConnectorCanvasActions.openReconnectConnectionDialog({
+                    request: {
+                        type: ComponentType.Connection,
+                        uri: connection.uri,
+                        entity: event.bends ? { ...connection, bends: event.bends } : connection,
+                        revision: this.withLocalClientId(event.revision),
+                        newDestination: {
+                            type: destinationType,
+                            groupId: event.newDestination.id,
+                            name: event.newDestination.entity.permissions.canRead
+                                ? (destinationName ?? event.newDestination.id)
+                                : event.newDestination.id
+                        }
+                    }
+                })
+            );
+            return;
+        }
+
+        this.store.dispatch(
+            ConnectorCanvasActions.updateConnectionDestination({
+                processGroupId: this.currentProcessGroupId,
+                connectionId: event.id,
+                revision: this.withLocalClientId(event.revision),
+                newDestination: event.newDestination,
+                bends: event.bends
+            })
+        );
+    }
+
+    private buildBulkUpdate(item: DragEndBaselineItem, delta: Position): ConnectorCanvasActions.BulkPositionUpdate {
+        if (item.type === ComponentType.Connection) {
+            return {
+                componentId: item.id,
+                componentType: item.type,
+                revision: this.withLocalClientId(item.revision),
+                bends: item.bends.map((bend) => ({ x: bend.x + delta.x, y: bend.y + delta.y })),
+                labelIndex: item.labelIndex
+            };
+        }
+        return {
+            componentId: item.id,
+            componentType: item.type,
+            revision: this.withLocalClientId(item.revision),
+            position: { x: item.position.x + delta.x, y: item.position.y + delta.y }
+        };
+    }
+
+    private withLocalClientId(revision: RevisionRequest): RevisionRequest {
+        return { version: revision.version, clientId: this.client.getClientId() };
+    }
+
+    private confirmComponentPosition(componentId: string, componentType: ComponentType): void {
+        switch (componentType) {
+            case ComponentType.Processor:
+                this.canvasComponent().confirmProcessorPosition(componentId);
+                break;
+            case ComponentType.InputPort:
+            case ComponentType.OutputPort:
+                this.canvasComponent().confirmPortPosition(componentId);
+                break;
+            case ComponentType.RemoteProcessGroup:
+                this.canvasComponent().confirmRemoteProcessGroupPosition(componentId);
+                break;
+            case ComponentType.ProcessGroup:
+                this.canvasComponent().confirmProcessGroupPosition(componentId);
+                break;
+            case ComponentType.Funnel:
+                this.canvasComponent().confirmFunnelPosition(componentId);
+                break;
+            case ComponentType.Label:
+                this.canvasComponent().confirmLabelPosition(componentId);
+                break;
+            case ComponentType.Connection:
+                this.canvasComponent().confirmConnectionBendPoints(componentId);
+                break;
+        }
+    }
+
+    private revertComponentPosition(componentId: string, componentType: ComponentType): void {
+        switch (componentType) {
+            case ComponentType.Processor:
+                this.canvasComponent().revertProcessorPosition(componentId);
+                break;
+            case ComponentType.InputPort:
+            case ComponentType.OutputPort:
+                this.canvasComponent().revertPortPosition(componentId);
+                break;
+            case ComponentType.RemoteProcessGroup:
+                this.canvasComponent().revertRemoteProcessGroupPosition(componentId);
+                break;
+            case ComponentType.ProcessGroup:
+                this.canvasComponent().revertProcessGroupPosition(componentId);
+                break;
+            case ComponentType.Funnel:
+                this.canvasComponent().revertFunnelPosition(componentId);
+                break;
+            case ComponentType.Label:
+                this.canvasComponent().revertLabelPosition(componentId);
+                break;
+            case ComponentType.Connection:
+                this.canvasComponent().revertConnectionBendPoints(componentId);
+                break;
+        }
     }
 
     onCanvasInitialized(): void {

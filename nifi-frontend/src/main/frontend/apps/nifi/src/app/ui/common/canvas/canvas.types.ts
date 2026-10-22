@@ -62,7 +62,6 @@ export interface LabelUiState extends DragUiState {
 export interface ProcessorUiState extends DragUiState {
     componentType: ComponentType.Processor;
     dimensions: Dimension;
-    preview?: boolean;
 }
 
 export interface FunnelUiState extends DragUiState {

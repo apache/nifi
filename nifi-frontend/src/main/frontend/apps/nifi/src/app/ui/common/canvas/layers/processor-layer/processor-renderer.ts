@@ -20,6 +20,7 @@ import { CanvasProcessor, CanvasSelection } from '../../canvas.types';
 import { ProcessorRenderContext } from '../render-context.types';
 import { DragUtils } from '../../utils/drag.utils';
 import { ValidationErrorsTip } from '../../../tooltips/validation-errors-tip/validation-errors-tip.component';
+import { isInViewport } from '../../utils/visibility.utils';
 
 /**
  * ProcessorRenderer
@@ -88,31 +89,6 @@ export class ProcessorRenderer {
     }
 
     /**
-     * Check if processor is a preview extension
-     */
-    private static isPreviewProcessor(
-        processor: CanvasProcessor,
-        previewExtensions: ProcessorRenderContext['previewExtensions']
-    ): boolean {
-        if (!processor.entity.permissions.canRead) {
-            return false;
-        }
-
-        const component = processor.entity.component;
-        if (!component || !component.type || !component.bundle) {
-            return false;
-        }
-
-        return previewExtensions.some(
-            (type) =>
-                type.type === component.type &&
-                type.bundle.group === component.bundle.group &&
-                type.bundle.artifact === component.bundle.artifact &&
-                type.bundle.version === component.bundle.version
-        );
-    }
-
-    /**
      * Render processors using D3 data join pattern
      *
      * @param context - Complete render context with all necessary data
@@ -132,7 +108,9 @@ export class ProcessorRenderer {
 
         ProcessorRenderer.appendProcessorElements(entered);
 
-        // Attach event handlers only to newly entered processors (not on every render)
+        // Selection / dblclick handlers are attached only to newly entered
+        // processors (not on every render) - they're permission-independent and
+        // their fire-time `canSelect` gate is read inside the handler.
         ProcessorRenderer.attachEventHandlers(entered, context);
 
         // UPDATE: Merge enter and update selections
@@ -194,29 +172,6 @@ export class ProcessorRenderer {
             .text('P')
             .append('title')
             .text('This component is only scheduled to execute on the Primary Node');
-
-        // Preview badge (background rectangle)
-        entered
-            .append('rect')
-            .attr('x', 75)
-            .attr('y', 5)
-            .attr('rx', 2)
-            .attr('ry', 2)
-            .attr('width', 47)
-            .attr('height', 16)
-            .attr('class', 'processor-preview-badge')
-            .style('visibility', 'hidden');
-
-        // Preview badge text
-        entered
-            .append('text')
-            .attr('x', 79)
-            .attr('y', 16.5)
-            .attr('width', 55)
-            .attr('height', 14)
-            .attr('class', 'processor-preview-text')
-            .text('Preview')
-            .style('visibility', 'hidden');
 
         // Processor name (appended directly to processor group, NOT in details)
         entered
@@ -294,11 +249,11 @@ export class ProcessorRenderer {
 
         // Apply disabled state (during save operation)
         updated
-            .classed('disabled', (d) => context.disabledProcessorIds?.has(d.entity.id) || false)
-            .style('opacity', (d) => (context.disabledProcessorIds?.has(d.entity.id) ? 0.6 : null))
+            .classed('disabled', (d) => context.getDisabledProcessorIds().has(d.entity.id))
+            .style('opacity', (d) => (context.getDisabledProcessorIds().has(d.entity.id) ? 0.6 : null))
             .style('cursor', (d) => {
-                if (context.disabledProcessorIds?.has(d.entity.id)) return 'not-allowed';
-                return context.canSelect ? 'pointer' : 'default';
+                if (context.getDisabledProcessorIds().has(d.entity.id)) return 'not-allowed';
+                return context.getCanSelect() ? 'pointer' : 'default';
             });
 
         // Update border (always visible)
@@ -357,6 +312,24 @@ export class ProcessorRenderer {
             }
         });
 
+        // Classify each processor's visibility and write .visible / .entering / .leaving.
+        // The DOM's pre-existing .visible class is the "was visible" record — no JS-side
+        // shadow set needed.
+        const { viewportBounds, scale } = context;
+        updated.each(function (d: CanvasProcessor) {
+            const node = d3.select(this);
+            const wasVisible = node.classed('visible');
+            const isVisible = isInViewport(
+                d.ui.currentPosition ?? d.entity.position,
+                d.ui.dimensions,
+                viewportBounds,
+                scale
+            );
+            node.classed('visible', isVisible)
+                .classed('entering', isVisible && !wasVisible)
+                .classed('leaving', !isVisible && wasVisible);
+        });
+
         // Update processors - only render details for visible components (viewport culling)
         updated.each(function (d: CanvasProcessor) {
             const processor = d3.select<SVGGElement, CanvasProcessor>(this as SVGGElement);
@@ -374,9 +347,7 @@ export class ProcessorRenderer {
                 // Processor is off-screen - remove details to save memory
                 details.remove();
 
-                // When not visible, reset processor name position and hide preview badge
                 if (d.entity.permissions.canRead) {
-                    // Reset processor name to default position (no preview badge offset)
                     processor
                         .select('text.processor-name')
                         .attr('x', 75)
@@ -394,28 +365,8 @@ export class ProcessorRenderer {
                     // Clear processor name if not readable
                     processor.select('text.processor-name').text(null);
                 }
-
-                // Hide preview badge when not visible
-                processor.select('rect.processor-preview-badge').style('visibility', 'hidden');
-                processor.select('text.processor-preview-text').style('visibility', 'hidden');
             }
         });
-    }
-
-    /**
-     * Pan method for efficient rendering during zoom/pan operations.
-     * Called by canvas.component.ts for entering/leaving processors only.
-     * Simply delegates to updateProcessorElements which handles all updates
-     * including creating/removing details based on visibility.
-     * Matches D3 lifecycle pattern used by other renderers.
-     *
-     * @param selection - D3 selection of processors to update (typically entering/leaving)
-     * @param context - Complete render context with all necessary data
-     */
-    public static pan(selection: CanvasSelection<CanvasProcessor>, context: ProcessorRenderContext): void {
-        // Simply delegate to updateProcessorElements which handles all updates
-        // including creating/removing details based on the 'visible' class
-        ProcessorRenderer.updateProcessorElements(selection, context);
     }
 
     /**
@@ -702,20 +653,9 @@ export class ProcessorRenderer {
 
         // Update processor fields based on permissions
         if (d.entity.permissions.canRead) {
-            // Check if processor is a preview extension
-            const isPreview = ProcessorRenderer.isPreviewProcessor(d, context.previewExtensions);
-
-            // update the processor preview badge visibility
-            processor.select('rect.processor-preview-badge').style('visibility', isPreview ? 'visible' : 'hidden');
-
-            // update the processor preview text visibility
-            processor.select('text.processor-preview-text').style('visibility', isPreview ? 'visible' : 'hidden');
-
-            // update the processor name (adjust position and width based on preview badge)
+            // update the processor name
             processor
                 .select('text.processor-name')
-                .attr('x', isPreview ? 125 : 75)
-                .attr('width', isPreview ? 180 : 230)
                 .each((d2, i, nodes) => {
                     const processorName = d3.select(nodes[i]);
 
@@ -820,12 +760,6 @@ export class ProcessorRenderer {
 
             // clear the processor comments
             context.componentUtils.comments(processor, null);
-
-            // clear the processor preview badge
-            processor.select('rect.processor-preview-badge').style('visibility', 'hidden');
-
-            // clear the processor preview text
-            processor.select('text.processor-preview-text').style('visibility', 'hidden');
         }
 
         // Restricted component indicator (shown for both authorized and unauthorized)
@@ -929,17 +863,18 @@ export class ProcessorRenderer {
             return;
         }
 
-        if (!context.canSelect) {
-            return; // No interactions when selection is disabled
-        }
-
         const callbacks = context.callbacks;
 
-        // Use mousedown for selection to ensure single, deterministic event firing
+        // Selection / dblclick handlers are attached unconditionally on the entered
+        // selection so the per-element listener list is stable. The render-time
+        // `canSelect` gate is read at fire-time via `context.getCanSelect()` so
+        // runtime toggles are honored without re-attaching.
         if (callbacks.onClick) {
             selection.on('mousedown.selection', function (event: MouseEvent, d: CanvasProcessor) {
-                // Only handle left mouse button
                 if (event.button !== 0) {
+                    return;
+                }
+                if (!context.getCanSelect()) {
                     return;
                 }
 
@@ -950,6 +885,9 @@ export class ProcessorRenderer {
 
         if (callbacks.onDoubleClick) {
             selection.on('dblclick', function (event: MouseEvent, d: CanvasProcessor) {
+                if (!context.getCanSelect()) {
+                    return;
+                }
                 event.stopPropagation();
                 callbacks.onDoubleClick!(d, event);
             });

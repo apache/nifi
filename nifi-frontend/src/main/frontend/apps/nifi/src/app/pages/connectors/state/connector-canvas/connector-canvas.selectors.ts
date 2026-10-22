@@ -61,6 +61,10 @@ export const selectConnections = createSelector(selectConnectorCanvasState, (sta
     }))
 );
 
+export const selectMaxConnectionZIndex = createSelector(selectConnectorCanvasState, (state) =>
+    state.connections.reduce((max, connection) => Math.max(max, connection.zIndex ?? 0), 0)
+);
+
 export const selectConnectorId = createSelector(selectConnectorCanvasState, (state) => state.connectorId);
 
 export const selectProcessGroupId = createSelector(selectConnectorCanvasState, (state) => state.processGroupId);
@@ -72,7 +76,11 @@ export const selectParentProcessGroupId = createSelector(
 
 export const selectLoadingStatus = createSelector(selectConnectorCanvasState, (state) => state.loadingStatus);
 
+export const selectHasLoadedFlow = createSelector(selectConnectorCanvasState, (state) => state.hasLoadedFlow);
+
 export const selectError = createSelector(selectConnectorCanvasState, (state) => state.error);
+
+export const selectSaving = createSelector(selectConnectorCanvasState, (state) => state.saving);
 
 export const selectRegistryClients = createSelector(selectConnectorCanvasState, (state) => state.registryClients);
 

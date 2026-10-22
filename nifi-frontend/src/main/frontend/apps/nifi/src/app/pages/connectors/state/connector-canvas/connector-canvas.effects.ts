@@ -19,14 +19,16 @@ import { DestroyRef, Injectable, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
-import { Store } from '@ngrx/store';
+import { Action, Store } from '@ngrx/store';
 import { Router } from '@angular/router';
-import { asyncScheduler, interval, NEVER, Observable, of } from 'rxjs';
+import { asyncScheduler, forkJoin, from, interval, NEVER, Observable, of } from 'rxjs';
 import {
     catchError,
     distinctUntilChanged,
+    exhaustMap,
     filter,
     map,
+    mergeMap,
     startWith,
     switchMap,
     take,
@@ -37,9 +39,11 @@ import {
 import {
     ComponentType,
     ComponentTypeNamePipe,
+    ConnectionDTO,
     ConnectionEntity,
     FlowDTO,
     LARGE_DIALOG,
+    LabelEntity,
     MEDIUM_DIALOG,
     NiFiCommon,
     Permissions,
@@ -60,13 +64,18 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { ErrorContextKey } from '../../../../state/error';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { BackNavigation } from '../../../../state/navigation';
-import { EditComponentDialogRequest, EditConnectionDialogRequest } from '../../../../state/shared';
+import {
+    EditComponentDialogRequest,
+    EditConnectionDialogRequest,
+    UpdateConnectionRequest
+} from '../../../../state/shared';
 import { EditProcessor } from '../../../../ui/common/component-dialogs/edit-processor/edit-processor.component';
 import { EditConnectionComponent } from '../../../../ui/common/component-dialogs/edit-connection/edit-connection.component';
 import { EditPort } from '../../../../ui/common/component-dialogs/edit-port/edit-port.component';
 import { EditLabel } from '../../../../ui/common/component-dialogs/edit-label/edit-label.component';
 import { EditProcessGroup } from '../../../../ui/common/component-dialogs/edit-process-group/edit-process-group.component';
 import { EditRemoteProcessGroup } from '../../../../ui/common/component-dialogs/edit-remote-process-group/edit-remote-process-group.component';
+import { CreateConnection as CreateConnectionDialog } from '../../../../ui/common/component-dialogs/create-connection/create-connection.component';
 import * as ConnectorCanvasActions from './connector-canvas.actions';
 import * as ConnectorControllerServicesActions from '../connector-controller-services/connector-controller-services.actions';
 import { bindConnectorParameterContext } from './bind-connector-parameter-context';
@@ -75,21 +84,28 @@ import { SelectedComponent } from './connector-canvas.actions';
 import * as EmptyQueueActions from '../../../../state/empty-queue/empty-queue.actions';
 import {
     selectBreadcrumbs,
+    selectConnections,
     selectConnectorId,
     selectConnectorIdFromRoute,
+    selectHasLoadedFlow,
     selectInputPort,
     selectLoadingStatus,
+    selectMaxConnectionZIndex,
     selectOutputPort,
     selectParentProcessGroupId,
     selectProcessGroup,
     selectProcessGroupId,
     selectProcessGroupIdFromRoute,
     selectProcessor,
-    selectRemoteProcessGroup
+    selectRemoteProcessGroup,
+    selectSaving
 } from './connector-canvas.selectors';
 import { selectDocumentVisibilityState } from '../../../../state/document-visibility/document-visibility.selectors';
 import { DocumentVisibility } from '../../../../state/document-visibility';
 import type { ConnectorCanvasComponentEntity } from './index';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
+import { ConnectorEditService } from '../../service/connector-edit.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 /**
  * Shallow-copies `entity` with `permissions.canWrite` forced to false.
@@ -117,6 +133,8 @@ export class ConnectorCanvasEffects {
     private componentTypeNamePipe = inject(ComponentTypeNamePipe);
     private dialog = inject(MatDialog);
     private destroyRef = inject(DestroyRef);
+    private clusterConnectionService = inject(ClusterConnectionService);
+    private connectorEditService = inject(ConnectorEditService);
 
     /**
      * Timestamp of the most recent reload (epoch millis). Used by the document
@@ -155,7 +173,8 @@ export class ConnectorCanvasEffects {
     loadConnectorFlow$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ConnectorCanvasActions.loadConnectorFlow),
-            switchMap((action) =>
+            concatLatestFrom(() => this.store.select(selectHasLoadedFlow)),
+            switchMap(([action, hasLoadedFlow]) =>
                 this.connectorService.getConnectorFlow(action.connectorId, action.processGroupId).pipe(
                     map((flowResponse) => {
                         const processGroupFlow = flowResponse.processGroupFlow;
@@ -194,14 +213,26 @@ export class ConnectorCanvasEffects {
                         });
                     }),
                     catchError((error) => {
-                        return of(
-                            ConnectorCanvasActions.loadConnectorFlowFailure({
-                                errorContext: {
-                                    errors: [this.errorHelper.getErrorString(error)],
-                                    context: ErrorContextKey.CONNECTORS
-                                }
-                            })
-                        );
+                        const message = this.errorHelper.getErrorString(error);
+                        const errorContext = {
+                            errors: [message],
+                            context: ErrorContextKey.CONNECTORS
+                        };
+                        const failure = ConnectorCanvasActions.loadConnectorFlowFailure({
+                            errorContext,
+                            isRefresh: hasLoadedFlow
+                        });
+                        return hasLoadedFlow
+                            ? from([
+                                  failure,
+                                  ErrorActions.addBannerError({
+                                      errorContext: {
+                                          errors: [message],
+                                          context: ErrorContextKey.CONNECTOR_CANVAS
+                                      }
+                                  })
+                              ])
+                            : of(failure);
                     })
                 )
             )
@@ -765,8 +796,12 @@ export class ConnectorCanvasEffects {
         });
         const instance = dialogRef.componentInstance;
         instance.saving$ = of(false);
-        instance.availablePrioritizers$ = this.store.select(selectPrioritizerTypes);
+        this.wireConnectionEndpointCallbacks(instance);
+    }
+
+    private wireConnectionEndpointCallbacks(instance: EditConnectionComponent): void {
         instance.breadcrumbs$ = this.store.select(selectBreadcrumbs);
+        instance.availablePrioritizers$ = this.store.select(selectPrioritizerTypes);
         instance.getChildOutputPorts = (groupId: string): Observable<PortEntity[]> =>
             this.store.select(selectConnectorIdFromRoute).pipe(
                 take(1),
@@ -790,6 +825,55 @@ export class ConnectorCanvasEffects {
         instance.selectOutputPort = (id: string) => this.store.select(selectOutputPort(id));
         instance.selectProcessGroup = (id: string) => this.store.select(selectProcessGroup(id));
         instance.selectRemoteProcessGroup = (id: string) => this.store.select(selectRemoteProcessGroup(id));
+    }
+
+    /**
+     * Open EditConnectionComponent so a process-group or remote-process-group
+     * drop can be resolved to the selected port before it is persisted.
+     */
+    private openReconnectConnectionDialog(request: EditConnectionDialogRequest): void {
+        const connection = request.entity as ConnectionEntity;
+        const previousDestination = connection.component?.destination;
+        const dialogRef = this.dialog.open(EditConnectionComponent, {
+            ...LARGE_DIALOG,
+            data: request
+        });
+        const instance = dialogRef.componentInstance;
+        instance.saving$ = this.store.select(selectSaving);
+        this.wireConnectionEndpointCallbacks(instance);
+        const processGroupId = connection.component?.parentGroupId;
+        instance.getConnectionSourceComponentId = (endpoint) => {
+            if (endpoint.sourceGroupId && endpoint.sourceGroupId !== processGroupId) {
+                return endpoint.sourceGroupId;
+            }
+            return endpoint.sourceId;
+        };
+        const afterClosed$ = dialogRef.afterClosed().pipe(take(1));
+        instance.editConnection.pipe(takeUntil(afterClosed$)).subscribe((updateRequest: UpdateConnectionRequest) => {
+            this.store.dispatch(
+                ConnectorCanvasActions.saveEditedConnection({
+                    request: {
+                        ...updateRequest,
+                        previousDestination
+                    }
+                })
+            );
+        });
+        this.actions$
+            .pipe(
+                ofType(ConnectorCanvasActions.updateConnectionDestinationSuccess),
+                filter(({ connectionId }) => connectionId === connection.id),
+                takeUntil(afterClosed$)
+            )
+            .subscribe(() => dialogRef.close('SAVED'));
+        afterClosed$.subscribe((result) =>
+            this.store.dispatch(
+                ConnectorCanvasActions.editConnectionDialogClosed({
+                    connectionId: connection.id,
+                    cancelled: result !== 'SAVED'
+                })
+            )
+        );
     }
 
     private openReadOnlyPortDialog(request: EditComponentDialogRequest): void {
@@ -825,6 +909,568 @@ export class ConnectorCanvasEffects {
             data: request
         });
         dialogRef.componentInstance.saving$ = of(false);
+    }
+
+    createConnectionRequested$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.createConnectionRequested),
+            concatLatestFrom(() => this.store.select(selectConnectorId)),
+            filter(([, connectorId]) => connectorId !== ''),
+            switchMap(([action, connectorId]) =>
+                this.connectorService.getProcessGroup(connectorId, action.processGroupId).pipe(
+                    map((response) =>
+                        response.component
+                            ? ConnectorCanvasActions.openCreateConnectionDialog({
+                                  request: {
+                                      request: action.request,
+                                      defaults: {
+                                          flowfileExpiration: response.component.defaultFlowFileExpiration,
+                                          objectThreshold: response.component.defaultBackPressureObjectThreshold,
+                                          dataSizeThreshold: response.component.defaultBackPressureDataSizeThreshold
+                                      }
+                                  }
+                              })
+                            : ConnectorCanvasActions.createConnectionDialogClosed()
+                    ),
+                    catchError((error: HttpErrorResponse) => {
+                        const message = this.errorHelper.getErrorString(error);
+                        return from([
+                            ConnectorCanvasActions.createConnectionFailure({ error: message }),
+                            ErrorActions.addBannerError({
+                                errorContext: {
+                                    errors: [message],
+                                    context: ErrorContextKey.CONNECTOR_CANVAS
+                                }
+                            }),
+                            ConnectorCanvasActions.createConnectionDialogClosed()
+                        ]);
+                    })
+                )
+            )
+        )
+    );
+
+    openCreateConnectionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.openCreateConnectionDialog),
+                concatLatestFrom(() => this.store.select(selectProcessGroupId)),
+                filter(([, processGroupId]) => processGroupId != null),
+                tap(([action, processGroupId]) => {
+                    const dialogRef = this.dialog.open(CreateConnectionDialog, {
+                        ...LARGE_DIALOG,
+                        data: action.request
+                    });
+                    const instance = dialogRef.componentInstance;
+                    instance.saving$ = this.store.select(selectSaving);
+                    instance.breadcrumbs$ = this.store.select(selectBreadcrumbs);
+                    instance.availablePrioritizers$ = this.store.select(selectPrioritizerTypes);
+                    instance.getChildOutputPorts = (groupId: string): Observable<PortEntity[]> =>
+                        this.store.select(selectConnectorId).pipe(
+                            take(1),
+                            switchMap((connectorId) =>
+                                this.connectorService.getConnectorFlow(connectorId, groupId).pipe(
+                                    take(1),
+                                    map((response) => response.processGroupFlow.flow.outputPorts)
+                                )
+                            )
+                        );
+                    instance.getChildInputPorts = (groupId: string): Observable<PortEntity[]> =>
+                        this.store.select(selectConnectorId).pipe(
+                            take(1),
+                            switchMap((connectorId) =>
+                                this.connectorService.getConnectorFlow(connectorId, groupId).pipe(
+                                    take(1),
+                                    map((response) => response.processGroupFlow.flow.inputPorts)
+                                )
+                            )
+                        );
+
+                    const afterClosed$ = dialogRef.afterClosed().pipe(take(1));
+                    instance.createConnection.pipe(takeUntil(afterClosed$)).subscribe((request) => {
+                        this.store.dispatch(
+                            ConnectorCanvasActions.submitCreateConnection({
+                                processGroupId: processGroupId!,
+                                request
+                            })
+                        );
+                    });
+                    afterClosed$.subscribe(() =>
+                        this.store.dispatch(ConnectorCanvasActions.createConnectionDialogClosed())
+                    );
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openReconnectConnectionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.openReconnectConnectionDialog),
+                tap(({ request }) => this.openReconnectConnectionDialog(request))
+            ),
+        { dispatch: false }
+    );
+
+    saveEditedConnection$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.saveEditedConnection),
+            mergeMap(({ request }) =>
+                this.connectorEditService
+                    .updateComponent<ConnectionEntity>({
+                        id: request.id,
+                        type: ComponentType.Connection,
+                        payload: {
+                            ...request.payload,
+                            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+                        }
+                    })
+                    .pipe(
+                        map((connection) =>
+                            ConnectorCanvasActions.updateConnectionDestinationSuccess({
+                                connectionId: request.id,
+                                connection
+                            })
+                        ),
+                        catchError((error: HttpErrorResponse) => {
+                            const message = this.errorHelper.getErrorString(error);
+                            return from([
+                                ConnectorCanvasActions.updateConnectionDestinationFailure({
+                                    connectionId: request.id,
+                                    error: message,
+                                    dialogOpen: true
+                                }),
+                                ErrorActions.addBannerError({
+                                    errorContext: {
+                                        errors: [message],
+                                        context: ErrorContextKey.CONNECTION
+                                    }
+                                })
+                            ]);
+                        })
+                    )
+            )
+        )
+    );
+
+    submitCreateConnection$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.submitCreateConnection),
+            concatLatestFrom(() => this.store.select(selectMaxConnectionZIndex)),
+            exhaustMap(([action, maxZIndex]) =>
+                this.connectorEditService
+                    .createConnection(action.processGroupId, {
+                        payload: {
+                            ...action.request.payload,
+                            component: {
+                                ...action.request.payload.component,
+                                zIndex: maxZIndex + 1
+                            }
+                        }
+                    })
+                    .pipe(
+                        map((connection) => ConnectorCanvasActions.createConnectionSuccess({ connection })),
+                        catchError((error: HttpErrorResponse) =>
+                            from(
+                                this.mutationFailure(
+                                    error,
+                                    (message) => ConnectorCanvasActions.createConnectionFailure({ error: message }),
+                                    ErrorContextKey.CONNECTION
+                                )
+                            )
+                        )
+                    )
+            )
+        )
+    );
+
+    createConnectionSuccess$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.createConnectionSuccess),
+                tap(({ connection }) => {
+                    this.dialog.closeAll();
+                    this.store.dispatch(
+                        ConnectorCanvasActions.selectComponents({
+                            request: {
+                                components: [{ id: connection.id, componentType: ComponentType.Connection }]
+                            }
+                        })
+                    );
+                })
+            ),
+        { dispatch: false }
+    );
+
+    updateComponentPositionsBulk$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.updateComponentPositionsBulk),
+            mergeMap((action) => {
+                if (action.updates.length === 0) {
+                    return of(
+                        ConnectorCanvasActions.updateComponentPositionsBulkComplete({ successes: [], failures: [] })
+                    );
+                }
+
+                return forkJoin(
+                    action.updates.map((update) => {
+                        const component =
+                            update.bends !== undefined
+                                ? {
+                                      id: update.componentId,
+                                      bends: update.bends,
+                                      ...(update.labelIndex === undefined ? {} : { labelIndex: update.labelIndex })
+                                  }
+                                : { id: update.componentId, position: update.position };
+                        return this.connectorEditService
+                            .updateComponent<ConnectorCanvasComponentEntity>({
+                                id: update.componentId,
+                                type: update.componentType,
+                                payload: {
+                                    revision: update.revision,
+                                    disconnectedNodeAcknowledged:
+                                        this.clusterConnectionService.isDisconnectionAcknowledged(),
+                                    component
+                                }
+                            })
+                            .pipe(
+                                map((response) => ({ update, response, error: null as string | null })),
+                                catchError((error: HttpErrorResponse) =>
+                                    of({
+                                        update,
+                                        response: null,
+                                        error: this.errorHelper.getErrorString(error)
+                                    })
+                                )
+                            );
+                    })
+                ).pipe(
+                    mergeMap((results) => {
+                        const successes: ConnectorCanvasActions.BulkPositionResult[] = [];
+                        const failures: ConnectorCanvasActions.BulkPositionResult[] = [];
+                        const followUps: Action[] = [];
+
+                        results.forEach(({ update, response, error }) => {
+                            if (response) {
+                                successes.push({
+                                    componentId: update.componentId,
+                                    componentType: update.componentType,
+                                    success: true,
+                                    component: response
+                                });
+                                followUps.push(
+                                    update.componentType === ComponentType.Connection
+                                        ? ConnectorCanvasActions.updateConnectionBendPointsSuccess({
+                                              connectionId: update.componentId,
+                                              connection: response as ConnectionEntity
+                                          })
+                                        : ConnectorCanvasActions.updateComponentPositionSuccess({
+                                              componentId: update.componentId,
+                                              componentType: update.componentType,
+                                              component: response
+                                          })
+                                );
+                            } else {
+                                const message = error ?? 'Failed to update component position';
+                                failures.push({
+                                    componentId: update.componentId,
+                                    componentType: update.componentType,
+                                    success: false,
+                                    error: message
+                                });
+                                followUps.push(
+                                    update.componentType === ComponentType.Connection
+                                        ? ConnectorCanvasActions.updateConnectionBendPointsFailure({
+                                              connectionId: update.componentId,
+                                              error: message
+                                          })
+                                        : ConnectorCanvasActions.updateComponentPositionFailure({
+                                              componentId: update.componentId,
+                                              componentType: update.componentType,
+                                              error: message
+                                          })
+                                );
+                            }
+                        });
+
+                        if (failures.length > 0) {
+                            followUps.push(
+                                ErrorActions.addBannerError({
+                                    errorContext: {
+                                        errors: failures.map((failure) => failure.error ?? 'Update failed'),
+                                        context: ErrorContextKey.CONNECTOR_CANVAS
+                                    }
+                                })
+                            );
+                        }
+                        followUps.push(
+                            ConnectorCanvasActions.updateComponentPositionsBulkComplete({ successes, failures })
+                        );
+                        return from(followUps);
+                    })
+                );
+            })
+        )
+    );
+
+    updateConnectionBendPoints$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.updateConnectionBendPoints),
+            mergeMap(({ update }) =>
+                this.connectorEditService
+                    .updateComponent<ConnectionEntity>({
+                        id: update.id,
+                        type: ComponentType.Connection,
+                        payload: {
+                            revision: update.revision,
+                            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                            component: {
+                                id: update.id,
+                                bends: update.bends,
+                                ...(update.labelIndex === undefined ? {} : { labelIndex: update.labelIndex })
+                            }
+                        }
+                    })
+                    .pipe(
+                        map((connection) =>
+                            ConnectorCanvasActions.updateConnectionBendPointsSuccess({
+                                connectionId: update.id,
+                                connection
+                            })
+                        ),
+                        catchError((error: HttpErrorResponse) =>
+                            from(
+                                this.mutationFailure(error, (message) =>
+                                    ConnectorCanvasActions.updateConnectionBendPointsFailure({
+                                        connectionId: update.id,
+                                        error: message
+                                    })
+                                )
+                            )
+                        )
+                    )
+            )
+        )
+    );
+
+    updateConnectionLabelIndex$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.updateConnectionLabelIndex),
+            mergeMap((action) =>
+                this.connectorEditService
+                    .updateComponent<ConnectionEntity>({
+                        id: action.connectionId,
+                        type: ComponentType.Connection,
+                        payload: {
+                            revision: action.revision,
+                            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                            component: { id: action.connectionId, labelIndex: action.labelIndex }
+                        }
+                    })
+                    .pipe(
+                        map((connection) =>
+                            ConnectorCanvasActions.updateConnectionLabelIndexSuccess({
+                                connectionId: action.connectionId,
+                                connection
+                            })
+                        ),
+                        catchError((error: HttpErrorResponse) =>
+                            from(
+                                this.mutationFailure(error, (message) =>
+                                    ConnectorCanvasActions.updateConnectionLabelIndexFailure({
+                                        connectionId: action.connectionId,
+                                        error: message
+                                    })
+                                )
+                            )
+                        )
+                    )
+            )
+        )
+    );
+
+    updateConnectionDestination$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.updateConnectionDestination),
+            concatLatestFrom(() => this.store.select(selectConnections)),
+            mergeMap(([action]) => {
+                const destinationType = this.getConnectableDestinationType(action.newDestination.componentType);
+                if (!destinationType) {
+                    const message = `Unsupported connection destination type: ${action.newDestination.componentType}`;
+                    return from([
+                        ConnectorCanvasActions.updateConnectionDestinationFailure({
+                            connectionId: action.connectionId,
+                            error: message
+                        }),
+                        ErrorActions.addBannerError({
+                            errorContext: {
+                                errors: [message],
+                                context: ErrorContextKey.CONNECTOR_CANVAS
+                            }
+                        })
+                    ]);
+                }
+                return this.connectorEditService
+                    .updateComponent<ConnectionEntity>({
+                        id: action.connectionId,
+                        type: ComponentType.Connection,
+                        payload: {
+                            revision: action.revision,
+                            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                            component: {
+                                id: action.connectionId,
+                                destination: {
+                                    id: action.newDestination.id,
+                                    groupId: action.processGroupId,
+                                    type: destinationType
+                                },
+                                ...(action.bends ? { bends: action.bends } : {})
+                            }
+                        }
+                    })
+                    .pipe(
+                        map((connection) =>
+                            ConnectorCanvasActions.updateConnectionDestinationSuccess({
+                                connectionId: action.connectionId,
+                                connection
+                            })
+                        ),
+                        catchError((error: HttpErrorResponse) =>
+                            from(
+                                this.mutationFailure(error, (message) =>
+                                    ConnectorCanvasActions.updateConnectionDestinationFailure({
+                                        connectionId: action.connectionId,
+                                        error: message
+                                    })
+                                )
+                            )
+                        )
+                    );
+            })
+        )
+    );
+
+    resizeLabel$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.resizeLabel),
+            mergeMap((action) =>
+                this.connectorEditService
+                    .updateComponent<LabelEntity>({
+                        id: action.labelId,
+                        type: ComponentType.Label,
+                        payload: {
+                            revision: action.revision,
+                            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                            component: {
+                                id: action.labelId,
+                                width: action.dimensions.width,
+                                height: action.dimensions.height
+                            }
+                        }
+                    })
+                    .pipe(
+                        map((label) => ConnectorCanvasActions.resizeLabelSuccess({ labelId: action.labelId, label })),
+                        catchError((error: HttpErrorResponse) =>
+                            from(
+                                this.mutationFailure(error, (message) =>
+                                    ConnectorCanvasActions.resizeLabelFailure({
+                                        labelId: action.labelId,
+                                        error: message
+                                    })
+                                )
+                            )
+                        )
+                    )
+            )
+        )
+    );
+
+    moveCanvasComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.moveCanvasComponents),
+            concatLatestFrom(() => [this.store.select(selectConnectorId), this.store.select(selectProcessGroupId)]),
+            filter(([, connectorId, processGroupId]) => connectorId !== '' && processGroupId !== null),
+            mergeMap(([action, connectorId, processGroupId]) => {
+                const sourceProcessGroupId = processGroupId as string;
+                const components = action.components.map((component) => ({
+                    id: component.id,
+                    type: component.type,
+                    revision: component.revision
+                }));
+                return this.connectorEditService
+                    .moveComponents(components, action.processGroupId, action.targetGroupId)
+                    .pipe(
+                        map(() =>
+                            ConnectorCanvasActions.moveCanvasComponentsSuccess({
+                                targetGroupId: action.targetGroupId,
+                                components: action.components
+                            })
+                        ),
+                        catchError((error: HttpErrorResponse) =>
+                            of(error).pipe(
+                                concatLatestFrom(() => [
+                                    this.store.select(selectConnectorId),
+                                    this.store.select(selectProcessGroupId)
+                                ]),
+                                mergeMap(([, currentConnectorId, currentProcessGroupId]) => {
+                                    const message = this.errorHelper.getErrorString(error);
+                                    const actions: Action[] = [
+                                        ConnectorCanvasActions.moveCanvasComponentsFailure({
+                                            components: action.components,
+                                            error: message
+                                        }),
+                                        ErrorActions.addBannerError({
+                                            errorContext: {
+                                                errors: [message],
+                                                context: ErrorContextKey.CONNECTOR_CANVAS
+                                            }
+                                        })
+                                    ];
+                                    if (
+                                        currentConnectorId === connectorId &&
+                                        currentProcessGroupId === sourceProcessGroupId
+                                    ) {
+                                        actions.push(
+                                            ConnectorCanvasActions.loadConnectorFlow({
+                                                connectorId,
+                                                processGroupId: sourceProcessGroupId
+                                            })
+                                        );
+                                    }
+                                    return from(actions);
+                                })
+                            )
+                        )
+                    );
+            })
+        )
+    );
+
+    private mutationFailure(
+        error: HttpErrorResponse,
+        failure: (message: string) => Action,
+        context: ErrorContextKey = ErrorContextKey.CONNECTOR_CANVAS
+    ): Action[] {
+        const message = this.errorHelper.getErrorString(error);
+        return [
+            failure(message),
+            ErrorActions.addBannerError({
+                errorContext: { errors: [message], context }
+            })
+        ];
+    }
+
+    private getConnectableDestinationType(componentType: ComponentType): ConnectionDTO['destination']['type'] | null {
+        switch (componentType) {
+            case ComponentType.Processor:
+                return 'PROCESSOR';
+            case ComponentType.OutputPort:
+                return 'OUTPUT_PORT';
+            case ComponentType.Funnel:
+                return 'FUNNEL';
+            default:
+                return null;
+        }
     }
 
     /**

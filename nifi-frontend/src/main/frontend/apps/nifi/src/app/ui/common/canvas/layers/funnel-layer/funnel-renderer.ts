@@ -19,10 +19,11 @@ import * as d3 from 'd3';
 import { CanvasFunnel, CanvasSelection } from '../../canvas.types';
 import { FunnelRenderContext } from '../render-context.types';
 import { DragUtils } from '../../utils/drag.utils';
+import { isInViewport } from '../../utils/visibility.utils';
 
 export class FunnelRenderer {
     public static render(context: FunnelRenderContext): void {
-        const { containerSelection, funnels, canSelect, callbacks } = context;
+        const { containerSelection, funnels, callbacks } = context;
 
         // D3 data join
         const selection = containerSelection
@@ -39,11 +40,11 @@ export class FunnelRenderer {
 
         // Attach event listeners if interactive
         // Use mousedown for selection to ensure single, deterministic event firing
-        if (canSelect && callbacks) {
+        if (callbacks) {
             if (callbacks.onClick) {
                 merged.on('mousedown.selection', function (event: MouseEvent, d: CanvasFunnel) {
                     // Only handle left mouse button
-                    if (event.button !== 0) {
+                    if (event.button !== 0 || !context.getCanSelect()) {
                         return;
                     }
 
@@ -53,6 +54,9 @@ export class FunnelRenderer {
             }
             if (callbacks.onDoubleClick) {
                 merged.on('dblclick', function (event: MouseEvent, d: CanvasFunnel) {
+                    if (!context.getCanSelect()) {
+                        return;
+                    }
                     event.stopPropagation();
                     callbacks.onDoubleClick!(d, event);
                 });
@@ -113,16 +117,31 @@ export class FunnelRenderer {
             return `translate(${pos.x}, ${pos.y})`;
         });
 
+        const { viewportBounds, scale } = context;
+        selection.each(function (d: CanvasFunnel) {
+            const node = d3.select(this);
+            const wasVisible = node.classed('visible');
+            const isVisible = isInViewport(
+                d.ui.currentPosition ?? d.entity.position,
+                d.ui.dimensions,
+                viewportBounds,
+                scale
+            );
+            node.classed('visible', isVisible)
+                .classed('entering', isVisible && !wasVisible)
+                .classed('leaving', !isVisible && wasVisible);
+        });
+
         // Apply disabled class and styling when funnel is being saved
         selection.each(function (d) {
-            const isDisabled = context.disabledFunnelIds?.has(d.entity.id) || false;
+            const isDisabled = context.getDisabledFunnelIds().has(d.entity.id);
             const element = d3.select(this);
             element.classed('disabled', isDisabled);
 
             if (isDisabled) {
                 element.style('opacity', 0.6).style('cursor', 'not-allowed');
             } else {
-                element.style('opacity', null).style('cursor', context.canSelect ? 'pointer' : 'default');
+                element.style('opacity', null).style('cursor', context.getCanSelect() ? 'pointer' : 'default');
             }
         });
 
@@ -146,11 +165,5 @@ export class FunnelRenderer {
             getSelectedIds: context.getSelectedIds,
             onDragEnd: context.callbacks.onDragEnd!
         });
-    }
-
-    public static pan(selection: CanvasSelection<CanvasFunnel>, context: FunnelRenderContext): void {
-        // Simply delegate to updateFunnelElements which handles all updates
-        // Funnels are simple and don't have details to create/remove like ports or processors
-        FunnelRenderer.updateFunnelElements(selection, context);
     }
 }

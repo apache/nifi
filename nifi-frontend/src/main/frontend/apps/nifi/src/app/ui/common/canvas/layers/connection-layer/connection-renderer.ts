@@ -23,6 +23,8 @@ import { CanvasConstants } from '../../canvas.constants';
 import { UnorderedListTip } from '../../../tooltips/unordered-list-tip/unordered-list-tip.component';
 import { CanvasComponentUtils } from '../../canvas-component-utils.service';
 import { ConnectableComponentDatum, ConnectableComponentSelection } from '../../connectable-behavior.helper';
+import { isInViewport } from '../../utils/visibility.utils';
+import { calculateConnectionCollisionBendsByIds } from '../../utils/connection-collision.utils';
 
 type PositionableCanvasDatum = Exclude<CanvasDatum, CanvasConnection>;
 
@@ -51,7 +53,7 @@ export class ConnectionRenderer {
      * Main render method - orchestrates the D3 data join pattern
      */
     public static render(context: ConnectionRenderContext): void {
-        const { containerSelection, connections, canSelect, callbacks, disabledConnectionIds } = context;
+        const { containerSelection, connections } = context;
 
         // D3 data join
         const selection = containerSelection
@@ -75,13 +77,14 @@ export class ConnectionRenderer {
             return context.nifiCommon.compareNumber(a.entity.zIndex, b.entity.zIndex);
         });
 
-        // Attach event listeners if selection is enabled
+        const callbacks = context.callbacks;
+        // Attach event listeners once; evaluate selection/edit state when fired.
         // Use mousedown for selection to ensure single, deterministic event firing
-        if (canSelect) {
+        {
             if (callbacks.onClick) {
                 merged.on('mousedown.selection', function (event: MouseEvent, d: CanvasConnection) {
                     // Only handle left mouse button
-                    if (event.button !== 0) {
+                    if (event.button !== 0 || !context.getCanSelect()) {
                         return;
                     }
 
@@ -91,15 +94,15 @@ export class ConnectionRenderer {
             }
 
             // Double-click to add bend point
-            if (callbacks.onBendPointAdd && disabledConnectionIds && context.getCanEdit()) {
-                // Capture disabledConnectionIds in closure
-                const disabled = disabledConnectionIds;
-
+            if (callbacks.onBendPointAdd) {
                 // Track last double-click time to prevent duplicate events
                 let lastDoubleClickTime = 0;
                 const DOUBLE_CLICK_DEBOUNCE_MS = 300;
 
                 merged.on('dblclick', function (this: Element, event: MouseEvent, d: CanvasConnection) {
+                    if (!context.getCanSelect() || !context.getCanEdit()) {
+                        return;
+                    }
                     // Debounce rapid double-clicks (prevent duplicate events)
                     const now = Date.now();
                     if (now - lastDoubleClickTime < DOUBLE_CLICK_DEBOUNCE_MS) {
@@ -108,7 +111,7 @@ export class ConnectionRenderer {
                     lastDoubleClickTime = now;
 
                     // Check if connection is disabled (saving)
-                    const isDisabled = disabled?.has(d.entity.id) || false;
+                    const isDisabled = context.getDisabledConnectionIds().has(d.entity.id);
                     if (isDisabled) {
                         return;
                     }
@@ -205,6 +208,27 @@ export class ConnectionRenderer {
     }
 
     /**
+     * Compute the canvas-space anchor point used to classify connection visibility.
+     * Mirrors the canvas's former getConnectionLabelPosition() private method.
+     */
+    private static getLabelAnchorPosition(d: CanvasConnection): { x: number; y: number } {
+        const bends = d.ui?.bends || [];
+        const labelIndex = d.entity?.component?.labelIndex || 0;
+
+        if (bends.length > 0) {
+            const i = Math.min(Math.max(0, labelIndex), bends.length - 1);
+            return { x: bends[i].x, y: bends[i].y };
+        }
+
+        const start = d.ui?.start;
+        const end = d.ui?.end;
+        if (start && end) {
+            return { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+        }
+        return { x: 0, y: 0 };
+    }
+
+    /**
      * Update connection SVG elements (update + enter selection)
      */
     private static updateConnectionElements(
@@ -212,15 +236,25 @@ export class ConnectionRenderer {
         context: ConnectionRenderContext,
         updateLabel = true
     ): void {
-        const { disabledConnectionIds } = context;
+        const { viewportBounds, scale } = context;
+        const labelDimensions = { width: CanvasConstants.CONNECTION_LABEL.width, height: 40 };
+        selection.each(function (d: CanvasConnection) {
+            const node = d3.select(this);
+            const wasVisible = node.classed('visible');
+            const anchor = ConnectionRenderer.getLabelAnchorPosition(d);
+            const isVisible = isInViewport(anchor, labelDimensions, viewportBounds, scale);
+            node.classed('visible', isVisible)
+                .classed('entering', isVisible && !wasVisible)
+                .classed('leaving', !isVisible && wasVisible);
+        });
 
         // Apply disabled state to connection (while saving)
         selection
-            .classed('disabled', (d) => disabledConnectionIds?.has(d.entity.id) || false)
-            .style('opacity', (d) => (disabledConnectionIds?.has(d.entity.id) ? 0.6 : null))
+            .classed('disabled', (d) => context.getDisabledConnectionIds().has(d.entity.id))
+            .style('opacity', (d) => (context.getDisabledConnectionIds().has(d.entity.id) ? 0.6 : null))
             .style('cursor', (d) => {
-                if (disabledConnectionIds?.has(d.entity.id)) return 'not-allowed';
-                return context.canSelect ? 'pointer' : 'default';
+                if (context.getDisabledConnectionIds().has(d.entity.id)) return 'not-allowed';
+                return context.getCanSelect() ? 'pointer' : 'default';
             });
 
         // Update main connection path
@@ -283,13 +317,12 @@ export class ConnectionRenderer {
         selection: CanvasSelection<CanvasConnection>,
         context: ConnectionRenderContext
     ): void {
-        const { callbacks, canSelect, disabledConnectionIds } = context;
+        const { callbacks } = context;
 
         selection.each(function (d: CanvasConnection) {
             const connection = d3.select<SVGGElement, CanvasConnection>(this);
             const canWrite = d.entity.permissions.canWrite;
             const canRead = d.entity.permissions.canRead;
-            const isDisabled = disabledConnectionIds?.has(d.entity.id);
 
             // Only show connection points if user has read and write permissions
             if (canWrite && canRead) {
@@ -359,7 +392,7 @@ export class ConnectionRenderer {
                 midpoints.exit().remove();
 
                 // Add double-click handler to remove bend points
-                if (canSelect && callbacks.onBendPointRemove && !isDisabled) {
+                if (callbacks.onBendPointRemove) {
                     connection.selectAll('rect.midpoint').on('dblclick', function (event, bendPoint) {
                         if (
                             !context.getCanEdit() ||
@@ -387,16 +420,19 @@ export class ConnectionRenderer {
                 }
 
                 // Add drag behavior to midpoints if selection is enabled and callback is provided (filter will check canEdit)
-                if (canSelect && callbacks.onBendPointDragEnd && !isDisabled) {
+                if (callbacks.onBendPointDragEnd) {
                     const bendDrag = d3
                         .drag<SVGRectElement, { x: number; y: number }>()
                         .filter(function (_event) {
+                            if (!context.getCanSelect()) {
+                                return false;
+                            }
                             // Block drag if editing is disabled
                             if (!context.getCanEdit()) {
                                 return false;
                             }
                             // Block drag if connection is disabled (saving)
-                            if (disabledConnectionIds?.has(d.entity.id)) {
+                            if (context.getDisabledConnectionIds().has(d.entity.id)) {
                                 return false;
                             }
                             return true;
@@ -583,20 +619,29 @@ export class ConnectionRenderer {
                         connection,
                         context.processGroupId
                     );
-                    const bends =
-                        datum.entity.id === sourceComponentId &&
-                        (connection.ui.bends ?? connection.entity.bends ?? []).length < 2
-                            ? [
-                                  {
-                                      x: position.x + datum.ui.dimensions.width + reconnect.selfLoopXOffset,
-                                      y: position.y + datum.ui.dimensions.height / 2 - reconnect.selfLoopYOffset
-                                  },
-                                  {
-                                      x: position.x + datum.ui.dimensions.width + reconnect.selfLoopXOffset,
-                                      y: position.y + datum.ui.dimensions.height / 2 + reconnect.selfLoopYOffset
-                                  }
-                              ]
-                            : undefined;
+                    const currentBends = connection.ui.bends ?? connection.entity.bends ?? [];
+                    let bends: Position[] | undefined;
+                    if (datum.entity.id === sourceComponentId && currentBends.length < 2) {
+                        bends = [
+                            {
+                                x: position.x + datum.ui.dimensions.width + reconnect.selfLoopXOffset,
+                                y: position.y + datum.ui.dimensions.height / 2 - reconnect.selfLoopYOffset
+                            },
+                            {
+                                x: position.x + datum.ui.dimensions.width + reconnect.selfLoopXOffset,
+                                y: position.y + datum.ui.dimensions.height / 2 + reconnect.selfLoopYOffset
+                            }
+                        ];
+                    } else if (currentBends.length === 0 && context.processGroupId) {
+                        const collisionBends = calculateConnectionCollisionBendsByIds(
+                            root,
+                            sourceComponentId,
+                            datum.entity.id,
+                            context.processGroupId,
+                            connection.entity.id
+                        );
+                        bends = collisionBends.length > 0 ? collisionBends : undefined;
+                    }
                     context.callbacks.onEndpointReconnect?.(
                         connection,
                         {
@@ -695,22 +740,6 @@ export class ConnectionRenderer {
     }
 
     /**
-     * Pan method for efficient rendering during zoom/pan operations.
-     * Called by canvas.component.ts for entering/leaving connections only.
-     * Simply delegates to updateConnectionElements which handles all updates
-     * including creating/removing labels based on visibility.
-     * Matches D3 lifecycle pattern used by other renderers.
-     *
-     * @param selection - D3 selection of connections to update (typically entering/leaving)
-     * @param context - Complete render context with all necessary data
-     */
-    public static pan(selection: CanvasSelection<CanvasConnection>, context: ConnectionRenderContext): void {
-        // Simply delegate to updateConnectionElements which handles all updates
-        // including creating/removing labels based on the 'visible' class
-        ConnectionRenderer.updateConnectionElements(selection, context);
-    }
-
-    /**
      * Helper method to check if a terminal is a group
      *
      * A terminal is considered a "group" if it's a port in a different process group
@@ -750,8 +779,11 @@ export class ConnectionRenderer {
 
             // Add double-click handler to label container to prevent bend point addition
             // and emit connection double-click event instead
-            if (context.canSelect && context.callbacks.onDoubleClick) {
+            if (context.callbacks.onDoubleClick) {
                 connectionLabelContainer.on('dblclick', function (event: MouseEvent, d: CanvasConnection) {
+                    if (!context.getCanSelect()) {
+                        return;
+                    }
                     event.preventDefault();
                     event.stopPropagation();
 
@@ -775,24 +807,12 @@ export class ConnectionRenderer {
                 .attr('filter', 'url(#component-drop-shadow)');
         }
 
-        // Add click handler to label for connection selection (matches existing ConnectionManager)
-        if (context.canSelect && context.callbacks.onClick) {
-            connectionLabelContainer.on('mousedown.selection', function (event: MouseEvent, datum: CanvasConnection) {
-                // Only handle left mouse button
-                if (event.button !== 0) {
-                    return;
-                }
-
-                event.stopPropagation();
-                context.callbacks.onClick!(datum, event);
-            });
-        } else {
-            connectionLabelContainer.on('mousedown.selection', null);
-        }
-
-        // Add label drag behavior if selection is enabled and callback exists (filter will check canEdit)
-        // Re-apply on every render to ensure fresh closures
-        if (context.canSelect && context.callbacks.onLabelDragEnd) {
+        // Add label drag behavior if a callback exists. `addLabelDragBehavior`
+        // is gated by the `moveable` class flag so the drag handler is
+        // installed at most once per label container, and its `.filter()` reads
+        // `getCanSelect()` / `getCanEdit()` at fire-time so runtime toggles are
+        // honored without re-attaching.
+        if (context.callbacks.onLabelDragEnd) {
             ConnectionRenderer.addLabelDragBehavior(connectionLabelContainer, d, connection, context);
         }
 
@@ -1525,8 +1545,12 @@ export class ConnectionRenderer {
                 if (!context.getCanEdit()) {
                     return false;
                 }
+                // Block drag if selection is disabled (label drag is a selection-mode interaction)
+                if (!context.getCanSelect()) {
+                    return false;
+                }
                 // Block drag if connection is disabled (saving)
-                if (context.disabledConnectionIds?.has(connectionData.entity.id)) {
+                if (context.getDisabledConnectionIds().has(connectionData.entity.id)) {
                     return false;
                 }
                 // Block drag if no write permissions
@@ -1659,10 +1683,7 @@ export class ConnectionRenderer {
                 connectionData.ui.dragging = false;
             });
 
-        // Remove drag behavior to prevent stale closures
-        labelContainer.on('.drag', null);
-        // Apply drag behavior to label container
-        labelContainer.call(labelDrag);
+        labelContainer.classed('moveable', true).call(labelDrag);
     }
 
     /**
@@ -2240,6 +2261,42 @@ export class ConnectionRenderer {
             pathParts.push(`L ${destPoint.x},${destPoint.y}`);
             return pathParts.join(' ');
         }
+    }
+
+    /**
+     * Reposition the visible point handles on a selected connection
+     * (`rect.startpoint`, `rect.endpoint`, `rect.midpoint`) to match the current
+     * `connection.ui.start` / `ui.end` / `ui.bends`.
+     *
+     * Callers are responsible for ensuring `calculatePath` was invoked beforehand
+     * so `ui.start` / `ui.end` reflect the latest source/destination geometry, and
+     * for ensuring `ui.bends` already contains the desired bend positions.
+     *
+     * Used by both the bend-point drag handler and the multi-component drag path
+     * (see `DragUtils.applyDragDelta`) so the handles follow the path during a
+     * drag instead of stranding at their pre-drag positions. Only existing
+     * elements are updated — handle creation/teardown remains the responsibility
+     * of `updateConnectionPoints` during full renders. We use index-based data
+     * binding for midpoints because `DragUtils.translateBends` replaces each bend
+     * object but preserves array length.
+     */
+    public static repositionConnectionPoints(connection: d3.Selection<SVGGElement, CanvasConnection, any, any>): void {
+        connection.each(function (d: CanvasConnection) {
+            const group = d3.select<SVGGElement, CanvasConnection>(this);
+            const start = d.ui?.start;
+            const end = d.ui?.end;
+            if (start) {
+                group.selectAll('rect.startpoint').attr('transform', `translate(${start.x - 4}, ${start.y - 4})`);
+            }
+            if (end) {
+                group.selectAll('rect.endpoint').attr('transform', `translate(${end.x - 4}, ${end.y - 4})`);
+            }
+            const bends = d.ui?.bends || [];
+            group
+                .selectAll<SVGRectElement, Position>('rect.midpoint')
+                .data(bends)
+                .attr('transform', (p) => `translate(${p.x - 4}, ${p.y - 4})`);
+        });
     }
 
     /**

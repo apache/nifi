@@ -25,18 +25,19 @@ import {
     input,
     output,
     effect,
-    computed
+    computed,
+    untracked
 } from '@angular/core';
 import * as d3 from 'd3';
-import { CanvasProcessor, CanvasRootResolver, CanvasRootSelection, CanvasSelection } from '../../canvas.types';
+import { CanvasProcessor, CanvasRootResolver, CanvasRootSelection } from '../../canvas.types';
 import { ProcessorRenderer } from './processor-renderer';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../../canvas-format-utils.service';
 import { CanvasComponentUtils } from '../../canvas-component-utils.service';
 import { NiFiCommon, Position } from '@nifi/shared';
-import { DocumentedType } from '../../../../../state/shared';
 import { ProcessorRenderContext } from '../render-context.types';
 import { ConnectableBehaviorHelper } from '../../connectable-behavior.helper';
+import { ViewportRect } from '../../utils/visibility.utils';
 
 /**
  * Processor Layer Component
@@ -79,6 +80,7 @@ export class ProcessorLayerComponent implements AfterViewInit {
      * Current canvas scale (affects rendering)
      */
     scale = input<number>(1);
+    viewportBounds = input<ViewportRect | null>(null);
 
     /**
      * IDs of selected processors (for visual highlighting)
@@ -119,11 +121,6 @@ export class ProcessorLayerComponent implements AfterViewInit {
      * Component utilities (active thread counts, bulletins, etc)
      */
     componentUtils = input.required<CanvasComponentUtils>();
-
-    /**
-     * Preview extension types (processors with Preview tag)
-     */
-    previewExtensions = input<DocumentedType[]>([]);
 
     /**
      * IDs of processors that are currently saving (disabled during save)
@@ -195,12 +192,14 @@ export class ProcessorLayerComponent implements AfterViewInit {
             textEllipsis: this.textEllipsis(),
             formatUtils: this.formatUtils(),
             nifiCommon: this.nifiCommon(),
-            getCanEdit: () => this.canEdit(), // Function that returns current value
+            // untracked: scale is passive — don't re-render on zoom ticks.
+            scale: untracked(() => this.scale()),
+            viewportBounds: this.viewportBounds(),
+            getCanEdit: () => this.canEdit(),
             getCanSelect: () => this.canSelect(),
             getSelectedIds: () => this.selectedIdsSet(),
             componentUtils: this.componentUtils(),
             processors: this.processors(),
-            previewExtensions: this.previewExtensions(),
             disabledProcessorIds: this.disabledProcessorIds(),
             getDisabledProcessorIds: () => this.disabledProcessorIds(),
             canvasRootResolver: this.canvasRootResolver() ?? this.defaultCanvasRootResolver,
@@ -214,10 +213,19 @@ export class ProcessorLayerComponent implements AfterViewInit {
      * NOTE: selectedIds is NOT tracked here to avoid unnecessary re-renders
      */
     private renderEffect = effect(() => {
-        // Access signals to track dependencies
         const _processors = this.processors();
         const _renderTrigger = this.renderTrigger();
-        const _previewExtensions = this.previewExtensions();
+        // Track `canSelect` and `disabledProcessorIds` so render-time reads
+        // (cursor styling, opacity, the `disabled` class) refresh on runtime
+        // toggles. Fire-time gates inside drag/click handlers read the same
+        // values via `getCanSelect()` / `getDisabledProcessorIds()` and don't
+        // require these deps; tracking here exists purely so that when the
+        // saving set clears, the disabled visual treatment lifts immediately
+        // without the consumer having to bump `renderTrigger` from a confirm
+        // handler.
+        const _canSelect = this.canSelect();
+        const _disabledProcessorIds = this.disabledProcessorIds();
+        const _viewportBounds = this.viewportBounds();
 
         if (this.containerSelection) {
             this.renderProcessors();
@@ -278,11 +286,11 @@ export class ProcessorLayerComponent implements AfterViewInit {
             return;
         }
 
-        const selectedIds = this.selectedIds();
+        const selectedIdsSet = this.selectedIdsSet();
 
         this.containerSelection
             .selectAll<SVGGElement, CanvasProcessor>('g.processor')
-            .classed('selected', (d) => selectedIds.includes(d.entity.id));
+            .classed('selected', (d) => selectedIdsSet.has(d.entity.id));
     }
 
     /**
@@ -294,14 +302,6 @@ export class ProcessorLayerComponent implements AfterViewInit {
         }
 
         ProcessorRenderer.render(this.renderContext());
-        this.applySelectionStyling();
-    }
-
-    /**
-     * Pan update for entering/leaving processors (called from canvas during zoom/pan)
-     */
-    public pan(selection: CanvasSelection<CanvasProcessor>): void {
-        ProcessorRenderer.pan(selection, this.renderContext());
         this.applySelectionStyling();
     }
 }

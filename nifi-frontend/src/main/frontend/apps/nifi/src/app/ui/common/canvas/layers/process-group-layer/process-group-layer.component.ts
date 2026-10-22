@@ -25,10 +25,11 @@ import {
     output,
     effect,
     computed,
+    untracked,
     ChangeDetectionStrategy
 } from '@angular/core';
 import * as d3 from 'd3';
-import { CanvasProcessGroup, CanvasRootResolver, CanvasRootSelection, CanvasSelection } from '../../canvas.types';
+import { CanvasProcessGroup, CanvasRootResolver, CanvasRootSelection } from '../../canvas.types';
 import { ProcessGroupRenderer } from './process-group-renderer';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../../canvas-format-utils.service';
@@ -37,6 +38,7 @@ import { NiFiCommon, Position } from '@nifi/shared';
 import { RegistryClientEntity } from '../../../../../state/shared';
 import { ProcessGroupRenderContext } from '../render-context.types';
 import { ConnectableBehaviorHelper } from '../../connectable-behavior.helper';
+import { ViewportRect } from '../../utils/visibility.utils';
 
 /**
  * ProcessGroupLayerComponent
@@ -82,6 +84,12 @@ export class ProcessGroupLayerComponent implements AfterViewInit {
      * Scale factor for responsive rendering
      */
     scale = input<number>(1);
+
+    /**
+     * Padded viewport rectangle in canvas-space coordinates published by the canvas.
+     * Null until the canvas is measurable.
+     */
+    viewportBounds = input<ViewportRect | null>(null);
 
     /**
      * Currently selected component IDs
@@ -199,6 +207,9 @@ export class ProcessGroupLayerComponent implements AfterViewInit {
         textEllipsis: this.textEllipsis(),
         formatUtils: this.formatUtils(),
         nifiCommon: this.nifiCommon(),
+        // untracked: scale is passive — don't re-render on zoom ticks.
+        scale: untracked(() => this.scale()),
+        viewportBounds: this.viewportBounds(),
         getCanEdit: () => this.canEdit(),
         getCanSelect: () => this.canSelect(),
         getSelectedIds: () => this.selectedIdsSet(),
@@ -219,6 +230,19 @@ export class ProcessGroupLayerComponent implements AfterViewInit {
     private renderEffect = effect(() => {
         const _processGroups = this.processGroups();
         const _renderTrigger = this.renderTrigger();
+        // Track `canSelect` and `disabledProcessGroupIds` so render-time reads
+        // (cursor styling, opacity, the `disabled` class) refresh on runtime
+        // toggles. Fire-time gates inside drag/click handlers read the same
+        // values via `getCanSelect()` / `getDisabledProcessGroupIds()` and don't
+        // require these deps; tracking here exists purely so that when the
+        // saving set clears, the disabled visual treatment lifts immediately
+        // without the consumer having to bump `renderTrigger` from a confirm
+        // handler.
+        const _canSelect = this.canSelect();
+        const _disabledProcessGroupIds = this.disabledProcessGroupIds();
+        // Track viewportBounds so the renderer re-classifies visibility after
+        // zoom end, resize, or birdseye drag end.
+        const _viewportBounds = this.viewportBounds();
 
         if (this.containerSelection) {
             this.render();
@@ -275,11 +299,11 @@ export class ProcessGroupLayerComponent implements AfterViewInit {
             return;
         }
 
-        const selectedIds = this.selectedIds();
+        const selectedIdsSet = this.selectedIdsSet();
 
         this.containerSelection
             .selectAll<SVGGElement, CanvasProcessGroup>('g.process-group')
-            .classed('selected', (d) => selectedIds.includes(d.entity.id));
+            .classed('selected', (d) => selectedIdsSet.has(d.entity.id));
     }
 
     /**
@@ -291,14 +315,6 @@ export class ProcessGroupLayerComponent implements AfterViewInit {
         }
 
         ProcessGroupRenderer.render(this.renderContext());
-        this.applySelectionStyling();
-    }
-
-    /**
-     * Pan update for entering/leaving PGs (called from canvas during zoom/pan)
-     */
-    public pan(selection: CanvasSelection<CanvasProcessGroup>): void {
-        ProcessGroupRenderer.pan(selection, this.renderContext());
         this.applySelectionStyling();
     }
 }

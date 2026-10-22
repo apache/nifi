@@ -101,6 +101,7 @@
                 canvas-label-layer
                 [labels]="internalLabels()"
                 [scale]="scale()"
+                [viewportBounds]="viewportBounds()"
                 [selectedIds]="selectedIds()"
                 [textEllipsis]="textEllipsisUtils"
                 [formatUtils]="formatUtils"
@@ -120,6 +121,7 @@
                 canvas-funnel-layer
                 [funnels]="internalFunnels()"
                 [scale]="scale()"
+                [viewportBounds]="viewportBounds()"
                 [selectedIds]="selectedIds()"
                 [textEllipsis]="textEllipsisUtils"
                 [formatUtils]="formatUtils"
@@ -139,6 +141,7 @@
                 canvas-port-layer
                 [ports]="internalPorts()"
                 [scale]="scale()"
+                [viewportBounds]="viewportBounds()"
                 [selectedIds]="selectedIds()"
                 [textEllipsis]="textEllipsisUtils"
                 [formatUtils]="formatUtils"
@@ -159,6 +162,7 @@
                 canvas-remote-process-group-layer
                 [remoteProcessGroups]="internalRemoteProcessGroups()"
                 [scale]="scale()"
+                [viewportBounds]="viewportBounds()"
                 [selectedIds]="selectedIds()"
                 [renderTrigger]="renderTrigger()"
                 [textEllipsis]="textEllipsisUtils"
@@ -180,6 +184,7 @@
                 canvas-process-group-layer
                 [processGroups]="internalProcessGroups()"
                 [scale]="scale()"
+                [viewportBounds]="viewportBounds()"
                 [selectedIds]="selectedIds()"
                 [renderTrigger]="renderTrigger()"
                 [textEllipsis]="textEllipsisUtils"
@@ -203,6 +208,7 @@
                 canvas-processor-layer
                 [processors]="internalProcessors()"
                 [scale]="scale()"
+                [viewportBounds]="viewportBounds()"
                 [selectedIds]="selectedIds()"
                 [renderTrigger]="renderTrigger()"
                 [textEllipsis]="textEllipsisUtils"
@@ -210,7 +216,6 @@
                 [nifiCommon]="nifiCommon"
                 [componentUtils]="componentUtils"
                 [canEdit]="(canEdit$ | async) !== false"
-                [previewExtensions]="previewExtensions()"
                 [disabledProcessorIds]="disabledProcessorIds()"
                 [canSelect]="(canSelect$ | async) !== false"
                 [connectableBehavior]="connectableBehavior()"
@@ -225,6 +230,7 @@
                 canvas-connection-layer
                 [connections]="internalConnections()"
                 [scale]="scale()"
+                [viewportBounds]="viewportBounds()"
                 [selectedIds]="selectedIds()"
                 [canSelect]="(canSelect$ | async) !== false"
                 [canEdit]="(canEdit$ | async) !== false"

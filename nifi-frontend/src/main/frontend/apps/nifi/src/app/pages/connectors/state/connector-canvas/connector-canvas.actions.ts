@@ -24,11 +24,24 @@ import {
     PortEntity,
     ProcessGroupEntity,
     ProcessorEntity,
-    RemoteProcessGroupEntity
+    RemoteProcessGroupEntity,
+    Position,
+    RevisionRequest
 } from '@nifi/shared';
-import { BreadcrumbEntity, ParameterContextEntity } from '../../../../state/shared';
+import {
+    BreadcrumbEntity,
+    EditConnectionDialogRequest,
+    ParameterContextEntity,
+    UpdateConnectionRequest
+} from '../../../../state/shared';
 import { ErrorContext, ErrorContextKey } from '../../../../state/error';
 import type { ConnectorCanvasComponentEntity } from './index';
+import { ConnectionEndpointReconnectDestination } from '../../../../state/flow-shared';
+import {
+    CreateConnection,
+    CreateConnectionDialogRequest,
+    CreateConnectionRequest
+} from '../../../../state/flow-shared';
 
 /**
  * Selected component for route-based selection
@@ -70,7 +83,7 @@ export const loadConnectorFlowSuccess = createAction(
 
 export const loadConnectorFlowFailure = createAction(
     '[Connector Canvas] Load Connector Flow Failure',
-    props<{ errorContext: ErrorContext }>()
+    props<{ errorContext: ErrorContext; isRefresh: boolean }>()
 );
 
 export const loadConnectorFlowComplete = createAction('[Connector Canvas] Load Connector Flow Complete');
@@ -204,6 +217,203 @@ export const navigateToQueueListing = createAction(
 export const viewComponentConfiguration = createAction(
     '[Connector Canvas] View Component Configuration',
     props<{ request: { entity: ConnectorCanvasComponentEntity; componentType: ComponentType } }>()
+);
+
+export interface BulkPositionUpdate {
+    componentId: string;
+    componentType: ComponentType;
+    revision: RevisionRequest;
+    position?: Position;
+    bends?: Position[];
+    labelIndex?: number;
+}
+
+export interface BulkPositionResult {
+    componentId: string;
+    componentType: ComponentType;
+    success: boolean;
+    component?: ConnectorCanvasComponentEntity;
+    error?: string;
+}
+
+export interface MoveCanvasComponentRef {
+    id: string;
+    type: ComponentType;
+    revision: RevisionRequest;
+}
+
+export const createConnectionRequested = createAction(
+    '[Connector Canvas] Create Connection Requested',
+    props<{ processGroupId: string; request: CreateConnectionRequest }>()
+);
+
+export const openCreateConnectionDialog = createAction(
+    '[Connector Canvas] Open Create Connection Dialog',
+    props<{ request: CreateConnectionDialogRequest }>()
+);
+
+export const submitCreateConnection = createAction(
+    '[Connector Canvas] Submit Create Connection',
+    props<{ processGroupId: string; request: CreateConnection }>()
+);
+
+export const createConnectionSuccess = createAction(
+    '[Connector Canvas] Create Connection Success',
+    props<{ connection: ConnectionEntity }>()
+);
+
+export const createConnectionFailure = createAction(
+    '[Connector Canvas] Create Connection Failure',
+    props<{ error: string }>()
+);
+
+export const createConnectionDialogClosed = createAction('[Connector Canvas] Create Connection Dialog Closed');
+
+export const updateComponentPositionsBulk = createAction(
+    '[Connector Canvas] Update Component Positions Bulk',
+    props<{ processGroupId: string; updates: BulkPositionUpdate[]; delta: Position }>()
+);
+
+export const updateComponentPositionSuccess = createAction(
+    '[Connector Canvas] Update Component Position Success',
+    props<{
+        componentId: string;
+        componentType: ComponentType;
+        component: ConnectorCanvasComponentEntity;
+    }>()
+);
+
+export const updateComponentPositionFailure = createAction(
+    '[Connector Canvas] Update Component Position Failure',
+    props<{ componentId: string; componentType: ComponentType; error: string }>()
+);
+
+export const updateComponentPositionsBulkComplete = createAction(
+    '[Connector Canvas] Update Component Positions Bulk Complete',
+    props<{ successes: BulkPositionResult[]; failures: BulkPositionResult[] }>()
+);
+
+export const updateConnectionBendPoints = createAction(
+    '[Connector Canvas] Update Connection Bend Points',
+    props<{
+        processGroupId: string;
+        update: {
+            id: string;
+            bends: Position[];
+            labelIndex?: number;
+            revision: RevisionRequest;
+        };
+    }>()
+);
+
+export const updateConnectionBendPointsSuccess = createAction(
+    '[Connector Canvas] Update Connection Bend Points Success',
+    props<{ connectionId: string; connection: ConnectionEntity }>()
+);
+
+export const updateConnectionBendPointsFailure = createAction(
+    '[Connector Canvas] Update Connection Bend Points Failure',
+    props<{ connectionId: string; error: string }>()
+);
+
+export const updateConnectionLabelIndex = createAction(
+    '[Connector Canvas] Update Connection Label Index',
+    props<{
+        processGroupId: string;
+        connectionId: string;
+        labelIndex: number;
+        revision: RevisionRequest;
+    }>()
+);
+
+export const updateConnectionLabelIndexSuccess = createAction(
+    '[Connector Canvas] Update Connection Label Index Success',
+    props<{ connectionId: string; connection: ConnectionEntity }>()
+);
+
+export const updateConnectionLabelIndexFailure = createAction(
+    '[Connector Canvas] Update Connection Label Index Failure',
+    props<{ connectionId: string; error: string }>()
+);
+
+export const updateConnectionDestination = createAction(
+    '[Connector Canvas] Update Connection Destination',
+    props<{
+        processGroupId: string;
+        connectionId: string;
+        revision: RevisionRequest;
+        newDestination: ConnectionEndpointReconnectDestination;
+        bends?: Position[];
+    }>()
+);
+
+export const updateConnectionDestinationSuccess = createAction(
+    '[Connector Canvas] Update Connection Destination Success',
+    props<{ connectionId: string; connection: ConnectionEntity }>()
+);
+
+export const updateConnectionDestinationFailure = createAction(
+    '[Connector Canvas] Update Connection Destination Failure',
+    props<{
+        connectionId: string;
+        error: string;
+        /**
+         * True when the failure came from a save submitted through the reconnect
+         * dialog, which stays open for retry. The canvas keeps the optimistic
+         * endpoint until that dialog closes.
+         */
+        dialogOpen?: boolean;
+    }>()
+);
+
+export const openReconnectConnectionDialog = createAction(
+    '[Connector Canvas] Open Reconnect Connection Dialog',
+    props<{ request: EditConnectionDialogRequest }>()
+);
+
+export const saveEditedConnection = createAction(
+    '[Connector Canvas] Save Edited Connection',
+    props<{ request: UpdateConnectionRequest }>()
+);
+
+export const editConnectionDialogClosed = createAction(
+    '[Connector Canvas] Edit Connection Dialog Closed',
+    props<{ connectionId: string; cancelled: boolean }>()
+);
+
+export const resizeLabel = createAction(
+    '[Connector Canvas] Resize Label',
+    props<{
+        processGroupId: string;
+        labelId: string;
+        dimensions: { width: number; height: number };
+        revision: RevisionRequest;
+    }>()
+);
+
+export const resizeLabelSuccess = createAction(
+    '[Connector Canvas] Resize Label Success',
+    props<{ labelId: string; label: LabelEntity }>()
+);
+
+export const resizeLabelFailure = createAction(
+    '[Connector Canvas] Resize Label Failure',
+    props<{ labelId: string; error: string }>()
+);
+
+export const moveCanvasComponents = createAction(
+    '[Connector Canvas] Move Canvas Components',
+    props<{ processGroupId: string; targetGroupId: string; components: MoveCanvasComponentRef[] }>()
+);
+
+export const moveCanvasComponentsSuccess = createAction(
+    '[Connector Canvas] Move Canvas Components Success',
+    props<{ targetGroupId: string; components: MoveCanvasComponentRef[] }>()
+);
+
+export const moveCanvasComponentsFailure = createAction(
+    '[Connector Canvas] Move Canvas Components Failure',
+    props<{ components: MoveCanvasComponentRef[]; error: string }>()
 );
 
 export const resetConnectorCanvasState = createAction('[Connector Canvas] Reset State');

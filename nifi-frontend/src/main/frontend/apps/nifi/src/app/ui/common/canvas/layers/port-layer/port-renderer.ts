@@ -22,6 +22,7 @@ import { PortRenderContext } from '../render-context.types';
 import { DragUtils } from '../../utils/drag.utils';
 import { ValidationErrorsTip } from '../../../tooltips/validation-errors-tip/validation-errors-tip.component';
 import { CanvasConstants } from '../../canvas.constants';
+import { isInViewport } from '../../utils/visibility.utils';
 
 export class PortRenderer {
     private static offsetY(d: CanvasPort, baseY: number): number {
@@ -33,7 +34,7 @@ export class PortRenderer {
     }
 
     public static render(context: PortRenderContext): void {
-        const { containerSelection, ports, canSelect, callbacks } = context;
+        const { containerSelection, ports, callbacks } = context;
 
         // D3 data join
         const selection = containerSelection
@@ -50,11 +51,11 @@ export class PortRenderer {
 
         // Attach event listeners if interactive
         // Use mousedown for selection to ensure single, deterministic event firing
-        if (canSelect && callbacks) {
+        if (callbacks) {
             if (callbacks.onClick) {
                 merged.on('mousedown.selection', function (event: MouseEvent, d: CanvasPort) {
                     // Only handle left mouse button
-                    if (event.button !== 0) {
+                    if (event.button !== 0 || !context.getCanSelect()) {
                         return;
                     }
 
@@ -64,12 +65,15 @@ export class PortRenderer {
             }
             if (callbacks.onDoubleClick) {
                 merged.on('dblclick', function (event: MouseEvent, d: CanvasPort) {
+                    if (!context.getCanSelect()) {
+                        return;
+                    }
                     event.stopPropagation();
                     callbacks.onDoubleClick!(d, event);
                 });
             }
             // Attach drag behavior for position updates if editing is allowed
-            if (callbacks.onDragEnd && context.getCanEdit()) {
+            if (callbacks.onDragEnd) {
                 PortRenderer.attachDragBehavior(merged, context);
             }
         }
@@ -153,11 +157,11 @@ export class PortRenderer {
         // Apply selected class to parent <g> for CSS selector
         // Apply disabled state (during save operation)
         selection
-            .classed('disabled', (d) => context.disabledPortIds?.has(d.entity.id) || false)
-            .style('opacity', (d) => (context.disabledPortIds?.has(d.entity.id) ? 0.6 : null))
+            .classed('disabled', (d) => context.getDisabledPortIds().has(d.entity.id))
+            .style('opacity', (d) => (context.getDisabledPortIds().has(d.entity.id) ? 0.6 : null))
             .style('cursor', (d) => {
-                if (context.disabledPortIds?.has(d.entity.id)) return 'not-allowed';
-                return context.canSelect ? 'pointer' : 'default';
+                if (context.getDisabledPortIds().has(d.entity.id)) return 'not-allowed';
+                return context.getCanSelect() ? 'pointer' : 'default';
             });
 
         // Update border height and authorization
@@ -171,6 +175,21 @@ export class PortRenderer {
             .select('rect.body')
             .attr('height', (d) => d.ui.dimensions.height)
             .classed('unauthorized', (d) => d.entity.permissions.canRead === false);
+
+        const { viewportBounds, scale } = context;
+        selection.each(function (portData: CanvasPort) {
+            const node = d3.select(this);
+            const wasVisible = node.classed('visible');
+            const isVisible = isInViewport(
+                portData.ui.currentPosition ?? portData.entity.position,
+                portData.ui.dimensions,
+                viewportBounds,
+                scale
+            );
+            node.classed('visible', isVisible)
+                .classed('entering', isVisible && !wasVisible)
+                .classed('leaving', !isVisible && wasVisible);
+        });
 
         // Update each port individually
         selection.each(function (this: SVGGElement, portData: CanvasPort) {
@@ -442,11 +461,5 @@ export class PortRenderer {
 
     private static removePortElements(exited: CanvasSelection<CanvasPort>): void {
         exited.remove();
-    }
-
-    public static pan(selection: CanvasSelection<CanvasPort>, context: PortRenderContext): void {
-        // Simply delegate to updatePortElements which already handles
-        // creating/removing details based on visibility
-        PortRenderer.updatePortElements(selection, context);
     }
 }
