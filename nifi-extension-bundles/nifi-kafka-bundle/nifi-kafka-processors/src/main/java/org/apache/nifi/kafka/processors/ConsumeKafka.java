@@ -213,6 +213,18 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor MAX_POLL_RECORDS = new PropertyDescriptor.Builder()
+            .name("Max Poll Records")
+            .description("""
+                    Maximum number of records returned from a single poll of Kafka. Overrides the Max Poll Records
+                    property of the Kafka Connection Service for this Processor. The Kafka Connection Service value
+                    applies when not specified. Corresponds to the Kafka max.poll.records property.
+                    """
+            )
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor HEADER_FORMAT = new PropertyDescriptor.Builder()
             .name("Header Format")
             .description("Specifies how Kafka Record Header values are represented when written as FlowFile attributes or record fields")
@@ -358,6 +370,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             COMMIT_OFFSETS,
             MAX_UNCOMMITTED_SIZE,
             MAX_UNCOMMITTED_TIME,
+            MAX_POLL_RECORDS,
             HEADER_NAME_PATTERN,
             HEADER_FORMAT,
             HEADER_ENCODING,
@@ -983,14 +996,15 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private PollingContext createPollingContext(final ProcessContext context, final String groupId, final AutoOffsetReset autoOffsetReset) {
         final String topics = context.getProperty(TOPICS).evaluateAttributeExpressions().getValue();
         final String topicFormat = context.getProperty(TOPIC_FORMAT).getValue();
+        final Integer maxPollRecords = context.getProperty(MAX_POLL_RECORDS).asInteger();
 
         final PollingContext pollingContext;
         if (topicFormat.equals(TOPIC_PATTERN.getValue())) {
             final Pattern topicPattern = Pattern.compile(topics.trim());
-            pollingContext = new PollingContext(groupId, topicPattern, autoOffsetReset);
+            pollingContext = new PollingContext(groupId, topicPattern, autoOffsetReset, maxPollRecords);
         } else if (topicFormat.equals(TOPIC_NAME.getValue())) {
             final Collection<String> topicList = KafkaUtils.toTopicList(topics);
-            pollingContext = new PollingContext(groupId, topicList, autoOffsetReset);
+            pollingContext = new PollingContext(groupId, topicList, autoOffsetReset, maxPollRecords);
         } else {
             throw new ProcessException(String.format("Topic Format [%s] not supported", topicFormat));
         }

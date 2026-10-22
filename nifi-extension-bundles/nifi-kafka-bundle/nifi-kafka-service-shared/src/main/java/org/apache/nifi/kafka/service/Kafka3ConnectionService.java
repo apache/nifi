@@ -270,6 +270,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         }
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, pollingContext.getAutoOffsetReset().getValue());
         properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        pollingContext.getMaxPollRecords().ifPresent(maxPollRecords -> properties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, maxPollRecords));
 
         final ByteArrayDeserializer deserializer = new ByteArrayDeserializer();
         final Consumer<byte[], byte[]> consumer = new KafkaConsumer<>(properties, deserializer, deserializer);
