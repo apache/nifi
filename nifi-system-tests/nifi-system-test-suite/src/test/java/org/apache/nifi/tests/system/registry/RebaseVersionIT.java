@@ -583,7 +583,7 @@ public class RebaseVersionIT extends NiFiSystemIT {
             }
             sb.append(service.getId()).append("=").append(service.getComponent().getType());
         }
-        return sb.length() == 0 ? "none" : sb.toString();
+        return sb.isEmpty() ? "none" : sb.toString();
     }
 
     private String describeComponentDifferences(final Collection<ComponentDifferenceDTO> componentDifferences) {
@@ -609,7 +609,7 @@ public class RebaseVersionIT extends NiFiSystemIT {
                 }
             }
         }
-        return sb.length() == 0 ? "none" : sb.toString();
+        return sb.isEmpty() ? "none" : sb.toString();
     }
 
     private void executeRebaseWithFingerprint(final ProcessGroupEntity group, final String targetVersion, final String fingerprint)

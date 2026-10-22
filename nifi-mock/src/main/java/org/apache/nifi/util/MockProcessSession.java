@@ -1177,7 +1177,7 @@ public class MockProcessSession implements ProcessSession {
             final String sourceUuid = source.getAttribute(CoreAttributes.UUID.key());
             if (sourceUuid != null && !sourceUuid.isBlank()) {
                 uuidsCaptured++;
-                if (parentUuidBuilder.length() > 0) {
+                if (!parentUuidBuilder.isEmpty()) {
                     parentUuidBuilder.append(",");
                 }
                 parentUuidBuilder.append(sourceUuid);

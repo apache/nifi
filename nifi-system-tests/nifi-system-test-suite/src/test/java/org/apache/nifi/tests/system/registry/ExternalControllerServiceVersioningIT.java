@@ -351,7 +351,7 @@ public class ExternalControllerServiceVersioningIT extends NiFiSystemIT {
                 }
             }
         }
-        return sb.length() == 0 ? "<none>" : sb.toString();
+        return sb.isEmpty() ? "<none>" : sb.toString();
     }
 
     /**

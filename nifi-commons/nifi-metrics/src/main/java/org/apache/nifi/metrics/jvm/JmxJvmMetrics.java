@@ -89,7 +89,7 @@ public class JmxJvmMetrics implements JvmMetrics {
     }
 
     public Set<String> getMetricNames(String metricNamePrefix) {
-        if (metricNamePrefix == null || metricNamePrefix.length() == 0) {
+        if (metricNamePrefix == null || metricNamePrefix.isEmpty()) {
             throw new IllegalArgumentException("A metric name prefix must be supplied");
         }
         final String normalizedMetricNamePrefix = metricNamePrefix.endsWith(".") ? metricNamePrefix : metricNamePrefix + '.';

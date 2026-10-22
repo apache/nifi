@@ -1365,7 +1365,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                 }
                 current.append(c); // lone backslash, kept literal
             } else if (c == '/') {
-                if (current.length() > 0) {
+                if (!current.isEmpty()) {
                     segments.add(current.toString());
                     current.setLength(0);
                 }
@@ -1373,7 +1373,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                 current.append(c);
             }
         }
-        if (current.length() > 0) {
+        if (!current.isEmpty()) {
             segments.add(current.toString());
         }
         return segments.toArray(new String[0]);

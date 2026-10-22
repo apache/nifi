@@ -120,7 +120,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         }
 
         final String targetUris = remoteProcessGroupDTO.getTargetUris();
-        if (targetUris == null || targetUris.length() == 0) {
+        if (targetUris == null || targetUris.isEmpty()) {
             throw new IllegalArgumentException("Cannot add a Remote Process Group without specifying the Target URI(s)");
         }
 
@@ -271,7 +271,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
             }
 
             final String batchSize = batchSettingsDTO.getSize();
-            if (isNotNull(batchSize) && batchSize.length() > 0
+            if (isNotNull(batchSize) && !batchSize.isEmpty()
                     && !DataUnit.DATA_SIZE_PATTERN.matcher(batchSize.trim().toUpperCase()).matches()) {
                 validationErrors.add(String.format("Batch size for port '%s' must be of format <Data Size> <Data Unit>" +
                         " where <Data Size> is a non-negative integer and <Data Unit> is a supported Data"
@@ -279,7 +279,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
             }
 
             final String batchDuration = batchSettingsDTO.getDuration();
-            if (isNotNull(batchDuration) && batchDuration.length() > 0
+            if (isNotNull(batchDuration) && !batchDuration.isEmpty()
                     && !FormatUtils.TIME_DURATION_PATTERN.matcher(batchDuration.trim().toLowerCase()).matches()) {
                 validationErrors.add(String.format("Batch duration for port '%s' must be of format <duration> <TimeUnit>" +
                         " where <duration> is a non-negative integer and TimeUnit is a supported Time Unit, such "

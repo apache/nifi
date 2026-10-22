@@ -175,7 +175,7 @@ public class GrokRecordReader implements RecordReader {
 
             // If there is any trailing text, determine the last column from the grok schema
             // and then append the trailing text to it.
-            if (noMatchStrategy.equals(NoMatchStrategy.APPEND) && trailingText.length() > 0) {
+            if (noMatchStrategy.equals(NoMatchStrategy.APPEND) && !trailingText.isEmpty()) {
                 String lastPopulatedFieldName = null;
                 final List<RecordField> schemaFields = schemaFromGrok.getFields();
                 for (int i = schemaFields.size() - 1; i >= 0; i--) {

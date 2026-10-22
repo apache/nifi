@@ -187,7 +187,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
             void add(final String value) {
                 if (value != null) {
-                    if (sb.length() > 0) {
+                    if (!sb.isEmpty()) {
                         sb.append(SEPARATOR);
                     }
                     sb.append(value);
@@ -195,7 +195,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
             }
 
             String build() {
-                return sb.length() > 0 ? sb.toString() : null;
+                return !sb.isEmpty() ? sb.toString() : null;
             }
         }
 
