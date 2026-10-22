@@ -44,6 +44,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -230,6 +231,14 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         return getProvider(componentId).replace(oldValue, newValue);
     }
 
+    /**
+     * Writes only the patches to the write-ahead log's journal. Snapshots taken at each checkpoint still hold the whole state.
+     */
+    @Override
+    public void patchState(final Map<String, String> updatedState, final String componentId) throws IOException {
+        getProvider(componentId).patchState(updatedState);
+    }
+
     @Override
     public void clear(final String componentId) throws IOException {
         getProvider(componentId).clear();
@@ -280,10 +289,11 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         // Additionally, the implementation of WriteAheadRepository that we are using requires that only a single thread update the
         // repository at a time for a record with the same key. I.e., many threads can update the repository at once, as long as they
         // are not updating the repository with records that have the same identifier.
+        // The local stateMap variable is updated only after the WAL update succeeds, so that it always matches the WAL. A journal entry
+        // that holds only patches is applied to the previous state in the WAL when the journal is recovered.
         public synchronized void setState(final Map<String, String> state) throws IOException {
-            stateMap = new StandardStateMap(state, Optional.of(getIncrementedVersion()));
-            final StateMapUpdate updateRecord = new StateMapUpdate(stateMap, componentId, UpdateType.UPDATE);
-            wal.update(Collections.singleton(updateRecord), alwaysSync);
+            final StateMap updatedStateMap = new StandardStateMap(state, Optional.of(getIncrementedVersion()));
+            writeUpdate(new StateMapUpdate(updatedStateMap, componentId, UpdateType.UPDATE));
         }
 
         // see above explanation as to why this method is synchronized.
@@ -292,16 +302,39 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
                 return false;
             }
 
-            stateMap = new StandardStateMap(new HashMap<>(newValue), Optional.of(getIncrementedVersion()));
-            final StateMapUpdate updateRecord = new StateMapUpdate(stateMap, componentId, UpdateType.UPDATE);
-            wal.update(Collections.singleton(updateRecord), alwaysSync);
+            final StateMap updatedStateMap = new StandardStateMap(new HashMap<>(newValue), Optional.of(getIncrementedVersion()));
+            writeUpdate(new StateMapUpdate(updatedStateMap, componentId, UpdateType.UPDATE));
             return true;
         }
 
+        // see above explanation as to why this method is synchronized.
+        public synchronized void patchState(final Map<String, String> updatedState) throws IOException {
+            Objects.requireNonNull(updatedState, "Updated State required");
+            if (updatedState.isEmpty()) {
+                return;
+            }
+
+            final Map<String, String> patchedState = new HashMap<>(stateMap.toMap());
+            for (final Map.Entry<String, String> entry : updatedState.entrySet()) {
+                if (entry.getValue() == null) {
+                    patchedState.remove(entry.getKey());
+                } else {
+                    patchedState.put(entry.getKey(), entry.getValue());
+                }
+            }
+
+            final StateMap updatedStateMap = new StandardStateMap(patchedState, Optional.of(getIncrementedVersion()));
+            writeUpdate(new StateMapUpdate(updatedStateMap, componentId, UpdateType.UPDATE, Collections.unmodifiableMap(new HashMap<>(updatedState))));
+        }
+
         public synchronized void clear() throws IOException {
-            stateMap = new StandardStateMap(null, Optional.of(getIncrementedVersion()));
-            final StateMapUpdate update = new StateMapUpdate(stateMap, componentId, UpdateType.UPDATE);
+            final StateMap updatedStateMap = new StandardStateMap(null, Optional.of(getIncrementedVersion()));
+            writeUpdate(new StateMapUpdate(updatedStateMap, componentId, UpdateType.UPDATE));
+        }
+
+        private void writeUpdate(final StateMapUpdate update) throws IOException {
             wal.update(Collections.singleton(update), alwaysSync);
+            stateMap = update.getStateMap();
         }
 
         private String getIncrementedVersion() {

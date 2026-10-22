@@ -1418,6 +1418,11 @@ public class MockProcessSession implements ProcessSession {
     }
 
     @Override
+    public void patchState(final Map<String, String> updatedState, final Scope scope) throws IOException {
+        stateManager.patchState(updatedState, scope);
+    }
+
+    @Override
     public void clearState(final Scope scope) throws IOException {
         stateManager.clear(scope);
     }

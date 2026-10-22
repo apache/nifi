@@ -22,7 +22,9 @@ import org.apache.nifi.components.ConfigurableComponent;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * <p>
@@ -91,6 +93,37 @@ public interface StateProvider extends ConfigurableComponent {
      * @throws IOException if unable to communicate with the underlying storage mechanism
      */
     boolean replace(StateMap oldValue, Map<String, String> newValue, String componentId) throws IOException;
+
+    /**
+     * Updates only the given keys of the component's state, leaving all other keys as they are. Each key with a non-null value is
+     * created or overwritten, and each key with a {@code null} value is removed. An empty map does nothing: no state is written and the
+     * version does not change.
+     *
+     * @param updatedState a map of state keys to their new values. A key that is mapped to {@code null} is removed from the state. The map itself must not be {@code null}.
+     * @param componentId the id of the component for which state is being updated
+     *
+     * @throws IOException if unable to communicate with the underlying storage mechanism
+     */
+    default void patchState(final Map<String, String> updatedState, final String componentId) throws IOException {
+        Objects.requireNonNull(updatedState, "Updated State required");
+        if (updatedState.isEmpty()) {
+            return;
+        }
+
+        StateMap currentState;
+        Map<String, String> patchedState;
+        do {
+            currentState = getState(componentId);
+            patchedState = new HashMap<>(currentState.toMap());
+            for (final Map.Entry<String, String> entry : updatedState.entrySet()) {
+                if (entry.getValue() == null) {
+                    patchedState.remove(entry.getKey());
+                } else {
+                    patchedState.put(entry.getKey(), entry.getValue());
+                }
+            }
+        } while (!replace(currentState, patchedState, componentId));
+    }
 
     /**
      * Removes all values from the component's state that is stored using the given scope

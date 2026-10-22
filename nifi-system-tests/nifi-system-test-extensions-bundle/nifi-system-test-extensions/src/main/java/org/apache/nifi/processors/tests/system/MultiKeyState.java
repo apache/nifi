@@ -64,7 +64,7 @@ public class MultiKeyState extends AbstractProcessor {
         newState.put("b", String.valueOf(b));
         newState.put("c", String.valueOf(c));
         try {
-            session.setState(newState, Scope.CLUSTER);
+            session.patchState(newState, Scope.CLUSTER);
         } catch (IOException e) {
             throw new ProcessException(e);
         }
