@@ -239,6 +239,15 @@ export class ConnectorCanvasEffects {
         )
     );
 
+    downloadFlow$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.downloadFlow),
+                tap(({ request }) => this.connectorService.downloadFlow(request))
+            ),
+        { dispatch: false }
+    );
+
     loadConnectorFlowComplete$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ConnectorCanvasActions.loadConnectorFlowSuccess),

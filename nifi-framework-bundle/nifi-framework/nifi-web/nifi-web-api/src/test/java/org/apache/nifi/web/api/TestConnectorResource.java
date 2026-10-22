@@ -34,6 +34,8 @@ import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
@@ -1180,6 +1182,54 @@ public class TestConnectorResource {
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
         verify(serviceFacade, never()).getConnectorProcessGroup(anyString(), anyString());
+    }
+
+    @Test
+    public void testExportConnectorProcessGroup() {
+        final AuthorizableLookup lookup = wireMigrationAuthorization();
+        final Authorizable connector = lookup.getConnector(CONNECTOR_ID);
+        final VersionedProcessGroup processGroup = new VersionedProcessGroup();
+        processGroup.setName("Test Process Group");
+        final RegisteredFlowSnapshot flowSnapshot = new RegisteredFlowSnapshot();
+        flowSnapshot.setFlowContents(processGroup);
+        when(serviceFacade.getConnectorCurrentFlowSnapshot(CONNECTOR_ID, PROCESS_GROUP_ID, true, false)).thenReturn(flowSnapshot);
+
+        try (Response response = connectorResource.exportConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID, true, false)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(flowSnapshot, response.getEntity());
+            assertEquals("attachment; filename=\"Test_Process_Group.json\"", response.getHeaderString("Content-Disposition"));
+        }
+
+        verify(connector).authorize(eq(authorizer), eq(RequestAction.READ), any());
+        verify(serviceFacade).getConnectorCurrentFlowSnapshot(CONNECTOR_ID, PROCESS_GROUP_ID, true, false);
+    }
+
+    @Test
+    public void testExportConnectorProcessGroupWithComponentStateRequiresWrite() {
+        final AuthorizableLookup lookup = wireMigrationAuthorization();
+        final Authorizable connector = lookup.getConnector(CONNECTOR_ID);
+        final VersionedProcessGroup processGroup = new VersionedProcessGroup();
+        processGroup.setName("Test Process Group");
+        final RegisteredFlowSnapshot flowSnapshot = new RegisteredFlowSnapshot();
+        flowSnapshot.setFlowContents(processGroup);
+        when(serviceFacade.getConnectorCurrentFlowSnapshot(CONNECTOR_ID, PROCESS_GROUP_ID, false, true)).thenReturn(flowSnapshot);
+
+        try (Response response = connectorResource.exportConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID, false, true)) {
+            assertEquals(200, response.getStatus());
+        }
+
+        verify(connector).authorize(eq(authorizer), eq(RequestAction.WRITE), any());
+        verify(serviceFacade).getConnectorCurrentFlowSnapshot(CONNECTOR_ID, PROCESS_GROUP_ID, false, true);
+    }
+
+    @Test
+    public void testExportConnectorProcessGroupNotAuthorized() {
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () ->
+                connectorResource.exportConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID, false, false));
+
+        verify(serviceFacade, never()).getConnectorCurrentFlowSnapshot(anyString(), anyString(), eq(false), eq(false));
     }
 
     @Test

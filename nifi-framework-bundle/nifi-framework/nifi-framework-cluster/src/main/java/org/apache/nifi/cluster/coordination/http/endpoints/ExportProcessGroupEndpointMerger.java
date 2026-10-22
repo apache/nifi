@@ -36,7 +36,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Merges responses for {@code GET /nifi-api/process-groups/{uuid}/download}.
+ * Merges responses for Process Group flow definition download endpoints.
  * When component state is included in the export, each cluster node contributes its own LOCAL state
  * keyed by ordinal position. This merger combines the {@code localNodeStates} maps from every node's
  * snapshot into a single response.
@@ -44,7 +44,8 @@ import java.util.regex.Pattern;
 public class ExportProcessGroupEndpointMerger implements EndpointResponseMerger {
 
     public static final Pattern PROCESS_GROUP_DOWNLOAD_URI_PATTERN =
-            Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/download");
+            Pattern.compile("/nifi-api/(?:process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))"
+                    + "|connectors/[a-f0-9\\-]{36}/process-groups/[a-f0-9\\-]{36})/download");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {

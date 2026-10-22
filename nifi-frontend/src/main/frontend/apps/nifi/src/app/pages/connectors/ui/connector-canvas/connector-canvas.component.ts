@@ -214,6 +214,24 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
     contextMenuProvider: ContextMenuDefinitionProvider = {
         getMenu: (menuId: string): ContextMenuDefinition | undefined => {
+            if (menuId === 'download') {
+                return {
+                    id: menuId,
+                    menuItems: [
+                        {
+                            text: 'Without External Services',
+                            clazz: 'fa',
+                            action: () => this.downloadFlowAction(false)
+                        },
+                        {
+                            text: 'With External Services',
+                            clazz: 'fa',
+                            action: () => this.downloadFlowAction(true)
+                        }
+                    ]
+                };
+            }
+
             if (menuId !== 'root') {
                 return undefined;
             }
@@ -243,6 +261,12 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                         clazz: 'fa fa-list',
                         condition: () => !!this.currentProcessGroupId,
                         action: () => this.controllerServicesAction(this.currentProcessGroupId!)
+                    },
+                    {
+                        text: 'Download Flow Definition',
+                        clazz: 'fa',
+                        subMenuId: 'download',
+                        condition: () => this.canDownloadFlow()
                     },
                     { isSeparator: true },
                     {
@@ -337,6 +361,12 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                         clazz: 'fa fa-list',
                         condition: () => isProcessGroup && isSingleSelection,
                         action: () => this.controllerServicesAction(clicked!.entity.id)
+                    },
+                    {
+                        text: 'Download Flow Definition',
+                        clazz: 'fa',
+                        subMenuId: 'download',
+                        condition: () => this.canDownloadFlow()
                     },
                     { isSeparator: true },
                     this.getCenterInViewMenuItem()
@@ -1037,6 +1067,45 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
     controllerServicesAction(processGroupId: string): void {
         this.store.dispatch(ConnectorCanvasActions.navigateToControllerServices({ processGroupId }));
+    }
+
+    downloadFlowAction(includeReferencedServices: boolean): void {
+        const processGroupId = this.getDownloadProcessGroupId();
+        if (this.currentConnectorId && processGroupId) {
+            this.store.dispatch(
+                ConnectorCanvasActions.downloadFlow({
+                    request: {
+                        connectorId: this.currentConnectorId,
+                        processGroupId,
+                        includeReferencedServices
+                    }
+                })
+            );
+        }
+    }
+
+    private canDownloadFlow(): boolean {
+        return this.connectorEntity()?.permissions.canRead === true && this.getDownloadProcessGroupId() !== null;
+    }
+
+    private getDownloadProcessGroupId(): string | null {
+        const context = this.currentContextMenuContext;
+        if (context?.targetType === 'canvas') {
+            return this.currentProcessGroupId;
+        }
+
+        if (context?.targetType === 'component') {
+            const clicked = context.clickedComponent;
+            if (
+                context.selectedComponents.length <= 1 &&
+                clicked?.ui.componentType === ComponentType.ProcessGroup &&
+                clicked.entity.permissions.canRead === true
+            ) {
+                return clicked.entity.id;
+            }
+        }
+
+        return null;
     }
 
     canDrain(): boolean {

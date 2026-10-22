@@ -58,6 +58,12 @@ export interface SelectComponentsRequest {
     components: SelectedComponent[];
 }
 
+export interface DownloadConnectorFlowRequest {
+    connectorId: string;
+    processGroupId: string;
+    includeReferencedServices: boolean;
+}
+
 export const loadConnectorFlow = createAction(
     '[Connector Canvas] Load Connector Flow',
     props<{ connectorId: string; processGroupId: string }>()
@@ -414,6 +420,11 @@ export const moveCanvasComponentsSuccess = createAction(
 export const moveCanvasComponentsFailure = createAction(
     '[Connector Canvas] Move Canvas Components Failure',
     props<{ components: MoveCanvasComponentRef[]; error: string }>()
+);
+
+export const downloadFlow = createAction(
+    '[Connector Canvas] Download Flow',
+    props<{ request: DownloadConnectorFlowRequest }>()
 );
 
 export const resetConnectorCanvasState = createAction('[Connector Canvas] Reset State');

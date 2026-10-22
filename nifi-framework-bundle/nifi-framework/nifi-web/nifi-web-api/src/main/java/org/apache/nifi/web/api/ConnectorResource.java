@@ -2381,6 +2381,68 @@ public class ConnectorResource extends ApplicationResource {
     }
 
     /**
+     * Gets a Process Group within a Connector as a flow definition download. Available regardless of whether the
+     * Connector is in Troubleshooting mode.
+     *
+     * @param connectorId the connector id
+     * @param processGroupId the process group id within the connector's managed flow
+     * @param includeReferencedServices whether referenced services from outside the target group should be included
+     * @param includeComponentState whether component state should be included
+     * @return the flow definition
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/process-groups/{processGroupId}/download")
+    @Operation(
+            summary = "Gets a Process Group within a Connector for download",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = String.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /connectors/{uuid}"),
+                    @SecurityRequirement(name = "Write - /connectors/{uuid} - Only required when includeComponentState is true")
+            },
+            description = "Returns a flow definition for the specified Process Group within the Connector's managed flow. "
+                    + "Available regardless of whether the Connector is in Troubleshooting mode."
+    )
+    public Response exportConnectorProcessGroup(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId,
+            @Parameter(description = "The process group id.", required = true)
+            @PathParam("processGroupId") final String processGroupId,
+            @Parameter(description = "Whether referenced services from outside the target group should be included")
+            @QueryParam("includeReferencedServices")
+            @DefaultValue("false") final boolean includeReferencedServices,
+            @Parameter(description = "Whether component state should be included. Requires all processors to be stopped and all controller services to be disabled.")
+            @QueryParam("includeComponentState")
+            @DefaultValue("false") final boolean includeComponentState) {
+
+        if (includeComponentState && isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final RequestAction requiredAction = includeComponentState ? RequestAction.WRITE : RequestAction.READ;
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, requiredAction, NiFiUserUtils.getNiFiUser());
+        });
+
+        final RegisteredFlowSnapshot flowSnapshot = serviceFacade.getConnectorCurrentFlowSnapshot(
+                connectorId, processGroupId, includeReferencedServices, includeComponentState);
+        final String filename = flowSnapshot.getFlowContents().getName().replaceAll("\\s", "_") + ".json";
+
+        return generateOkResponse(flowSnapshot)
+                .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", filename))
+                .build();
+    }
+
+    /**
      * Gets the status history for a Process Group inside the Connector's managed flow. The status history is available
      * regardless of whether the Connector is in Troubleshooting mode.
      *

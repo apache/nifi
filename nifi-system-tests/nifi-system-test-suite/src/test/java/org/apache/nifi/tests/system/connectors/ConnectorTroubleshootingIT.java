@@ -290,6 +290,37 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
     }
 
     /**
+     * Verifies Connector-scoped flow definition export outside Troubleshooting for the managed root and a child
+     * Process Group.
+     */
+    @Test
+    public void testExportProcessGroupOutsideTroubleshooting() throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorEntity connector = getClientUtil().createConnector("ComponentLifecycleConnector");
+        final String connectorId = connector.getId();
+
+        getClientUtil().applyConnectorUpdate(connector);
+        getClientUtil().waitForValidConnector(connectorId);
+        assertConnectorState(connectorId, ConnectorState.STOPPED);
+
+        final String managedGroupId = getNifiClient().getConnectorClient().getConnector(connectorId).getComponent().getManagedProcessGroupId();
+        final String childGroupId = findFirstChildProcessGroupId(connectorId);
+        assertNotNull(childGroupId, "Managed flow should contain a child Process Group");
+
+        final File managedGroupExport = Files.createTempFile("connector-managed-group-", ".json").toFile();
+        final File childGroupExport = Files.createTempFile("connector-child-group-", ".json").toFile();
+        try {
+            getNifiClient().getConnectorClient().exportProcessGroup(connectorId, managedGroupId, false, managedGroupExport);
+            getNifiClient().getConnectorClient().exportProcessGroup(connectorId, childGroupId, true, childGroupExport);
+
+            assertTrue(managedGroupExport.length() > 0);
+            assertTrue(childGroupExport.length() > 0);
+        } finally {
+            Files.deleteIfExists(managedGroupExport.toPath());
+            Files.deleteIfExists(childGroupExport.toPath());
+        }
+    }
+
+    /**
      * Stop a connector, enter Troubleshooting, start processors inside the managed flow, restart NiFi, and ensure the
      * processors are still running and the Connector remains in Troubleshooting.
      */

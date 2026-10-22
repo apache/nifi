@@ -53,6 +53,7 @@ import {
 import { selectParentProcessGroupId } from '../../state/connector-canvas/connector-canvas.selectors';
 import {
     deselectAllComponents,
+    downloadFlow,
     enterProcessGroup,
     leaveProcessGroup,
     loadConnectorFlow,
@@ -290,6 +291,7 @@ interface SetupOptions {
     connectedToCluster?: boolean;
     contentViewerUrl?: string | null;
     connections?: ReturnType<typeof makeConnection>[];
+    connectorCanRead?: boolean;
 }
 
 const DEFAULT_CONNECTOR_ID = 'connector-1';
@@ -348,7 +350,29 @@ function buildMockSelectors(options: SetupOptions = {}) {
         { selector: selectUrl, value: url },
         { selector: selectRouteParams, value: routeParamsValue },
         { selector: selectCurrentUser, value: buildMockCurrentUser(canAccessProvenance) },
-        { selector: selectConnectorCanvasEntity, value: null },
+        {
+            selector: selectConnectorCanvasEntity,
+            value:
+                options.connectorCanRead === undefined
+                    ? null
+                    : {
+                          id: DEFAULT_CONNECTOR_ID,
+                          uri: `/connectors/${DEFAULT_CONNECTOR_ID}`,
+                          revision: { version: 1 },
+                          permissions: { canRead: options.connectorCanRead, canWrite: false },
+                          bulletins: [],
+                          status: {} as never,
+                          component: {
+                              id: DEFAULT_CONNECTOR_ID,
+                              name: 'Connector',
+                              type: 'type',
+                              state: 'STOPPED',
+                              bundle: { group: 'group', artifact: 'artifact', version: '1' },
+                              availableActions: [],
+                              managedProcessGroupId: DEFAULT_PROCESS_GROUP_ID
+                          }
+                      }
+        },
         { selector: selectConnectorCanvasEntitySaving, value: false },
         { selector: selectConnectorProvenanceEvents, value: options.provenanceEvents ?? [] },
         { selector: selectConnectorProvenanceStatus, value: options.provenanceStatus ?? 'pending' },
@@ -1086,6 +1110,17 @@ describe('ConnectorCanvasComponent', () => {
                 expect(result).toBeUndefined();
             });
 
+            it('should return download menu variants', () => {
+                const { component } = setup();
+                const menu = component.contextMenuProvider.getMenu('download');
+
+                expect(menu).toBeDefined();
+                expect(menu!.menuItems.map((item) => item.text)).toEqual([
+                    'Without External Services',
+                    'With External Services'
+                ]);
+            });
+
             it('should return canvas menu with Refresh, Leave Group, and Empty All Queues when targetType is canvas', fakeAsync(() => {
                 const { fixture, component } = setup({ parentProcessGroupId: 'parent-pg' });
                 fixture.detectChanges();
@@ -1101,6 +1136,7 @@ describe('ConnectorCanvasComponent', () => {
                     'Refresh',
                     'Leave Group',
                     'Controller Services',
+                    'Download Flow Definition',
                     'Empty All Queues',
                     'Drain',
                     'Cancel Drain'
@@ -1127,6 +1163,7 @@ describe('ConnectorCanvasComponent', () => {
                     'Empty Queue',
                     'Empty All Queues',
                     'Controller Services',
+                    'Download Flow Definition',
                     'Center In View'
                 ]);
             }));
@@ -1137,6 +1174,106 @@ describe('ConnectorCanvasComponent', () => {
                 expect(menu).toBeDefined();
                 expect(menu!.menuItems).toEqual([]);
             });
+        });
+
+        describe('download menu', () => {
+            it('should show Download Flow Definition on the canvas when the Connector is readable', fakeAsync(() => {
+                const { fixture, component } = setup({ connectorCanRead: true });
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const download = menu.menuItems.find((item) => item.text === 'Download Flow Definition');
+
+                expect(download).toBeDefined();
+                expect(download!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide Download Flow Definition when the Connector is not readable', fakeAsync(() => {
+                const { fixture, component } = setup({ connectorCanRead: false });
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const download = menu.menuItems.find((item) => item.text === 'Download Flow Definition');
+
+                expect(download).toBeDefined();
+                expect(download!.condition!(null)).toBe(false);
+            }));
+
+            it('should show Download Flow Definition for a single readable Process Group', fakeAsync(() => {
+                const { fixture, component } = setup({ connectorCanRead: true });
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-child'));
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const download = menu.menuItems.find((item) => item.text === 'Download Flow Definition');
+
+                expect(download).toBeDefined();
+                expect(download!.condition!(null)).toBe(true);
+            }));
+
+            it('should hide Download Flow Definition for an unreadable Process Group', fakeAsync(() => {
+                const { fixture, component } = setup({ connectorCanRead: true });
+                fixture.detectChanges();
+                tick();
+
+                component.onContextMenuOpened(
+                    buildComponentContext(ComponentType.ProcessGroup, 'pg-child', 1, {
+                        permissions: { canRead: false, canWrite: false }
+                    })
+                );
+                const menu = component.contextMenuProvider.getMenu('root')!;
+                const download = menu.menuItems.find((item) => item.text === 'Download Flow Definition');
+
+                expect(download).toBeDefined();
+                expect(download!.condition!(null)).toBe(false);
+            }));
+
+            it('should dispatch download for the current Process Group without external services', fakeAsync(() => {
+                const { fixture, component, dispatchSpy } = setup({ connectorCanRead: true });
+                fixture.detectChanges();
+                tick();
+                dispatchSpy.mockClear();
+
+                component.onContextMenuOpened(buildCanvasContext());
+                const menu = component.contextMenuProvider.getMenu('download')!;
+                menu.menuItems.find((item) => item.text === 'Without External Services')!.action!(null);
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    downloadFlow({
+                        request: {
+                            connectorId: DEFAULT_CONNECTOR_ID,
+                            processGroupId: DEFAULT_PROCESS_GROUP_ID,
+                            includeReferencedServices: false
+                        }
+                    })
+                );
+            }));
+
+            it('should dispatch download for the selected Process Group with external services', fakeAsync(() => {
+                const { fixture, component, dispatchSpy } = setup({ connectorCanRead: true });
+                fixture.detectChanges();
+                tick();
+                dispatchSpy.mockClear();
+
+                component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-child'));
+                const menu = component.contextMenuProvider.getMenu('download')!;
+                menu.menuItems.find((item) => item.text === 'With External Services')!.action!(null);
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    downloadFlow({
+                        request: {
+                            connectorId: DEFAULT_CONNECTOR_ID,
+                            processGroupId: 'pg-child',
+                            includeReferencedServices: true
+                        }
+                    })
+                );
+            }));
         });
 
         describe('canvas menu conditions', () => {
