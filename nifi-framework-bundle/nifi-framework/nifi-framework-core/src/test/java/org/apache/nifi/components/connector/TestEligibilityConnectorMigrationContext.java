@@ -23,6 +23,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -58,7 +59,7 @@ public class TestEligibilityConnectorMigrationContext {
         // The underlying StandardFrameworkConnectorMigrationContext wraps the active flow context in a
         // MigrationFlowContext so any updateFlow() call from the eligibility path throws as well; the eligibility
         // wrapper just propagates that read-only handle.
-        assertTrue(eligibilityContext.getActiveFlowContext() instanceof MigrationFlowContext,
+        assertInstanceOf(MigrationFlowContext.class, eligibilityContext.getActiveFlowContext(),
                 "Eligibility context must propagate the read-only MigrationFlowContext returned by the underlying migration context");
         assertSame(sourceAssetManager, eligibilityContext.getSourceAssetManager());
         assertSame(connectorRepository, eligibilityContext.getConnectorRepository());

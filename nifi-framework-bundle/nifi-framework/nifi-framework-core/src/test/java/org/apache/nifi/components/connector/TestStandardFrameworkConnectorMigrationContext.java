@@ -39,6 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -344,8 +345,7 @@ public class TestStandardFrameworkConnectorMigrationContext {
 
         final FrameworkFlowContext active = context.getActiveFlowContext();
         assertNotNull(active);
-        assertTrue(active instanceof MigrationFlowContext,
-                "getActiveFlowContext() must return the read-only MigrationFlowContext wrapper");
+        assertInstanceOf(MigrationFlowContext.class, active, "getActiveFlowContext() must return the read-only MigrationFlowContext wrapper");
     }
 
     private StandardFrameworkConnectorMigrationContext createContext(final boolean localMigration) {
