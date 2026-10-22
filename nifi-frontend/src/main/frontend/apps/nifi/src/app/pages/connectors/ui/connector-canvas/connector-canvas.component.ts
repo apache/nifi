@@ -366,10 +366,8 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
         };
     }
 
-    // Data ready signal for canvas - true when flow data is successfully loaded
-    dataReady$: Observable<boolean> = this.store
-        .select(ConnectorCanvasSelectors.selectLoadingStatus)
-        .pipe(map((status) => status === 'success'));
+    // Once loaded, data remains ready while same-canvas refreshes run or fail.
+    dataReady$: Observable<boolean> = this.store.select(ConnectorCanvasSelectors.selectHasLoadedFlow);
 
     // Error state - true when flow load failed
     hasError$: Observable<boolean> = this.store
@@ -725,6 +723,7 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                         type: ComponentType.Connection,
                         uri: connection.uri,
                         entity: event.bends ? { ...connection, bends: event.bends } : connection,
+                        revision: this.withLocalClientId(event.revision),
                         newDestination: {
                             type: destinationType,
                             groupId: event.newDestination.id,

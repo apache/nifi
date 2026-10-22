@@ -103,6 +103,7 @@ import {
     selectConnectorId,
     selectConnectorIdFromRoute,
     selectConnectorParameterContext,
+    selectHasLoadedFlow,
     selectLoadingStatus,
     selectMaxConnectionZIndex,
     selectParentProcessGroupId,
@@ -125,7 +126,8 @@ describe('ConnectorCanvasEffects', () => {
             processGroupId?: string | null;
             processGroupIdFromRoute?: string | null;
             documentVisibility?: DocumentVisibility;
-            loadingStatus?: 'pending' | 'loading' | 'success' | 'error';
+            loadingStatus?: 'pending' | 'loading' | 'success' | 'refresh-error' | 'error';
+            hasLoadedFlow?: boolean;
             parameterContext?: ParameterContextEntity | null;
             parameterContextResponse?: ParameterContextEntity | null;
             parameterContextError?: unknown;
@@ -212,6 +214,7 @@ describe('ConnectorCanvasEffects', () => {
                         { selector: selectSaving, value: false },
                         { selector: selectMaxConnectionZIndex, value: 4 },
                         { selector: selectLoadingStatus, value: loadingStatus },
+                        { selector: selectHasLoadedFlow, value: options.hasLoadedFlow ?? false },
                         {
                             selector: selectDocumentVisibilityState,
                             value: { documentVisibility, changedTimestamp: 0 }
@@ -651,7 +654,37 @@ describe('ConnectorCanvasEffects', () => {
                     errorContext: {
                         errors: ['Error message'],
                         context: ErrorContextKey.CONNECTORS
-                    }
+                    },
+                    isRefresh: false
+                })
+            );
+        });
+
+        it('should dispatch a recoverable failure and banner when a refresh fails', async () => {
+            const { effects, actions$, mockConnectorService } = await setup({ hasLoadedFlow: true });
+            const errorResponse = new HttpErrorResponse({ error: 'Failed', status: 503, statusText: 'Unavailable' });
+            (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(throwError(() => errorResponse));
+            actions$(
+                of(
+                    loadConnectorFlow({
+                        connectorId: 'conn-a',
+                        processGroupId: 'pg-in'
+                    })
+                )
+            );
+
+            const emitted = await firstValueFrom(effects.loadConnectorFlow$.pipe(toArray()));
+
+            expect(emitted[0]).toEqual(
+                expect.objectContaining({
+                    type: loadConnectorFlowFailure.type,
+                    isRefresh: true
+                })
+            );
+            expect(emitted[1]).toEqual(
+                expect.objectContaining({
+                    type: ErrorActions.addBannerError.type,
+                    errorContext: expect.objectContaining({ context: ErrorContextKey.CONNECTOR_CANVAS })
                 })
             );
         });

@@ -273,7 +273,8 @@ class MockContextErrorBanner {
 class MockBlockingDialogComponent {}
 
 interface SetupOptions {
-    loadingStatus?: 'pending' | 'loading' | 'success' | 'error';
+    loadingStatus?: 'pending' | 'loading' | 'success' | 'refresh-error' | 'error';
+    hasLoadedFlow?: boolean;
     connectorId?: string | null;
     processGroupId?: string | null;
     url?: string;
@@ -336,6 +337,10 @@ function buildMockSelectors(options: SetupOptions = {}) {
         { selector: ConnectorCanvasSelectors.selectConnections, value: options.connections ?? [] },
         { selector: ConnectorCanvasSelectors.selectRegistryClients, value: [] },
         { selector: ConnectorCanvasSelectors.selectLoadingStatus, value: loadingStatus },
+        {
+            selector: ConnectorCanvasSelectors.selectHasLoadedFlow,
+            value: options.hasLoadedFlow ?? loadingStatus === 'success'
+        },
         { selector: ConnectorCanvasSelectors.selectSkipTransform, value: skipTransform },
         { selector: ConnectorCanvasSelectors.selectConnectorIdFromRoute, value: connectorId },
         { selector: ConnectorCanvasSelectors.selectProcessGroupIdFromRoute, value: processGroupId },
@@ -543,14 +548,14 @@ describe('ConnectorCanvasComponent', () => {
     });
 
     describe('Data ready state', () => {
-        it('should emit true when loading status is success', async () => {
-            const { component } = setup({ loadingStatus: 'success' });
+        it('should emit true after the flow has loaded', async () => {
+            const { component } = setup({ hasLoadedFlow: true });
             const ready = await firstValueFrom(component.dataReady$.pipe(take(1)));
             expect(ready).toBe(true);
         });
 
-        it('should emit false when loading status is error', async () => {
-            const { component } = setup({ loadingStatus: 'error' });
+        it('should emit false before the first successful load', async () => {
+            const { component } = setup({ hasLoadedFlow: false });
             const ready = await firstValueFrom(component.dataReady$.pipe(take(1)));
             expect(ready).toBe(false);
         });
@@ -575,6 +580,31 @@ describe('ConnectorCanvasComponent', () => {
 
             const notFound = fixture.nativeElement.querySelector('[data-qa="not-found-state"]');
             expect(notFound).not.toBeNull();
+        });
+
+        it('should keep the same canvas mounted through a refresh failure and recovery', () => {
+            const { fixture } = setup({ loadingStatus: 'success', hasLoadedFlow: true });
+            const store = TestBed.inject(MockStore);
+            fixture.detectChanges();
+            const initialCanvas = fixture.nativeElement.querySelector('reusable-canvas');
+            expect(initialCanvas).not.toBeNull();
+
+            store.overrideSelector(ConnectorCanvasSelectors.selectLoadingStatus, 'loading');
+            store.overrideSelector(ConnectorCanvasSelectors.selectHasLoadedFlow, true);
+            store.refreshState();
+            fixture.detectChanges();
+            expect(fixture.nativeElement.querySelector('reusable-canvas')).toBe(initialCanvas);
+
+            store.overrideSelector(ConnectorCanvasSelectors.selectLoadingStatus, 'refresh-error');
+            store.refreshState();
+            fixture.detectChanges();
+            expect(fixture.nativeElement.querySelector('reusable-canvas')).toBe(initialCanvas);
+            expect(fixture.nativeElement.querySelector('[data-qa="not-found-state"]')).toBeNull();
+
+            store.overrideSelector(ConnectorCanvasSelectors.selectLoadingStatus, 'success');
+            store.refreshState();
+            fixture.detectChanges();
+            expect(fixture.nativeElement.querySelector('reusable-canvas')).toBe(initialCanvas);
         });
     });
 
@@ -2778,9 +2808,10 @@ describe('ConnectorCanvasComponent', () => {
         });
 
         it('opens the reconnect dialog for a process group and keeps the direct update for a processor', () => {
-            const connection = makeConnection('conn-1');
+            const connection = makeConnection('conn-1', { revision: { version: 4 } });
             const { component, dispatchSpy } = setup({ connections: [connection] });
             component.currentProcessGroupId = 'pg-root';
+            const clientId = TestBed.inject(Client).getClientId();
             dispatchSpy.mockClear();
 
             component.onConnectionDestinationChangeRequested({
@@ -2801,6 +2832,7 @@ describe('ConnectorCanvasComponent', () => {
                         type: ComponentType.Connection,
                         uri: connection.uri,
                         entity: connection,
+                        revision: { version: 3, clientId },
                         newDestination: {
                             type: ComponentType.ProcessGroup,
                             groupId: 'pg-child',
@@ -2827,7 +2859,7 @@ describe('ConnectorCanvasComponent', () => {
                 updateConnectionDestination({
                     processGroupId: 'pg-root',
                     connectionId: 'conn-1',
-                    revision: { version: 3, clientId: TestBed.inject(Client).getClientId() },
+                    revision: { version: 3, clientId },
                     newDestination: {
                         id: 'proc-2',
                         componentType: ComponentType.Processor,
@@ -2863,6 +2895,7 @@ describe('ConnectorCanvasComponent', () => {
                         type: ComponentType.Connection,
                         uri: connection.uri,
                         entity: connection,
+                        revision: { version: 3, clientId: TestBed.inject(Client).getClientId() },
                         newDestination: {
                             type: ComponentType.RemoteProcessGroup,
                             groupId: 'rpg-1',

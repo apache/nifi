@@ -390,7 +390,7 @@ export class EditConnectionComponent extends TabbedDialog {
         const d: any = this.dialogRequest.entity;
 
         const payload: any = {
-            revision: this.client.getRevision(d),
+            revision: this.dialogRequest.revision ?? this.client.getRevision(d),
             component: {
                 id: d.id,
                 backPressureDataSizeThreshold: this.editConnectionForm.get('backPressureDataSizeThreshold')?.value,

@@ -83,7 +83,7 @@ export const loadConnectorFlowSuccess = createAction(
 
 export const loadConnectorFlowFailure = createAction(
     '[Connector Canvas] Load Connector Flow Failure',
-    props<{ errorContext: ErrorContext }>()
+    props<{ errorContext: ErrorContext; isRefresh: boolean }>()
 );
 
 export const loadConnectorFlowComplete = createAction('[Connector Canvas] Load Connector Flow Complete');

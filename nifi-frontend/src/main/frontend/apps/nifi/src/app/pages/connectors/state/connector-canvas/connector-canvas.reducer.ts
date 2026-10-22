@@ -91,6 +91,7 @@ export const connectorCanvasReducer = createReducer(
                   connections: [],
                   addedCache: [],
                   removedCache: [],
+                  hasLoadedFlow: false,
                   parameterContext: null
               }
             : {})
@@ -118,50 +119,84 @@ export const connectorCanvasReducer = createReducer(
                 processors,
                 connections
             }
-        ) => ({
-            ...state,
-            connectorId,
-            processGroupId,
-            parentProcessGroupId,
-            breadcrumb,
-            labels: processComponentCollection(labels, state.labels, state.addedCache, state.removedCache),
-            funnels: processComponentCollection(funnels, state.funnels, state.addedCache, state.removedCache),
-            inputPorts: processComponentCollection(inputPorts, state.inputPorts, state.addedCache, state.removedCache),
-            outputPorts: processComponentCollection(
-                outputPorts,
-                state.outputPorts,
-                state.addedCache,
-                state.removedCache
-            ),
-            remoteProcessGroups: processComponentCollection(
-                remoteProcessGroups,
-                state.remoteProcessGroups,
-                state.addedCache,
-                state.removedCache
-            ),
-            processGroups: processComponentCollection(
-                processGroups,
-                state.processGroups,
-                state.addedCache,
-                state.removedCache
-            ),
-            processors: processComponentCollection(processors, state.processors, state.addedCache, state.removedCache),
-            connections: processComponentCollection(
-                connections,
-                state.connections,
-                state.addedCache,
-                state.removedCache
-            ),
-            addedCache: [],
-            removedCache: [],
-            loadingStatus: 'success' as const,
-            error: null
-        })
+        ) => {
+            const snapshotIds = new Set(
+                [
+                    ...labels,
+                    ...funnels,
+                    ...inputPorts,
+                    ...outputPorts,
+                    ...remoteProcessGroups,
+                    ...processGroups,
+                    ...processors,
+                    ...connections
+                ].map((entity) => entity.id)
+            );
+            const snapshotIdsOrConnectionEndpoints = new Set([
+                ...snapshotIds,
+                ...connections.flatMap((connection) => [connection.sourceId, connection.destinationId])
+            ]);
+            const reconciledConnections = connections.filter(
+                (connection) =>
+                    !state.removedCache.includes(connection.sourceId) &&
+                    !state.removedCache.includes(connection.destinationId)
+            );
+            return {
+                ...state,
+                connectorId,
+                processGroupId,
+                parentProcessGroupId,
+                breadcrumb,
+                labels: processComponentCollection(labels, state.labels, state.addedCache, state.removedCache),
+                funnels: processComponentCollection(funnels, state.funnels, state.addedCache, state.removedCache),
+                inputPorts: processComponentCollection(
+                    inputPorts,
+                    state.inputPorts,
+                    state.addedCache,
+                    state.removedCache
+                ),
+                outputPorts: processComponentCollection(
+                    outputPorts,
+                    state.outputPorts,
+                    state.addedCache,
+                    state.removedCache
+                ),
+                remoteProcessGroups: processComponentCollection(
+                    remoteProcessGroups,
+                    state.remoteProcessGroups,
+                    state.addedCache,
+                    state.removedCache
+                ),
+                processGroups: processComponentCollection(
+                    processGroups,
+                    state.processGroups,
+                    state.addedCache,
+                    state.removedCache
+                ),
+                processors: processComponentCollection(
+                    processors,
+                    state.processors,
+                    state.addedCache,
+                    state.removedCache
+                ),
+                connections: processComponentCollection(
+                    reconciledConnections,
+                    state.connections,
+                    state.addedCache,
+                    state.removedCache
+                ),
+                addedCache: state.addedCache.filter((id) => !snapshotIds.has(id)),
+                removedCache: state.removedCache.filter((id) => snapshotIdsOrConnectionEndpoints.has(id)),
+                hasLoadedFlow: true,
+                loadingStatus: 'success' as const,
+                error: null
+            };
+        }
     ),
 
-    on(ConnectorCanvasActions.loadConnectorFlowFailure, (state, { errorContext }) => ({
+    on(ConnectorCanvasActions.loadConnectorFlowFailure, (state, { errorContext, isRefresh }) => ({
         ...state,
-        loadingStatus: 'error' as const,
+        loadingStatus: isRefresh ? ('refresh-error' as const) : ('error' as const),
         error: errorContext.errors.join(', ')
     })),
 

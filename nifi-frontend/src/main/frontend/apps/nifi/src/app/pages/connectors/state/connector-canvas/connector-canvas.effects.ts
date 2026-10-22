@@ -87,6 +87,7 @@ import {
     selectConnections,
     selectConnectorId,
     selectConnectorIdFromRoute,
+    selectHasLoadedFlow,
     selectInputPort,
     selectLoadingStatus,
     selectMaxConnectionZIndex,
@@ -172,7 +173,8 @@ export class ConnectorCanvasEffects {
     loadConnectorFlow$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ConnectorCanvasActions.loadConnectorFlow),
-            switchMap((action) =>
+            concatLatestFrom(() => this.store.select(selectHasLoadedFlow)),
+            switchMap(([action, hasLoadedFlow]) =>
                 this.connectorService.getConnectorFlow(action.connectorId, action.processGroupId).pipe(
                     map((flowResponse) => {
                         const processGroupFlow = flowResponse.processGroupFlow;
@@ -211,14 +213,26 @@ export class ConnectorCanvasEffects {
                         });
                     }),
                     catchError((error) => {
-                        return of(
-                            ConnectorCanvasActions.loadConnectorFlowFailure({
-                                errorContext: {
-                                    errors: [this.errorHelper.getErrorString(error)],
-                                    context: ErrorContextKey.CONNECTORS
-                                }
-                            })
-                        );
+                        const message = this.errorHelper.getErrorString(error);
+                        const errorContext = {
+                            errors: [message],
+                            context: ErrorContextKey.CONNECTORS
+                        };
+                        const failure = ConnectorCanvasActions.loadConnectorFlowFailure({
+                            errorContext,
+                            isRefresh: hasLoadedFlow
+                        });
+                        return hasLoadedFlow
+                            ? from([
+                                  failure,
+                                  ErrorActions.addBannerError({
+                                      errorContext: {
+                                          errors: [message],
+                                          context: ErrorContextKey.CONNECTOR_CANVAS
+                                      }
+                                  })
+                              ])
+                            : of(failure);
                     })
                 )
             )

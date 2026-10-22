@@ -57,7 +57,8 @@ export interface ConnectorCanvasState {
     removedCache: string[];
     registryClients: RegistryClientEntity[];
     skipTransform: boolean;
-    loadingStatus: 'pending' | 'loading' | 'success' | 'error';
+    hasLoadedFlow: boolean;
+    loadingStatus: 'pending' | 'loading' | 'success' | 'refresh-error' | 'error';
     error: string | null;
     parameterContext: ParameterContextEntity | null;
     saving: boolean;
@@ -80,6 +81,7 @@ export const initialConnectorCanvasState: ConnectorCanvasState = {
     removedCache: [],
     registryClients: [],
     skipTransform: false,
+    hasLoadedFlow: false,
     loadingStatus: 'pending',
     error: null,
     parameterContext: null,

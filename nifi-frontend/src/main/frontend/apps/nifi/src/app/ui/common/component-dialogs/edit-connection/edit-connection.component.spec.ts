@@ -336,6 +336,32 @@ describe('EditConnectionComponent', () => {
             );
         });
 
+        it('should preserve an explicit gesture revision instead of the current entity revision', async () => {
+            const connection = createMockConnection();
+            const baseRequest = createMockDialogRequest(connection);
+            const dialogRequest: EditConnectionDialogRequest = {
+                ...baseRequest,
+                revision: { version: 3, clientId: 'local-client' },
+                entity: {
+                    ...baseRequest.entity,
+                    revision: { version: 4 }
+                }
+            };
+            const { component } = await setup({ dialogRequest });
+            const editSpy = vi.fn();
+            component.editConnection.subscribe(editSpy);
+
+            component.submitForm();
+
+            expect(editSpy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    payload: expect.objectContaining({
+                        revision: { version: 3, clientId: 'local-client' }
+                    })
+                })
+            );
+        });
+
         it('should include relationships for Processor source type', async () => {
             const connection = createMockConnection('PROCESSOR', 'OUTPUT_PORT', {
                 selectedRelationships: ['success']

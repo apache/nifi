@@ -29,6 +29,7 @@ import {
     Permissions,
     ResolvedExecutionEngine,
     Revision,
+    RevisionRequest,
     SelectOption
 } from '@nifi/shared';
 import { VersionControlInformation } from '../../ui/common/tooltips/version-control-tip/version-control-tip.component';
@@ -182,6 +183,7 @@ export interface EditRemotePortDialogRequest extends EditComponentDialogRequest 
 }
 
 export interface EditConnectionDialogRequest extends EditComponentDialogRequest {
+    revision?: RevisionRequest;
     newDestination?: {
         type: ComponentType | null;
         id?: string;
