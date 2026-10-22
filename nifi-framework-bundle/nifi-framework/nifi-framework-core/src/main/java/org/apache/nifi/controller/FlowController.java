@@ -3054,7 +3054,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     @Override
     public Set<String> getClusterMembers() {
-        if (isClustered()) {
+        if (configuredForClustering) {
             return clusterCoordinator.getConnectionStatuses().stream().map(s -> s.getNodeIdentifier().getApiAddress()).collect(Collectors.toSet());
         } else {
             return Collections.emptySet();

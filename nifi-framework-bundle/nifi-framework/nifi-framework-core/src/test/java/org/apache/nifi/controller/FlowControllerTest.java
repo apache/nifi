@@ -74,6 +74,7 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class FlowControllerTest {
@@ -81,6 +82,8 @@ class FlowControllerTest {
     private static final String CLUSTERED_NODE = "clustered-node";
     private static final String STANDALONE_NODE = "standalone-node";
     private static final String LOCALHOST = "localhost";
+    private static final String JOINING_NODE = "joining-node";
+    private static final String JOINING_HOST = "joining-host";
 
     private final List<FlowController> flowControllers = new ArrayList<>();
     private final AtomicInteger controllerCounter = new AtomicInteger();
@@ -121,6 +124,7 @@ class FlowControllerTest {
         flowController.setConnectionStatus(new NodeConnectionStatus(createNodeIdentifier(STANDALONE_NODE), org.apache.nifi.cluster.coordination.node.NodeConnectionState.CONNECTED));
 
         assertEquals(NodeConnectionState.STANDALONE, flowController.getNodeConnectionState());
+        assertEquals(Set.of(), flowController.getClusterMembers());
     }
 
     @Test
@@ -148,10 +152,16 @@ class FlowControllerTest {
     @Test
     void testProvideNodeConnectionStateDuringFlowSynchronization() throws Exception {
         final FlowController flowController = createClusteredFlowController();
-        flowController.setConnectionStatus(new NodeConnectionStatus(
+        final NodeConnectionStatus localNodeStatus = new NodeConnectionStatus(
                 createNodeIdentifier(CLUSTERED_NODE),
                 org.apache.nifi.cluster.coordination.node.NodeConnectionState.CONNECTING
-        ));
+        );
+        final NodeConnectionStatus joiningNodeStatus = new NodeConnectionStatus(
+                new NodeIdentifier(JOINING_NODE, JOINING_HOST, 8443, JOINING_HOST, 9090, JOINING_HOST, 10000, 10001, true),
+                org.apache.nifi.cluster.coordination.node.NodeConnectionState.CONNECTING
+        );
+        when(clusterCoordinator.getConnectionStatuses()).thenReturn(List.of(localNodeStatus, joiningNodeStatus));
+        flowController.setConnectionStatus(localNodeStatus);
 
         final ExecutorService lifecycleExecutor = Executors.newSingleThreadExecutor();
         final AtomicReference<Future<NodeConnectionState>> nodeStateFutureReference = new AtomicReference<>();
@@ -163,6 +173,7 @@ class FlowControllerTest {
 
                 try {
                     assertEquals(NodeConnectionState.CONNECTING, nodeStateFuture.get(5, TimeUnit.SECONDS));
+                    assertEquals(Set.of(LOCALHOST, JOINING_HOST), controller.getClusterMembers());
                 } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new AssertionFailedError("Interrupted while waiting for node connection state", e);
