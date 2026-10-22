@@ -35,14 +35,6 @@ export interface LoadExtensionTypesForSettingsResponse {
     parameterProviderTypes: DocumentedType[];
 }
 
-export interface LoadExtensionTypesForPoliciesResponse {
-    processorTypes: DocumentedType[];
-    controllerServiceTypes: DocumentedType[];
-    reportingTaskTypes: DocumentedType[];
-    flowAnalysisRuleTypes: DocumentedType[];
-    parameterProviderTypes: DocumentedType[];
-}
-
 export interface LoadExtensionTypesForDocumentationResponse {
     processorTypes: DocumentedType[];
     controllerServiceTypes: DocumentedType[];

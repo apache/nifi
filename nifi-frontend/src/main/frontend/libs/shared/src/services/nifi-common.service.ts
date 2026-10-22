@@ -74,11 +74,6 @@ export class NiFiCommon {
             description: 'Allows users to submit a Provenance Search and request Event Lineage'
         },
         {
-            text: 'access restricted components',
-            value: 'restricted-components',
-            description: 'Allows users to create/modify restricted components assuming other permissions are sufficient'
-        },
-        {
             text: 'access all policies',
             value: 'policies',
             description: 'Allows users to view/modify the policies for all components'
