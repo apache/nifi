@@ -1429,17 +1429,8 @@ public class MockProcessSession implements ProcessSession {
             return storedState;
         }
 
-        final Map<String, String> patchedValues = new HashMap<>(storedState.toMap());
-        for (final Map.Entry<String, String> entry : patches.entrySet()) {
-            if (entry.getValue() == null) {
-                patchedValues.remove(entry.getKey());
-            } else {
-                patchedValues.put(entry.getKey(), entry.getValue());
-            }
-        }
-
         final long version = storedState.getStateVersion().map(Long::parseLong).orElse(-1L);
-        return new MockStateMap(patchedValues, version);
+        return new MockStateMap(storedState.toMap(patches), version);
     }
 
     /**

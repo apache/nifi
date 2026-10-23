@@ -22,7 +22,6 @@ import org.apache.nifi.components.ConfigurableComponent;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -111,18 +110,9 @@ public interface StateProvider extends ConfigurableComponent {
         }
 
         StateMap currentState;
-        Map<String, String> patchedState;
         do {
             currentState = getState(componentId);
-            patchedState = new HashMap<>(currentState.toMap());
-            for (final Map.Entry<String, String> entry : updatedState.entrySet()) {
-                if (entry.getValue() == null) {
-                    patchedState.remove(entry.getKey());
-                } else {
-                    patchedState.put(entry.getKey(), entry.getValue());
-                }
-            }
-        } while (!replace(currentState, patchedState, componentId));
+        } while (!replace(currentState, currentState.toMap(updatedState), componentId));
     }
 
     /**
