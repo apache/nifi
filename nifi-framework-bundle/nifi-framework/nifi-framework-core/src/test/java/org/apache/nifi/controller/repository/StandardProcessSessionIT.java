@@ -41,6 +41,7 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
+import org.apache.nifi.controller.scheduling.SessionSchedulingObserver;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -234,7 +235,7 @@ public class StandardProcessSessionIT {
 
         context = new StandardRepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepository,
             counterRepository, componentMetricReporter, provenanceRepo, stateManager);
-        session = new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
+        session = new StandardProcessSession(context, () -> false, new NopPerformanceTracker(), SessionSchedulingObserver.NO_OP);
     }
 
     private Connection createConnection() {
@@ -338,7 +339,7 @@ public class StandardProcessSessionIT {
             children.add(child);
         }
 
-        final ProcessSession secondSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
+        final ProcessSession secondSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker(), SessionSchedulingObserver.NO_OP);
         assertThrows(FlowFileHandlingException.class, () -> session.migrate(secondSession, children),
                 "Expected a FlowFileHandlingException to be thrown because a child FlowFile was migrated while its parent was not");
 
@@ -373,7 +374,7 @@ public class StandardProcessSessionIT {
         FlowFile flowFile = session.get();
         assertNotNull(flowFile);
 
-        final ProcessSession secondSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
+        final ProcessSession secondSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker(), SessionSchedulingObserver.NO_OP);
 
         FlowFile clone = session.clone(flowFile);
         session.migrate(secondSession, Collections.singletonList(clone));
@@ -1667,7 +1668,7 @@ public class StandardProcessSessionIT {
         session.transfer(ffb, relationship);
         session.commit();
 
-        final ProcessSession newSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
+        final ProcessSession newSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker(), SessionSchedulingObserver.NO_OP);
         FlowFile toUpdate = newSession.get();
         newSession.append(toUpdate, out -> out.write('C'));
 
@@ -2211,7 +2212,7 @@ public class StandardProcessSessionIT {
         flowFile = session.append(flowFile, out -> out.write("1".getBytes()));
         flowFile = session.append(flowFile, out -> out.write("2".getBytes()));
 
-        final StandardProcessSession newSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
+        final StandardProcessSession newSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker(), SessionSchedulingObserver.NO_OP);
 
         assertTrue(session.isFlowFileKnown(flowFile));
         assertFalse(newSession.isFlowFileKnown(flowFile));
@@ -2241,7 +2242,7 @@ public class StandardProcessSessionIT {
         FlowFile flowFile = session.create();
         flowFile = session.write(flowFile, out -> out.write("contents".getBytes(StandardCharsets.UTF_8)));
 
-        final StandardProcessSession newSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
+        final StandardProcessSession newSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker(), SessionSchedulingObserver.NO_OP);
 
         // Simulate the framework path that wraps a Session through WeakHashMapProcessSessionFactory: the
         // Processor receives the wrapper, and other framework code that holds the underlying StandardProcessSession
@@ -2269,7 +2270,7 @@ public class StandardProcessSessionIT {
         FlowFile flowFile = session.create();
         flowFile = session.write(flowFile, out -> out.write("Hello".getBytes(StandardCharsets.UTF_8)));
 
-        final StandardProcessSession newSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
+        final StandardProcessSession newSession = new StandardProcessSession(context, () -> false, new NopPerformanceTracker(), SessionSchedulingObserver.NO_OP);
 
         when(connectable.getConnections(any(Relationship.class))).thenReturn(Collections.emptySet());
         when(connectable.isAutoTerminated(any(Relationship.class))).thenReturn(true);
@@ -2388,7 +2389,7 @@ public class StandardProcessSessionIT {
 
         final StandardRepositoryContext lossTolerantContext = new StandardRepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo,
             flowFileEventRepository, counterRepository, componentMetricReporter, provenanceRepo, stateManager);
-        final StandardProcessSession lossTolerantSession = new StandardProcessSession(lossTolerantContext, () -> false, new NopPerformanceTracker());
+        final StandardProcessSession lossTolerantSession = new StandardProcessSession(lossTolerantContext, () -> false, new NopPerformanceTracker(), SessionSchedulingObserver.NO_OP);
 
         try {
             FlowFile flowFile = lossTolerantSession.create();
@@ -3188,7 +3189,7 @@ public class StandardProcessSessionIT {
                 componentMetricReporter,
                 provenanceRepo,
                 stateManager);
-        return new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
+        return new StandardProcessSession(context, () -> false, new NopPerformanceTracker(), SessionSchedulingObserver.NO_OP);
 
     }
 

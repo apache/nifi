@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.annotation.behavior.AllowsAutoScheduling;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.components.validation.VerifiableComponentFactory;
@@ -25,6 +26,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.NoOpProcessor;
 import org.junit.jupiter.api.Test;
 
@@ -95,10 +97,61 @@ class StandardProcessorNodeTest {
         assertFalse(virtualThread.isAlive());
     }
 
+    @Test
+    void testAutoSchedulingCapability() {
+        final ProcessScheduler processScheduler = mock(ProcessScheduler.class);
+
+        assertTrue(createProcessorNode(new NoOpProcessor(), processScheduler).isAutoSchedulingSupported());
+        assertFalse(createProcessorNode(new AutoSchedulingDisabledProcessor(), processScheduler).isAutoSchedulingSupported());
+        assertFalse(createProcessorNode(new InheritedAutoSchedulingDisabledProcessor(), processScheduler).isAutoSchedulingSupported());
+        assertTrue(createProcessorNode(new AutoSchedulingEnabledProcessor(), processScheduler).isAutoSchedulingSupported());
+    }
+
+    @Test
+    void testAutoSchedulingConfigurationIsCanonical() {
+        final StandardProcessorNode processorNode = createProcessorNode(new NoOpProcessor(), mock(ProcessScheduler.class));
+        processorNode.setMaxConcurrentTasks(4);
+        processorNode.setSchedulingPeriod("10 sec");
+        processorNode.setRunDuration(10L, TimeUnit.MILLISECONDS);
+
+        processorNode.setSchedulingStrategy(SchedulingStrategy.AUTO);
+        assertEquals(1, processorNode.getMaxConcurrentTasks());
+        assertEquals("0 sec", processorNode.getSchedulingPeriod());
+        assertEquals(1L, processorNode.getSchedulingPeriod(TimeUnit.NANOSECONDS));
+        assertEquals(0L, processorNode.getRunDuration(TimeUnit.MILLISECONDS));
+
+        processorNode.setMaxConcurrentTasks(8);
+        processorNode.setSchedulingPeriod("20 sec");
+        processorNode.setRunDuration(20L, TimeUnit.MILLISECONDS);
+        assertEquals(1, processorNode.getMaxConcurrentTasks());
+        assertEquals("0 sec", processorNode.getSchedulingPeriod());
+        assertEquals(1L, processorNode.getSchedulingPeriod(TimeUnit.NANOSECONDS));
+        assertEquals(0L, processorNode.getRunDuration(TimeUnit.MILLISECONDS));
+
+        processorNode.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
+        processorNode.setMaxConcurrentTasks(8);
+        processorNode.setSchedulingPeriod("20 sec");
+        processorNode.setRunDuration(20L, TimeUnit.MILLISECONDS);
+        assertEquals(8, processorNode.getMaxConcurrentTasks());
+        assertEquals("20 sec", processorNode.getSchedulingPeriod());
+        assertEquals(20L, processorNode.getRunDuration(TimeUnit.MILLISECONDS));
+    }
+
     private StandardProcessorNode createProcessorNode(final Processor processor, final ProcessScheduler processScheduler) {
         final LoggableComponent<Processor> loggableProcessor = new LoggableComponent<>(processor, BundleCoordinate.UNKNOWN_COORDINATE, null);
         return new StandardProcessorNode(loggableProcessor, "processor", mock(ValidationContextFactory.class), processScheduler,
                 mock(ControllerServiceProvider.class), mock(ReloadComponent.class), mock(VerifiableComponentFactory.class),
                 mock(ExtensionManager.class), mock(ValidationTrigger.class));
+    }
+
+    @AllowsAutoScheduling(false)
+    private static class AutoSchedulingDisabledProcessor extends NoOpProcessor {
+    }
+
+    private static class InheritedAutoSchedulingDisabledProcessor extends AutoSchedulingDisabledProcessor {
+    }
+
+    @AllowsAutoScheduling
+    private static class AutoSchedulingEnabledProcessor extends AutoSchedulingDisabledProcessor {
     }
 }

@@ -61,6 +61,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
     private final ConcurrentMap<String, ListFlowFileRequest> listRequestMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, DropFlowFileRequest> dropRequestMap = new ConcurrentHashMap<>();
+    private final Set<QueueSchedulingListener> schedulingListeners = ConcurrentHashMap.newKeySet();
 
     private LoadBalanceStrategy loadBalanceStrategy = LoadBalanceStrategy.DO_NOT_LOAD_BALANCE;
     private String partitioningAttribute = null;
@@ -86,6 +87,22 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
     protected ProcessScheduler getScheduler() {
         return scheduler;
+    }
+
+    @Override
+    public QueueSchedulingRegistration addSchedulingListener(final QueueSchedulingListener listener) {
+        schedulingListeners.add(listener);
+        return () -> schedulingListeners.remove(listener);
+    }
+
+    protected void notifySchedulingListeners() {
+        for (final QueueSchedulingListener listener : schedulingListeners) {
+            try {
+                listener.onQueueStateChanged();
+            } catch (final Throwable listenerFailure) {
+                logger.warn("Queue scheduling listener failed for {}", identifier, listenerFailure);
+            }
+        }
     }
 
     @Override
@@ -116,6 +133,8 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
             final MaxQueueSize updatedSize = new MaxQueueSize(maxSize.getMaxSize(), maxSize.getMaxBytes(), threshold);
             updated = maxQueueSize.compareAndSet(maxSize, updatedSize);
         }
+
+        notifySchedulingListeners();
     }
 
     @Override
@@ -133,6 +152,8 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
             final MaxQueueSize updatedSize = new MaxQueueSize(maxDataSize, maxBytes, maxSize.getMaxCount());
             updated = maxQueueSize.compareAndSet(maxSize, updatedSize);
         }
+
+        notifySchedulingListeners();
     }
 
     @Override

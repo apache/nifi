@@ -54,8 +54,10 @@ public class StandardComponentContextProvider implements ComponentContextProvide
         final StateManager stateManager = flowController.getStateManagerProvider().getStateManager(processorNode.getIdentifier());
         final TaskTermination taskTermination = () -> false;
         final Map<String, String> serviceReferencedProperties = resolveServiceReferences(processorNode, processorNode.getProcessGroup(), propertiesOverride);
-        return new StandardProcessContext(processorNode, serviceReferencedProperties, null, parameterLookup,
-            flowController.getControllerServiceProvider(), stateManager, taskTermination, flowController);
+        return StandardProcessContext.createBuilder(processorNode, flowController.getControllerServiceProvider(), stateManager, taskTermination, flowController)
+                .setPropertyOverrides(serviceReferencedProperties, parameterLookup)
+                .setAnnotationData(null)
+                .build();
     }
 
     @Override

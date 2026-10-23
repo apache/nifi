@@ -38,6 +38,8 @@ import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContex
 import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
+import org.apache.nifi.controller.scheduling.SessionSchedulingObserver;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.nar.NarCloseable;
@@ -66,9 +68,9 @@ public class ConnectableTask {
 
     private static final Logger logger = LoggerFactory.getLogger(ConnectableTask.class);
     private static final BooleanSupplier SCHEDULING_GENERATION_ALWAYS_ACTIVE = () -> true;
-    private static final InvocationResult NOT_PRIMARY_NODE_YIELD_RESULT = InvocationResult.yield("This node is not the primary node");
-    private static final InvocationResult NO_WORK_YIELD_RESULT = InvocationResult.yield("No work to do");
-    private static final InvocationResult BACKPRESSURE_YIELD_RESULT = InvocationResult.yield("Backpressure Applied");
+    private static final InvocationResult NOT_PRIMARY_NODE_YIELD_RESULT = InvocationResult.yield(InvocationOutcome.NOT_PRIMARY, "This node is not the primary node");
+    private static final InvocationResult NO_WORK_YIELD_RESULT = InvocationResult.yield(InvocationOutcome.NO_INPUT, "No work to do");
+    private static final InvocationResult BACKPRESSURE_YIELD_RESULT = InvocationResult.yield(InvocationOutcome.BACKPRESSURED, "Backpressure Applied");
 
     private final SchedulingAgent schedulingAgent;
     private final Connectable connectable;
@@ -105,8 +107,10 @@ public class ConnectableTask {
         }
         final StateManager stateManager = new TaskTerminationAwareStateManager(baseStateManager, lifecycleState::isTerminated);
         if (connectable instanceof final ProcessorNode processorNode) {
-            processContext = new StandardProcessContext(
-                    processorNode, flowController.getControllerServiceProvider(), stateManager, lifecycleState::isTerminated, flowController);
+            processContext = StandardProcessContext.createBuilder(
+                            processorNode, flowController.getControllerServiceProvider(), stateManager, lifecycleState::isTerminated, flowController)
+                    .setMaxConcurrentTasks(schedulingAgent.getProcessContextConcurrencyLimit(connectable))
+                    .build();
         } else {
             processContext = new ConnectableProcessContext(connectable, stateManager);
         }
@@ -172,16 +176,53 @@ public class ConnectableTask {
         return false;
     }
 
-    public InvocationResult invoke() {
-        if (lifecycleState.isTerminated()) {
-            logger.debug("Will not trigger {} because task is terminated", connectable);
-            return InvocationResult.DO_NOT_YIELD;
+    private boolean isInputPenalized() {
+        for (final Connection connection : connectable.getIncomingConnections()) {
+            if (connection.getFlowFileQueue().getFlowFileAvailability() == FlowFileAvailability.HEAD_OF_QUEUE_PENALIZED) {
+                return true;
+            }
         }
 
-        // make sure processor is not yielded
+        return false;
+    }
+
+    public InvocationResult invoke() {
+        return invoke(connectable.getRunDuration(TimeUnit.NANOSECONDS), () -> true, InvocationObserver.NO_OP);
+    }
+
+    public InvocationResult invoke(final long effectiveRunDurationNanos, final BooleanSupplier continueRunning, final InvocationObserver observer) {
+        final InvocationResult result = invokeInternal(effectiveRunDurationNanos, continueRunning, observer);
+        try {
+            observer.onInvocationCompleted(result);
+        } catch (final Throwable observerFailure) {
+            logger.warn("Invocation observer failed after invoking {}", connectable, observerFailure);
+        }
+
+        return result;
+    }
+
+    public boolean isReady() {
+        return getReadinessResult() == null;
+    }
+
+    public InvocationOutcome getReadinessOutcome() {
+        final InvocationResult readinessResult = getReadinessResult();
+        return readinessResult == null ? null : readinessResult.getOutcome();
+    }
+
+    public boolean hasLocallyConsumableInput() {
+        return Connectables.flowFilesQueued(connectable);
+    }
+
+    private InvocationResult getReadinessResult() {
+        if (lifecycleState.isTerminated()) {
+            logger.debug("Will not trigger {} because task is terminated", connectable);
+            return InvocationResult.completed(InvocationOutcome.STOPPED);
+        }
+
         if (isYielded()) {
             logger.debug("Will not trigger {} because component is yielded", connectable);
-            return InvocationResult.DO_NOT_YIELD;
+            return InvocationResult.completed(InvocationOutcome.YIELDED);
         }
 
         // make sure that either we're not clustered or this processor runs on all nodes or that this is the primary node
@@ -200,6 +241,9 @@ public class ConnectableTask {
         // Make sure processor has work to do.
         if (!isWorkToDo()) {
             logger.debug("Yielding {} because it has no work to do", connectable);
+            if (isInputPenalized()) {
+                return InvocationResult.yield(InvocationOutcome.PENALIZED_INPUT, "Input is penalized");
+            }
             return NO_WORK_YIELD_RESULT;
         }
 
@@ -211,20 +255,34 @@ public class ConnectableTask {
             }
         }
 
+        return null;
+    }
+
+    private InvocationResult invokeInternal(final long effectiveRunDurationNanos, final BooleanSupplier continueRunning, final InvocationObserver observer) {
+        if (!continueRunning.getAsBoolean()) {
+            return InvocationResult.completed(InvocationOutcome.STOPPED);
+        }
+
+        final InvocationResult readinessResult = getReadinessResult();
+        if (readinessResult != null) {
+            return readinessResult;
+        }
+
         logger.debug("Triggering {}", connectable);
         final TrackedStats stats = statsTracker.startTracking();
 
-        final long batchNanos = connectable.getRunDuration(TimeUnit.NANOSECONDS);
+        final long batchNanos = effectiveRunDurationNanos;
+        final SessionSchedulingObserver sessionObserver = observer == InvocationObserver.NO_OP ? SessionSchedulingObserver.NO_OP : observer;
         final ProcessSessionFactory sessionFactory;
         final StandardProcessSession rawSession;
         final boolean batch;
         if (connectable.isSessionBatchingSupported() && batchNanos > 0L) {
-            rawSession = new StandardProcessSession(repositoryContext, lifecycleState::isTerminated, stats.getPerformanceTracker());
+            rawSession = new StandardProcessSession(repositoryContext, lifecycleState::isTerminated, stats.getPerformanceTracker(), sessionObserver);
             sessionFactory = new BatchingSessionFactory(rawSession);
             batch = true;
         } else {
             rawSession = null;
-            sessionFactory = new StandardProcessSessionFactory(repositoryContext, lifecycleState::isTerminated, stats.getPerformanceTracker());
+            sessionFactory = new StandardProcessSessionFactory(repositoryContext, lifecycleState::isTerminated, stats.getPerformanceTracker(), sessionObserver);
             batch = false;
         }
 
@@ -246,22 +304,24 @@ public class ConnectableTask {
         final String originalThreadName = Thread.currentThread().getName();
         try {
             try (final AutoCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), connectable.getRunnableComponent().getClass(), connectable.getIdentifier())) {
-                boolean shouldRun = connectable.getScheduledState() == ScheduledState.RUNNING || connectable.getScheduledState() == ScheduledState.RUN_ONCE;
+                boolean shouldRun = (connectable.getScheduledState() == ScheduledState.RUNNING || connectable.getScheduledState() == ScheduledState.RUN_ONCE)
+                        && continueRunning.getAsBoolean();
                 while (shouldRun) {
                     invocationCount++;
+                    observer.resetTriggerActivity();
                     connectable.onTrigger(processContext, activeSessionFactory);
 
-                    if (!batch) {
-                        return InvocationResult.DO_NOT_YIELD;
+                    if (!batch || !observer.isTriggerActivityObserved()) {
+                        return getCompletedResult(observer);
                     }
 
                     final long nanoTime = System.nanoTime();
                     if (nanoTime > finishNanos) {
-                        return InvocationResult.DO_NOT_YIELD;
+                        return getCompletedResult(observer);
                     }
 
                     if (nanoTime > finishIfBackpressureEngaged && isBackPressureEngaged()) {
-                        return InvocationResult.DO_NOT_YIELD;
+                        return getCompletedResult(observer);
                     }
 
                     if (connectable.getScheduledState() != ScheduledState.RUNNING) {
@@ -274,6 +334,9 @@ public class ConnectableTask {
                     if (isYielded()) {
                         break;
                     }
+                    if (!continueRunning.getAsBoolean()) {
+                        break;
+                    }
 
                     if (numRelationships > 0) {
                         final int requiredNumberOfAvailableRelationships = connectable.isTriggerWhenAnyDestinationAvailable() ? 1 : numRelationships;
@@ -283,14 +346,17 @@ public class ConnectableTask {
             } catch (final TerminatedTaskException e) {
                 final ComponentLog componentLog = getComponentLog();
                 componentLog.info("Processing terminated", e);
+                return InvocationResult.completed(InvocationOutcome.STOPPED);
             } catch (final ProcessException e) {
                 final ComponentLog componentLog = getComponentLog();
                 componentLog.error("Processing failed", e);
+                return InvocationResult.completed(InvocationOutcome.FAILED);
             } catch (final Throwable e) {
                 final ComponentLog componentLog = getComponentLog();
                 componentLog.error("Processing halted: yielding [{}]", schedulingAgent.getAdministrativeYieldDuration(), e);
                 logger.warn("Processing halted: uncaught exception in Component [{}]", connectable.getRunnableComponent(), e);
                 connectable.yield(schedulingAgent.getAdministrativeYieldDuration(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+                return InvocationResult.completed(InvocationOutcome.FAILED);
             }
         } finally {
             try {
@@ -317,7 +383,16 @@ public class ConnectableTask {
             }
         }
 
-        return InvocationResult.DO_NOT_YIELD;
+        return getCompletedResult(observer);
+    }
+
+    private InvocationResult getCompletedResult(final InvocationObserver observer) {
+        try {
+            return InvocationResult.completed(observer.isActivityObserved() ? InvocationOutcome.INVOKED_WITH_ACTIVITY : InvocationOutcome.INVOKED_WITHOUT_ACTIVITY);
+        } catch (final Throwable observerFailure) {
+            logger.warn("Invocation observer failed while checking activity for {}", connectable, observerFailure);
+            return InvocationResult.completed(InvocationOutcome.INVOKED_WITHOUT_ACTIVITY);
+        }
     }
 
     private void updateEventRepo(final TrackedStats stats, final int invocationCount) throws IOException {

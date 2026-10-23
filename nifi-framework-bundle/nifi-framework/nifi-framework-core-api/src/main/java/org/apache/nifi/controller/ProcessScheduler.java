@@ -18,6 +18,7 @@ package org.apache.nifi.controller;
 
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -47,6 +48,14 @@ public interface ProcessScheduler {
     void shutdownControllerService(ControllerServiceNode controllerService, ControllerServiceProvider controllerServiceProvider);
 
     void shutdownReportingTask(ReportingTaskNode reportingTask);
+
+    /**
+     * Notifies the active scheduling generation that component configuration or topology changed.
+     *
+     * @param connectable changed component
+     */
+    default void notifySchedulingEvent(final Connectable connectable) {
+    }
 
     /**
      * Starts scheduling the given processor to run after invoking all methods

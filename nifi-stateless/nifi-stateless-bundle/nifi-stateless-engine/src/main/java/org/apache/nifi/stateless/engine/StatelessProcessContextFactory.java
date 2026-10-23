@@ -45,7 +45,7 @@ public class StatelessProcessContextFactory implements ProcessContextFactory {
         final StateManager stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier(), componentClass);
 
         if (connectable instanceof final ProcessorNode processor) {
-            return new StandardProcessContext(processor, controllerServiceProvider, stateManager, () -> false, NODE_TYPE_PROVIDER);
+            return StandardProcessContext.createBuilder(processor, controllerServiceProvider, stateManager, () -> false, NODE_TYPE_PROVIDER).build();
         }
 
         return new ConnectableProcessContext(connectable, stateManager);

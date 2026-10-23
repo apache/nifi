@@ -22,6 +22,7 @@ import io.krakens.grok.api.Grok;
 import io.krakens.grok.api.GrokCompiler;
 import io.krakens.grok.api.Match;
 import io.krakens.grok.api.exception.GrokException;
+import org.apache.nifi.annotation.behavior.AllowsAutoScheduling;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -66,6 +67,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @SupportsBatching
 @SideEffectFree
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+// A maximum-sized content buffer is allocated eagerly for every ProcessContext concurrency slot.
+@AllowsAutoScheduling(false)
 @Tags({"grok", "log", "text", "parse", "delimit", "extract"})
 @CapabilityDescription("Evaluates one or more Grok Expressions against the content of a FlowFile, " +
     "adding the results as attributes or replacing the content of the FlowFile with a JSON " +

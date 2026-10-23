@@ -35,6 +35,7 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.util.Collections;
 import java.util.List;
@@ -87,6 +88,14 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
 
     @Override
     protected List<ValidationResult> validateConfig(final ValidationContext validationContext) {
+        if (getSchedulingStrategy() == SchedulingStrategy.AUTO) {
+            return List.of(new ValidationResult.Builder()
+                    .subject("Scheduling Strategy")
+                    .explanation("Reporting Tasks do not support automatic scheduling")
+                    .valid(false)
+                    .build());
+        }
+
         return Collections.emptyList();
     }
 

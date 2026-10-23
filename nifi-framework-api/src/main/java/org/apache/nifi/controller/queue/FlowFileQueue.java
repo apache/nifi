@@ -25,6 +25,7 @@ import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +33,25 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 public interface FlowFileQueue {
+
+    /**
+     * Registers a listener for queue changes that can affect component readiness.
+     *
+     * @param listener listener to register
+     * @return registration used to remove the listener
+     */
+    default QueueSchedulingRegistration addSchedulingListener(final QueueSchedulingListener listener) {
+        return QueueSchedulingRegistration.NO_OP;
+    }
+
+    /**
+     * Returns the next time at which the head FlowFile can become available without another queue mutation.
+     *
+     * @return the next availability time, or {@link Instant#EPOCH} when no deadline is known
+     */
+    default Instant getNextFlowFileAvailabilityTime() {
+        return Instant.EPOCH;
+    }
 
     /**
      * @return the unique identifier for this FlowFileQueue
@@ -96,6 +116,18 @@ public interface FlowFileQueue {
     String getBackPressureDataSizeThreshold();
 
     QueueSize size();
+
+    /**
+     * Returns the size of the FlowFiles that are waiting in this queue for this node to process, including swapped out FlowFiles.
+     *
+     * @implNote The scheduler calls this method frequently, so implementations should not read swap files or iterate over queued
+     * FlowFiles. The default implementation returns {@link #size()}, which suits queues that are not partitioned across a cluster.
+     *
+     * @return the size of the FlowFiles waiting for this node to process
+     */
+    default QueueSize getLocalQueueSize() {
+        return size();
+    }
 
     /**
      * Returns an atomic, point-in-time view of this queue's total {@link QueueSize} and the

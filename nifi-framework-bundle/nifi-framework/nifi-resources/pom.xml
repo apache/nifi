@@ -36,6 +36,7 @@
         <nifi.administrative.yield.duration>30 sec</nifi.administrative.yield.duration>
         <nifi.bored.yield.duration>10 millis</nifi.bored.yield.duration>
         <nifi.scheduling.strategy>AUTO</nifi.scheduling.strategy>
+        <nifi.processor.auto.max.concurrent.tasks>12</nifi.processor.auto.max.concurrent.tasks>
         <nifi.queue.backpressure.count>10000</nifi.queue.backpressure.count>
         <nifi.queue.backpressure.size>1 GB</nifi.queue.backpressure.size>
 

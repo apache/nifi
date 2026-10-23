@@ -17,6 +17,7 @@
 package org.apache.nifi.jms.processors;
 
 import jakarta.jms.Session;
+import org.apache.nifi.annotation.behavior.AllowsAutoScheduling;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -68,6 +69,8 @@ import java.util.stream.Stream;
  * properties that came with message which are added to a {@link FlowFile} as
  * attributes.
  */
+// Durable, non-shared subscribers require exactly one configured concurrent task.
+@AllowsAutoScheduling(false)
 @Tags({ "jms", "get", "message", "receive", "consume" })
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Consumes JMS Message of type BytesMessage, TextMessage, ObjectMessage, MapMessage or StreamMessage transforming its content to "
