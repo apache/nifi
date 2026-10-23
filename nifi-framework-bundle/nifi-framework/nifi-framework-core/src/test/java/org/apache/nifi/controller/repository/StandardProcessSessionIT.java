@@ -2473,6 +2473,12 @@ public class StandardProcessSessionIT {
         stateManager.assertStateEquals("abc", "123", Scope.LOCAL);
         stateManager.assertStateNotSet(Scope.CLUSTER);
 
+        // Clearing the state and then patching it replaces the stored state with the patched values
+        session.clearState(Scope.LOCAL);
+        session.patchState(Map.of("new", "2"), Scope.LOCAL);
+        session.commit();
+        stateManager.assertStateEquals(Map.of("new", "2"), Scope.LOCAL);
+
         stateManager.reset();
 
         session.setState(Collections.singletonMap("abc", "123"), Scope.CLUSTER);

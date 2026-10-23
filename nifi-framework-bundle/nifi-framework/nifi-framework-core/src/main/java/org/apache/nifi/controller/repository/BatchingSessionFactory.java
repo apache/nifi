@@ -317,7 +317,7 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         }
 
         @Override
-        public void clearState(final Scope scope) {
+        public void clearState(final Scope scope) throws IOException {
             session.clearState(scope);
         }
 

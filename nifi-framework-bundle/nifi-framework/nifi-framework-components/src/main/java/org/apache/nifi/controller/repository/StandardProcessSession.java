@@ -140,8 +140,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private static final String CONNECTION_COMPONENT_TYPE = "Connection";
     private static final AtomicLong idGenerator = new AtomicLong(0L);
     private static final AtomicLong enqueuedIndex = new AtomicLong(0L);
-    private static final StateMap EMPTY_STATE_MAP = new StandardStateMap(Collections.emptyMap(), Optional.empty());
-
     // determines how many things must be transferred, removed, modified in order to avoid logging the FlowFile ID's on commit/rollback
     public static final int VERBOSE_LOG_THRESHOLD = 10;
     public static final String DEFAULT_FLOWFILE_PATH = "./";
@@ -4127,8 +4125,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public void clearState(final Scope scope) {
-        setState(EMPTY_STATE_MAP, scope);
+    public void clearState(final Scope scope) throws IOException {
+        setState(Collections.emptyMap(), scope);
     }
 
     @Override
