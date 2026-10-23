@@ -89,9 +89,10 @@ import java.util.stream.Stream;
                         "For SCROLL type queries, these parameters are only used in the initial (first page) query as the " +
                         "Elasticsearch Scroll API does not support the same query parameters for subsequent pages of data.")
 })
-@Stateful(scopes = Scope.LOCAL, description = "The pagination state (scrollId, searchAfter, pitId, hitCount, pageCount, pageExpirationTimestamp) " +
+@Stateful(scopes = Scope.CLUSTER, description = "The pagination state (scrollId, searchAfter, pitId, hitCount, pageCount, pageExpirationTimestamp) " +
         "is retained in between invocations of this processor until the Scroll/PiT has expired " +
-        "(when the current time is later than the last query execution plus the Pagination Keep Alive interval).")
+        "(when the current time is later than the last query execution plus the Pagination Keep Alive interval). " +
+        "Cluster scope keeps the cursor when the primary node changes, so the search does not restart from the first page.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "Care should be taken on the size of each page because each response " +
         "from Elasticsearch will be loaded into memory all at once and converted into the resulting FlowFiles.")
 public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch {
@@ -145,7 +146,7 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
     }
 
     Scope getStateScope() {
-        return Scope.LOCAL;
+        return Scope.CLUSTER;
     }
 
     @Override
