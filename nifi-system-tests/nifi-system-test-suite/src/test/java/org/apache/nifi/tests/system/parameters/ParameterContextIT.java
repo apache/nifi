@@ -1025,7 +1025,7 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testUnreferencedAssetsRemovedWhenDeletingParameterContext() throws NiFiClientException, IOException, InterruptedException {
+    public void testUnreferencedAssetsRemovedWhenDeletingParameterContext() throws NiFiClientException, IOException {
         // Create context
         final ParameterContextEntity paramContext = getClientUtil().createParameterContext("testUnreferencedAssetsRemovedWhenDeletingParameterContext",
                 Map.of("name", "foo", "fileToIngest", ""));

@@ -79,7 +79,7 @@ class SpillableContentRepositoryTest {
     private SpillableContentRepository repository;
 
     @BeforeEach
-    void setup() throws IOException {
+    void setup() {
         resourceClaimManager = new StandardResourceClaimManager();
         backingRepository = new TrackingContentRepository();
         backingRepository.initialize(new StandardContentRepositoryContext(resourceClaimManager, EventReporter.NO_OP));

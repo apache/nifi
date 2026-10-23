@@ -54,7 +54,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opentest4j.AssertionFailedError;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -116,7 +115,7 @@ class FlowControllerTest {
     private Path tempDir;
 
     @Test
-    void testRemainStandaloneWhenConnectionStatusIsAssigned() throws IOException {
+    void testRemainStandaloneWhenConnectionStatusIsAssigned() {
         final FlowController flowController = createStandaloneFlowController();
 
         assertEquals(NodeConnectionState.STANDALONE, flowController.getNodeConnectionState());
@@ -128,7 +127,7 @@ class FlowControllerTest {
     }
 
     @Test
-    void testReportDisconnectedForNewClusteredController() throws IOException {
+    void testReportDisconnectedForNewClusteredController() {
         final FlowController flowController = createClusteredFlowController();
 
         assertEquals(NodeConnectionState.DISCONNECTED, flowController.getNodeConnectionState());
@@ -141,7 +140,7 @@ class FlowControllerTest {
     @MethodSource("supportedClusterProtocolStates")
     void testMapClusterProtocolNodeStatesToApiNodeStates(
             final org.apache.nifi.cluster.coordination.node.NodeConnectionState protocolState,
-            final NodeConnectionState apiState) throws IOException {
+            final NodeConnectionState apiState) {
         final FlowController flowController = createClusteredFlowController();
 
         flowController.setConnectionStatus(new NodeConnectionStatus(createNodeIdentifier(CLUSTERED_NODE), protocolState));
@@ -199,7 +198,7 @@ class FlowControllerTest {
         }
     }
 
-    private FlowController createStandaloneFlowController() throws IOException {
+    private FlowController createStandaloneFlowController() {
         final NiFiProperties nifiProperties = createNiFiProperties(false);
         final FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
         final ExtensionDiscoveringManager extensionManager = createExtensionManager(nifiProperties);
@@ -226,7 +225,7 @@ class FlowControllerTest {
         return flowController;
     }
 
-    private FlowController createClusteredFlowController() throws IOException {
+    private FlowController createClusteredFlowController() {
         final NiFiProperties nifiProperties = createNiFiProperties(true);
         final FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
         final ExtensionDiscoveringManager extensionManager = createExtensionManager(nifiProperties);

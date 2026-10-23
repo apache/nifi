@@ -1391,7 +1391,7 @@ public class TestConnectorResource {
     }
 
     @Test
-    public void testSubmitConnectorBacklogRequestNotAuthorized() throws Exception {
+    public void testSubmitConnectorBacklogRequestNotAuthorized() {
         authenticate();
         doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
 

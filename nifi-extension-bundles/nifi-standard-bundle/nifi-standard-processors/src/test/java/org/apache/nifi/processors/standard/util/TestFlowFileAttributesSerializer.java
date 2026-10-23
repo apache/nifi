@@ -58,13 +58,13 @@ public class TestFlowFileAttributesSerializer {
     }
 
     @Test
-    public void testEmptyIsNull2() throws SerializationException, IOException {
+    public void testEmptyIsNull2() throws SerializationException {
         Map<String, String> result = serializer.deserialize("".getBytes());
         assertNull(result);
     }
 
     @Test
-    public void testNullIsNull() throws SerializationException, IOException {
+    public void testNullIsNull() throws SerializationException {
         Map<String, String> result = serializer.deserialize(null);
         assertNull(result);
     }

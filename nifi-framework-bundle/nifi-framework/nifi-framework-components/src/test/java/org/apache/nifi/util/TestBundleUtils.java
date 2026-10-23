@@ -55,7 +55,7 @@ public class TestBundleUtils {
     }
 
     @Test
-    public void findOptionalBundleMatchingFramework() throws IOException, ClassNotFoundException {
+    public void findOptionalBundleMatchingFramework() {
         final Bundle frameworkVersionBundle = createBundle("my-bundle", FRAMEWORK_VERSION);
         final Bundle otherBundle = createBundle("my-bundle", "1.2.3");
         final List<Bundle> bundles = Arrays.asList(frameworkVersionBundle, otherBundle);
@@ -67,7 +67,7 @@ public class TestBundleUtils {
     }
 
     @Test
-    public void findOptionalBundleNotMatchingFramework() throws IOException, ClassNotFoundException {
+    public void findOptionalBundleNotMatchingFramework() {
         final Bundle version3 = createBundle("my-bundle", "3.0.0");
         final Bundle otherBundle = createBundle("my-bundle", "1.2.3");
         final List<Bundle> bundles = Arrays.asList(version3, otherBundle);
@@ -78,7 +78,7 @@ public class TestBundleUtils {
     }
 
     @Test
-    public void testFindOptionalBundleOnlyOneBundle() throws IOException, ClassNotFoundException {
+    public void testFindOptionalBundleOnlyOneBundle() {
         final Bundle otherBundle = createBundle("my-bundle", "1.2.3");
         final List<Bundle> bundles = Collections.singletonList(otherBundle);
         when(extensionManager.getBundles(PROCESSOR_TYPE)).thenReturn(bundles);

@@ -19,7 +19,6 @@ package org.apache.nifi.controller;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.reporting.InitializationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -147,7 +146,7 @@ public class TestControllerServiceApiMatcher {
         }
 
         @Override
-        public void initialize(ControllerServiceInitializationContext context) throws InitializationException {
+        public void initialize(ControllerServiceInitializationContext context) {
 
         }
 
@@ -196,7 +195,7 @@ public class TestControllerServiceApiMatcher {
         }
 
         @Override
-        public void initialize(ControllerServiceInitializationContext context) throws InitializationException {
+        public void initialize(ControllerServiceInitializationContext context) {
 
         }
 
@@ -250,7 +249,7 @@ public class TestControllerServiceApiMatcher {
         }
 
         @Override
-        public void initialize(ControllerServiceInitializationContext context) throws InitializationException {
+        public void initialize(ControllerServiceInitializationContext context) {
 
         }
 

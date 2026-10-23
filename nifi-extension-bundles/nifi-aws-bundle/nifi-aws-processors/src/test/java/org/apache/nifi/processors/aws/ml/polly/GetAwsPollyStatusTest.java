@@ -21,7 +21,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.AbstractAwsProcessor;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.proxy.ProxyConfigurationService;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -70,7 +69,7 @@ public class GetAwsPollyStatusTest {
     }
 
     @BeforeEach
-    public void setUp() throws InitializationException {
+    public void setUp() {
         GetAwsPollyJobStatus processor = new GetAwsPollyJobStatus() {
             @Override
             public PollyClient getClient(final ProcessContext context) {

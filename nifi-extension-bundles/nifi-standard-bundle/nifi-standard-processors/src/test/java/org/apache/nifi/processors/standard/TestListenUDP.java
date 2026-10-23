@@ -60,7 +60,7 @@ public class TestListenUDP {
     private ChannelResponder<DatagramChannel> responder;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         runner = TestRunners.newTestRunner(ListenUDP.class);
         runner.setProperty(ListenUDP.PORT, "0");
     }
@@ -81,7 +81,7 @@ public class TestListenUDP {
     }
 
     @Test
-    public void testDefaultBehavior() throws IOException, InterruptedException {
+    public void testDefaultBehavior() throws IOException {
         final List<String> messages = getMessages(15);
         final int expectedTransferred = messages.size();
 
@@ -94,7 +94,7 @@ public class TestListenUDP {
     }
 
     @Test
-    public void testSendingMoreThanQueueSize() throws IOException, InterruptedException {
+    public void testSendingMoreThanQueueSize() throws IOException {
         final int maxQueueSize = 3;
         runner.setProperty(ListenUDP.MAX_MESSAGE_QUEUE_SIZE, String.valueOf(maxQueueSize));
 
@@ -109,7 +109,7 @@ public class TestListenUDP {
     }
 
     @Test
-    public void testBatchingSingleSender() throws IOException, InterruptedException {
+    public void testBatchingSingleSender() throws IOException {
         final String delimiter = "NN";
         runner.setProperty(ListenerProperties.MESSAGE_DELIMITER, delimiter);
         runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "3");
@@ -179,7 +179,7 @@ public class TestListenUDP {
     }
 
     @Test
-    public void testWithSendingHostAndPortSameAsSender() throws IOException, InterruptedException {
+    public void testWithSendingHostAndPortSameAsSender() throws IOException {
         // bind to the same sending port that processor has for Sending Host Port
         final DatagramSocket socket = new DatagramSocket();
         final int sendingPort = socket.getLocalPort();
@@ -229,7 +229,7 @@ public class TestListenUDP {
     }
 
     protected void run(final DatagramSocket socket, final List<String> messages, final int expectedTransferred)
-            throws IOException, InterruptedException {
+            throws IOException {
         // Run Processor and start Dispatcher without shutting down
         runner.run(1, false, true);
         final int port = ((ListenUDP) runner.getProcessor()).getListeningPort();

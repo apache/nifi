@@ -154,7 +154,7 @@ class StandardConnectorMockServerJettyTest {
     }
 
     @Test
-    void testFindWarsReturnsEmptyForEmptyBundleSet() throws Exception {
+    void testFindWarsReturnsEmptyForEmptyBundleSet() {
         final StandardConnectorMockServer server = new StandardConnectorMockServer();
         final Map<File, Bundle> wars = server.findWars(Set.of());
         assertTrue(wars.isEmpty());

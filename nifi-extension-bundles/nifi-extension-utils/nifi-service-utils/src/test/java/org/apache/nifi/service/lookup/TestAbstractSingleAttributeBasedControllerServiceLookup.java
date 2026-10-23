@@ -51,7 +51,7 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
     private Map<PropertyDescriptor, String> properties;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         when(testSubject.getLookupAttribute()).thenReturn(LOOKUP_ATTRIBUTE);
         when(testSubject.getServiceType()).thenReturn(SERVICE_TYPE);
         when(testSubject.getIdentifier()).thenReturn(TEST_SUBJECT_IDENTIFIER);

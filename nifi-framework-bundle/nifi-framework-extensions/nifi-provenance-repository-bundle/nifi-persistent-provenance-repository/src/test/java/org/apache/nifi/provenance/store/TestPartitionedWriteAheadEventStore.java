@@ -441,7 +441,7 @@ public class TestPartitionedWriteAheadEventStore {
             }
 
             @Override
-            public void close() throws IOException {
+            public void close() {
                 iteratorsClosed.incrementAndGet();
             }
         });

@@ -18,17 +18,16 @@
 package org.apache.nifi.provenance.toc;
 
 import java.io.File;
-import java.io.IOException;
 
 public class NopTocWriter implements TocWriter {
     private int blockIndex;
 
     @Override
-    public void close() throws IOException {
+    public void close() {
     }
 
     @Override
-    public void addBlockOffset(long offset, long firstEventId) throws IOException {
+    public void addBlockOffset(long offset, long firstEventId) {
         blockIndex++;
     }
 
@@ -43,7 +42,7 @@ public class NopTocWriter implements TocWriter {
     }
 
     @Override
-    public void sync() throws IOException {
+    public void sync() {
     }
 
 }

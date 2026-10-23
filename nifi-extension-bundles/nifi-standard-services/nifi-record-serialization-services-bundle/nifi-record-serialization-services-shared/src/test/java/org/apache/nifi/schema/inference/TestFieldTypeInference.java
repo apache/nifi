@@ -38,7 +38,7 @@ public class TestFieldTypeInference {
     private FieldTypeInference testSubject;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         testSubject = new FieldTypeInference();
     }
 

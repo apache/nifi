@@ -43,7 +43,7 @@ public abstract class AbstractSQSIT {
     private static SqsClient client;
 
     @BeforeAll
-    public static void setup() throws InterruptedException {
+    public static void setup() {
         System.setProperty("software.amazon.awssdk.http.service.impl", "software.amazon.awssdk.http.urlconnection.UrlConnectionSdkHttpService");
         localstack.start();
 

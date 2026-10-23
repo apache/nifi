@@ -55,7 +55,7 @@ public abstract class AbstractEmbeddedQuestDbStatusHistoryRepositoryTest extends
     }
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         repository = startRepository();
     }
 

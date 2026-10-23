@@ -50,7 +50,7 @@ public class FlowsIT extends UnsecuredITBase {
     private static final int LATEST_VERSION = -1;
 
     @Test
-    public void testGetFlowsEmpty() throws Exception {
+    public void testGetFlowsEmpty() {
 
         // Given: an empty bucket with id "3" (see FlowsIT.sql)
         final String emptyBucketId = "3";
@@ -113,7 +113,7 @@ public class FlowsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testCreateFlowGetFlow() throws Exception {
+    public void testCreateFlowGetFlow() {
         final RevisionInfo initialRevision = new RevisionInfo("FlowsIT", 0L);
 
         // Given: an empty bucket with id "3" (see FlowsIT.sql)
@@ -185,7 +185,7 @@ public class FlowsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testUpdateFlow() throws Exception {
+    public void testUpdateFlow() {
         final RevisionInfo initialRevision = new RevisionInfo("FlowsIT", 0L);
 
         // Given: a flow exists on the server
@@ -223,7 +223,7 @@ public class FlowsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testUpdateFlowWithIncorrectRevision() throws Exception {
+    public void testUpdateFlowWithIncorrectRevision() {
         final RevisionInfo initialRevision = new RevisionInfo("FlowsIT", 0L);
 
         // Given: a flow exists on the server
@@ -262,7 +262,7 @@ public class FlowsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testDeleteFlow() throws Exception {
+    public void testDeleteFlow() {
         final RevisionInfo initialRevision = new RevisionInfo("FlowsIT", 0L);
 
         // Given: a flow exists on the server
@@ -307,7 +307,7 @@ public class FlowsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testDeleteFlowWithIncorrectRevision() throws Exception {
+    public void testDeleteFlowWithIncorrectRevision() {
         final RevisionInfo initialRevision = new RevisionInfo("FlowsIT", 0L);
 
         // Given: a flow exists on the server
@@ -341,7 +341,7 @@ public class FlowsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testGetFlowVersionsEmpty() throws Exception {
+    public void testGetFlowVersionsEmpty() {
 
         // Given: a Bucket "2" containing a flow "3" with no snapshots (see FlowsIT.sql)
         final String bucketId = "2";
@@ -404,7 +404,7 @@ public class FlowsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testCreateFlowVersionGetFlowVersion() throws Exception {
+    public void testCreateFlowVersionGetFlowVersion() {
         final RevisionInfo initialRevision = new RevisionInfo("FlowsIT", 0L);
 
         // Given: an empty Bucket "3" (see FlowsIT.sql) with a newly created flow
@@ -497,7 +497,7 @@ public class FlowsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testFlowNameUniquePerBucket() throws Exception {
+    public void testFlowNameUniquePerBucket() {
 
         final String flowName = "Flow 1";
 

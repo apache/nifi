@@ -272,7 +272,7 @@ public class ExternalControllerServiceVersioningIT extends NiFiSystemIT {
      * modified anything, both the state badge and the dialog report UP_TO_DATE / no changes.
      */
     @Test
-    public void testExternalServiceReferenceWithoutModificationShowsUpToDate() throws NiFiClientException, IOException, InterruptedException {
+    public void testExternalServiceReferenceWithoutModificationShowsUpToDate() throws NiFiClientException, IOException {
         final FlowRegistryClientEntity registryClient = registerClient();
         final NiFiClientUtil util = getClientUtil();
 
@@ -307,7 +307,7 @@ public class ExternalControllerServiceVersioningIT extends NiFiSystemIT {
      * {@code getLocalModifications} drops both and the service is never shown.
      */
     @Test
-    public void testControllerServiceAddedInNestedGroupAppearsInLocalChanges() throws NiFiClientException, IOException, InterruptedException {
+    public void testControllerServiceAddedInNestedGroupAppearsInLocalChanges() throws NiFiClientException, IOException {
         final FlowRegistryClientEntity registryClient = registerClient();
         final NiFiClientUtil util = getClientUtil();
 

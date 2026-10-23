@@ -17,7 +17,6 @@
 
 package org.apache.nifi.provenance;
 
-import java.io.IOException;
 import java.io.InputStream;
 
 public class LoopingInputStream extends InputStream {
@@ -35,12 +34,12 @@ public class LoopingInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
+    public int read(byte[] b) {
         return read(b, 0, b.length);
     }
 
     @Override
-    public int read() throws IOException {
+    public int read() {
         if (headerComplete) {
             final byte nextByte = buffer[index++];
             if (index >= buffer.length) {
@@ -61,7 +60,7 @@ public class LoopingInputStream extends InputStream {
     }
 
     @Override
-    public int read(final byte[] b, final int off, final int len) throws IOException {
+    public int read(final byte[] b, final int off, final int len) {
         if (headerComplete) {
             final int toRead = Math.min(len, buffer.length - index);
             System.arraycopy(buffer, index, b, off, toRead);
@@ -84,11 +83,11 @@ public class LoopingInputStream extends InputStream {
     }
 
     @Override
-    public int available() throws IOException {
+    public int available() {
         return 1;
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
     }
 }

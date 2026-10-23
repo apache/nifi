@@ -96,7 +96,7 @@ public class PutZendeskTicketTest {
     }
 
     @AfterEach
-    void tearDown() throws IOException {
+    void tearDown() {
         server.close();
     }
 

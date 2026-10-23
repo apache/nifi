@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
@@ -42,12 +41,12 @@ public class TestLogMessage {
     private TestRunner runner;
 
     @BeforeEach
-    void before() throws InitializationException {
+    void before() {
         runner = TestRunners.newTestRunner(LogMessage.class);
     }
 
     @AfterEach
-    void after() throws InitializationException {
+    void after() {
         runner.shutdown();
     }
 

@@ -25,7 +25,6 @@ import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorConfigurationContext;
 import org.apache.nifi.components.connector.ConnectorInitializationContext;
 import org.apache.nifi.components.connector.ConnectorValidationContext;
-import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.flow.VersionedExternalFlow;
 
@@ -57,12 +56,12 @@ public class DummyConnector implements Connector {
     }
 
     @Override
-    public void start(final FlowContext flowContext) throws FlowUpdateException {
+    public void start(final FlowContext flowContext) {
 
     }
 
     @Override
-    public void stop(final FlowContext flowContext) throws FlowUpdateException {
+    public void stop(final FlowContext flowContext) {
 
     }
 
@@ -84,7 +83,7 @@ public class DummyConnector implements Connector {
     }
 
     @Override
-    public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
+    public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
     }
 
     @Override

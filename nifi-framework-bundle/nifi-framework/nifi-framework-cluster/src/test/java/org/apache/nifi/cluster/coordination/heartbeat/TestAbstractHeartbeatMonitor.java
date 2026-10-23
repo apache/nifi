@@ -34,7 +34,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,7 +55,7 @@ public class TestAbstractHeartbeatMonitor {
     private TestFriendlyHeartbeatMonitor monitor;
 
     @BeforeEach
-    public void setup() throws Exception {
+    public void setup() {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
         nodeId = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9999, "localhost", 8888, "localhost", 777, "localhost", null, null, false);
     }
@@ -397,7 +396,7 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public Map<NodeIdentifier, NodeWorkload> getClusterWorkload() throws IOException {
+        public Map<NodeIdentifier, NodeWorkload> getClusterWorkload() {
             return null;
         }
 

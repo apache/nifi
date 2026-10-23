@@ -300,7 +300,7 @@ public class StandardNiFiServiceFacadeTest {
     private RuleViolationsManager ruleViolationsManager;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         // audit service
         final AuditService auditService = mock(AuditService.class);
         when(auditService.getAction(anyInt())).then(invocation -> {
@@ -3161,7 +3161,7 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
-    public void testCreateFlowBranchUnsupportedRegistry() throws IOException, FlowRegistryException {
+    public void testCreateFlowBranchUnsupportedRegistry() {
         final ProcessGroupDAO branchProcessGroupDAO = mock(ProcessGroupDAO.class);
         final FlowRegistryDAO flowRegistryDAO = mock(FlowRegistryDAO.class);
         final FlowManager branchFlowManager = mock(FlowManager.class);
@@ -3207,7 +3207,7 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
-    public void testCreateFlowBranchPropagatesRegistryErrors() throws IOException, FlowRegistryException {
+    public void testCreateFlowBranchPropagatesRegistryErrors() {
         final ProcessGroupDAO branchProcessGroupDAO = mock(ProcessGroupDAO.class);
         final FlowRegistryDAO flowRegistryDAO = mock(FlowRegistryDAO.class);
         final FlowManager branchFlowManager = mock(FlowManager.class);

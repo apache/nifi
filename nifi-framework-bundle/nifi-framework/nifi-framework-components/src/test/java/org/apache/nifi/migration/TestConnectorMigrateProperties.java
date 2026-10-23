@@ -21,7 +21,6 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.AbstractConnector;
 import org.apache.nifi.components.connector.ConfigurationStep;
 import org.apache.nifi.components.connector.ConnectorValueReference;
-import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
@@ -255,11 +254,11 @@ public class TestConnectorMigrateProperties {
         }
 
         @Override
-        public void applyUpdate(final FlowContext workingFlowContext, final FlowContext activeFlowContext) throws FlowUpdateException {
+        public void applyUpdate(final FlowContext workingFlowContext, final FlowContext activeFlowContext) {
         }
 
         @Override
-        protected void onStepConfigured(final String stepName, final FlowContext workingContext) throws FlowUpdateException {
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
         }
     }
 

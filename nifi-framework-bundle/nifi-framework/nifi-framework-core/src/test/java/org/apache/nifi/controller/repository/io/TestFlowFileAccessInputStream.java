@@ -25,7 +25,6 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.io.IOException;
 import java.io.InputStream;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,7 +39,7 @@ public class TestFlowFileAccessInputStream {
     private final byte[] data = new byte[16];
 
     @BeforeEach
-    public void setup() throws IOException {
+    public void setup() {
         in = mock(InputStream.class);
         flowFile = mock(FlowFile.class);
         claim = mock(ContentClaim.class);

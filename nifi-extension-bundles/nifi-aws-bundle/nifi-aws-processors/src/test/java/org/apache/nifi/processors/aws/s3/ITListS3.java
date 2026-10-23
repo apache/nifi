@@ -37,7 +37,6 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.Tag;
 
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
@@ -66,7 +65,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
  */
 public class ITListS3 extends AbstractS3IT {
     @Test
-    public void testSimpleList() throws IOException, InitializationException {
+    public void testSimpleList() {
         putTestFile("a", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("b/c", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
@@ -83,7 +82,7 @@ public class ITListS3 extends AbstractS3IT {
     }
 
     @Test
-    public void testSimpleListUsingCredentialsProviderService() throws Throwable {
+    public void testSimpleListUsingCredentialsProviderService() {
         putTestFile("a", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("b/c", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
@@ -100,7 +99,7 @@ public class ITListS3 extends AbstractS3IT {
     }
 
     @Test
-    public void testSimpleListWithDelimiter() throws Throwable {
+    public void testSimpleListWithDelimiter() {
         putTestFile("a", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("b/c", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
@@ -117,7 +116,7 @@ public class ITListS3 extends AbstractS3IT {
     }
 
     @Test
-    public void testSimpleListWithPrefix() throws Throwable {
+    public void testSimpleListWithPrefix() {
         putTestFile("a", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("b/c", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
@@ -134,7 +133,7 @@ public class ITListS3 extends AbstractS3IT {
     }
 
     @Test
-    public void testSimpleListWithPrefixAndVersions() throws Throwable {
+    public void testSimpleListWithPrefixAndVersions() {
         putTestFile("a", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("b/c", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
@@ -152,7 +151,7 @@ public class ITListS3 extends AbstractS3IT {
     }
 
     @Test
-    public void testObjectTagsWritten() throws InitializationException {
+    public void testObjectTagsWritten() {
         List<Tag> objectTags = new ArrayList<>();
         objectTags.add(Tag.builder().key("dummytag1").value("dummyvalue1").build());
         objectTags.add(Tag.builder().key("dummytag2").value("dummyvalue2").build());
@@ -179,7 +178,7 @@ public class ITListS3 extends AbstractS3IT {
     }
 
     @Test
-    public void testUserMetadataWritten() throws FileNotFoundException, InitializationException {
+    public void testUserMetadataWritten() {
         Map<String, String> userMetadata = new HashMap<>();
         userMetadata.put("dummy.metadata.1", "dummyvalue1");
         userMetadata.put("dummy.metadata.2", "dummyvalue2");
@@ -462,7 +461,7 @@ public class ITListS3 extends AbstractS3IT {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
         }
 
         @Override

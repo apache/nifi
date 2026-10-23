@@ -97,7 +97,7 @@ public class RebaseVersionIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testRejectedRebaseDueToConflictingProperty() throws NiFiClientException, IOException, InterruptedException {
+    public void testRejectedRebaseDueToConflictingProperty() throws NiFiClientException, IOException {
         final FlowRegistryClientEntity clientEntity = registerClient();
         final NiFiClientUtil util = getClientUtil();
 
@@ -124,7 +124,7 @@ public class RebaseVersionIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testRejectedRebaseDueToUnsupportedChangeType() throws NiFiClientException, IOException, InterruptedException {
+    public void testRejectedRebaseDueToUnsupportedChangeType() throws NiFiClientException, IOException {
         final FlowRegistryClientEntity clientEntity = registerClient();
         final NiFiClientUtil util = getClientUtil();
 
@@ -290,7 +290,7 @@ public class RebaseVersionIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testNestedVersionedPGWithLocalModificationsBlocksRebase() throws NiFiClientException, IOException, InterruptedException {
+    public void testNestedVersionedPGWithLocalModificationsBlocksRebase() throws NiFiClientException, IOException {
         final FlowRegistryClientEntity clientEntity = registerClient();
         final NiFiClientUtil util = getClientUtil();
 
@@ -355,7 +355,7 @@ public class RebaseVersionIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testRejectedRebaseWhenTargetRemovesLocallyModifiedComponent() throws NiFiClientException, IOException, InterruptedException {
+    public void testRejectedRebaseWhenTargetRemovesLocallyModifiedComponent() throws NiFiClientException, IOException {
         final FlowRegistryClientEntity clientEntity = registerClient();
         final NiFiClientUtil util = getClientUtil();
 
