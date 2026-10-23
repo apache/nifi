@@ -72,6 +72,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
@@ -795,6 +796,92 @@ public class StandardNiFiServiceFacadeTest {
         assertNull(versionedFlowSnapshot.getFlow());
         assertNull(versionedFlowSnapshot.getBucket());
         assertNull(versionedFlowSnapshot.getSnapshotMetadata());
+    }
+
+    @Test
+    public void testGetConnectorCurrentFlowSnapshot() {
+        final String connectorId = UUID.randomUUID().toString();
+        final String groupId = UUID.randomUUID().toString();
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedGroup = mock(ProcessGroup.class);
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedGroup);
+        when(managedGroup.findProcessGroup(groupId)).thenReturn(processGroup);
+        when(processGroup.getIdentifier()).thenReturn(groupId);
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        final ControllerServiceProvider controllerServiceProvider = mock(ControllerServiceProvider.class);
+        when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
+
+        final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
+        final VersionedComponentFlowMapper flowMapper = mock(VersionedComponentFlowMapper.class);
+        when(serviceFacadeSpy.makeNiFiRegistryFlowMapper(extensionManager)).thenReturn(flowMapper);
+        final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mock(InstantiatedVersionedProcessGroup.class);
+        when(flowMapper.mapNonVersionedProcessGroup(processGroup, controllerServiceProvider)).thenReturn(nonVersionedProcessGroup);
+
+        final RegisteredFlowSnapshot flowSnapshot =
+                serviceFacadeSpy.getConnectorCurrentFlowSnapshot(connectorId, groupId, false, false);
+
+        assertEquals(nonVersionedProcessGroup, flowSnapshot.getFlowContents());
+        verify(connectorDAO).getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+        verify(processGroupDAO, never()).getProcessGroup(anyString());
+    }
+
+    @Test
+    public void testGetConnectorCurrentFlowSnapshotRejectsProcessGroupOutsideConnector() {
+        final String connectorId = UUID.randomUUID().toString();
+        final String groupId = UUID.randomUUID().toString();
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedGroup = mock(ProcessGroup.class);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedGroup);
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> serviceFacade.getConnectorCurrentFlowSnapshot(connectorId, groupId, false, false));
+        verify(processGroupDAO, never()).getProcessGroup(anyString());
+    }
+
+    @Test
+    public void testGetConnectorCurrentFlowSnapshotValidatesComponentState() {
+        final String connectorId = UUID.randomUUID().toString();
+        final String groupId = UUID.randomUUID().toString();
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedGroup = mock(ProcessGroup.class);
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedGroup);
+        when(managedGroup.findProcessGroup(groupId)).thenReturn(processGroup);
+
+        final ProcessorNode processor = mock(ProcessorNode.class);
+        when(processor.getPhysicalScheduledState()).thenReturn(ScheduledState.RUNNING, ScheduledState.STOPPED);
+        when(processGroup.findAllProcessors()).thenReturn(List.of(processor));
+
+        assertThrows(IllegalStateException.class,
+                () -> serviceFacade.getConnectorCurrentFlowSnapshot(connectorId, groupId, false, true));
+
+        final ControllerServiceNode controllerService = mock(ControllerServiceNode.class);
+        when(controllerService.getState()).thenReturn(ControllerServiceState.ENABLED);
+        when(processGroup.findAllControllerServices()).thenReturn(Set.of(controllerService));
+
+        assertThrows(IllegalStateException.class,
+                () -> serviceFacade.getConnectorCurrentFlowSnapshot(connectorId, groupId, false, true));
     }
 
     @Test

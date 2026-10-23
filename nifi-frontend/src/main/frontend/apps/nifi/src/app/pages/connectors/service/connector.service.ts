@@ -22,7 +22,7 @@ import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import { ChangeConnectorVersionRequest, ConnectorsResponse, CreateConnectorRequest } from '../state';
-import { ConnectorEntity, ProcessGroupEntity } from '@nifi/shared';
+import { ConnectorEntity, ProcessGroupEntity, safeApiPath } from '@nifi/shared';
 import {
     ControllerServiceEntity,
     ParameterContextEntity,
@@ -30,6 +30,7 @@ import {
     SearchResultsEntity
 } from '../../../state/shared';
 import { DropRequestEntity } from '../../../state/empty-queue';
+import type { DownloadConnectorFlowRequest } from '../state/connector-canvas/connector-canvas.actions';
 
 @Injectable({ providedIn: 'root' })
 export class ConnectorService {
@@ -135,6 +136,14 @@ export class ConnectorService {
     getProcessGroup(connectorId: string, processGroupId: string): Observable<ProcessGroupEntity> {
         return this.httpClient.get<ProcessGroupEntity>(
             `${ConnectorService.API}/connectors/${connectorId}/process-groups/${processGroupId}`
+        );
+    }
+
+    downloadFlow(request: DownloadConnectorFlowRequest): void {
+        window.open(
+            `${ConnectorService.API}/connectors/${safeApiPath(request.connectorId)}/process-groups/${safeApiPath(request.processGroupId)}/download?includeReferencedServices=${request.includeReferencedServices}`,
+            '_blank',
+            'noreferrer'
         );
     }
 

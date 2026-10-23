@@ -59,6 +59,7 @@ import {
     createConnectionFailure,
     createConnectionRequested,
     createConnectionSuccess,
+    downloadFlow,
     enterProcessGroup,
     leaveProcessGroup,
     loadConnectorFlow,
@@ -146,6 +147,7 @@ describe('ConnectorCanvasEffects', () => {
 
         // Mock services
         const mockConnectorService = {
+            downloadFlow: vi.fn(),
             getConnectorFlow: vi.fn(),
             getProcessGroup: vi.fn(),
             getConnectorParameterContext: vi.fn(),
@@ -714,6 +716,25 @@ describe('ConnectorCanvasEffects', () => {
 
             const action = await firstValueFrom(effects.loadConnectorFlowComplete$);
             expect(action).toEqual(loadConnectorFlowComplete());
+        });
+    });
+
+    describe('downloadFlow$', () => {
+        it('should delegate the complete request to ConnectorService without dispatching another action', async () => {
+            const { effects, actions$, mockConnectorService } = await setup();
+            const action = downloadFlow({
+                request: {
+                    connectorId: 'connector-1',
+                    processGroupId: 'process-group-1',
+                    includeReferencedServices: true
+                }
+            });
+            actions$(of(action));
+
+            const result = await firstValueFrom(effects.downloadFlow$);
+
+            expect(mockConnectorService.downloadFlow).toHaveBeenCalledWith(action.request);
+            expect(result).toBe(action);
         });
     });
 
