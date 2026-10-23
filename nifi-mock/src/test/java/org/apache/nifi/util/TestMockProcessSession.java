@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -573,6 +574,7 @@ public class TestMockProcessSession {
             assertThrows(AssertionError.class, () -> {
                 session.setState(Map.of("key", "value"), Scope.LOCAL);
             }, "Was able to set local state without declaring the being stateful");
+            assertThrows(AssertionError.class, () -> session.patchState(Map.of("key", "value"), Scope.LOCAL));
             stateManager.assertStateNotSet();
         }
 
@@ -591,6 +593,22 @@ public class TestMockProcessSession {
 
             sessionOfStatefulProcessor.commitAsync();
             assertEquals(expectedState, sessionOfStatefulProcessor.getState(Scope.LOCAL).toMap());
+
+            final Map<String, String> patch = new HashMap<>();
+            patch.put("key", null);
+            patch.put("other", "value");
+            sessionOfStatefulProcessor.patchState(patch, Scope.LOCAL);
+            assertEquals(Map.of("other", "value"), sessionOfStatefulProcessor.getState(Scope.LOCAL).toMap());
+            stateManagerOfStatefulProcessor.assertStateEquals(expectedState, Scope.LOCAL);
+
+            sessionOfStatefulProcessor.rollback();
+            assertEquals(expectedState, sessionOfStatefulProcessor.getState(Scope.LOCAL).toMap());
+
+            sessionOfStatefulProcessor.patchState(patch, Scope.LOCAL);
+            assertTrue(sessionOfStatefulProcessor.replaceState(sessionOfStatefulProcessor.getState(Scope.LOCAL), Map.of("replaced", "value"), Scope.LOCAL));
+            sessionOfStatefulProcessor.patchState(Map.of("patched", "value"), Scope.LOCAL);
+            sessionOfStatefulProcessor.commitAsync();
+            stateManagerOfStatefulProcessor.assertStateEquals(Map.of("replaced", "value", "patched", "value"), Scope.LOCAL);
         }
 
         @Test

@@ -63,4 +63,10 @@ public class TaskTerminationAwareStateManager implements StateManager {
         verifyNotTerminated();
         stateManager.setState(state, scope);
     }
+
+    @Override
+    public void patchState(final Map<String, String> updatedState, final Scope scope) throws IOException {
+        verifyNotTerminated();
+        stateManager.patchState(updatedState, scope);
+    }
 }

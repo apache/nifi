@@ -346,6 +346,11 @@ public class WeakHashMapProcessSessionFactory implements ActiveProcessSessionFac
         }
 
         @Override
+        public void patchState(final Map<String, String> updatedState, final Scope scope) throws IOException {
+            delegate.patchState(updatedState, scope);
+        }
+
+        @Override
         public void clearState(final Scope scope) throws IOException {
             delegate.clearState(scope);
         }
