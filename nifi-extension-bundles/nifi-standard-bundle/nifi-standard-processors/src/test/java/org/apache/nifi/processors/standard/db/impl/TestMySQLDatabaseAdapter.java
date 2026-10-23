@@ -33,7 +33,7 @@ public class TestMySQLDatabaseAdapter {
     private MySQLDatabaseAdapter testSubject;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         testSubject = new MySQLDatabaseAdapter();
     }
 

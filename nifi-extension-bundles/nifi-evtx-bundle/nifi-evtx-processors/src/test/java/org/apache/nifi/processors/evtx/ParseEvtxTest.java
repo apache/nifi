@@ -53,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.xml.stream.XMLStreamException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -104,7 +103,7 @@ public class ParseEvtxTest {
     ParseEvtx parseEvtx;
 
     @BeforeEach
-    public void setup() throws XMLStreamException, IOException {
+    public void setup() throws IOException {
         parseEvtx = new ParseEvtx(fileHeaderFactory, malformedChunkHandler, rootNodeHandlerFactory, resultProcessor);
         when(fileHeaderFactory.create(in, componentLog)).thenReturn(fileHeader);
     }

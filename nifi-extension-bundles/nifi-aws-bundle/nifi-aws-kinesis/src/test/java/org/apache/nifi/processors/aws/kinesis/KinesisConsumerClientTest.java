@@ -56,7 +56,7 @@ class KinesisConsumerClientTest {
      * sequence (99999) exceeds the checkpoint (11111), so the renewal should use 99999.
      */
     @Test
-    void testSubscriptionRenewalUsesLastAcknowledgedSequenceNumber() throws Exception {
+    void testSubscriptionRenewalUsesLastAcknowledgedSequenceNumber() {
         final KinesisShardManager mockShardManager = mock(KinesisShardManager.class);
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("11111");
 
@@ -91,7 +91,7 @@ class KinesisConsumerClientTest {
      * the DynamoDB checkpoint.
      */
     @Test
-    void testSubscriptionRenewalFallsBackToCheckpointWhenNoQueuedData() throws Exception {
+    void testSubscriptionRenewalFallsBackToCheckpointWhenNoQueuedData() {
         final KinesisShardManager mockShardManager = mock(KinesisShardManager.class);
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("55555");
 
@@ -119,7 +119,7 @@ class KinesisConsumerClientTest {
      * Verifies that renewal uses the lastQueuedSequenceNumber when it exceeds the checkpoint.
      */
     @Test
-    void testSubscriptionRenewalUsesLastQueuedSequence() throws Exception {
+    void testSubscriptionRenewalUsesLastQueuedSequence() {
         final KinesisShardManager mockShardManager = mock(KinesisShardManager.class);
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("10000");
 
@@ -148,7 +148,7 @@ class KinesisConsumerClientTest {
      * and concurrent handler onError callbacks.
      */
     @Test
-    void testSubscriptionRenewalAlwaysUsesMaxSequence() throws Exception {
+    void testSubscriptionRenewalAlwaysUsesMaxSequence() {
         final KinesisShardManager mockShardManager = mock(KinesisShardManager.class);
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("50000");
 
@@ -180,7 +180,7 @@ class KinesisConsumerClientTest {
      * uses max(lastQueued, checkpoint) regardless of whether results have been polled.
      */
     @Test
-    void testSubscriptionRenewalAfterPollBeforeAcknowledgeUsesMaxSequence() throws Exception {
+    void testSubscriptionRenewalAfterPollBeforeAcknowledgeUsesMaxSequence() {
         final KinesisShardManager mockShardManager = mock(KinesisShardManager.class);
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("50000");
 
@@ -211,7 +211,7 @@ class KinesisConsumerClientTest {
      * acknowledgeResults to resume it during the consumeRecords loop.
      */
     @Test
-    void testPollingResultResumesPausedEfoConsumer() throws Exception {
+    void testPollingResultResumesPausedEfoConsumer() {
         final KinesisShardManager mockShardManager = mock(KinesisShardManager.class);
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("50000");
 
@@ -238,7 +238,7 @@ class KinesisConsumerClientTest {
      * additional EFO event for that shard.
      */
     @Test
-    void testAcknowledgeResultsRequestsNextOncePerShard() throws Exception {
+    void testAcknowledgeResultsRequestsNextOncePerShard() {
         final KinesisShardManager mockShardManager = mock(KinesisShardManager.class);
         when(mockShardManager.readCheckpoint("shardId-000000000001")).thenReturn("50000");
 
@@ -334,7 +334,7 @@ class KinesisConsumerClientTest {
      * </ol>
      */
     @Test
-    void testStaleErrorCallbackDoesNotCorruptNewSubscription() throws Exception {
+    void testStaleErrorCallbackDoesNotCorruptNewSubscription() {
         final ComponentLog mockLogger = mock(ComponentLog.class);
         final KinesisAsyncClient mockAsyncClient = mock(KinesisAsyncClient.class);
 

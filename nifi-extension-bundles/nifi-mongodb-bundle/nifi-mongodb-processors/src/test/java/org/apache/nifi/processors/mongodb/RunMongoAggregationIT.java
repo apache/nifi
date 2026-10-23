@@ -224,7 +224,7 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
     }
 
     @Test
-    public void testExtendedJsonSupport() throws Exception {
+    public void testExtendedJsonSupport() {
         String pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
         final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(pattern);
         //Let's put this a week from now to make sure that we're not getting too close to
@@ -255,7 +255,7 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
     }
 
     @Test
-    public void testEmptyResponse() throws Exception {
+    public void testEmptyResponse() {
         final String queryInput = "[\n" +
                 "  {\n" +
                 "    \"$match\": {\n" +

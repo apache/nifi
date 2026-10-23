@@ -84,7 +84,7 @@ public class TestHashiCorpVaultConfiguration {
     }
 
     @BeforeEach
-    public void init() throws IOException {
+    public void init() {
         propertiesBuilder = new HashiCorpVaultProperties.HashiCorpVaultPropertiesBuilder()
                 .setUri(URI_VALUE)
                 .setAuthPropertiesFilename(authProps.getAbsolutePath());

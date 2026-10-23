@@ -258,7 +258,7 @@ public class TestSplitAvro {
     }
 
     @Test
-    public void testFailure() throws IOException {
+    public void testFailure() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitAvro());
         runner.setProperty(SplitAvro.OUTPUT_SIZE, "200");
 

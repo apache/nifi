@@ -21,7 +21,6 @@ import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,27 +55,27 @@ final class MockCacheService extends AbstractControllerService implements Distri
     }
 
     @Override
-    public <K> boolean containsKey(K key, Serializer<K> keySerializer) throws IOException {
+    public <K> boolean containsKey(K key, Serializer<K> keySerializer) {
         return storage.containsKey(key);
     }
 
     @Override
-    public <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+    public <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
         storage.put(key, value);
     }
 
     @Override
-    public <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+    public <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) {
         return (V) storage.get(key);
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
 
     }
 
     @Override
-    public <K> boolean remove(K key, Serializer<K> serializer) throws IOException {
+    public <K> boolean remove(K key, Serializer<K> serializer) {
         if (storage.containsKey(key)) {
             storage.remove(key);
             return true;

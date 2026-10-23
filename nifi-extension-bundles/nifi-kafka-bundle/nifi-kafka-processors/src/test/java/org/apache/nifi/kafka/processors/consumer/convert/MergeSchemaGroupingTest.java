@@ -85,7 +85,7 @@ class MergeSchemaGroupingTest {
     }
 
     @Test
-    void testDifferentSchemasInSameTopicPartitionMergeIntoOneFlowFile() throws Exception {
+    void testDifferentSchemasInSameTopicPartitionMergeIntoOneFlowFile() {
         final ByteRecord first = new ByteRecord(TOPIC, 0, 10, 1000L, List.of(), null, new byte[0], 0L);
         final ByteRecord second = new ByteRecord(TOPIC, 0, 11, 500L, List.of(), null, new byte[0], 0L);
 
@@ -109,7 +109,7 @@ class MergeSchemaGroupingTest {
     }
 
     @Test
-    void testDifferentPartitionsProduceSeparateFlowFiles() throws Exception {
+    void testDifferentPartitionsProduceSeparateFlowFiles() {
         final ByteRecord first = new ByteRecord(TOPIC, 0, 1, 1000L, List.of(), null, new byte[0], 0L);
         final ByteRecord second = new ByteRecord(TOPIC, 1, 2, 2000L, List.of(), null, new byte[0], 0L);
 
@@ -124,7 +124,7 @@ class MergeSchemaGroupingTest {
     }
 
     @Test
-    void testDifferentGroupingAttributesProduceSeparateFlowFiles() throws Exception {
+    void testDifferentGroupingAttributesProduceSeparateFlowFiles() {
         final ByteRecord first = new ByteRecord(TOPIC, 0, 1, 1000L, List.of(), null, new byte[0], 0L);
         final ByteRecord second = new ByteRecord(TOPIC, 0, 2, 2000L, List.of(), null, new byte[0], 0L);
 
@@ -188,7 +188,7 @@ class MergeSchemaGroupingTest {
 
         @Override
         public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out,
-                final Map<String, String> variables) throws IOException {
+                final Map<String, String> variables) {
             return writer.createWriter(logger, schema, out, variables);
         }
     }

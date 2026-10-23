@@ -732,57 +732,57 @@ public class ResultSetRecordSetTest {
     private static class ResultSqlArray implements Array {
 
         @Override
-        public String getBaseTypeName() throws SQLException {
+        public String getBaseTypeName() {
             return null;
         }
 
         @Override
-        public int getBaseType() throws SQLException {
+        public int getBaseType() {
             return 0;
         }
 
         @Override
-        public Object getArray() throws SQLException {
+        public Object getArray() {
             return null;
         }
 
         @Override
-        public Object getArray(Map<String, Class<?>> map) throws SQLException {
+        public Object getArray(Map<String, Class<?>> map) {
             return null;
         }
 
         @Override
-        public Object getArray(long index, int count) throws SQLException {
+        public Object getArray(long index, int count) {
             return null;
         }
 
         @Override
-        public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
+        public Object getArray(long index, int count, Map<String, Class<?>> map) {
             return null;
         }
 
         @Override
-        public ResultSet getResultSet() throws SQLException {
+        public ResultSet getResultSet() {
             return null;
         }
 
         @Override
-        public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
+        public ResultSet getResultSet(Map<String, Class<?>> map) {
             return null;
         }
 
         @Override
-        public ResultSet getResultSet(long index, int count) throws SQLException {
+        public ResultSet getResultSet(long index, int count) {
             return null;
         }
 
         @Override
-        public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
+        public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) {
             return null;
         }
 
         @Override
-        public void free() throws SQLException {
+        public void free() {
 
         }
     }

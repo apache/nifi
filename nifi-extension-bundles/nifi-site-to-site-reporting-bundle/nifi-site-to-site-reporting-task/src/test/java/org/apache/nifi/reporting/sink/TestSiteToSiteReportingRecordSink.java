@@ -122,7 +122,7 @@ public class TestSiteToSiteReportingRecordSink {
         assertEquals(1, task.dataSent.size());
     }
 
-    public MockSiteToSiteReportingRecordSink initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException, IOException {
+    public MockSiteToSiteReportingRecordSink initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException {
 
         final MockSiteToSiteReportingRecordSink task = new MockSiteToSiteReportingRecordSink();
         context = Mockito.mock(ConfigurationContext.class);
@@ -142,7 +142,7 @@ public class TestSiteToSiteReportingRecordSink {
 
     private static final class MockSiteToSiteReportingRecordSink extends SiteToSiteReportingRecordSink {
 
-        public MockSiteToSiteReportingRecordSink() throws IOException {
+        public MockSiteToSiteReportingRecordSink() {
         }
 
         final List<byte[]> dataSent = new ArrayList<>();

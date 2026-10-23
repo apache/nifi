@@ -113,7 +113,7 @@ public class CredentialsFactoryTest {
     }
 
     @Test
-    public void testBadJsonFileCredentials() throws Exception {
+    public void testBadJsonFileCredentials() {
         final TestRunner runner = TestRunners.newTestRunner(MockCredentialsFactoryProcessor.class);
         runner.setProperty(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue());
         runner.setProperty(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE,
@@ -142,7 +142,7 @@ public class CredentialsFactoryTest {
     }
 
     @Test
-    public void testJsonFileCredentialsRejectsExternalAccount() throws Exception {
+    public void testJsonFileCredentialsRejectsExternalAccount() {
         final TestRunner runner = TestRunners.newTestRunner(MockCredentialsFactoryProcessor.class);
         runner.setProperty(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue());
         runner.setProperty(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE,

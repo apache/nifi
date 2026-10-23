@@ -178,7 +178,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     }
 
     @Test
-    public void testGetCredentialsDetailsWithIdentityFederation() throws Exception {
+    public void testGetCredentialsDetailsWithIdentityFederation() {
         configureAccountName();
         configureCredentialsType(AzureStorageCredentialsType.IDENTITY_FEDERATION);
         configureIdentityFederationProvider();

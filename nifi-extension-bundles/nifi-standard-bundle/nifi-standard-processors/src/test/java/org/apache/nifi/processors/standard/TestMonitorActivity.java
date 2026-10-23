@@ -1355,7 +1355,7 @@ public class TestMonitorActivity {
     }
 
     @Test
-    public void testMultipleFlowFilesActivateTheFlowInSingleTriggerResultsInSingleMarker() throws IOException {
+    public void testMultipleFlowFilesActivateTheFlowInSingleTriggerResultsInSingleMarker() {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.DAYS.toMillis(1)));
         runner.setIsConfiguredForClustering(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_NODE);
@@ -1379,7 +1379,7 @@ public class TestMonitorActivity {
     }
 
     @Test
-    public void testInfrequentFlowFilesTriggerImmediateSynchronization() throws IOException, InterruptedException {
+    public void testInfrequentFlowFilesTriggerImmediateSynchronization() throws IOException {
         final long thresholdSeconds = 30;
         final long startupTimeSeconds = 1;
         final AtomicLong nowProvider = new AtomicLong(TimeUnit.SECONDS.toMillis(startupTimeSeconds));

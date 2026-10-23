@@ -187,7 +187,7 @@ public class ProcessorResourceTest {
     }
 
     @Test
-    public void testSubmitProcessorBacklogRequestNotAuthorized() throws Exception {
+    public void testSubmitProcessorBacklogRequestNotAuthorized() {
         authenticate();
         doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
 

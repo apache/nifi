@@ -118,7 +118,7 @@ public class TestListFile {
     }
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         processor = new ListFile();
         runner = TestRunners.newTestRunner(processor);
         runner.setProperty(AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION, AbstractListProcessor.PRECISION_SECONDS.getValue());

@@ -78,7 +78,7 @@ public class NarUploadUtil {
         }
     }
 
-    public ExceptionalBooleanSupplier getWaitForNarStateSupplier(final String identifier, final NarState narState) throws InterruptedException {
+    public ExceptionalBooleanSupplier getWaitForNarStateSupplier(final String identifier, final NarState narState) {
         return () -> {
             LOGGER.info("Waiting for NAR [{}] to be in state [{}]]", identifier, narState.getValue());
             final NarSummaryEntity narSummaryEntity = client.getControllerClient().getNarSummary(identifier);

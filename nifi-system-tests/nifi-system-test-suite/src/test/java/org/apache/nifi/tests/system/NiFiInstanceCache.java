@@ -34,7 +34,7 @@ public class NiFiInstanceCache {
     private final CachedInstance standaloneInstance = new CachedInstance();
     private final CachedInstance clusteredInstance = new CachedInstance();
 
-    public NiFiInstance createInstance(final NiFiInstanceFactory instanceFactory, final String testName, final boolean allowReuse) throws IOException {
+    public NiFiInstance createInstance(final NiFiInstanceFactory instanceFactory, final String testName, final boolean allowReuse) {
         final CachedInstance cachedInstance = instanceFactory.isClusteredInstance() ? clusteredInstance : standaloneInstance;
 
         if (!allowReuse) {
@@ -116,7 +116,7 @@ public class NiFiInstanceCache {
             }
         }
 
-        public NiFiInstance getOrCreateInstance() throws IOException {
+        public NiFiInstance getOrCreateInstance() {
             if (instance != null) {
                 return instance;
             }

@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class CharacterFilterUtilsTest {
 
     @Test
-    public void filterInvalidCharacters() throws Exception {
+    public void filterInvalidCharacters() {
         final String text = "This is an example with characters that need to be filtered \u0002 in it. " + Character.MIN_SURROGATE;
         final String filtered = CharacterFilterUtils.filterInvalidXmlCharacters(text);
 

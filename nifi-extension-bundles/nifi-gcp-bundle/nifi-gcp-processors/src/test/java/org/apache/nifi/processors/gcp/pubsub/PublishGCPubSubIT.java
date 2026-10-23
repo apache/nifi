@@ -27,7 +27,7 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_
 public class PublishGCPubSubIT extends AbstractGCPubSubIT {
 
     @BeforeAll
-    public static void setup() throws InitializationException {
+    public static void setup() {
         runner = TestRunners.newTestRunner(PublishGCPubSub.class);
     }
 

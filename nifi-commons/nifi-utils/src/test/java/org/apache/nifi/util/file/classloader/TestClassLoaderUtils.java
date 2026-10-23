@@ -90,7 +90,7 @@ public class TestClassLoaderUtils {
     }
 
     @Test
-    public void testGetURLsForClasspathWithSomeNonExistentAndNoSuppression() throws MalformedURLException {
+    public void testGetURLsForClasspathWithSomeNonExistentAndNoSuppression() {
         final String jarFilePath = "src/test/resources/TestClassLoaderUtils/TestSuccess.jar,src/test/resources/TestClassLoaderUtils/FakeTest.jar";
         assertThrows(MalformedURLException.class, () -> ClassLoaderUtils.getURLsForClasspath(jarFilePath, null, false));
     }

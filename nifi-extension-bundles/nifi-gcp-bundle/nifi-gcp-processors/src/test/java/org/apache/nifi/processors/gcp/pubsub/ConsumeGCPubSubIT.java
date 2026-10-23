@@ -28,7 +28,7 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MSG_PUBLISH
 public class ConsumeGCPubSubIT extends AbstractGCPubSubIT {
 
     @BeforeAll
-    public static void setup() throws InitializationException {
+    public static void setup() {
         runner = TestRunners.newTestRunner(ConsumeGCPubSub.class);
     }
 

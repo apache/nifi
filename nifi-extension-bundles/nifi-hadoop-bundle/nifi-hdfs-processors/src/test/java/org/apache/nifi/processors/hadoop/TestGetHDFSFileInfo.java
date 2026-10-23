@@ -22,7 +22,6 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.util.MockFileSystem;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -50,7 +49,7 @@ public class TestGetHDFSFileInfo {
     private GetHDFSFileInfoWithMockedFileSystem proc;
 
     @BeforeEach
-    public void setup() throws InitializationException {
+    public void setup() {
         proc = new GetHDFSFileInfoWithMockedFileSystem();
         runner = TestRunners.newTestRunner(proc);
 

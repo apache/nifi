@@ -49,7 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AbstractGitFlowRegistryClientTest {
 
     @Test
-    void verifySuccessful() throws Exception {
+    void verifySuccessful() {
         final TestGitRepositoryClient repositoryClient = new TestGitRepositoryClient(true, true, Set.of("bucket-a", ".git"));
         final AtomicReference<TestGitRepositoryClient> suppliedClient = new AtomicReference<>(repositoryClient);
         final TestGitFlowRegistryClient flowRegistryClient = new TestGitFlowRegistryClient(() -> suppliedClient.getAndSet(null), "git@example.git");
@@ -88,7 +88,7 @@ class AbstractGitFlowRegistryClientTest {
     }
 
     @Test
-    void verifyReadFailureSkipsBucketListing() throws Exception {
+    void verifyReadFailureSkipsBucketListing() {
         final TestGitRepositoryClient repositoryClient = new TestGitRepositoryClient(false, false, Set.of());
         final TestGitFlowRegistryClient flowRegistryClient = new TestGitFlowRegistryClient(() -> repositoryClient, "git@example.git");
         flowRegistryClient.initialize(createInitializationContext());
@@ -106,7 +106,7 @@ class AbstractGitFlowRegistryClientTest {
     }
 
     @Test
-    void verifyBucketListingFailureReported() throws Exception {
+    void verifyBucketListingFailureReported() {
         final TestGitRepositoryClient repositoryClient = new TestGitRepositoryClient(true, true, Set.of("bucket-a"));
         repositoryClient.setGetTopLevelDirectoryNamesException(new FlowRegistryException("listing error"));
 
@@ -143,7 +143,7 @@ class AbstractGitFlowRegistryClientTest {
     }
 
     @Test
-    void createBranchUnsupportedThrowsFlowRegistryException() throws Exception {
+    void createBranchUnsupportedThrowsFlowRegistryException() {
         final TestGitRepositoryClient repositoryClient = new TestGitRepositoryClient(true, true, Set.of("bucket-a"));
         repositoryClient.setBranchCreationUnsupported(true);
 
@@ -227,7 +227,7 @@ class AbstractGitFlowRegistryClientTest {
         }
 
         @Override
-        protected GitRepositoryClient createRepositoryClient(final FlowRegistryClientConfigurationContext context) throws IOException, FlowRegistryException {
+        protected GitRepositoryClient createRepositoryClient(final FlowRegistryClientConfigurationContext context) throws FlowRegistryException {
             return repositoryClientSupplier.get();
         }
 
@@ -238,7 +238,7 @@ class AbstractGitFlowRegistryClientTest {
     }
 
     private interface RepositoryClientSupplier {
-        GitRepositoryClient get() throws IOException, FlowRegistryException;
+        GitRepositoryClient get() throws FlowRegistryException;
     }
 
     private static class TestGitRepositoryClient implements GitRepositoryClient {
@@ -317,7 +317,7 @@ class AbstractGitFlowRegistryClientTest {
 
         @Override
         public void createBranch(final String newBranchName, final String sourceBranch, final Optional<String> sourceCommitSha)
-                throws IOException, FlowRegistryException {
+                throws FlowRegistryException {
             if (branchCreationUnsupported) {
                 throw new UnsupportedOperationException("Branch creation not supported");
             }

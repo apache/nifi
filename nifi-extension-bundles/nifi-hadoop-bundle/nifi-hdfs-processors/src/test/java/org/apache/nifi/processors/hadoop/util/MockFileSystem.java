@@ -201,7 +201,7 @@ public class MockFileSystem extends FileSystem {
         return pathToStatus.containsKey(f);
     }
 
-    private FSDataInputStream createInputStream(final Path f) throws IOException {
+    private FSDataInputStream createInputStream(final Path f) {
         if (failOnClose) {
             return new FSDataInputStream(new StubFSInputStream()) {
                 @Override
@@ -321,22 +321,22 @@ public class MockFileSystem extends FileSystem {
     private class StubFSInputStream extends FSInputStream {
 
         @Override
-        public void seek(long l) throws IOException {
+        public void seek(long l) {
 
         }
 
         @Override
-        public long getPos() throws IOException {
+        public long getPos() {
             return 0;
         }
 
         @Override
-        public boolean seekToNewSource(long l) throws IOException {
+        public boolean seekToNewSource(long l) {
             return true;
         }
 
         @Override
-        public int read() throws IOException {
+        public int read() {
             return -1;
         }
     }

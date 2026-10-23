@@ -22,7 +22,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.aws.AbstractAwsProcessor;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.proxy.ProxyConfigurationService;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -76,7 +75,7 @@ public class GetAwsTranscribeJobStatusTest {
     }
 
     @BeforeEach
-    public void setUp() throws InitializationException {
+    public void setUp() {
         GetAwsTranscribeJobStatus processor = new GetAwsTranscribeJobStatus() {
             @Override
             public TranscribeClient getClient(final ProcessContext context) {

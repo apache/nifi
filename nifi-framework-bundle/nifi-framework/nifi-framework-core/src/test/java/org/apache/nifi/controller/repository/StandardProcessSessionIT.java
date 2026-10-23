@@ -181,7 +181,7 @@ public class StandardProcessSessionIT {
     }
 
     @BeforeEach
-    public void setup() throws IOException {
+    public void setup() {
         resourceClaimManager = new StandardResourceClaimManager();
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, StandardProcessSessionIT.class.getResource("/conf/nifi.properties").getFile());

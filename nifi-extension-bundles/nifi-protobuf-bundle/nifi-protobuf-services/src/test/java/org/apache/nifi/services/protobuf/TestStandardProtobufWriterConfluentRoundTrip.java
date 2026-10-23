@@ -23,7 +23,6 @@ import org.apache.nifi.confluent.schemaregistry.ConfluentProtobufMessageNameReso
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.schema.access.SchemaField;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.schemaregistry.services.StandardSchemaDefinition;
@@ -312,7 +311,7 @@ class TestStandardProtobufWriterConfluentRoundTrip {
         }
 
         @Override
-        public SchemaDefinition retrieveSchemaDefinition(final SchemaIdentifier schemaIdentifier) throws SchemaNotFoundException {
+        public SchemaDefinition retrieveSchemaDefinition(final SchemaIdentifier schemaIdentifier) {
             final SchemaIdentifier identifier = SchemaIdentifier.builder().name("user.proto").id(SCHEMA_ID).version(1).build();
             return new StandardSchemaDefinition(identifier, schemaText, SchemaDefinition.SchemaType.PROTOBUF);
         }

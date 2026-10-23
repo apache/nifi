@@ -64,7 +64,7 @@ public class TestFTP {
     int ftpPort;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         fakeFtpServer.setServerControlPort(0);
         fakeFtpServer.addUserAccount(new UserAccount(username, password, "c:\\data"));
 

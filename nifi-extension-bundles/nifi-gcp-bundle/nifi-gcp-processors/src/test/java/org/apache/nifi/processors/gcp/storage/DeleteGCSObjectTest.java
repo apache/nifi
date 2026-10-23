@@ -61,7 +61,7 @@ public class DeleteGCSObjectTest extends AbstractGCSTest {
 
     @Override
     @BeforeEach
-    public void setup() throws Exception {
+    public void setup() {
         mockCloseable = MockitoAnnotations.openMocks(this);
     }
 
