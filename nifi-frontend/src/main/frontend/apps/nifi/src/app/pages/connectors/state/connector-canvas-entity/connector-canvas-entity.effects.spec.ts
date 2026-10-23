@@ -167,30 +167,33 @@ describe('ConnectorCanvasEntityEffects', () => {
             expect(result).toEqual(loadConnectorEntity({ connectorId: 'connector-456' }));
         });
 
-        it('should not dispatch loadConnectorEntity when entity already matches connector id', () =>
-            new Promise<void>((resolve) => {
-                setup({ existingConnectorEntity: createMockConnectorEntity({ id: 'connector-456' }) }).then(
-                    ({ effects, actions$ }) => {
-                        let emissionCount = 0;
-                        const subscription = effects.triggerEntityLoad$.subscribe(() => {
-                            emissionCount++;
-                        });
+        it('should dispatch loadConnectorEntity when the stored entity already matches, including a repeated refresh', async () => {
+            const { effects, actions$ } = await setup({
+                existingConnectorEntity: createMockConnectorEntity({ id: 'connector-456' })
+            });
 
-                        actions$.next(
-                            ConnectorCanvasActions.loadConnectorFlow({
-                                connectorId: 'connector-456',
-                                processGroupId: 'pg-789'
-                            })
-                        );
+            const emitted: Action[] = [];
+            const subscription = effects.triggerEntityLoad$.subscribe((action) => emitted.push(action));
 
-                        queueMicrotask(() => {
-                            expect(emissionCount).toBe(0);
-                            subscription.unsubscribe();
-                            resolve();
-                        });
-                    }
-                );
-            }));
+            actions$.next(
+                ConnectorCanvasActions.loadConnectorFlow({
+                    connectorId: 'connector-456',
+                    processGroupId: 'pg-789'
+                })
+            );
+            actions$.next(
+                ConnectorCanvasActions.loadConnectorFlow({
+                    connectorId: 'connector-456',
+                    processGroupId: 'pg-789'
+                })
+            );
+
+            expect(emitted).toEqual([
+                loadConnectorEntity({ connectorId: 'connector-456' }),
+                loadConnectorEntity({ connectorId: 'connector-456' })
+            ]);
+            subscription.unsubscribe();
+        });
     });
 
     describe('loadConnectorEntity$', () => {

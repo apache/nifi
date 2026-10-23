@@ -84,24 +84,36 @@
             </div>
             @if (showDrain() || showCancelDrain()) {
                 <div class="flex gap-1 flex-wrap">
-                    @if (showDrain()) {
-                        <button
-                            mat-stroked-button
-                            type="button"
-                            [disabled]="!canDrain()"
-                            data-qa="connector-panel-drain"
-                            (click)="drainConnector()">
-                            Drain
-                        </button>
-                    } @else if (showCancelDrain()) {
-                        <button
-                            mat-stroked-button
-                            type="button"
-                            [disabled]="!canCancelDrain()"
-                            data-qa="connector-panel-cancel-drain"
-                            (click)="cancelDrain()">
-                            Cancel Drain
-                        </button>
+                    @if (showCancelDrain()) {
+                        <span
+                            class="flex"
+                            [matTooltip]="getCancelDrainDisabledReason()"
+                            [matTooltipDisabled]="canCancelDrain()"
+                            data-qa="connector-panel-cancel-drain-tooltip">
+                            <button
+                                mat-stroked-button
+                                type="button"
+                                [disabled]="!canCancelDrain()"
+                                data-qa="connector-panel-cancel-drain"
+                                (click)="cancelDrain()">
+                                Cancel Drain
+                            </button>
+                        </span>
+                    } @else if (showDrain()) {
+                        <span
+                            class="flex"
+                            [matTooltip]="getDrainDisabledReason()"
+                            [matTooltipDisabled]="canDrain()"
+                            data-qa="connector-panel-drain-tooltip">
+                            <button
+                                mat-stroked-button
+                                type="button"
+                                [disabled]="!canDrain()"
+                                data-qa="connector-panel-drain"
+                                (click)="drainConnector()">
+                                Drain
+                            </button>
+                        </span>
                     }
                 </div>
             }
