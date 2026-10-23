@@ -29,7 +29,6 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorContextKey } from '../../../../state/error';
 import * as ConnectorCanvasActions from '../connector-canvas/connector-canvas.actions';
 import { selectConnectorIdFromRoute } from '../connector-canvas/connector-canvas.selectors';
-import { selectConnectorCanvasEntity } from './connector-canvas-entity.selectors';
 import {
     loadConnectorEntity,
     loadConnectorEntitySuccess,
@@ -54,12 +53,17 @@ export class ConnectorCanvasEntityEffects {
     private errorHelper = inject(ErrorHelper);
     private dialog = inject(MatDialog);
 
+    /**
+     * Refresh the connector entity alongside every flow load.
+     *
+     * Each `loadConnectorFlow` — the initial mount, a polling tick, navigation, and the
+     * canvas Refresh action — dispatches `loadConnectorEntity` so the entity stays in
+     * lockstep with the flow.
+     */
     triggerEntityLoad$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ConnectorCanvasActions.loadConnectorFlow),
-            concatLatestFrom(() => this.store.select(selectConnectorCanvasEntity)),
-            filter(([action, existingEntity]) => existingEntity == null || existingEntity.id !== action.connectorId),
-            map(([action]) => loadConnectorEntity({ connectorId: action.connectorId }))
+            map((action) => loadConnectorEntity({ connectorId: action.connectorId }))
         )
     );
 
