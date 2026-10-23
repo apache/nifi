@@ -69,6 +69,8 @@ export const loadConnectorFlow = createAction(
     props<{ connectorId: string; processGroupId: string }>()
 );
 
+export const markAuthoritativeSnapshotPending = createAction('[Connector Canvas] Mark Authoritative Snapshot Pending');
+
 export const loadConnectorFlowSuccess = createAction(
     '[Connector Canvas] Load Connector Flow Success',
     props<{
@@ -84,12 +86,17 @@ export const loadConnectorFlowSuccess = createAction(
         processGroups: ProcessGroupEntity[];
         processors: ProcessorEntity[];
         connections: ConnectionEntity[];
+        reconciliationSnapshot: {
+            addedCache: string[];
+            removedCache: string[];
+        };
+        connectedStateChanged: boolean;
     }>()
 );
 
 export const loadConnectorFlowFailure = createAction(
     '[Connector Canvas] Load Connector Flow Failure',
-    props<{ errorContext: ErrorContext; isRefresh: boolean }>()
+    props<{ errorContext: ErrorContext; isRefresh: boolean; connectedStateChanged: boolean }>()
 );
 
 export const loadConnectorFlowComplete = createAction('[Connector Canvas] Load Connector Flow Complete');
