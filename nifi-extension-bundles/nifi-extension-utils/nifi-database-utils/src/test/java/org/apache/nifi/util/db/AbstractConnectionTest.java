@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util.db;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -23,10 +24,11 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 abstract class AbstractConnectionTest {
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
-    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s";
+    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%1$s/nifi";
 
     private static String connectionUrl;
 
@@ -37,7 +39,16 @@ abstract class AbstractConnectionTest {
         } catch (final ClassNotFoundException e) {
             throw new IllegalStateException("Driver Class [%s] not found".formatted(DRIVER_CLASS), e);
         }
-        connectionUrl = CONNECTION_URL_FORMAT.formatted(tempDir);
+        connectionUrl = CONNECTION_URL_FORMAT.formatted(tempDir.toAbsolutePath());
+    }
+
+    @AfterAll
+    public static void shutdownDatabase() throws SQLException {
+        try (Connection conn = DriverManager.getConnection(connectionUrl);
+             Statement stmt = conn.createStatement()) {
+            // Engine shutdown closes all connections regardless of status
+            stmt.execute("SHUTDOWN");
+        }
     }
 
     /**
