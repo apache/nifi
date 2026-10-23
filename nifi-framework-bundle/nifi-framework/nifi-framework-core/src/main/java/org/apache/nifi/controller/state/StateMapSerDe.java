@@ -112,15 +112,7 @@ public class StateMapSerDe implements SerDe<StateMapUpdate> {
             throw new IOException("Journal holds state patches for component " + componentId + " but no previous state was recovered for that component");
         }
 
-        final Map<String, String> patchedState = new HashMap<>(previousRecord.getStateMap().toMap());
-        for (final Map.Entry<String, String> entry : entries.entrySet()) {
-            if (entry.getValue() == null) {
-                patchedState.remove(entry.getKey());
-            } else {
-                patchedState.put(entry.getKey(), entry.getValue());
-            }
-        }
-
+        final Map<String, String> patchedState = previousRecord.getStateMap().toMap(entries);
         return new StateMapUpdate(new StandardStateMap(patchedState, Optional.of(stateVersion)), componentId, updateType);
     }
 

@@ -314,16 +314,7 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
                 return;
             }
 
-            final Map<String, String> patchedState = new HashMap<>(stateMap.toMap());
-            for (final Map.Entry<String, String> entry : updatedState.entrySet()) {
-                if (entry.getValue() == null) {
-                    patchedState.remove(entry.getKey());
-                } else {
-                    patchedState.put(entry.getKey(), entry.getValue());
-                }
-            }
-
-            final StateMap updatedStateMap = new StandardStateMap(patchedState, Optional.of(getIncrementedVersion()));
+            final StateMap updatedStateMap = new StandardStateMap(stateMap.toMap(updatedState), Optional.of(getIncrementedVersion()));
             writeUpdate(new StateMapUpdate(updatedStateMap, componentId, UpdateType.UPDATE, Collections.unmodifiableMap(new HashMap<>(updatedState))));
         }
 

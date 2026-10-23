@@ -4096,15 +4096,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
 
         final StateMap currentState = getState(scope);
-        final Map<String, String> patchedValues = new HashMap<>(currentState.toMap());
-        for (final Map.Entry<String, String> entry : updatedState.entrySet()) {
-            if (entry.getValue() == null) {
-                patchedValues.remove(entry.getKey());
-            } else {
-                patchedValues.put(entry.getKey(), entry.getValue());
-            }
-        }
-
+        final Map<String, String> patchedValues = currentState.toMap(updatedState);
         final String version = currentState.getStateVersion().map(this::getIncrementedVersion).orElse(INITIAL_VERSION);
         final StateMap patchedStateMap = new StandardStateMap(patchedValues, Optional.of(version));
 
