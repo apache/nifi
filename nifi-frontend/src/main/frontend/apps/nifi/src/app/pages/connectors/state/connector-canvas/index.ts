@@ -55,6 +55,7 @@ export interface ConnectorCanvasState {
     connections: ConnectionEntity[];
     addedCache: string[];
     removedCache: string[];
+    pendingAuthoritativeSnapshot: boolean;
     registryClients: RegistryClientEntity[];
     skipTransform: boolean;
     hasLoadedFlow: boolean;
@@ -79,6 +80,7 @@ export const initialConnectorCanvasState: ConnectorCanvasState = {
     connections: [],
     addedCache: [],
     removedCache: [],
+    pendingAuthoritativeSnapshot: false,
     registryClients: [],
     skipTransform: false,
     hasLoadedFlow: false,

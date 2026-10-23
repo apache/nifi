@@ -78,6 +78,16 @@ export const selectLoadingStatus = createSelector(selectConnectorCanvasState, (s
 
 export const selectHasLoadedFlow = createSelector(selectConnectorCanvasState, (state) => state.hasLoadedFlow);
 
+export const selectOptimisticCacheSnapshot = createSelector(selectConnectorCanvasState, (state) => ({
+    addedCache: state.addedCache,
+    removedCache: state.removedCache
+}));
+
+export const selectPendingAuthoritativeSnapshot = createSelector(
+    selectConnectorCanvasState,
+    (state) => state.pendingAuthoritativeSnapshot
+);
+
 export const selectError = createSelector(selectConnectorCanvasState, (state) => state.error);
 
 export const selectSaving = createSelector(selectConnectorCanvasState, (state) => state.saving);

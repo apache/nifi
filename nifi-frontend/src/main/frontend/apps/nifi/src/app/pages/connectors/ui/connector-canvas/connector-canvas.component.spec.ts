@@ -2460,7 +2460,9 @@ describe('ConnectorCanvasComponent', () => {
                     remoteProcessGroups: [],
                     processGroups: [],
                     processors: [],
-                    connections: []
+                    connections: [],
+                    reconciliationSnapshot: { addedCache: [], removedCache: [] },
+                    connectedStateChanged: false
                 })
             );
 
