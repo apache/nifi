@@ -24,13 +24,18 @@ import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.connectable.FlowFileTransferCounts;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.MockFlowFileRecord;
+import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
+import org.apache.nifi.controller.queue.StandardFlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.DeferredStatelessContentRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
+import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.RepositoryRecordType;
 import org.apache.nifi.controller.repository.StandardContentRepositoryContext;
@@ -50,10 +55,13 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.StatelessGroupNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.mock.MockComponentLogger;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.stateless.flow.DataflowTrigger;
+import org.apache.nifi.stateless.flow.DataflowTriggerContext;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TriggerResult;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
@@ -72,8 +80,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -492,6 +503,58 @@ public class TestStatelessFlowTask {
 
         task.updateClaimantCounts();
         assertEquals(2, resourceClaimManager.getClaimantCount(flowFile1.getContentClaim().getResourceClaim()));
+    }
+
+    @Test
+    public void testFailureReturnsInputFlowFileToFrontOfSwappingQueue() throws InterruptedException {
+        // The source queue's swap threshold is 3, so the fourth FlowFile goes to the swap queue and the queue enters swap mode
+        final StandardFlowFileQueue sourceQueue = new StandardFlowFileQueue("source-queue", flowFileRepository, provenanceRepository, mock(ProcessScheduler.class),
+            mock(FlowFileSwapManager.class), null, 3, "0 sec", 0L, "0 B");
+        final List<FlowFileRecord> queuedFlowFiles = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            final FlowFileRecord flowFile = new MockFlowFileRecord();
+            queuedFlowFiles.add(flowFile);
+            sourceQueue.put(flowFile);
+        }
+
+        final Connection sourceConnection = mock(Connection.class);
+        when(sourceConnection.getFlowFileQueue()).thenReturn(sourceQueue);
+        when(inputPort1.getIncomingConnections()).thenReturn(List.of(sourceConnection));
+
+        final AtomicReference<ScheduledState> desiredState = new AtomicReference<>();
+        when(statelessGroupNode.getDesiredState()).thenAnswer(invocation -> desiredState.get());
+
+        // The group is stopped while the flow is running, so the input FlowFile is returned to the source queue without a penalty
+        final TriggerResult canceledResult = mock(TriggerResult.class);
+        when(canceledResult.isCanceled()).thenReturn(true);
+        triggerFailingFlow(canceledResult, desiredState, ScheduledState.STOPPED);
+
+        final FlowFileRecord flowFileAfterCancel = sourceQueue.poll(new HashSet<>());
+        assertEquals(queuedFlowFiles.getFirst().getId(), flowFileAfterCancel.getId());
+        sourceQueue.acknowledge(flowFileAfterCancel);
+
+        // The flow fails, so the input FlowFile is penalized and returned to the active queue, ahead of the FlowFile on the swap queue
+        final TriggerResult failedResult = mock(TriggerResult.class);
+        when(failedResult.getFailureCause()).thenReturn(Optional.of(new ProcessException("Intentional failure")));
+        triggerFailingFlow(failedResult, desiredState, ScheduledState.RUNNING);
+
+        final LocalQueuePartitionDiagnostics diagnostics = sourceQueue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics();
+        assertEquals(2, diagnostics.getActiveQueueSize().getObjectCount());
+        assertEquals(1, diagnostics.getSwapQueueSize().getObjectCount());
+    }
+
+    private void triggerFailingFlow(final TriggerResult triggerResult, final AtomicReference<ScheduledState> desiredState, final ScheduledState stateAfterTrigger) throws InterruptedException {
+        final DataflowTrigger dataflowTrigger = mock(DataflowTrigger.class);
+        when(dataflowTrigger.getResult(anyLong(), any(TimeUnit.class))).thenReturn(Optional.of(triggerResult));
+        when(statelessFlow.trigger(any(DataflowTriggerContext.class))).thenAnswer(invocation -> {
+            final DataflowTriggerContext triggerContext = invocation.getArgument(0);
+            triggerContext.getFlowFileSupplier().getFlowFile(inputPort1.getName());
+            desiredState.set(stateAfterTrigger);
+            return dataflowTrigger;
+        });
+
+        desiredState.set(ScheduledState.RUNNING);
+        task.trigger();
     }
 
     private Connection mockConnection() {

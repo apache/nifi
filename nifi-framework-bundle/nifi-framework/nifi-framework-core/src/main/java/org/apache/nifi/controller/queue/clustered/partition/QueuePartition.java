@@ -61,6 +61,13 @@ public interface QueuePartition {
     void put(FlowFileRecord flowFile);
 
     /**
+     * Adds the given FlowFile to the active portion of this partition, even if the partition is currently swapping FlowFiles out.
+     * This is intended for FlowFiles that were previously polled and are being returned, so that they stay ahead of any swapped-out FlowFiles.
+     * @param flowFile the FlowFile to add
+     */
+    void putToActive(FlowFileRecord flowFile);
+
+    /**
      * Adds the given FlowFiles to this partition
      * @param flowFiles the FlowFiles to add
      */

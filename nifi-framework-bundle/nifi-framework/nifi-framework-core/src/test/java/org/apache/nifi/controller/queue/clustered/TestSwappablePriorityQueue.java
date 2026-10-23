@@ -22,6 +22,7 @@ import org.apache.nifi.controller.MockSwapManager;
 import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.FlowFileQueueSize;
 import org.apache.nifi.controller.queue.FlowFileQueueSnapshot;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -173,6 +174,18 @@ public class TestSwappablePriorityQueue {
             final MockFlowFileRecord swapQueueFlowFile1 = new MockFlowFileRecord(Map.of("i", iValue), 10_000);
             queue.put(swapQueueFlowFile1);
         }
+
+        // Poll the highest priority FlowFile from the active queue and return it, as a session rollback would. It must go back to the
+        // active queue, ahead of the FlowFiles on the swap queue, even though the queue is in swap mode.
+        final FlowFileRecord returnedFlowFile = queue.poll(Collections.emptySet(), 0);
+        assertEquals("0", returnedFlowFile.getAttribute("i"));
+        queue.putToActive(returnedFlowFile);
+        queue.acknowledge(returnedFlowFile);
+
+        final FlowFileQueueSize queueSize = queue.getFlowFileQueueSize();
+        assertEquals(iterations, queueSize.getActiveCount());
+        assertEquals(3, queueSize.getSwappedCount());
+        assertEquals(0, queueSize.getUnacknowledgedCount());
 
         // The first 10,000 should be ordered. Then all FlowFiles on the swap queue should be transferred over, as a single unit, just as they would be in a swap file.
         for (int i = 0; i < iterations; i++) {

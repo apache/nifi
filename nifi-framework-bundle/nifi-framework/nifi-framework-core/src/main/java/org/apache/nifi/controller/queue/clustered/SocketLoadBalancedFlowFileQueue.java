@@ -865,6 +865,20 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     }
 
     @Override
+    public void putToActive(final FlowFileRecord flowFile) {
+        partitionReadLock.lock();
+        try {
+            // As with put(), the size must be adjusted before the FlowFile is made available on a partition
+            adjustSize(1, flowFile.getSize());
+
+            final QueuePartition partition = getPartition(flowFile);
+            partition.putToActive(flowFile);
+        } finally {
+            partitionReadLock.unlock();
+        }
+    }
+
+    @Override
     public void receiveFromPeer(final Collection<FlowFileRecord> flowFiles) throws IllegalClusterStateException {
         partitionReadLock.lock();
         try {
