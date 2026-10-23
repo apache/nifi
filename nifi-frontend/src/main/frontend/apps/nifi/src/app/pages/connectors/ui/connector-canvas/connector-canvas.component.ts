@@ -1096,11 +1096,7 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
         if (context?.targetType === 'component') {
             const clicked = context.clickedComponent;
-            if (
-                context.selectedComponents.length <= 1 &&
-                clicked?.ui.componentType === ComponentType.ProcessGroup &&
-                clicked.entity.permissions.canRead === true
-            ) {
+            if (context.selectedComponents.length <= 1 && clicked?.ui.componentType === ComponentType.ProcessGroup) {
                 return clicked.entity.id;
             }
         }

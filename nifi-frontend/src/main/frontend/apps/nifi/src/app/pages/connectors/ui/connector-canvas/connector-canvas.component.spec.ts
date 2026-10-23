@@ -1216,7 +1216,7 @@ describe('ConnectorCanvasComponent', () => {
                 expect(download!.condition!(null)).toBe(true);
             }));
 
-            it('should hide Download Flow Definition for an unreadable Process Group', fakeAsync(() => {
+            it('should show Download Flow Definition for an unreadable Process Group when the Connector is readable', fakeAsync(() => {
                 const { fixture, component } = setup({ connectorCanRead: true });
                 fixture.detectChanges();
                 tick();
@@ -1230,7 +1230,7 @@ describe('ConnectorCanvasComponent', () => {
                 const download = menu.menuItems.find((item) => item.text === 'Download Flow Definition');
 
                 expect(download).toBeDefined();
-                expect(download!.condition!(null)).toBe(false);
+                expect(download!.condition!(null)).toBe(true);
             }));
 
             it('should dispatch download for the current Process Group without external services', fakeAsync(() => {
