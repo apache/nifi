@@ -46,6 +46,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.remote.PortAuthorizationResult;
@@ -1037,12 +1038,16 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
         @Override
         public PropertyDescriptor getPropertyDescriptor(String propertyName) {
-            return configurableComponent.getPropertyDescriptor(propertyName);
+            try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, configurableComponent.getClass(), configurableComponent.getIdentifier())) {
+                return configurableComponent.getPropertyDescriptor(propertyName);
+            }
         }
 
         @Override
         public List<PropertyDescriptor> getPropertyDescriptors() {
-            return configurableComponent.getPropertyDescriptors();
+            try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, configurableComponent.getClass(), configurableComponent.getIdentifier())) {
+                return configurableComponent.getPropertyDescriptors();
+            }
         }
 
         @Override
@@ -1139,12 +1144,12 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
         @Override
         public PropertyDescriptor getPropertyDescriptor(String propertyName) {
-            return controllerServiceNode.getControllerServiceImplementation().getPropertyDescriptor(propertyName);
+            return controllerServiceNode.getPropertyDescriptor(propertyName);
         }
 
         @Override
         public List<PropertyDescriptor> getPropertyDescriptors() {
-            return controllerServiceNode.getControllerServiceImplementation().getPropertyDescriptors();
+            return controllerServiceNode.getPropertyDescriptors();
         }
 
         @Override
@@ -1187,12 +1192,12 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
         @Override
         public PropertyDescriptor getPropertyDescriptor(String propertyName) {
-            return reportingTaskNode.getReportingTask().getPropertyDescriptor(propertyName);
+            return reportingTaskNode.getPropertyDescriptor(propertyName);
         }
 
         @Override
         public List<PropertyDescriptor> getPropertyDescriptors() {
-            return reportingTaskNode.getReportingTask().getPropertyDescriptors();
+            return reportingTaskNode.getPropertyDescriptors();
         }
 
         @Override
@@ -1235,12 +1240,12 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
         @Override
         public PropertyDescriptor getPropertyDescriptor(String propertyName) {
-            return flowAnalysisRuleNode.getFlowAnalysisRule().getPropertyDescriptor(propertyName);
+            return flowAnalysisRuleNode.getPropertyDescriptor(propertyName);
         }
 
         @Override
         public List<PropertyDescriptor> getPropertyDescriptors() {
-            return flowAnalysisRuleNode.getFlowAnalysisRule().getPropertyDescriptors();
+            return flowAnalysisRuleNode.getPropertyDescriptors();
         }
 
         @Override
@@ -1283,12 +1288,12 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
         @Override
         public PropertyDescriptor getPropertyDescriptor(String propertyName) {
-            return parameterProviderNode.getParameterProvider().getPropertyDescriptor(propertyName);
+            return parameterProviderNode.getPropertyDescriptor(propertyName);
         }
 
         @Override
         public List<PropertyDescriptor> getPropertyDescriptors() {
-            return parameterProviderNode.getParameterProvider().getPropertyDescriptors();
+            return parameterProviderNode.getPropertyDescriptors();
         }
 
         @Override
@@ -1331,12 +1336,12 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
         @Override
         public PropertyDescriptor getPropertyDescriptor(String propertyName) {
-            return flowRegistryClientNode.getComponent().getPropertyDescriptor(propertyName);
+            return flowRegistryClientNode.getPropertyDescriptor(propertyName);
         }
 
         @Override
         public List<PropertyDescriptor> getPropertyDescriptors() {
-            return flowRegistryClientNode.getComponent().getPropertyDescriptors();
+            return flowRegistryClientNode.getPropertyDescriptors();
         }
 
         @Override
