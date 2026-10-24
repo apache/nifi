@@ -130,7 +130,7 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
-            <version>3.8.7</version>
+            <version>3.8.8</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
@@ -210,7 +210,7 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>
-            <version>3.8.7</version>
+            <version>3.8.8</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
