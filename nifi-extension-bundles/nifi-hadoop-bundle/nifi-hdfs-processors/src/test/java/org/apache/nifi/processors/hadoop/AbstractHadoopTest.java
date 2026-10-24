@@ -52,7 +52,7 @@ import static org.mockito.Mockito.when;
 public class AbstractHadoopTest {
 
     @BeforeEach
-    public void setup() throws IOException {
+    public void setup() {
         // needed for calls to UserGroupInformation.setConfiguration() to work when passing in
         // config with Kerberos authentication enabled
         System.setProperty("java.security.krb5.realm", "nifi.com");

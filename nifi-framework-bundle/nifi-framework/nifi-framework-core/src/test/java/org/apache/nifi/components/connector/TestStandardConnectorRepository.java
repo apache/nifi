@@ -162,7 +162,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorCleansUpUnreferencedAssets() throws Exception {
+    public void testSyncConnectorCleansUpUnreferencedAssets() {
         final AssetManager assetManager = mock(AssetManager.class);
         final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
 
@@ -207,7 +207,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorSkipsAssetCleanupWhileMigrationInProgress() throws Exception {
+    public void testSyncConnectorSkipsAssetCleanupWhileMigrationInProgress() {
         final AssetManager assetManager = mock(AssetManager.class);
         final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
 
@@ -236,7 +236,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorInTroubleshootingDoesNotCleanUpAssets() throws Exception {
+    public void testSyncConnectorInTroubleshootingDoesNotCleanUpAssets() {
         final AssetManager assetManager = mock(AssetManager.class);
         final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
 
@@ -1580,7 +1580,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorPreparingForUpdateIsRejected() throws Exception {
+    public void testSyncConnectorPreparingForUpdateIsRejected() {
         final StandardConnectorRepository repository = createRepositoryWithProvider(null);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
@@ -1596,7 +1596,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorUpdatingIsRejected() throws Exception {
+    public void testSyncConnectorUpdatingIsRejected() {
         final StandardConnectorRepository repository = createRepositoryWithProvider(null);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
@@ -1628,7 +1628,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorUpdatedState() throws Exception {
+    public void testSyncConnectorUpdatedState() {
         final FlowManager flowManager = mock(FlowManager.class);
         final StandardConnectorRepository repository = createRepositoryWithFlowManager(null, flowManager);
 
@@ -1701,7 +1701,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorProviderThrowsException() throws Exception {
+    public void testSyncConnectorProviderThrowsException() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         when(provider.getSyncDirective(eq("connector-1"), any()))
                 .thenThrow(new ConnectorConfigurationProviderException("Provider error"));
@@ -1720,7 +1720,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorStartingWaitsForRunning() throws Exception {
+    public void testSyncConnectorStartingWaitsForRunning() {
         final StandardConnectorRepository repository = createRepositoryWithShortTimeout(null);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
@@ -1738,7 +1738,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorStartingTimesOut() throws Exception {
+    public void testSyncConnectorStartingTimesOut() {
         final StandardConnectorRepository repository = createRepositoryWithShortTimeout(null);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
@@ -1754,7 +1754,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorProviderReturnsRemoveStopsAndRemoves() throws Exception {
+    public void testSyncConnectorProviderReturnsRemoveStopsAndRemoves() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
@@ -1779,7 +1779,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorProviderReturnsRemoveStoppedConnector() throws Exception {
+    public void testSyncConnectorProviderReturnsRemoveStoppedConnector() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
@@ -1800,7 +1800,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorProviderReturnsRemoveForNonExistent() throws Exception {
+    public void testSyncConnectorProviderReturnsRemoveForNonExistent() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
@@ -1813,7 +1813,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorProviderReturnsRejectCreatesNodeForNewConnector() throws Exception {
+    public void testSyncConnectorProviderReturnsRejectCreatesNodeForNewConnector() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.reject());
 
@@ -1833,7 +1833,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorProviderAllowWithScheduledStateOverride() throws Exception {
+    public void testSyncConnectorProviderAllowWithScheduledStateOverride() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         when(provider.getSyncDirective(eq("connector-1"), any()))
                 .thenReturn(ConnectorSyncDirective.allow(null, VersionedConnectorState.ENABLED));
@@ -1926,7 +1926,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorTroubleshootingSnapshotRestoreFailureMarksInvalid() throws Exception {
+    public void testSyncConnectorTroubleshootingSnapshotRestoreFailureMarksInvalid() {
         final StandardConnectorRepository repository = createRepositoryWithProvider(null);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");

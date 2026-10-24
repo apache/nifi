@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestSynchronousFileWatcher {
 
     @Test
-    public void testIt() throws IOException, InterruptedException {
+    public void testIt() throws IOException {
         final Path path = Paths.get("target/1.txt");
         Files.copy(new ByteArrayInputStream("Hello, World!".getBytes(StandardCharsets.UTF_8)), path, StandardCopyOption.REPLACE_EXISTING);
         final UpdateMonitor monitor = new DigestUpdateMonitor();

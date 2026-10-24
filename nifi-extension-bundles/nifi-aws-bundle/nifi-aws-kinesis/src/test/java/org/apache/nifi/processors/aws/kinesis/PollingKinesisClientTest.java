@@ -334,7 +334,7 @@ class PollingKinesisClientTest {
      * no pending work, preventing the processor from spin-waiting after shutdown.
      */
     @Test
-    void testCloseTerminatesAllFetchingAndDrainsQueue() throws Exception {
+    void testCloseTerminatesAllFetchingAndDrainsQueue() {
         when(mockShardManager.readCheckpoint(anyString())).thenReturn(null);
         when(mockKinesisClient.getShardIterator(any(GetShardIteratorRequest.class))).thenReturn(ITERATOR_RESPONSE);
 

@@ -813,7 +813,7 @@ public class TestSwappablePriorityQueue {
 
     @Test
     @Timeout(5)
-    public void testGetActiveFlowFilesReturnsAllActiveFlowFiles() throws InterruptedException {
+    public void testGetActiveFlowFilesReturnsAllActiveFlowFiles() {
         for (int i = 0; i < 9999; i++) {
             queue.put(new MockFlowFileRecord());
         }
@@ -883,7 +883,7 @@ public class TestSwappablePriorityQueue {
 
     @Test
     @Timeout(5)
-    public void testListFlowFilesResultsLimited() throws InterruptedException {
+    public void testListFlowFilesResultsLimited() {
         for (int i = 0; i < 30050; i++) {
             queue.put(new MockFlowFileRecord());
         }
@@ -941,7 +941,7 @@ public class TestSwappablePriorityQueue {
     @Test
     // The purpose of this test is to populate a SwappablePriorityQueue and to ensure that the minLastQueueDate and TotalQueueDuration are correct.
     // To truly test this we need to get both the in-memory swap queue and swap "on disk" involved.
-    public void testLastQueueDateMetrics() throws IOException {
+    public void testLastQueueDateMetrics() {
         Set<FlowFileRecord> flowFileRecords = new HashSet<>(11001);
         // With threshold of 1000, swapRecordPollSize will also be 1000
         queue = new SwappablePriorityQueue(swapManager, 1000, eventReporter, flowFileQueue, dropAction, "testGetMinLastQueueDate");

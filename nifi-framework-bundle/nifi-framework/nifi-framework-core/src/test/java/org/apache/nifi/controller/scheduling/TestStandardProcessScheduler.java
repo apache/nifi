@@ -892,7 +892,7 @@ public class TestStandardProcessScheduler {
      */
     @Test
     @Timeout(30)
-    public void testTerminateProcessorRollsBackRetainedSessionWhenNoActiveThreads() throws Exception {
+    public void testTerminateProcessorRollsBackRetainedSessionWhenNoActiveThreads() {
         final TerminationTestHarness harness = createTerminationTestHarness();
         final ProcessorNode procNode = createSimpleProcessorNode(harness);
 

@@ -97,7 +97,7 @@ public class TestSimpleMapCache {
     }
 
     @Test
-    public void testOptimisticLock() throws Exception {
+    public void testOptimisticLock() {
 
         final SimpleMapCache cache = new SimpleMapCache("service-id", 2, EvictionPolicy.FIFO);
 

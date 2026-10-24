@@ -20,7 +20,6 @@ package org.apache.nifi.mock.connectors.tests;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.mock.connector.StandardConnectorTestRunner;
 import org.apache.nifi.mock.connector.server.ConnectorTestRunner;
@@ -80,7 +79,7 @@ public class MockControllerServiceIT {
         }
 
         @Override
-        public Optional<String> lookup(final Map<String, Object> coordinates) throws LookupFailureException {
+        public Optional<String> lookup(final Map<String, Object> coordinates) {
             lookupCounter.incrementAndGet();
             return Optional.of("mock-value");
         }

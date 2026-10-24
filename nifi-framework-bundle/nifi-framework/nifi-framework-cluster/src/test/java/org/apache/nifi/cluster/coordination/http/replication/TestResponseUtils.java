@@ -93,12 +93,12 @@ public class TestResponseUtils {
             }
 
             @Override
-            public NodeResponse awaitMergedResponse() throws InterruptedException {
+            public NodeResponse awaitMergedResponse() {
                 return null;
             }
 
             @Override
-            public NodeResponse awaitMergedResponse(long timeout, TimeUnit timeUnit) throws InterruptedException {
+            public NodeResponse awaitMergedResponse(long timeout, TimeUnit timeUnit) {
                 return null;
             }
 

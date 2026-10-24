@@ -108,7 +108,7 @@ public class ZendeskRecordSinkTest {
     }
 
     @AfterEach
-    void tearDown() throws IOException {
+    void tearDown() {
         server.close();
     }
 

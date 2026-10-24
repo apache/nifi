@@ -174,7 +174,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
     }
 
     @Test
-    public void testDateInvalidValue() throws Exception {
+    public void testDateInvalidValue() {
         String dataFile = "target/date_invalid_wrapper.dat";
 
         DateWrapper berValue = new DateWrapper();

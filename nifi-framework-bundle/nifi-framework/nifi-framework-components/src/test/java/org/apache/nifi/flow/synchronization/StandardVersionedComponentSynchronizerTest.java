@@ -86,7 +86,6 @@ import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.remote.PublicPort;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
@@ -2266,7 +2265,7 @@ public class StandardVersionedComponentSynchronizerTest {
         }
 
         @Override
-        public void initialize(ControllerServiceInitializationContext context) throws InitializationException {
+        public void initialize(ControllerServiceInitializationContext context) {
         }
     }
 }

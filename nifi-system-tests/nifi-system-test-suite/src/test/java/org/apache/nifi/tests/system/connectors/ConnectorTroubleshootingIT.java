@@ -685,7 +685,7 @@ public class ConnectorTroubleshootingIT extends NiFiSystemIT {
         return result;
     }
 
-    private void enableControllerService(final String serviceId) throws NiFiClientException, IOException, InterruptedException {
+    private void enableControllerService(final String serviceId) throws NiFiClientException, IOException {
         final ControllerServiceEntity service = getNifiClient().getControllerServicesClient().getControllerService(serviceId);
         getClientUtil().enableControllerService(service);
         getClientUtil().waitForControllerServiceRunStatus(serviceId, "ENABLED");

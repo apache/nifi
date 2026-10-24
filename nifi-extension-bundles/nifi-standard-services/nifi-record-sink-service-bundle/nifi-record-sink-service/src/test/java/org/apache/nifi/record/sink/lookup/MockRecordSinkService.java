@@ -20,7 +20,6 @@ import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.record.sink.RetryableIOException;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -85,7 +84,7 @@ public class MockRecordSinkService extends AbstractConfigurableComponent impleme
     }
 
     @Override
-    public void initialize(ControllerServiceInitializationContext context) throws InitializationException {
+    public void initialize(ControllerServiceInitializationContext context) {
     }
 
     public List<Map<String, Object>> getRows() {

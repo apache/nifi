@@ -34,7 +34,6 @@ import software.amazon.kinesis.common.InitialPositionInStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
 public abstract class ITConsumeKinesisStream {
@@ -117,7 +116,7 @@ public abstract class ITConsumeKinesisStream {
     }
 
     @AfterEach
-    public void tearDown() throws InterruptedException, ExecutionException {
+    public void tearDown() throws InterruptedException {
         cleanupKinesis();
         cleanupDynamoDB();
 

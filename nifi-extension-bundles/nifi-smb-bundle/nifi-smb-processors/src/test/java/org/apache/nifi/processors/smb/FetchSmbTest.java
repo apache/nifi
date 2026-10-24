@@ -29,7 +29,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.HashMap;
@@ -116,7 +115,7 @@ class FetchSmbTest {
         testRunner.assertValid();
     }
 
-    private void mockNifiSmbClientService() throws IOException {
+    private void mockNifiSmbClientService() {
         doThrow(new SmbException("test exception", 1L, new RuntimeException())).when(mockNifiSmbClientService)
                 .readFile(anyString(), any(OutputStream.class), anySet());
         doAnswer(invocation -> {

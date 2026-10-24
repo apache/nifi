@@ -164,7 +164,7 @@ public class TestSiteInfoProvider {
     }
 
     @Test
-    public void testConnectException() throws Exception {
+    public void testConnectException() {
 
         final Set<String> expectedClusterUrl = Set.of("http://node1:8443, http://node2:8443");
 

@@ -25,7 +25,6 @@ import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchableField;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -57,12 +56,12 @@ public class MockProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public void initialize(EventReporter eventReporter, Authorizer authorizer, ProvenanceAuthorizableFactory resourceFactory, IdentifierLookup idLookup) throws IOException {
+    public void initialize(EventReporter eventReporter, Authorizer authorizer, ProvenanceAuthorizableFactory resourceFactory, IdentifierLookup idLookup) {
 
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxRecords) throws IOException {
+    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxRecords) {
         if (firstRecordId > records.size()) {
             return Collections.emptyList();
         }
@@ -71,7 +70,7 @@ public class MockProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxRecords, NiFiUser user) throws IOException {
+    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxRecords, NiFiUser user) {
         return getEvents(firstRecordId, maxRecords);
     }
 
@@ -81,7 +80,7 @@ public class MockProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public ProvenanceEventRecord getEvent(long id) throws IOException {
+    public ProvenanceEventRecord getEvent(long id) {
         return null;
     }
 
@@ -116,7 +115,7 @@ public class MockProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public ProvenanceEventRecord getEvent(long id, NiFiUser user) throws IOException {
+    public ProvenanceEventRecord getEvent(long id, NiFiUser user) {
         if (id > records.size()) {
             return null;
         }
@@ -135,7 +134,7 @@ public class MockProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
     }
 
     @Override
@@ -159,7 +158,7 @@ public class MockProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public long getContainerCapacity(String containerName) throws IOException {
+    public long getContainerCapacity(String containerName) {
         return 0;
     }
 
@@ -174,7 +173,7 @@ public class MockProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public long getContainerUsableSpace(String containerName) throws IOException {
+    public long getContainerUsableSpace(String containerName) {
         return 0;
     }
 }

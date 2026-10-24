@@ -19,7 +19,6 @@ package org.apache.nifi.toolkit.cli.impl.command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.nifi.toolkit.cli.api.Command;
-import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
 
 import java.util.List;
@@ -63,7 +62,7 @@ public class CommandA implements Command<CommandAResult> {
     }
 
     @Override
-    public CommandAResult execute(CommandLine cli) throws CommandException {
+    public CommandAResult execute(CommandLine cli) {
         this.cli = cli;
         return new CommandAResult(results);
     }

@@ -35,7 +35,7 @@ public class TestExecuteClojure extends BaseScriptTest {
             male,mr,todd,graham""";
 
     @BeforeEach
-    public void setup() throws Exception {
+    public void setup() {
         super.setupExecuteScript();
     }
 

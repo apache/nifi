@@ -564,7 +564,7 @@ public class TestStatelessFlowTask {
         return connection;
     }
 
-    private DeferredStatelessContentRepository createDeferredContentRepository() throws IOException {
+    private DeferredStatelessContentRepository createDeferredContentRepository() {
         final ByteArrayContentRepository backingRepository = new ByteArrayContentRepository();
         backingRepository.initialize(new StandardContentRepositoryContext(resourceClaimManager, EventReporter.NO_OP));
         final ProcessGroup processGroup = mock(ProcessGroup.class);

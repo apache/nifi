@@ -102,7 +102,7 @@ public class MissingBundleConnector extends AbstractConnector {
     }
 
     @Override
-    public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
+    public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
     }
 
     @Override
@@ -111,6 +111,6 @@ public class MissingBundleConnector extends AbstractConnector {
     }
 
     @Override
-    public void onStepConfigured(final String stepName, final FlowContext workingContext) throws FlowUpdateException {
+    public void onStepConfigured(final String stepName, final FlowContext workingContext) {
     }
 }

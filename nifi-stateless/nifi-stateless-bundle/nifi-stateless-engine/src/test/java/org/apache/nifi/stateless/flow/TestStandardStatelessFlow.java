@@ -44,7 +44,7 @@ import static org.mockito.Mockito.when;
 public class TestStandardStatelessFlow {
 
     @Test
-    public void testShutdownWithQueuedFlowFilesTriggersFailure() throws Exception {
+    public void testShutdownWithQueuedFlowFilesTriggersFailure() {
         final ProcessGroup rootGroup = mock(ProcessGroup.class);
         when(rootGroup.getName()).thenReturn("root");
         when(rootGroup.getInputPorts()).thenReturn(Collections.emptySet());

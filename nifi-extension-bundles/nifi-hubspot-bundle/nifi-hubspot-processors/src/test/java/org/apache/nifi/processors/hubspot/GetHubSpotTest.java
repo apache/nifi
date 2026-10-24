@@ -86,7 +86,7 @@ class GetHubSpotTest {
     }
 
     @AfterEach
-    void tearDown() throws IOException {
+    void tearDown() {
         if (server != null) {
             server.close();
             server = null;

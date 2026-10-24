@@ -21,7 +21,6 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
-import org.apache.nifi.reporting.InitializationException;
 
 import java.util.Collection;
 import java.util.List;
@@ -54,8 +53,7 @@ public class TestControllerService implements ControllerService {
     }
 
     @Override
-    public void initialize(ControllerServiceInitializationContext context)
-            throws InitializationException {
+    public void initialize(ControllerServiceInitializationContext context) {
     }
 
 }

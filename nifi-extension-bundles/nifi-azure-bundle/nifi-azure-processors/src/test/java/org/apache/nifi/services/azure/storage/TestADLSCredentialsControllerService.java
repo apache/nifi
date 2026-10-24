@@ -178,7 +178,7 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testGetCredentialsDetailsWithAccountKey() throws Exception {
+    public void testGetCredentialsDetailsWithAccountKey() {
         // GIVEN
         configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountName();
@@ -202,7 +202,7 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testGetCredentialsDetailsWithAccountKeyUsingEL() throws Exception {
+    public void testGetCredentialsDetailsWithAccountKeyUsingEL() {
         // GIVEN
         configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountNameUsingEL();
@@ -226,7 +226,7 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testGetCredentialsDetailsWithSasToken() throws Exception {
+    public void testGetCredentialsDetailsWithSasToken() {
         // GIVEN
         configureCredentialsType(AzureStorageCredentialsType.SAS_TOKEN);
         configureAccountName();
@@ -250,7 +250,7 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testGetCredentialsDetailsWithSasTokenUsingEL() throws Exception {
+    public void testGetCredentialsDetailsWithSasTokenUsingEL() {
         configureCredentialsType(AzureStorageCredentialsType.SAS_TOKEN);
         configureAccountName();
         configureSasTokenUsingEL();
@@ -270,7 +270,7 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testGetCredentialsDetailsWithIdentityFederation() throws Exception {
+    public void testGetCredentialsDetailsWithIdentityFederation() {
         configureCredentialsType(AzureStorageCredentialsType.IDENTITY_FEDERATION);
         configureAccountName();
         configureIdentityFederationProvider();
@@ -285,7 +285,7 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testGetCredentialsDetailsWithSystemAssignedManagedIdentity() throws Exception {
+    public void testGetCredentialsDetailsWithSystemAssignedManagedIdentity() {
         // GIVEN
         configureCredentialsType(AzureStorageCredentialsType.MANAGED_IDENTITY);
         configureAccountName();
@@ -308,7 +308,7 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testGetCredentialsDetailsWithUserAssignedManagedIdentity() throws Exception {
+    public void testGetCredentialsDetailsWithUserAssignedManagedIdentity() {
         // GIVEN
         configureCredentialsType(AzureStorageCredentialsType.MANAGED_IDENTITY);
         configureAccountName();
@@ -332,7 +332,7 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testGetCredentialsDetailsWithServicePrincipalWithClientSecret() throws Exception {
+    public void testGetCredentialsDetailsWithServicePrincipalWithClientSecret() {
         // GIVEN
         configureCredentialsType(AzureStorageCredentialsType.SERVICE_PRINCIPAL);
         configureAccountName();
@@ -358,7 +358,7 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testGetCredentialsDetailsWithSetEndpointSuffix() throws Exception {
+    public void testGetCredentialsDetailsWithSetEndpointSuffix() {
         // GIVEN
         configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountName();
@@ -375,7 +375,7 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testGetCredentialsDetailsWithSetEndpointSuffixUsingEL() throws Exception {
+    public void testGetCredentialsDetailsWithSetEndpointSuffixUsingEL() {
         // GIVEN
         configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountName();

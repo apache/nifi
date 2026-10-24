@@ -86,7 +86,7 @@ public class TestHttpFlowFileServerProtocol {
     private MockProcessContext processContext;
 
     @BeforeAll
-    public static void setup() throws Exception {
+    public static void setup() {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "DEBUG");
     }

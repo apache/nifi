@@ -106,7 +106,7 @@ public class SecureFileIT extends IntegrationTestBase {
     }
 
     @Test
-    public void testCreateUser() throws Exception {
+    public void testCreateUser() {
 
         // Given: the server has been configured with FileUserGroupProvider, which is configurable,
         //   and: the initial admin client wants to create a tenant
@@ -148,7 +148,7 @@ public class SecureFileIT extends IntegrationTestBase {
     }
 
     @Test
-    public void testCreateUserGroup() throws Exception {
+    public void testCreateUserGroup() {
 
         // Given: the server has been configured with FileUserGroupProvider, which is configurable,
         //   and: the initial admin client wants to create a tenant

@@ -88,7 +88,7 @@ class TestRestLookupServiceMarkReset {
     }
 
     @AfterEach
-    void tearDown() throws IOException {
+    void tearDown() {
         mockWebServer.close();
     }
 

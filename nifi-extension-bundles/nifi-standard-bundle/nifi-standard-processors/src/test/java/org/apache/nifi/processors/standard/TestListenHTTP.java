@@ -161,7 +161,7 @@ public class TestListenHTTP {
     }
 
     @BeforeEach
-    public void setup() throws IOException {
+    public void setup() {
         proc = new ListenHTTP();
 
         runner = TestRunners.newTestRunner(proc);

@@ -163,7 +163,7 @@ public class ClusteredConnectorAssetsIT extends ConnectorAssetsIT {
      * back to DISCONNECTED. Works around NIFI-15901, where a stale disconnection-notification
      * retry can disconnect a node moments after it rejoins.
      */
-    private void waitForStableClusterAfterNodeRejoin(final int rejoinedNodeIndex) throws NiFiClientException, IOException, InterruptedException {
+    private void waitForStableClusterAfterNodeRejoin(final int rejoinedNodeIndex) throws InterruptedException {
         waitForAllNodesConnected();
 
         final int expectedNodeCount = getNiFiInstance().getNumberOfNodes();

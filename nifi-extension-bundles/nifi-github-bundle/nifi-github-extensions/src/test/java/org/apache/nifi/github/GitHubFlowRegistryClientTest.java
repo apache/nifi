@@ -504,7 +504,7 @@ public class GitHubFlowRegistryClientTest {
         }
 
         @Override
-        protected GitHubRepositoryClient createRepositoryClient(final FlowRegistryClientConfigurationContext context) throws IOException, FlowRegistryException {
+        protected GitHubRepositoryClient createRepositoryClient(final FlowRegistryClientConfigurationContext context) {
             return repositoryClient;
         }
 

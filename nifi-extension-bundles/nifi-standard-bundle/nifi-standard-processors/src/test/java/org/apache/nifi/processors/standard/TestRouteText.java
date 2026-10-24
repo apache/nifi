@@ -102,7 +102,7 @@ public class TestRouteText {
     }
 
     @Test
-    public void testInvalidRegex() throws IOException {
+    public void testInvalidRegex() {
         final TestRunner runner = TestRunners.newTestRunner(new RouteText());
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.MATCHES_REGULAR_EXPRESSION);
         runner.setProperty("simple", "[");
@@ -186,7 +186,7 @@ public class TestRouteText {
     }
 
     @Test
-    public void testRouteLineToMultipleRelationships() throws IOException {
+    public void testRouteLineToMultipleRelationships() {
         final TestRunner runner = TestRunners.newTestRunner(new RouteText());
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.CONTAINS);
         runner.setProperty("t", "t");
@@ -210,7 +210,7 @@ public class TestRouteText {
     }
 
     @Test
-    public void testGroupSameRelationship() throws IOException {
+    public void testGroupSameRelationship() {
         final TestRunner runner = TestRunners.newTestRunner(new RouteText());
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.CONTAINS);
         runner.setProperty(RouteText.GROUPING_REGEX, "(.*?),.*");
@@ -245,7 +245,7 @@ public class TestRouteText {
     }
 
     @Test
-    public void testMultipleGroupsSameRelationship() throws IOException {
+    public void testMultipleGroupsSameRelationship() {
         final TestRunner runner = TestRunners.newTestRunner(new RouteText());
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.CONTAINS);
         runner.setProperty(RouteText.GROUPING_REGEX, "(.*?),(.*?),.*");
@@ -285,7 +285,7 @@ public class TestRouteText {
     }
 
     @Test
-    public void testGroupDifferentRelationships() throws IOException {
+    public void testGroupDifferentRelationships() {
         final TestRunner runner = TestRunners.newTestRunner(new RouteText());
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.CONTAINS);
         runner.setProperty(RouteText.GROUPING_REGEX, "(.*?),.*");
@@ -667,7 +667,7 @@ public class TestRouteText {
     }
 
     @Test
-    public void testSatisfiesExpression() throws IOException {
+    public void testSatisfiesExpression() {
         final TestRunner runner = TestRunners.newTestRunner(new RouteText());
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.SATISFIES_EXPRESSION);
         runner.setProperty("empty", "${incomplete expression");

@@ -36,7 +36,7 @@ public class XXEValidatorTest {
     private ValidationContext validationContext;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         validationContext = mock(ValidationContext.class);
     }
 
