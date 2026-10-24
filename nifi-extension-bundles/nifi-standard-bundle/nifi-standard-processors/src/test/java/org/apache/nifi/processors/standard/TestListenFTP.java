@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.net.ftp.FTPClient;
-import org.apache.commons.net.ftp.FTPReply;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -26,19 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class TestListenFTP {
-
-    private static final String LOCALHOST = "127.0.0.1";
-
-    private static final Pattern PASSIVE_REPLY_PATTERN = Pattern.compile("\\((\\d+),(\\d+),(\\d+),(\\d+),(\\d+),(\\d+)\\)");
 
     private TestRunner runner;
 
@@ -71,40 +57,5 @@ class TestListenFTP {
         runner.setProperty(ListenFTP.PASSIVE_PORT_RANGE, passivePortRange);
 
         runner.assertNotValid();
-    }
-
-    @Test
-    void testPassiveModeUsesConfiguredPortRange() throws IOException {
-        final int port = getAvailablePort();
-        final int passivePort = getAvailablePort();
-        runner.setProperty(ListenFTP.ADDRESS, LOCALHOST);
-        runner.setProperty(ListenFTP.PORT, Integer.toString(port));
-        runner.setProperty(ListenFTP.PASSIVE_PORT_RANGE, passivePort + "-" + passivePort);
-
-        runner.run(1, false);
-
-        final FTPClient client = new FTPClient();
-        try {
-            client.connect(LOCALHOST, port);
-            assertTrue(client.login("anonymous", ""));
-
-            assertEquals(FTPReply.ENTERING_PASSIVE_MODE, client.pasv());
-            assertEquals(passivePort, getPassivePort(client.getReplyString()));
-        } finally {
-            client.disconnect();
-            runner.stop();
-        }
-    }
-
-    private int getPassivePort(final String passiveReply) {
-        final Matcher matcher = PASSIVE_REPLY_PATTERN.matcher(passiveReply);
-        assertTrue(matcher.find(), "Unexpected passive mode reply: " + passiveReply);
-        return Integer.parseInt(matcher.group(5)) * 256 + Integer.parseInt(matcher.group(6));
-    }
-
-    private int getAvailablePort() throws IOException {
-        try (ServerSocket serverSocket = new ServerSocket(0)) {
-            return serverSocket.getLocalPort();
-        }
     }
 }

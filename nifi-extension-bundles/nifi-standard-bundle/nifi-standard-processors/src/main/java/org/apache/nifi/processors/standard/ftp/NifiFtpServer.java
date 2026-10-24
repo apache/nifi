@@ -188,9 +188,7 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
             listenerFactory.setPort(port);
 
             DataConnectionConfigurationFactory dataConnectionConfigurationFactory = new DataConnectionConfigurationFactory();
-            if (passivePortRange != null) {
-                dataConnectionConfigurationFactory.setPassivePorts(passivePortRange);
-            }
+            dataConnectionConfigurationFactory.setPassivePorts(passivePortRange);
 
             if (sslContextProvider != null) {
                 final SSLContext sslContext = sslContextProvider.createContext();
