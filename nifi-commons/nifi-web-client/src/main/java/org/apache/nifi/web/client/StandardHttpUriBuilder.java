@@ -21,6 +21,7 @@ import org.apache.nifi.web.client.api.HttpUriBuilder;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -49,6 +50,12 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
 
     private static final String QUERY_PARAMETER_VALUE_SEPARATOR = "=";
 
+    private static final String QUERY_SEPARATOR = "?";
+
+    private static final String FORM_ENCODED_SPACE = "+";
+
+    private static final String PERCENT_ENCODED_SPACE = "%20";
+
     private String scheme = HTTP_SCHEME;
 
     private String host;
@@ -71,7 +78,12 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
         final String resolvedQuery = getResolvedQuery();
 
         try {
-            return new URI(scheme, null, host, port, resolvedPath, resolvedQuery, null);
+            // Query excluded from java.net.URI construction to avoid encoding the percent character of encoded parameters
+            final URI uri = new URI(scheme, null, host, port, resolvedPath, null, null);
+            if (resolvedQuery == null) {
+                return uri;
+            }
+            return new URI(uri + QUERY_SEPARATOR + resolvedQuery);
         } catch (final URISyntaxException e) {
             throw new IllegalArgumentException("URI construction failed", e);
         }
@@ -165,7 +177,7 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
         while (parameters.hasNext()) {
             final Map.Entry<String, List<String>> parameter = parameters.next();
 
-            final String name = parameter.getKey();
+            final String name = getEncodedQueryComponent(parameter.getKey());
             queryBuilder.append(name);
 
             final Iterator<String> values = parameter.getValue().iterator();
@@ -173,7 +185,7 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
                 final String value = values.next();
                 if (value != null) {
                     queryBuilder.append(QUERY_PARAMETER_VALUE_SEPARATOR);
-                    queryBuilder.append(value);
+                    queryBuilder.append(getEncodedQueryComponent(value));
                 }
 
                 if (values.hasNext()) {
@@ -194,5 +206,11 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
             query = queryBuilder.toString();
         }
         return query;
+    }
+
+    private String getEncodedQueryComponent(final String component) {
+        final String formEncoded = URLEncoder.encode(component, StandardCharsets.UTF_8);
+        // Percent encoding of spaces avoids ambiguous handling of plus characters in query components
+        return formEncoded.replace(FORM_ENCODED_SPACE, PERCENT_ENCODED_SPACE);
     }
 }
