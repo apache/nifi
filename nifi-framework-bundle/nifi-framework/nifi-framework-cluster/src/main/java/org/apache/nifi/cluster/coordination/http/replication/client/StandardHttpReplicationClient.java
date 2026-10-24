@@ -45,6 +45,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -252,17 +254,18 @@ public class StandardHttpReplicationClient implements HttpReplicationClient {
         httpUriBuilder.port(location.getPort());
         httpUriBuilder.encodedPath(location.getPath());
 
-        final String query = location.getQuery();
+        // Raw query required to split parameters before decoding reserved characters in names and values
+        final String query = location.getRawQuery();
         if (query != null) {
             final String[] parameters = query.split(QUERY_SEPARATOR);
             for (final String parameter : parameters) {
                 final String[] parameterNameValue = parameter.split(QUERY_NAME_VALUE_SEPARATOR);
                 if (parameterNameValue.length == 1) {
-                    final String parameterName = parameterNameValue[0];
+                    final String parameterName = URLDecoder.decode(parameterNameValue[0], StandardCharsets.UTF_8);
                     httpUriBuilder.addQueryParameter(parameterName, null);
                 } else if (parameterNameValue.length == 2) {
-                    final String parameterName = parameterNameValue[0];
-                    final String parameterValue = parameterNameValue[1];
+                    final String parameterName = URLDecoder.decode(parameterNameValue[0], StandardCharsets.UTF_8);
+                    final String parameterValue = URLDecoder.decode(parameterNameValue[1], StandardCharsets.UTF_8);
                     httpUriBuilder.addQueryParameter(parameterName, parameterValue);
                 }
             }
