@@ -113,6 +113,14 @@ export const updateUserGroupSuccess = createAction(
     }>()
 );
 
+export const updateUserGroupError = createAction(
+    `${USER_PREFIX} Update User Group Error`,
+    props<{
+        requestId?: number;
+        error: string;
+    }>()
+);
+
 export const selectTenant = createAction(`${USER_PREFIX} Select Tenant`, props<{ id: string }>());
 
 export const navigateToEditTenant = createAction(`${USER_PREFIX} Navigate To Edit Tenant`, props<{ id: string }>());
