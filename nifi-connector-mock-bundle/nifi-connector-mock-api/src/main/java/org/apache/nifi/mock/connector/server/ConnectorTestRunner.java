@@ -195,6 +195,56 @@ public interface ConnectorTestRunner extends Closeable {
     List<ValidationResult> validate();
 
     /**
+     * Returns the recorded counter value for the component and counter name.
+     * Values recorded with different attribute maps are summed.
+     *
+     * @param componentId the identifier of the component that recorded the counter
+     * @param name the counter name
+     * @return the summed counter value, or {@code null} when nothing was recorded
+     */
+    default Long getCounterValue(final String componentId, final String name) {
+        throw new UnsupportedOperationException("This runner does not support component metrics");
+    }
+
+    /**
+     * Returns the recorded counter value for the component, counter name, and exact attribute map.
+     * Unlike {@link #getCounterValue(String, String)}, attribute maps are not summed together.
+     *
+     * @param componentId the identifier of the component that recorded the counter
+     * @param name the counter name
+     * @param attributes the attribute map that must match the recorded counter
+     * @return the counter value, or {@code null} when nothing was recorded for that attribute map
+     */
+    default Long getCounterValue(final String componentId, final String name, final Map<String, String> attributes) {
+        throw new UnsupportedOperationException("This runner does not support component metrics");
+    }
+
+    /**
+     * Returns the gauge samples recorded for the component and gauge name, in the order they were recorded.
+     * Samples recorded with different attribute maps are included.
+     *
+     * @param componentId the identifier of the component that recorded the gauge
+     * @param name the gauge name
+     * @return the recorded samples, or an empty list when nothing was recorded
+     */
+    default List<Double> getGaugeValues(final String componentId, final String name) {
+        throw new UnsupportedOperationException("This runner does not support component metrics");
+    }
+
+    /**
+     * Returns the gauge samples recorded for the component, gauge name, and exact attribute map, in the order they were recorded.
+     * Unlike {@link #getGaugeValues(String, String)}, samples with a different attribute map are excluded.
+     *
+     * @param componentId the identifier of the component that recorded the gauge
+     * @param name the gauge name
+     * @param attributes the attribute map that must match the recorded gauge
+     * @return the recorded samples, or an empty list when nothing was recorded for that attribute map
+     */
+    default List<Double> getGaugeValues(final String componentId, final String name, final Map<String, String> attributes) {
+        throw new UnsupportedOperationException("This runner does not support component metrics");
+    }
+
+    /**
      * Returns the HTTP port on which the embedded Jetty server is listening, or -1 if no server is running.
      *
      * @return the HTTP port, or -1 if not applicable
