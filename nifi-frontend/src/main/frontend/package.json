@@ -92,7 +92,7 @@
         "eslint-config-prettier": "10.1.8",
         "eslint-plugin-prettier": "5.5.5",
         "globals": "^17.4.0",
-        "happy-dom": "^20.0.2",
+        "happy-dom": "^21.0.4",
         "ng-mocks": "^14.12.2",
         "ng-packagr": "21.2.7",
         "nx": "22.7.12",
