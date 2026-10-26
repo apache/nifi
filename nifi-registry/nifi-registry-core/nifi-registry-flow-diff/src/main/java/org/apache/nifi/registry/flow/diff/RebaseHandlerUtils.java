@@ -26,7 +26,12 @@ import org.apache.nifi.flow.VersionedLabel;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
+
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 
 class RebaseHandlerUtils {
 
@@ -77,6 +82,14 @@ class RebaseHandlerUtils {
             if (identifier.equals(remoteProcessGroup.getIdentifier())) {
                 return remoteProcessGroup;
             }
+            final VersionedRemoteGroupPort remoteInputPort = findRemoteGroupPortById(remoteProcessGroup.getInputPorts(), identifier);
+            if (remoteInputPort != null) {
+                return remoteInputPort;
+            }
+            final VersionedRemoteGroupPort remoteOutputPort = findRemoteGroupPortById(remoteProcessGroup.getOutputPorts(), identifier);
+            if (remoteOutputPort != null) {
+                return remoteOutputPort;
+            }
         }
 
         for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
@@ -87,6 +100,34 @@ class RebaseHandlerUtils {
         }
 
         return null;
+    }
+
+    private static VersionedRemoteGroupPort findRemoteGroupPortById(final Set<VersionedRemoteGroupPort> remotePorts, final String identifier) {
+        if (remotePorts == null) {
+            return null;
+        }
+        for (final VersionedRemoteGroupPort remotePort : remotePorts) {
+            if (identifier.equals(remotePort.getIdentifier())) {
+                return remotePort;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds an upstream difference of the same type on the same component whose new value differs from the local new value.
+     */
+    static Optional<FlowDifference> findConflictingUpstreamDifference(final FlowDifference localDifference, final Set<FlowDifference> upstreamDifferences) {
+        final String componentIdentifier = localDifference.getComponentB().getIdentifier();
+        for (final FlowDifference upstreamDifference : upstreamDifferences) {
+            if (upstreamDifference.getDifferenceType() == localDifference.getDifferenceType()
+                    && upstreamDifference.getComponentA() != null
+                    && componentIdentifier.equals(upstreamDifference.getComponentA().getIdentifier())
+                    && !Objects.equals(localDifference.getValueB(), upstreamDifference.getValueB())) {
+                return Optional.of(upstreamDifference);
+            }
+        }
+        return Optional.empty();
     }
 
     static VersionedProcessGroup findProcessGroupById(final VersionedProcessGroup group, final String identifier) {
