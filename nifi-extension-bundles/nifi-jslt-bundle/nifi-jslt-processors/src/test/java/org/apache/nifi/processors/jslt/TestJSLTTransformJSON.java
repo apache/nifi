@@ -334,9 +334,9 @@ public class TestJSLTTransformJSON {
                 .filter(logMessage -> logMessage.getMsg().contains("no data"))
                 .count();
         assertEquals(2, debugMessages);
-        final List<LogMessage> warnMessages = componentLog.getWarnMessages();
-        assertEquals(1, warnMessages.size());
-        assertTrue(warnMessages.getFirst().getMsg().contains("out of"));
+        final List<LogMessage> infoMessages = componentLog.getInfoMessages();
+        assertEquals(1, infoMessages.size());
+        assertTrue(infoMessages.getFirst().getMsg().contains("out of"));
     }
 
     // This test verifies transformCache cleanup does not throw an exception

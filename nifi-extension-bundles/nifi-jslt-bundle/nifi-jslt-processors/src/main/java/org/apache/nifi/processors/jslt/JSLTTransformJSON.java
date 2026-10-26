@@ -487,7 +487,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
                     final JsonNode jsonNode = JSON_OBJECT_MAPPER.readTree(line);
                     final JsonNode transformedJson = jsltExpression.apply(jsonNode);
                     if (transformedJson == null || transformedJson.isNull()) {
-                        getLogger().debug("JSLT Transform resulted in no data {}", line);
+                        getLogger().debug("JSLT Transform resulted in no data on line {}", lines);
                     } else {
                         jsonGenerator.writeObject(transformedJson);
                         matches++;
@@ -495,7 +495,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
                 }
 
                 if (lines > 0 && lines != matches) {
-                    getLogger().warn("JSLT Transform resulted in data for {} out of {} lines", matches, lines);
+                    getLogger().info("JSLT Transform resulted in data for {} out of {} lines", matches, lines);
                 }
             }
         });
