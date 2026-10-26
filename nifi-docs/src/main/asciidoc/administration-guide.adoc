@@ -803,6 +803,19 @@ The CSRF security filter expects the following HTTP request header on non-idempo
 - Header Name: `Request-Token`
 - Value: UUID matching the `__Secure-Request-Token` cookie header
 
+NiFi also evaluates the `Sec-Fetch-Site` request header that web browsers send as described in the
+link:https://www.w3.org/TR/fetch-metadata/[Fetch Metadata Request Headers] specification. The header indicates the
+relationship between the site that initiated a request and the application server. NiFi rejects requests with HTTP 403
+Forbidden for methods other than `GET`, `HEAD`, `OPTIONS`, or `TRACE` when the `Sec-Fetch-Site` header meets either of
+the following conditions:
+
+- Header value is `cross-site`
+- Header contains more than one value
+
+Requests with a `Sec-Fetch-Site` header value of `same-origin`, `same-site`, or `none` continue to standard CSRF
+filtering. Requests without the `Sec-Fetch-Site` header are not affected. Cluster nodes do not add the header to
+requests that nodes initiate, and replicated requests include the header value from the original request.
+
 [[multi-tenant-authorization]]
 == Multi-Tenant Authorization
 

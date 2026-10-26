@@ -23,6 +23,7 @@ import org.apache.nifi.web.security.StandardAuthenticationEntryPoint;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationFilter;
 import org.apache.nifi.web.security.csrf.CsrfCookieFilter;
 import org.apache.nifi.web.security.csrf.CsrfCookieRequestMatcher;
+import org.apache.nifi.web.security.csrf.FetchSiteRequestFilter;
 import org.apache.nifi.web.security.csrf.SkipReplicatedCsrfFilter;
 import org.apache.nifi.web.security.csrf.StandardCookieCsrfTokenRepository;
 import org.apache.nifi.web.security.csrf.StandardCsrfTokenRequestAttributeHandler;
@@ -136,6 +137,7 @@ public class WebSecurityConfiguration {
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new SkipReplicatedCsrfFilter(), CsrfFilter.class)
+                .addFilterBefore(new FetchSiteRequestFilter(), CsrfFilter.class)
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(
