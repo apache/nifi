@@ -18,6 +18,8 @@ package org.apache.nifi.processors.jslt;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.util.LogMessage;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -37,6 +39,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -295,6 +298,45 @@ public class TestJSLTTransformJSON {
                 Arguments.argumentSet("JSON Object", "input.json", "simpleTransform.json", "simpleOutput.json"),
                 Arguments.argumentSet("JSON Array", "inputArray.json", "arrayTransform.json", "arrayOutput.json")
         );
+    }
+
+    @Test
+    public void testJsonLinesSkipsNullTransformationResults() {
+        final String input = """
+            {"id":1,"event":"deposit","amount":10}
+            {"id":2,"event":"payment_updated","amount":10}
+            {"id":3,"event":"deposit","amount":25}
+            {"id":4,"event":"payment_updated","amount":25}
+            {"id":5,"event":"deposit","amount":40}
+            """;
+
+        runner.setProperty(JSLTTransformJSON.INPUT_FORMAT, JSLTTransformJSON.InputFormat.JSON_LINES);
+        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM,
+                """
+                    if (.event == "deposit") {"id": .id, "amount": .amount}""");
+
+        runner.enqueue(input);
+        runner.run();
+
+        runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
+        runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
+
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).getFirst();
+        final String expectedJson = """
+                {"id":1,"amount":10}
+                {"id":3,"amount":25}
+                {"id":5,"amount":40}
+                """.trim();
+
+        assertEquals(expectedJson, flowFile.getContent());
+        final MockComponentLog componentLog = runner.getLogger();
+        final long debugMessages = componentLog.getDebugMessages().stream()
+                .filter(logMessage -> logMessage.getMsg().contains("no data"))
+                .count();
+        assertEquals(2, debugMessages);
+        final List<LogMessage> warnMessages = componentLog.getWarnMessages();
+        assertEquals(1, warnMessages.size());
+        assertTrue(warnMessages.getFirst().getMsg().contains("out of"));
     }
 
     // This test verifies transformCache cleanup does not throw an exception

@@ -476,14 +476,26 @@ public class JSLTTransformJSON extends AbstractProcessor {
             try (final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
                  final JsonGenerator jsonGenerator = writer.createGenerator(outputStream)) {
                 String line;
+                int lines = 0;
+                int matches = 0;
                 while ((line = reader.readLine()) != null) {
                     if (line.isBlank()) {
                         continue;
                     }
 
+                    lines++;
                     final JsonNode jsonNode = JSON_OBJECT_MAPPER.readTree(line);
                     final JsonNode transformedJson = jsltExpression.apply(jsonNode);
-                    jsonGenerator.writeObject(transformedJson);
+                    if (transformedJson == null || transformedJson.isNull()) {
+                        getLogger().debug("JSLT Transform resulted in no data {}", line);
+                    } else {
+                        jsonGenerator.writeObject(transformedJson);
+                        matches++;
+                    }
+                }
+
+                if (lines > 0 && lines != matches) {
+                    getLogger().warn("JSLT Transform resulted in data for {} out of {} lines", matches, lines);
                 }
             }
         });
