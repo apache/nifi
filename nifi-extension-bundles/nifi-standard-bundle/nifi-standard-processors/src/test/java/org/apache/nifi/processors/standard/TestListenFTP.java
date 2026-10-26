@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.processors.standard.ftp.PassivePortSelection;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -39,13 +40,21 @@ class TestListenFTP {
     }
 
     @Test
-    void testPassivePortRangeDefaultValid() {
+    void testPassivePortSelectionDefaultValid() {
         runner.assertValid();
+    }
+
+    @Test
+    void testPassivePortSelectionConfiguredRangeRequired() {
+        runner.setProperty(ListenFTP.PASSIVE_PORT_SELECTION, PassivePortSelection.CONFIGURED);
+
+        runner.assertNotValid();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"50000-50099", "50000-50000", "1-65535", "${PASSIVE_PORT_RANGE}"})
     void testPassivePortRangeValid(final String passivePortRange) {
+        runner.setProperty(ListenFTP.PASSIVE_PORT_SELECTION, PassivePortSelection.CONFIGURED);
         runner.setProperty(ListenFTP.PASSIVE_PORT_RANGE, passivePortRange);
 
         runner.assertValid();
@@ -54,6 +63,7 @@ class TestListenFTP {
     @ParameterizedTest
     @ValueSource(strings = {"50000", "50099-50000", "0-100", "50000-65536", "50000-50099,50200", "start-end", " "})
     void testPassivePortRangeInvalid(final String passivePortRange) {
+        runner.setProperty(ListenFTP.PASSIVE_PORT_SELECTION, PassivePortSelection.CONFIGURED);
         runner.setProperty(ListenFTP.PASSIVE_PORT_RANGE, passivePortRange);
 
         runner.assertNotValid();

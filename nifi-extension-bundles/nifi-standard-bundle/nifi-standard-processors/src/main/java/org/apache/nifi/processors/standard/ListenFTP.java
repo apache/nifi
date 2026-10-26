@@ -43,6 +43,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.ftp.FtpServer;
 import org.apache.nifi.processors.standard.ftp.NifiFtpServer;
+import org.apache.nifi.processors.standard.ftp.PassivePortSelection;
 import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.net.InetAddress;
@@ -157,6 +158,14 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
                 .build();
     };
 
+    public static final PropertyDescriptor PASSIVE_PORT_SELECTION = new PropertyDescriptor.Builder()
+            .name("Passive Port Selection")
+            .description("Strategy for selecting the port that the FTP server uses for data connections in passive mode.")
+            .required(true)
+            .allowableValues(PassivePortSelection.class)
+            .defaultValue(PassivePortSelection.RANDOM)
+            .build();
+
     public static final PropertyDescriptor PASSIVE_PORT_RANGE = new PropertyDescriptor.Builder()
             .name("Passive Port Range")
             .description("""
@@ -164,14 +173,15 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
                     Restricting the range simplifies firewall and container port mapping configurations.
                     """)
             .required(true)
-            .defaultValue("1025-65534")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(PORT_RANGE_VALIDATOR)
+            .dependsOn(PASSIVE_PORT_SELECTION, PassivePortSelection.CONFIGURED)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             ADDRESS,
             PORT,
+            PASSIVE_PORT_SELECTION,
             PASSIVE_PORT_RANGE,
             USERNAME,
             PASSWORD,
@@ -219,7 +229,10 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
             String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
             String bindAddress = context.getProperty(ADDRESS).evaluateAttributeExpressions().getValue();
             int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-            String passivePortRange = context.getProperty(PASSIVE_PORT_RANGE).evaluateAttributeExpressions().getValue();
+            final PassivePortSelection passivePortSelection = context.getProperty(PASSIVE_PORT_SELECTION).asAllowableValue(PassivePortSelection.class);
+            final String passivePortRange = passivePortSelection == PassivePortSelection.CONFIGURED
+                    ? context.getProperty(PASSIVE_PORT_RANGE).evaluateAttributeExpressions().getValue()
+                    : null;
             final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
 
             try {
