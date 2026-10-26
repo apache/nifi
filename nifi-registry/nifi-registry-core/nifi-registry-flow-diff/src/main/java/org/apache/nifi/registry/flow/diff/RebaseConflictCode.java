@@ -48,6 +48,26 @@ public enum RebaseConflictCode {
     SAME_COMPONENT_COMMENTS,
 
     /**
+     * Both the local and upstream flows modified the name of the same component to different values.
+     */
+    SAME_COMPONENT_NAME,
+
+    /**
+     * Both the local and upstream flows modified the concurrent tasks of the same component to different values.
+     */
+    SAME_CONCURRENT_TASKS,
+
+    /**
+     * Both the local and upstream flows modified the scheduled state of the same component to different values.
+     */
+    SAME_SCHEDULED_STATE,
+
+    /**
+     * Both the local and upstream flows modified the scheduling strategy or run schedule of the same processor to different values.
+     */
+    SAME_SCHEDULING,
+
+    /**
      * The component targeted by the local change does not exist in the target version.
      */
     COMPONENT_NOT_FOUND,
