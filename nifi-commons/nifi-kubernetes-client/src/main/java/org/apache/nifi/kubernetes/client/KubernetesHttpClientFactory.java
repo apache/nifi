@@ -80,11 +80,12 @@ public final class KubernetesHttpClientFactory extends JdkHttpClientFactory {
      * @return whether the default SSL Context handling is required
      */
     static boolean isDefaultSslContextRequired(final Config config) {
+        final boolean trustStoreConfigured = Utils.isNotNullOrEmpty(config.getTrustStoreFile());
         final boolean certificateAuthorityNotConfigured = Utils.isNullOrEmpty(config.getCaCertData()) && Utils.isNullOrEmpty(config.getCaCertFile());
         // Client Certificates require default SSLContext handling to support different types of Private Keys
         final boolean clientCertificateConfigured = Utils.isNotNullOrEmpty(config.getClientCertData()) || Utils.isNotNullOrEmpty(config.getClientCertFile());
 
-        return config.isTrustCerts() || certificateAuthorityNotConfigured || clientCertificateConfigured;
+        return config.isTrustCerts() || trustStoreConfigured || certificateAuthorityNotConfigured || clientCertificateConfigured;
     }
 
     /**

@@ -79,6 +79,8 @@ class KubernetesHttpClientFactoryTest {
 
     private static final String CLIENT_KEY_DATA = "client-key";
 
+    private static final String TRUST_STORE_FILE = "truststore.p12";
+
     private static final String LINE_SEPARATOR = "\n";
 
     private static final String INVALID_CERTIFICATE_AUTHORITY_PEM = CERTIFICATE_HEADER
@@ -179,6 +181,15 @@ class KubernetesHttpClientFactoryTest {
         final Config config = getConfigBuilder()
                 .withTrustCerts(true)
                 .withCaCertData(CERTIFICATE_AUTHORITY_DATA)
+                .build();
+
+        assertTrue(KubernetesHttpClientFactory.isDefaultSslContextRequired(config));
+    }
+
+    @Test
+    void testIsDefaultSslContextRequiredTrustStoreFile() {
+        final Config config = getConfigBuilder()
+                .withTrustStoreFile(TRUST_STORE_FILE)
                 .build();
 
         assertTrue(KubernetesHttpClientFactory.isDefaultSslContextRequired(config));
