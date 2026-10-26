@@ -16,9 +16,11 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { EllipsisTooltipDirective } from '@nifi/shared';
 
 import { ParameterGroupsTable } from './parameter-groups-table.component';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ParameterGroupsTable', () => {
     let component: ParameterGroupsTable;
@@ -35,5 +37,23 @@ describe('ParameterGroupsTable', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should truncate a long parameter group name and attach the ellipsis tooltip', () => {
+        const longName = 'company-private-key-parameter-group-for-database-capture';
+        component.parameterGroups = [
+            {
+                groupName: longName,
+                parameterContextName: longName,
+                parameterSensitivities: {}
+            }
+        ];
+        fixture.detectChanges();
+
+        const nameCell = fixture.debugElement.query(By.directive(EllipsisTooltipDirective));
+
+        expect(nameCell.nativeElement.textContent?.trim()).toBe(longName);
+        expect(nameCell.nativeElement.classList.contains('truncate')).toBe(true);
+        expect(nameCell.injector.get(EllipsisTooltipDirective)).toBeTruthy();
     });
 });
