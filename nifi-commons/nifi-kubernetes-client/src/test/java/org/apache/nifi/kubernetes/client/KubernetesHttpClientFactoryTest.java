@@ -190,6 +190,7 @@ class KubernetesHttpClientFactoryTest {
     void testIsDefaultSslContextRequiredTrustStoreFile() {
         final Config config = getConfigBuilder()
                 .withTrustStoreFile(TRUST_STORE_FILE)
+                .withCaCertData(CERTIFICATE_AUTHORITY_DATA)
                 .build();
 
         assertTrue(KubernetesHttpClientFactory.isDefaultSslContextRequired(config));
