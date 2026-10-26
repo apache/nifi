@@ -84,7 +84,7 @@ public class NiFiRegistrySecurityConfig {
     private JwtIdentityProvider jwtIdentityProvider;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(final HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(final HttpSecurity http) {
         return http
                 .addFilterBefore(x509AuthenticationFilter(), AnonymousAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter(), AnonymousAuthenticationFilter.class)

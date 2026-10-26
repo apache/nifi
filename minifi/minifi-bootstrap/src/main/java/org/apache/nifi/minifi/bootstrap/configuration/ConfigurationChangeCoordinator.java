@@ -92,7 +92,7 @@ public class ConfigurationChangeCoordinator implements Closeable, ConfigurationC
         }
     }
 
-    private void initialize() throws IOException {
+    private void initialize() {
         closeIngestors();
 
         BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();

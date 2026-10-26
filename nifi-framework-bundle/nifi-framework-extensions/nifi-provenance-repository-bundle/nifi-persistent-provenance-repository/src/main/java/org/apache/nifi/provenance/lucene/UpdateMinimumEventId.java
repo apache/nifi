@@ -37,7 +37,7 @@ public class UpdateMinimumEventId implements ExpirationAction {
     }
 
     @Override
-    public File execute(final File expiredFile) throws IOException {
+    public File execute(final File expiredFile) {
         try (final RecordReader reader = RecordReaders.newRecordReader(expiredFile, null, Integer.MAX_VALUE)) {
             final long maxEventId = reader.getMaxEventId();
             indexConfig.setMinIdIndexed(maxEventId);
@@ -51,7 +51,7 @@ public class UpdateMinimumEventId implements ExpirationAction {
     }
 
     @Override
-    public boolean hasBeenPerformed(final File expiredFile) throws IOException {
+    public boolean hasBeenPerformed(final File expiredFile) {
         return !expiredFile.exists();
     }
 }

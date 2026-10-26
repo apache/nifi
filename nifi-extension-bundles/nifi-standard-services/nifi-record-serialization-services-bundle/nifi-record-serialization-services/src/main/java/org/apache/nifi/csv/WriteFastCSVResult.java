@@ -125,7 +125,7 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
     }
 
     @Override
-    protected Map<String, String> onFinishRecordSet() throws IOException {
+    protected Map<String, String> onFinishRecordSet() {
         includeHeaderIfNecessary(null, true);
         return schemaWriter.getAttributes(recordSchema);
     }
@@ -151,7 +151,7 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
         return fieldNames;
     }
 
-    private void includeHeaderIfNecessary(final Record record, final boolean schemaOnly) throws IOException {
+    private void includeHeaderIfNecessary(final Record record, final boolean schemaOnly) {
         if (headerWritten || !includeHeaderLine) {
             return;
         }

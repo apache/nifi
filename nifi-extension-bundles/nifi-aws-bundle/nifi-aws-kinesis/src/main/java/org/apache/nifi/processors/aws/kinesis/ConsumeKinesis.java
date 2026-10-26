@@ -28,7 +28,6 @@ import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.Backlog;
-import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
@@ -673,7 +672,7 @@ public class ConsumeKinesis extends AbstractProcessor implements BacklogReportin
      * backlog across shard-less nodes.
      */
     @Override
-    public Optional<Backlog> getBacklog(final ProcessContext context) throws BacklogReportingException {
+    public Optional<Backlog> getBacklog(final ProcessContext context) {
         final KinesisShardManager currentShardManager = shardManager;
         if (currentShardManager == null) {
             final Instant remembered = lastCaughtUpTimestamp;

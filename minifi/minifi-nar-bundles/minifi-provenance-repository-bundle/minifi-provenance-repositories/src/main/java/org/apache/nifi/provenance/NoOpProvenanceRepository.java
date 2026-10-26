@@ -24,7 +24,6 @@ import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchableField;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -40,13 +39,12 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public void initialize(EventReporter eventReporter, Authorizer authorizer,
-            ProvenanceAuthorizableFactory factory, IdentifierLookup identifierLookup)
-            throws IOException {
+            ProvenanceAuthorizableFactory factory, IdentifierLookup identifierLookup) {
 
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
 
     }
 
@@ -56,24 +54,23 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public ProvenanceEventRecord getEvent(long id) throws IOException {
+    public ProvenanceEventRecord getEvent(long id) {
         return null;
     }
 
     @Override
-    public ProvenanceEventRecord getEvent(final long id, final NiFiUser user) throws IOException {
+    public ProvenanceEventRecord getEvent(final long id, final NiFiUser user) {
         return null;
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxRecords)
-            throws IOException {
+    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxRecords) {
         return emptyList();
     }
 
     @Override
     public List<ProvenanceEventRecord> getEvents(long firstRecordId,
-            int maxRecords, NiFiUser niFiUser) throws IOException {
+            int maxRecords, NiFiUser niFiUser) {
         return emptyList();
     }
 
@@ -138,7 +135,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public long getContainerCapacity(String s) throws IOException {
+    public long getContainerCapacity(String s) {
         return 0;
     }
 
@@ -148,7 +145,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public long getContainerUsableSpace(String s) throws IOException {
+    public long getContainerUsableSpace(String s) {
         return 0;
     }
 

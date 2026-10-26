@@ -118,9 +118,8 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
      *
      * @param extension the component to describe
      * @param xmlStreamWriter the stream writer
-     * @throws XMLStreamException thrown if there was a problem writing to the XML stream
      */
-    protected void writeAdditionalBodyInfo(final Extension extension, final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
+    protected void writeAdditionalBodyInfo(final Extension extension, final XMLStreamWriter xmlStreamWriter) {
 
     }
 

@@ -55,7 +55,6 @@ import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeFormatValidator;
-import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -532,7 +531,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     private void operate(final List<IndexOperationRequest> operationList, final List<Record> processedRecords, final List<Record> originalRecords,
                          final RecordSchema recordSchema, final ProcessSession session, final FlowFile input, final IndexOperationParameters indexOperationParameters,
                          final List<FlowFile> resultRecords, final AtomicLong erroredRecords, final AtomicLong successfulRecords)
-            throws IOException, SchemaNotFoundException, MalformedRecordException {
+            throws IOException, SchemaNotFoundException {
 
         final BulkOperation bundle = new BulkOperation(operationList, processedRecords, recordSchema);
         final ResponseDetails responseDetails = indexDocuments(bundle, originalRecords, session, input, indexOperationParameters);
@@ -556,7 +555,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
 
     private ResponseDetails indexDocuments(final BulkOperation bundle, final List<Record> originalRecords, final ProcessSession session, final FlowFile input,
                                            final IndexOperationParameters indexOperationParameters)
-            throws IOException, SchemaNotFoundException, MalformedRecordException {
+            throws IOException, SchemaNotFoundException {
         final IndexOperationResponse response = clientService.get().bulk(bundle.getOperationList(), indexOperationParameters.getElasticsearchRequestOptions());
 
         final Map<Integer, Map<String, Object>> errors = findElasticsearchResponseErrors(response);

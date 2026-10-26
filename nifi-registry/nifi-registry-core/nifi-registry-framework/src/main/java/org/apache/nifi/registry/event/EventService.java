@@ -89,7 +89,7 @@ public class EventService implements DisposableBean {
     }
 
     @Override
-    public void destroy() throws Exception {
+    public void destroy() {
         LOGGER.info("Shutting down event consumer...");
         this.scheduledExecutorService.shutdownNow();
         LOGGER.info("Event consumer shutdown!");

@@ -37,7 +37,7 @@ public class HttpCommunicationsSession extends AbstractCommunicationsSession {
     }
 
     @Override
-    public void setTimeout(final int millis) throws IOException {
+    public void setTimeout(final int millis) {
         this.timeout = millis;
     }
 

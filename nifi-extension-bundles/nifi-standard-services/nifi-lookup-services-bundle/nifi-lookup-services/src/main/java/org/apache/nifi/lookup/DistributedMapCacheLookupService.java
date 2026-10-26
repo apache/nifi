@@ -130,7 +130,7 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
 
     public static class StringDeserializer implements Deserializer<String> {
         @Override
-        public String deserialize(final byte[] input) throws DeserializationException, IOException {
+        public String deserialize(final byte[] input) throws DeserializationException {
             if (input == null || input.length == 0) {
                 return null;
             }

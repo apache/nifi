@@ -327,7 +327,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         }
     }
 
-    private List<ControllerServiceNode> getControllerServices(final String groupId, final Collection<String> serviceIds) throws Throwable {
+    private List<ControllerServiceNode> getControllerServices(final String groupId, final Collection<String> serviceIds) {
         final ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
         final List<ControllerServiceNode> csNodes = new ArrayList<>();
@@ -455,7 +455,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         return action;
     }
 
-    private void saveUpdateControllerServiceAction(final ControllerServiceNode csNode, final Operation operation) throws Throwable {
+    private void saveUpdateControllerServiceAction(final ControllerServiceNode csNode, final Operation operation) {
         final FlowChangeAction action = createFlowChangeAction();
         action.setSourceId(csNode.getIdentifier());
         action.setSourceName(csNode.getName());

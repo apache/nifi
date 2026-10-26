@@ -79,7 +79,7 @@ public class FlowFileUnpackagerV1 implements FlowFileUnpackager {
     }
 
     @Override
-    public boolean hasMoreData() throws IOException {
+    public boolean hasMoreData() {
         return flowFilesRead == 0;
     }
 

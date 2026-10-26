@@ -21,14 +21,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 
 public class FileRemovalAction implements ExpirationAction {
 
     private static final Logger logger = LoggerFactory.getLogger(FileRemovalAction.class);
 
     @Override
-    public File execute(final File expiredFile) throws IOException {
+    public File execute(final File expiredFile) {
         final boolean removed = remove(expiredFile);
         if (removed) {
             logger.info("Removed expired Provenance Event file {}", expiredFile);
@@ -57,7 +56,7 @@ public class FileRemovalAction implements ExpirationAction {
     }
 
     @Override
-    public boolean hasBeenPerformed(final File expiredFile) throws IOException {
+    public boolean hasBeenPerformed(final File expiredFile) {
         return !expiredFile.exists();
     }
 }

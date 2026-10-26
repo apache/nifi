@@ -75,7 +75,7 @@ public class NiFiRegistryExternalResourceProvider implements ExternalResourcePro
     }
 
     @Override
-    public InputStream fetchExternalResource(final ExternalResourceDescriptor descriptor) throws IOException {
+    public InputStream fetchExternalResource(final ExternalResourceDescriptor descriptor) {
         if (!initialized) {
             LOGGER.error("Provider is not initialized");
         }

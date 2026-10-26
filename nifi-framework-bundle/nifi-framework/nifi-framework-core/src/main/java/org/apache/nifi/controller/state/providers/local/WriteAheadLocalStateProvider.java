@@ -281,7 +281,7 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
             this.alwaysSync = alwaysSync;
         }
 
-        public synchronized StateMap getState() throws IOException {
+        public synchronized StateMap getState() {
             return stateMap;
         }
 

@@ -28,7 +28,6 @@ import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -67,7 +66,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      */
     @Override
     public void initialize(EventReporter eventReporter, Authorizer authorizer,
-                           ProvenanceAuthorizableFactory factory, IdentifierLookup identifierLookup) throws IOException {
+                           ProvenanceAuthorizableFactory factory, IdentifierLookup identifierLookup) {
         eventReporter.reportEvent(Severity.INFO, "Provenance", "Initialized NoOpProvenanceRepository - Provenance tracking is disabled");
     }
 
@@ -75,7 +74,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * Closes the repository. No-op.
      */
     @Override
-    public void close() throws IOException {
+    public void close() {
 
     }
 

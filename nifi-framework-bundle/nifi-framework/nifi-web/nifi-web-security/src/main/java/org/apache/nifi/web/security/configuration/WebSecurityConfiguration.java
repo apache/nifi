@@ -119,7 +119,7 @@ public class WebSecurityConfiguration {
             final Saml2LogoutResponseFilter saml2LogoutResponseFilter,
             final Saml2SingleLogoutFilter saml2SingleLogoutFilter,
             final Saml2LocalLogoutFilter saml2LocalLogoutFilter
-    ) throws Exception {
+    ) {
         http
                 .logout(AbstractHttpConfigurer::disable)
                 .rememberMe(AbstractHttpConfigurer::disable)

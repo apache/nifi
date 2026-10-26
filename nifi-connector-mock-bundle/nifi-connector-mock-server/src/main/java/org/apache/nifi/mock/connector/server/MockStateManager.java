@@ -21,7 +21,6 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -38,7 +37,7 @@ public class MockStateManager implements StateManager {
     }
 
     @Override
-    public synchronized void setState(final Map<String, String> state, final Scope scope) throws IOException {
+    public synchronized void setState(final Map<String, String> state, final Scope scope) {
         final StateMap newStateMap = new MockStateMap(state, versionCounter.incrementAndGet());
 
         if (scope == Scope.CLUSTER) {
@@ -49,7 +48,7 @@ public class MockStateManager implements StateManager {
     }
 
     @Override
-    public synchronized StateMap getState(final Scope scope) throws IOException {
+    public synchronized StateMap getState(final Scope scope) {
         if (scope == Scope.CLUSTER) {
             return clusterStateMap;
         } else {
@@ -58,7 +57,7 @@ public class MockStateManager implements StateManager {
     }
 
     @Override
-    public synchronized boolean replace(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
+    public synchronized boolean replace(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) {
         final StateMap currentStateMap = scope == Scope.CLUSTER ? clusterStateMap : localStateMap;
 
         if (currentStateMap == oldValue) {
@@ -77,7 +76,7 @@ public class MockStateManager implements StateManager {
     }
 
     @Override
-    public synchronized void clear(final Scope scope) throws IOException {
+    public synchronized void clear(final Scope scope) {
         setState(Collections.emptyMap(), scope);
     }
 
