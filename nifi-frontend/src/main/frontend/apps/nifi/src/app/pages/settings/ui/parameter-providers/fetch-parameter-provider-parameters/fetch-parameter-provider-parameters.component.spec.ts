@@ -191,4 +191,16 @@ describe('FetchParameterProviderParameters', () => {
     it('should create', () => {
         expect(component).toBeTruthy();
     });
+
+    it('should render each sensitive-selection parameter name for the ellipsis tooltip', () => {
+        const nameCells: HTMLElement[] = Array.from(
+            fixture.nativeElement.querySelectorAll('[data-qa="parameter-name"]')
+        );
+
+        expect(nameCells.map((cell) => cell.textContent?.trim())).toEqual(['bytes', 'password', 'username']);
+        for (const cell of nameCells) {
+            expect(cell.classList.contains('truncate')).toBe(true);
+            expect(cell.hasAttribute('ellipsistooltip')).toBe(true);
+        }
+    });
 });
