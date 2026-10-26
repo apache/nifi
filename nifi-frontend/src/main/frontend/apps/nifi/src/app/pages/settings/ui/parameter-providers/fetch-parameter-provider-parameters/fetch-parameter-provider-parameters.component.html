@@ -23,7 +23,7 @@
         @if ((updateRequest | async)!; as requestEntity) {
             <mat-dialog-content>
                 <div class="dialog-content flex gap-x-4 w-full pt-2">
-                    <div class="flex flex-col flex-1">
+                    <div class="flex flex-col flex-1 min-w-0">
                         <div class="flex flex-col mb-4">
                             <div>Name</div>
                             <div class="tertiary-color font-medium">
@@ -59,7 +59,7 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-1">
+                    <div class="flex flex-1 min-w-0">
                         <div class="flex flex-col flex-1">
                             <div class="flex flex-col mb-4">
                                 <div class="flex flex-row items-center gap-x-2">
@@ -121,7 +121,7 @@
         } @else {
             <mat-dialog-content>
                 <div class="dialog-content flex gap-x-4 h-full w-full pt-2">
-                    <div class="flex flex-col flex-1">
+                    <div class="flex flex-col flex-1 min-w-0">
                         <div class="flex flex-col mb-4">
                             <div>Name</div>
                             <div class="tertiary-color font-medium">
@@ -145,7 +145,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex flex-1">
+                    <div class="flex flex-1 min-w-0">
                         @for (
                             parameterGroupConfig of parameterGroupConfigurations;
                             track parameterGroupConfig.groupName
@@ -156,7 +156,7 @@
                                 [ngClass]="{
                                     hidden: parameterGroupConfig.groupName !== selectedParameterGroup?.groupName
                                 }"
-                                class="flex gap-y-4 h-full w-full flex-col">
+                                class="flex gap-y-4 h-full min-w-0 w-full flex-col">
                                 @if (canCreateParameterContext(parameterGroupConfig)) {
                                     <!-- Not synced, give the user the option to create a parameter context for the group -->
                                     <div class="flex items-center">
@@ -199,12 +199,12 @@
                                                 [tooltipComponentType]="TextTip"
                                                 tooltipInputData="Discovered parameters from the selected parameter group."></i>
                                         </div>
-                                        <ul class="flex-1 overflow-y-auto border px-2">
+                                        <ul class="flex-1 min-w-0 overflow-y-auto border px-2">
                                             @for (
                                                 param of Object.entries(parameterGroupConfig.parameterSensitivities);
                                                 track param[0]
                                             ) {
-                                                <li class="tertiary-color font-medium">
+                                                <li class="tertiary-color font-medium truncate" ellipsisTooltip>
                                                     {{ param[0] }}
                                                 </li>
                                             }
