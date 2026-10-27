@@ -477,7 +477,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
                  final JsonGenerator jsonGenerator = writer.createGenerator(outputStream)) {
                 String line;
                 int lines = 0;
-                int matches = 0;
+                int transforms = 0;
                 while ((line = reader.readLine()) != null) {
                     if (line.isBlank()) {
                         continue;
@@ -490,12 +490,12 @@ public class JSLTTransformJSON extends AbstractProcessor {
                         getLogger().debug("JSLT Transform resulted in no data on line {}", lines + 1);
                     } else {
                         jsonGenerator.writeObject(transformedJson);
-                        matches++;
+                        transforms++;
                     }
                 }
 
-                if (lines > 0 && lines != matches) {
-                    getLogger().info("JSLT Transform resulted in data for {} out of {} lines", matches, lines);
+                if (lines > 0 && lines != transforms) {
+                    getLogger().info("JSLT Transform resulted in data for {} out of {} lines", transforms, lines);
                 }
             }
         });
