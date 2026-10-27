@@ -44,15 +44,16 @@ import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.hsqldb.jdbc.JDBCDriver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -61,6 +62,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DATABASE_URL;
@@ -93,7 +95,11 @@ public class DatabaseRecordSinkTest {
 
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
     private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s/nifi";
+    private static final String DATABASE_PROPERTIES = "nifi.properties";
+    private static final String USERNAME = String.class.getSimpleName();
+    private static final String PASSWORD = String.class.getName();
 
+    private Path databasePath;
     private String connectionUrl;
     private DBCPConnectionPool dbcpService;
     private TestRunner runner;
@@ -104,10 +110,11 @@ public class DatabaseRecordSinkTest {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService(SERVICE_ID, dbcpService);
 
-        connectionUrl = CONNECTION_URL_FORMAT.formatted(tempDir.toAbsolutePath());
+        databasePath = tempDir.toAbsolutePath();
+        connectionUrl = CONNECTION_URL_FORMAT.formatted(databasePath);
         runner.setProperty(dbcpService, DATABASE_URL, connectionUrl);
-        runner.setProperty(dbcpService, DB_USER, String.class.getSimpleName());
-        runner.setProperty(dbcpService, DB_PASSWORD, String.class.getName());
+        runner.setProperty(dbcpService, DB_USER, USERNAME);
+        runner.setProperty(dbcpService, DB_PASSWORD, PASSWORD);
         runner.setProperty(dbcpService, DB_DRIVERNAME, DRIVER_CLASS);
     }
 
@@ -116,10 +123,20 @@ public class DatabaseRecordSinkTest {
         runner.shutdown();
         dbcpService.shutdown();
 
-        try (Connection conn = DriverManager.getConnection(connectionUrl);
-             Statement stmt = conn.createStatement()) {
-            // Engine shutdown closes all connections regardless of status
-            stmt.execute("SHUTDOWN");
+        // Attempt shutdown only when database files found
+        final Path propertiesFile = databasePath.resolve(DATABASE_PROPERTIES);
+        if (Files.exists(propertiesFile)) {
+            final Properties properties = new Properties();
+            properties.setProperty("user", USERNAME);
+            properties.setProperty("password", PASSWORD);
+
+            // Connect with JDBCDriver to avoid DriverManager deregistration.
+            try (Connection connection = new JDBCDriver().connect(connectionUrl, properties)) {
+                try (final Statement statement = connection.createStatement()) {
+                    // Engine shutdown closes all connections regardless of status
+                    statement.execute("SHUTDOWN");
+                }
+            }
         }
     }
 

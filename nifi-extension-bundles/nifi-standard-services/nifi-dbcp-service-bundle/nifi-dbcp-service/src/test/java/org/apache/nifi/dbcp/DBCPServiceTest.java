@@ -34,6 +34,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.hsqldb.jdbc.JDBCDriver;
 import org.opentest4j.AssertionFailedError;
 
 import java.io.File;
@@ -67,6 +68,7 @@ public class DBCPServiceTest {
 
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
     private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s/nifi";
+    private static final String DATABASE_PROPERTIES = "nifi.properties";
     private static final String USERNAME = String.class.getSimpleName();
     private static final String PASSWORD = String.class.getName();
 
@@ -96,17 +98,15 @@ public class DBCPServiceTest {
     public void shutdownDatabase() throws Exception {
         runner.shutdown();
 
-        // Property validation tests may never create the database.
-        // Do not create it just to shut it down.
-        final Path propertiesFile = databasePath.resolve("nifi.properties");
+        // Attempt shutdown only when database files found
+        final Path propertiesFile = databasePath.resolve(DATABASE_PROPERTIES);
         if (Files.exists(propertiesFile)) {
             final Properties properties = new Properties();
             properties.setProperty("user", USERNAME);
             properties.setProperty("password", PASSWORD);
 
-            // Connect directly through HSQLDB's driver so cleanup still works
-            // when testDeregisterDriver has deregistered it from DriverManager.
-            try (Connection connection = new org.hsqldb.jdbc.JDBCDriver().connect(connectionUrl, properties)) {
+            // Connect with JDBCDriver to avoid DriverManager deregistration.
+            try (Connection connection = new JDBCDriver().connect(connectionUrl, properties)) {
                 try (final Statement statement = connection.createStatement()) {
                     // Engine shutdown closes all connections regardless of status
                     statement.execute("SHUTDOWN");

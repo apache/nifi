@@ -28,7 +28,7 @@ import java.sql.Statement;
 
 abstract class AbstractConnectionTest {
     private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
-    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%1$s/nifi";
+    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s/nifi";
 
     private static String connectionUrl;
 
