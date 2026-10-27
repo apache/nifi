@@ -56,7 +56,6 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     private final ProvenanceEventRepository provenanceRepo;
     private final AtomicLong connectionIndex;
     private final StateManager stateManager;
-    private final ComponentMetricContext componentMetricContext;
     private final ContentClaimCreationContext contentClaimCreationContext;
     private final FlowFileUpdateContext flowFileUpdateContext;
 
@@ -84,11 +83,6 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
 
         this.connectionIndex = connectionIndex;
         this.stateManager = stateManager;
-        this.componentMetricContext = new ComponentMetricContext(
-                connectable.getIdentifier(),
-                connectable.getName(),
-                connectable.getComponentType(),
-                connectable.getProcessGroup().getLoggingAttributes());
 
         this.componentNameCounterContext = connectable.getName() + " (" + connectable.getIdentifier() + ")";
         this.componentTypeCounterContext = "All " + connectable.getComponentType() + "'s";
@@ -102,11 +96,6 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     @Override
     public Connectable getConnectable() {
         return connectable;
-    }
-
-    @Override
-    public ComponentMetricContext getComponentMetricContext() {
-        return componentMetricContext;
     }
 
     /**
@@ -177,6 +166,7 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
         counterRepo.adjustCounter(componentNameCounterContext, name, delta);
         counterRepo.adjustCounter(componentTypeCounterContext, name, delta);
 
+        final ComponentMetricContext componentMetricContext = Connectables.createComponentMetricContext(connectable);
         final CounterRecord counterRecord = new CounterRecord(name, delta, attributes, Instant.now(), componentMetricContext);
         componentMetricReporter.recordCounter(counterRecord);
     }

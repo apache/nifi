@@ -18,11 +18,14 @@ package org.apache.nifi.util;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.status.FlowFileAvailability;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.Relationship;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public class Connectables {
 
@@ -65,5 +68,11 @@ public class Connectables {
         }
 
         return false;
+    }
+
+    public static ComponentMetricContext createComponentMetricContext(final Connectable connectable) {
+        final ProcessGroup processGroup = connectable.getProcessGroup();
+        final Map<String, String> groupAttributes = processGroup == null ? Map.of() : processGroup.getLoggingAttributes();
+        return new ComponentMetricContext(connectable.getIdentifier(), connectable.getName(), connectable.getComponentType(), groupAttributes);
     }
 }
