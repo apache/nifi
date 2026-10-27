@@ -91,8 +91,10 @@ import {
     selectInputPort,
     selectLoadingStatus,
     selectMaxConnectionZIndex,
+    selectOptimisticCacheSnapshot,
     selectOutputPort,
     selectParentProcessGroupId,
+    selectPendingAuthoritativeSnapshot,
     selectProcessGroup,
     selectProcessGroupId,
     selectProcessGroupIdFromRoute,
@@ -106,6 +108,8 @@ import type { ConnectorCanvasComponentEntity } from './index';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { ConnectorEditService } from '../../service/connector-edit.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { resetConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.actions';
+import { selectConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.selectors';
 
 /**
  * Shallow-copies `entity` with `permissions.canWrite` forced to false.
@@ -173,68 +177,91 @@ export class ConnectorCanvasEffects {
     loadConnectorFlow$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ConnectorCanvasActions.loadConnectorFlow),
-            concatLatestFrom(() => this.store.select(selectHasLoadedFlow)),
-            switchMap(([action, hasLoadedFlow]) =>
-                this.connectorService.getConnectorFlow(action.connectorId, action.processGroupId).pipe(
-                    map((flowResponse) => {
-                        const processGroupFlow = flowResponse.processGroupFlow;
-                        const flow = processGroupFlow?.flow;
-                        const {
-                            labels,
-                            funnels,
-                            inputPorts,
-                            outputPorts,
-                            remoteProcessGroups,
-                            processGroups,
-                            processors,
-                            connections
-                        } = this.sanitizeConnectorFlowPositions(flow);
+            concatLatestFrom(() => [
+                this.store.select(selectHasLoadedFlow),
+                this.store.select(selectConnectedStateChanged),
+                this.store.select(selectPendingAuthoritativeSnapshot),
+                this.store.select(selectOptimisticCacheSnapshot)
+            ]),
+            tap(([, , clusterConnectedStateChanged]) => {
+                if (clusterConnectedStateChanged) {
+                    this.store.dispatch(ConnectorCanvasActions.markAuthoritativeSnapshotPending());
+                }
+                this.store.dispatch(resetConnectedStateChanged());
+            }),
+            switchMap(
+                ([
+                    action,
+                    hasLoadedFlow,
+                    clusterConnectedStateChanged,
+                    pendingAuthoritativeSnapshot,
+                    reconciliationSnapshot
+                ]) => {
+                    const connectedStateChanged = clusterConnectedStateChanged || pendingAuthoritativeSnapshot;
+                    return this.connectorService.getConnectorFlow(action.connectorId, action.processGroupId).pipe(
+                        map((flowResponse) => {
+                            const processGroupFlow = flowResponse.processGroupFlow;
+                            const flow = processGroupFlow?.flow;
+                            const {
+                                labels,
+                                funnels,
+                                inputPorts,
+                                outputPorts,
+                                remoteProcessGroups,
+                                processGroups,
+                                processors,
+                                connections
+                            } = this.sanitizeConnectorFlowPositions(flow);
 
-                        // Extract process group IDs for navigation
-                        const processGroupId = processGroupFlow?.id ?? null;
-                        const parentProcessGroupId = processGroupFlow?.parentGroupId ?? null;
+                            // Extract process group IDs for navigation
+                            const processGroupId = processGroupFlow?.id ?? null;
+                            const parentProcessGroupId = processGroupFlow?.parentGroupId ?? null;
 
-                        // Extract breadcrumb for navigation trail
-                        const breadcrumb = processGroupFlow?.breadcrumb ?? null;
+                            // Extract breadcrumb for navigation trail
+                            const breadcrumb = processGroupFlow?.breadcrumb ?? null;
 
-                        return ConnectorCanvasActions.loadConnectorFlowSuccess({
-                            connectorId: action.connectorId,
-                            processGroupId,
-                            parentProcessGroupId,
-                            breadcrumb,
-                            labels,
-                            funnels,
-                            inputPorts,
-                            outputPorts,
-                            remoteProcessGroups,
-                            processGroups,
-                            processors,
-                            connections
-                        });
-                    }),
-                    catchError((error) => {
-                        const message = this.errorHelper.getErrorString(error);
-                        const errorContext = {
-                            errors: [message],
-                            context: ErrorContextKey.CONNECTORS
-                        };
-                        const failure = ConnectorCanvasActions.loadConnectorFlowFailure({
-                            errorContext,
-                            isRefresh: hasLoadedFlow
-                        });
-                        return hasLoadedFlow
-                            ? from([
-                                  failure,
-                                  ErrorActions.addBannerError({
-                                      errorContext: {
-                                          errors: [message],
-                                          context: ErrorContextKey.CONNECTOR_CANVAS
-                                      }
-                                  })
-                              ])
-                            : of(failure);
-                    })
-                )
+                            return ConnectorCanvasActions.loadConnectorFlowSuccess({
+                                connectorId: action.connectorId,
+                                processGroupId,
+                                parentProcessGroupId,
+                                breadcrumb,
+                                labels,
+                                funnels,
+                                inputPorts,
+                                outputPorts,
+                                remoteProcessGroups,
+                                processGroups,
+                                processors,
+                                connections,
+                                reconciliationSnapshot,
+                                connectedStateChanged
+                            });
+                        }),
+                        catchError((error) => {
+                            const message = this.errorHelper.getErrorString(error);
+                            const errorContext = {
+                                errors: [message],
+                                context: ErrorContextKey.CONNECTORS
+                            };
+                            const failure = ConnectorCanvasActions.loadConnectorFlowFailure({
+                                errorContext,
+                                isRefresh: hasLoadedFlow,
+                                connectedStateChanged
+                            });
+                            return hasLoadedFlow
+                                ? from([
+                                      failure,
+                                      ErrorActions.addBannerError({
+                                          errorContext: {
+                                              errors: [message],
+                                              context: ErrorContextKey.CONNECTOR_CANVAS
+                                          }
+                                      })
+                                  ])
+                                : of(failure);
+                        })
+                    );
+                }
             )
         )
     );
