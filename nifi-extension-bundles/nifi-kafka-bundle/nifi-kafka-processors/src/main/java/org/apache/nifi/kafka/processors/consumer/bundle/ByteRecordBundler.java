@@ -65,8 +65,11 @@ public class ByteRecordBundler {
         final TopicPartitionSummary topicPartition = key.getTopicPartition();
         key.headers.add(new RecordHeader(KafkaFlowFileAttribute.KAFKA_MAX_OFFSET, Long.toString(value.getLastOffset()).getBytes(StandardCharsets.UTF_8)));
         key.headers.add(new RecordHeader(KafkaFlowFileAttribute.KAFKA_COUNT, Long.toString(value.getCount()).getBytes(StandardCharsets.UTF_8)));
+        final byte[] data = value.getData();
+        // Demarcator emits one FlowFile per bundle, so an empty bundle is still reported as a tombstone.
+        final boolean tombstone = data.length == 0;
         return new ByteRecord(topicPartition.getTopic(), topicPartition.getPartition(),
-                value.getFirstOffset(), key.getTimestamp(), key.getHeaders(), key.getMessageKey(), value.getData(), value.getCount());
+                value.getFirstOffset(), key.getTimestamp(), key.getHeaders(), key.getMessageKey(), data, value.getCount(), tombstone);
     }
 
     private void update(final Map<BundleKey, BundleValue> bundles, final ByteRecord byteRecord) {

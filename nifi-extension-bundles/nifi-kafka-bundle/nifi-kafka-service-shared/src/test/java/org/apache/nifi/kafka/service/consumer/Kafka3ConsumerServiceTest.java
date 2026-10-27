@@ -35,6 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -249,7 +250,31 @@ class Kafka3ConsumerServiceTest {
         verify(consumer, never()).commitSync(anyMap());
     }
 
+    @Test
+    void testPollDistinguishesTombstoneFromEmptyValue() {
+        final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
+        final ConsumerRecord<byte[], byte[]> tombstone = createRecord(TOPIC, PARTITION_0, 0L, null);
+        final ConsumerRecord<byte[], byte[]> emptyValue = createRecord(TOPIC, PARTITION_0, 1L, new byte[0]);
+
+        final Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> recordsMap = new HashMap<>();
+        recordsMap.put(partition0, List.of(tombstone, emptyValue));
+        when(consumer.poll(any(Duration.class))).thenReturn(createConsumerRecords(recordsMap));
+
+        final List<ByteRecord> records = new ArrayList<>();
+        consumerService.poll(Duration.ofMillis(100)).forEach(records::add);
+
+        assertEquals(2, records.size());
+        assertTrue(records.get(0).isTombstone());
+        assertEquals(0, records.get(0).getValue().length);
+        assertFalse(records.get(1).isTombstone());
+        assertEquals(0, records.get(1).getValue().length);
+    }
+
     private ConsumerRecord<byte[], byte[]> createRecord(final String topic, final int partition, final long offset) {
+        return createRecord(topic, partition, offset, "test-value".getBytes());
+    }
+
+    private ConsumerRecord<byte[], byte[]> createRecord(final String topic, final int partition, final long offset, final byte[] value) {
         return new ConsumerRecord<>(
                 topic,
                 partition,
@@ -259,7 +284,7 @@ class Kafka3ConsumerServiceTest {
                 0,
                 0,
                 null,
-                "test-value".getBytes(),
+                value,
                 new RecordHeaders(),
                 Optional.empty()
         );
