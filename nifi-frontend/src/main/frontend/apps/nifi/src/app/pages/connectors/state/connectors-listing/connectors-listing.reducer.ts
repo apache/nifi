@@ -32,6 +32,10 @@ import {
     discardConnectorConfigSuccess,
     drainConnector,
     drainConnectorSuccess,
+    endTroubleshooting,
+    endTroubleshootingSuccess,
+    enterTroubleshooting,
+    enterTroubleshootingSuccess,
     loadConnectorsListing,
     loadConnectorsListingError,
     loadConnectorsListingSuccess,
@@ -175,6 +179,17 @@ export const connectorsListingReducer = createReducer(
     })),
 
     on(cancelConnectorDrainSuccess, (state, { response }) => ({
+        ...state,
+        connectors: state.connectors.map((c) => (c.id === response.connector.id ? response.connector : c)),
+        saving: false
+    })),
+
+    on(enterTroubleshooting, endTroubleshooting, (state) => ({
+        ...state,
+        saving: true
+    })),
+
+    on(enterTroubleshootingSuccess, endTroubleshootingSuccess, (state, { response }) => ({
         ...state,
         connectors: state.connectors.map((c) => (c.id === response.connector.id ? response.connector : c)),
         saving: false

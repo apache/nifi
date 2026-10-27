@@ -185,7 +185,9 @@ export type ConnectorActionName =
     | 'APPLY_UPDATES'
     | 'MIGRATE'
     | 'DELETE'
-    | 'CHANGE_VERSION';
+    | 'CHANGE_VERSION'
+    | 'ENTER_TROUBLESHOOTING'
+    | 'END_TROUBLESHOOTING';
 
 export interface ConnectorAction {
     name: ConnectorActionName;
@@ -204,7 +206,8 @@ export enum ConnectorState {
     PREPARING_FOR_UPDATE = 'PREPARING_FOR_UPDATE',
     UPDATING = 'UPDATING',
     UPDATE_FAILED = 'UPDATE_FAILED',
-    UPDATED = 'UPDATED'
+    UPDATED = 'UPDATED',
+    TROUBLESHOOTING = 'TROUBLESHOOTING'
 }
 
 export interface ConnectorComponent {

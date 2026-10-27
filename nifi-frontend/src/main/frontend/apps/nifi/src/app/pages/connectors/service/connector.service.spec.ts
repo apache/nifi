@@ -16,6 +16,8 @@
  */
 
 import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { ConnectorEntity } from '@nifi/shared';
 import { TestBed } from '@angular/core/testing';
 import { UnsafeApiPathError } from '@nifi/shared';
 import { Client } from '../../../service/client.service';
@@ -28,13 +30,15 @@ describe('ConnectorService', () => {
             providers: [
                 ConnectorService,
                 provideHttpClient(),
-                { provide: Client, useValue: {} },
-                { provide: ClusterConnectionService, useValue: {} }
+                provideHttpClientTesting(),
+                { provide: Client, useValue: { getRevision: () => ({ version: 3, clientId: 'client-1' }) } },
+                { provide: ClusterConnectionService, useValue: { isDisconnectionAcknowledged: () => false } }
             ]
         }).compileComponents();
 
         return {
             service: TestBed.inject(ConnectorService),
+            httpMock: TestBed.inject(HttpTestingController),
             open: vi.spyOn(window, 'open').mockImplementation(() => null)
         };
     }
@@ -77,4 +81,38 @@ describe('ConnectorService', () => {
             expect(open).not.toHaveBeenCalled();
         }
     );
+
+    describe('troubleshooting lifecycle', () => {
+        const connector = { id: 'connector-1' } as ConnectorEntity;
+
+        it('should POST the current revision when entering troubleshooting', async () => {
+            const { service, httpMock } = await setup();
+            const response = { id: 'connector-1' } as ConnectorEntity;
+
+            let result: ConnectorEntity | undefined;
+            service.enterTroubleshooting(connector).subscribe((entity) => (result = entity));
+
+            const req = httpMock.expectOne('../nifi-api/connectors/connector-1/troubleshooting');
+            expect(req.request.method).toBe('POST');
+            expect(req.request.body).toEqual({
+                revision: { version: 3, clientId: 'client-1' },
+                disconnectedNodeAcknowledged: false
+            });
+            req.flush(response);
+            expect(result).toEqual(response);
+        });
+
+        it('should DELETE with revision query parameters when ending troubleshooting', async () => {
+            const { service, httpMock } = await setup();
+
+            service.endTroubleshooting(connector).subscribe();
+
+            const req = httpMock.expectOne((r) => r.url === '../nifi-api/connectors/connector-1/troubleshooting');
+            expect(req.request.method).toBe('DELETE');
+            expect(req.request.params.get('version')).toBe('3');
+            expect(req.request.params.get('clientId')).toBe('client-1');
+            expect(req.request.params.get('disconnectedNodeAcknowledged')).toBe('false');
+            req.flush({});
+        });
+    });
 });

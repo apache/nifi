@@ -165,6 +165,24 @@
                                         Cancel drain
                                     </button>
                                 }
+                                @if (canEnterTroubleshooting(item)) {
+                                    <button
+                                        mat-menu-item
+                                        data-qa="enter-troubleshooting-action"
+                                        (click)="enterTroubleshootingClicked(item)">
+                                        <i class="fa fa-wrench mr-2"></i>
+                                        Enter troubleshooting
+                                    </button>
+                                }
+                                @if (canEndTroubleshooting(item)) {
+                                    <button
+                                        mat-menu-item
+                                        data-qa="end-troubleshooting-action"
+                                        (click)="endTroubleshootingClicked(item)">
+                                        <i class="fa fa-check-circle mr-2"></i>
+                                        End troubleshooting
+                                    </button>
+                                }
                                 @if (canPurge(item)) {
                                     <button mat-menu-item data-qa="purge-action" (click)="purgeClicked(item)">
                                         <i class="fa fa-minus-circle mr-2"></i>

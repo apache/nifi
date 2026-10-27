@@ -46,6 +46,30 @@ export function getConnectorActionDisabledReason(entity: ConnectorEntity, action
     return action?.reasonNotAllowed ?? '';
 }
 
+export function isConnectorInTroubleshooting(entity: ConnectorEntity): boolean {
+    return (
+        entity.component?.state === ConnectorState.TROUBLESHOOTING ||
+        entity.status?.aggregateSnapshot?.runStatus === ConnectorState.TROUBLESHOOTING ||
+        entity.status?.runStatus === ConnectorState.TROUBLESHOOTING
+    );
+}
+
+export function canEnterTroubleshooting(entity: ConnectorEntity): boolean {
+    return (
+        canReadConnector(entity) &&
+        canOperateConnector(entity) &&
+        isConnectorActionAllowed(entity, 'ENTER_TROUBLESHOOTING')
+    );
+}
+
+export function canEndTroubleshooting(entity: ConnectorEntity): boolean {
+    return (
+        canReadConnector(entity) &&
+        canOperateConnector(entity) &&
+        isConnectorActionAllowed(entity, 'END_TROUBLESHOOTING')
+    );
+}
+
 export function getConnectorStateVariant(state: string): StatusVariant {
     switch (state) {
         case ConnectorState.RUNNING:
@@ -60,6 +84,8 @@ export function getConnectorStateVariant(state: string): StatusVariant {
         case ConnectorState.DRAINING:
         case ConnectorState.PREPARING_FOR_UPDATE:
             return 'info';
+        case ConnectorState.TROUBLESHOOTING:
+            return 'caution';
         case ConnectorState.UPDATE_FAILED:
             return 'critical';
         default:

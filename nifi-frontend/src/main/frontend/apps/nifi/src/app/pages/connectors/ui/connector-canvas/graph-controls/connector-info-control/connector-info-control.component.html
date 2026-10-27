@@ -117,6 +117,28 @@
                     }
                 </div>
             }
+            @if (showEnterTroubleshooting() || showEndTroubleshooting()) {
+                <div class="flex gap-1 flex-wrap">
+                    @if (showEnterTroubleshooting()) {
+                        <button
+                            mat-stroked-button
+                            type="button"
+                            data-qa="connector-panel-enter-troubleshooting"
+                            (click)="enterTroubleshooting()">
+                            Enter Troubleshooting
+                        </button>
+                    }
+                    @if (showEndTroubleshooting()) {
+                        <button
+                            mat-stroked-button
+                            type="button"
+                            data-qa="connector-panel-end-troubleshooting"
+                            (click)="endTroubleshooting()">
+                            End Troubleshooting
+                        </button>
+                    }
+                </div>
+            }
         }
     </div>
 </mat-expansion-panel>

@@ -84,7 +84,33 @@ export const stopConnectorSuccess = createAction(
 );
 
 /**
- * API error during any connector action (drain, cancel drain, start, stop).
+ * Enter troubleshooting mode.
+ */
+export const enterTroubleshooting = createAction(
+    `${PREFIX} Enter Troubleshooting`,
+    props<{ connector: ConnectorEntity }>()
+);
+
+export const enterTroubleshootingSuccess = createAction(
+    `${PREFIX} Enter Troubleshooting Success`,
+    props<{ connector: ConnectorEntity }>()
+);
+
+/**
+ * End troubleshooting mode.
+ */
+export const endTroubleshooting = createAction(
+    `${PREFIX} End Troubleshooting`,
+    props<{ connector: ConnectorEntity }>()
+);
+
+export const endTroubleshootingSuccess = createAction(
+    `${PREFIX} End Troubleshooting Success`,
+    props<{ connector: ConnectorEntity }>()
+);
+
+/**
+ * API error during any connector action (drain, cancel drain, start, stop, troubleshooting).
  */
 export const connectorActionApiError = createAction(`${PREFIX} Connector Action Api Error`, props<{ error: string }>());
 

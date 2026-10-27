@@ -20,7 +20,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
 import { MatDialog } from '@angular/material/dialog';
-import { catchError, filter, map, of, switchMap, take, tap } from 'rxjs';
+import { catchError, exhaustMap, filter, map, of, switchMap, take, tap } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { ConnectorService } from '../../service/connector.service';
@@ -42,6 +42,10 @@ import {
     startConnectorSuccess,
     stopConnector,
     stopConnectorSuccess,
+    enterTroubleshooting,
+    enterTroubleshootingSuccess,
+    endTroubleshooting,
+    endTroubleshootingSuccess,
     connectorActionApiError
 } from './connector-canvas-entity.actions';
 
@@ -174,12 +178,42 @@ export class ConnectorCanvasEntityEffects {
     );
 
     /**
+     * Enter and end troubleshooting share one exhaustMap so a lifecycle request is ignored while another is in flight.
+     */
+    troubleshootingLifecycle$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(enterTroubleshooting, endTroubleshooting),
+            exhaustMap((action) => {
+                const entering = action.type === enterTroubleshooting.type;
+                const request$ = entering
+                    ? this.connectorService.enterTroubleshooting(action.connector)
+                    : this.connectorService.endTroubleshooting(action.connector);
+                return request$.pipe(
+                    map((connector) =>
+                        entering ? enterTroubleshootingSuccess({ connector }) : endTroubleshootingSuccess({ connector })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(connectorActionApiError({ error: this.errorHelper.getErrorString(errorResponse) }))
+                    )
+                );
+            })
+        )
+    );
+
+    /**
      * On any successful connector action, reload the connector entity to ensure
      * availableActions and state are fully up to date.
      */
     refreshAfterAction$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(drainConnectorSuccess, cancelConnectorDrainSuccess, startConnectorSuccess, stopConnectorSuccess),
+            ofType(
+                drainConnectorSuccess,
+                cancelConnectorDrainSuccess,
+                startConnectorSuccess,
+                stopConnectorSuccess,
+                enterTroubleshootingSuccess,
+                endTroubleshootingSuccess
+            ),
             concatLatestFrom(() => this.store.select(selectConnectorIdFromRoute)),
             filter(([, connectorId]) => connectorId != null),
             map(([, connectorId]) => loadConnectorEntity({ connectorId: connectorId! }))
@@ -209,7 +243,14 @@ export class ConnectorCanvasEntityEffects {
      */
     clearCanvasErrorsOnAction$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(drainConnector, cancelConnectorDrain, startConnector, stopConnector),
+            ofType(
+                drainConnector,
+                cancelConnectorDrain,
+                startConnector,
+                stopConnector,
+                enterTroubleshooting,
+                endTroubleshooting
+            ),
             map(() => ErrorActions.clearBannerErrors({ context: ErrorContextKey.CONNECTOR_CANVAS }))
         )
     );

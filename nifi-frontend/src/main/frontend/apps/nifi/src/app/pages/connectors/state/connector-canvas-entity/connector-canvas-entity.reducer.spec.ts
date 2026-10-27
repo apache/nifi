@@ -24,6 +24,10 @@ import {
     loadConnectorEntityFailure,
     drainConnector,
     drainConnectorSuccess,
+    endTroubleshooting,
+    endTroubleshootingSuccess,
+    enterTroubleshooting,
+    enterTroubleshootingSuccess,
     cancelConnectorDrain,
     cancelConnectorDrainSuccess,
     startConnector,
@@ -314,6 +318,42 @@ describe('connectorCanvasEntityReducer', () => {
             expect(result.connectorEntity).toEqual(refreshed);
             expect(result.saving).toBe(false);
             expect(result.error).toBeNull();
+        });
+    });
+
+    describe('enterTroubleshooting / endTroubleshooting', () => {
+        it.each([
+            ['enterTroubleshooting', enterTroubleshooting],
+            ['endTroubleshooting', endTroubleshooting]
+        ])('should set saving to true and clear error on %s', (_name, actionCreator) => {
+            const entity = createMockConnectorEntity();
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                connectorEntity: entity,
+                error: 'previous error'
+            };
+
+            const result = connectorCanvasEntityReducer(priorState, actionCreator({ connector: entity }));
+
+            expect(result.saving).toBe(true);
+            expect(result.error).toBeNull();
+        });
+
+        it.each([
+            ['enterTroubleshootingSuccess', enterTroubleshootingSuccess],
+            ['endTroubleshootingSuccess', endTroubleshootingSuccess]
+        ])('should replace the stored entity on %s', (_name, actionCreator) => {
+            const updated = createMockConnectorEntity({ revision: { version: 5 } } as Partial<ConnectorEntity>);
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                connectorEntity: createMockConnectorEntity(),
+                saving: true
+            };
+
+            const result = connectorCanvasEntityReducer(priorState, actionCreator({ connector: updated }));
+
+            expect(result.connectorEntity).toEqual(updated);
+            expect(result.saving).toBe(false);
         });
     });
 

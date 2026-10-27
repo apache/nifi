@@ -57,6 +57,10 @@ import {
     discardConnectorConfigSuccess,
     drainConnector,
     drainConnectorSuccess,
+    endTroubleshooting,
+    endTroubleshootingSuccess,
+    enterTroubleshooting,
+    enterTroubleshootingSuccess,
     loadConnectorsListing,
     loadConnectorsListingError,
     loadConnectorsListingSuccess,
@@ -162,7 +166,9 @@ describe('ConnectorsListingEffects', () => {
             updateConnectorRunStatus: vi.fn(),
             discardConnectorWorkingConfiguration: vi.fn(),
             drainConnector: vi.fn(),
-            cancelConnectorDrain: vi.fn()
+            cancelConnectorDrain: vi.fn(),
+            enterTroubleshooting: vi.fn(),
+            endTroubleshooting: vi.fn()
         };
 
         const mockErrorHelper = {
@@ -861,6 +867,82 @@ describe('ConnectorsListingEffects', () => {
                         expect(action).toEqual(connectorsListingBannerApiError({ error: 'Error message' }));
                         resolve();
                     });
+                });
+            }));
+    });
+
+    describe('troubleshootingLifecycle$', () => {
+        it('should enter troubleshooting and emit the returned connector', () =>
+            new Promise<void>((resolve) => {
+                setup().then(({ effects, actions$, mockConnectorService }) => {
+                    const mockConnector = createMockConnector();
+                    (mockConnectorService.enterTroubleshooting as Mock).mockReturnValue(of(mockConnector));
+                    actions$(of(enterTroubleshooting({ request: { connector: mockConnector } })));
+
+                    effects.troubleshootingLifecycle$.subscribe((action) => {
+                        expect(mockConnectorService.enterTroubleshooting).toHaveBeenCalledWith(mockConnector);
+                        expect(action).toEqual(enterTroubleshootingSuccess({ response: { connector: mockConnector } }));
+                        resolve();
+                    });
+                });
+            }));
+
+        it('should end troubleshooting and emit the returned connector', () =>
+            new Promise<void>((resolve) => {
+                setup().then(({ effects, actions$, mockConnectorService }) => {
+                    const mockConnector = createMockConnector();
+                    (mockConnectorService.endTroubleshooting as Mock).mockReturnValue(of(mockConnector));
+                    actions$(of(endTroubleshooting({ request: { connector: mockConnector } })));
+
+                    effects.troubleshootingLifecycle$.subscribe((action) => {
+                        expect(mockConnectorService.endTroubleshooting).toHaveBeenCalledWith(mockConnector);
+                        expect(action).toEqual(endTroubleshootingSuccess({ response: { connector: mockConnector } }));
+                        resolve();
+                    });
+                });
+            }));
+
+        it('should surface failures through the banner error', () =>
+            new Promise<void>((resolve) => {
+                setup().then(({ effects, actions$, mockConnectorService }) => {
+                    const mockConnector = createMockConnector();
+                    const errorResponse = new HttpErrorResponse({ error: 'Error', status: 500, statusText: 'ISE' });
+                    (mockConnectorService.enterTroubleshooting as Mock).mockReturnValue(
+                        throwError(() => errorResponse)
+                    );
+                    actions$(of(enterTroubleshooting({ request: { connector: mockConnector } })));
+
+                    effects.troubleshootingLifecycle$.subscribe((action) => {
+                        expect(action).toEqual(connectorsListingBannerApiError({ error: 'Error message' }));
+                        resolve();
+                    });
+                });
+            }));
+
+        it('should ignore a lifecycle request while one is in progress', () =>
+            new Promise<void>((resolve) => {
+                setup().then(({ effects, actions$, mockConnectorService }) => {
+                    const mockConnector = createMockConnector();
+                    const inFlight = new Subject<ConnectorEntity>();
+                    (mockConnectorService.enterTroubleshooting as Mock).mockReturnValue(inFlight);
+                    (mockConnectorService.endTroubleshooting as Mock).mockReturnValue(of(mockConnector));
+                    actions$(
+                        of(
+                            enterTroubleshooting({ request: { connector: mockConnector } }),
+                            enterTroubleshooting({ request: { connector: mockConnector } }),
+                            endTroubleshooting({ request: { connector: mockConnector } })
+                        )
+                    );
+
+                    const emitted: Action[] = [];
+                    effects.troubleshootingLifecycle$.subscribe((action) => emitted.push(action));
+
+                    expect(mockConnectorService.enterTroubleshooting).toHaveBeenCalledTimes(1);
+                    expect(mockConnectorService.endTroubleshooting).not.toHaveBeenCalled();
+                    inFlight.next(mockConnector);
+                    inFlight.complete();
+                    expect(emitted).toEqual([enterTroubleshootingSuccess({ response: { connector: mockConnector } })]);
+                    resolve();
                 });
             }));
     });

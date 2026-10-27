@@ -422,6 +422,27 @@ describe('ConnectorTable', () => {
             ).toBe(false);
         });
 
+        it('should show troubleshooting actions only when allowed and operable', async () => {
+            const { component } = await setup();
+            const allowed = (name: 'ENTER_TROUBLESHOOTING' | 'END_TROUBLESHOOTING') =>
+                createMockConnector({ availableActions: [createMockAction(name, true)] });
+            const denied = (name: 'ENTER_TROUBLESHOOTING' | 'END_TROUBLESHOOTING') =>
+                createMockConnector({ availableActions: [createMockAction(name, false)] });
+
+            expect(component.canEnterTroubleshooting(allowed('ENTER_TROUBLESHOOTING'))).toBe(true);
+            expect(component.canEnterTroubleshooting(denied('ENTER_TROUBLESHOOTING'))).toBe(false);
+            expect(component.canEnterTroubleshooting(allowed('END_TROUBLESHOOTING'))).toBe(false);
+            expect(component.canEndTroubleshooting(allowed('END_TROUBLESHOOTING'))).toBe(true);
+            expect(component.canEndTroubleshooting(denied('END_TROUBLESHOOTING'))).toBe(false);
+
+            const noPermission = createMockConnector({
+                availableActions: [createMockAction('ENTER_TROUBLESHOOTING', true)],
+                canWrite: false,
+                canOperate: false
+            });
+            expect(component.canEnterTroubleshooting(noPermission)).toBe(false);
+        });
+
         it('should check canPurge', async () => {
             const { component } = await setup();
             expect(
@@ -551,6 +572,22 @@ describe('ConnectorTable', () => {
             vi.spyOn(component.stopConnector, 'next');
             component.stopClicked(connector);
             expect(component.stopConnector.next).toHaveBeenCalledWith(connector);
+        });
+
+        it('should emit enterTroubleshooting event', async () => {
+            const { component } = await setup();
+            const connector = createMockConnector();
+            vi.spyOn(component.enterTroubleshooting, 'next');
+            component.enterTroubleshootingClicked(connector);
+            expect(component.enterTroubleshooting.next).toHaveBeenCalledWith(connector);
+        });
+
+        it('should emit endTroubleshooting event', async () => {
+            const { component } = await setup();
+            const connector = createMockConnector();
+            vi.spyOn(component.endTroubleshooting, 'next');
+            component.endTroubleshootingClicked(connector);
+            expect(component.endTroubleshooting.next).toHaveBeenCalledWith(connector);
         });
 
         it('should emit deleteConnector event', async () => {

@@ -28,6 +28,8 @@ import {
 } from '../../state/connectors-listing/connectors-listing.selectors';
 import {
     cancelConnectorDrain,
+    endTroubleshooting,
+    enterTroubleshooting,
     loadConnectorsListing,
     navigateToConfigureConnector,
     navigateToManageAccessPolicies,
@@ -161,6 +163,14 @@ export class ConnectorsListing implements OnInit {
 
     cancelDrainConnector(entity: ConnectorEntity): void {
         this.store.dispatch(cancelConnectorDrain({ request: { connector: entity } }));
+    }
+
+    enterTroubleshooting(entity: ConnectorEntity): void {
+        this.store.dispatch(enterTroubleshooting({ request: { connector: entity } }));
+    }
+
+    endTroubleshooting(entity: ConnectorEntity): void {
+        this.store.dispatch(endTroubleshooting({ request: { connector: entity } }));
     }
 
     purgeConnector(entity: ConnectorEntity): void {

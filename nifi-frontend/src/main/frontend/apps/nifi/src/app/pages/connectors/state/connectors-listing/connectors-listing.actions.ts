@@ -28,6 +28,8 @@ import {
     DeleteConnectorSuccess,
     DiscardConnectorConfigRequest,
     DrainConnectorRequest,
+    EndTroubleshootingRequest,
+    EnterTroubleshootingRequest,
     LoadConnectorsListingResponse,
     RenameConnectorRequest,
     RenameConnectorSuccess,
@@ -209,5 +211,25 @@ export const cancelConnectorDrain = createAction(
 
 export const cancelConnectorDrainSuccess = createAction(
     '[Connectors Listing] Cancel Connector Drain Success',
+    props<{ response: ConnectorActionSuccess }>()
+);
+
+export const enterTroubleshooting = createAction(
+    '[Connectors Listing] Enter Troubleshooting',
+    props<{ request: EnterTroubleshootingRequest }>()
+);
+
+export const enterTroubleshootingSuccess = createAction(
+    '[Connectors Listing] Enter Troubleshooting Success',
+    props<{ response: ConnectorActionSuccess }>()
+);
+
+export const endTroubleshooting = createAction(
+    '[Connectors Listing] End Troubleshooting',
+    props<{ request: EndTroubleshootingRequest }>()
+);
+
+export const endTroubleshootingSuccess = createAction(
+    '[Connectors Listing] End Troubleshooting Success',
     props<{ response: ConnectorActionSuccess }>()
 );

@@ -21,7 +21,7 @@ import { Store } from '@ngrx/store';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { concatLatestFrom } from '@ngrx/operators';
-import { catchError, concatMap, EMPTY, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import { catchError, concatMap, EMPTY, exhaustMap, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { NiFiState } from '../../../../state';
@@ -50,6 +50,10 @@ import {
     discardConnectorConfigSuccess,
     drainConnector,
     drainConnectorSuccess,
+    endTroubleshooting,
+    endTroubleshootingSuccess,
+    enterTroubleshooting,
+    enterTroubleshootingSuccess,
     loadConnectorsListing,
     loadConnectorsListingError,
     loadConnectorsListingSuccess,
@@ -649,6 +653,36 @@ export class ConnectorsListingEffects {
                     )
                 )
             )
+        )
+    );
+
+    /**
+     * Enter and end troubleshooting share one exhaustMap so a lifecycle request is ignored while another is in flight.
+     */
+    troubleshootingLifecycle$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(enterTroubleshooting, endTroubleshooting),
+            exhaustMap((action) => {
+                const entering = action.type === enterTroubleshooting.type;
+                const request$ = entering
+                    ? this.connectorService.enterTroubleshooting(action.request.connector)
+                    : this.connectorService.endTroubleshooting(action.request.connector);
+                return from(request$).pipe(
+                    map((connector) => {
+                        const response = { connector };
+                        return entering
+                            ? enterTroubleshootingSuccess({ response })
+                            : endTroubleshootingSuccess({ response });
+                    }),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(
+                            connectorsListingBannerApiError({
+                                error: this.errorHelper.getErrorString(errorResponse)
+                            })
+                        )
+                    )
+                );
+            })
         )
     );
 }

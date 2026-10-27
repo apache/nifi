@@ -107,6 +107,14 @@ export interface CancelDrainConnectorRequest {
     connector: ConnectorEntity;
 }
 
+export interface EnterTroubleshootingRequest {
+    connector: ConnectorEntity;
+}
+
+export interface EndTroubleshootingRequest {
+    connector: ConnectorEntity;
+}
+
 export interface ConnectorActionSuccess {
     connector: ConnectorEntity;
 }

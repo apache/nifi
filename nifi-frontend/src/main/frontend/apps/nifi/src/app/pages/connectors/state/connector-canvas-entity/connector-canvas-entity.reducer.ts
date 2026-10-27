@@ -30,6 +30,10 @@ import {
     startConnectorSuccess,
     stopConnector,
     stopConnectorSuccess,
+    enterTroubleshooting,
+    enterTroubleshootingSuccess,
+    endTroubleshooting,
+    endTroubleshootingSuccess,
     connectorActionApiError,
     resetConnectorCanvasEntityState
 } from './connector-canvas-entity.actions';
@@ -60,17 +64,27 @@ export const connectorCanvasEntityReducer = createReducer(
         error
     })),
 
-    on(drainConnector, cancelConnectorDrain, startConnector, stopConnector, (state) => ({
-        ...state,
-        saving: true,
-        error: null
-    })),
+    on(
+        drainConnector,
+        cancelConnectorDrain,
+        startConnector,
+        stopConnector,
+        enterTroubleshooting,
+        endTroubleshooting,
+        (state) => ({
+            ...state,
+            saving: true,
+            error: null
+        })
+    ),
 
     on(
         drainConnectorSuccess,
         cancelConnectorDrainSuccess,
         startConnectorSuccess,
         stopConnectorSuccess,
+        enterTroubleshootingSuccess,
+        endTroubleshootingSuccess,
         (state, { connector }) => ({
             ...state,
             connectorEntity: connector,

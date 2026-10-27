@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ConnectorEntity, ConnectorState } from '../types';
+import { ConnectorEntity, ConnectorState, ConnectorStatus } from '../types';
 import {
     canReadConnector,
     canModifyConnector,
@@ -23,7 +23,10 @@ import {
     getConnectorAction,
     isConnectorActionAllowed,
     getConnectorActionDisabledReason,
-    getConnectorStateVariant
+    getConnectorStateVariant,
+    isConnectorInTroubleshooting,
+    canEnterTroubleshooting,
+    canEndTroubleshooting
 } from './connector-permissions.utils';
 
 function createMockEntity(overrides: Partial<ConnectorEntity> = {}): ConnectorEntity {
@@ -32,7 +35,16 @@ function createMockEntity(overrides: Partial<ConnectorEntity> = {}): ConnectorEn
         uri: 'http://localhost/connectors/test-id',
         revision: { version: 0 },
         bulletins: [],
-        status: {},
+        status: {
+            id: 'test-id',
+            groupId: 'test-group',
+            name: 'Test Connector',
+            type: 'org.example.TestConnector',
+            runStatus: ConnectorState.STOPPED,
+            validationStatus: 'VALID',
+            statsLastRefreshed: '00:00:00',
+            aggregateSnapshot: {} as ConnectorStatus['aggregateSnapshot']
+        },
         permissions: { canRead: true, canWrite: true },
         component: {
             id: 'test-id',
@@ -227,6 +239,119 @@ describe('connector-permissions.utils', () => {
 
         it('should return neutral for unknown state', () => {
             expect(getConnectorStateVariant('UNKNOWN')).toBe('neutral');
+        });
+    });
+    describe('Troubleshooting helpers', () => {
+        it('isConnectorInTroubleshooting should identify troubleshooting state', () => {
+            const entity = createMockEntity({
+                component: {
+                    ...createMockEntity().component,
+                    state: ConnectorState.TROUBLESHOOTING
+                }
+            });
+            expect(isConnectorInTroubleshooting(entity)).toBe(true);
+        });
+
+        it('isConnectorInTroubleshooting should identify status snapshot runStatus', () => {
+            const entity = createMockEntity({
+                status: {
+                    ...createMockEntity().status,
+                    runStatus: ConnectorState.TROUBLESHOOTING
+                }
+            });
+            expect(isConnectorInTroubleshooting(entity)).toBe(true);
+        });
+
+        it('isConnectorInTroubleshooting should be false for other states', () => {
+            const entity = createMockEntity({
+                component: {
+                    ...createMockEntity().component,
+                    state: ConnectorState.STOPPED
+                }
+            });
+            expect(isConnectorInTroubleshooting(entity)).toBe(false);
+        });
+
+        it('getConnectorStateVariant should return caution for TROUBLESHOOTING', () => {
+            expect(getConnectorStateVariant(ConnectorState.TROUBLESHOOTING)).toBe('caution');
+        });
+
+        it('canEnterTroubleshooting should verify operate permissions and availableActions', () => {
+            const allowedEntity = createMockEntity({
+                component: {
+                    ...createMockEntity().component,
+                    availableActions: [
+                        {
+                            name: 'ENTER_TROUBLESHOOTING',
+                            allowed: true,
+                            description: ''
+                        }
+                    ]
+                }
+            });
+
+            const disallowedEntity = createMockEntity({
+                component: {
+                    ...createMockEntity().component,
+                    availableActions: [
+                        {
+                            name: 'ENTER_TROUBLESHOOTING',
+                            allowed: false,
+                            description: ''
+                        }
+                    ]
+                }
+            });
+
+            expect(canEnterTroubleshooting(allowedEntity)).toBe(true);
+            expect(canEnterTroubleshooting(disallowedEntity)).toBe(false);
+        });
+
+        it('canEndTroubleshooting should honor availableActions and permissions', () => {
+            const allowedEntity = createMockEntity({
+                component: {
+                    ...createMockEntity().component,
+                    availableActions: [
+                        {
+                            name: 'END_TROUBLESHOOTING',
+                            allowed: true,
+                            description: ''
+                        }
+                    ]
+                }
+            });
+
+            const disallowedEntity = createMockEntity({
+                component: {
+                    ...createMockEntity().component,
+                    availableActions: [
+                        {
+                            name: 'END_TROUBLESHOOTING',
+                            allowed: false,
+                            description: ''
+                        }
+                    ]
+                }
+            });
+
+            const noWriteEntity = createMockEntity({
+                permissions: { canRead: true, canWrite: false },
+                operatePermissions: { canRead: true, canWrite: false },
+                component: {
+                    ...createMockEntity().component,
+                    availableActions: [
+                        {
+                            name: 'END_TROUBLESHOOTING',
+                            allowed: true,
+                            description: ''
+                        }
+                    ]
+                }
+            });
+
+            expect(canEndTroubleshooting(allowedEntity)).toBe(true);
+            expect(canEndTroubleshooting(disallowedEntity)).toBe(false);
+            expect(canEndTroubleshooting(noWriteEntity)).toBe(false);
         });
     });
 });

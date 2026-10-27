@@ -652,6 +652,96 @@ describe('ConnectorInfoControl', () => {
         });
     });
 
+    describe('Troubleshooting actions', () => {
+        function entityWithActions(
+            enterAllowed: boolean,
+            endAllowed: boolean,
+            overrides: Partial<ConnectorEntity> = {}
+        ) {
+            const base = createMockConnectorEntity();
+            return createMockConnectorEntity({
+                component: {
+                    ...base.component,
+                    availableActions: [
+                        ...base.component.availableActions,
+                        { name: 'ENTER_TROUBLESHOOTING', description: 'Enter', allowed: enterAllowed },
+                        { name: 'END_TROUBLESHOOTING', description: 'End', allowed: endAllowed }
+                    ]
+                },
+                ...overrides
+            });
+        }
+
+        it('should show only the enter button when entering is allowed', async () => {
+            const { fixture } = await setup({ connectorEntity: entityWithActions(true, false) });
+
+            expect(
+                fixture.nativeElement.querySelector('[data-qa="connector-panel-enter-troubleshooting"]')
+            ).toBeTruthy();
+            expect(fixture.nativeElement.querySelector('[data-qa="connector-panel-end-troubleshooting"]')).toBeNull();
+        });
+
+        it('should show only the end button when ending is allowed', async () => {
+            const { fixture } = await setup({ connectorEntity: entityWithActions(false, true) });
+
+            expect(fixture.nativeElement.querySelector('[data-qa="connector-panel-end-troubleshooting"]')).toBeTruthy();
+            expect(fixture.nativeElement.querySelector('[data-qa="connector-panel-enter-troubleshooting"]')).toBeNull();
+        });
+
+        it('should hide both buttons when neither is allowed', async () => {
+            const { component } = await setup({ connectorEntity: entityWithActions(false, false) });
+
+            expect(component.showEnterTroubleshooting()).toBe(false);
+            expect(component.showEndTroubleshooting()).toBe(false);
+        });
+
+        it('should hide the buttons without operate permission', async () => {
+            const { component } = await setup({
+                connectorEntity: entityWithActions(true, true, {
+                    permissions: { canRead: true, canWrite: false },
+                    operatePermissions: { canRead: true, canWrite: false }
+                })
+            });
+
+            expect(component.showEnterTroubleshooting()).toBe(false);
+            expect(component.showEndTroubleshooting()).toBe(false);
+        });
+
+        it('should dispatch enterTroubleshooting with the connector entity', async () => {
+            const entity = entityWithActions(true, false);
+            const { component, dispatchSpy } = await setup({ connectorEntity: entity });
+
+            component.enterTroubleshooting();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                ConnectorCanvasEntityActions.enterTroubleshooting({ connector: entity })
+            );
+        });
+
+        it('should dispatch endTroubleshooting with the connector entity', async () => {
+            const entity = entityWithActions(false, true);
+            const { component, dispatchSpy } = await setup({ connectorEntity: entity });
+
+            component.endTroubleshooting();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                ConnectorCanvasEntityActions.endTroubleshooting({ connector: entity })
+            );
+        });
+
+        it('should not dispatch or show buttons while a request is saving', async () => {
+            const entity = entityWithActions(true, true);
+            const { component, dispatchSpy } = await setup({ connectorEntity: entity, entitySaving: true });
+
+            component.enterTroubleshooting();
+            component.endTroubleshooting();
+
+            expect(component.showEnterTroubleshooting()).toBe(false);
+            expect(component.showEndTroubleshooting()).toBe(false);
+            expect(dispatchSpy).not.toHaveBeenCalled();
+        });
+    });
+
     describe('Collapse persistence', () => {
         it('should save collapsed state to Storage under the graph-control-visibility key', async () => {
             const { component, mockStorage } = await setup();

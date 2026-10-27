@@ -30,6 +30,8 @@ import {
     canReadConnector,
     canModifyConnector,
     canOperateConnector,
+    canEnterTroubleshooting,
+    canEndTroubleshooting,
     isConnectorActionAllowed,
     getConnectorActionDisabledReason,
     getConnectorStateVariant
@@ -88,6 +90,8 @@ export class ConnectorTable {
     @Output() discardConnectorConfig = new EventEmitter<ConnectorEntity>();
     @Output() drainConnector = new EventEmitter<ConnectorEntity>();
     @Output() cancelDrainConnector = new EventEmitter<ConnectorEntity>();
+    @Output() enterTroubleshooting = new EventEmitter<ConnectorEntity>();
+    @Output() endTroubleshooting = new EventEmitter<ConnectorEntity>();
     @Output() purgeConnector = new EventEmitter<ConnectorEntity>();
     @Output() changeConnectorVersion = new EventEmitter<ConnectorEntity>();
 
@@ -153,6 +157,14 @@ export class ConnectorTable {
 
     canCancelDrain(entity: ConnectorEntity): boolean {
         return isConnectorActionAllowed(entity, 'CANCEL_DRAIN_FLOWFILES');
+    }
+
+    canEnterTroubleshooting(entity: ConnectorEntity): boolean {
+        return canEnterTroubleshooting(entity);
+    }
+
+    canEndTroubleshooting(entity: ConnectorEntity): boolean {
+        return canEndTroubleshooting(entity);
     }
 
     canPurge(entity: ConnectorEntity): boolean {
@@ -233,6 +245,14 @@ export class ConnectorTable {
 
     drainClicked(entity: ConnectorEntity): void {
         this.drainConnector.next(entity);
+    }
+
+    enterTroubleshootingClicked(entity: ConnectorEntity): void {
+        this.enterTroubleshooting.next(entity);
+    }
+
+    endTroubleshootingClicked(entity: ConnectorEntity): void {
+        this.endTroubleshooting.next(entity);
     }
 
     cancelDrainClicked(entity: ConnectorEntity): void {

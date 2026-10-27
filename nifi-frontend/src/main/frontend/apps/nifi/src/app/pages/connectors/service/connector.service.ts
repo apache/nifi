@@ -180,6 +180,28 @@ export class ConnectorService {
         );
     }
 
+    enterTroubleshooting(connector: ConnectorEntity): Observable<ConnectorEntity> {
+        return this.httpClient.post<ConnectorEntity>(
+            `${ConnectorService.API}/connectors/${connector.id}/troubleshooting`,
+            {
+                revision: this.client.getRevision(connector),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            }
+        );
+    }
+
+    endTroubleshooting(connector: ConnectorEntity): Observable<ConnectorEntity> {
+        const revision = this.client.getRevision(connector);
+        const params: Record<string, string | number | boolean> = {
+            ...revision,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+        };
+        return this.httpClient.delete<ConnectorEntity>(
+            `${ConnectorService.API}/connectors/${connector.id}/troubleshooting`,
+            { params }
+        );
+    }
+
     // ========================================================================================
     // Purge Methods
     // ========================================================================================

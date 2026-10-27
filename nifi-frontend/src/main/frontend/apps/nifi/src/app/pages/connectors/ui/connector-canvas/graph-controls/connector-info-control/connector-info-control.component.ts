@@ -27,6 +27,8 @@ import {
     canReadConnector,
     canModifyConnector,
     canOperateConnector,
+    canEnterTroubleshooting,
+    canEndTroubleshooting,
     isConnectorActionAllowed,
     getConnectorActionDisabledReason
 } from '@nifi/shared';
@@ -243,6 +245,30 @@ export class ConnectorInfoControl {
         const entity = this.connectorEntity();
         if (entity) {
             this.store.dispatch(ConnectorCanvasEntityActions.stopConnector({ connector: entity }));
+        }
+    }
+
+    showEnterTroubleshooting(): boolean {
+        const entity = this.connectorEntity();
+        return !!entity && canEnterTroubleshooting(entity) && !this.entitySaving();
+    }
+
+    showEndTroubleshooting(): boolean {
+        const entity = this.connectorEntity();
+        return !!entity && canEndTroubleshooting(entity) && !this.entitySaving();
+    }
+
+    enterTroubleshooting(): void {
+        const entity = this.connectorEntity();
+        if (entity && !this.entitySaving()) {
+            this.store.dispatch(ConnectorCanvasEntityActions.enterTroubleshooting({ connector: entity }));
+        }
+    }
+
+    endTroubleshooting(): void {
+        const entity = this.connectorEntity();
+        if (entity && !this.entitySaving()) {
+            this.store.dispatch(ConnectorCanvasEntityActions.endTroubleshooting({ connector: entity }));
         }
     }
 }
