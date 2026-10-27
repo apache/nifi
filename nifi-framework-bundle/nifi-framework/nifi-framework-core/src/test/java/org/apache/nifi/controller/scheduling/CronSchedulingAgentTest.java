@@ -30,7 +30,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.scheduling.support.CronExpression;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -149,5 +154,21 @@ class CronSchedulingAgentTest {
         when(reportingTask.getIdentifier()).thenReturn(componentId);
 
         assertThrows(IllegalStateException.class, () -> schedulingAgent.doSchedule(reportingTaskNode, lifecycleState));
+    }
+
+    @Test
+    void testNextScheduleAcrossAutumnDaylightSavingTransition() {
+        final ZoneId zone = ZoneId.of("Europe/Amsterdam");
+        final CronExpression cronExpression = CronExpression.parse("0 30 20 ? * MON-FRI");
+
+        // Friday before the DST transition.
+        final ZonedDateTime currentSchedule = ZonedDateTime.of(2026, 10, 23, 20, 30, 0, 0, zone);
+
+        // Supply a fixed time rather than depending on the system clock.
+        final ZonedDateTime nextSchedule = CronSchedulingAgent.getNextSchedule(currentSchedule, cronExpression, currentSchedule);
+
+        assertEquals(LocalDateTime.of(2026, 10, 26, 20, 30), nextSchedule.toLocalDateTime());
+        assertEquals(ZoneOffset.ofHours(1), nextSchedule.getOffset());
+        assertEquals(zone, nextSchedule.getZone());
     }
 }
