@@ -31,6 +31,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -87,6 +88,23 @@ public abstract class AbstractTestStateProvider {
         map = provider.getState(componentId);
         assertEquals("value2", map.get(key));
         assertTrue(map.getStateVersion().isPresent());
+
+        final Optional<String> versionBeforeEmptyPatch = map.getStateVersion();
+        provider.patchState(Collections.emptyMap(), componentId);
+        assertEquals(versionBeforeEmptyPatch, provider.getState(componentId).getStateVersion());
+
+        final Map<String, String> patch = new HashMap<>();
+        patch.put("other", "");
+        patch.put("missing", null);
+        provider.patchState(patch, componentId);
+        map = provider.getState(componentId);
+        assertEquals(Map.of(key, "value2", "other", ""), map.toMap());
+        assertNotEquals(versionBeforeEmptyPatch, map.getStateVersion());
+
+        final Map<String, String> removal = new HashMap<>();
+        removal.put(key, null);
+        provider.patchState(removal, componentId);
+        assertEquals(Map.of("other", ""), provider.getState(componentId).toMap());
     }
 
     @Test

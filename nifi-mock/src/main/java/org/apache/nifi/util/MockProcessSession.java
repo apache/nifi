@@ -35,6 +35,7 @@ import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.metrics.CommitTiming;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.state.MockStateMap;
 import org.junit.jupiter.api.Assertions;
 
 import java.io.ByteArrayInputStream;
@@ -89,6 +90,7 @@ public class MockProcessSession implements ProcessSession {
     // A List of OutputStreams that have been created by calls to {@link #write(FlowFile)} and have not yet been closed.
     private final Map<FlowFile, OutputStream> openOutputStreams = new HashMap<>();
     private final StateManager stateManager;
+    private final Map<Scope, PendingStatePatches> pendingStatePatches = new HashMap<>();
     private final boolean allowSynchronousCommits;
     private final boolean allowRecursiveReads;
     private final boolean failCommit;
@@ -339,6 +341,15 @@ public class MockProcessSession implements ProcessSession {
 
         closeStreams(openInputStreams, enforceStreamsClosed);
         closeStreams(openOutputStreams, enforceStreamsClosed);
+
+        for (final Map.Entry<Scope, PendingStatePatches> entry : pendingStatePatches.entrySet()) {
+            try {
+                stateManager.patchState(entry.getValue().values, entry.getKey());
+            } catch (final IOException e) {
+                throw new ProcessException("Failed to patch " + entry.getKey() + " state", e);
+            }
+        }
+        pendingStatePatches.clear();
 
         committed = true;
         beingProcessed.clear();
@@ -816,6 +827,8 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public void rollback(final boolean penalize) {
+        pendingStatePatches.clear();
+
         //if we've already committed then rollback is basically a no-op
         if (committed) {
             return;
@@ -1405,21 +1418,77 @@ public class MockProcessSession implements ProcessSession {
     @Override
     public void setState(final Map<String, String> state, final Scope scope) throws IOException {
         stateManager.setState(state, scope);
+        pendingStatePatches.remove(scope);
     }
 
+    /**
+     * Returns the stored state with any patches that have not yet been committed applied. Each patch gives the returned state a new version,
+     * as the framework does, so that a state obtained before a patch no longer matches in {@link #replaceState(StateMap, Map, Scope)}.
+     */
     @Override
     public StateMap getState(final Scope scope) throws IOException {
-        return stateManager.getState(scope);
+        final StateMap storedState = stateManager.getState(scope);
+        final PendingStatePatches patches = pendingStatePatches.get(scope);
+        if (patches == null) {
+            return storedState;
+        }
+
+        return applyPatches(storedState, patches);
     }
 
+    /**
+     * Replaces the state if the given old value matches the session's view of the state. When the session holds patches that have not yet
+     * been committed, the old value must match the stored state with those patches applied, and a successful replacement discards the patches.
+     */
     @Override
     public boolean replaceState(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
-        return stateManager.replace(oldValue, newValue, scope);
+        final PendingStatePatches patches = pendingStatePatches.get(scope);
+        if (patches == null) {
+            return stateManager.replace(oldValue, newValue, scope);
+        }
+
+        // The same stored state is used for the comparison and the replacement, so that an update stored in between causes the replacement to fail
+        final StateMap storedState = stateManager.getState(scope);
+        final StateMap currentState = applyPatches(storedState, patches);
+        if (oldValue == null || !oldValue.getStateVersion().equals(currentState.getStateVersion()) || !oldValue.toMap().equals(currentState.toMap())) {
+            return false;
+        }
+
+        final boolean replaced = stateManager.replace(storedState, newValue, scope);
+        if (replaced) {
+            pendingStatePatches.remove(scope);
+        }
+        return replaced;
+    }
+
+    private static StateMap applyPatches(final StateMap storedState, final PendingStatePatches patches) {
+        final long storedVersion = storedState.getStateVersion().map(Long::parseLong).orElse(-1L);
+        return new MockStateMap(storedState.toMap(patches.values), storedVersion + patches.count);
+    }
+
+    /**
+     * Holds the given changes until the session is committed, so that rolling back the session discards them, as the framework does.
+     * A later call to {@link #setState(Map, Scope)}, {@link #replaceState(StateMap, Map, Scope)}, or {@link #clearState(Scope)} discards
+     * the patches that have not yet been committed.
+     */
+    @Override
+    public void patchState(final Map<String, String> updatedState, final Scope scope) throws IOException {
+        Objects.requireNonNull(updatedState, "Updated State required");
+        // Retrieving the state verifies that the component is allowed to use state in the given scope
+        stateManager.getState(scope);
+        if (updatedState.isEmpty()) {
+            return;
+        }
+
+        final PendingStatePatches patches = pendingStatePatches.computeIfAbsent(scope, key -> new PendingStatePatches());
+        patches.values.putAll(updatedState);
+        patches.count++;
     }
 
     @Override
     public void clearState(final Scope scope) throws IOException {
         stateManager.clear(scope);
+        pendingStatePatches.remove(scope);
     }
 
     @Override
@@ -1527,5 +1596,13 @@ public class MockProcessSession implements ProcessSession {
                     failCommit
             );
         }
+    }
+
+    /**
+     * The state changes that the session has not yet committed for one scope, along with the number of times that state was patched.
+     */
+    private static final class PendingStatePatches {
+        private final Map<String, String> values = new HashMap<>();
+        private int count;
     }
 }

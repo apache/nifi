@@ -706,8 +706,10 @@ that the instance is clustered and write the code accordingly.
 
 ==== Storing and Retrieving State
 
-State is stored using the StateManager's `getState`, `setState`, `replace`, and `clear` methods. All of these methods
-require that a Scope be provided. It should be noted that the state that is stored with the Local scope is entirely different
+State is stored using the StateManager's `getState`, `setState`, `patchState`, `replace`, and `clear` methods. All of these methods
+require that a Scope be provided. The `patchState` method changes only the keys that it is given: a key with a value is created or
+overwritten, a key with a `null` value is removed, and all other keys are left as they are. The local state provider writes only
+the changed keys to disk, which makes `patchState` much cheaper than `setState` when a component holds many keys but changes few. It should be noted that the state that is stored with the Local scope is entirely different
 than state stored with a Cluster scope. If a Processor stores a value with the key of _My Key_ using the `Scope.CLUSTER` scope,
 and then attempts to retrieve the value using the `Scope.LOCAL` scope, the value retrieved will be `null` (unless a value was
 also stored with the same key using the `Scope.CLUSTER` scope). Each Processor's state is stored in isolation from other
