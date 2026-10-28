@@ -30,11 +30,11 @@ import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.hsqldb.jdbc.JDBCDriver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.hsqldb.jdbc.JDBCDriver;
 import org.opentest4j.AssertionFailedError;
 
 import java.io.File;

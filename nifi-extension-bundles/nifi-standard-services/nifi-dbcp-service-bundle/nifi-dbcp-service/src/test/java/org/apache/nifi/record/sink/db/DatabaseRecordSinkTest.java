@@ -113,8 +113,6 @@ public class DatabaseRecordSinkTest {
         databasePath = tempDir.toAbsolutePath();
         connectionUrl = CONNECTION_URL_FORMAT.formatted(databasePath);
         runner.setProperty(dbcpService, DATABASE_URL, connectionUrl);
-        runner.setProperty(dbcpService, DB_USER, USERNAME);
-        runner.setProperty(dbcpService, DB_PASSWORD, PASSWORD);
         runner.setProperty(dbcpService, DB_DRIVERNAME, DRIVER_CLASS);
     }
 
@@ -130,7 +128,6 @@ public class DatabaseRecordSinkTest {
             properties.setProperty("user", USERNAME);
             properties.setProperty("password", PASSWORD);
 
-            // Connect with JDBCDriver to avoid DriverManager deregistration.
             try (Connection connection = new JDBCDriver().connect(connectionUrl, properties)) {
                 try (final Statement statement = connection.createStatement()) {
                     // Engine shutdown closes all connections regardless of status
@@ -341,8 +338,8 @@ public class DatabaseRecordSinkTest {
         final StateManager dbStateManager = new MockStateManager(dbcpService);
 
         when(dbContext.getProperty(DATABASE_URL)).thenReturn(new MockPropertyValue(connectionUrl));
-        when(dbContext.getProperty(DB_USER)).thenReturn(new MockPropertyValue(null));
-        when(dbContext.getProperty(DB_PASSWORD)).thenReturn(new MockPropertyValue(null));
+        when(dbContext.getProperty(DB_USER)).thenReturn(new MockPropertyValue(USERNAME));
+        when(dbContext.getProperty(DB_PASSWORD)).thenReturn(new MockPropertyValue(PASSWORD));
         when(dbContext.getProperty(DB_DRIVERNAME)).thenReturn(new MockPropertyValue(DRIVER_CLASS));
         when(dbContext.getProperty(DB_DRIVER_LOCATION)).thenReturn(new MockPropertyValue(""));
         when(dbContext.getProperty(MAX_TOTAL_CONNECTIONS)).thenReturn(new MockPropertyValue("2"));
