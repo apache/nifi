@@ -1637,7 +1637,7 @@ Component level access policies govern the following component level authorizati
 
 NOTE: You can apply access policies to all component types except connections.  Connection authorizations are inferred by the individual access policies on the source and destination components of the connection, as well as the access policy of the process group containing the components.  This is discussed in more detail in the <<creating-a-connection>> and <<editing-a-connection>> examples below.
 
-NOTE: In order to access List Queue or Delete Queue for a connection, a user requires permission to the "view the data" and "modify the data" policies on the component. In a clustered environment, all nodes must be be added to these policies as well, as a user request could be replicated through any node in the cluster.
+NOTE: In order to access List Queue or Delete Queue for a connection, a user requires permission to the "view the data" and "modify the data" policies on the component. In a clustered environment, all nodes must be added to these policies as well, as a user request could be replicated through any node in the cluster.
 
 [[access-policy-inheritance]]
 ===== Access Policy Inheritance
@@ -2713,7 +2713,7 @@ _true_. Once Netty is enabled, you should see log messages like the following in
 
 === Embedded ZooKeeper with TLS
 
-A NiFi cluster can be deployed using a ZooKeeper instance(s) embedded in NiFi itself which all nodes can communicate with. As of NiFi 1.13.0, communication between nodes and this embedded ZooKeeper can now be secured with TLS. Versions of NiFi prior to 1.13 did not use secure client access with embedded ZooKeeper(s). The configuration for the client side of the connection will operate in the same way as an external ZooKeeper. That is, it will use the `+nifi.security.*+` properties from the nifi.properties file by default, unless you specifiy explicit ZooKeeper keystore/truststore properties with `+nifi.zookeeper.security.*+` as described above.
+A NiFi cluster can be deployed using a ZooKeeper instance(s) embedded in NiFi itself which all nodes can communicate with. As of NiFi 1.13.0, communication between nodes and this embedded ZooKeeper can now be secured with TLS. Versions of NiFi prior to 1.13 did not use secure client access with embedded ZooKeeper(s). The configuration for the client side of the connection will operate in the same way as an external ZooKeeper. That is, it will use the `+nifi.security.*+` properties from the nifi.properties file by default, unless you specify explicit ZooKeeper keystore/truststore properties with `+nifi.zookeeper.security.*+` as described above.
 
 The server configuration will operate in the same way as an insecure embedded server, but with the `+secureClientPort+` set (typically port `+2281+`).
 
@@ -3237,7 +3237,7 @@ may increase the rate at which the Provenance Repository is able to process thes
 |`nifi.provenance.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
 |`nifi.provenance.repository.journal.count`|The number of journal files that should be used to serialize Provenance Event data. Increasing this value will allow more tasks to simultaneously update the repository but will result in more expensive merging of the journal files later. This value should ideally be equal to the number of threads that are expected to update the repository simultaneously, but 16 tends to work well in must environments. The default value is `16`.
 |`nifi.provenance.repository.indexed.fields`|This is a comma-separated list of the fields that should be indexed and made searchable. Fields that are not indexed will not be searchable. Valid fields are: `EventType`, `FlowFileUUID`, `Filename`, `TransitURI`, `ProcessorID`, `AlternateIdentifierURI`, `Relationship`, `Details`. The default value is: `EventType, FlowFileUUID, Filename, ProcessorID`.
-|`nifi.provenance.repository.indexed.attributes`|This is a comma-separated list of FlowFile Attributes that should be indexed and made searchable. It is blank by default. But some good examples to consider are `filename`, `uuid`, and `mime.type` as well as any custom attritubes you might use which are valuable for your use case.
+|`nifi.provenance.repository.indexed.attributes`|This is a comma-separated list of FlowFile Attributes that should be indexed and made searchable. It is blank by default. But some good examples to consider are `filename`, `uuid`, and `mime.type` as well as any custom attributes you might use which are valuable for your use case.
 |`nifi.provenance.repository.index.shard.size`|Large values for the shard size will result in more Java heap usage when searching the Provenance Repository but should provide better performance. The default value is `500 MB`.
 |`nifi.provenance.repository.max.attribute.length`|Indicates the maximum length that a FlowFile attribute can be when retrieving a Provenance Event from the repository. If the length of any attribute exceeds this value, it will be truncated when the event is retrieved. The default value is `65536`.
 |====
@@ -3791,7 +3791,7 @@ for storing data. Each 'directory' in this structure is referred to as a ZNode. 
 that should be used for storing data. The default value is `/nifi`. This is important to set correctly, as which cluster
 the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
 that is specified.
-|`nifi.zookeeper.client.secure`|Whether to acccess ZooKeeper using client TLS. The default value is `false`.
+|`nifi.zookeeper.client.secure`|Whether to access ZooKeeper using client TLS. The default value is `false`.
 |`nifi.zookeeper.security.keystore`|Filename of the Keystore containing the private key to use when communicating with ZooKeeper.
 |`nifi.zookeeper.security.keystoreType`|Optional. The type of the Keystore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).
 |`nifi.zookeeper.security.keystorePasswd`|The password for the Keystore.
@@ -4235,7 +4235,7 @@ The `nifi.nar.library.directory` is used for the default location for provided N
 
    nifi.nar.library.directory=./lib
 
-The `nifi.nar.library.directory.<custom>` allows the admin to provide multiple arbritary paths for NiFi to locate custom processors. A unique property identifier must append the property for each unique path. For example:
+The `nifi.nar.library.directory.<custom>` allows the admin to provide multiple arbitrary paths for NiFi to locate custom processors. A unique property identifier must append the property for each unique path. For example:
 
    nifi.nar.library.directory.myCustomLibs=./my-custom-nars/lib
    nifi.nar.library.directory.otherCustomLibs=./other-custom-nars/lib

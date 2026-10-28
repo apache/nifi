@@ -501,7 +501,7 @@ Additionally, this can be used in conjunction with arrays. For example, if we ha
 }
 ----
 
-We can evaluate hte following Record paths:
+We can evaluate the following Record paths:
 
 |==========================================================
 | RecordPath | Return value

@@ -32,7 +32,7 @@ higher precedence. After the job is triggered the serialized json response will 
 awsTaskId attribute will be populated, so it makes it easier to query job status by the corresponding get job status
 processor.
 
-Three different type of textract task are supported: Documnet Analysis, Text Detection, Expense Analysis.
+Three different type of textract task are supported: Document Analysis, Text Detection, Expense Analysis.
 
 ### DocumentAnalysis
 

@@ -31,7 +31,7 @@ with "header." and continue with they header key. For example: "header.Authoriza
 corresponding header value. If a new flowfile is passed to the processor, the previous sessions will be closed, and any
 data being sent will be aborted.
 
-1. header.Autorization | Basic base64UserNamePassWord
+1. header.Authorization | Basic base64UserNamePassWord
 2. header.Content-Type | application, audio, example
 
 For multiple header values provide a comma separated list.

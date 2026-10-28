@@ -3,7 +3,7 @@
 ## General Info
 
 This module is the primary UI for NiFi. It contains the canvas and all UI's for managing the NiFi instance. There are other modules within the codebase
-that support other UIs that intergate with this. These include documentation, data viewers, advanced configuration UIs, error handling, and Registry UIs.
+that support other UIs that integrate with this. These include documentation, data viewers, advanced configuration UIs, error handling, and Registry UIs.
 Overtime, these will all be modernized and possibly brought into this Nx repo to co-locate all the front end code.
 
 ## Source Structure

@@ -24,5 +24,5 @@ forms and tables.
 ### Usage
 
 GetAwsTextractJobStatus Processor is designed to periodically check textract job status. This processor should be used
-in pair with StartAwsTextractJob Processor. FlowFile will contain the serialized Tetract response that contains the
+in pair with StartAwsTextractJob Processor. FlowFile will contain the serialized Textract response that contains the
 result and additional metadata as it is documented in AWS Textract Reference.

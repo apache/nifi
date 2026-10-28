@@ -199,7 +199,7 @@ expression and then get the String representation of the value.
 
 The FlowFile is a proxy to the Java `InputFlowFile` object. This exposes the following methods:
 
-`getContentsAsBytes` : returns the contents of the FlowFile as a byte array. This method should be used conservatively, as it it loads entire contents
+`getContentsAsBytes` : returns the contents of the FlowFile as a byte array. This method should be used conservatively, as it loads entire contents
 of the FlowFile into a byte array on the Java side, and then sends a copy to the Python side. As a result, the FlowFile's contents are buffered into memory
 twice, once on the Java heap and once in the Python process.
 
@@ -511,7 +511,7 @@ Any relationship returned by `getRelationships` appears besides the `success` re
 
 As noted above, the `ProcessorDetails` and `Java` inner classes are important to Processors. The `Java` inner class must be defined
 on all Processors and must include a member named `implements` that is a list of Java interfaces that the class implements. This is
-important, as it allows the Py4J protocol to understand how to interact with this obect from the Java side.
+important, as it allows the Py4J protocol to understand how to interact with this object from the Java side.
 
 The `ProcessorDetails` class tells NiFi about the Processor so that it can allow configuration of the Processor seamlessly through the NiFi UI.
 Additionally, it provides details about what is necessary in order to use the Processor.

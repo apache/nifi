@@ -768,7 +768,7 @@ FlowFile Concurrency is used to control how data is brought into the Process Gro
 When the FlowFile Concurrency is set to "Unbounded", the Input Ports in the Process Group will ingest data as quickly as they
 are able, provided that back pressure does not prevent them from doing so.
 
-When the FlowFile Concurrency is configured to "Single FlowFile Per Node", the Input Ports will only allow a single FlowFile through at at time.
+When the FlowFile Concurrency is configured to "Single FlowFile Per Node", the Input Ports will only allow a single FlowFile through at a time.
 Once that FlowFile enters the Process Group, no additional FlowFiles will be brought in until all FlowFiles have left the Process Group (either by
 being removed from the system/auto-terminated, or by exiting through an Output Port). This will often result in slower performance, as it reduces
 the parallelization that NiFi uses to process the data. However, there are several reasons that a user may want to use this approach. A common use case
@@ -1882,7 +1882,7 @@ As a result, it is recommended to keep Stateless flows to a single source and a 
 ==== Use Caution When Merging
 
 Because each concurrent task runs a separate copy of the Stateless flow, it is important to keep in mind that the minimum number of incoming FlowFiles needed for a merge (via MergeContent
-or MergeRecord, for example) may increase by a multiple of the number of concurrent tasks. As such, it may take a significant amount of time for that that much data to queue up.
+or MergeRecord, for example) may increase by a multiple of the number of concurrent tasks. As such, it may take a significant amount of time for that much data to queue up.
 Additionally, the Stateless flow has a timeout to limit how long it can run. Because of this, it is important to use caution when configuring limits for these types of Processors.
 
 It is always advisable to set a Max Bin Age less than the timeout of the Stateless flow in order to ensure that the dataflow doesn't continually timeout. While it is true that continually
@@ -2733,7 +2733,7 @@ The version of the flow is changed:
 
 image::flow-version-changed.png["Flow Version Changed"]
 
-In the example shown, the versioned flow is upgraded from an older to the newer latest version.  However, a versioned flow can also be rollbacked to an older version.
+In the example shown, the versioned flow is upgraded from an older to the newer latest version.  However, a versioned flow can also be rolled back to an older version.
 
 NOTE: For "Change version" to be an available selection, local changes to the process group need to be reverted.
 
@@ -3096,7 +3096,7 @@ dataflow that will fix the problem.
 Select Node Status History to view instance-specific metrics from the last 24 hours or longer if the status repository implementation
 supports it. If the instance runs for less than the maximum configured time, then metrics will be available for the period of time
 since it has been started. The status history can help the DFM in troubleshooting performance issues and provides a general
-view on the health of the node. The status history includes information about the memory and disk usage, CPU utilzation and garbage collection.
+view on the health of the node. The status history includes information about the memory and disk usage, CPU utilization and garbage collection.
 
 Two other tools in the Global Menu are Controller Settings and Users. The Controller Settings page provides the ability to set the maximum number of threads that are available
 to the application. It also provides tabs where DFMs may add and configure <<Controller_Services>> and <<Reporting_Tasks>>. The Users page is used to manage user access, which is described in
