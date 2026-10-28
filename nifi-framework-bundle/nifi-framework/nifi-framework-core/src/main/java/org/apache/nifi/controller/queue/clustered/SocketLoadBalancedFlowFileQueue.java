@@ -79,6 +79,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -200,6 +201,8 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             return;
         }
 
+        notifySchedulingListeners();
+
         if (clusterCoordinator == null) {
             // Not clustered so nothing to worry about.
             return;
@@ -256,7 +259,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             }
 
             if (!nodesToKeep.isEmpty()) {
-                setNodeIdentifiers(nodesToKeep, false);
+                setNodeIdentifiers(nodesToKeep, false, false);
             }
 
             // Update our partitioner so that we don't keep any data on the local partition
@@ -269,6 +272,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         } finally {
             partitionWriteLock.unlock();
         }
+        notifySchedulingListeners();
     }
 
     private Map<QueuePartition, QueueSize> getPartitionSizes() {
@@ -302,6 +306,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             setFlowFilePartitioner(partitioner);
             logger.debug("Queue {} is no longer offloaded, restored load balance strategy to {} and partitioning attribute to \"{}\"",
                     this, getLoadBalanceStrategy(), getPartitioningAttribute());
+            notifySchedulingListeners();
         }
     }
 
@@ -427,6 +432,8 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         } finally {
             partitionReadLock.unlock();
         }
+
+        notifySchedulingListeners();
     }
 
     @Override
@@ -546,6 +553,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         return totalSize.get();
     }
 
+    @Override
+    public QueueSize getLocalQueueSize() {
+        return localPartition.getWaitingQueueSize();
+    }
+
     /**
      * Returns an atomic, point-in-time snapshot of this queue by freezing every partition on this node for the
      * duration of the call. The {@code partitionReadLock} prevents cluster-topology changes from replacing the
@@ -623,6 +635,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     }
 
     @Override
+    public Instant getNextFlowFileAvailabilityTime() {
+        return localPartition.getNextFlowFileAvailabilityTime();
+    }
+
+    @Override
     public boolean isActiveQueueEmpty() {
         return localPartition.isActiveQueueEmpty();
     }
@@ -686,6 +703,9 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public void onTransfer(final Collection<FlowFileRecord> flowFiles) {
         adjustSize(-flowFiles.size(), -flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum());
+        if (!flowFiles.isEmpty()) {
+            notifySchedulingListeners();
+        }
     }
 
     @Override
@@ -695,6 +715,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         }
 
         adjustSize(-flowFiles.size(), -flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum());
+        notifySchedulingListeners();
     }
 
     @Override
@@ -715,6 +736,10 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     }
 
     public void setNodeIdentifiers(final Set<NodeIdentifier> updatedNodeIdentifiers, final boolean forceUpdate) {
+        setNodeIdentifiers(updatedNodeIdentifiers, forceUpdate, true);
+    }
+
+    private void setNodeIdentifiers(final Set<NodeIdentifier> updatedNodeIdentifiers, final boolean forceUpdate, final boolean notifySchedulingListenersAfterUpdate) {
         partitionWriteLock.lock();
         try {
             // If nothing is changing, then just return
@@ -835,6 +860,10 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         } finally {
             partitionWriteLock.unlock();
         }
+
+        if (notifySchedulingListenersAfterUpdate) {
+            notifySchedulingListeners();
+        }
     }
 
     protected void rebalance(final QueuePartition partition) {
@@ -846,6 +875,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public void put(final FlowFileRecord flowFile) {
         putAndGetPartition(flowFile);
+        notifySchedulingListeners();
     }
 
     protected QueuePartition putAndGetPartition(final FlowFileRecord flowFile) {
@@ -891,7 +921,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
             if (partitioner.isRebalanceOnClusterResize()) {
                 logger.debug("Received the following FlowFiles from Peer: {}. Will re-partition FlowFiles to ensure proper balancing across the cluster.", flowFiles);
-                putAll(flowFiles);
+                putAll(flowFiles, false);
             } else {
                 logger.debug("Received the following FlowFiles from Peer: {}. Will accept FlowFiles to the local partition", flowFiles);
 
@@ -918,11 +948,22 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         } finally {
             partitionReadLock.unlock();
         }
+
+        if (!flowFiles.isEmpty()) {
+            notifySchedulingListeners();
+        }
     }
 
     @Override
     public void putAll(final Collection<FlowFileRecord> flowFiles) {
+        putAll(flowFiles, true);
+    }
+
+    private void putAll(final Collection<FlowFileRecord> flowFiles, final boolean notifySchedulingListenersAfterUpdate) {
         putAllAndGetPartitions(flowFiles);
+        if (notifySchedulingListenersAfterUpdate && !flowFiles.isEmpty()) {
+            notifySchedulingListeners();
+        }
     }
 
     protected Map<QueuePartition, List<FlowFileRecord>> putAllAndGetPartitions(final Collection<FlowFileRecord> flowFiles) {
@@ -1008,6 +1049,10 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         final FlowFileRecord flowFile = localPartition.poll(expiredRecords, pollStrategy);
         onAbort(expiredRecords);
+        if (flowFile != null) {
+            notifySchedulingListeners();
+        }
+
         return flowFile;
     }
 
@@ -1015,6 +1060,10 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         final List<FlowFileRecord> flowFiles = localPartition.poll(maxResults, expiredRecords, pollStrategy);
         onAbort(expiredRecords);
+        if (!flowFiles.isEmpty()) {
+            notifySchedulingListeners();
+        }
+
         return flowFiles;
     }
 
@@ -1022,6 +1071,10 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         final List<FlowFileRecord> flowFiles = localPartition.poll(filter, expiredRecords, pollStrategy);
         onAbort(expiredRecords);
+        if (!flowFiles.isEmpty()) {
+            notifySchedulingListeners();
+        }
+
         return flowFiles;
     }
 
@@ -1030,6 +1083,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         localPartition.acknowledge(flowFile);
 
         adjustSize(-1, -flowFile.getSize());
+        notifySchedulingListeners();
     }
 
     @Override
@@ -1039,6 +1093,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         if (!flowFiles.isEmpty()) {
             final long bytes = flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum();
             adjustSize(-flowFiles.size(), -bytes);
+            notifySchedulingListeners();
         }
     }
 
@@ -1160,6 +1215,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         } finally {
             partitionReadLock.unlock();
         }
+        notifySchedulingListeners();
     }
 
     @Override
@@ -1220,6 +1276,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             return new DropFlowFileSummary(totalDroppedCount, totalDroppedBytes);
         } finally {
             unlock();
+            notifySchedulingListeners();
         }
     }
 
@@ -1261,10 +1318,12 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 updatedNodeIds.add(nodeId);
 
                 logger.debug("Node Identifier {} added to cluster. Node ID's changing from {} to {}", nodeId, nodeIdentifiers, updatedNodeIds);
-                setNodeIdentifiers(updatedNodeIds, false);
+                setNodeIdentifiers(updatedNodeIds, false, false);
             } finally {
                 partitionWriteLock.unlock();
             }
+
+            notifySchedulingListeners();
         }
 
         @Override
@@ -1278,10 +1337,12 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 }
 
                 logger.debug("Node Identifier {} removed from cluster. Node ID's changing from {} to {}", nodeId, nodeIdentifiers, updatedNodeIds);
-                setNodeIdentifiers(updatedNodeIds, false);
+                setNodeIdentifiers(updatedNodeIds, false, false);
             } finally {
                 partitionWriteLock.unlock();
             }
+
+            notifySchedulingListeners();
         }
 
         @Override
@@ -1297,7 +1358,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                     updatedNodeIds.add(localNodeId);
 
                     logger.debug("Local Node Identifier has now been determined to be {}. Adding to set of Node Identifiers for {}", localNodeId, SocketLoadBalancedFlowFileQueue.this);
-                    setNodeIdentifiers(updatedNodeIds, false);
+                    setNodeIdentifiers(updatedNodeIds, false, false);
                 }
 
                 logger.debug("Local Node Identifier set to {}; current partitions = {}", localNodeId, queuePartitions);
@@ -1321,7 +1382,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
                         final Set<NodeIdentifier> updatedNodeIds = new HashSet<>(nodeIdentifiers);
                         updatedNodeIds.add(localNodeId);
-                        setNodeIdentifiers(updatedNodeIds, true);
+                        setNodeIdentifiers(updatedNodeIds, true, false);
                         return;
                     }
                 }
@@ -1330,6 +1391,8 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             } finally {
                 partitionWriteLock.unlock();
             }
+
+            notifySchedulingListeners();
         }
 
         @Override

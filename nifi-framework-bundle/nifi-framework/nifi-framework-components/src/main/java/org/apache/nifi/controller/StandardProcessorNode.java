@@ -376,6 +376,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return processorRef.get().isBatchSupported();
     }
 
+    @Override
+    public boolean isAutoSchedulingSupported() {
+        return processorRef.get().isAutoSchedulingSupported();
+    }
+
     /**
      * @return true if the processor has the
      *         {@link TriggerWhenAnyDestinationAvailable} annotation, false
@@ -468,6 +473,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public synchronized void setSchedulingStrategy(final SchedulingStrategy schedulingStrategy) {
         this.schedulingStrategy = schedulingStrategy;
+        if (schedulingStrategy == SchedulingStrategy.AUTO) {
+            parameterReferences.forEach(parameterReference -> decrementReferenceCounts(parameterReference.getParameterName()));
+            parameterReferences = Collections.emptyList();
+            concurrentTaskCount.set(1);
+            schedulingPeriod.set("0 sec");
+            schedulingNanos.set(MINIMUM_SCHEDULING_NANOS);
+            runNanos = 0L;
+        }
     }
 
     /**
@@ -487,6 +500,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public synchronized void setSchedulingPeriod(final String schedulingPeriod) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
+        }
+
+        if (schedulingStrategy == SchedulingStrategy.AUTO) {
+            this.schedulingPeriod.set("0 sec");
+            this.schedulingNanos.set(MINIMUM_SCHEDULING_NANOS);
+            return;
         }
 
         //Before setting the new Configuration references, we need to remove the current ones from reference counts.
@@ -528,7 +547,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     + timeUnit.toSeconds(duration) + " seconds");
         }
 
-        this.runNanos = timeUnit.toNanos(duration);
+        this.runNanos = schedulingStrategy == SchedulingStrategy.AUTO ? 0L : timeUnit.toNanos(duration);
     }
 
     @Override
@@ -640,7 +659,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             throw new IllegalArgumentException("Cannot set Concurrent Tasks to " + taskCount + " for component " + this);
         }
 
-        if (!isTriggeredSerially()) {
+        if (schedulingStrategy == SchedulingStrategy.AUTO) {
+            concurrentTaskCount.set(1);
+        } else if (!isTriggeredSerially()) {
             concurrentTaskCount.set(taskCount);
         }
     }
@@ -1135,6 +1156,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         .explanation("Processors with incoming connections cannot be scheduled for Primary Node Only.")
                         .subject("Execution Node").valid(false).build());
             }
+
+            if (getSchedulingStrategy() == SchedulingStrategy.AUTO && !isAutoSchedulingSupported()) {
+                results.add(new ValidationResult.Builder()
+                        .explanation("Processor type " + getCanonicalClassName() + " does not support automatic scheduling")
+                        .subject("Scheduling Strategy").valid(false).build());
+            }
         } catch (final Throwable t) {
             LOG.error("Failed to perform validation", t);
             results.add(new ValidationResult.Builder().explanation("Failed to run validation due to " + t)
@@ -1224,6 +1251,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     }
                 }
                 break;
+                case AUTO:
+                    break;
             }
         }
 

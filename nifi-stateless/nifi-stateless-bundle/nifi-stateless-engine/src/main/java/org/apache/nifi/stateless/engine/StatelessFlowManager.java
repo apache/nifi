@@ -195,8 +195,8 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
                 final Class<?> componentClass = procNode.getProcessor() == null ? null : procNode.getProcessor().getClass();
                 final StateManager stateManager = statelessEngine.getStateManagerProvider().getStateManager(id, componentClass);
-                final StandardProcessContext processContext = new StandardProcessContext(procNode, statelessEngine.getControllerServiceProvider(),
-                        stateManager, () -> false, new StatelessNodeTypeProvider());
+                final StandardProcessContext processContext = StandardProcessContext.createBuilder(
+                        procNode, statelessEngine.getControllerServiceProvider(), stateManager, () -> false, new StatelessNodeTypeProvider()).build();
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor(), processContext);
             }
 

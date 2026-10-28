@@ -831,3 +831,69 @@ describe('EditProcessor with TriggerSerially', () => {
         expect(concurrentTasks?.disabled).toBe(true);
     });
 });
+
+describe('EditProcessor with automatic scheduling', () => {
+    let component: EditProcessor;
+    let fixture: ComponentFixture<EditProcessor>;
+
+    const automaticData: EditComponentDialogRequest = JSON.parse(JSON.stringify(data));
+    (automaticData.entity as any).component.supportsAutoScheduling = true;
+    (automaticData.entity as any).component.config.schedulingStrategy = 'AUTO';
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            imports: [EditProcessor, MockComponent(ContextErrorBanner), NoopAnimationsModule],
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: automaticData },
+                {
+                    provide: ClusterConnectionService,
+                    useValue: {
+                        isDisconnectionAcknowledged: vi.fn()
+                    }
+                },
+                { provide: MatDialogRef, useValue: null },
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState
+                    }
+                })
+            ]
+        });
+        fixture = TestBed.createComponent(EditProcessor);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should offer automatic scheduling and disable manual controls', () => {
+        expect(component.schedulingStrategies.some((option) => option.value === 'AUTO')).toBe(true);
+        expect(component.editProcessorForm.get('concurrentTasks')?.disabled).toBe(true);
+        expect(component.editProcessorForm.get('schedulingPeriod')?.disabled).toBe(true);
+    });
+
+    it('should omit manual scheduling values from the update', () => {
+        vi.spyOn(component.editProcessor, 'next');
+        component.submitForm();
+
+        const update = vi.mocked(component.editProcessor.next).mock.calls[0][0] as any;
+        expect(update.payload.component.config.schedulingStrategy).toBe('AUTO');
+        expect(update.payload.component.config.concurrentlySchedulableTaskCount).toBeUndefined();
+        expect(update.payload.component.config.schedulingPeriod).toBeUndefined();
+        expect(update.payload.component.config.runDurationMillis).toBeUndefined();
+    });
+
+    it('should restore manual defaults when switching to timer driven', () => {
+        component.schedulingStrategyChanged('TIMER_DRIVEN');
+
+        expect(component.editProcessorForm.get('concurrentTasks')?.value).toBe('1');
+        expect(component.editProcessorForm.get('schedulingPeriod')?.value).toBe('0 sec');
+        expect(component.editProcessorForm.get('concurrentTasks')?.enabled).toBe(true);
+        expect(component.editProcessorForm.get('schedulingPeriod')?.enabled).toBe(true);
+
+        component.editProcessorForm.get('concurrentTasks')?.setValue('4');
+        component.editProcessorForm.get('schedulingPeriod')?.setValue('2 sec');
+        component.schedulingStrategyChanged('AUTO');
+        component.schedulingStrategyChanged('TIMER_DRIVEN');
+        expect(component.editProcessorForm.get('concurrentTasks')?.value).toBe('4');
+        expect(component.editProcessorForm.get('schedulingPeriod')?.value).toBe('2 sec');
+    });
+});

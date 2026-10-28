@@ -27,6 +27,7 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.ProcessSessionEventBuilder;
+import org.apache.nifi.controller.scheduling.SessionSchedulingObserver;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -64,7 +65,7 @@ public class StatelessProcessSession extends StandardProcessSession {
                                    final ExecutionProgress progress, final boolean requireSynchronousCommits, final AsynchronousCommitTracker commitTracker,
                                    final PerformanceTracker performanceTracker) {
 
-        super(repositoryContextFactory.createRepositoryContext(connectable, provenanceEventRepository), progress::isCanceled, performanceTracker);
+        super(repositoryContextFactory.createRepositoryContext(connectable, provenanceEventRepository), progress::isCanceled, performanceTracker, SessionSchedulingObserver.NO_OP);
         this.connectable = connectable;
         this.repositoryContextFactory = repositoryContextFactory;
         this.provenanceEventRepository = provenanceEventRepository;
