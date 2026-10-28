@@ -45,9 +45,11 @@ import {
     CanvasProcessor,
     CanvasRemoteProcessGroup,
     CanvasRootSelection,
-    ComponentDoubleClickEvent
+    ComponentDoubleClickEvent,
+    ContextMenuContext
 } from './canvas.types';
 import { ConnectablePolicy } from './connectable-behavior.helper';
+import { ContextMenuDefinitionProvider } from '../context-menu/context-menu.component';
 
 type CanvasTestAccess = {
     zoom: d3.ZoomBehavior<SVGSVGElement, unknown> | null;
@@ -59,7 +61,9 @@ type CanvasTestAccess = {
     elementRef: { nativeElement: HTMLElement };
     internalCanvasReady: WritableSignal<boolean>;
     hasInitialized: WritableSignal<boolean>;
+    savingProcessors: WritableSignal<Set<string>>;
     savingConnections: WritableSignal<Set<string>>;
+    markItemsSaving(items: Array<{ id: string; type: ComponentType }>): void;
     applyTransform(x: number, y: number, scale: number, transition?: boolean): void;
     getComponentsInSelectionBox(box: {
         x: number;
@@ -239,6 +243,7 @@ interface SetupOptions {
     selectedComponentIds?: string[];
     initialTransform?: { x: number; y: number; scale: number };
     dataReady?: boolean;
+    menuProvider?: ContextMenuDefinitionProvider;
 }
 
 async function setup(options: SetupOptions = {}) {
@@ -278,6 +283,9 @@ async function setup(options: SetupOptions = {}) {
     fixture.componentRef.setInput('processGroupId', 'test-pg-id');
     fixture.componentRef.setInput('selectedComponentIds', options.selectedComponentIds ?? []);
     fixture.componentRef.setInput('dataReady', options.dataReady ?? false);
+    if (options.menuProvider) {
+        fixture.componentRef.setInput('menuProvider', options.menuProvider);
+    }
 
     fixture.detectChanges();
 
@@ -289,6 +297,19 @@ async function setup(options: SetupOptions = {}) {
 }
 
 describe('CanvasComponent', () => {
+    describe('operation saving markers', () => {
+        it('marks and clears the same component ids symmetrically', async () => {
+            const { component } = await setup();
+            const item = { id: 'processor-1', type: ComponentType.Processor };
+
+            asPrivate(component).markItemsSaving([item]);
+            expect(asPrivate(component).savingProcessors()).toEqual(new Set([item.id]));
+
+            component.clearItemsSaving([item]);
+            expect(asPrivate(component).savingProcessors()).toEqual(new Set());
+        });
+    });
+
     describe('clearConnectionPreview', () => {
         it('removes the in-flight connector path', async () => {
             const { component } = await setup();
@@ -2396,6 +2417,94 @@ describe('CanvasComponent', () => {
             expect(firstSvg.querySelector('rect.component-selection')).toBeNull();
             expect(secondSvg.querySelector('rect.component-selection')).toBeNull();
             secondFixture.destroy();
+        });
+    });
+
+    describe('setupContextMenu — contextMenuOpened accuracy', () => {
+        const mockMenuProvider: ContextMenuDefinitionProvider = {
+            getMenu: () => undefined,
+            filterMenuItem: () => true,
+            menuItemClicked: () => undefined
+        };
+
+        function fireSvgContextMenu(fixture: ComponentFixture<CanvasComponent>, target: Element): void {
+            target.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+            fixture.detectChanges();
+        }
+
+        function appendComponentG(svg: SVGElement, id: string): SVGGElement {
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.classList.add('component');
+            svg.appendChild(g);
+            (g as unknown as { __data__: unknown }).__data__ = {
+                entity: { id },
+                ui: { componentType: ComponentType.Processor }
+            };
+            return g as SVGGElement;
+        }
+
+        it('includes the right-clicked component in selectedComponents when it was not previously selected', async () => {
+            const proc = createMockProcessor({ id: 'proc-unselected' });
+            const { fixture, component } = await setup({
+                processors: [proc],
+                selectedComponentIds: [],
+                menuProvider: mockMenuProvider
+            });
+
+            const emitted: ContextMenuContext[] = [];
+            outputToObservable(component.contextMenuOpened).subscribe((ctx) => emitted.push(ctx));
+
+            const svg = fixture.nativeElement.querySelector('svg.canvas-svg') as SVGElement;
+            fireSvgContextMenu(fixture, appendComponentG(svg, 'proc-unselected'));
+
+            expect(emitted.length).toBe(1);
+            const ctx = emitted[0];
+            expect(ctx.targetType).toBe('component');
+            expect(ctx.selectedComponents.map((c) => c.entity.id)).toContain('proc-unselected');
+            expect(ctx.clickedComponent?.entity.id).toBe('proc-unselected');
+        });
+
+        it('preserves the full multi-selection when right-clicking a member of the selection', async () => {
+            const proc1 = createMockProcessor({ id: 'proc-1' });
+            const proc2 = createMockProcessor({ id: 'proc-2' });
+            const { fixture, component } = await setup({
+                processors: [proc1, proc2],
+                selectedComponentIds: ['proc-1', 'proc-2'],
+                menuProvider: mockMenuProvider
+            });
+
+            const emitted: ContextMenuContext[] = [];
+            outputToObservable(component.contextMenuOpened).subscribe((ctx) => emitted.push(ctx));
+
+            const svg = fixture.nativeElement.querySelector('svg.canvas-svg') as SVGElement;
+            fireSvgContextMenu(fixture, appendComponentG(svg, 'proc-1'));
+
+            expect(emitted.length).toBe(1);
+            const ids = emitted[0].selectedComponents.map((c) => c.entity.id);
+            expect(ids).toContain('proc-1');
+            expect(ids).toContain('proc-2');
+            expect(ids.filter((id) => id === 'proc-1').length).toBe(1);
+        });
+
+        it('replaces a prior multi-selection with only the right-clicked component when it was not selected', async () => {
+            const proc1 = createMockProcessor({ id: 'proc-a' });
+            const proc2 = createMockProcessor({ id: 'proc-b' });
+            const proc3 = createMockProcessor({ id: 'proc-c' });
+            const { fixture, component } = await setup({
+                processors: [proc1, proc2, proc3],
+                selectedComponentIds: ['proc-a', 'proc-b'],
+                menuProvider: mockMenuProvider
+            });
+
+            const emitted: ContextMenuContext[] = [];
+            outputToObservable(component.contextMenuOpened).subscribe((ctx) => emitted.push(ctx));
+
+            const svg = fixture.nativeElement.querySelector('svg.canvas-svg') as SVGElement;
+            fireSvgContextMenu(fixture, appendComponentG(svg, 'proc-c'));
+
+            expect(emitted.length).toBe(1);
+            const ids = emitted[0].selectedComponents.map((c) => c.entity.id);
+            expect(ids).toEqual(['proc-c']);
         });
     });
 });

@@ -103,6 +103,17 @@ import { Client } from '../../../../service/client.service';
 import { ConnectablePolicy, CreateConnectionPayload } from '../../../../ui/common/canvas/connectable-behavior.helper';
 import { ConnectionEndpointReconnectDestination, CreateConnectionRequest } from '../../../../state/flow-shared';
 import { ConnectorConnectablePolicy } from './connector-connectable.policy';
+import { ConnectorCanvasCommands } from './connector-canvas-commands.service';
+import { SelectionTarget } from '../../../../ui/common/canvas/utils/selection.utils';
+import * as ExtensionTypesActions from '../../../../state/extension-types/extension-types.actions';
+import {
+    areAllDisableable,
+    areAllEnableable,
+    areAnyRunnable,
+    areAnyStoppable,
+    canRunOnce,
+    canTerminate
+} from '../../../../ui/common/canvas/utils/run-status.utils';
 
 @Component({
     selector: 'connector-canvas',
@@ -121,7 +132,8 @@ import { ConnectorConnectablePolicy } from './connector-connectable.policy';
         ContextErrorBanner
     ],
     templateUrl: './connector-canvas.component.html',
-    styleUrl: './connector-canvas.component.scss'
+    styleUrl: './connector-canvas.component.scss',
+    providers: [ConnectorCanvasCommands]
 })
 export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     private store = inject(Store<NiFiState>);
@@ -131,6 +143,7 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     private dialog = inject(MatDialog);
     private storage = inject(Storage);
     private client = inject(Client);
+    protected readonly commands = inject(ConnectorCanvasCommands);
 
     private static readonly CONTROL_VISIBILITY_KEY = 'graph-control-visibility';
     private static readonly GRAPH_CONTROL_KEY = 'connector-graph-controls';
@@ -152,6 +165,10 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
     connectorEntity = this.store.selectSignal(selectConnectorCanvasEntity);
     entitySaving = this.store.selectSignal(selectConnectorCanvasEntitySaving);
+    inTroubleshooting = computed(() => this.connectorEntity()?.component.state === 'TROUBLESHOOTING');
+    operationBreadcrumb = this.store.selectSignal(ConnectorCanvasSelectors.selectBreadcrumbs);
+    operationProcessGroupRevision = this.store.selectSignal(ConnectorCanvasSelectors.selectProcessGroupRevision);
+    operationSelection = this.store.selectSignal(ConnectorCanvasSelectors.selectConnectorCanvasSelectedComponents);
     private readonly connectorConnectablePolicy = new ConnectorConnectablePolicy(
         () => this.canvasComponent().canvasRootResolver(),
         () => this.currentProcessGroupId
@@ -242,6 +259,31 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
             if (context?.targetType === 'canvas') {
                 menuItems = [
                     {
+                        text: 'Start',
+                        clazz: 'fa fa-play',
+                        condition: () => this.inTroubleshooting() && this.currentProcessGroupId !== null,
+                        action: () => this.commands.startComponents([])
+                    },
+                    {
+                        text: 'Stop',
+                        clazz: 'fa fa-stop',
+                        condition: () => this.inTroubleshooting() && this.currentProcessGroupId !== null,
+                        action: () => this.commands.stopComponents([])
+                    },
+                    {
+                        text: 'Enable',
+                        clazz: 'fa fa-flash',
+                        condition: () => this.inTroubleshooting() && this.currentProcessGroupId !== null,
+                        action: () => this.commands.enableComponents([])
+                    },
+                    {
+                        text: 'Disable',
+                        clazz: 'icon icon-enable-false',
+                        condition: () => this.inTroubleshooting() && this.currentProcessGroupId !== null,
+                        action: () => this.commands.disableComponents([])
+                    },
+                    { isSeparator: true },
+                    {
                         text: 'Refresh',
                         clazz: 'fa fa-refresh',
                         condition: () => true,
@@ -304,8 +346,62 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                     clicked.ui.componentType !== ComponentType.Label;
                 const isViewConfigurationTarget =
                     !!clicked && isSingleSelection && !isFunnel && clicked.entity.permissions.canRead === true;
-
+                const operationCandidates = (
+                    clicked && !context.selectedComponents.some((selected) => selected.entity.id === clicked.entity.id)
+                        ? [clicked]
+                        : context.selectedComponents
+                ) as SelectionTarget[];
                 menuItems = [
+                    {
+                        text: 'Start',
+                        clazz: 'fa fa-play',
+                        condition: () => this.inTroubleshooting() && areAnyRunnable(operationCandidates),
+                        action: () => this.commands.startComponents(operationCandidates)
+                    },
+                    {
+                        text: 'Stop',
+                        clazz: 'fa fa-stop',
+                        condition: () => this.inTroubleshooting() && areAnyStoppable(operationCandidates),
+                        action: () => this.commands.stopComponents(operationCandidates)
+                    },
+                    {
+                        text: 'Enable',
+                        clazz: 'fa fa-flash',
+                        condition: () => this.inTroubleshooting() && areAllEnableable(operationCandidates),
+                        action: () => this.commands.enableComponents(operationCandidates)
+                    },
+                    {
+                        text: 'Disable',
+                        clazz: 'icon icon-enable-false',
+                        condition: () => this.inTroubleshooting() && areAllDisableable(operationCandidates),
+                        action: () => this.commands.disableComponents(operationCandidates)
+                    },
+                    {
+                        text: 'Run Once',
+                        clazz: 'fa fa-caret-right',
+                        condition: () => this.inTroubleshooting() && canRunOnce(operationCandidates),
+                        action: () => this.commands.runOnce(operationCandidates)
+                    },
+                    {
+                        text: 'Terminate',
+                        clazz: 'fa fa-hourglass-end',
+                        condition: () => this.inTroubleshooting() && canTerminate(operationCandidates),
+                        action: () => this.commands.terminateThreads(operationCandidates)
+                    },
+                    {
+                        text: 'Advanced',
+                        clazz: 'fa fa-cog',
+                        condition: () =>
+                            this.inTroubleshooting() &&
+                            !!clicked &&
+                            isProcessorDatum(clicked) &&
+                            isSingleSelection &&
+                            clicked.entity.permissions.canRead === true &&
+                            clicked.entity.component?.extensionMissing !== true &&
+                            !!clicked.entity.component?.config?.customUiUrl,
+                        action: () => this.commands.openAdvancedProcessor(clicked!.entity.id)
+                    },
+                    { isSeparator: true },
                     {
                         text: 'View Configuration',
                         clazz: 'fa fa-gear',
@@ -405,6 +501,7 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
         .pipe(map((status) => status === 'error'));
 
     ngOnInit(): void {
+        this.store.dispatch(ExtensionTypesActions.loadExtensionTypesForCanvas());
         // Configure global canvas UI state - read-only view (no editing)
         const config: CanvasConfiguration = {
             features: {

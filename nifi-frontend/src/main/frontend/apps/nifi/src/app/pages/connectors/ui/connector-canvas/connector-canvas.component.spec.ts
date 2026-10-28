@@ -240,6 +240,12 @@ class MockConnectorGraphControls {
     provenanceError = input<string | null>(null);
     connectedToCluster = input<boolean>(false);
     contentViewerAvailable = input<boolean>(false);
+    inTroubleshooting = input<boolean>(false);
+    operationSelection = input<unknown[]>([]);
+    operationBreadcrumb = input<unknown>(null);
+    operationCanvasPermissions = input<unknown>(null);
+    operationCurrentProcessGroupId = input<string | null>(null);
+    operationProcessGroupRevision = input<unknown>(null);
     viewportChange = output<{ x: number; y: number }>();
     birdseyeDragStart = output<void>();
     birdseyeDragEnd = output<void>();
@@ -254,6 +260,12 @@ class MockConnectorGraphControls {
     provenanceDownloadContent = output<{ event: ProvenanceEvent; direction: 'input' | 'output' }>();
     provenanceViewContent = output<{ event: ProvenanceEvent; direction: 'input' | 'output' }>();
     provenanceReplayEvent = output<ProvenanceEvent>();
+    operationEnable = output<unknown[]>();
+    operationDisable = output<unknown[]>();
+    operationStart = output<unknown[]>();
+    operationStop = output<unknown[]>();
+    operationRunOnce = output<unknown[]>();
+    operationTerminate = output<unknown[]>();
 }
 
 @Component({
@@ -338,6 +350,9 @@ function buildMockSelectors(options: SetupOptions = {}) {
         { selector: ConnectorCanvasSelectors.selectProcessGroups, value: [] },
         { selector: ConnectorCanvasSelectors.selectConnections, value: options.connections ?? [] },
         { selector: ConnectorCanvasSelectors.selectRegistryClients, value: [] },
+        { selector: ConnectorCanvasSelectors.selectBreadcrumbs, value: null },
+        { selector: ConnectorCanvasSelectors.selectProcessGroupRevision, value: null },
+        { selector: ConnectorCanvasSelectors.selectConnectorCanvasSelectedComponents, value: [] },
         { selector: ConnectorCanvasSelectors.selectLoadingStatus, value: loadingStatus },
         {
             selector: ConnectorCanvasSelectors.selectHasLoadedFlow,
@@ -1133,6 +1148,10 @@ describe('ConnectorCanvasComponent', () => {
 
                 const items = menu!.menuItems.filter((item) => !item.isSeparator);
                 expect(items.map((i) => i.text)).toEqual([
+                    'Start',
+                    'Stop',
+                    'Enable',
+                    'Disable',
                     'Refresh',
                     'Leave Group',
                     'Controller Services',
@@ -1155,6 +1174,13 @@ describe('ConnectorCanvasComponent', () => {
 
                 const items = menu!.menuItems.filter((item) => !item.isSeparator);
                 expect(items.map((i) => i.text)).toEqual([
+                    'Start',
+                    'Stop',
+                    'Enable',
+                    'Disable',
+                    'Run Once',
+                    'Terminate',
+                    'Advanced',
                     'View Configuration',
                     'Enter Group',
                     'View Data Provenance',
@@ -2451,6 +2477,7 @@ describe('ConnectorCanvasComponent', () => {
                 loadConnectorFlowSuccess({
                     connectorId: DEFAULT_CONNECTOR_ID,
                     processGroupId: DEFAULT_PROCESS_GROUP_ID,
+                    processGroupRevision: null,
                     parentProcessGroupId: null,
                     breadcrumb: null,
                     labels: [],

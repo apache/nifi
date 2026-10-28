@@ -16,18 +16,20 @@
  */
 
 import { Component, input, output } from '@angular/core';
-import { ConnectorEntity, Position } from '@nifi/shared';
+import { ConnectorEntity, Permissions, Position, Revision } from '@nifi/shared';
 import { CanvasNavigationControl } from '../../../../../ui/common/navigation-control/canvas-navigation-control.component';
 import { BirdseyeComponentData, BirdseyeTransform } from '../../../../../ui/common/birdseye/birdseye.types';
 import { Dimension } from '../../../../../ui/common/canvas/canvas.types';
 import { ConnectorInfoControl } from './connector-info-control/connector-info-control.component';
 import { ProvenancePreview } from '../../../../../ui/common/provenance-preview/provenance-preview.component';
-import { ProvenanceEvent } from '../../../../../state/shared';
+import { BreadcrumbEntity, ProvenanceEvent } from '../../../../../state/shared';
+import { CanvasOperationControl } from '../../../../../ui/common/operation-control/operation-control.component';
+import { SelectionTarget } from '../../../../../ui/common/canvas/utils/selection.utils';
 
 @Component({
     selector: 'connector-graph-controls',
     standalone: true,
-    imports: [CanvasNavigationControl, ConnectorInfoControl, ProvenancePreview],
+    imports: [CanvasNavigationControl, ConnectorInfoControl, ProvenancePreview, CanvasOperationControl],
     templateUrl: './connector-graph-controls.component.html',
     styleUrls: ['./connector-graph-controls.component.scss']
 })
@@ -46,6 +48,12 @@ export class ConnectorGraphControls {
     provenanceError = input<string | null>(null);
     connectedToCluster = input<boolean>(false);
     contentViewerAvailable = input<boolean>(false);
+    inTroubleshooting = input<boolean>(false);
+    operationSelection = input<SelectionTarget[]>([]);
+    operationBreadcrumb = input<BreadcrumbEntity | null>(null);
+    operationCanvasPermissions = input<Permissions | null>(null);
+    operationCurrentProcessGroupId = input<string | null>(null);
+    operationProcessGroupRevision = input<Revision | null>(null);
 
     viewportChange = output<Position>();
     birdseyeDragStart = output<void>();
@@ -63,4 +71,9 @@ export class ConnectorGraphControls {
     provenanceDownloadContent = output<{ event: ProvenanceEvent; direction: 'input' | 'output' }>();
     provenanceViewContent = output<{ event: ProvenanceEvent; direction: 'input' | 'output' }>();
     provenanceReplayEvent = output<ProvenanceEvent>();
+    operationEnable = output<SelectionTarget[]>();
+    operationDisable = output<SelectionTarget[]>();
+    operationStart = output<SelectionTarget[]>();
+    operationStop = output<SelectionTarget[]>();
+    operationRunOnce = output<SelectionTarget[]>();
 }
