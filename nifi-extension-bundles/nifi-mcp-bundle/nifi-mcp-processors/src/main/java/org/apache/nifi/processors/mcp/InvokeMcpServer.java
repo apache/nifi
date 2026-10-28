@@ -71,10 +71,12 @@ import java.util.Set;
  * own schedule - handy for polling a tool or a resource, or for {@code List Tools} discovery.
  */
 @Tags({"mcp", "model context protocol", "ai", "agent", "tool", "client", "invoke"})
-@CapabilityDescription("Acts as an MCP (Model Context Protocol) client: calls a tool, reads a resource, gets a prompt "
-        + "or lists the tools/resources/prompts of the remote MCP server configured in an MCP Client Service. "
-        + "For Call Tool, the tool's arguments are a JSON object taken from the FlowFile content or from the "
-        + "Arguments property. The result is written as a new FlowFile; the incoming FlowFile goes to 'original'.")
+@CapabilityDescription("""
+        Acts as an MCP (Model Context Protocol) client: calls a tool, reads a resource, gets a prompt or lists the
+        tools, resources or prompts of the remote MCP server configured in an MCP Client Service.
+        For Call Tool, the tool's arguments are a JSON object taken from the FlowFile content or from the Arguments property.
+        The result is written as a new FlowFile and the incoming FlowFile is routed to 'original'.
+        """)
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @SupportsBatching
 @SeeAlso(StandardMcpClientService.class)
@@ -84,10 +86,11 @@ import java.util.Set;
         @WritesAttribute(attribute = InvokeMcpServer.ATTR_IS_ERROR, description = "The tool's isError flag (Call Tool only)"),
         @WritesAttribute(attribute = InvokeMcpServer.ATTR_SERVER, description = "name/version of the MCP server"),
         @WritesAttribute(attribute = InvokeMcpServer.ATTR_DURATION, description = "Request duration in milliseconds"),
-        @WritesAttribute(attribute = InvokeMcpServer.ATTR_ERROR_MESSAGE, description = "Why the request failed "
-                + "(failure relationship only)"),
-        @WritesAttribute(attribute = "mime.type", description = "application/json or text/plain, depending on Output "
-                + "Content; for Structured Content falling back to text, application/json only if that text is valid JSON")
+        @WritesAttribute(attribute = InvokeMcpServer.ATTR_ERROR_MESSAGE, description = "Why the request failed (failure relationship only)"),
+        @WritesAttribute(attribute = "mime.type", description = """
+                application/json or text/plain, depending on Output Content.
+                For Structured Content falling back to text, application/json only if that text is valid JSON.
+                """)
 })
 public class InvokeMcpServer extends AbstractProcessor {
 
@@ -163,14 +166,16 @@ public class InvokeMcpServer extends AbstractProcessor {
     }
 
     public enum OutputContent implements DescribedValue {
-        FULL_RESULT("Full Result (JSON)", "The complete MCP result object as JSON, including non-text content, "
-                + "structuredContent and _meta"),
-        TEXT("Text Only", "Only the text parts of the result, joined by newlines. For a tool returning JSON as text "
-                + "this is that JSON, ready for record processors"),
-        STRUCTURED_CONTENT("Structured Content (JSON)", "Call Tool only: the tool's structuredContent object, ready "
-                + "for record processors. For a tool that returns no structuredContent, falls back to Text Only, "
-                + "which by the MCP specification should then hold the same JSON serialized as text; when it does not, "
-                + "mime.type is set to text/plain");
+        FULL_RESULT("Full Result (JSON)", "The complete MCP result object as JSON, including non-text content, structuredContent and _meta"),
+        TEXT("Text Only", """
+                Only the text parts of the result, joined by newlines.
+                For a tool returning JSON as text this is that JSON, ready for record processors.
+                """),
+        STRUCTURED_CONTENT("Structured Content (JSON)", """
+                Call Tool only: the tool's structuredContent object, ready for record processors.
+                For a tool that returns no structuredContent, falls back to Text Only, which by the MCP specification
+                should then hold the same JSON serialized as text; when it does not, mime.type is set to text/plain.
+                """);
 
         private final String displayName;
         private final String description;
@@ -196,14 +201,14 @@ public class InvokeMcpServer extends AbstractProcessor {
         }
     }
 
-    public static final PropertyDescriptor MCP_CLIENT_SERVICE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor MCP_CLIENT_SERVICE = new PropertyDescriptor.Builder()
             .name("MCP Client Service")
             .description("Holds the session to the MCP server to invoke.")
             .required(true)
             .identifiesControllerService(McpClientService.class)
             .build();
 
-    public static final PropertyDescriptor OPERATION = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor OPERATION = new PropertyDescriptor.Builder()
             .name("Operation")
             .description("The MCP request to perform.")
             .required(true)
@@ -211,7 +216,7 @@ public class InvokeMcpServer extends AbstractProcessor {
             .defaultValue(Operation.CALL_TOOL)
             .build();
 
-    public static final PropertyDescriptor TOOL_NAME = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor TOOL_NAME = new PropertyDescriptor.Builder()
             .name("Tool Name")
             .description("Name of the tool to call, exactly as listed by the server.")
             .required(true)
@@ -220,7 +225,7 @@ public class InvokeMcpServer extends AbstractProcessor {
             .dependsOn(OPERATION, Operation.CALL_TOOL)
             .build();
 
-    public static final PropertyDescriptor PROMPT_NAME = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor PROMPT_NAME = new PropertyDescriptor.Builder()
             .name("Prompt Name")
             .description("Name of the prompt to get.")
             .required(true)
@@ -229,7 +234,7 @@ public class InvokeMcpServer extends AbstractProcessor {
             .dependsOn(OPERATION, Operation.GET_PROMPT)
             .build();
 
-    public static final PropertyDescriptor RESOURCE_URI = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor RESOURCE_URI = new PropertyDescriptor.Builder()
             .name("Resource URI")
             .description("URI of the resource to read, e.g. file:///logs/app.log.")
             .required(true)
@@ -238,28 +243,32 @@ public class InvokeMcpServer extends AbstractProcessor {
             .dependsOn(OPERATION, Operation.READ_RESOURCE)
             .build();
 
-    public static final PropertyDescriptor ARGUMENTS_SOURCE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor ARGUMENTS_SOURCE = new PropertyDescriptor.Builder()
             .name("Arguments Source")
-            .description("Where the JSON arguments object comes from. Empty content / an empty property means no "
-                    + "arguments. When the processor has no incoming connection, use Arguments Property.")
+            .description("""
+                    Where the JSON arguments object comes from. Empty content or an empty property means no arguments.
+                    When the processor has no incoming connection, use Arguments Property.
+                    """)
             .required(true)
             .allowableValues(ArgumentsSource.class)
             .defaultValue(ArgumentsSource.CONTENT)
             .dependsOn(OPERATION, Operation.CALL_TOOL, Operation.GET_PROMPT)
             .build();
 
-    public static final PropertyDescriptor ARGUMENTS = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor ARGUMENTS = new PropertyDescriptor.Builder()
             .name("Arguments")
-            .description("JSON object of arguments, e.g. {\"path\": \"${absolute.path}${filename}\", \"limit\": 10}. "
-                    + "Expression Language is evaluated first, so make sure substituted values are JSON-escaped "
-                    + "(e.g. ${attr:escapeJson()}).")
+            .description("""
+                    JSON object of arguments, such as {"path": "${absolute.path}${filename}", "limit": 10}.
+                    Expression Language is evaluated first, so substituted values must be JSON-escaped,
+                    such as ${attr:escapeJson()}.
+                    """)
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .dependsOn(ARGUMENTS_SOURCE, ArgumentsSource.PROPERTY)
             .build();
 
-    public static final PropertyDescriptor OUTPUT_CONTENT = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor OUTPUT_CONTENT = new PropertyDescriptor.Builder()
             .name("Output Content")
             .description("What to write as the content of the result FlowFile. List operations always produce JSON.")
             .required(true)
@@ -268,26 +277,30 @@ public class InvokeMcpServer extends AbstractProcessor {
             .dependsOn(OPERATION, Operation.CALL_TOOL, Operation.READ_RESOURCE, Operation.GET_PROMPT)
             .build();
 
-    public static final Relationship SUCCESS = new Relationship.Builder()
+    static final Relationship SUCCESS = new Relationship.Builder()
             .name("success")
             .description("The MCP result, one FlowFile per request (inheriting the incoming FlowFile's attributes).")
             .build();
 
-    public static final Relationship TOOL_ERROR = new Relationship.Builder()
+    static final Relationship TOOL_ERROR = new Relationship.Builder()
             .name("tool error")
-            .description("Call Tool only: the tool ran but answered isError=true. The FlowFile holds its result, "
-                    + "which normally describes the error.")
+            .description("""
+                    Call Tool only: the tool ran but answered isError=true.
+                    The FlowFile holds its result, which normally describes the error.
+                    """)
             .build();
 
-    public static final Relationship ORIGINAL = new Relationship.Builder()
+    static final Relationship ORIGINAL = new Relationship.Builder()
             .name("original")
             .description("The incoming FlowFile, once its request produced a result (success or tool error).")
             .build();
 
-    public static final Relationship FAILURE = new Relationship.Builder()
+    static final Relationship FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("The incoming FlowFile, penalized, when the request produced no result: server unreachable, "
-                    + "timeout, JSON-RPC error (e.g. unknown tool) or arguments that are not a JSON object.")
+            .description("""
+                    The incoming FlowFile, penalized, when the request produced no result: server unreachable, timeout,
+                    JSON-RPC error such as an unknown tool, or arguments that are not a JSON object.
+                    """)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(

@@ -18,7 +18,6 @@ package org.apache.nifi.mcp.client;
 
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
-import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
 import io.modelcontextprotocol.client.transport.customizer.McpSyncHttpClientRequestCustomizer;
 import io.modelcontextprotocol.json.McpJsonMapper;
@@ -43,7 +42,6 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
-import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -81,104 +79,71 @@ import javax.net.ssl.SSLContext;
  * retry is a flow decision (the processor's {@code failure} relationship), not this service's.
  */
 @Tags({"mcp", "model context protocol", "ai", "agent", "client"})
-@CapabilityDescription("Maintains an MCP (Model Context Protocol) client session towards a remote MCP server "
-        + "over Streamable HTTP or legacy HTTP+SSE, and shares it with processors such as InvokeMcpServer. "
-        + "Dynamic properties are sent as HTTP headers on every request.")
+@CapabilityDescription("""
+        Maintains an MCP (Model Context Protocol) client session towards a remote MCP server over the Streamable HTTP
+        transport, and shares it with processors such as InvokeMcpServer.
+        Dynamic properties are sent as HTTP headers on every request.
+        """)
 @SupportsSensitiveDynamicProperties
 public class StandardMcpClientService extends AbstractControllerService
         implements McpClientService, VerifiableControllerService {
 
-    public enum Transport implements DescribedValue {
-        STREAMABLE_HTTP("Streamable HTTP", "Current MCP HTTP transport (spec 2025-03-26 and later): one endpoint, "
-                + "e.g. https://host:8080/mcp"),
-        SSE("HTTP+SSE (legacy)", "Deprecated MCP 2024-11-05 transport: Server URL is the SSE endpoint, "
-                + "e.g. http://host:8080/sse");
-
-        private final String displayName;
-        private final String description;
-
-        Transport(final String displayName, final String description) {
-            this.displayName = displayName;
-            this.description = description;
-        }
-
-        @Override
-        public String getValue() {
-            return name();
-        }
-
-        @Override
-        public String getDisplayName() {
-            return displayName;
-        }
-
-        @Override
-        public String getDescription() {
-            return description;
-        }
-    }
-
-    public static final PropertyDescriptor TRANSPORT = new PropertyDescriptor.Builder()
-            .name("Transport")
-            .description("How to reach the MCP server.")
-            .required(true)
-            .allowableValues(Transport.class)
-            .defaultValue(Transport.STREAMABLE_HTTP)
-            .build();
-
-    public static final PropertyDescriptor SERVER_URL = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor SERVER_URL = new PropertyDescriptor.Builder()
             .name("Server URL")
-            .description("Full URL of the MCP endpoint, including its path - e.g. http://localhost:8977/mcp for "
-                    + "Streamable HTTP, or http://localhost:8080/sse for the legacy SSE transport.")
+            .description("Full URL of the MCP Streamable HTTP endpoint, including its path, such as http://localhost:8080/mcp")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("Optional TLS configuration for https Server URLs. A keystore in it is presented as a "
-                    + "client certificate (mTLS).")
+            .description("""
+                    TLS configuration for https Server URLs. A configured keystore is presented as a client certificate
+                    for mutual TLS.
+                    """)
             .required(false)
             .identifiesControllerService(SSLContextProvider.class)
             .build();
 
-    public static final PropertyDescriptor BEARER_TOKEN = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor BEARER_TOKEN = new PropertyDescriptor.Builder()
             .name("Bearer Token")
-            .description("Optional token sent as 'Authorization: Bearer <token>' on every HTTP request.")
+            .description("Token sent as 'Authorization: Bearer <token>' on every HTTP request")
             .required(false)
             .sensitive(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Connect Timeout")
-            .description("Maximum time to establish the HTTP connection and complete the MCP initialize handshake.")
+            .description("Maximum time to establish the HTTP connection and complete the MCP initialize handshake")
             .required(true)
             .defaultValue("10 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor REQUEST_TIMEOUT = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor REQUEST_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Request Timeout")
-            .description("Maximum time to wait for the response to a single MCP request (e.g. one tool call). "
-                    + "Long-running tools need a correspondingly long value.")
+            .description("""
+                    Maximum time to wait for the response to a single MCP request, such as one tool call.
+                    Long-running tools need a correspondingly long value.
+                    """)
             .required(true)
             .defaultValue("60 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor CLIENT_NAME = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CLIENT_NAME = new PropertyDescriptor.Builder()
             .name("Client Name")
-            .description("Name this client reports in the MCP initialize handshake (clientInfo.name).")
+            .description("Name this client reports as clientInfo.name in the MCP initialize handshake")
             .required(true)
             .defaultValue("apache-nifi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            TRANSPORT, SERVER_URL, SSL_CONTEXT_SERVICE, BEARER_TOKEN, CONNECT_TIMEOUT, REQUEST_TIMEOUT, CLIENT_NAME);
+            SERVER_URL, SSL_CONTEXT_SERVICE, BEARER_TOKEN, CONNECT_TIMEOUT, REQUEST_TIMEOUT, CLIENT_NAME);
 
     private static final String CLIENT_VERSION = Objects.requireNonNullElse(
             StandardMcpClientService.class.getPackage().getImplementationVersion(), "unknown");
@@ -190,7 +155,7 @@ public class StandardMcpClientService extends AbstractControllerService
     private volatile ConnectionSettings settings;
     private McpSyncClient client; // guarded by this
 
-    private record ConnectionSettings(Transport transport, String serverUrl, SSLContext sslContext,
+    private record ConnectionSettings(String serverUrl, SSLContext sslContext,
                                       Map<String, String> headers, Duration connectTimeout,
                                       Duration requestTimeout, String clientName) {
     }
@@ -394,15 +359,6 @@ public class StandardMcpClientService extends AbstractControllerService
         final McpSyncHttpClientRequestCustomizer headers = (builder, method, endpoint, body, ctx) ->
                 s.headers().forEach(builder::header);
 
-        if (s.transport() == Transport.SSE) {
-            return HttpClientSseClientTransport.builder(base)
-                    .sseEndpoint(path)
-                    .jsonMapper(jsonMapper)
-                    .connectTimeout(s.connectTimeout())
-                    .customizeClient(b -> applySsl(b, s))
-                    .httpRequestCustomizer(headers)
-                    .build();
-        }
         return HttpClientStreamableHttpTransport.builder(base)
                 .endpoint(path)
                 .jsonMapper(jsonMapper)
@@ -419,8 +375,6 @@ public class StandardMcpClientService extends AbstractControllerService
     }
 
     private ConnectionSettings readSettings(final ConfigurationContext context) {
-        final Transport transport = Transport.valueOf(context.getProperty(TRANSPORT).getValue());
-
         final String serverUrl = context.getProperty(SERVER_URL).evaluateAttributeExpressions().getValue();
         final SSLContextProvider sslProvider =
                 context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
@@ -435,7 +389,7 @@ public class StandardMcpClientService extends AbstractControllerService
             headers.put("Authorization", "Bearer " + token.trim());
         }
 
-        return new ConnectionSettings(transport, serverUrl, sslContext, Map.copyOf(headers),
+        return new ConnectionSettings(serverUrl, sslContext, Map.copyOf(headers),
                 Duration.ofMillis(context.getProperty(CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS)),
                 Duration.ofMillis(context.getProperty(REQUEST_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS)),
                 context.getProperty(CLIENT_NAME).getValue());

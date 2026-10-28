@@ -19,7 +19,7 @@
 
 InvokeMcpServer performs one Model Context Protocol (MCP) request against a remote MCP server for each incoming
 FlowFile: it calls a tool, reads a resource, renders a prompt, or lists the server's tools, resources or prompts. The
-connection itself (transport, URL, TLS, authentication headers, timeouts) is configured once in a
+connection itself (URL, TLS, authentication headers, timeouts) is configured once in a
 StandardMcpClientService, which holds a single MCP session shared by every processor that references it.
 
 This allows MCP servers to be consumed deterministically, as regular flow steps, without an LLM in the loop: repetitive
