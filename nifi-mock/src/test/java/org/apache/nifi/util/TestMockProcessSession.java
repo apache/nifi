@@ -614,6 +614,25 @@ public class TestMockProcessSession {
             sessionOfStatefulProcessor.patchState(Map.of("patched", "value"), Scope.LOCAL);
             sessionOfStatefulProcessor.commitAsync();
             stateManagerOfStatefulProcessor.assertStateEquals(Map.of("replaced", "value", "patched", "value"), Scope.LOCAL);
+
+            // An update stored by another party right after the session reads the state must not be overwritten by a replacement
+            final AtomicBoolean storeUpdateAfterNextRead = new AtomicBoolean();
+            final MockStateManager concurrentlyUpdatedStateManager = new MockStateManager(statefulProcessor) {
+                @Override
+                public synchronized StateMap getState(final Scope scope) throws IOException {
+                    final StateMap state = super.getState(scope);
+                    if (storeUpdateAfterNextRead.getAndSet(false)) {
+                        super.setState(Map.of("concurrent", "update"), scope);
+                    }
+                    return state;
+                }
+            };
+            final MockProcessSession concurrentlyUpdatedSession = new MockProcessSession(sharedStateOfStatefulProcessor, statefulProcessor, concurrentlyUpdatedStateManager);
+            concurrentlyUpdatedSession.patchState(patch, Scope.LOCAL);
+            final StateMap patchedState = concurrentlyUpdatedSession.getState(Scope.LOCAL);
+            storeUpdateAfterNextRead.set(true);
+            assertFalse(concurrentlyUpdatedSession.replaceState(patchedState, Map.of("replaced", "value"), Scope.LOCAL));
+            concurrentlyUpdatedStateManager.assertStateEquals(Map.of("concurrent", "update"), Scope.LOCAL);
         }
 
         @Test

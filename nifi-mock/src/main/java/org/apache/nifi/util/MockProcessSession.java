@@ -1433,8 +1433,7 @@ public class MockProcessSession implements ProcessSession {
             return storedState;
         }
 
-        final long storedVersion = storedState.getStateVersion().map(Long::parseLong).orElse(-1L);
-        return new MockStateMap(storedState.toMap(patches.values), storedVersion + patches.count);
+        return applyPatches(storedState, patches);
     }
 
     /**
@@ -1443,20 +1442,28 @@ public class MockProcessSession implements ProcessSession {
      */
     @Override
     public boolean replaceState(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
-        if (!pendingStatePatches.containsKey(scope)) {
+        final PendingStatePatches patches = pendingStatePatches.get(scope);
+        if (patches == null) {
             return stateManager.replace(oldValue, newValue, scope);
         }
 
-        final StateMap currentState = getState(scope);
+        // The same stored state is used for the comparison and the replacement, so that an update stored in between causes the replacement to fail
+        final StateMap storedState = stateManager.getState(scope);
+        final StateMap currentState = applyPatches(storedState, patches);
         if (oldValue == null || !oldValue.getStateVersion().equals(currentState.getStateVersion()) || !oldValue.toMap().equals(currentState.toMap())) {
             return false;
         }
 
-        final boolean replaced = stateManager.replace(stateManager.getState(scope), newValue, scope);
+        final boolean replaced = stateManager.replace(storedState, newValue, scope);
         if (replaced) {
             pendingStatePatches.remove(scope);
         }
         return replaced;
+    }
+
+    private static StateMap applyPatches(final StateMap storedState, final PendingStatePatches patches) {
+        final long storedVersion = storedState.getStateVersion().map(Long::parseLong).orElse(-1L);
+        return new MockStateMap(storedState.toMap(patches.values), storedVersion + patches.count);
     }
 
     /**
