@@ -20,6 +20,7 @@ package org.apache.nifi.migration;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -33,6 +34,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -159,6 +161,7 @@ public class TestStandardControllerServiceFactory {
         private static final String ENDPOINT_PARAMETER = "#{endpoint}";
         private static final String MODE_PROPERTY = "Mode";
         private static final String READ_MODE = "read";
+        private static final String PASSWORD_PROPERTY = "Password";
 
         private static final String OWNING_GROUP_IDENTITY = "shared-version";
 
@@ -181,6 +184,51 @@ public class TestStandardControllerServiceFactory {
             assertNotEquals(first, createServiceAndGetVersionedId(CONSUMER_GROUP_ID, "different-version", IMPL_CLASS, properties));
             assertNotEquals(first, createServiceAndGetVersionedId(CONSUMER_GROUP_ID, OWNING_GROUP_IDENTITY, "AnotherService", properties));
             assertNotEquals(first, createServiceAndGetVersionedId(CONSUMER_GROUP_ID, OWNING_GROUP_IDENTITY, IMPL_CLASS, Map.of()));
+        }
+
+        @Test
+        void testSensitiveValuesDoNotAffectVersionedIdentity() {
+            final Map<String, String> authorProperties = Map.of(ENDPOINT_PROPERTY, ENDPOINT_PARAMETER, PASSWORD_PROPERTY, "author-password");
+            final Map<String, String> consumerProperties = Map.of(ENDPOINT_PROPERTY, ENDPOINT_PARAMETER, PASSWORD_PROPERTY, "consumer-password");
+            final String authorId = createServiceAndGetVersionedId("author-instance", OWNING_GROUP_IDENTITY, IMPL_CLASS, authorProperties);
+            final String consumerId = createServiceAndGetVersionedId(CONSUMER_GROUP_ID, OWNING_GROUP_IDENTITY, IMPL_CLASS, consumerProperties);
+
+            assertEquals(authorId, consumerId);
+            assertEquals(authorId, createServiceAndGetVersionedId(CONSUMER_GROUP_ID, OWNING_GROUP_IDENTITY, IMPL_CLASS, Map.of(ENDPOINT_PROPERTY, ENDPOINT_PARAMETER)));
+            assertNotEquals(authorId, createServiceAndGetVersionedId(CONSUMER_GROUP_ID, OWNING_GROUP_IDENTITY, IMPL_CLASS,
+                    Map.of(ENDPOINT_PROPERTY, "another-endpoint", PASSWORD_PROPERTY, "consumer-password")));
+            assertNotEquals(factory.determineServiceId(IMPL_CLASS, authorProperties), factory.determineServiceId(IMPL_CLASS, consumerProperties));
+        }
+
+        @Test
+        void testOccupiedVersionedIdentityLeavesNewServiceUnversioned() {
+            final Map<String, String> properties = Map.of(ENDPOINT_PROPERTY, ENDPOINT_PARAMETER);
+            final String occupiedId = createServiceAndGetVersionedId("author-instance", OWNING_GROUP_IDENTITY, IMPL_CLASS, properties);
+            final ControllerServiceNode existingService = mock(ControllerServiceNode.class);
+            when(existingService.getVersionedComponentId()).thenReturn(Optional.of(occupiedId));
+
+            final ControllerServiceNode newService = createService(CONSUMER_GROUP_ID, OWNING_GROUP_IDENTITY, IMPL_CLASS, properties, Set.of(existingService));
+
+            verify(newService, never()).setVersionedComponentId(any());
+            verify(existingService, never()).setVersionedComponentId(any());
+            verify(newService).migrateConfiguration(eq(properties), any());
+        }
+
+        @Test
+        void testUnversionedAndDifferentVersionedServicesDoNotOccupyIdentity() {
+            final Map<String, String> properties = Map.of(ENDPOINT_PROPERTY, ENDPOINT_PARAMETER);
+            final String expectedId = createServiceAndGetVersionedId("author-instance", OWNING_GROUP_IDENTITY, IMPL_CLASS, properties);
+            final ControllerServiceNode unversionedService = mock(ControllerServiceNode.class);
+            when(unversionedService.getVersionedComponentId()).thenReturn(Optional.empty());
+            final ControllerServiceNode differentlyVersionedService = mock(ControllerServiceNode.class);
+            when(differentlyVersionedService.getVersionedComponentId()).thenReturn(Optional.of("another-versioned-id"));
+
+            final ControllerServiceNode newService = createService(CONSUMER_GROUP_ID, OWNING_GROUP_IDENTITY, IMPL_CLASS, properties,
+                    Set.of(unversionedService, differentlyVersionedService));
+
+            verify(newService).setVersionedComponentId(expectedId);
+            verify(unversionedService, never()).setVersionedComponentId(any());
+            verify(differentlyVersionedService, never()).setVersionedComponentId(any());
         }
 
         @Test
@@ -210,12 +258,27 @@ public class TestStandardControllerServiceFactory {
         }
 
         private String createServiceAndGetVersionedId(final String localGroupId, final String owningGroupIdentity, final String type, final Map<String, String> properties) {
+            final ControllerServiceNode service = createService(localGroupId, owningGroupIdentity, type, properties, Set.of());
+            final ArgumentCaptor<String> versionedId = ArgumentCaptor.forClass(String.class);
+            verify(service).setVersionedComponentId(versionedId.capture());
+            return versionedId.getValue();
+        }
+
+        private ControllerServiceNode createService(final String localGroupId, final String owningGroupIdentity, final String type,
+                                                   final Map<String, String> properties, final Set<ControllerServiceNode> existingServices) {
             final ComponentNode component = mock(ComponentNode.class);
             final ProcessGroup group = mock(ProcessGroup.class);
             when(component.getParentProcessGroup()).thenReturn(Optional.of(group));
             when(component.getProcessGroupIdentifier()).thenReturn(localGroupId);
             final FlowManager manager = mock(FlowManager.class);
             final ControllerServiceNode service = mock(ControllerServiceNode.class);
+            when(service.getPropertyDescriptor(anyString())).thenAnswer(invocation -> {
+                final String name = invocation.getArgument(0);
+                return new PropertyDescriptor.Builder().name(name).sensitive(PASSWORD_PROPERTY.equals(name)).build();
+            });
+            final Set<ControllerServiceNode> groupServices = new HashSet<>(existingServices);
+            groupServices.add(service);
+            when(group.getControllerServices(false)).thenReturn(groupServices);
             when(manager.createControllerService(eq(type), anyString(), any(), any(), eq(true), eq(true), eq(null))).thenReturn(service);
 
             final StandardControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(
@@ -225,9 +288,8 @@ public class TestStandardControllerServiceFactory {
                     ControllerServiceCreationDetails.CreationState.SERVICE_TO_BE_CREATED);
             serviceFactory.create(details);
 
-            final ArgumentCaptor<String> versionedId = ArgumentCaptor.forClass(String.class);
-            verify(service).setVersionedComponentId(versionedId.capture());
-            return versionedId.getValue();
+            verify(service).setProperties(properties);
+            return service;
         }
     }
 

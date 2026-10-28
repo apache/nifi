@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -112,9 +113,17 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
 
         serviceNode.setProperties(creationDetails.serviceProperties());
 
-        final String versionedId = generateVersionedId(creationDetails);
+        final String versionedId = generateVersionedId(creationDetails, serviceNode);
         if (versionedId != null) {
-            serviceNode.setVersionedComponentId(versionedId);
+            final Set<ControllerServiceNode> groupControllerServices = group.map(processGroup -> processGroup.getControllerServices(false)).orElse(Collections.emptySet());
+            final boolean occupied = groupControllerServices.stream()
+                    .map(ControllerServiceNode::getVersionedComponentId)
+                    .flatMap(Optional::stream)
+                    .anyMatch(versionedId::equals);
+
+            if (!occupied) {
+                serviceNode.setVersionedComponentId(versionedId);
+            }
         }
 
         final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(extensionManager, flowManager, serviceProvider, serviceNode, owningGroupIdentity);
@@ -136,12 +145,18 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
         return serviceNode;
     }
 
-    private @Nullable String generateVersionedId(final ControllerServiceCreationDetails creationDetails) {
+    private @Nullable String generateVersionedId(final ControllerServiceCreationDetails creationDetails, final ControllerServiceNode serviceNode) {
         if (owningGroupIdentity == null) {
             return null;
         }
 
-        final Map<String, String> sortedProperties = new TreeMap<>(creationDetails.serviceProperties());
+        final Map<String, String> sortedProperties = new TreeMap<>();
+        for (final Map.Entry<String, String> property : creationDetails.serviceProperties().entrySet()) {
+            if (!serviceNode.getPropertyDescriptor(property.getKey()).isSensitive()) {
+                sortedProperties.put(property.getKey(), property.getValue());
+            }
+        }
+
         final String componentDescription = owningGroupIdentity + creationDetails.type() + sortedProperties;
         return UUID.nameUUIDFromBytes(componentDescription.getBytes(StandardCharsets.UTF_8)).toString();
     }
