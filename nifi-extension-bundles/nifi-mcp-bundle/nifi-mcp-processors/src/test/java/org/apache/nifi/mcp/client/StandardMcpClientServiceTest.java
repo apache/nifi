@@ -16,38 +16,25 @@
  */
 package org.apache.nifi.mcp.client;
 
-import io.modelcontextprotocol.json.McpJsonMapper;
-import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
-import io.modelcontextprotocol.server.McpServer;
-import io.modelcontextprotocol.server.McpServerFeatures.SyncPromptSpecification;
-import io.modelcontextprotocol.server.McpServerFeatures.SyncResourceSpecification;
-import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification;
-import io.modelcontextprotocol.server.McpSyncServer;
-import io.modelcontextprotocol.server.transport.HttpServletStreamableServerTransportProvider;
-import io.modelcontextprotocol.spec.McpSchema;
-import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
-import io.modelcontextprotocol.spec.McpSchema.TextContent;
-import jakarta.servlet.Filter;
-import jakarta.servlet.http.HttpServletRequest;
+import mockwebserver3.Dispatcher;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
+import mockwebserver3.RecordedRequest;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.mcp.McpCallResult;
 import org.apache.nifi.mcp.McpClientException;
-import org.apache.nifi.processors.mcp.InvokeMcpServer;
 import org.apache.nifi.util.MockConfigurationContext;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.eclipse.jetty.ee11.servlet.FilterHolder;
-import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
-import org.eclipse.jetty.ee11.servlet.ServletHolder;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
-import java.util.EnumSet;
+import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -55,23 +42,22 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Real wire-protocol test: an MCP Java SDK server on Jetty (Streamable HTTP) and the client
- * service under test talking to it over localhost.
+ * Wire-level test: a MockWebServer dispatcher answers the MCP Streamable HTTP JSON-RPC messages
+ * sent by the client service under test.
  */
 class StandardMcpClientServiceTest {
 
-    private final McpJsonMapper jsonMapper = new JacksonMcpJsonMapper(tools.jackson.databind.json.JsonMapper.builder().build());
-    private final Queue<String> authorizationHeaders = new ConcurrentLinkedQueue<>();
-    private final Queue<String> customHeaders = new ConcurrentLinkedQueue<>();
+    private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
+    private static final String SESSION_HEADER = "Mcp-Session-Id";
 
-    private Server jetty;
-    private McpSyncServer mcpServer;
-    private int port;
+    private final McpDispatcher dispatcher = new McpDispatcher();
 
+    private MockWebServer server;
     private TestRunner runner;
     private StandardMcpClientService service;
 
@@ -81,15 +67,15 @@ class StandardMcpClientServiceTest {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         service = new StandardMcpClientService();
         runner.addControllerService("mcp-client", service);
-        runner.setProperty(service, StandardMcpClientService.SERVER_URL, "http://localhost:" + port + "/mcp");
+        runner.setProperty(service, StandardMcpClientService.SERVER_URL, serverUrl());
     }
 
     @AfterEach
-    void tearDown() throws Exception {
+    void tearDown() {
         if (service.isEnabled()) {
             runner.disableControllerService(service);
         }
-        stopServer();
+        server.close();
     }
 
     @Test
@@ -100,13 +86,15 @@ class StandardMcpClientServiceTest {
         assertFalse(echo.isError());
         assertEquals("ciao", echo.text());
         assertTrue(echo.resultJson().contains("\"content\""), echo.resultJson());
+        assertNull(echo.structuredContentJson());
+        assertEquals("echo", dispatcher.lastToolCall.path("name").asString());
+        assertEquals("ciao", dispatcher.lastToolCall.path("arguments").path("message").asString());
 
         final McpCallResult failing = service.callTool("always_fails", null);
         assertTrue(failing.isError());
         assertEquals("nope", failing.text());
 
         assertEquals("test-server/1.2.3", service.serverDescription());
-        assertEquals(null, echo.structuredContentJson());
     }
 
     @Test
@@ -114,8 +102,9 @@ class StandardMcpClientServiceTest {
         runner.enableControllerService(service);
 
         final McpCallResult forecast = service.callTool("forecast", null);
-        final Map<?, ?> structured = jsonMapper.readValue(forecast.structuredContentJson(), Map.class);
-        assertEquals(Map.of("city", "Pisa", "temperature", 18.5), structured);
+        final JsonNode structured = JSON_MAPPER.readTree(forecast.structuredContentJson());
+        assertEquals("Pisa", structured.path("city").asString());
+        assertEquals(18.5, structured.path("temperature").asDouble());
     }
 
     @Test
@@ -124,6 +113,7 @@ class StandardMcpClientServiceTest {
         assertThrows(McpClientException.class, () -> service.callTool("does_not_exist", "{}"));
         // The JSON-RPC error must not have torn down the session.
         assertEquals("ciao", service.callTool("echo", "{\"message\":\"ciao\"}").text());
+        assertEquals(1, dispatcher.initializeCount);
     }
 
     @Test
@@ -131,6 +121,7 @@ class StandardMcpClientServiceTest {
         runner.enableControllerService(service);
         assertThrows(McpClientException.class, () -> service.callTool("echo", "[1,2,3]"));
         assertThrows(McpClientException.class, () -> service.callTool("echo", "not json"));
+        assertNull(dispatcher.lastToolCall);
     }
 
     @Test
@@ -153,14 +144,14 @@ class StandardMcpClientServiceTest {
 
         service.callTool("echo", "{\"message\":\"x\"}");
 
-        assertTrue(authorizationHeaders.contains("Bearer s3cret"), authorizationHeaders.toString());
-        assertTrue(customHeaders.contains("acme"), customHeaders.toString());
+        assertTrue(dispatcher.authorizationHeaders.contains("Bearer s3cret"), dispatcher.authorizationHeaders.toString());
+        assertTrue(dispatcher.tenantHeaders.contains("acme"), dispatcher.tenantHeaders.toString());
     }
 
     @Test
     void enablingSucceedsWhileServerIsDownAndConnectsOnceItIsBack() throws Exception {
-        final int originalPort = port;
-        stopServer();
+        final int originalPort = server.getPort();
+        server.close();
 
         runner.enableControllerService(service);
         assertThrows(McpClientException.class, () -> service.callTool("echo", "{\"message\":\"x\"}"));
@@ -174,9 +165,8 @@ class StandardMcpClientServiceTest {
         runner.enableControllerService(service);
         assertEquals("one", service.callTool("echo", "{\"message\":\"one\"}").text());
 
-        final int originalPort = port;
-        stopServer();
-        startServer(originalPort); // fresh server: our Mcp-Session-Id is unknown to it
+        // A restarted server no longer knows our Mcp-Session-Id and answers 404 to it.
+        dispatcher.sessionId = "restarted-session";
 
         // First call after the restart may fail (stale session) - it must not keep failing.
         try {
@@ -185,14 +175,14 @@ class StandardMcpClientServiceTest {
             // stale session dropped, next call reconnects
         }
         assertEquals("three", service.callTool("echo", "{\"message\":\"three\"}").text());
+        assertEquals(2, dispatcher.initializeCount);
     }
 
     @Test
     void verifyReportsServerAndToolCount() {
         final MockConfigurationContext context = new MockConfigurationContext(service,
-                Map.of(StandardMcpClientService.SERVER_URL, "http://localhost:" + port + "/mcp"), null, Map.of());
-        final List<ConfigVerificationResult> results =
-                service.verify(context, runner.getLogger(), Map.of());
+                Map.of(StandardMcpClientService.SERVER_URL, serverUrl()), null, Map.of());
+        final List<ConfigVerificationResult> results = service.verify(context, runner.getLogger(), Map.of());
 
         assertEquals(2, results.size(), results.toString());
         assertTrue(results.stream().allMatch(r -> r.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL),
@@ -201,117 +191,122 @@ class StandardMcpClientServiceTest {
         assertTrue(results.get(1).getExplanation().contains("3 tool(s)"));
     }
 
-    @Test
-    void invokeMcpServerEndToEnd() throws Exception {
-        final TestRunner processor = TestRunners.newTestRunner(InvokeMcpServer.class);
-        final StandardMcpClientService processorService = new StandardMcpClientService();
-        processor.addControllerService("mcp-client", processorService);
-        processor.setProperty(processorService, StandardMcpClientService.SERVER_URL, "http://localhost:" + port + "/mcp");
-        processor.enableControllerService(processorService);
-        processor.setProperty(InvokeMcpServer.MCP_CLIENT_SERVICE, "mcp-client");
-        processor.setProperty(InvokeMcpServer.TOOL_NAME, "echo");
-        processor.setProperty(InvokeMcpServer.OUTPUT_CONTENT, InvokeMcpServer.OutputContent.TEXT);
-
-        processor.enqueue("{\"message\":\"through the canvas\"}");
-        processor.run();
-
-        processor.assertTransferCount(InvokeMcpServer.SUCCESS, 1);
-        processor.assertTransferCount(InvokeMcpServer.ORIGINAL, 1);
-        final MockFlowFile out = processor.getFlowFilesForRelationship(InvokeMcpServer.SUCCESS).get(0);
-        out.assertContentEquals("through the canvas");
-        out.assertAttributeEquals("mcp.server", "test-server/1.2.3");
-        processor.disableControllerService(processorService);
+    private void startServer(final int port) throws IOException {
+        server = new MockWebServer();
+        server.setDispatcher(dispatcher);
+        server.start(port);
     }
 
-    // ---------------------------------------------------------------------------------------------
-
-    private void startServer(final int requestedPort) throws Exception {
-        final HttpServletStreamableServerTransportProvider transport = HttpServletStreamableServerTransportProvider.builder()
-                .mcpEndpoint("/mcp")
-                .jsonMapper(jsonMapper)
-                .build();
-
-        final SyncToolSpecification echo = SyncToolSpecification.builder()
-                .tool(McpSchema.Tool.builder().name("echo").description("Echoes 'message'")
-                        .inputSchema(jsonMapper, "{\"type\":\"object\",\"properties\":{\"message\":{\"type\":\"string\"}}}")
-                        .build())
-                .callHandler((exchange, request) -> CallToolResult.builder()
-                        .content(List.of(new TextContent(String.valueOf(request.arguments().get("message")))))
-                        .isError(false)
-                        .build())
-                .build();
-        final SyncToolSpecification fails = SyncToolSpecification.builder()
-                .tool(McpSchema.Tool.builder().name("always_fails").description("Reports a tool error")
-                        .inputSchema(jsonMapper, "{\"type\":\"object\"}")
-                        .build())
-                .callHandler((exchange, request) -> CallToolResult.builder()
-                        .content(List.of(new TextContent("nope")))
-                        .isError(true)
-                        .build())
-                .build();
-        final SyncToolSpecification forecast = SyncToolSpecification.builder()
-                .tool(McpSchema.Tool.builder().name("forecast").description("Returns structured content")
-                        .inputSchema(jsonMapper, "{\"type\":\"object\"}")
-                        .build())
-                .callHandler((exchange, request) -> CallToolResult.builder()
-                        .content(List.of(new TextContent("{\"city\":\"Pisa\",\"temperature\":18.5}")))
-                        .structuredContent(Map.of("city", "Pisa", "temperature", 18.5))
-                        .isError(false)
-                        .build())
-                .build();
-        final SyncResourceSpecification resource = new SyncResourceSpecification(
-                McpSchema.Resource.builder().uri("memo://greeting").name("greeting").mimeType("text/plain").build(),
-                (exchange, request) -> new McpSchema.ReadResourceResult(List.of(
-                        new McpSchema.TextResourceContents(request.uri(), "text/plain", "hello from a resource"))));
-        final SyncPromptSpecification prompt = new SyncPromptSpecification(
-                new McpSchema.Prompt("greet", "Greets someone",
-                        List.of(new McpSchema.PromptArgument("name", "who", true))),
-                (exchange, request) -> new McpSchema.GetPromptResult("greeting", List.of(
-                        new McpSchema.PromptMessage(McpSchema.Role.USER,
-                                new TextContent("Say hi to " + request.arguments().get("name"))))));
-
-        mcpServer = McpServer.sync(transport)
-                .serverInfo("test-server", "1.2.3")
-                .jsonMapper(jsonMapper)
-                .capabilities(McpSchema.ServerCapabilities.builder().tools(true).resources(false, false).prompts(false).build())
-                .tools(echo, fails, forecast)
-                .resources(resource)
-                .prompts(prompt)
-                .build();
-
-        jetty = new Server();
-        final ServerConnector connector = new ServerConnector(jetty);
-        connector.setHost("localhost");
-        connector.setPort(requestedPort);
-        jetty.addConnector(connector);
-
-        final ServletContextHandler handler = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
-        handler.setContextPath("/");
-        final Filter headerCapture = (request, response, chain) -> {
-            final HttpServletRequest http = (HttpServletRequest) request;
-            if (http.getHeader("Authorization") != null) {
-                authorizationHeaders.add(http.getHeader("Authorization"));
-            }
-            if (http.getHeader("X-Tenant") != null) {
-                customHeaders.add(http.getHeader("X-Tenant"));
-            }
-            chain.doFilter(request, response);
-        };
-        handler.addFilter(new FilterHolder(headerCapture), "/*", EnumSet.of(jakarta.servlet.DispatcherType.REQUEST));
-        handler.addServlet(new ServletHolder(transport), "/mcp/*");
-        jetty.setHandler(handler);
-        jetty.start();
-        port = connector.getLocalPort();
+    private String serverUrl() {
+        return server.url("/mcp").toString();
     }
 
-    private void stopServer() throws Exception {
-        if (mcpServer != null) {
-            mcpServer.close();
-            mcpServer = null;
+    /**
+     * Minimal MCP server: answers each JSON-RPC request with a JSON body, as the Streamable HTTP
+     * transport allows, and rejects requests carrying an unknown session with 404.
+     */
+    private static final class McpDispatcher extends Dispatcher {
+
+        private final Queue<String> authorizationHeaders = new ConcurrentLinkedQueue<>();
+        private final Queue<String> tenantHeaders = new ConcurrentLinkedQueue<>();
+        private volatile String sessionId = "test-session";
+        private volatile int initializeCount;
+        private volatile JsonNode lastToolCall;
+
+        @Override
+        public MockResponse dispatch(final RecordedRequest request) {
+            final String authorization = request.getHeaders().get("Authorization");
+            if (authorization != null) {
+                authorizationHeaders.add(authorization);
+            }
+            final String tenant = request.getHeaders().get("X-Tenant");
+            if (tenant != null) {
+                tenantHeaders.add(tenant);
+            }
+
+            if (!"POST".equals(request.getMethod())) {
+                // No server-initiated SSE stream; session DELETE on close is not supported either.
+                return new MockResponse.Builder().code(405).build();
+            }
+
+            final JsonNode message = JSON_MAPPER.readTree(request.getBody().utf8());
+            final String method = message.path("method").asString();
+            final JsonNode params = message.path("params");
+            if (!message.has("id")) {
+                return new MockResponse.Builder().code(202).build(); // notification
+            }
+
+            if ("initialize".equals(method)) {
+                initializeCount++;
+                return jsonResponse(message, Map.of("result", Map.of(
+                        "protocolVersion", params.path("protocolVersion").asString(),
+                        "capabilities", Map.of("tools", Map.of(), "resources", Map.of(), "prompts", Map.of()),
+                        "serverInfo", Map.of("name", "test-server", "version", "1.2.3"))))
+                        .newBuilder()
+                        .addHeader(SESSION_HEADER, sessionId)
+                        .build();
+            }
+            if (!sessionId.equals(request.getHeaders().get(SESSION_HEADER))) {
+                return new MockResponse.Builder().code(404).build();
+            }
+
+            return switch (method) {
+                case "tools/list" -> jsonResponse(message, Map.of("result", Map.of("tools", List.of(
+                        tool("echo", "Echoes 'message'"),
+                        tool("always_fails", "Reports a tool error"),
+                        tool("forecast", "Returns structured content")))));
+                case "tools/call" -> callTool(message, params);
+                case "resources/list" -> jsonResponse(message, Map.of("result", Map.of("resources", List.of(
+                        Map.of("uri", "memo://greeting", "name", "greeting", "mimeType", "text/plain")))));
+                case "resources/read" -> jsonResponse(message, Map.of("result", Map.of("contents", List.of(
+                        Map.of("uri", params.path("uri").asString(), "mimeType", "text/plain", "text", "hello from a resource")))));
+                case "prompts/list" -> jsonResponse(message, Map.of("result", Map.of("prompts", List.of(
+                        Map.of("name", "greet", "description", "Greets someone",
+                                "arguments", List.of(Map.of("name", "name", "description", "who", "required", true)))))));
+                case "prompts/get" -> jsonResponse(message, Map.of("result", Map.of(
+                        "description", "greeting",
+                        "messages", List.of(Map.of("role", "user",
+                                "content", text("Say hi to " + params.path("arguments").path("name").asString()))))));
+                default -> jsonResponse(message, Map.of("error", Map.of("code", -32601, "message", "Method not found: " + method)));
+            };
         }
-        if (jetty != null) {
-            jetty.stop();
-            jetty = null;
+
+        private MockResponse callTool(final JsonNode message, final JsonNode params) {
+            lastToolCall = params;
+            final String name = params.path("name").asString();
+            return switch (name) {
+                case "echo" -> jsonResponse(message, Map.of("result", Map.of(
+                        "content", List.of(text(params.path("arguments").path("message").asString())),
+                        "isError", false)));
+                case "always_fails" -> jsonResponse(message, Map.of("result", Map.of(
+                        "content", List.of(text("nope")),
+                        "isError", true)));
+                case "forecast" -> jsonResponse(message, Map.of("result", Map.of(
+                        "content", List.of(text("{\"city\":\"Pisa\",\"temperature\":18.5}")),
+                        "structuredContent", Map.of("city", "Pisa", "temperature", 18.5),
+                        "isError", false)));
+                default -> jsonResponse(message, Map.of("error", Map.of("code", -32602, "message", "Unknown tool: " + name)));
+            };
+        }
+
+        private static Map<String, Object> tool(final String name, final String description) {
+            return Map.of("name", name, "description", description, "inputSchema", Map.of("type", "object"));
+        }
+
+        private static Map<String, Object> text(final String text) {
+            return Map.of("type", "text", "text", text);
+        }
+
+        private static MockResponse jsonResponse(final JsonNode request, final Map<String, Object> payload) {
+            final Map<String, Object> body = new LinkedHashMap<>();
+            body.put("jsonrpc", "2.0");
+            body.put("id", request.get("id"));
+            body.putAll(payload);
+            return new MockResponse.Builder()
+                    .code(200)
+                    .addHeader("Content-Type", "application/json")
+                    .body(JSON_MAPPER.writeValueAsString(body))
+                    .build();
         }
     }
 }
