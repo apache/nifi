@@ -54,7 +54,7 @@ ssl-client.xml Example:
 </configuration>
 ```
 
-6. put 'ssl-client.xml' to the location looked up in the classpath, like under NiFi conriguration directory.
+6. put 'ssl-client.xml' to the location looked up in the classpath, like under NiFi configuration directory.
 7. set the name of 'ssl-client.xml' to _hadoop.ssl.client.conf_ in the 'core-site.xml' which HDFS processors use.
 
 ```xml

@@ -192,7 +192,7 @@ minifi.sh flowStatus processor:TailFile:health,stats,bulletins
 ```
 Currently the script only accepts one high level option at a time. Also any names of connections, remote process groups, or processors that contain " " (a space), ":", ";" or "," cause parsing errors when querying.
 
-**Note:** The examples in this documentation are provided for &ast;nix based environments.  Windows support is also provided by by the `flowstatus-minifi.bat` file.  To perform one of the listed interactions, `minifi.sh flowStatus` would simply be replaced by `flowstatus-minifi.bat`.  For example, the sample query above in &ast;nix environments,
+**Note:** The examples in this documentation are provided for &ast;nix based environments.  Windows support is also provided by the `flowstatus-minifi.bat` file.  To perform one of the listed interactions, `minifi.sh flowStatus` would simply be replaced by `flowstatus-minifi.bat`.  For example, the sample query above in &ast;nix environments,
 
 ```
 minifi.sh flowStatus processor:TailFile:health,stats,bulletins

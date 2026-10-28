@@ -116,7 +116,7 @@ available, the dataflow will continue to trigger MergeContent to run, without ma
 (if configured) or the dataflow times out.
 
 Additionally, depending on the context in which Stateless is run, triggering the source components may not provide additional data.
-For example, if Stateless is run in an enviornment where data is queued up in an Input Port and then the dataflow is triggered, subsequently
+For example, if Stateless is run in an environment where data is queued up in an Input Port and then the dataflow is triggered, subsequently
 triggering the Input Port to run will not produce additional data.
 
 As a result, it is important to ensure that any dataflows that contain logic to merge FlowFiles is configured with a Max Bin Age for MergeContent
@@ -210,7 +210,7 @@ The following properties may be used for configuring security parameters:
 | nifi.stateless.security.keystoreType | The type of the Keystore such as PKCS12 | JKS |
 | nifi.stateless.security.keystorePasswd | The password of the Keystore | do-not-use-this-password-either |
 | nifi.stateless.security.keyPasswd | An optional password for the key in the Keystore. If not specified, the password of the Keystore itself will be used. | password |
-| nifi.stateless.sensitive.props.key | The dataflow does not hold sensitive passwords, but some processors may have a need to encrypt data before storing it. This key is used to allow processors to encrypt and decrypt data. At present, the only Processor supported by the community that makes use of this feature is hte GetJMSTopic processor, which is deprecated. However, it is provided here for completeness. | Some Passphrase That's Difficult to Guess |
+| nifi.stateless.sensitive.props.key | The dataflow does not hold sensitive passwords, but some processors may have a need to encrypt data before storing it. This key is used to allow processors to encrypt and decrypt data. At present, the only Processor supported by the community that makes use of this feature is the GetJMSTopic processor, which is deprecated. However, it is provided here for completeness. | Some Passphrase That's Difficult to Guess |
 | nifi.stateless.kerberos.krb5.file | The KRB5 file to use for interacting with Kerberos. This is only necessary if the dataflow interacts with a Kerberized data source/sink. If not specified, will default to `/etc/krb5.conf` | /etc/krb5.conf |
 
 A key tenant of NiFi is a separation between the framework and the extensions that operate on data. As such, we must have a mechanism for dictating where extensions can be located.
@@ -290,7 +290,7 @@ by specifying a local filename for the flow; by specifying a URL for the flow; o
 Note that if using a local filename, the format of the file is not the same as
 the `flow.json.gz` file that NiFi uses but rather is the `Versioned Flow Snapshot` format that is used by the NiFi Registry.
 The easiest way to export a flow from NiFi onto local disk for use by Stateless NiFi is to right-click on a Process Group or
-the canvas in NiFi and choose `Downlaod Flow`.
+the canvas in NiFi and choose `Download Flow`.
 
 The following properties are supported for specifying the location of a flow:
 
@@ -314,7 +314,7 @@ Stateless NiFi also allows the user to provide one or more Parameter Contexts to
 For example, to create a Parameter Context with the name "Kafka Parameter Context" and 2 parameters, "Kafka Topic" and "Kafka Brokers",
 we would use the following three properties:
 ```
-nifi.stateless.parameters.kafka=Kafa Parameter Context
+nifi.stateless.parameters.kafka=Kafka Parameter Context
 nifi.stateless.parameters.kafka.Kafka Topic=Sensor Data
 nifi.stateless.parameters.kafka.Kafka Brokers=kafka-01:9092,kafka-02:9092,kafka-03:9092
 ```
@@ -385,7 +385,7 @@ There is one additional property that is supported in the dataflow configuration
 |---------------|-------------|---------------|
 | nifi.stateless.failure.port.names | A comma-delimited list of Output Port names. If a FlowFile is routed to any of these Output Ports, it is considered a failure and will rollback the entire session. | Unknown Kafka Type, Parse Failure, Failed to Write to HDFS |
 
-This property allows the user to enter one or more ports that should be considered failures. The value is a comma-separted list of names of Outport Ports. In the example above, if a FlowFile is
+This property allows the user to enter one or more ports that should be considered failures. The value is a comma-separated list of names of Output Ports. In the example above, if a FlowFile is
 routed to the "Unknown Kafka Type" port, the "Parse Failure" port, or the "Failed to Write to HDFS" port, then the flow is considered a failure. The entire session will be rolled back, and the source
 Processor will not acknowledge the data from the source. As a result, the next time that the dataflow is triggered, it will consume the same data again.
 

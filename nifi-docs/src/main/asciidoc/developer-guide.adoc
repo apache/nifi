@@ -386,7 +386,7 @@ In addition, if a property is dependent on another property (by means of the `Pr
 
 For example, consider the following two Property Descriptors:
 ```
-PropertyDescriptor USE_FILE = new PropertyDescriptor.Buildler()
+PropertyDescriptor USE_FILE = new PropertyDescriptor.Builder()
     .name("Use File")
     .displayName("Use File")
     .required(true)
