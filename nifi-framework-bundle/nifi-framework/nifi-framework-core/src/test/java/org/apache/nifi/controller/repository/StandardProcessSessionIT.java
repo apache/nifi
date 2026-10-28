@@ -2690,6 +2690,18 @@ public class StandardProcessSessionIT {
 
         stateManager.assertStateEquals(Map.of("abc", "1"), Scope.LOCAL);
         verify(stateManager, never()).patchState(any(), any());
+
+        // Rolling back discards a patch made after the checkpoint and keeps the checkpointed patch
+        stateManager.reset();
+        clearInvocations(stateManager);
+        session.patchState(Map.of("abc", "1"), Scope.LOCAL);
+        session.checkpoint();
+        session.patchState(Map.of("def", "2"), Scope.LOCAL);
+        session.rollback();
+        session.commit();
+
+        verify(stateManager).patchState(Map.of("abc", "1"), Scope.LOCAL);
+        stateManager.assertStateEquals(Map.of("abc", "1"), Scope.LOCAL);
     }
 
     @Test

@@ -90,7 +90,7 @@ public class MockProcessSession implements ProcessSession {
     // A List of OutputStreams that have been created by calls to {@link #write(FlowFile)} and have not yet been closed.
     private final Map<FlowFile, OutputStream> openOutputStreams = new HashMap<>();
     private final StateManager stateManager;
-    private final Map<Scope, Map<String, String>> pendingStatePatches = new HashMap<>();
+    private final Map<Scope, PendingStatePatches> pendingStatePatches = new HashMap<>();
     private final boolean allowSynchronousCommits;
     private final boolean allowRecursiveReads;
     private final boolean failCommit;
@@ -342,9 +342,9 @@ public class MockProcessSession implements ProcessSession {
         closeStreams(openInputStreams, enforceStreamsClosed);
         closeStreams(openOutputStreams, enforceStreamsClosed);
 
-        for (final Map.Entry<Scope, Map<String, String>> entry : pendingStatePatches.entrySet()) {
+        for (final Map.Entry<Scope, PendingStatePatches> entry : pendingStatePatches.entrySet()) {
             try {
-                stateManager.patchState(entry.getValue(), entry.getKey());
+                stateManager.patchState(entry.getValue().values, entry.getKey());
             } catch (final IOException e) {
                 throw new ProcessException("Failed to patch " + entry.getKey() + " state", e);
             }
@@ -1421,16 +1421,20 @@ public class MockProcessSession implements ProcessSession {
         pendingStatePatches.remove(scope);
     }
 
+    /**
+     * Returns the stored state with any patches that have not yet been committed applied. Each patch gives the returned state a new version,
+     * as the framework does, so that a state obtained before a patch no longer matches in {@link #replaceState(StateMap, Map, Scope)}.
+     */
     @Override
     public StateMap getState(final Scope scope) throws IOException {
         final StateMap storedState = stateManager.getState(scope);
-        final Map<String, String> patches = pendingStatePatches.get(scope);
+        final PendingStatePatches patches = pendingStatePatches.get(scope);
         if (patches == null) {
             return storedState;
         }
 
-        final long version = storedState.getStateVersion().map(Long::parseLong).orElse(-1L);
-        return new MockStateMap(storedState.toMap(patches), version);
+        final long storedVersion = storedState.getStateVersion().map(Long::parseLong).orElse(-1L);
+        return new MockStateMap(storedState.toMap(patches.values), storedVersion + patches.count);
     }
 
     /**
@@ -1469,7 +1473,9 @@ public class MockProcessSession implements ProcessSession {
             return;
         }
 
-        pendingStatePatches.computeIfAbsent(scope, key -> new HashMap<>()).putAll(updatedState);
+        final PendingStatePatches patches = pendingStatePatches.computeIfAbsent(scope, key -> new PendingStatePatches());
+        patches.values.putAll(updatedState);
+        patches.count++;
     }
 
     @Override
@@ -1583,5 +1589,13 @@ public class MockProcessSession implements ProcessSession {
                     failCommit
             );
         }
+    }
+
+    /**
+     * The state changes that the session has not yet committed for one scope, along with the number of times that state was patched.
+     */
+    private static final class PendingStatePatches {
+        private final Map<String, String> values = new HashMap<>();
+        private int count;
     }
 }

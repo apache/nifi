@@ -604,6 +604,11 @@ public class TestMockProcessSession {
             sessionOfStatefulProcessor.rollback();
             assertEquals(expectedState, sessionOfStatefulProcessor.getState(Scope.LOCAL).toMap());
 
+            final StateMap stateBeforeSameValuePatch = sessionOfStatefulProcessor.getState(Scope.LOCAL);
+            sessionOfStatefulProcessor.patchState(expectedState, Scope.LOCAL);
+            assertEquals(expectedState, sessionOfStatefulProcessor.getState(Scope.LOCAL).toMap());
+            assertFalse(sessionOfStatefulProcessor.replaceState(stateBeforeSameValuePatch, Map.of("replaced", "value"), Scope.LOCAL));
+
             sessionOfStatefulProcessor.patchState(patch, Scope.LOCAL);
             assertTrue(sessionOfStatefulProcessor.replaceState(sessionOfStatefulProcessor.getState(Scope.LOCAL), Map.of("replaced", "value"), Scope.LOCAL));
             sessionOfStatefulProcessor.patchState(Map.of("patched", "value"), Scope.LOCAL);
