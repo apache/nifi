@@ -23,11 +23,12 @@ import { CurrentUserService } from '../../service/current-user.service';
 import { ErrorHelper } from '../../service/error-helper.service';
 import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
-import { NiFiState } from '../index';
+import { isAuthenticatedRoute, NiFiState, RETURN_URL } from '../index';
 import { selectLogoutUri } from '../login-configuration/login-configuration.selectors';
 import { Router } from '@angular/router';
 import { AuthService } from '../../service/auth.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { SessionStorageService } from '@nifi/shared';
 
 @Injectable()
 export class CurrentUserEffects {
@@ -37,6 +38,7 @@ export class CurrentUserEffects {
     private userService = inject(CurrentUserService);
     private authService = inject(AuthService);
     private errorHelper = inject(ErrorHelper);
+    private sessionStorage = inject(SessionStorageService);
 
     loadCurrentUser$ = createEffect(() =>
         this.actions$.pipe(
@@ -75,7 +77,26 @@ export class CurrentUserEffects {
             this.actions$.pipe(
                 ofType(UserActions.navigateToLogIn),
                 tap(() => {
+                    const currentUrl = window.location.hash.substring(1);
+                    if (currentUrl.startsWith('/') && isAuthenticatedRoute(currentUrl)) {
+                        this.sessionStorage.setItem<string>(RETURN_URL, currentUrl);
+                    }
                     this.router.navigate(['/login']);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    restoreReturnUrl$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(UserActions.loadCurrentUserSuccess),
+                tap(() => {
+                    const returnUrl = this.sessionStorage.getItem<string>(RETURN_URL);
+                    if (returnUrl) {
+                        this.sessionStorage.removeItem(RETURN_URL);
+                        this.router.navigateByUrl(returnUrl);
+                    }
                 })
             ),
         { dispatch: false }
