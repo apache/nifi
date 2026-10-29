@@ -683,12 +683,12 @@ public class MockProcessSession implements ProcessSession {
         incrementReadCount(flowFile);
         final InputStream errorHandlingStream = new InputStream() {
             @Override
-            public int read() throws IOException {
+            public int read() {
                 return bais.read();
             }
 
             @Override
-            public int read(byte[] b, int off, int len) throws IOException {
+            public int read(byte[] b, int off, int len) {
                 return bais.read(b, off, len);
             }
 
@@ -715,7 +715,7 @@ public class MockProcessSession implements ProcessSession {
             }
 
             @Override
-            public int available() throws IOException {
+            public int available() {
                 return bais.available();
             }
 

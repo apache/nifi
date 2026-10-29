@@ -33,8 +33,7 @@ public class ByteFilteringOutputStream extends FilterOutputStream {
     private final List<Filter> singleByteFilters = new ArrayList<>();
     private final OutputStream wrapped;
 
-    public ByteFilteringOutputStream(final OutputStream toWrap)
-            throws IOException {
+    public ByteFilteringOutputStream(final OutputStream toWrap) {
         super(toWrap);
         this.wrapped = toWrap;
     }

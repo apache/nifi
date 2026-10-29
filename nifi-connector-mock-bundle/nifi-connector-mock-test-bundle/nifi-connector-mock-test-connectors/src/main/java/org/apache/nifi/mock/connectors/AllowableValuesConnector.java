@@ -24,7 +24,6 @@ import org.apache.nifi.components.connector.AbstractConnector;
 import org.apache.nifi.components.connector.ConfigurationStep;
 import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorPropertyGroup;
-import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.connector.util.VersionedFlowUtils;
@@ -81,7 +80,7 @@ public class AllowableValuesConnector extends AbstractConnector {
     }
 
     @Override
-    public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
+    public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
     }
 
     @Override

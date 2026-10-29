@@ -28,7 +28,7 @@ import java.nio.charset.StandardCharsets;
 public class StringSerDe implements Serializer<String>, Deserializer<String> {
 
     @Override
-    public String deserialize(final byte[] value) throws DeserializationException, IOException {
+    public String deserialize(final byte[] value) throws DeserializationException {
         if (value == null) {
             return null;
         }

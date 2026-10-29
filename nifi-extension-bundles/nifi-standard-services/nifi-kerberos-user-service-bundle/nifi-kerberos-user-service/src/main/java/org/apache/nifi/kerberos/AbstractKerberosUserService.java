@@ -25,7 +25,6 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -49,7 +48,7 @@ public abstract class AbstractKerberosUserService extends AbstractControllerServ
     private volatile String principal;
 
     @Override
-    protected final void init(final ControllerServiceInitializationContext config) throws InitializationException {
+    protected final void init(final ControllerServiceInitializationContext config) {
         kerberosConfigFile = config.getKerberosConfigurationFile();
     }
 

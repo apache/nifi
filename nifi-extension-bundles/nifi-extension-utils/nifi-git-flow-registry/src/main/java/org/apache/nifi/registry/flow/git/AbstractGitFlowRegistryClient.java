@@ -588,7 +588,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         return bucket;
     }
 
-    private RegisteredFlowSnapshotMetadata createSnapshotMetadata(final GitCommit commit, final FlowLocation flowLocation) throws IOException {
+    private RegisteredFlowSnapshotMetadata createSnapshotMetadata(final GitCommit commit, final FlowLocation flowLocation) {
         final RegisteredFlowSnapshotMetadata snapshotMetadata = new RegisteredFlowSnapshotMetadata();
         snapshotMetadata.setBranch(flowLocation.getBranch());
         snapshotMetadata.setBucketIdentifier(flowLocation.getBucketId());

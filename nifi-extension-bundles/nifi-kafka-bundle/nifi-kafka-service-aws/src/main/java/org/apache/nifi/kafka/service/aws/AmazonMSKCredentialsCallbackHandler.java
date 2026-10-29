@@ -23,7 +23,6 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.msk.auth.iam.IAMLoginModule;
 import software.amazon.msk.auth.iam.internals.AWSCredentialsCallback;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import javax.security.auth.callback.Callback;
@@ -64,7 +63,7 @@ public class AmazonMSKCredentialsCallbackHandler implements AuthenticateCallback
     }
 
     @Override
-    public void handle(final Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+    public void handle(final Callback[] callbacks) throws UnsupportedCallbackException {
         for (final Callback callback : callbacks) {
             if (callback instanceof final AWSCredentialsCallback awsCredentialsCallback) {
                 handleCredentialsCallback(awsCredentialsCallback);

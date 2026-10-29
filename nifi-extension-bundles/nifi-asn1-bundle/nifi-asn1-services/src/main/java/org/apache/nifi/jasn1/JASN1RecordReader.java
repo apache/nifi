@@ -19,7 +19,6 @@ package org.apache.nifi.jasn1;
 import com.beanit.asn1bean.ber.types.BerType;
 import org.apache.nifi.jasn1.convert.JASN1ConverterImpl;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -28,7 +27,6 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StringUtils;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -124,7 +122,7 @@ public class JASN1RecordReader implements RecordReader {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
+    public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) {
 
         return withClassLoader(() -> {
             if (recordModelIterator == null) {
@@ -174,12 +172,12 @@ public class JASN1RecordReader implements RecordReader {
     }
 
     @Override
-    public RecordSchema getSchema() throws MalformedRecordException {
+    public RecordSchema getSchema() {
         return withClassLoader(() -> schemaProvider.get(recordModelClass));
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
 
     }
 }

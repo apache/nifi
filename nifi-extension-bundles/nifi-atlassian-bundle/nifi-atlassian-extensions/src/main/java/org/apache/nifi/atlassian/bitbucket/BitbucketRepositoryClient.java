@@ -537,7 +537,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
 
     @Override
     public void createBranch(final String newBranchName, final String sourceBranch, final Optional<String> sourceCommitSha)
-            throws IOException, FlowRegistryException {
+            throws FlowRegistryException {
         if (newBranchName == null || newBranchName.isBlank()) {
             throw new IllegalArgumentException("Branch name must be specified");
         }

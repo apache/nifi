@@ -499,7 +499,7 @@ public class ExecuteProcess extends AbstractProcessor {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
         }
 
         @Override

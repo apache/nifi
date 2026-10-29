@@ -32,7 +32,7 @@ public class NifiOutputStream extends PositionOutputStream {
     }
 
     @Override
-    public long getPos() throws IOException {
+    public long getPos() {
         return position;
     }
 

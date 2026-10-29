@@ -702,7 +702,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         }
 
         @Override
-        protected void createRecordsForEntities(ProcessContext context, ProcessSession session, List<ListableBlob> updatedEntities) throws IOException, SchemaNotFoundException {
+        protected void createRecordsForEntities(ProcessContext context, ProcessSession session, List<ListableBlob> updatedEntities) {
             publishListing(context, session, updatedEntities);
         }
 

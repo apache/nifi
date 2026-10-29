@@ -23,7 +23,6 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.reporting.InitializationException;
 
 import java.util.Collections;
 import java.util.List;
@@ -40,11 +39,9 @@ public class StandardClassLoaderInfoService extends AbstractControllerService im
     /**
      * @param context
      *            the configuration context
-     * @throws InitializationException
-     *             if unable to create a database connection
      */
     @OnEnabled
-    public void onEnabled(final ConfigurationContext context) throws InitializationException {
+    public void onEnabled(final ConfigurationContext context) {
 
     }
 

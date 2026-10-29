@@ -114,7 +114,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
         gitHubBuilder.withAbuseLimitHandler(new GitHubAbuseLimitHandler() {
             @Override
-            public void onError(GitHubConnectorResponse connectorResponse) throws IOException {
+            public void onError(GitHubConnectorResponse connectorResponse) {
                 String message;
                 try (final InputStream stream = connectorResponse.bodyStream()) {
                     message = new String(stream.readAllBytes());

@@ -130,7 +130,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public void initialize(final EventReporter eventReporter, final Authorizer authorizer, final ProvenanceAuthorizableFactory resourceFactory,
-        final IdentifierLookup idLookup) throws IOException {
+        final IdentifierLookup idLookup) {
         if (initialized.getAndSet(true)) {
             return;
         }
@@ -165,7 +165,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords) throws IOException {
+    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords) {
         return getEvents(firstRecordId, maxRecords, null);
     }
 
@@ -210,7 +210,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         queryExecService.shutdownNow();
         scheduledExecService.shutdown();
     }
@@ -565,7 +565,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         throw new AccessDeniedException("Cannot retrieve Provenance Lineage Submission because " + user.getIdentity() + " is not the user who submitted the request.");
     }
 
-    public Lineage expandSpawnEventParents(String identifier) throws IOException {
+    public Lineage expandSpawnEventParents(String identifier) {
         throw new UnsupportedOperationException();
     }
 
@@ -628,7 +628,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public long getContainerCapacity(final String containerName) throws IOException {
+    public long getContainerCapacity(final String containerName) {
         return maxSize;
     }
 
@@ -638,7 +638,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public long getContainerUsableSpace(String containerName) throws IOException {
+    public long getContainerUsableSpace(String containerName) {
         return maxSize - ringBuffer.getSize();
     }
 

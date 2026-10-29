@@ -337,7 +337,7 @@ public class StartRunner implements CommandRunner {
         return process;
     }
 
-    private File getWorkingDir() throws IOException {
+    private File getWorkingDir() {
         BootstrapProperties props = bootstrapFileProvider.getBootstrapProperties();
         File bootstrapConfigAbsoluteFile = bootstrapConfigFile.getAbsoluteFile();
         File binDir = bootstrapConfigAbsoluteFile.getParentFile();

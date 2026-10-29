@@ -362,7 +362,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * init SQL variables from DBCP services
      */
-    private void onInitSQL(Map<String, Object> sqlMap, Map<String, String> attributes) throws SQLException {
+    private void onInitSQL(Map<String, Object> sqlMap, Map<String, String> attributes) {
         for (Map.Entry<String, Object> e : sqlMap.entrySet()) {
             DBCPService s = (DBCPService) e.getValue();
             OSql sql = new OSql(s.getConnection(attributes));

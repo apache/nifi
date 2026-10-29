@@ -57,7 +57,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    public FlowFileCodec negotiateCodec(final Peer peer) throws IOException {
+    public FlowFileCodec negotiateCodec(final Peer peer) {
         return codec;
     }
 
@@ -89,7 +89,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    protected void writeTransactionResponse(boolean isTransfer, ResponseCode response, CommunicationsSession commsSession, String explanation) throws IOException {
+    protected void writeTransactionResponse(boolean isTransfer, ResponseCode response, CommunicationsSession commsSession, String explanation) {
         HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) commsSession;
 
         commSession.setResponseCode(response);
@@ -187,7 +187,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    protected int commitTransferTransaction(Peer peer, FlowFileTransaction transaction) throws IOException {
+    protected int commitTransferTransaction(Peer peer, FlowFileTransaction transaction) {
         return holdTransaction(peer, transaction);
     }
 
@@ -203,7 +203,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    protected int commitReceiveTransaction(Peer peer, FlowFileTransaction transaction) throws IOException {
+    protected int commitReceiveTransaction(Peer peer, FlowFileTransaction transaction) {
         return holdTransaction(peer, transaction);
     }
 
@@ -218,7 +218,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    public RequestType getRequestType(final Peer peer) throws IOException {
+    public RequestType getRequestType(final Peer peer) {
         return null;
     }
 
@@ -228,7 +228,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    public void sendPeerList(Peer peer, Optional<ClusterNodeInformation> clusterNodeInfo, final NodeInformation self) throws IOException {
+    public void sendPeerList(Peer peer, Optional<ClusterNodeInformation> clusterNodeInfo, final NodeInformation self) {
     }
 
     @Override

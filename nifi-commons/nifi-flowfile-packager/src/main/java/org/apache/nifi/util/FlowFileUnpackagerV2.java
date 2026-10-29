@@ -33,7 +33,7 @@ public class FlowFileUnpackagerV2 implements FlowFileUnpackager {
     private boolean haveReadSomething = false;
 
     @Override
-    public boolean hasMoreData() throws IOException {
+    public boolean hasMoreData() {
         return nextAttributes != null || !haveReadSomething;
     }
 

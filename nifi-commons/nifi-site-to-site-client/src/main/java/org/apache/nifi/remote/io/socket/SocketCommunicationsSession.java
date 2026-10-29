@@ -52,7 +52,7 @@ public class SocketCommunicationsSession extends AbstractCommunicationsSession {
     }
 
     @Override
-    public void setTimeout(final int millis) throws IOException {
+    public void setTimeout(final int millis) {
         request.setTimeout(millis);
         response.setTimeout(millis);
         this.timeout = millis;

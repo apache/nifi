@@ -79,7 +79,7 @@ public abstract class AbstractStartGcpVisionOperation<B extends Message.Builder>
     }
 
     @OnStopped
-    public void onStopped() throws IOException {
+    public void onStopped() {
         getVisionClient().close();
     }
 

@@ -280,7 +280,7 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
     }
 
     @Override
-    public synchronized Set<String> getRecoveredSwapLocations() throws IOException {
+    public synchronized Set<String> getRecoveredSwapLocations() {
         if (!recovered) {
             throw new IllegalStateException("Cannot retrieve the Recovered Swap Locations until record recovery has been performed");
         }

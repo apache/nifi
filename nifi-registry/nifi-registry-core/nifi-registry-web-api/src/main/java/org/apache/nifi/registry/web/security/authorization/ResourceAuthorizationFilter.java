@@ -156,7 +156,7 @@ public class ResourceAuthorizationFilter extends GenericFilterBean {
         chain.doFilter(req, res);
     }
 
-    private void failedAuthorization(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Exception failure) throws IOException, ServletException {
+    private void failedAuthorization(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Exception failure) throws IOException {
         logger.debug("Request filter authorization check failed. Blocking access.");
 
         NiFiUser user = NiFiUserUtils.getNiFiUser();

@@ -41,7 +41,7 @@ public class LimitingInputStream extends InputStream {
         this.limit = limit;
     }
 
-    public boolean hasReachedLimit() throws IOException {
+    public boolean hasReachedLimit() {
         return limitReached;
     }
 

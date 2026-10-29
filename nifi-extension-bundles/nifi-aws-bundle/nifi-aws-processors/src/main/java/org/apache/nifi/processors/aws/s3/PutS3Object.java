@@ -428,7 +428,7 @@ public class PutS3Object extends AbstractS3Processor {
         }
     }
 
-    protected synchronized MultipartState getLocalState(final String s3ObjectKey) throws IOException {
+    protected synchronized MultipartState getLocalState(final String s3ObjectKey) {
         // get local state if it exists
         final File persistenceFile = getPersistenceFile();
 

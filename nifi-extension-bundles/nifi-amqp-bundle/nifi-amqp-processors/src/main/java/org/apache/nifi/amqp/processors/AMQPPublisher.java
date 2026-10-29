@@ -152,7 +152,7 @@ final class AMQPPublisher extends AMQPWorker {
      */
     private final class UndeliverableMessageLogger implements ReturnListener {
         @Override
-        public void handleReturn(int replyCode, String replyText, String exchangeName, String routingKey, BasicProperties properties, byte[] message) throws IOException {
+        public void handleReturn(int replyCode, String replyText, String exchangeName, String routingKey, BasicProperties properties, byte[] message) {
             final String reason = "Message returned as undeliverable by broker: exchange='" + exchangeName
                     + "' routingKey='" + routingKey + "' replyCode=" + replyCode + " replyText='" + replyText + "'";
             if (useConfirms) {
