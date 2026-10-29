@@ -3285,11 +3285,21 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
      */
     @Override
     public boolean isPrimary() {
-        return isClustered() && leaderElectionManager != null && leaderElectionManager.isLeader(ClusterRoles.PRIMARY_NODE);
+        try {
+            return isClustered() && leaderElectionManager != null && leaderElectionManager.isLeader(ClusterRoles.PRIMARY_NODE);
+        } catch (final Exception e) {
+            LOG.warn("Failed to determine whether this instance is the primary node. Assuming that it is not.", e);
+            return false;
+        }
     }
 
     public boolean isClusterCoordinator() {
-        return isClustered() && leaderElectionManager != null && leaderElectionManager.isLeader(ClusterRoles.CLUSTER_COORDINATOR);
+        try {
+            return isClustered() && leaderElectionManager != null && leaderElectionManager.isLeader(ClusterRoles.CLUSTER_COORDINATOR);
+        } catch (final Exception e) {
+            LOG.warn("Failed to determine whether this instance is the cluster coordinator. Assuming that it is not.", e);
+            return false;
+        }
     }
 
     public void setPrimary(final boolean primary) {
