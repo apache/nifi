@@ -158,16 +158,18 @@ class CronSchedulingAgentTest {
 
     @Test
     void testNextScheduleAcrossAutumnDaylightSavingTransition() {
-        final ZoneId zone = ZoneId.of("Europe/Amsterdam");
         final CronExpression cronExpression = CronExpression.parse("0 30 20 ? * MON-FRI");
 
         // Friday before the DST transition.
-        final ZonedDateTime currentSchedule = ZonedDateTime.of(2026, 10, 23, 20, 30, 0, 0, zone);
+        final LocalDateTime currentScheduleTime = LocalDateTime.of(2026, 10, 23, 20, 30);
+        final ZoneId zone = ZoneId.of("Europe/Amsterdam");
+        final ZonedDateTime currentSchedule = currentScheduleTime.atZone(zone);
 
         // Supply a fixed time rather than depending on the system clock.
         final ZonedDateTime nextSchedule = CronSchedulingAgent.getNextSchedule(currentSchedule, cronExpression, currentSchedule);
 
-        assertEquals(LocalDateTime.of(2026, 10, 26, 20, 30), nextSchedule.toLocalDateTime());
+        final LocalDateTime expectedSchedule = LocalDateTime.of(2026, 10, 26, 20, 30);
+        assertEquals(expectedSchedule, nextSchedule.toLocalDateTime());
         assertEquals(ZoneOffset.ofHours(1), nextSchedule.getOffset());
         assertEquals(zone, nextSchedule.getZone());
     }
