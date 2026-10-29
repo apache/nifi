@@ -413,8 +413,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String expectedVersion = snapshotMetadata.getVersion();
 
         // Get the current version (latest commit SHA) from the repository
-        final List<GitCommit> commits = repositoryClient.getCommits(filePath, branch);
-        final String currentVersion = commits.isEmpty() ? null : commits.getFirst().id();
+        final String currentVersion = repositoryClient.getLatestCommitSha(filePath, branch).orElse(null);
 
         // Check for version conflict: if the user expects a specific version but it doesn't match the current version in the repository,
         // another user may have committed changes in the meantime. Reject the commit unless FORCE_COMMIT is specified.
@@ -562,9 +561,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String branch = flowLocation.getBranch();
         final String filePath = getSnapshotFilePath(flowLocation);
 
-        final List<GitCommit> commits = repositoryClient.getCommits(filePath, branch);
-        final String latestVersion = commits.isEmpty() ? null : commits.getFirst().id();
-        return Optional.ofNullable(latestVersion);
+        return repositoryClient.getLatestCommitSha(filePath, branch);
     }
 
     @Override
