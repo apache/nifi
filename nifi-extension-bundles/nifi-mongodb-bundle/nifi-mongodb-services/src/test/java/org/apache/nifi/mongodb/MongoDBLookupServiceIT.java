@@ -89,8 +89,11 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
 
     @AfterEach
     public void after() {
-        db.drop();
-        controllerService.onDisable();
+        try {
+            db.drop();
+        } finally {
+            controllerService.onDisable();
+        }
     }
 
     @Test
