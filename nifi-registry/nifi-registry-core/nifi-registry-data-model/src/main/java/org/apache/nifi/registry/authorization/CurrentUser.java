@@ -49,7 +49,7 @@ public class CurrentUser {
         return loginSupported;
     }
 
-    @Schema(description = "Indicates if the NiFi Registry instance supports logging in with an OIDC provider")
+    @Schema(name = "oidcloginSupported", description = "Indicates if the NiFi Registry instance supports logging in with an OIDC provider")
     public boolean isOIDCLoginSupported() {
         return oidcLoginSupported;
     }
