@@ -30,7 +30,7 @@ $handle-size: 15px;
     height: $handle-size;
     bottom: 10px;
     right: 10px;
-    cursor: se-resize;
+    cursor: se-resize !important;
 }
 
 .resizable-triangle {
