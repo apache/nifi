@@ -20,6 +20,7 @@ package org.apache.nifi.provenance.store;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.authorization.EventAuthorizer;
 import org.apache.nifi.provenance.store.iterator.EventIterator;
+import org.apache.nifi.provenance.util.FileInfo;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -34,6 +35,13 @@ public interface EventStorePartition extends Closeable {
      * @throws IOException if unable to perform initialization
      */
     void initialize() throws IOException;
+
+    /**
+     * Gets a unique partition name.
+     *
+     * @return this partition's name
+     */
+    String getPartitionName();
 
     /**
      * Adds the given events to the store
@@ -97,17 +105,28 @@ public interface EventStorePartition extends Closeable {
     EventIterator createEventIterator(List<Long> eventIds);
 
     /**
-     * Purges any events from the partition that are older than the given amount of time
+     * Gets metadata for all files in this partition
      *
-     * @param olderThan the amount of time for which any event older than this should be removed
-     * @param timeUnit the unit of time that applies to the first argument
+     * @return a list of FileInfo
+     * @throws IOException if unable to read event files from storage
      */
-    void purgeOldEvents(long olderThan, ChronoUnit timeUnit);
+    List<FileInfo> getAllFiles() throws IOException;
 
     /**
-     * Purges some number of events from the partition. The oldest events will be purged.
+     * Purges any events from the partition that are older than the given amount of time
      *
+     * @param files the list of files in the partition; must be mutable because purged files are removed from this list
+     * @param olderThan the amount of time for which any event older than this should be removed
+     * @param timeUnit the unit of time that applies to the first argument
      * @return the number of bytes purged from the partition
      */
-    long purgeOldestEvents();
+    long purgeOldEvents(List<FileInfo> files, long olderThan, ChronoUnit timeUnit);
+
+    /**
+     * Purges one event file containing some number of events from the partition. The oldest events will be purged.
+     *
+     * @param files the list of files in the partition; must be mutable because purged files are removed from this list
+     * @return the number of bytes purged from the partition
+     */
+    long purgeOldestEvents(List<FileInfo> files);
 }
