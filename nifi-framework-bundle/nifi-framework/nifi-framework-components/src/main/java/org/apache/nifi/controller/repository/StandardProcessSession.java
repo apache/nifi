@@ -52,7 +52,6 @@ import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.status.LoadBalanceStatus;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.ProcessSession;
@@ -77,6 +76,7 @@ import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.NonFlushableOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.Connectables;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -795,7 +795,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             final Map<String, Long> counters = combineCounters(checkpoint.countersOnCommit, checkpoint.immediateCounters);
 
-            final ProcessSessionEvent flowFileEvent = ProcessSessionEventBuilder.forComponent(context.getComponentMetricContext())
+            final ComponentMetricContext componentMetricContext = Connectables.createComponentMetricContext(context.getConnectable());
+            final ProcessSessionEvent flowFileEvent = ProcessSessionEventBuilder.forComponent(componentMetricContext)
                     .flowFilesIn(checkpoint.flowFilesIn)
                     .flowFilesOut(checkpoint.flowFilesOut)
                     .flowFilesRemoved(checkpoint.removedCount)
@@ -833,12 +834,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             for (final Connection connection : checkpoint.processedConnections.values()) {
                 final Connectable source = connection.getSource();
                 final ComponentMetricContext sourceContext = connectableMetricContexts.computeIfAbsent(source.getIdentifier(),
-                    id -> getComponentMetricContext(source)
+                    id -> Connectables.createComponentMetricContext(source)
                 );
 
                 final Connectable destination = connection.getDestination();
                 final ComponentMetricContext destinationContext = connectableMetricContexts.computeIfAbsent(destination.getIdentifier(),
-                        id -> getComponentMetricContext(destination)
+                        id -> Connectables.createComponentMetricContext(destination)
                 );
 
                 final ComponentMetricContext connectionMetricContext = checkpoint.connectionMetricContexts.get(connection.getIdentifier());
@@ -863,17 +864,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 context.recordConnectionStatusEvent(connectionStatusEvent);
             }
         }
-    }
-
-    private ComponentMetricContext getComponentMetricContext(final Connectable connectable) {
-        final ProcessGroup processGroup = connectable.getProcessGroup();
-        final Map<String, String> attributes = processGroup == null ? Map.of() : processGroup.getLoggingAttributes();
-        return new ComponentMetricContext(
-                connectable.getIdentifier(),
-                connectable.getName(),
-                connectable.getComponentType(),
-                attributes
-        );
     }
 
     private LoadBalanceStatus getLoadBalanceStatus(final FlowFileQueue flowFileQueue) {
@@ -1422,7 +1412,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             }
         }
 
-        final ProcessSessionEvent flowFileEvent = ProcessSessionEventBuilder.forComponent(context.getComponentMetricContext())
+        final ComponentMetricContext componentMetricContext = Connectables.createComponentMetricContext(context.getConnectable());
+        final ProcessSessionEvent flowFileEvent = ProcessSessionEventBuilder.forComponent(componentMetricContext)
                 .bytesRead(bytesRead)
                 .bytesWritten(bytesWritten)
                 .counters(getCounterValues(immediateCounters))
@@ -2035,7 +2026,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         Objects.requireNonNull(commitTiming, "Commit Timing required");
 
         final Instant recorded = Instant.now();
-        final GaugeRecord gaugeRecord = new GaugeRecord(name, value, Map.copyOf(attributes), recorded, context.getComponentMetricContext());
+        final ComponentMetricContext componentMetricContext = Connectables.createComponentMetricContext(context.getConnectable());
+        final GaugeRecord gaugeRecord = new GaugeRecord(name, value, Map.copyOf(attributes), recorded, componentMetricContext);
 
         if (CommitTiming.NOW == commitTiming) {
             context.recordGauge(gaugeRecord);

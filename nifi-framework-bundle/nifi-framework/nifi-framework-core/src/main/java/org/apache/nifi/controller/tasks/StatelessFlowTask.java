@@ -17,7 +17,6 @@
 
 package org.apache.nifi.controller.tasks;
 
-import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.ConnectionUtils;
 import org.apache.nifi.connectable.ConnectionUtils.FlowFileCloneResult;
@@ -25,7 +24,6 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Triggerable;
-import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
@@ -57,6 +55,7 @@ import org.apache.nifi.stateless.flow.FlowFileSupplier;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TriggerResult;
 import org.apache.nifi.stateless.repository.StatelessProvenanceRepository;
+import org.apache.nifi.util.Connectables;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -632,7 +631,9 @@ public class StatelessFlowTask {
 
                 final Port inputPort = polledFlowFile.getInputPort();
                 final ProcessSessionEventBuilder cumulativeEvent = eventsByComponentId.computeIfAbsent(
-                        inputPort.getIdentifier(), id -> ProcessSessionEventBuilder.forComponent(createMetricContext(inputPort)));
+                    inputPort.getIdentifier(),
+                    id -> ProcessSessionEventBuilder.forComponent(Connectables.createComponentMetricContext(inputPort))
+                );
                 cumulativeEvent.addFlowFilesIn(1)
                         .addFlowFilesOut(numOutputConnections)
                         .addContentSizeIn(bytes)
@@ -654,7 +655,9 @@ public class StatelessFlowTask {
                 final int outputConnectionCount = port.getConnections().size();
 
                 final ProcessSessionEventBuilder cumulativeEvent = eventsByComponentId.computeIfAbsent(
-                        port.getIdentifier(), id -> ProcessSessionEventBuilder.forComponent(createMetricContext(port)));
+                    port.getIdentifier(),
+                    id -> ProcessSessionEventBuilder.forComponent(Connectables.createComponentMetricContext(port))
+                );
                 cumulativeEvent.addFlowFilesIn(flowFileCount)
                         .addFlowFilesOut(flowFileCount * outputConnectionCount)
                         .addContentSizeIn(byteCount)
@@ -670,14 +673,6 @@ public class StatelessFlowTask {
             }
         }
     }
-
-    private static ComponentMetricContext createMetricContext(final Connectable connectable) {
-        final ProcessGroup processGroup = connectable.getProcessGroup();
-        final Map<String, String> groupAttributes = processGroup == null ? Map.of() : processGroup.getLoggingAttributes();
-        return new ComponentMetricContext(
-                connectable.getIdentifier(), connectable.getName(), connectable.getComponentType(), groupAttributes);
-    }
-
 
     /**
      * Updates the Stateless Group Node's FlowFileActivity. The latest activity time is obtained from the stateless flow's root group,
