@@ -486,7 +486,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
                     final JsonNode jsonNode = JSON_OBJECT_MAPPER.readTree(line);
                     final JsonNode transformedJson = jsltExpression.apply(jsonNode);
                     if (transformedJson == null || transformedJson.isNull()) {
-                        getLogger().debug("JSLT Transform resulted in no data on line {}", lines + 1);
+                        getLogger().debug("JSLT Transform resulted in no data on line {}", lines);
                     } else {
                         jsonGenerator.writeObject(transformedJson);
                     }
