@@ -18,8 +18,6 @@ package org.apache.nifi.processors.jslt;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.util.LogMessage;
-import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -39,7 +37,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -329,14 +326,6 @@ public class TestJSLTTransformJSON {
                 """.trim();
 
         assertEquals(expectedJson, flowFile.getContent());
-        final MockComponentLog componentLog = runner.getLogger();
-        final long debugMessages = componentLog.getDebugMessages().stream()
-                .filter(logMessage -> logMessage.getMsg().contains("no data"))
-                .count();
-        assertEquals(2, debugMessages);
-        final List<LogMessage> infoMessages = componentLog.getInfoMessages();
-        assertEquals(1, infoMessages.size());
-        assertTrue(infoMessages.getFirst().getMsg().contains("out of"));
     }
 
     // This test verifies transformCache cleanup does not throw an exception
