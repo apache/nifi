@@ -1022,6 +1022,16 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mcp-processors</artifactId>
+            <version>2.13.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mcp-service-api</artifactId>
+            <version>2.13.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mongodb-client-service-api</artifactId>
             <version>2.13.0-SNAPSHOT</version>
         </dependency>
