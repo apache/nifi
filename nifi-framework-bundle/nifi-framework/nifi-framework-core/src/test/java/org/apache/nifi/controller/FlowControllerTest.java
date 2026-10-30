@@ -20,6 +20,7 @@ import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
+import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -72,8 +73,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class FlowControllerTest {
@@ -81,6 +85,7 @@ class FlowControllerTest {
     private static final String CLUSTERED_NODE = "clustered-node";
     private static final String STANDALONE_NODE = "standalone-node";
     private static final String LOCALHOST = "localhost";
+    private static final String CLUSTER_INSTANCE_ID = "1dd3e2c2-ddee-493a-ab0a-d1192abb2499";
 
     private final List<FlowController> flowControllers = new ArrayList<>();
     private final AtomicInteger controllerCounter = new AtomicInteger();
@@ -188,6 +193,44 @@ class FlowControllerTest {
         }
     }
 
+    @Test
+    void testClusterRolesOnStandalone() throws IOException {
+        final FlowController flowController = createStandaloneFlowController();
+
+        assertFalse(flowController.isPrimary());
+        assertFalse(flowController.isClusterCoordinator());
+    }
+
+    @Test
+    void testClusterRolesPrimary() throws IOException {
+        final FlowController flowController = createClusteredFlowController();
+        when(leaderElectionManager.isLeader(ClusterRoles.PRIMARY_NODE)).thenReturn(true);
+        when(leaderElectionManager.isLeader(ClusterRoles.CLUSTER_COORDINATOR)).thenReturn(false);
+
+        assertTrue(flowController.isPrimary());
+        assertFalse(flowController.isClusterCoordinator());
+    }
+
+    @Test
+    void testClusterRolesClusterCoordinator() throws IOException {
+        final FlowController flowController = createClusteredFlowController();
+        when(leaderElectionManager.isLeader(ClusterRoles.PRIMARY_NODE)).thenReturn(false);
+        when(leaderElectionManager.isLeader(ClusterRoles.CLUSTER_COORDINATOR)).thenReturn(true);
+
+        assertFalse(flowController.isPrimary());
+        assertTrue(flowController.isClusterCoordinator());
+    }
+
+    @Test
+    void testClusterRolesLeaderElectionManagerFailure() throws IOException {
+        final FlowController flowController = createClusteredFlowController();
+        when(leaderElectionManager.isLeader(ClusterRoles.PRIMARY_NODE)).thenThrow(new RuntimeException());
+        when(leaderElectionManager.isLeader(ClusterRoles.CLUSTER_COORDINATOR)).thenThrow(new RuntimeException());
+
+        assertFalse(flowController.isPrimary());
+        assertFalse(flowController.isClusterCoordinator());
+    }
+
     private FlowController createStandaloneFlowController() throws IOException {
         final NiFiProperties nifiProperties = createNiFiProperties(false);
         final FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
@@ -241,7 +284,7 @@ class FlowControllerTest {
                 stateManagerProvider,
                 connectorRequestReplicator
         );
-
+        flowController.setClustered(true, CLUSTER_INSTANCE_ID);
         flowControllers.add(flowController);
         return flowController;
     }

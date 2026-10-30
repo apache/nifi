@@ -164,6 +164,10 @@ class KubernetesLeaderElectionManagerTest {
 
         assertActiveParticipantFailToDetermineLeader();
 
+        leaderElectionCommandProvider.failOnFindLeader = false;
+
+        assertActiveParticipantLeader();
+
         assertEquals(LEADER_ELECTION_ROLE.getRoleId(), leaderElectionCommandProvider.findLeaderName);
     }
 
