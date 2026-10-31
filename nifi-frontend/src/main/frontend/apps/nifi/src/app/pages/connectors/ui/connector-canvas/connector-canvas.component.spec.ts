@@ -311,9 +311,7 @@ function buildMockCurrentUser(canAccessProvenance: boolean) {
         policiesPermissions: permissions,
         systemPermissions: permissions,
         parameterContextPermissions: permissions,
-        connectorsPermissions: permissions,
-        restrictedComponentsPermissions: permissions,
-        componentRestrictionPermissions: []
+        connectorsPermissions: permissions
     };
 }
 
