@@ -19,29 +19,37 @@ package org.apache.nifi.kafka.processors.producer.key;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
+import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.serialization.record.Record;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 
 public class AttributeKeyFactory implements KeyFactory {
     private final FlowFile flowFile;
     private final PropertyValue keyAttribute;
-    private final String keyAttributeEncoding;
+    private final KeyEncoding keyEncoding;
 
-    public AttributeKeyFactory(final FlowFile flowFile, final PropertyValue keyAttribute, final String keyAttributeEncoding) {
+    public AttributeKeyFactory(final FlowFile flowFile, final PropertyValue keyAttribute, final KeyEncoding keyEncoding) {
         this.flowFile = flowFile;
         this.keyAttribute = keyAttribute;
-        this.keyAttributeEncoding = Optional.ofNullable(keyAttributeEncoding).orElse(StandardCharsets.UTF_8.name());
+        this.keyEncoding = Objects.requireNonNull(keyEncoding, "Key Encoding required");
     }
 
     @Override
-    public byte[] getKey(final Map<String, String> attributes, final Record record) throws UnsupportedEncodingException {
+    public byte[] getKey(final Map<String, String> attributes, final Record record) {
         final String keyAttributeValue = keyAttribute.isSet()
                 ? keyAttribute.evaluateAttributeExpressions(flowFile).getValue()
                 : attributes.get(KafkaFlowFileAttribute.KAFKA_KEY);
-        return (keyAttributeValue == null) ? null : keyAttributeValue.getBytes(keyAttributeEncoding);
+        if (keyAttributeValue == null) {
+            return null;
+        }
+        return switch (keyEncoding) {
+            case HEX -> HexFormat.of().parseHex(keyAttributeValue);
+            case UTF8 -> keyAttributeValue.getBytes(StandardCharsets.UTF_8);
+            case DO_NOT_ADD -> null;
+        };
     }
 }
