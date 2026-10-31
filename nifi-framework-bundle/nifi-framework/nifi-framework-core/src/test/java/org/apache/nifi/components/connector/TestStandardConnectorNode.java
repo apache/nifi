@@ -23,6 +23,10 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.FlowContextType;
+import org.apache.nifi.components.connector.components.ParameterContextFacade;
+import org.apache.nifi.components.connector.components.ParameterValue;
+import org.apache.nifi.components.connector.components.ProcessGroupFacade;
+import org.apache.nifi.components.connector.components.ProcessGroupLifecycle;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
@@ -30,26 +34,40 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.MockStateManagerProvider;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedConfigurationStep;
 import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.ConnectorPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -64,6 +82,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -75,6 +94,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -90,6 +110,7 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -107,6 +128,7 @@ public class TestStandardConnectorNode {
     private static final String SECOND_SECRET_VALUE = "second";
 
     private FlowEngine scheduler;
+    private ExecutorService flowEvolutionExecutor;
 
     @Mock
     private ExtensionManager extensionManager;
@@ -116,6 +138,8 @@ public class TestStandardConnectorNode {
     private AssetManager assetManager;
     @Mock
     private SecretsManager secretsManager;
+    @Mock
+    private ParameterContextFacade parameterContextFacade;
 
     private FlowContextFactory flowContextFactory;
     private StateManagerProvider stateManagerProvider;
@@ -126,12 +150,28 @@ public class TestStandardConnectorNode {
         MockitoAnnotations.openMocks(this);
         // Multiple Threads configured to support concurrent lifecycle operations
         scheduler = new FlowEngine(2, "flow-engine");
+        flowEvolutionExecutor = Executors.newVirtualThreadPerTaskExecutor();
         stateManagerProvider = new MockStateManagerProvider();
 
         when(managedProcessGroup.purge()).thenReturn(CompletableFuture.completedFuture(null));
         when(managedProcessGroup.getQueueSize()).thenReturn(new QueueSize(0, 0L));
+        when(managedProcessGroup.getIdentifier()).thenReturn("managed-group");
+        when(managedProcessGroup.getProcessGroupIdentifier()).thenReturn("managed-group");
+        when(managedProcessGroup.getVersionedComponentId()).thenReturn(Optional.of("managed-group-versioned"));
+        when(managedProcessGroup.getName()).thenReturn("Managed Group");
+        when(managedProcessGroup.getPosition()).thenReturn(new Position(0, 0));
+        when(managedProcessGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
+        when(managedProcessGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE);
+        when(managedProcessGroup.getExecutionEngine()).thenReturn(ExecutionEngine.INHERITED);
         when(managedProcessGroup.findAllProcessors()).thenReturn(List.of());
         when(managedProcessGroup.findAllControllerServices()).thenReturn(Set.of());
+        when(managedProcessGroup.getProcessors()).thenReturn(Set.of());
+        when(managedProcessGroup.getProcessGroups()).thenReturn(Set.of());
+        when(managedProcessGroup.getInputPorts()).thenReturn(Set.of());
+        when(managedProcessGroup.getOutputPorts()).thenReturn(Set.of());
+        when(managedProcessGroup.getRemoteProcessGroups()).thenReturn(Set.of());
+        when(managedProcessGroup.getControllerServices(false)).thenReturn(Set.of());
+        when(managedProcessGroup.getConnections()).thenReturn(Set.of());
 
         flowContextFactory = new FlowContextFactory() {
             @Override
@@ -139,6 +179,12 @@ public class TestStandardConnectorNode {
                 final MutableConnectorConfigurationContext activeConfigurationContext = new StandardConnectorConfigurationContext(assetManager, secretsManager);
                 final ProcessGroupFacadeFactory processGroupFacadeFactory = mock(ProcessGroupFacadeFactory.class);
                 final ParameterContextFacadeFactory parameterContextFacadeFactory = mock(ParameterContextFacadeFactory.class);
+                when(parameterContextFacadeFactory.create(managedProcessGroup)).thenReturn(parameterContextFacade);
+                final ProcessGroupLifecycle lifecycle = mock(ProcessGroupLifecycle.class);
+                when(lifecycle.stop()).thenReturn(CompletableFuture.completedFuture(null));
+                final ProcessGroupFacade rootGroup = mock(ProcessGroupFacade.class);
+                when(rootGroup.getLifecycle()).thenReturn(lifecycle);
+                when(processGroupFacadeFactory.create(managedProcessGroup, connectorLogger)).thenReturn(rootGroup);
                 return new StandardFlowContext(managedProcessGroup, activeConfigurationContext, processGroupFacadeFactory,
                     parameterContextFacadeFactory, connectorLogger, FlowContextType.ACTIVE, bundle);
             }
@@ -157,13 +203,16 @@ public class TestStandardConnectorNode {
     }
 
     @AfterEach
-    public void teardown() {
+    public void teardown() throws Exception {
         if (startBlockingConnector != null) {
             startBlockingConnector.releaseStart();
         }
 
         if (scheduler != null) {
             scheduler.close();
+        }
+        if (flowEvolutionExecutor != null) {
+            flowEvolutionExecutor.close();
         }
     }
 
@@ -889,14 +938,31 @@ public class TestStandardConnectorNode {
     @Test
     public void testReplaceConnectorWithGhostMarksExtensionMissing() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode(new TrackingConnector());
+        connectorNode.adoptAuthoritativeSnapshot(flowGroup("outgoing"), null, Map.of(), new Bundle("org.apache.nifi", "test-standard-connector-node", "1.0.0"));
         final GhostConnector ghostConnector = new GhostConnector(connectorNode.getIdentifier(), connectorNode.getCanonicalClassName(), new Exception("Instantiation failed"));
-        final BundleCoordinate replacementCoordinate = new BundleCoordinate("org.apache.nifi", "test-standard-connector-node", "2.0.0");
-
-        connectorNode.replaceConnector(ghostConnector, replacementCoordinate, new MockComponentLog("GhostConnector", ghostConnector));
+        replaceConnector(connectorNode, ghostConnector, "2.0.0");
 
         assertSame(ghostConnector, connectorNode.getConnector());
         assertTrue(connectorNode.isExtensionMissing());
         assertEquals("(Missing) TrackingConnector", connectorNode.getComponentType());
+
+        final ConnectorAction startWhileGhosted = findAction(connectorNode, "START");
+        assertFalse(startWhileGhosted.isAllowed());
+        assertTrue(startWhileGhosted.getReasonNotAllowed().contains("extension is missing"), startWhileGhosted.getReasonNotAllowed());
+        final IllegalStateException ghostStartFailure = assertThrows(IllegalStateException.class, connectorNode::verifyCanStart);
+        assertTrue(ghostStartFailure.getMessage().contains("extension is missing"), ghostStartFailure.getMessage());
+
+        connectorNode.markManagedFlowMissingAtStartup();
+        replaceConnector(connectorNode, new TrackingConnector(), "2.0.0");
+        connectorNode.performValidation();
+
+        assertFalse(connectorNode.isExtensionMissing());
+        assertTrue(connectorNode.isManagedFlowMissingAtStartup());
+        final ConnectorAction start = findAction(connectorNode, "START");
+        assertFalse(start.isAllowed());
+        assertTrue(start.getReasonNotAllowed().contains("restart NiFi"), start.getReasonNotAllowed());
+        final IllegalStateException failure = assertThrows(IllegalStateException.class, connectorNode::verifyCanStart);
+        assertTrue(failure.getMessage().contains("restart NiFi"), failure.getMessage());
     }
 
     @Test
@@ -905,6 +971,8 @@ public class TestStandardConnectorNode {
         final StandardConnectorNode connectorNode = createConnectorNode(original);
         seedActiveConfiguration(connectorNode, "active-step", Map.of("active-property", new StringLiteralValue("active-value")));
         connectorNode.setConfiguration("step", createStepConfiguration());
+        connectorNode.adoptAuthoritativeSnapshot(flowGroup("outgoing"), null, Map.of(), new Bundle("org.apache.nifi", "test-standard-connector-node", "1.0.0"));
+        final ConnectorFlowSnapshot originalSnapshot = connectorNode.getAuthoritativeFlowSnapshot();
         final FrameworkFlowContext originalWorkingFlowContext = connectorNode.getWorkingFlowContext();
         final FailingStepConnector replacement = new FailingStepConnector("step") {
             @Override
@@ -923,6 +991,9 @@ public class TestStandardConnectorNode {
         assertEquals("active-value", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("active-step", "active-property").getValue());
         assertEquals("testValue", connectorNode.getWorkingFlowContext().getConfigurationContext().getProperty("step", "testProperty").getValue());
         assertEquals("1.0.0", connectorNode.getWorkingFlowContext().getBundle().getVersion());
+        assertSame(originalSnapshot, connectorNode.getAuthoritativeFlowSnapshot());
+        assertFalse(connectorNode.isPendingFlowEvolution());
+        assertEquals("1.0.0", connectorNode.getBundleCoordinate().getVersion());
     }
 
     @Test
@@ -1031,6 +1102,19 @@ public class TestStandardConnectorNode {
         assertEquals("1.0.0", connectorNode.getWorkingFlowContext().getBundle().getVersion());
         assertEquals("active-value", connectorNode.getActiveFlowContext().getConfigurationContext().getProperty("active-step", "property").getValue());
         assertEquals("working-value", connectorNode.getWorkingFlowContext().getConfigurationContext().getProperty("working-step", "property").getValue());
+    }
+
+
+    private void replaceConnector(final StandardConnectorNode connectorNode, final Connector replacement, final String version) throws FlowUpdateException {
+        final BundleCoordinate replacementCoordinate = new BundleCoordinate("org.apache.nifi", "test-standard-connector-node", version);
+        connectorNode.replaceConnector(replacement, replacementCoordinate, new MockComponentLog("ReplacementConnector", replacement));
+    }
+
+    private static ConnectorAction findAction(final StandardConnectorNode connectorNode, final String actionName) {
+        return connectorNode.getAvailableActions().stream()
+            .filter(action -> actionName.equals(action.getName()))
+            .findFirst()
+            .orElseThrow();
     }
 
     @Test
@@ -2039,6 +2123,329 @@ public class TestStandardConnectorNode {
         connectorNode.verifyCanStart();
     }
 
+
+    @Test
+    public void testEvolveFlowReturnsSameTaskWhileHookIsPending() throws Exception {
+        final FlowEvolutionHookConnector connector = new FlowEvolutionHookConnector();
+        connector.leaveFutureIncomplete = true;
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+        connectorNode.adoptAuthoritativeSnapshot(flowGroup("pre-upgrade"), null, Map.of(), outgoingSnapshotBundle());
+
+        connectorNode.prepareFlowEvolution();
+        final Future<Void> evolution = connectorNode.evolveFlow(flowEvolutionExecutor);
+        assertTrue(connector.evolutionFuturePublished.await(5, TimeUnit.SECONDS));
+
+        assertSame(evolution, connectorNode.evolveFlow(flowEvolutionExecutor));
+        assertEquals(FlowEvolutionStatus.PHASE_ONE_PENDING, connectorNode.getFlowEvolutionStatus());
+        // The hook stays blocked, so the task has to be interrupted before the executor is closed.
+        evolution.cancel(true);
+    }
+
+    enum HookCancel {
+        STOP,
+        CANCEL_DRAIN,
+        ABORT
+    }
+
+    @ParameterizedTest
+    @EnumSource(HookCancel.class)
+    public void testCancelsBlockedFlowEvolutionHook(final HookCancel action) throws Exception {
+        assertHookCancelSetsDesiredStopped(switch (action) {
+            case STOP -> node -> node.stop(scheduler);
+            case CANCEL_DRAIN -> StandardConnectorNode::cancelDrainFlowFiles;
+            case ABORT -> node -> node.abortUpdate(new FlowUpdateException("cancel"));
+        });
+    }
+
+    @Test
+    public void testEvolveFlowAfterAbortDoesNotInvokeHook() throws Exception {
+        final FlowEvolutionHookConnector connector = new FlowEvolutionHookConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+        connectorNode.adoptAuthoritativeSnapshot(flowGroup("pre-upgrade"), null, Map.of(), outgoingSnapshotBundle());
+
+        connectorNode.prepareFlowEvolution();
+        connectorNode.abortUpdate(new FlowUpdateException("cancel"));
+
+        assertThrows(FlowUpdateException.class, () -> connectorNode.evolveFlow(flowEvolutionExecutor));
+        assertEquals(0, connector.hookCalls);
+    }
+
+    @Test
+    public void testResumeSkipsHook() throws Exception {
+        final FlowEvolutionHookConnector connector = new FlowEvolutionHookConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+        connectorNode.adoptAuthoritativeSnapshot(flowGroup("pre-upgrade"), null, Map.of(), outgoingSnapshotBundle());
+
+        connectorNode.prepareFlowEvolution();
+        connectorNode.evolveFlow(flowEvolutionExecutor).get(5, TimeUnit.SECONDS);
+        connectorNode.abortUpdate(new FlowUpdateException("persist failed"));
+        connectorNode.prepareFlowEvolution();
+
+        final Future<Void> resumed = connectorNode.evolveFlow(flowEvolutionExecutor);
+        resumed.get(5, TimeUnit.SECONDS);
+        assertEquals(1, connector.hookCalls);
+        assertEquals(FlowEvolutionStatus.PHASE_ONE_COMPLETE, connectorNode.getFlowEvolutionStatus());
+    }
+
+    @Test
+    public void testStaleEvolutionTaskCannotWriteIntoLaterEvolution() throws Exception {
+        final GatedActiveFlowConnector connector = new GatedActiveFlowConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+        connectorNode.adoptAuthoritativeSnapshot(flowGroup("pre-upgrade"), null, Map.of(), outgoingSnapshotBundle());
+        connectorNode.prepareFlowEvolution();
+        final Future<Void> evolution = connectorNode.evolveFlow(flowEvolutionExecutor);
+        assertTrue(connector.reachedActiveFlow.await(5, TimeUnit.SECONDS));
+
+        connectorNode.abortUpdate(new FlowUpdateException("cancel"));
+        connectorNode.prepareFlowEvolution();
+        connector.releaseActiveFlow.countDown();
+
+        assertThrows(CancellationException.class, () -> evolution.get(5, TimeUnit.SECONDS));
+        assertEquals(FlowEvolutionStatus.PHASE_ONE_PENDING, connectorNode.getFlowEvolutionStatus());
+        assertEquals(ConnectorState.DRAINING, connectorNode.getCurrentState());
+        assertTrue(connectorNode.getValidationErrors().stream().noneMatch(result -> StandardConnectorNode.FLOW_EVOLUTION_VALIDATION_SUBJECT.equals(result.getSubject())));
+    }
+
+    private void assertHookCancelSetsDesiredStopped(final Consumer<StandardConnectorNode> cancel) throws Exception {
+        final FlowEvolutionHookConnector connector = new FlowEvolutionHookConnector();
+        connector.leaveFutureIncomplete = true;
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+        connectorNode.adoptAuthoritativeSnapshot(flowGroup("pre-upgrade"), null, Map.of(), outgoingSnapshotBundle());
+
+        connectorNode.prepareFlowEvolution();
+        final Future<Void> evolution = connectorNode.evolveFlow(flowEvolutionExecutor);
+        assertTrue(connector.hookEntered.await(5, TimeUnit.SECONDS));
+        assertTrue(connector.evolutionFuturePublished.await(5, TimeUnit.SECONDS));
+
+        cancel.accept(connectorNode);
+        assertEquals(ConnectorState.STOPPED, connectorNode.getDesiredState());
+        assertThrows(CancellationException.class, () -> evolution.get(2, TimeUnit.SECONDS));
+        assertTrue(connector.evolutionFuture.isCancelled());
+        assertEquals(FlowEvolutionStatus.FAILED, connectorNode.getFlowEvolutionStatus());
+        assertTrue(connectorNode.isPendingFlowEvolution());
+        assertEvolutionContextClosed(connector.context);
+    }
+
+    @Test
+    public void testFlowEvolutionFailureIsIndependentOfValidationStateUntilNextAttempt() throws Exception {
+        final ConnectorValidationTrigger validationTrigger = mock(ConnectorValidationTrigger.class);
+        final StandardConnectorNode connectorNode = createConnectorNode(new FlowEvolutionHookConnector(), validationTrigger);
+        connectorNode.markInvalid("Existing Failure", "existing failure");
+
+        connectorNode.failFlowEvolution("first evolution failure", null);
+        assertEquals(FlowEvolutionStatus.FAILED, connectorNode.getFlowEvolutionStatus());
+        assertEquals(2, connectorNode.getValidationErrors().size());
+        assertEquals(1, connectorNode.getValidationErrors().stream()
+                .filter(result -> StandardConnectorNode.FLOW_EVOLUTION_VALIDATION_SUBJECT.equals(result.getSubject()))
+                .count());
+
+        connectorNode.performValidation();
+        assertEquals(1, connectorNode.getValidationErrors().stream()
+                .filter(result -> StandardConnectorNode.FLOW_EVOLUTION_VALIDATION_SUBJECT.equals(result.getSubject()))
+                .count());
+        connectorNode.resetValidationState();
+        assertEquals(1, connectorNode.getValidationErrors().stream()
+                .filter(result -> StandardConnectorNode.FLOW_EVOLUTION_VALIDATION_SUBJECT.equals(result.getSubject()))
+                .count());
+
+        connectorNode.markInvalid("Replacement Failure", "replacement failure");
+        connectorNode.failFlowEvolution("duplicate evolution failure", null);
+        assertEquals(2, connectorNode.getValidationErrors().size());
+        final ValidationResult evolutionFailure = connectorNode.getValidationErrors().stream()
+                .filter(result -> StandardConnectorNode.FLOW_EVOLUTION_VALIDATION_SUBJECT.equals(result.getSubject()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("first evolution failure", evolutionFailure.getExplanation());
+        assertEquals(1, ((MockComponentLog) connectorNode.getComponentLog()).getErrorMessages().stream()
+                .filter(message -> message.getMsg().contains("Flow evolution failed"))
+                .count());
+
+        connectorNode.adoptAuthoritativeSnapshot(flowGroup("pre-upgrade"), null, Map.of(), outgoingSnapshotBundle());
+        connectorNode.prepareFlowEvolution();
+
+        assertEquals(FlowEvolutionStatus.PHASE_ONE_PENDING, connectorNode.getFlowEvolutionStatus());
+        assertTrue(connectorNode.getValidationErrors().stream()
+                .noneMatch(result -> StandardConnectorNode.FLOW_EVOLUTION_VALIDATION_SUBJECT.equals(result.getSubject())));
+        assertTrue(connectorNode.getValidationErrors().stream()
+                .anyMatch(result -> "Replacement Failure".equals(result.getSubject())));
+    }
+
+    @Test
+    public void testEvolveFlowRejectsMissingManagedComponents() throws Exception {
+        final FlowEvolutionHookConnector connector = new FlowEvolutionHookConnector();
+        final ProcessorNode missingProcessor = mock(ProcessorNode.class);
+        when(missingProcessor.isExtensionMissing()).thenReturn(true);
+        when(missingProcessor.getCanonicalClassName()).thenReturn("org.example.MissingProcessor");
+        when(missingProcessor.getBundleCoordinate()).thenReturn(new BundleCoordinate("org.example", "missing-processor", "1.0.0"));
+        when(managedProcessGroup.findAllProcessors()).thenReturn(List.of(missingProcessor));
+        final StandardConnectorNode processorNode = createConnectorNode(connector);
+        processorNode.adoptAuthoritativeSnapshot(flowGroup("pre-upgrade"), null, Map.of(), outgoingSnapshotBundle());
+
+        processorNode.prepareFlowEvolution();
+        final ExecutionException processorFailure = assertThrows(ExecutionException.class,
+                () -> processorNode.evolveFlow(flowEvolutionExecutor).get(5, TimeUnit.SECONDS));
+        assertTrue(processorFailure.getCause().getMessage().contains("MissingProcessor"), processorFailure.getCause().getMessage());
+        assertEquals(FlowEvolutionStatus.FAILED, processorNode.getFlowEvolutionStatus());
+        assertEquals(ConnectorState.STOPPED, processorNode.getCurrentState());
+        assertEquals(0, connector.hookCalls);
+    }
+
+    @Test
+    public void testPendingEvolutionBlocksEndTroubleshootingWithQueuedFlowFiles() throws Exception {
+        final StandardConnectorNode connectorNode = createConnectorNode(new FlowEvolutionHookConnector());
+        connectorNode.adoptAuthoritativeSnapshot(flowGroup("pre-upgrade"), null, Map.of(), outgoingSnapshotBundle());
+        connectorNode.restoreTroubleshootingState();
+        when(managedProcessGroup.getQueueSize()).thenReturn(new QueueSize(3, 30L));
+
+        final IllegalStateException failure = assertThrows(IllegalStateException.class, connectorNode::verifyCanEndTroubleshooting);
+
+        assertTrue(failure.getMessage().contains("3 FlowFiles"), failure.getMessage());
+        assertTrue(failure.getMessage().contains("upgrade is pending"), failure.getMessage());
+    }
+
+    @Test
+    public void testFlowEvolutionRetriesAfterMissingSecretRestored() throws Exception {
+        final SecretReference secretReference = new SecretReference("provider-id", "Provider", "password", "Provider.group.password");
+        final AtomicReference<Secret> currentSecret = new AtomicReference<>();
+        when(secretsManager.getSecrets(anySet(), eq(false))).thenAnswer(invocation -> {
+            final Secret secret = currentSecret.get();
+            return secret == null ? Map.of() : Map.of(secretReference, secret);
+        });
+
+        final StandardConnectorNode connectorNode = createConnectorNode(new FlowEvolutionHookConnector(), secretsManager);
+        connectorNode.adoptAuthoritativeSnapshot(flowGroup("pre-upgrade"),
+            strippedParameterContext("Source Database Password"), Map.of("Source Database Password", secretReference),
+            outgoingSnapshotBundle());
+
+        connectorNode.prepareFlowEvolution();
+        final ExecutionException failure = assertThrows(ExecutionException.class,
+                () -> connectorNode.evolveFlow(flowEvolutionExecutor).get(5, TimeUnit.SECONDS));
+        assertTrue(failure.getCause().getMessage().contains("Provider.group.password"), failure.getCause().getMessage());
+        assertTrue(failure.getCause().getMessage().contains("Source Database Password"), failure.getCause().getMessage());
+        assertEquals(FlowEvolutionStatus.FAILED, connectorNode.getFlowEvolutionStatus());
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+
+        final Secret restoredSecret = mock(Secret.class);
+        when(restoredSecret.getValue()).thenReturn("current-password");
+        currentSecret.set(restoredSecret);
+        connectorNode.prepareFlowEvolution();
+        assertEquals(FlowEvolutionStatus.PHASE_ONE_PENDING, connectorNode.getFlowEvolutionStatus());
+        assertTrue(connectorNode.getValidationErrors().stream()
+            .noneMatch(result -> StandardConnectorNode.FLOW_EVOLUTION_VALIDATION_SUBJECT.equals(result.getSubject())));
+        connectorNode.evolveFlow(flowEvolutionExecutor).get(5, TimeUnit.SECONDS);
+
+        final ArgumentCaptor<Collection<ParameterValue>> valuesCaptor = ArgumentCaptor.forClass(Collection.class);
+        verify(parameterContextFacade).updateParameters(valuesCaptor.capture());
+        assertEquals("current-password", valuesCaptor.getValue().iterator().next().getValue());
+        assertEquals(FlowEvolutionStatus.PHASE_ONE_COMPLETE, connectorNode.getFlowEvolutionStatus());
+    }
+
+    @Test
+    public void testCaptureAuthoritativeSnapshotPersistsStructuredParameterSecretReference() throws Exception {
+        final String parameterName = "Source Database Password";
+        final String secretValue = "current-password";
+        final SecretReference secretReference = new SecretReference("provider-id", "Provider", "password", "Provider.group.password");
+        final Secret secret = mock(Secret.class);
+        when(secret.getValue()).thenReturn(secretValue);
+        when(secretsManager.getSecrets(anySet())).thenReturn(Map.of(secretReference, secret));
+
+        final Parameter parameter = new Parameter.Builder()
+            .name(parameterName)
+            .value(secretValue)
+            .sensitive(true)
+            .build();
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        when(parameterContext.getIdentifier()).thenReturn("managed-parameters");
+        when(parameterContext.getName()).thenReturn("Managed Parameters");
+        when(parameterContext.getInheritedParameterContextNames()).thenReturn(List.of());
+        when(parameterContext.getParameters()).thenReturn(Map.of(parameter.getDescriptor(), parameter));
+
+        final StandardConnectorNode connectorNode = createConnectorNode(new FlowEvolutionHookConnector(), secretsManager);
+        when(managedProcessGroup.getParameterContext()).thenReturn(parameterContext);
+        seedActiveConfiguration(connectorNode, REQUIRED_STEP, Map.of(REQUIRED_SECRET, secretReference));
+
+        connectorNode.captureAuthoritativeSnapshot();
+
+        final ConnectorFlowSnapshot snapshot = connectorNode.getAuthoritativeFlowSnapshot();
+        final VersionedParameter persistedParameter = snapshot.parameterContext().getParameters().iterator().next();
+        assertFalse(persistedParameter.isProvided());
+        assertNull(persistedParameter.getValue());
+        assertEquals(Map.of(parameterName, secretReference), snapshot.parameterSecretReferences());
+        assertEquals(connectorNode.getBundleCoordinate().getVersion(), snapshot.bundle().getVersion());
+        assertEquals(secretReference, snapshot.activeConfiguration().getNamedStepConfiguration(REQUIRED_STEP)
+            .configuration().getPropertyValues().get(REQUIRED_SECRET));
+    }
+
+    @Test
+    public void testRestorePersistedFlowKeepsComponentsStoppedWhenSecretMissing() throws Exception {
+        final SecretReference secretReference = new SecretReference("provider-id", "Provider", "password", "Provider.group.password");
+        when(secretsManager.getSecrets(anySet(), eq(false))).thenReturn(Map.of());
+        final StandardConnectorNode connectorNode = createConnectorNode(new FlowEvolutionHookConnector(), secretsManager);
+        clearInvocations(managedProcessGroup);
+
+        connectorNode.restorePersistedFlow(flowGroup("pre-upgrade"),
+            strippedParameterContext("Source Database Password"), Map.of("Source Database Password", secretReference), true);
+
+        verify(managedProcessGroup).restoreFlowPreservingIdentifiers(any(VersionedExternalFlow.class), eq(false));
+    }
+
+    @Test
+    public void testRestorePersistedFlowUsesConfiguredAutoResumePolicyWhenSecretsResolved() throws Exception {
+        final StandardConnectorNode connectorNode = createConnectorNode(new FlowEvolutionHookConnector(), secretsManager);
+        clearInvocations(managedProcessGroup);
+
+        connectorNode.restorePersistedFlow(flowGroup("pre-upgrade"), null, Map.of(), true);
+
+        verify(managedProcessGroup).restoreFlowPreservingIdentifiers(any(VersionedExternalFlow.class));
+        verify(managedProcessGroup, never()).restoreFlowPreservingIdentifiers(any(VersionedExternalFlow.class), anyBoolean());
+    }
+
+    @Test
+    public void testPreUpgradeFlowContextUsesSnapshotBundleAndRejectsFlowUpdate() throws Exception {
+        final StandardConnectorNode connectorNode = createConnectorNode(new FlowEvolutionHookConnector());
+        final Bundle outgoingBundle = outgoingSnapshotBundle();
+        final FlowContext preUpgrade = new PreUpgradeFlowContext(connectorNode.getActiveFlowContext(), outgoingBundle);
+
+        assertEquals("1.0.0", connectorNode.getActiveFlowContext().getBundle().getVersion());
+        assertEquals("1.0.0", connectorNode.getWorkingFlowContext().getBundle().getVersion());
+        assertEquals("0.9.0", preUpgrade.getBundle().getVersion());
+        assertSame(connectorNode.getActiveFlowContext().getRootGroup(), preUpgrade.getRootGroup());
+        assertSame(connectorNode.getActiveFlowContext().getConfigurationContext(), preUpgrade.getConfigurationContext());
+        assertSame(connectorNode.getActiveFlowContext().getParameterContext(), preUpgrade.getParameterContext());
+        assertEquals(connectorNode.getActiveFlowContext().getType(), preUpgrade.getType());
+
+        final StandardConnectorInitializationContext initializationContext = new StandardConnectorInitializationContext.Builder()
+            .identifier("connector-1")
+            .name("FlowEvolutionHookConnector")
+            .build();
+        final IllegalArgumentException rejected = assertThrows(IllegalArgumentException.class,
+            () -> initializationContext.updateFlow(preUpgrade, new VersionedExternalFlow(), BundleCompatibility.REQUIRE_EXACT_BUNDLE));
+        assertTrue(rejected.getMessage().contains("not an instance provided by the framework"));
+    }
+
+    private static VersionedProcessGroup flowGroup(final String name) {
+        final VersionedProcessGroup group = new VersionedProcessGroup();
+        group.setName(name);
+        group.setIdentifier(name);
+        return group;
+    }
+
+    private static Bundle outgoingSnapshotBundle() {
+        return new Bundle("org.apache.nifi", "test-standard-connector-node", "0.9.0");
+    }
+
+    private static VersionedParameterContext strippedParameterContext(final String parameterName) {
+        final VersionedParameter parameter = new VersionedParameter();
+        parameter.setName(parameterName);
+        parameter.setSensitive(true);
+        parameter.setValue("persisted-value");
+        final VersionedParameterContext context = new VersionedParameterContext();
+        context.setIdentifier("managed-parameters");
+        context.setName("Managed Parameters");
+        context.setParameters(Set.of(parameter));
+        return ParameterSecretReferences.stripSensitiveValues(context);
+    }
+
     private static Bundle createConnectorBundle() {
         final Bundle bundle = new Bundle();
         bundle.setGroup("org.apache.nifi");
@@ -2124,6 +2531,14 @@ public class TestStandardConnectorNode {
         return createConnectorNode(connector, defaultSecretsManager);
     }
 
+    private StandardConnectorNode createConnectorNode(final Connector connector, final ConnectorValidationTrigger validationTrigger) throws FlowUpdateException {
+        final SecretsManager defaultSecretsManager = mock(SecretsManager.class);
+        when(defaultSecretsManager.getAllSecrets()).thenReturn(List.of());
+        when(defaultSecretsManager.getSecrets(anySet())).thenReturn(Collections.emptyMap());
+        when(defaultSecretsManager.getSecrets(anySet(), anyBoolean())).thenReturn(Collections.emptyMap());
+        return createConnectorNode(connector, defaultSecretsManager, new StandardConnectorStateTransition("TestConnectorNode"), validationTrigger);
+    }
+
     private StandardConnectorNode createConnectorNode(final Connector connector, final ConnectorStateTransition stateTransition) throws FlowUpdateException {
         final SecretsManager defaultSecretsManager = mock(SecretsManager.class);
         when(defaultSecretsManager.getAllSecrets()).thenReturn(List.of());
@@ -2138,10 +2553,17 @@ public class TestStandardConnectorNode {
 
     private StandardConnectorNode createConnectorNode(final Connector connector, final SecretsManager initializedSecretsManager,
             final ConnectorStateTransition stateTransition) throws FlowUpdateException {
-        final ConnectorValidationTrigger validationTrigger = new SynchronousConnectorValidationTrigger();
+        return createConnectorNode(connector, initializedSecretsManager, stateTransition, new SynchronousConnectorValidationTrigger());
+    }
+
+    private StandardConnectorNode createConnectorNode(final Connector connector, final SecretsManager initializedSecretsManager,
+            final ConnectorStateTransition stateTransition, final ConnectorValidationTrigger validationTrigger) throws FlowUpdateException {
+        final FlowManager flowManager = mock(FlowManager.class);
+        final ConnectorFlowSnapshotMapper snapshotMapper = new ConnectorFlowSnapshotMapper(
+            extensionManager, mock(ControllerServiceProvider.class), new InternalPassThroughPropertyEncryptionProvider());
         final StandardConnectorNode node = new StandardConnectorNode(
             "test-connector-id",
-            mock(FlowManager.class),
+            flowManager,
             extensionManager,
             stateManagerProvider,
             null,
@@ -2151,6 +2573,7 @@ public class TestStandardConnectorNode {
             new StandardConnectorConfigurationContext(assetManager, secretsManager),
             stateTransition,
             flowContextFactory,
+            snapshotMapper,
             validationTrigger,
             false);
 
@@ -2969,6 +3392,72 @@ public class TestStandardConnectorNode {
         }
     }
 
+    private static class ProviderMigrationConnector extends AbstractConnector {
+        private final Set<String> configuredStepNames = new HashSet<>();
+
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext activeFlowContext) {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public void migrateProperties(final ConnectorPropertyConfiguration configuration) {
+            configuration.forStep("settings").renameProperty("Old Name", "Shared");
+            configuration.removeStep("obsolete");
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor shared = new ConnectorPropertyDescriptor.Builder()
+                .name("Shared")
+                .description("Shared property")
+                .required(false)
+                .build();
+            final ConnectorPropertyDescriptor requiredDefault = new ConnectorPropertyDescriptor.Builder()
+                .name("Required Default")
+                .description("Required property added by this version")
+                .required(true)
+                .defaultValue("v2")
+                .build();
+            final ConfigurationStep settings = new ConfigurationStep.Builder()
+                .name("settings")
+                .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                    .name("General")
+                    .description("General")
+                    .properties(List.of(shared, requiredDefault))
+                    .build()))
+                .build();
+            return List.of(settings);
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+            configuredStepNames.add(stepName);
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+
+        Set<String> getConfiguredStepNames() {
+            return configuredStepNames;
+        }
+    }
+
     private static class LegacyStepRemovingConnector extends AbstractConnector {
         private final Set<String> configuredStepNames = new HashSet<>();
         private final Set<ClassLoader> migrationClassLoaders = new HashSet<>();
@@ -3208,6 +3697,13 @@ public class TestStandardConnectorNode {
         }
     }
 
+    private static void assertEvolutionContextClosed(final FlowEvolutionContext context) {
+        final IllegalStateException preUpgradeFailure = assertThrows(IllegalStateException.class, context::getPreUpgradeActiveFlowContext);
+        assertTrue(preUpgradeFailure.getMessage().contains("can no longer be used"));
+        final IllegalStateException postUpgradeFailure = assertThrows(IllegalStateException.class, context::getPostUpgradeBundle);
+        assertTrue(postUpgradeFailure.getMessage().contains("can no longer be used"));
+    }
+
     /**
      * Test connector that allows control over when drainFlowFiles completes via a CompletableFuture
      */
@@ -3348,6 +3844,25 @@ public class TestStandardConnectorNode {
 
         public boolean wasStopCalled() {
             return stopCalled;
+        }
+    }
+
+    private static final class GatedActiveFlowConnector extends FlowEvolutionHookConnector {
+        final CountDownLatch reachedActiveFlow = new CountDownLatch(1);
+        final CountDownLatch releaseActiveFlow = new CountDownLatch(1);
+
+        @Override
+        public VersionedExternalFlow getActiveFlow(final FlowContext flowContext) {
+            reachedActiveFlow.countDown();
+            try {
+                if (!releaseActiveFlow.await(5, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("Timed out waiting to return the active flow");
+                }
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Interrupted while waiting to return the active flow", e);
+            }
+            return super.getActiveFlow(flowContext);
         }
     }
 

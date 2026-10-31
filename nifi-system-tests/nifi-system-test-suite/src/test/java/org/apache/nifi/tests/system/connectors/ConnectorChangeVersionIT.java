@@ -22,8 +22,12 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.tests.system.nar.NarUploadUtil;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.connectors.ChangeVersionConnector;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
+import org.apache.nifi.web.api.dto.ConnectorActionDTO;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
+import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.dto.NarSummaryDTO;
 import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
@@ -33,6 +37,7 @@ import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -40,6 +45,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ConnectorChangeVersionIT extends NiFiSystemIT {
@@ -125,6 +131,12 @@ public class ConnectorChangeVersionIT extends NiFiSystemIT {
         assertEquals(VERSION_ONE, connector.getComponent().getBundle().getVersion());
         assertEquals(managedProcessGroupId, connector.getComponent().getManagedProcessGroupId());
         assertEquals(VERSION_ONE_FLOW_NAME, getManagedProcessGroupName(connector));
+        assertNotNull(actionReason(connector, "CHANGE_VERSION"));
+        final String connectorId = connector.getId();
+        assertThrows(NiFiClientException.class, () -> updateConnectorVersion(connectorId, VERSION_TWO));
+        connector = getNifiClient().getConnectorClient().getConnector(connector.getId());
+        assertEquals(ConnectorState.TROUBLESHOOTING.name(), connector.getComponent().getState());
+        assertEquals(VERSION_ONE, connector.getComponent().getBundle().getVersion());
 
         final ProcessorEntity troubleshootingProcessor = getClientUtil().createProcessor("Sleep", managedProcessGroupId);
         assertTrue(containsProcessorId(connector.getId(), troubleshootingProcessor.getId()));
@@ -165,6 +177,30 @@ public class ConnectorChangeVersionIT extends NiFiSystemIT {
         properties.setProperty(CommandOption.EXT_BUNDLE_CURRENT_VERSION.getLongName(), currentVersion);
 
         new ChangeVersionConnector().doExecute(getNifiClient(), properties);
+    }
+
+    private void updateConnectorVersion(final String connectorId, final String version) throws NiFiClientException, IOException {
+        final ConnectorEntity current = getNifiClient().getConnectorClient().getConnector(connectorId);
+        final ConnectorDTO component = new ConnectorDTO();
+        component.setId(connectorId);
+        component.setBundle(new BundleDTO(BUNDLE_GROUP, BUNDLE_ARTIFACT, version));
+        final ConnectorEntity update = new ConnectorEntity();
+        update.setId(connectorId);
+        update.setRevision(current.getRevision());
+        update.setComponent(component);
+        getNifiClient().getConnectorClient().updateConnector(update);
+    }
+
+    private String actionReason(final ConnectorEntity connector, final String actionName) {
+        if (connector.getComponent().getAvailableActions() == null) {
+            return null;
+        }
+        for (final ConnectorActionDTO action : connector.getComponent().getAvailableActions()) {
+            if (actionName.equals(action.getName()) && !Boolean.TRUE.equals(action.getAllowed())) {
+                return action.getReasonNotAllowed();
+            }
+        }
+        return null;
     }
 
     private String getManagedProcessGroupName(final ConnectorEntity connector) throws Exception {

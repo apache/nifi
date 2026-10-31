@@ -32,6 +32,7 @@ import org.apache.nifi.components.connector.ComponentBundleLookup;
 import org.apache.nifi.components.connector.ConfigurationStep;
 import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorDetails;
+import org.apache.nifi.components.connector.ConnectorFlowSnapshotMapper;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorPropertyGroup;
@@ -501,6 +502,9 @@ public class ExtensionBuilder {
         requireNonNull(stateManagerProvider, "State Manager Provider");
         requireNonNull(extensionManager, "Extension Manager");
         requireNonNull(managedProcessGroup, "Managed Process Group");
+        requireNonNull(flowController, "FlowController");
+        final ConnectorFlowSnapshotMapper connectorFlowSnapshotMapper = new ConnectorFlowSnapshotMapper(
+            extensionManager, serviceProvider, flowController.getPropertyEncryptionProvider());
 
         final Authorizable connectorsAuthorizable = new Authorizable() {
             @Override
@@ -519,7 +523,7 @@ public class ExtensionBuilder {
             connector = createConnector();
         } catch (final Exception e) {
             logger.error("Could not create Connector of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e.getMessage(), e);
-            return createGhostConnectorNode(connectorsAuthorizable, e);
+            return createGhostConnectorNode(connectorsAuthorizable, connectorFlowSnapshotMapper, e);
         }
 
         final String componentType = connector.getClass().getSimpleName();
@@ -539,6 +543,7 @@ public class ExtensionBuilder {
             activeConfigurationContext,
             connectorStateTransition,
             flowContextFactory,
+            connectorFlowSnapshotMapper,
             connectorValidationTrigger,
             false
         );
@@ -555,7 +560,7 @@ public class ExtensionBuilder {
             connectorNode.initializeConnector(initContext);
         } catch (final Exception e) {
             logger.error("Could not initialize Connector of type {} from {} for ID {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e);
-            return createGhostConnectorNode(connectorsAuthorizable, e);
+            return createGhostConnectorNode(connectorsAuthorizable, connectorFlowSnapshotMapper, e);
         }
 
         if (loadInitialFlow) {
@@ -563,14 +568,15 @@ public class ExtensionBuilder {
                 connectorNode.loadInitialFlow();
             } catch (final Exception e) {
                 logger.error("Failed to load initial flow for {}; creating \"Ghost\" implementation", connectorNode, e);
-                return createGhostConnectorNode(connectorsAuthorizable, e);
+                return createGhostConnectorNode(connectorsAuthorizable, connectorFlowSnapshotMapper, e);
             }
         }
 
         return connectorNode;
     }
 
-    private ConnectorNode createGhostConnectorNode(final Authorizable connectorsAuthorizable, final Exception cause) {
+    private ConnectorNode createGhostConnectorNode(final Authorizable connectorsAuthorizable, final ConnectorFlowSnapshotMapper connectorFlowSnapshotMapper,
+            final Exception cause) {
         final GhostConnector ghostConnector = new GhostConnector(identifier, type, cause);
         final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
         final String componentType = "(Missing) " + simpleClassName;
@@ -593,6 +599,7 @@ public class ExtensionBuilder {
             activeConfigurationContext,
             connectorStateTransition,
             flowContextFactory,
+            connectorFlowSnapshotMapper,
             connectorValidationTrigger,
             true
         );

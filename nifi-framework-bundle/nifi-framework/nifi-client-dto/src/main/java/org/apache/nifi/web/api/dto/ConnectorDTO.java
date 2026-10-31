@@ -31,6 +31,7 @@ public class ConnectorDTO extends ComponentDTO {
     private String type;
     private BundleDTO bundle;
     private String state; // RUNNING, STOPPED
+    private String flowEvolutionStatus;
     private String managedProcessGroupId;
     private ConnectorConfigurationDTO activeConfiguration;
     private ConnectorConfigurationDTO workingConfiguration;
@@ -79,6 +80,17 @@ public class ConnectorDTO extends ComponentDTO {
 
     public void setState(final String state) {
         this.state = state;
+    }
+
+    @Schema(description = "The local or merged progress of a pending Connector flow evolution.",
+            allowableValues = {"INACTIVE", "PHASE_ONE_PENDING", "PHASE_ONE_COMPLETE", "PHASE_TWO_COMPLETE", "FAILED"},
+            accessMode = Schema.AccessMode.READ_ONLY)
+    public String getFlowEvolutionStatus() {
+        return flowEvolutionStatus;
+    }
+
+    public void setFlowEvolutionStatus(final String flowEvolutionStatus) {
+        this.flowEvolutionStatus = flowEvolutionStatus;
     }
 
     @Schema(description = "The identifier of the root Process Group managed by this Connector.")

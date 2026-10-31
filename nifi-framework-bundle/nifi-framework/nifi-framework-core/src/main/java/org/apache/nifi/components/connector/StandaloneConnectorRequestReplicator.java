@@ -25,16 +25,25 @@ public class StandaloneConnectorRequestReplicator implements ConnectorRequestRep
 
     @Override
     public ConnectorState getState(final String connectorId) {
-        final ConnectorNode connectorNode = flowManager.getConnector(connectorId);
-        if (connectorNode == null) {
-            throw new IllegalArgumentException("No connector found with id: " + connectorId);
-        }
+        return getConnector(connectorId).getCurrentState();
+    }
 
-        return connectorNode.getCurrentState();
+    @Override
+    public FlowEvolutionStatus getFlowEvolutionStatus(final String connectorId) {
+        return getConnector(connectorId).getFlowEvolutionStatus();
     }
 
     @Override
     public void setFlowManager(final FlowManager flowManager) {
         this.flowManager = flowManager;
+    }
+
+    private ConnectorNode getConnector(final String connectorId) {
+        final ConnectorNode connectorNode = flowManager.getConnector(connectorId);
+        if (connectorNode == null) {
+            throw new IllegalArgumentException("No connector found with id: " + connectorId);
+        }
+
+        return connectorNode;
     }
 }

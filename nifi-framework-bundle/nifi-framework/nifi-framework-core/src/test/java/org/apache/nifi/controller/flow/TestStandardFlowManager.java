@@ -41,6 +41,7 @@ import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -136,6 +137,7 @@ public class TestStandardFlowManager {
         when(flowController.getRepositoryContextFactory()).thenReturn(repositoryContextFactory);
         when(flowController.getGarbageCollectionLog()).thenReturn(mock(GarbageCollectionLog.class));
         when(flowController.getControllerServiceProvider()).thenReturn(mock(ControllerServiceProvider.class));
+        when(flowController.getPropertyEncryptionProvider()).thenReturn(new InternalPassThroughPropertyEncryptionProvider());
         when(flowController.getProvenanceRepository()).thenReturn(mock(ProvenanceRepository.class));
         when(flowController.getBulletinRepository()).thenReturn(mock(BulletinRepository.class));
         when(flowController.getLifecycleStateManager()).thenReturn(mock(LifecycleStateManager.class));

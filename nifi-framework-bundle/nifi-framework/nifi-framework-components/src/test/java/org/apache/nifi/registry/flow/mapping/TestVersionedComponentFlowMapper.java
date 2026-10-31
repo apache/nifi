@@ -126,14 +126,8 @@ public class TestVersionedComponentFlowMapper {
     @Test
     public void testMappingProcessorWithSensitiveValuesProvidesEncryptedValue() {
         final ExtensionManager extensionManager = mock(ExtensionManager.class);
-        final FlowMappingOptions mappingOptions = new FlowMappingOptions.Builder()
-            .stateLookup(VersionedComponentStateLookup.IDENTITY_LOOKUP)
-            .componentIdLookup(ComponentIdLookup.USE_COMPONENT_ID)
-            .propertyEncryptionProvider(new RecordingPropertyEncryptionProvider())
-            .mapSensitiveConfiguration(true)
-            .build();
-
-        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(extensionManager, mappingOptions);
+        final VersionedComponentFlowMapper mapper = VersionedComponentFlowMapper.forPersistedFlow(
+            extensionManager, new RecordingPropertyEncryptionProvider(), VersionedComponentStateLookup.IDENTITY_LOOKUP);
 
         final ControllerServiceProvider serviceProvider = mock(ControllerServiceProvider.class);
         final Map<String, String> properties = new HashMap<>();

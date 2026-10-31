@@ -31,6 +31,7 @@ import org.apache.nifi.connectable.FlowFileTransferCounts;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConfigurationStep;
+import org.apache.nifi.flow.VersionedConnector;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.time.Duration;
@@ -38,6 +39,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent {
@@ -192,6 +194,25 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
 
     FrameworkFlowContext getWorkingFlowContext();
 
+    /**
+     * @return true when an upgrade is still open. That is when the Connector is not ghosted, an authoritative snapshot
+     *         is held, and its bundle differs from {@link #getBundleCoordinate()}, or when the evolution hook has finished
+     *         in an attempt that is still open. While true, Apply is rejected and START runs the upgrade.
+     */
+    boolean isPendingFlowEvolution();
+
+    /**
+     * @return local progress through the pending flow evolution
+     */
+    default FlowEvolutionStatus getFlowEvolutionStatus() {
+        return FlowEvolutionStatus.INACTIVE;
+    }
+
+    /**
+     * @return authoritative persistence snapshot, or null when none is held
+     */
+    ConnectorFlowSnapshot getAuthoritativeFlowSnapshot();
+
     void discardWorkingConfiguration();
 
     // -------------------
@@ -323,6 +344,43 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
     void transitionStateForUpdating();
 
     void prepareForUpdate() throws FlowUpdateException;
+
+    /**
+     * Moves a pending upgrade from STOPPED to DRAINING and creates the evolution context.
+     *
+     * @throws IllegalStateException if no evolution is pending or the Connector is not STOPPED
+     */
+    void prepareFlowEvolution();
+
+    /**
+     * Runs preflight, the Connector evolution hook, and local phase one on the provided executor. The executor must
+     * tolerate a task blocked for the duration of the hook. A resumed evolution runs preflight without invoking the
+     * hook. abortUpdate cancels the returned Future and the hook.
+     *
+     * @param executor executor used to run local phase one
+     * @return the future for local phase one of the prepared evolution
+     * @throws FlowUpdateException if the prepared evolution is no longer active
+     */
+    Future<Void> evolveFlow(ExecutorService executor) throws FlowUpdateException;
+
+    /**
+     * @return true when the persisted flow belongs to a different bundle and configuration must not be inherited
+     */
+    boolean restorePendingFlowEvolution(VersionedConnector persisted, List<VersionedConfigurationStep> activeConfiguration,
+            List<VersionedConfigurationStep> workingConfiguration) throws FlowUpdateException;
+
+    /**
+     * Installs the persisted managed flow after configuration has been inherited, or records the inherited flow as
+     * authoritative when none was persisted.
+     */
+    void restorePersistedManagedFlow(VersionedConnector persisted);
+
+    /**
+     * Installs the persisted managed flow while restoring Troubleshooting.
+     *
+     * @throws FlowUpdateException if the persisted flow cannot be restored
+     */
+    void restoreTroubleshootingManagedFlow(VersionedConnector persisted) throws FlowUpdateException;
 
     /**
      * Aborts the update preparation process. This method should only be invoked via the ConnectorRepository.

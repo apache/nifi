@@ -4028,6 +4028,11 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void restoreFlowPreservingIdentifiers(final VersionedExternalFlow proposedSnapshot) {
+        restoreFlowPreservingIdentifiers(proposedSnapshot, autoResumeState);
+    }
+
+    @Override
+    public void restoreFlowPreservingIdentifiers(final VersionedExternalFlow proposedSnapshot, final boolean resumeComponentState) {
         // Use the Instance Identifier captured in the persisted flow as the runtime identifier for every component. This is
         // required so that Connection identifiers (and therefore FlowFile queue identifiers) match what was in use before
         // the flow was persisted. Without this, queued FlowFiles in the FlowFile Repository cannot be re-associated with
@@ -4035,10 +4040,10 @@ public final class StandardProcessGroup implements ProcessGroup {
         final ComponentIdGenerator idGenerator = (proposedId, instanceId, destinationGroupId) -> instanceId;
         final VersionedComponentStateLookup stateLookup = VersionedComponentStateLookup.IDENTITY_LOOKUP;
 
-        // When nifi.flowcontroller.autoResumeState is false, restore the flow structure (so queued FlowFiles can be
-        // re-associated with their Connections) without resuming any component to its previously running or enabled
-        // state. Otherwise, restore each component to the running/enabled state captured in the persisted flow.
-        final ComponentScheduler componentScheduler = autoResumeState
+        // resumeComponentState=false restores the flow structure (so queued FlowFiles can be re-associated with their
+        // Connections) without resuming any component to its previously running or enabled state. When true, restore each
+        // component to the running/enabled state captured in the persisted flow.
+        final ComponentScheduler componentScheduler = resumeComponentState
             ? new DefaultComponentScheduler(controllerServiceProvider, stateLookup)
             : new NonStartingComponentScheduler(controllerServiceProvider, stateLookup);
 
@@ -4060,13 +4065,13 @@ public final class StandardProcessGroup implements ProcessGroup {
         // the live component is the encrypted payload rather than the plaintext (or parameter reference) originally captured.
         final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
             .mapSensitiveConfiguration(true)
-            .mapPropertyDescriptors(true)
+            .mapPropertyDescriptors(false)
             .stateLookup(stateLookup)
             .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
             .mapInstanceIdentifiers(true)
-            .mapControllerServiceReferencesToVersionedId(true)
-            .mapFlowRegistryClientId(false)
-            .mapAssetReferences(false)
+            .mapControllerServiceReferencesToVersionedId(false)
+            .mapFlowRegistryClientId(true)
+            .mapAssetReferences(true)
             .propertyEncryptionProvider(propertyEncryptionProvider)
             .build();
 

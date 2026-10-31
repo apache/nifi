@@ -21,9 +21,16 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.Response.Status.Family;
 import jakarta.ws.rs.core.Response.StatusType;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.connector.ConnectorRequestReplicator;
 import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.components.connector.FlowEvolutionStatus;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.Entity;
@@ -41,30 +48,64 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
     private static final String GET = "GET";
 
     private final Supplier<RequestReplicator> requestReplicatorSupplier;
+    private final Supplier<ClusterCoordinator> clusterCoordinatorSupplier;
     private final String replicationScheme;
 
-    public ClusteredConnectorRequestReplicator(final Supplier<RequestReplicator> requestReplicatorSupplier, final boolean httpsEnabled) {
+    public ClusteredConnectorRequestReplicator(final Supplier<RequestReplicator> requestReplicatorSupplier, final Supplier<ClusterCoordinator> clusterCoordinatorSupplier,
+            final boolean httpsEnabled) {
         this.requestReplicatorSupplier = Objects.requireNonNull(requestReplicatorSupplier, "Request Replicator Supplier required");
+        this.clusterCoordinatorSupplier = Objects.requireNonNull(clusterCoordinatorSupplier, "Cluster Coordinator Supplier required");
         this.replicationScheme = httpsEnabled ? "https" : "http";
     }
 
     @Override
     public ConnectorState getState(final String connectorId) throws IOException {
+        final ConnectorEntity connectorEntity = getConnectorEntity(connectorId, false);
+        final String stateName = connectorEntity.getComponent().getState();
+        logger.debug("getState: Connector [{}] — state from response: [{}]", connectorId, stateName);
+        try {
+            return ConnectorState.valueOf(stateName);
+        } catch (final IllegalArgumentException e) {
+            throw new IOException("Received unknown Connector state '" + stateName + "' for Connector with ID " + connectorId);
+        }
+    }
+
+    @Override
+    public FlowEvolutionStatus getFlowEvolutionStatus(final String connectorId) throws IOException {
+        final ConnectorEntity connectorEntity = getConnectorEntity(connectorId, true);
+        final String statusName = connectorEntity.getComponent().getFlowEvolutionStatus();
+        if (statusName == null) {
+            return FlowEvolutionStatus.INACTIVE;
+        }
+
+        try {
+            return FlowEvolutionStatus.valueOf(statusName);
+        } catch (final IllegalArgumentException e) {
+            throw new IOException("Received unknown flow evolution status '" + statusName + "' for Connector with ID " + connectorId);
+        }
+    }
+
+    private ConnectorEntity getConnectorEntity(final String connectorId, final boolean requireAllConnected) throws IOException {
         final RequestReplicator requestReplicator = getRequestReplicator();
+        verifyClusterMembership(connectorId, requireAllConnected);
+
         final URI uri = URI.create(replicationScheme + "://localhost/nifi-api/connectors/" + connectorId);
 
-        logger.debug("getState: Connector [{}] — replicating GET to URI [{}]", connectorId, uri);
+        logger.debug("Connector [{}] — replicating GET to URI [{}]", connectorId, uri);
 
         // User is null. GET /connectors/{id} API endpoint has special logic for authorizing requests made by nifi cluster nodes based on mTLS cert SANs
         final AsyncClusterResponse asyncResponse = requestReplicator.replicate(null, GET, uri, Map.of(), Map.of());
 
         try {
             final NodeResponse mergedNodeResponse = asyncResponse.awaitMergedResponse();
+            if (mergedNodeResponse == null) {
+                throw new IOException("No merged response received while retrieving Connector " + connectorId);
+            }
             final Entity updatedEntity = mergedNodeResponse.getUpdatedEntity();
             final Response response = mergedNodeResponse.getClientResponse();
             if (response != null) {
                 final int statusCode = response.getStatusInfo().getStatusCode();
-                logger.debug("getState: Connector [{}] — merged response status [{}] ({})", connectorId, statusCode, response.getStatusInfo().getReasonPhrase());
+                logger.debug("Connector [{}] — merged response status [{}] ({})", connectorId, statusCode, response.getStatusInfo().getReasonPhrase());
                 verifyResponse(response.getStatusInfo(), connectorId);
             } else if (mergedNodeResponse.hasThrowable()) {
                 throw new IOException("Failed to retrieve Connector state for " + connectorId, mergedNodeResponse.getThrowable());
@@ -77,10 +118,10 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
             // only return the state from whichever single node was selected as the "client response".
             final ConnectorEntity connectorEntity;
             if (updatedEntity instanceof final ConnectorEntity mergedConnectorEntity) {
-                logger.debug("getState: Connector [{}] - using merged updatedEntity", connectorId);
+                logger.debug("Connector [{}] - using merged updatedEntity", connectorId);
                 connectorEntity = mergedConnectorEntity;
             } else {
-                logger.debug("getState: Connector [{}] — updatedEntity is [{}], falling back to readEntity()", connectorId,
+                logger.debug("Connector [{}] — updatedEntity is [{}], falling back to readEntity()", connectorId,
                         updatedEntity == null ? "null" : updatedEntity.getClass().getSimpleName());
                 connectorEntity = response.readEntity(ConnectorEntity.class);
             }
@@ -93,16 +134,37 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
                         + ". Permissions canRead=" + (connectorEntity.getPermissions() != null ? connectorEntity.getPermissions().getCanRead() : "null"));
             }
 
-            final String stateName = connectorEntity.getComponent().getState();
-            logger.debug("getState: Connector [{}] — state from response: [{}]", connectorId, stateName);
-            try {
-                return ConnectorState.valueOf(stateName);
-            } catch (final IllegalArgumentException e) {
-                throw new IOException("Received unknown Connector state '" + stateName + "' for Connector with ID " + connectorId);
+            if (requireAllConnected) {
+                for (final NodeIdentifier node : asyncResponse.getNodesInvolved()) {
+                    final NodeResponse nodeResponse = asyncResponse.getNodeResponse(node);
+                    if (nodeResponse == null || !nodeResponse.is2xx()) {
+                        throw new IOException("Failed to retrieve flow evolution status for Connector " + connectorId + " from node " + node);
+                    }
+                }
             }
+            return connectorEntity;
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Interrupted while waiting for response for status of Connector with ID " + connectorId, e);
+        }
+    }
+
+    private void verifyClusterMembership(final String connectorId, final boolean requireAllConnected) throws IOException {
+        final ClusterCoordinator clusterCoordinator = clusterCoordinatorSupplier.get();
+        if (clusterCoordinator == null || !clusterCoordinator.isConnected()) {
+            throw new NoConnectedNodesException();
+        }
+
+        for (final NodeConnectionStatus connectionStatus : clusterCoordinator.getConnectionStatuses()) {
+            final NodeConnectionState state = connectionStatus.getState();
+            if (state == NodeConnectionState.CONNECTING
+                    || (state == NodeConnectionState.DISCONNECTED && connectionStatus.getDisconnectCode() == DisconnectionCode.NOT_YET_CONNECTED)) {
+                throw new NoConnectedNodesException();
+            }
+            if (requireAllConnected && state != NodeConnectionState.CONNECTED && state != NodeConnectionState.REMOVED) {
+                throw new IOException("Cannot retrieve flow evolution status for Connector " + connectorId
+                        + " because node " + connectionStatus.getNodeIdentifier() + " is " + state);
+            }
         }
     }
 
