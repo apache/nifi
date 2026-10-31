@@ -96,7 +96,8 @@ export const connectorCanvasReducer = createReducer(
                   removedCache: [],
                   pendingAuthoritativeSnapshot: false,
                   hasLoadedFlow: false,
-                  parameterContext: null
+                  parameterContext: null,
+                  processGroupRevision: null
               }
             : {})
     })),
@@ -112,6 +113,7 @@ export const connectorCanvasReducer = createReducer(
             {
                 connectorId,
                 processGroupId,
+                processGroupRevision,
                 parentProcessGroupId,
                 breadcrumb,
                 labels,
@@ -158,6 +160,7 @@ export const connectorCanvasReducer = createReducer(
                 ...state,
                 connectorId,
                 processGroupId,
+                processGroupRevision,
                 parentProcessGroupId,
                 breadcrumb,
                 labels: processComponentCollection(
@@ -420,5 +423,78 @@ export const connectorCanvasReducer = createReducer(
     on(ConnectorCanvasActions.loadConnectorParameterContextFailure, (state) => ({
         ...state,
         parameterContext: null
-    }))
+    })),
+
+    on(
+        ConnectorCanvasActions.startComponentSuccess,
+        ConnectorCanvasActions.stopComponentSuccess,
+        ConnectorCanvasActions.enableComponentSuccess,
+        ConnectorCanvasActions.disableComponentSuccess,
+        (state, { componentId, componentType, component }) => {
+            const patch = <E extends { id: string; revision: Revision; status?: unknown; component?: unknown }>(
+                collection: E[],
+                incoming: E
+            ): E[] =>
+                collection.map((existing) =>
+                    existing.id === componentId && hasCurrentOrNewerRevision(existing.revision, incoming.revision)
+                        ? ({
+                              ...existing,
+                              status: incoming.status ?? existing.status,
+                              component: incoming.component ?? existing.component,
+                              revision: incoming.revision
+                          } as E)
+                        : existing
+                );
+
+            switch (componentType) {
+                case ComponentType.Processor:
+                    return {
+                        ...state,
+                        processors: patch(state.processors, component as (typeof state.processors)[number])
+                    };
+                case ComponentType.InputPort:
+                    return {
+                        ...state,
+                        inputPorts: patch(state.inputPorts, component as (typeof state.inputPorts)[number])
+                    };
+                case ComponentType.OutputPort:
+                    return {
+                        ...state,
+                        outputPorts: patch(state.outputPorts, component as (typeof state.outputPorts)[number])
+                    };
+                case ComponentType.RemoteProcessGroup:
+                    return {
+                        ...state,
+                        remoteProcessGroups: patch(
+                            state.remoteProcessGroups,
+                            component as (typeof state.remoteProcessGroups)[number]
+                        )
+                    };
+                default:
+                    return state;
+            }
+        }
+    ),
+
+    on(ConnectorCanvasActions.loadChildProcessGroupSuccess, (state, { processGroupId, processGroup }) => ({
+        ...state,
+        processGroups: replaceIfCurrentOrNewer(state.processGroups, processGroupId, processGroup)
+    })),
+
+    on(
+        ConnectorCanvasActions.runOnceComponentSuccess,
+        ConnectorCanvasActions.terminateComponentThreadsSuccess,
+        (state, { componentId, component }) => ({
+            ...state,
+            processors: state.processors.map((existing) =>
+                existing.id === componentId && hasCurrentOrNewerRevision(existing.revision, component.revision)
+                    ? {
+                          ...existing,
+                          status: component.status ?? existing.status,
+                          revision: component.revision
+                      }
+                    : existing
+            )
+        })
+    )
 );

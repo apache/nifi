@@ -16,7 +16,8 @@
  */
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { ConnectionEntity, Position, selectRouteParams } from '@nifi/shared';
+import { ComponentType, ConnectionEntity, Position, selectRouteParams } from '@nifi/shared';
+import { SelectionTarget } from '../../../../ui/common/canvas/utils/selection.utils';
 import { ConnectorCanvasState, connectorCanvasFeatureKey } from './index';
 
 export const selectConnectorCanvasState = createFeatureSelector<ConnectorCanvasState>(connectorCanvasFeatureKey);
@@ -68,6 +69,11 @@ export const selectMaxConnectionZIndex = createSelector(selectConnectorCanvasSta
 export const selectConnectorId = createSelector(selectConnectorCanvasState, (state) => state.connectorId);
 
 export const selectProcessGroupId = createSelector(selectConnectorCanvasState, (state) => state.processGroupId);
+
+export const selectProcessGroupRevision = createSelector(
+    selectConnectorCanvasState,
+    (state) => state.processGroupRevision
+);
 
 export const selectParentProcessGroupId = createSelector(
     selectConnectorCanvasState,
@@ -128,3 +134,62 @@ export const selectProcessGroup = (id: string) =>
 
 export const selectFunnel = (id: string) =>
     createSelector(selectFunnels, (funnels) => funnels.find((funnel) => funnel.id === id));
+
+export const selectConnectorCanvasSelectedComponents = createSelector(
+    selectRouteParams,
+    selectProcessors,
+    selectInputPorts,
+    selectOutputPorts,
+    selectProcessGroups,
+    selectRemoteProcessGroups,
+    selectFunnels,
+    selectLabels,
+    selectConnections,
+    (
+        params,
+        processors,
+        inputPorts,
+        outputPorts,
+        processGroups,
+        remoteProcessGroups,
+        funnels,
+        labels,
+        connections
+    ): SelectionTarget[] => {
+        if (!params) {
+            return [];
+        }
+
+        let ids: string[];
+        if (params['type'] && params['componentId']) {
+            ids = [params['componentId']];
+        } else if (params['ids']) {
+            ids = (params['ids'] as string).split(',').filter(Boolean);
+        } else {
+            return [];
+        }
+
+        const byId = new Map<string, SelectionTarget>();
+        processors.forEach((entity) => byId.set(entity.id, { entity, ui: { componentType: ComponentType.Processor } }));
+        inputPorts.forEach((entity) => byId.set(entity.id, { entity, ui: { componentType: ComponentType.InputPort } }));
+        outputPorts.forEach((entity) =>
+            byId.set(entity.id, { entity, ui: { componentType: ComponentType.OutputPort } })
+        );
+        processGroups.forEach((entity) =>
+            byId.set(entity.id, { entity, ui: { componentType: ComponentType.ProcessGroup } })
+        );
+        remoteProcessGroups.forEach((entity) =>
+            byId.set(entity.id, { entity, ui: { componentType: ComponentType.RemoteProcessGroup } })
+        );
+        funnels.forEach((entity) => byId.set(entity.id, { entity, ui: { componentType: ComponentType.Funnel } }));
+        labels.forEach((entity) => byId.set(entity.id, { entity, ui: { componentType: ComponentType.Label } }));
+        connections.forEach((entity) =>
+            byId.set(entity.id, { entity, ui: { componentType: ComponentType.Connection } })
+        );
+
+        return ids.flatMap((id) => {
+            const target = byId.get(id);
+            return target ? [target] : [];
+        });
+    }
+);

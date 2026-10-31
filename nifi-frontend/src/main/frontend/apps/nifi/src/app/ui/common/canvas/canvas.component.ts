@@ -1432,31 +1432,40 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
                 }
             }
 
-            // Build array of selected components with full data
-            const selectedIds = this.selectedComponentIds();
+            // Build array of selected components with full data.
+            // `handleComponentSelection` emits the new selection asynchronously via
+            // `selectComponents`, which only reaches `selectedComponentIds()` after the
+            // store round-trip completes. A non-shift right-click on an unselected
+            // component replaces the whole selection with just the clicked id. Mirror
+            // that synchronously so the emitted context is accurate on this turn.
+            const baseIds = new Set(this.selectedComponentIds());
+            const effectiveIds =
+                clickedComponent && !baseIds.has(clickedComponent.entity.id)
+                    ? new Set([clickedComponent.entity.id])
+                    : baseIds;
             const selectedComponents: CanvasDatum[] = [];
 
             // Gather selected components from all internal arrays
             this.internalLabels().forEach((c) => {
-                if (selectedIds.includes(c.entity.id)) selectedComponents.push(c);
+                if (effectiveIds.has(c.entity.id)) selectedComponents.push(c);
             });
             this.internalProcessors().forEach((c) => {
-                if (selectedIds.includes(c.entity.id)) selectedComponents.push(c);
+                if (effectiveIds.has(c.entity.id)) selectedComponents.push(c);
             });
             this.internalFunnels().forEach((c) => {
-                if (selectedIds.includes(c.entity.id)) selectedComponents.push(c);
+                if (effectiveIds.has(c.entity.id)) selectedComponents.push(c);
             });
             this.internalPorts().forEach((c) => {
-                if (selectedIds.includes(c.entity.id)) selectedComponents.push(c);
+                if (effectiveIds.has(c.entity.id)) selectedComponents.push(c);
             });
             this.internalRemoteProcessGroups().forEach((c) => {
-                if (selectedIds.includes(c.entity.id)) selectedComponents.push(c);
+                if (effectiveIds.has(c.entity.id)) selectedComponents.push(c);
             });
             this.internalProcessGroups().forEach((c) => {
-                if (selectedIds.includes(c.entity.id)) selectedComponents.push(c);
+                if (effectiveIds.has(c.entity.id)) selectedComponents.push(c);
             });
             this.internalConnections().forEach((c) => {
-                if (selectedIds.includes(c.entity.id)) selectedComponents.push(c);
+                if (effectiveIds.has(c.entity.id)) selectedComponents.push(c);
             });
 
             // Build context and emit it so parent can store it
@@ -2508,8 +2517,23 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     private markItemsSaving(items: CanvasComponentRef[]): void {
+        this.updateTrackedItems(items, true);
+    }
+
+    public clearItemsSaving(items: CanvasComponentRef[]): void {
+        this.updateTrackedItems(items, false);
+    }
+
+    private updateTrackedItems(items: CanvasComponentRef[], add: boolean): void {
         for (const item of items) {
-            const update = (value: Set<string>) => new Set(value).add(item.id);
+            const update = (value: Set<string>) => {
+                if (add) {
+                    return new Set(value).add(item.id);
+                }
+                const next = new Set(value);
+                next.delete(item.id);
+                return next;
+            };
             switch (item.type) {
                 case ComponentType.Processor:
                     this.savingProcessors.update(update);

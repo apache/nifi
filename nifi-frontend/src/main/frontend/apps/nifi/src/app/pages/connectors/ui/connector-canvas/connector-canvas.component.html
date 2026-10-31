@@ -42,6 +42,12 @@
                     [provenanceError]="provenanceError()"
                     [connectedToCluster]="connectedToCluster()"
                     [contentViewerAvailable]="contentViewerAvailable()"
+                    [inTroubleshooting]="inTroubleshooting()"
+                    [operationSelection]="operationSelection()"
+                    [operationBreadcrumb]="operationBreadcrumb()"
+                    [operationCanvasPermissions]="operationBreadcrumb()?.permissions ?? null"
+                    [operationCurrentProcessGroupId]="currentProcessGroupId"
+                    [operationProcessGroupRevision]="operationProcessGroupRevision()"
                     (viewportChange)="onBirdseyeViewportChange($event)"
                     (birdseyeDragStart)="onBirdseyeDragStart()"
                     (birdseyeDragEnd)="onBirdseyeDragEnd()"
@@ -55,7 +61,12 @@
                     (provenanceViewDetails)="onProvenanceViewDetails($event)"
                     (provenanceDownloadContent)="onProvenanceDownloadContent($event)"
                     (provenanceViewContent)="onProvenanceViewContent($event)"
-                    (provenanceReplayEvent)="onProvenanceReplayEvent($event)">
+                    (provenanceReplayEvent)="onProvenanceReplayEvent($event)"
+                    (operationEnable)="commands.enableComponents($event)"
+                    (operationDisable)="commands.disableComponents($event)"
+                    (operationStart)="commands.startComponents($event)"
+                    (operationStop)="commands.stopComponents($event)"
+                    (operationRunOnce)="commands.runOnce($event)">
                 </connector-graph-controls>
             </mat-sidenav>
             <mat-sidenav-content>

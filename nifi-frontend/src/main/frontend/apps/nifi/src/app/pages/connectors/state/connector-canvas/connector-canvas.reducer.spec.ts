@@ -153,6 +153,31 @@ describe('connectorCanvasReducer', () => {
     });
 
     describe('loadConnectorFlowSuccess', () => {
+        it('stores the current process-group revision for operation controls', () => {
+            const result = connectorCanvasReducer(
+                initialConnectorCanvasState,
+                ConnectorCanvasActions.loadConnectorFlowSuccess({
+                    connectorId: 'connector-1',
+                    processGroupId: 'pg-1',
+                    processGroupRevision: { version: 7, clientId: 'client-1' },
+                    parentProcessGroupId: null,
+                    breadcrumb: null,
+                    labels: [],
+                    funnels: [],
+                    inputPorts: [],
+                    outputPorts: [],
+                    remoteProcessGroups: [],
+                    processGroups: [],
+                    processors: [],
+                    connections: [],
+                    reconciliationSnapshot: { addedCache: [], removedCache: [] },
+                    connectedStateChanged: false
+                })
+            );
+
+            expect(result.processGroupRevision).toEqual({ version: 7, clientId: 'client-1' });
+        });
+
         it('should populate state with flow data', () => {
             const processors = [makeProcessor('proc-new')];
             const connections = [makeConnection('conn-new')];
@@ -163,6 +188,7 @@ describe('connectorCanvasReducer', () => {
                 ConnectorCanvasActions.loadConnectorFlowSuccess({
                     connectorId: 'connector-1',
                     processGroupId: 'pg-1',
+                    processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     labels,
@@ -197,6 +223,7 @@ describe('connectorCanvasReducer', () => {
                 ConnectorCanvasActions.loadConnectorFlowSuccess({
                     connectorId: 'connector-1',
                     processGroupId: 'pg-current',
+                    processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     labels: [],
@@ -226,6 +253,7 @@ describe('connectorCanvasReducer', () => {
             const staleAction = ConnectorCanvasActions.loadConnectorFlowSuccess({
                 connectorId: 'connector-1',
                 processGroupId: 'pg-current',
+                processGroupRevision: null,
                 parentProcessGroupId: 'pg-parent',
                 breadcrumb: null,
                 labels: [],
@@ -265,6 +293,7 @@ describe('connectorCanvasReducer', () => {
             const staleAction = ConnectorCanvasActions.loadConnectorFlowSuccess({
                 connectorId: 'connector-1',
                 processGroupId: 'pg-current',
+                processGroupRevision: null,
                 parentProcessGroupId: 'pg-parent',
                 breadcrumb: null,
                 labels: [],
@@ -311,6 +340,7 @@ describe('connectorCanvasReducer', () => {
                 ConnectorCanvasActions.loadConnectorFlowSuccess({
                     connectorId: 'connector-1',
                     processGroupId: 'pg-current',
+                    processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     labels: [],
@@ -339,6 +369,7 @@ describe('connectorCanvasReducer', () => {
                 ConnectorCanvasActions.loadConnectorFlowSuccess({
                     connectorId: 'connector-1',
                     processGroupId: 'pg-current',
+                    processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     labels: [],
@@ -376,6 +407,7 @@ describe('connectorCanvasReducer', () => {
                 ConnectorCanvasActions.loadConnectorFlowSuccess({
                     connectorId: 'connector-1',
                     processGroupId: 'pg-current',
+                    processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     labels: [],
@@ -419,6 +451,7 @@ describe('connectorCanvasReducer', () => {
                 ConnectorCanvasActions.loadConnectorFlowSuccess({
                     connectorId: 'connector-1',
                     processGroupId: 'pg-current',
+                    processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     labels: [],
@@ -790,6 +823,7 @@ describe('connectorCanvasReducer', () => {
             const staleLoad = ConnectorCanvasActions.loadConnectorFlowSuccess({
                 connectorId: 'connector-1',
                 processGroupId: 'pg-current',
+                processGroupRevision: null,
                 parentProcessGroupId: 'pg-parent',
                 breadcrumb: null,
                 labels: [],
@@ -853,6 +887,7 @@ describe('connectorCanvasReducer', () => {
                 ConnectorCanvasActions.loadConnectorFlowSuccess({
                     connectorId: 'connector-1',
                     processGroupId: 'pg-current',
+                    processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     labels: [],
@@ -869,6 +904,59 @@ describe('connectorCanvasReducer', () => {
             );
 
             expect(restored.processors.some((processor) => processor.id === 'proc-1')).toBe(true);
+        });
+    });
+    describe('run status operations', () => {
+        it('applies a current run-status response', () => {
+            const processor = makeProcessor('proc-1', { revision: { version: 1 } });
+            const result = connectorCanvasReducer(
+                createPopulatedState({ processors: [processor] }),
+                ConnectorCanvasActions.startComponentSuccess({
+                    componentId: processor.id,
+                    componentType: ComponentType.Processor,
+                    component: makeProcessor(processor.id, { revision: { version: 2 } })
+                })
+            );
+
+            expect(result.processors[0].revision.version).toBe(2);
+        });
+
+        it('does not apply a stale run-status response', () => {
+            const current = makeProcessor('proc-1', { revision: { version: 3 } });
+
+            const result = connectorCanvasReducer(
+                createPopulatedState({ processors: [current] }),
+                ConnectorCanvasActions.stopComponentSuccess({
+                    componentId: current.id,
+                    componentType: ComponentType.Processor,
+                    component: makeProcessor(current.id, { revision: { version: 2 } })
+                })
+            );
+
+            expect(result.processors[0]).toBe(current);
+        });
+
+        it('preserves the processor component body after run-once succeeds', () => {
+            const current = makeProcessor('proc-1', {
+                revision: { version: 1 },
+                component: { id: 'proc-1', name: 'Configured Processor' }
+            });
+            const response = makeProcessor('proc-1', {
+                revision: { version: 2 },
+                component: { id: 'proc-1', name: 'Sparse Response' }
+            });
+
+            const result = connectorCanvasReducer(
+                createPopulatedState({ processors: [current] }),
+                ConnectorCanvasActions.runOnceComponentSuccess({
+                    componentId: current.id,
+                    component: response
+                })
+            );
+
+            expect(result.processors[0].component).toBe(current.component);
+            expect(result.processors[0].status).toBe(response.status);
+            expect(result.processors[0].revision).toBe(response.revision);
         });
     });
 });
