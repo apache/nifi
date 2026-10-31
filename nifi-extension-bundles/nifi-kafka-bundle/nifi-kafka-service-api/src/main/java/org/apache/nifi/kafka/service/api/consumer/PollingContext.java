@@ -31,21 +31,34 @@ public class PollingContext {
     private final Collection<String> topics;
     private final Pattern topicPattern;
     private final AutoOffsetReset autoOffsetReset;
+    private final Integer maxPollRecords;
 
     public PollingContext(final String groupId, final Collection<String> topics,
             final AutoOffsetReset autoOffsetReset) {
+        this(groupId, topics, autoOffsetReset, null);
+    }
+
+    public PollingContext(final String groupId, final Collection<String> topics,
+            final AutoOffsetReset autoOffsetReset, final Integer maxPollRecords) {
         this.groupId = groupId;
         this.topics = Collections.unmodifiableCollection(Objects.requireNonNull(topics, "Topics required"));
         this.topicPattern = null;
         this.autoOffsetReset = Objects.requireNonNull(autoOffsetReset, "Auto Offset Reset required");
+        this.maxPollRecords = maxPollRecords;
     }
 
     public PollingContext(final String groupId, final Pattern topicPattern,
             final AutoOffsetReset autoOffsetReset) {
+        this(groupId, topicPattern, autoOffsetReset, null);
+    }
+
+    public PollingContext(final String groupId, final Pattern topicPattern,
+            final AutoOffsetReset autoOffsetReset, final Integer maxPollRecords) {
         this.groupId = groupId;
         this.topics = Collections.emptyList();
         this.topicPattern = Objects.requireNonNull(topicPattern, "Topic Patten required");
         this.autoOffsetReset = Objects.requireNonNull(autoOffsetReset, "Auto Offset Reset required");
+        this.maxPollRecords = maxPollRecords;
     }
 
     public String getGroupId() {
@@ -64,9 +77,13 @@ public class PollingContext {
         return autoOffsetReset;
     }
 
+    public Optional<Integer> getMaxPollRecords() {
+        return Optional.ofNullable(maxPollRecords);
+    }
+
     @Override
     public String toString() {
-        return String.format("Group ID [%s] Topics %s Topic Pattern [%s] Auto Offset Reset [%s]",
-                groupId, topics, topicPattern, autoOffsetReset);
+        return String.format("Group ID [%s] Topics %s Topic Pattern [%s] Auto Offset Reset [%s] Max Poll Records [%s]",
+                groupId, topics, topicPattern, autoOffsetReset, maxPollRecords);
     }
 }
