@@ -21,8 +21,18 @@ import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 
 public class SystemTestAuthorizer implements Authorizer {
+    private static final String DENY_SOURCE_DATA_PROPERTY = "Deny Source Data Identity";
+    private static final String DATA_RESOURCE_PREFIX = "/data/";
+
+    private volatile String identityDeniedSourceData;
+
     @Override
     public AuthorizationResult authorize(final AuthorizationRequest request) throws AuthorizationAccessException {
+        if (request.getAction() == RequestAction.READ && identityDeniedSourceData != null && identityDeniedSourceData.equals(request.getIdentity())
+                && request.getRequestedResource().getIdentifier().startsWith(DATA_RESOURCE_PREFIX)) {
+            return AuthorizationResult.denied("Read Source Data is not granted for this system-test identity");
+        }
+
         return AuthorizationResult.approved();
     }
 
@@ -32,8 +42,8 @@ public class SystemTestAuthorizer implements Authorizer {
     }
 
     @Override
-    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
-
+    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+        identityDeniedSourceData = configurationContext.getProperties().get(DENY_SOURCE_DATA_PROPERTY);
     }
 
     @Override
