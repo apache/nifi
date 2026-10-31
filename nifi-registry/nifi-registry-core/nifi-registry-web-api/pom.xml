@@ -88,7 +88,7 @@
             </plugin>
             <plugin>
                 <groupId>io.swagger.core.v3</groupId>
-                <artifactId>swagger-maven-plugin-jakarta</artifactId>
+                <artifactId>swagger-maven-plugin</artifactId>
                 <configuration>
                     <resourcePackages>
                         <package>org.apache.nifi.registry.web.api</package>
@@ -118,7 +118,7 @@
                         <exclusions>
                             <exclusion>
                                 <groupId>io.swagger.core.v3</groupId>
-                                <artifactId>swagger-integration-jakarta</artifactId>
+                                <artifactId>swagger-integration</artifactId>
                             </exclusion>
                         </exclusions>
                     </dependency>
