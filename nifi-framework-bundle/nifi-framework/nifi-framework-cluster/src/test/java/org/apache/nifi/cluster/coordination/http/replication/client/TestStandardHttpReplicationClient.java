@@ -89,6 +89,12 @@ class TestStandardHttpReplicationClient {
 
     private static final URI REPLICATE_URI_QUERY = URI.create("http://localhost/nifi-api/flow/process-groups/root/status?%s".formatted(URI_QUERY));
 
+    private static final String URI_QUERY_RESERVED_ENCODED = "name=feature%26a%2Bb%3Dc%20d";
+
+    private static final String URI_QUERY_RESERVED_DECODED = "name=feature&a+b=c d";
+
+    private static final URI REPLICATE_URI_QUERY_RESERVED = URI.create("http://localhost/nifi-api/flow/process-groups/root/status?%s".formatted(URI_QUERY_RESERVED_ENCODED));
+
     private static final String QUERY_PARAMETER_NAME = "revision";
 
     private static final String QUERY_PARAMETER_VALUE = "1";
@@ -325,6 +331,34 @@ class TestStandardHttpReplicationClient {
 
         final URI requestUri = uriCaptor.getValue();
         assertEquals(URI_QUERY, requestUri.getQuery());
+    }
+
+    @Test
+    void testReplicateGetUriQueryReservedCharacters() throws IOException {
+        final Map<String, String> headers = Map.of(PreparedRequestHeader.CONTENT_TYPE.getHeader(), APPLICATION_JSON);
+
+        final PreparedRequest preparedRequest = client.prepareRequest(GET_METHOD, headers, Collections.emptyMap());
+
+        when(webClientService.method(any())).thenReturn(httpRequestUriSpec);
+        when(httpRequestUriSpec.uri(any())).thenReturn(httpRequestBodySpec);
+        when(httpRequestBodySpec.header(anyString(), anyString())).thenReturn(httpRequestBodySpec);
+        when(httpRequestBodySpec.retrieve()).thenReturn(httpResponseEntity);
+
+        when(httpResponseEntity.statusCode()).thenReturn(HTTP_OK);
+        when(httpResponseEntity.headers()).thenReturn(httpResponseHeaders);
+
+        final ByteArrayInputStream responseBody = new ByteArrayInputStream(EMPTY_MAP_SERIALIZED);
+        when(httpResponseEntity.body()).thenReturn(responseBody);
+
+        final Response response = client.replicate(preparedRequest, REPLICATE_URI_QUERY_RESERVED);
+
+        assertResponseFound(response);
+
+        verify(httpRequestUriSpec).uri(uriCaptor.capture());
+
+        final URI requestUri = uriCaptor.getValue();
+        assertEquals(URI_QUERY_RESERVED_ENCODED, requestUri.getRawQuery());
+        assertEquals(URI_QUERY_RESERVED_DECODED, requestUri.getQuery());
     }
 
     private void assertResponseFound(final Response response) {
