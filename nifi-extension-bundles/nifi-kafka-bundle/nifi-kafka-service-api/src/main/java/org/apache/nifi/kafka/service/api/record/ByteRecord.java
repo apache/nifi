@@ -23,7 +23,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Byte Record translation of Kafka Record with byte arrays for key and value properties
+ * Byte Record translation of Kafka Record with byte arrays for key and value properties.
  */
 public class ByteRecord {
 
@@ -35,6 +35,7 @@ public class ByteRecord {
     private final byte[] key;
     private final byte[] value;
     private final long bundledCount;
+    private final boolean tombstone;
 
     public ByteRecord(
             final String topic,
@@ -46,6 +47,20 @@ public class ByteRecord {
             final byte[] value,
             final long bundledCount
     ) {
+        this(topic, partition, offset, timestamp, headers, key, value, bundledCount, false);
+    }
+
+    public ByteRecord(
+            final String topic,
+            final int partition,
+            final long offset,
+            final long timestamp,
+            final List<RecordHeader> headers,
+            final byte[] key,
+            final byte[] value,
+            final long bundledCount,
+            final boolean tombstone
+    ) {
         this.topic = Objects.requireNonNull(topic, "Topic required");
         this.partition = partition;
         this.offset = offset;
@@ -54,6 +69,7 @@ public class ByteRecord {
         this.key = key;
         this.value = Objects.requireNonNull(value, "Value required");
         this.bundledCount = bundledCount;
+        this.tombstone = tombstone;
     }
 
     public String getTopic() {
@@ -78,6 +94,10 @@ public class ByteRecord {
 
     public byte[] getValue() {
         return value;
+    }
+
+    public boolean isTombstone() {
+        return tombstone;
     }
 
     public List<RecordHeader> getHeaders() {

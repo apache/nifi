@@ -175,3 +175,14 @@ Here is an example of FlowFile content that is emitted by JsonRecordSetWriter wh
   }
 ]
 ```
+
+### Handling tombstones
+
+A Kafka tombstone is a record whose value is null (which is not the same as empty byte array).
+
+Handling depends on Processing Strategy:
+
+- FLOW_FILE: The tombstone is represented as a FlowFile with `kafka.tombstone` attribute set to `true`.
+- DEMARCATOR: The tombstone is included in the bundle records as empty byte array.
+- RECORD: The tombstone is skipped for every Output Strategy. The processor increments `Tombstones Skipped for <topic>` counter.
+

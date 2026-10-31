@@ -28,6 +28,8 @@ import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +38,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -59,6 +62,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -100,6 +105,8 @@ class ConsumeKafkaTest {
     private static final String DYNAMIC_PROPERTY_VALUE_CONSUME = "1000";
 
     private static final String SERVICE_ID = KafkaConnectionService.class.getSimpleName();
+
+    private static final String READER_ID = "record-reader";
 
     private static final String CONSUMER_GROUP_ID = ConsumeKafkaTest.class.getSimpleName();
 
@@ -175,6 +182,55 @@ class ConsumeKafkaTest {
         final ConfigVerificationResult firstResult = failedResults.getFirst();
         assertEquals(ConfigVerificationResult.Outcome.FAILED, firstResult.getOutcome());
         assertNotNull(firstResult.getExplanation());
+    }
+
+    @Test
+    public void testVerifySkipsTombstoneAndParsesFollowingRecord() throws Exception {
+        final RecordReaderFactory readerFactory = recordReaderFactory();
+        final RecordReader recordReader = mock(RecordReader.class);
+        when(readerFactory.createRecordReader(any(), any(), anyLong(), any())).thenAnswer(invocation -> {
+            final long length = invocation.getArgument(2);
+            if (length == 0L) {
+                throw new IOException("empty value");
+            }
+
+            return recordReader;
+        });
+
+        final ByteRecord tombstone = new ByteRecord(TEST_TOPIC_NAME, FIRST_PARTITION, 0L, 0L, List.of(), null, new byte[0], 1, true);
+        final ByteRecord dataRecord = new ByteRecord(TEST_TOPIC_NAME, FIRST_PARTITION, 1L, 0L, List.of(), null, FIRST_RECORD_VALUE, 1);
+        when(kafkaConsumerService.poll(any(Duration.class))).thenReturn(List.of(tombstone, dataRecord));
+
+        final ConfigVerificationResult parseResult = parseResult(verifyRecords());
+        assertEquals(Outcome.SUCCESSFUL, parseResult.getOutcome());
+        assertEquals("Successfully parsed 1 records (skipped 1 tombstones)", parseResult.getExplanation());
+    }
+
+    @Test
+    public void testVerifySkipsWhenSampleContainsOnlyTombstones() throws Exception {
+        final RecordReaderFactory readerFactory = recordReaderFactory();
+        final ByteRecord tombstone = new ByteRecord(TEST_TOPIC_NAME, FIRST_PARTITION, 0L, 0L, List.of(), null, new byte[0], 1, true);
+        when(kafkaConsumerService.poll(any(Duration.class))).thenReturn(List.of(tombstone));
+
+        final ConfigVerificationResult parseResult = parseResult(verifyRecords());
+        assertEquals(Outcome.SKIPPED, parseResult.getOutcome());
+        assertEquals("No records were parsed (skipped 1 tombstones)", parseResult.getExplanation());
+        verify(readerFactory, never()).createRecordReader(any(), any(), anyLong(), any());
+    }
+
+    @Test
+    public void testVerifyReportsDataRecordWhenTombstonePrecedesParseFailure() throws Exception {
+        final RecordReaderFactory readerFactory = recordReaderFactory();
+        when(readerFactory.createRecordReader(any(), any(), anyLong(), any())).thenThrow(new IOException("empty value"));
+
+        final ByteRecord tombstone = new ByteRecord(TEST_TOPIC_NAME, FIRST_PARTITION, 0L, 0L, List.of(), null, new byte[0], 1, true);
+        final ByteRecord dataRecord = new ByteRecord(TEST_TOPIC_NAME, FIRST_PARTITION, 1L, 0L, List.of(), null, FIRST_RECORD_VALUE, 1);
+        when(kafkaConsumerService.poll(any(Duration.class))).thenReturn(List.of(tombstone, dataRecord));
+
+        final ConfigVerificationResult parseResult = parseResult(verifyRecords());
+        assertEquals(Outcome.FAILED, parseResult.getOutcome());
+        assertEquals("Failed to parse Record number 2: java.io.IOException: empty value", parseResult.getExplanation());
+        verify(readerFactory).createRecordReader(any(), any(), anyLong(), any());
     }
 
     @Test
@@ -363,6 +419,32 @@ class ConsumeKafkaTest {
         assertEquals(originalKafkaBytes, runner.getCounterValue(KafkaMetricName.BYTES_CONSUMED.getMetricName(), firstAttributes));
         assertNotEquals(bundledFlowFileBytes, originalKafkaBytes);
         runner.assertTransferCount(ConsumeKafka.SUCCESS, 1);
+    }
+
+    private RecordReaderFactory recordReaderFactory() throws InitializationException {
+        final RecordReaderFactory readerFactory = mock(RecordReaderFactory.class);
+        when(readerFactory.getIdentifier()).thenReturn(READER_ID);
+        runner.addControllerService(READER_ID, readerFactory);
+        runner.enableControllerService(readerFactory);
+        runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.RECORD);
+        runner.setProperty(ConsumeKafka.RECORD_READER, READER_ID);
+        return readerFactory;
+    }
+
+    private List<ConfigVerificationResult> verifyRecords() throws InitializationException {
+        when(kafkaConsumerService.getPartitionStates()).thenReturn(List.of(new PartitionState(TEST_TOPIC_NAME, FIRST_PARTITION)));
+        setConnectionService();
+        when(kafkaConnectionService.getConsumerService(any())).thenReturn(kafkaConsumerService);
+        runner.setProperty(TOPICS, TEST_TOPIC_NAME);
+        runner.setProperty(GROUP_ID, CONSUMER_GROUP_ID);
+        return processor.verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
+    }
+
+    private static ConfigVerificationResult parseResult(final List<ConfigVerificationResult> results) {
+        return results.stream()
+                .filter(result -> "Parse Records".equals(result.getVerificationStepName()))
+                .findFirst()
+                .orElseThrow();
     }
 
     private void configureProcessor() {
