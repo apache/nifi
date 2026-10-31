@@ -94,6 +94,7 @@
         <module>nifi-github-bundle</module>
         <module>nifi-gitlab-bundle</module>
         <module>nifi-atlassian-bundle</module>
+        <module>nifi-gitea-bundle</module>
         <module>nifi-couchbase-bundle</module>
     </modules>
 </project>
