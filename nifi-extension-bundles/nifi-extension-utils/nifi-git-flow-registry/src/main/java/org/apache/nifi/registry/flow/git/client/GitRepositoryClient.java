@@ -82,6 +82,19 @@ public interface GitRepositoryClient {
     List<GitCommit> getCommits(String path, String branch) throws IOException, FlowRegistryException;
 
     /**
+     * Retrieves the SHA of the most recent commit that changed the file at the given path on the given branch.
+     *
+     * @param path the path of the file
+     * @param branch the branch name
+     * @return the SHA of the most recent commit, or empty if the file has no commits
+     * @throws IOException if an I/O error occurs
+     * @throws FlowRegistryException if a non-I/O error occurs
+     */
+    default Optional<String> getLatestCommitSha(String path, String branch) throws IOException, FlowRegistryException {
+        return getCommits(path, branch).stream().findFirst().map(GitCommit::id);
+    }
+
+    /**
      * Retrieves the content for the file at the given path on the given branch.
      *
      * @param path the path of the file
