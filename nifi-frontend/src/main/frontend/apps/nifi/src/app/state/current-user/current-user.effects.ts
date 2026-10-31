@@ -28,6 +28,7 @@ import { selectLogoutUri } from '../login-configuration/login-configuration.sele
 import { Router } from '@angular/router';
 import { AuthService } from '../../service/auth.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { StorageService } from '../../service/storage.service';
 
 @Injectable()
 export class CurrentUserEffects {
@@ -37,6 +38,7 @@ export class CurrentUserEffects {
     private userService = inject(CurrentUserService);
     private authService = inject(AuthService);
     private errorHelper = inject(ErrorHelper);
+    private storageService = inject(StorageService);
 
     loadCurrentUser$ = createEffect(() =>
         this.actions$.pipe(
@@ -75,6 +77,10 @@ export class CurrentUserEffects {
             this.actions$.pipe(
                 ofType(UserActions.navigateToLogIn),
                 tap(() => {
+                    const currentUrl = window.location.hash.substring(1);
+                    if (currentUrl.startsWith('/') && !['/login', '/logout-complete'].includes(currentUrl)) {
+                        this.storageService.setReturnUrl(currentUrl);
+                    }
                     this.router.navigate(['/login']);
                 })
             ),
