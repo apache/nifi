@@ -567,7 +567,7 @@ public class PublishKafka extends AbstractProcessor implements VerifiableProcess
         final RecordSetWriterFactory keyWriterFactory = context.getProperty(RECORD_KEY_WRITER).asControllerService(RecordSetWriterFactory.class);
 
         final PropertyValue kafkaKeyAttribute = context.getProperty(KAFKA_KEY);
-        final String keyAttributeEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
+        final KeyEncoding keyAttributeEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).asAllowableValue(KeyEncoding.class);
         final String messageKeyField = publishStrategy == PublishStrategy.USE_VALUE
                 ? context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue() : null;
         final KeyFactory keyFactory = messageKeyField != null
