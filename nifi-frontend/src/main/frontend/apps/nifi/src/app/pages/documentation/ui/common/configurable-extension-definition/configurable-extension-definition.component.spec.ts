@@ -19,6 +19,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ConfigurableExtensionDefinitionComponent } from './configurable-extension-definition.component';
 
+import { ConfigurableExtensionDefinition } from '../../../state';
+
 describe('ConfigurableExtensionDefinitionComponent', () => {
     let component: ConfigurableExtensionDefinitionComponent;
     let fixture: ComponentFixture<ConfigurableExtensionDefinitionComponent>;
@@ -35,5 +37,58 @@ describe('ConfigurableExtensionDefinitionComponent', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should display a deprecation notice when a custom reason is provided', () => {
+        const definition: ConfigurableExtensionDefinition = {
+            group: 'org.apache.nifi',
+            artifact: 'nifi-standard-nar',
+            version: '2.12.0',
+            type: 'org.apache.nifi.processors.standard.GenerateFlowFile',
+            typeDescription: 'Generate FlowFile processor',
+            buildInfo: {
+                revision: 'test'
+            },
+            additionalDetails: false,
+            supportsDynamicProperties: false,
+            supportsSensitiveDynamicProperties: false,
+            deprecated: true,
+            deprecationReason: 'This extension has been replaced.'
+        };
+
+        fixture.componentRef.setInput('configurableExtensionDefinition', definition);
+        fixture.detectChanges();
+
+        const element: HTMLElement = fixture.nativeElement;
+
+        expect(element.textContent).toContain('Deprecation Notice');
+        expect(element.textContent).toContain('This extension has been replaced.');
+    });
+
+    it('should display the default deprecation message when no reason is provided', () => {
+        const definition: ConfigurableExtensionDefinition = {
+            group: 'org.apache.nifi',
+            artifact: 'nifi-standard-nar',
+            version: '2.12.0',
+            type: 'org.apache.nifi.processors.standard.GenerateFlowFile',
+            typeDescription: 'Generate FlowFile processor',
+            buildInfo: {
+                revision: 'test'
+            },
+            additionalDetails: false,
+            supportsDynamicProperties: false,
+            supportsSensitiveDynamicProperties: false,
+            deprecated: true
+        };
+
+        fixture.componentRef.setInput('configurableExtensionDefinition', definition);
+        fixture.detectChanges();
+
+        const element: HTMLElement = fixture.nativeElement;
+
+        expect(element.textContent).toContain('Deprecation Notice');
+        expect(element.textContent).toContain(
+            'Please be aware this processor is deprecated and may be removed in the near future.'
+        );
     });
 });
