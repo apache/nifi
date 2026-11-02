@@ -601,4 +601,41 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         assertNotNull(childAfterUpdate.getComponent().getVersionControlInformation(),
                 "Versioned child Process Group should remain under version control after a recursive Parameter Context change");
     }
+
+    /**
+     * Verifies that a Parameter Context locally assigned to a shared, independently version-controlled child Process Group survives a version upgrade of that child.
+     */
+    @Test
+    void testLocallyAssignedParameterContextPreservedWhenVersionedChildUpgraded() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ParameterContextEntity locallyAssignedContext = util.createParameterContext("locally-assigned-context", Map.of(PARAMETER_NAME, PARAMETER_VALUE));
+
+        // Shared child Process Group, version-controlled on its own, deliberately without a Parameter Context of its own.
+        final ProcessGroupEntity versionedGroup = util.createProcessGroup("shared-utility", "root");
+        //util.setParameterContext(versionedGroup.getId(), emptyContext);
+        final VersionControlInformationEntity childVciV1 = util.startVersionControl(versionedGroup, clientEntity, TEST_FLOWS_BUCKET, "SharedUtility");
+
+        final ProcessGroupEntity instance = util.importFlowFromRegistry("root", childVciV1.getVersionControlInformation());
+
+        // Assign a Parameter Context to the child locally, outside its own versioned definition.
+        util.setParameterContext(instance.getId(), locallyAssignedContext);
+
+        // Modify the child's own definition and commit version 2 so there's a newer version to upgrade to.
+        final ProcessorEntity processor = util.createProcessor(PROCESSOR_TYPE, versionedGroup.getId());
+        util.setAutoTerminatedRelationships(processor, RELATIONSHIP_SUCCESS);
+        final ProcessGroupEntity refreshedChildGroup = getNifiClient().getProcessGroupClient().getProcessGroup(versionedGroup.getId());
+        util.saveFlowVersion(refreshedChildGroup, clientEntity, childVciV1);
+
+        // Update the child directly to version 2, fetching its own standalone snapshot which still declares no Parameter Context.
+        util.changeFlowVersion(instance.getId(), VERSION_2);
+
+        final ProcessGroupEntity instanceAfterUpgrade = getNifiClient().getProcessGroupClient().getProcessGroup(instance.getId());
+        assertEquals(VERSION_2, instanceAfterUpgrade.getComponent().getVersionControlInformation().getVersion());
+        assertNotNull(instanceAfterUpgrade.getComponent().getParameterContext(),
+                "Parameter Context locally assigned to the child should survive the version upgrade");
+        assertEquals(locallyAssignedContext.getId(), instanceAfterUpgrade.getComponent().getParameterContext().getId(),
+                "Child Process Group should remain bound to the locally-assigned Parameter Context after upgrading to a new version");
+    }
 }
