@@ -26,17 +26,30 @@ import {
     ProcessorEntity,
     RemoteProcessGroupEntity,
     Position,
+    Revision,
     RevisionRequest
 } from '@nifi/shared';
 import {
     BreadcrumbEntity,
+    DisableComponentRequest,
     EditConnectionDialogRequest,
+    EnableComponentRequest,
     ParameterContextEntity,
+    StartComponentRequest,
+    StopComponentRequest,
     UpdateConnectionRequest
 } from '../../../../state/shared';
 import { ErrorContext, ErrorContextKey } from '../../../../state/error';
 import type { ConnectorCanvasComponentEntity } from './index';
-import { ConnectionEndpointReconnectDestination } from '../../../../state/flow-shared';
+import {
+    ConnectionEndpointReconnectDestination,
+    DisableProcessGroupRequest,
+    EnableProcessGroupRequest,
+    RunOnceRequest,
+    StartProcessGroupRequest,
+    StopProcessGroupRequest,
+    TerminateThreadsRequest
+} from '../../../../state/flow-shared';
 import {
     CreateConnection,
     CreateConnectionDialogRequest,
@@ -76,6 +89,7 @@ export const loadConnectorFlowSuccess = createAction(
     props<{
         connectorId: string;
         processGroupId: string | null;
+        processGroupRevision: Revision | null;
         parentProcessGroupId: string | null;
         breadcrumb: BreadcrumbEntity | null;
         labels: LabelEntity[];
@@ -192,6 +206,11 @@ export const setSkipTransform = createAction(
 export const navigateToProvenanceForComponent = createAction(
     '[Connector Canvas] Navigate To Provenance For Component',
     props<{ id: string; componentType: ComponentType }>()
+);
+
+export const navigateToAdvancedProcessorUi = createAction(
+    '[Connector Canvas] Navigate To Advanced Processor UI',
+    props<{ id: string }>()
 );
 
 /**
@@ -432,6 +451,139 @@ export const moveCanvasComponentsFailure = createAction(
 export const downloadFlow = createAction(
     '[Connector Canvas] Download Flow',
     props<{ request: DownloadConnectorFlowRequest }>()
+);
+
+export const startComponents = createAction(
+    '[Connector Canvas] Start Components',
+    props<{ request: { components: StartComponentRequest[] } }>()
+);
+export const startComponent = createAction(
+    '[Connector Canvas] Start Component',
+    props<{ request: StartComponentRequest | StartProcessGroupRequest }>()
+);
+export const startComponentSuccess = createAction(
+    '[Connector Canvas] Start Component Success',
+    props<{
+        componentId: string;
+        componentType: ComponentType;
+        component: ProcessorEntity | PortEntity | RemoteProcessGroupEntity;
+    }>()
+);
+export const startComponentFailure = createAction(
+    '[Connector Canvas] Start Component Failure',
+    props<{ componentId: string; error: string }>()
+);
+export const startCurrentProcessGroup = createAction('[Connector Canvas] Start Current Process Group');
+
+export const stopComponents = createAction(
+    '[Connector Canvas] Stop Components',
+    props<{ request: { components: StopComponentRequest[] } }>()
+);
+export const stopComponent = createAction(
+    '[Connector Canvas] Stop Component',
+    props<{ request: StopComponentRequest | StopProcessGroupRequest }>()
+);
+export const stopComponentSuccess = createAction(
+    '[Connector Canvas] Stop Component Success',
+    props<{
+        componentId: string;
+        componentType: ComponentType;
+        component: ProcessorEntity | PortEntity | RemoteProcessGroupEntity;
+    }>()
+);
+export const stopComponentFailure = createAction(
+    '[Connector Canvas] Stop Component Failure',
+    props<{ componentId: string; error: string }>()
+);
+export const stopCurrentProcessGroup = createAction('[Connector Canvas] Stop Current Process Group');
+
+export const enableComponents = createAction(
+    '[Connector Canvas] Enable Components',
+    props<{ request: { components: EnableComponentRequest[] } }>()
+);
+export const enableComponent = createAction(
+    '[Connector Canvas] Enable Component',
+    props<{ request: EnableComponentRequest | EnableProcessGroupRequest }>()
+);
+export const enableComponentSuccess = createAction(
+    '[Connector Canvas] Enable Component Success',
+    props<{ componentId: string; componentType: ComponentType; component: ProcessorEntity | PortEntity }>()
+);
+export const enableComponentFailure = createAction(
+    '[Connector Canvas] Enable Component Failure',
+    props<{ componentId: string; error: string }>()
+);
+
+export const disableComponents = createAction(
+    '[Connector Canvas] Disable Components',
+    props<{ request: { components: DisableComponentRequest[] } }>()
+);
+export const disableComponent = createAction(
+    '[Connector Canvas] Disable Component',
+    props<{ request: DisableComponentRequest | DisableProcessGroupRequest }>()
+);
+export const disableComponentSuccess = createAction(
+    '[Connector Canvas] Disable Component Success',
+    props<{ componentId: string; componentType: ComponentType; component: ProcessorEntity | PortEntity }>()
+);
+export const disableComponentFailure = createAction(
+    '[Connector Canvas] Disable Component Failure',
+    props<{ componentId: string; error: string }>()
+);
+
+export const startProcessGroupSuccess = createAction(
+    '[Connector Canvas] Start Process Group Success',
+    props<{ processGroupId: string }>()
+);
+export const stopProcessGroupSuccess = createAction(
+    '[Connector Canvas] Stop Process Group Success',
+    props<{ processGroupId: string }>()
+);
+export const enableProcessGroupSuccess = createAction(
+    '[Connector Canvas] Enable Process Group Success',
+    props<{ processGroupId: string }>()
+);
+export const disableProcessGroupSuccess = createAction(
+    '[Connector Canvas] Disable Process Group Success',
+    props<{ processGroupId: string }>()
+);
+
+export const loadChildProcessGroup = createAction(
+    '[Connector Canvas] Load Child Process Group',
+    props<{ processGroupId: string }>()
+);
+export const loadChildProcessGroupSuccess = createAction(
+    '[Connector Canvas] Load Child Process Group Success',
+    props<{ processGroupId: string; processGroup: ProcessGroupEntity }>()
+);
+export const loadChildProcessGroupFailure = createAction(
+    '[Connector Canvas] Load Child Process Group Failure',
+    props<{ processGroupId: string; error: string }>()
+);
+
+export const runOnceComponent = createAction(
+    '[Connector Canvas] Run Once Component',
+    props<{ request: RunOnceRequest }>()
+);
+export const runOnceComponentSuccess = createAction(
+    '[Connector Canvas] Run Once Component Success',
+    props<{ componentId: string; component: ProcessorEntity }>()
+);
+export const runOnceComponentFailure = createAction(
+    '[Connector Canvas] Run Once Component Failure',
+    props<{ componentId: string; error: string }>()
+);
+export const terminateComponentThreads = createAction(
+    '[Connector Canvas] Terminate Component Threads',
+    props<{ request: TerminateThreadsRequest }>()
+);
+export const terminateComponentThreadsSuccess = createAction(
+    '[Connector Canvas] Terminate Component Threads Success',
+    props<{ componentId: string; component: ProcessorEntity }>()
+);
+export const terminateComponentThreadsFailure = createAction(
+    '[Connector Canvas] Terminate Component Threads Failure',
+    props<{ componentId: string; error: string }>()
 );
 
 export const resetConnectorCanvasState = createAction('[Connector Canvas] Reset State');

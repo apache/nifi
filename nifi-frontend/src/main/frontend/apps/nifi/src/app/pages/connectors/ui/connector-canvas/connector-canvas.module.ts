@@ -20,7 +20,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
-import { ComponentTypeNamePipe } from '@nifi/shared';
+import { ComponentType, ComponentTypeNamePipe } from '@nifi/shared';
 import { ConnectorCanvasComponent } from './connector-canvas.component';
 import { ConnectorCanvasRedirector } from './guard/connector-canvas-redirector.component';
 import { connectorCanvasRootGuard } from './guard/connector-canvas-root.guard';
@@ -31,6 +31,9 @@ import { ConnectorCanvasEntityEffects } from '../../state/connector-canvas-entit
 import { connectorProvenancePreviewFeatureKey } from '../../state/connector-provenance-preview';
 import { connectorProvenancePreviewReducer } from '../../state/connector-provenance-preview/connector-provenance-preview.reducer';
 import { ConnectorProvenanceEffects } from '../../state/connector-provenance-preview/connector-provenance-preview.effects';
+import { AdvancedUi } from '../../../../ui/common/advanced-ui/advanced-ui.component';
+import { connectorTroubleshootingGuard } from './guard/connector-troubleshooting.guard';
+import { connectorProcessorAdvancedUiParamsResolver } from '../../service/resolver/connector-processor-advanced-ui-params.resolver';
 
 const routes: Routes = [
     {
@@ -47,6 +50,13 @@ const routes: Routes = [
             )
     },
     {
+        path: `:processGroupId/${ComponentType.Processor}/:processorId/advanced`,
+        canActivate: [connectorTroubleshootingGuard],
+        data: { troubleshootingDenyRedirect: 'canvas' },
+        component: AdvancedUi,
+        resolve: { advancedUiParams: connectorProcessorAdvancedUiParamsResolver }
+    },
+    {
         path: ':processGroupId',
         component: ConnectorCanvasComponent,
         children: [
@@ -59,6 +69,7 @@ const routes: Routes = [
 @NgModule({
     imports: [
         CommonModule,
+        AdvancedUi,
         ConnectorCanvasComponent,
         ConnectorCanvasRedirector,
         RouterModule.forChild(routes),

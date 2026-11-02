@@ -1,0 +1,91 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<mat-expansion-panel
+    [hideToggle]="true"
+    [expanded]="!operationCollapsed"
+    (opened)="toggleCollapsed(false)"
+    (closed)="toggleCollapsed(true)">
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            <div class="flex items-center gap-x-2">
+                <div class="w-5 fa fa-hand-o-up primary-color"></div>
+                <div>Operation</div>
+            </div>
+        </mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="flex flex-col gap-y-2">
+        <component-context [type]="contextType()" [name]="contextName()" [id]="contextId()"></component-context>
+        <div class="flex flex-wrap gap-2">
+            <button
+                data-qa="operation-start"
+                mat-icon-button
+                class="primary-icon-button"
+                type="button"
+                matTooltip="Start"
+                aria-label="Start"
+                [disabled]="!canStart()"
+                (click)="startComponents.emit(selection())">
+                <i class="fa fa-play"></i>
+            </button>
+            <button
+                data-qa="operation-stop"
+                mat-icon-button
+                class="primary-icon-button"
+                type="button"
+                matTooltip="Stop"
+                aria-label="Stop"
+                [disabled]="!canStop()"
+                (click)="stop.emit(selection())">
+                <i class="fa fa-stop"></i>
+            </button>
+            <button
+                data-qa="operation-enable"
+                mat-icon-button
+                class="primary-icon-button"
+                type="button"
+                matTooltip="Enable"
+                aria-label="Enable"
+                [disabled]="!canEnable()"
+                (click)="enable.emit(selection())">
+                <i class="fa fa-flash"></i>
+            </button>
+            <button
+                data-qa="operation-disable"
+                mat-icon-button
+                class="primary-icon-button"
+                type="button"
+                matTooltip="Disable"
+                aria-label="Disable"
+                [disabled]="!canDisable()"
+                (click)="disable.emit(selection())">
+                <i class="icon icon-enable-false"></i>
+            </button>
+            <button
+                data-qa="operation-run-once"
+                mat-icon-button
+                class="primary-icon-button"
+                type="button"
+                matTooltip="Run Once"
+                aria-label="Run Once"
+                [disabled]="!canRunOnce()"
+                (click)="runOnce.emit(selection())">
+                <i class="fa fa-caret-right"></i>
+            </button>
+        </div>
+    </div>
+</mat-expansion-panel>

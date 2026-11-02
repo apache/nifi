@@ -122,6 +122,8 @@ import { selectPrioritizerTypes } from '../../../../state/extension-types/extens
 import { EditConnectionComponent } from '../../../../ui/common/component-dialogs/edit-connection/edit-connection.component';
 import { resetConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.actions';
 import { selectConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.selectors';
+import { FlowService } from '../../../flow-designer/service/flow.service';
+import * as ConnectorCanvasActions from './connector-canvas.actions';
 
 describe('ConnectorCanvasEffects', () => {
     // Setup function following SIFERS pattern
@@ -187,6 +189,21 @@ describe('ConnectorCanvasEffects', () => {
         const mockClusterConnectionService = {
             isDisconnectionAcknowledged: vi.fn().mockReturnValue(false)
         };
+        const mockFlowService = {
+            startComponent: vi.fn().mockReturnValue(of(makeProcessor('proc-1', { revision: { version: 2 } }))),
+            stopComponent: vi.fn().mockReturnValue(of(makeProcessor('proc-1', { revision: { version: 2 } }))),
+            enableComponent: vi.fn().mockReturnValue(of(makeProcessor('proc-1', { revision: { version: 2 } }))),
+            disableComponent: vi.fn().mockReturnValue(of(makeProcessor('proc-1', { revision: { version: 2 } }))),
+            startProcessGroup: vi.fn().mockReturnValue(of({})),
+            startRemoteProcessGroupsInProcessGroup: vi.fn().mockReturnValue(of({})),
+            stopProcessGroup: vi.fn().mockReturnValue(of({})),
+            stopRemoteProcessGroupsInProcessGroup: vi.fn().mockReturnValue(of({})),
+            enableProcessGroup: vi.fn().mockReturnValue(of({})),
+            disableProcessGroup: vi.fn().mockReturnValue(of({})),
+            getProcessGroup: vi.fn().mockReturnValue(of(makeProcessGroup('pg-1'))),
+            runOnce: vi.fn().mockReturnValue(of(makeProcessor('proc-1', { revision: { version: 2 } }))),
+            terminateThreads: vi.fn().mockReturnValue(of(makeProcessor('proc-1', { revision: { version: 2 } })))
+        };
 
         const mockRouter = {
             navigate: vi.fn().mockResolvedValue(true)
@@ -251,6 +268,7 @@ describe('ConnectorCanvasEffects', () => {
                 { provide: ConnectorService, useValue: mockConnectorService },
                 { provide: ConnectorEditService, useValue: mockConnectorEditService },
                 { provide: ClusterConnectionService, useValue: mockClusterConnectionService },
+                { provide: FlowService, useValue: mockFlowService },
                 { provide: ErrorHelper, useValue: mockErrorHelper },
                 { provide: Router, useValue: mockRouter },
                 { provide: MatDialog, useValue: mockDialog },
@@ -269,6 +287,7 @@ describe('ConnectorCanvasEffects', () => {
             },
             mockConnectorService,
             mockConnectorEditService,
+            mockFlowService,
             mockErrorHelper,
             mockRouter,
             mockDialog,
@@ -608,6 +627,7 @@ describe('ConnectorCanvasEffects', () => {
                 loadConnectorFlowSuccess({
                     connectorId: 'conn-a',
                     processGroupId: 'pg-123',
+                    processGroupRevision: null,
                     parentProcessGroupId: 'parent-456',
                     breadcrumb: null,
                     labels: [label],
@@ -651,6 +671,7 @@ describe('ConnectorCanvasEffects', () => {
                 loadConnectorFlowSuccess({
                     connectorId: 'conn-a',
                     processGroupId: 'pg-123',
+                    processGroupRevision: null,
                     parentProcessGroupId: null,
                     breadcrumb: null,
                     labels: [],
@@ -800,6 +821,7 @@ describe('ConnectorCanvasEffects', () => {
                     loadConnectorFlowSuccess({
                         connectorId: 'c1',
                         processGroupId: 'pg1',
+                        processGroupRevision: null,
                         parentProcessGroupId: null,
                         breadcrumb: null,
                         labels: [],
@@ -1760,6 +1782,7 @@ describe('ConnectorCanvasEffects', () => {
             return loadConnectorFlowSuccess({
                 connectorId,
                 processGroupId,
+                processGroupRevision: null,
                 parentProcessGroupId: null,
                 breadcrumb: null,
                 labels: [],
@@ -2388,6 +2411,99 @@ describe('ConnectorCanvasEffects', () => {
                 updateConnectionBendPointsFailure({ connectionId: 'connection-1', error: 'Error message' })
             );
             expect(results[1].type).toBe(ErrorActions.addBannerError.type);
+        });
+    });
+
+    describe('component run status', () => {
+        it('starts a component and emits the returned entity', async () => {
+            const { effects, actions$, mockFlowService } = await setup();
+            const request = {
+                id: 'proc-1',
+                type: ComponentType.Processor,
+                revision: { version: 1 },
+                errorStrategy: 'banner' as const
+            };
+            actions$(of(ConnectorCanvasActions.startComponent({ request })));
+
+            const result = await firstValueFrom(effects.startComponent$);
+
+            expect(mockFlowService.startComponent).toHaveBeenCalledWith(request);
+            expect(result.type).toBe(ConnectorCanvasActions.startComponentSuccess.type);
+        });
+
+        it('surfaces a run-status failure through the connector error context', async () => {
+            const { effects, actions$, mockFlowService } = await setup();
+            mockFlowService.startComponent.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 409 })));
+            actions$(
+                of(
+                    ConnectorCanvasActions.startComponent({
+                        request: {
+                            id: 'proc-1',
+                            type: ComponentType.Processor,
+                            revision: { version: 1 },
+                            errorStrategy: 'banner'
+                        }
+                    })
+                )
+            );
+
+            const results = await firstValueFrom(effects.startComponent$.pipe(toArray()));
+
+            expect(results[0]).toEqual(
+                ConnectorCanvasActions.startComponentFailure({
+                    componentId: 'proc-1',
+                    error: 'Error message'
+                })
+            );
+            expect(results[1].type).toBe(ErrorActions.addBannerError.type);
+        });
+
+        it('stops, enables, and disables components through FlowService', async () => {
+            const { effects, actions$, mockFlowService } = await setup();
+            const request = {
+                id: 'proc-1',
+                type: ComponentType.Processor,
+                revision: { version: 1 },
+                errorStrategy: 'banner' as const
+            };
+
+            actions$(of(ConnectorCanvasActions.stopComponent({ request })));
+            expect((await firstValueFrom(effects.stopComponent$)).type).toBe(
+                ConnectorCanvasActions.stopComponentSuccess.type
+            );
+
+            actions$(of(ConnectorCanvasActions.enableComponent({ request })));
+            expect((await firstValueFrom(effects.enableComponent$)).type).toBe(
+                ConnectorCanvasActions.enableComponentSuccess.type
+            );
+
+            actions$(of(ConnectorCanvasActions.disableComponent({ request })));
+            expect((await firstValueFrom(effects.disableComponent$)).type).toBe(
+                ConnectorCanvasActions.disableComponentSuccess.type
+            );
+
+            expect(mockFlowService.stopComponent).toHaveBeenCalledWith(request);
+            expect(mockFlowService.enableComponent).toHaveBeenCalledWith(request);
+            expect(mockFlowService.disableComponent).toHaveBeenCalledWith(request);
+        });
+
+        it('runs once and terminates threads through FlowService', async () => {
+            const { effects, actions$, mockFlowService } = await setup();
+            const runOnceRequest = { id: 'proc-1', revision: { version: 1 } };
+            const terminateRequest = { id: 'proc-1', uri: '/processors/proc-1' };
+
+            actions$(of(ConnectorCanvasActions.runOnceComponent({ request: runOnceRequest })));
+            expect((await firstValueFrom(effects.runOnceComponent$)).type).toBe(
+                ConnectorCanvasActions.runOnceComponentSuccess.type
+            );
+
+            actions$(of(ConnectorCanvasActions.terminateComponentThreads({ request: terminateRequest })));
+            expect((await firstValueFrom(effects.terminateComponentThreads$)).type).toBe(
+                ConnectorCanvasActions.terminateComponentThreadsSuccess.type
+            );
+
+            expect(mockFlowService.runOnce).toHaveBeenCalledWith(runOnceRequest);
+            expect(mockFlowService.terminateThreads).toHaveBeenCalledWith(terminateRequest);
         });
     });
 });

@@ -22,7 +22,8 @@ import {
     PortEntity,
     ProcessGroupEntity,
     ProcessorEntity,
-    RemoteProcessGroupEntity
+    RemoteProcessGroupEntity,
+    Revision
 } from '@nifi/shared';
 import { BreadcrumbEntity, ParameterContextEntity, RegistryClientEntity } from '../../../../state/shared';
 
@@ -43,6 +44,7 @@ export type ConnectorCanvasComponentEntity =
 export interface ConnectorCanvasState {
     connectorId: string;
     processGroupId: string | null;
+    processGroupRevision: Revision | null;
     parentProcessGroupId: string | null;
     breadcrumb: BreadcrumbEntity | null;
     labels: LabelEntity[];
@@ -68,6 +70,7 @@ export interface ConnectorCanvasState {
 export const initialConnectorCanvasState: ConnectorCanvasState = {
     connectorId: '',
     processGroupId: null,
+    processGroupRevision: null,
     parentProcessGroupId: null,
     breadcrumb: null,
     labels: [],
