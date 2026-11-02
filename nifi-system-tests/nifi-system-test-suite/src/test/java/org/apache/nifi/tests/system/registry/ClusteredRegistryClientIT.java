@@ -17,12 +17,22 @@
 
 package org.apache.nifi.tests.system.registry;
 
+import org.apache.nifi.tests.system.InstanceConfiguration;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
+import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
 
 public class ClusteredRegistryClientIT extends RegistryClientIT {
 
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
+        if (!getNifiPropertiesOverrides().isEmpty()) {
+            return new SpawnedClusterNiFiInstanceFactory(
+                    new InstanceConfiguration.Builder().bootstrapConfig("src/test/resources/conf/clustered/node1/bootstrap.conf")
+                            .instanceDirectory("target/node1").overrideNifiProperties(getNifiPropertiesOverrides()).build(),
+                    new InstanceConfiguration.Builder().bootstrapConfig("src/test/resources/conf/clustered/node2/bootstrap.conf")
+                            .instanceDirectory("target/node2").overrideNifiProperties(getNifiPropertiesOverrides()).build());
+        }
+
         return createTwoNodeInstanceFactory();
     }
 

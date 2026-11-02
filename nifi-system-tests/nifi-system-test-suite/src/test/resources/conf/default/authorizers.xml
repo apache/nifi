@@ -18,4 +18,9 @@
         <identifier>system-test-authorizer</identifier>
         <class>org.apache.nifi.authorization.SystemTestAuthorizer</class>
     </authorizer>
+    <authorizer>
+        <identifier>source-data-denied-authorizer</identifier>
+        <class>org.apache.nifi.authorization.SystemTestAuthorizer</class>
+        <property name="Deny Source Data Identity">CN=localhost</property>
+    </authorizer>
 </authorizers>
