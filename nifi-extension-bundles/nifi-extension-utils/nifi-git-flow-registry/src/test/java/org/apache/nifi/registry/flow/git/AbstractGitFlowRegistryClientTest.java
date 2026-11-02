@@ -20,11 +20,17 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowRegistryClientConfigurationContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientInitializationContext;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.FlowVersionLocation;
+import org.apache.nifi.registry.flow.RegisterAction;
+import org.apache.nifi.registry.flow.RegisteredFlow;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
@@ -34,6 +40,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -161,10 +168,88 @@ class AbstractGitFlowRegistryClientTest {
         assertTrue(repositoryClient.getCreatedBranchCommit().isEmpty());
     }
 
+    @Test
+    void commitsAreCachedWithinTtl() throws Exception {
+        final TestGitRepositoryClient repositoryClient = new TestGitRepositoryClient(true, true, Set.of("bucket-a"));
+        final TestGitFlowRegistryClient flowRegistryClient = new TestGitFlowRegistryClient(() -> repositoryClient, "git@example.git");
+        flowRegistryClient.initialize(createInitializationContext());
+        final FlowRegistryClientConfigurationContext context = createContext("main", "[.].*", "30 sec");
+        final FlowLocation flowLocation = new FlowLocation("main", "bucket-a", "flow-x");
+
+        assertEquals(Optional.of("commit-1"), flowRegistryClient.getLatestVersion(context, flowLocation));
+        assertEquals(Optional.of("commit-1"), flowRegistryClient.getLatestVersion(context, flowLocation));
+
+        assertEquals(1, repositoryClient.getCommitsInvocationCount());
+    }
+
+    @Test
+    void conflictCheckReadsFreshRepositoryStateAfterCachePopulation() throws Exception {
+        final TestGitRepositoryClient repositoryClient = new TestGitRepositoryClient(true, true, Set.of("bucket-a"));
+        repositoryClient.setCurrentCommit("commit-1");
+        final TestGitFlowRegistryClient flowRegistryClient = new TestGitFlowRegistryClient(() -> repositoryClient, "git@example.git");
+        flowRegistryClient.initialize(createInitializationContext());
+        final FlowRegistryClientConfigurationContext context = createContext("main", "[.].*", "30 sec");
+
+        final RegisteredFlowSnapshot snapshot = new RegisteredFlowSnapshot();
+        final RegisteredFlowSnapshotMetadata metadata = new RegisteredFlowSnapshotMetadata();
+        metadata.setBranch("main");
+        metadata.setBucketIdentifier("bucket-a");
+        metadata.setFlowIdentifier("flow-x");
+        metadata.setVersion("commit-1");
+        snapshot.setSnapshotMetadata(metadata);
+        snapshot.setFlow(new RegisteredFlow());
+        snapshot.setFlowContents(new VersionedProcessGroup());
+
+        final FlowLocation flowLocation = new FlowLocation("main", "bucket-a", "flow-x");
+        assertEquals(Optional.of("commit-1"), flowRegistryClient.getLatestVersion(context, flowLocation));
+
+        repositoryClient.setCurrentCommit("commit-2");
+        final FlowRegistryException conflict = assertThrows(FlowRegistryException.class,
+                () -> flowRegistryClient.registerFlowSnapshot(context, snapshot, RegisterAction.COMMIT));
+
+        assertTrue(conflict.getMessage().contains("Version conflict detected"));
+        assertTrue(conflict.getMessage().contains("commit-1"));
+        assertTrue(conflict.getMessage().contains("commit-2"));
+
+        repositoryClient.setCurrentCommit("commit-3");
+        final RegisteredFlow flow = new RegisteredFlow();
+        flow.setIdentifier("flow-x");
+        flow.setBucketIdentifier("bucket-a");
+        flow.setBranch("main");
+        flowRegistryClient.registerFlow(context, flow);
+
+        assertEquals(Optional.of("commit-3"), flowRegistryClient.getLatestVersion(context, flowLocation));
+    }
+
+    @Test
+    void successfulCreateContentInvalidatesCommits() throws Exception {
+        final TestGitRepositoryClient repositoryClient = new TestGitRepositoryClient(true, true, Set.of("bucket-a"));
+        final TestGitFlowRegistryClient flowRegistryClient = new TestGitFlowRegistryClient(() -> repositoryClient, "git@example.git");
+        flowRegistryClient.initialize(createInitializationContext());
+        final FlowRegistryClientConfigurationContext context = createContext("main", "[.].*", "30 sec");
+        final FlowLocation flowLocation = new FlowLocation("main", "bucket-a", "flow-x");
+
+        flowRegistryClient.getLatestVersion(context, flowLocation);
+        final RegisteredFlow flow = new RegisteredFlow();
+        flow.setIdentifier("flow-x");
+        flow.setBucketIdentifier("bucket-a");
+        flow.setBranch("main");
+        flowRegistryClient.registerFlow(context, flow);
+        flowRegistryClient.getLatestVersion(context, flowLocation);
+
+        assertEquals(2, repositoryClient.getCommitsInvocationCount());
+    }
+
     private FlowRegistryClientConfigurationContext createContext(final String branch, final String exclusionPattern) {
+        return createContext(branch, exclusionPattern, null);
+    }
+
+    private FlowRegistryClientConfigurationContext createContext(final String branch, final String exclusionPattern, final String commitCacheTtl) {
         final Map<PropertyDescriptor, PropertyValue> properties = Map.of(
                 AbstractGitFlowRegistryClient.REPOSITORY_BRANCH, new MockPropertyValue(branch),
-                AbstractGitFlowRegistryClient.DIRECTORY_FILTER_EXCLUDE, new MockPropertyValue(exclusionPattern)
+                AbstractGitFlowRegistryClient.DIRECTORY_FILTER_EXCLUDE, new MockPropertyValue(exclusionPattern),
+                AbstractGitFlowRegistryClient.COMMIT_AUTHOR_SOURCE, new MockPropertyValue("SERVICE_USER"),
+                AbstractGitFlowRegistryClient.COMMIT_CACHE_TTL, new MockPropertyValue(commitCacheTtl)
         );
 
         return new FlowRegistryClientConfigurationContext() {
@@ -253,6 +338,8 @@ class AbstractGitFlowRegistryClientTest {
         private String createdBranch;
         private String createdBranchSource;
         private Optional<String> createdBranchCommit = Optional.empty();
+        private String currentCommit = "commit-1";
+        private int commitsInvocationCount;
 
         TestGitRepositoryClient(final boolean canRead, final boolean canWrite, final Set<String> bucketNames) {
             this.canRead = canRead;
@@ -288,6 +375,14 @@ class AbstractGitFlowRegistryClientTest {
 
         Optional<String> getCreatedBranchCommit() {
             return createdBranchCommit;
+        }
+
+        int getCommitsInvocationCount() {
+            return commitsInvocationCount;
+        }
+
+        void setCurrentCommit(final String currentCommit) {
+            this.currentCommit = currentCommit;
         }
 
         boolean isClosed() {
@@ -347,7 +442,8 @@ class AbstractGitFlowRegistryClientTest {
 
         @Override
         public List<GitCommit> getCommits(final String path, final String branch) {
-            throw new UnsupportedOperationException("Not required for test");
+            commitsInvocationCount++;
+            return List.of(new GitCommit(currentCommit, "author", "message", Instant.EPOCH));
         }
 
         @Override
@@ -362,7 +458,7 @@ class AbstractGitFlowRegistryClientTest {
 
         @Override
         public Optional<String> getContentSha(final String path, final String branch) {
-            throw new UnsupportedOperationException("Not required for test");
+            return Optional.empty();
         }
 
         @Override
@@ -372,7 +468,8 @@ class AbstractGitFlowRegistryClientTest {
 
         @Override
         public String createContent(final GitCreateContentRequest request) {
-            return "test-commit";
+            currentCommit = "commit-3";
+            return currentCommit;
         }
 
         @Override
