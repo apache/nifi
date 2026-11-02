@@ -56,14 +56,13 @@ describe('SystemTokensService', () => {
     });
 
     it('should append style sheet on iframe load', () => {
-        const iframe = document.createElement('iframe');
-        document.body.appendChild(iframe);
-        iframe.contentDocument!.write('<html><head></head><body></body></html>');
-        iframe.contentDocument!.close();
+        // happy-dom 21 does not load iframe documents, so contentDocument stays null.
+        const iframeDocument = document.implementation.createHTMLDocument();
+        const iframe = { contentDocument: iframeDocument };
 
         service.appendStyleSheet(iframe);
 
-        const styleElement = iframe.contentDocument!.head.querySelector('style');
+        const styleElement = iframeDocument.head.querySelector('style');
         expect(styleElement).toBeTruthy();
         expect(styleElement!.textContent).toContain(
             'body { background-color: red; } .container { display: flex; } :root { --primary-color: #ff0000; } '

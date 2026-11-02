@@ -117,7 +117,7 @@
 
         <!-- Frontend tooling -->
         <frontend.mvn.plugin.version>2.0.2</frontend.mvn.plugin.version>
-        <node.version>v24.14.1</node.version>
+        <node.version>v24.22.1</node.version>
 
         <!-- NiFi build -->
         <nifi-api.version>2.15.0</nifi-api.version>
