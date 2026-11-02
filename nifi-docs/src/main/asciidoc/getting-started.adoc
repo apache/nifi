@@ -98,6 +98,11 @@ be used.
 If NiFi was installed with Homebrew, run the commands `nifi start` or `nifi stop` from anywhere in your file system to start or stop NiFi.
 
 
+== Installing as a Service (*For Apache NiFi 1x versions only*)
+
+To use this service please refer to this version of link:https://nifi.apache.org/docs/nifi-docs/html/getting-started.html#installing-as-a-service[Getting Start with NiFi^].
+
+
 == I Started NiFi. Now What?
 
 The default installation generates a random username and password, writing the generated values to the application log.
