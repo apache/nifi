@@ -113,7 +113,7 @@ class HealthClusterHttpHandler implements HttpHandler {
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 decommissionStatus = DecommissionStatus.failed(e);
-            } catch (final RuntimeException e) {
+            } catch (final Throwable e) {
                 logger.error("Decommission failed", e);
                 decommissionStatus = DecommissionStatus.failed(e);
             }
@@ -164,9 +164,9 @@ class HealthClusterHttpHandler implements HttpHandler {
 
     private record DecommissionStatus(DecommissionState state, String failureMessage) {
 
-        private static DecommissionStatus failed(final Exception exception) {
-            final String message = exception.getMessage();
-            final String failureMessage = message == null ? exception.getClass().getSimpleName() : message.replaceAll("\\R", " ");
+        private static DecommissionStatus failed(final Throwable throwable) {
+            final String message = throwable.getMessage();
+            final String failureMessage = message == null ? throwable.getClass().getSimpleName() : message.replaceAll("\\R", " ");
             return new DecommissionStatus(DecommissionState.FAILED, failureMessage);
         }
 

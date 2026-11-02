@@ -171,7 +171,8 @@ class StandardManagementServerTest {
             assertEquals("Cluster Status: CONNECTED\nDecommission Status: IN_PROGRESS\n", inProgressResponseBody);
 
             // A request while a decommission is in progress is accepted without starting another decommission
-            assertResponseStatusCode(HEALTH_CLUSTER_URI, serverAddress, DELETE_METHOD, HttpURLConnection.HTTP_ACCEPTED);
+            final String duplicateDeleteResponseBody = assertResponseStatusCode(HEALTH_CLUSTER_URI, serverAddress, DELETE_METHOD, HttpURLConnection.HTTP_ACCEPTED);
+            assertEquals("Cluster Status: OFFLOADING\nDecommission Status: IN_PROGRESS\n", duplicateDeleteResponseBody);
 
             decommissionLatch.countDown();
 
