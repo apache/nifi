@@ -31,6 +31,9 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -45,8 +48,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -273,20 +278,31 @@ class BitbucketRepositoryClientTest {
         assertTrue(exception.getMessage().contains("Push failed after 3 attempts"));
     }
 
-    @Test
-    void testCreateContentCloudNon409ErrorNotRetried() throws FlowRegistryException {
+    @ParameterizedTest
+    @MethodSource("nonJsonErrorResponses")
+    void testCreateContentCloudNon409ErrorNotRetried(final String responseBody, final String expectedMessage, final String unexpectedMessage)
+            throws FlowRegistryException {
         stubGetChain(
                 branchListResponse(),
                 branchHeadResponse(BRANCH_HEAD_SHA)
         );
-        stubPostChain(mockResponse(HttpURLConnection.HTTP_ENTITY_TOO_LARGE, "\n<html><body>Request Entity Too Large</body></html>", "text/html"));
+        stubPostChain(mockResponse(HttpURLConnection.HTTP_BAD_REQUEST, responseBody, "text/html"));
 
         final BitbucketRepositoryClient client = buildCloudClient();
         final FlowRegistryException exception = assertThrows(FlowRegistryException.class,
                 () -> client.createContent(createRequest("existing-sha", null)));
-        assertTrue(exception.getMessage().contains("HTTP status 413"));
-        assertTrue(exception.getMessage().contains("text/html"));
-        assertTrue(exception.getMessage().contains("Request Entity Too Large"));
+        assertTrue(exception.getMessage().contains("HTTP status 400"));
+        assertTrue(exception.getMessage().contains(expectedMessage));
+        assertFalse(exception.getMessage().contains(unexpectedMessage));
+    }
+
+    private static Stream<Arguments> nonJsonErrorResponses() {
+        final String truncatedBody = "<html>" + "a".repeat(506);
+        return Stream.of(
+                Arguments.of("\n<html><body>Bad Request (400)</body></html>", "Content-Type [text/html], body [<html><body>Bad Request (400)</body></html>]", "Empty response"),
+                Arguments.of("", "Empty response from Bitbucket API", "Non-JSON response"),
+                Arguments.of(truncatedBody + "TRUNCATED", "body [%s]".formatted(truncatedBody), "TRUNCATED")
+        );
     }
 
     @Test

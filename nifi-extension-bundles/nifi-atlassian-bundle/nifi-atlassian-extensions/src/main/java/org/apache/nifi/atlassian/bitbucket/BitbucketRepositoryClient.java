@@ -26,6 +26,7 @@ import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
+import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.api.StandardHttpContentType;
@@ -103,7 +104,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private static final String ENTRY_FILE_DATA_CENTER = "FILE";
     private static final String ENTRY_FILE_CLOUD = "commit_file";
     private static final int MAX_PUSH_ATTEMPTS = 3;
-    private static final int MAX_ERROR_BODY_LENGTH = 512;
+    private static final int MAX_ERROR_RESPONSE_LENGTH = 512;
     private static final String UNKNOWN_CONTENT_TYPE = "unknown";
 
     private final ObjectMapper objectMapper = JsonMapper.builder().build();
@@ -1073,9 +1074,13 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private String getErrorMessage(final HttpResponseEntity response) throws FlowRegistryException {
         final byte[] responseBody;
         try (InputStream body = response.body()) {
-            responseBody = body == null ? new byte[0] : body.readAllBytes();
+            responseBody = body == null ? new byte[0] : new LimitingInputStream(body, MAX_ERROR_RESPONSE_LENGTH).readAllBytes();
         } catch (final IOException e) {
             throw new FlowRegistryException("Failed to read Bitbucket API response with HTTP status %d".formatted(response.statusCode()), e);
+        }
+
+        if (responseBody.length == 0) {
+            return "Empty response from Bitbucket API [%s] with HTTP status %d".formatted(response.uri(), response.statusCode());
         }
 
         final JsonNode jsonResponse;
@@ -1084,8 +1089,8 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         } catch (final IOException e) {
             return getNonJsonErrorMessage(response, responseBody);
         }
-        if (jsonResponse == null) {
-            return "Unknown error";
+        if (jsonResponse == null || jsonResponse.isMissingNode()) {
+            return getNonJsonErrorMessage(response, responseBody);
         }
 
         final JsonNode errorNode = jsonResponse.get(FIELD_ERROR_MESSAGE);
@@ -1112,9 +1117,8 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private String getNonJsonErrorMessage(final HttpResponseEntity response, final byte[] responseBody) {
         final String contentType = response.headers().getFirstHeader(CONTENT_TYPE_HEADER).orElse(UNKNOWN_CONTENT_TYPE);
         final String body = new String(responseBody, StandardCharsets.UTF_8).strip().replaceAll("\\s+", " ");
-        final String bodySnippet = body.length() > MAX_ERROR_BODY_LENGTH ? body.substring(0, MAX_ERROR_BODY_LENGTH) + "..." : body;
         return "Non-JSON response from Bitbucket API [%s] with HTTP status %d, Content-Type [%s], body [%s]"
-                .formatted(response.uri(), response.statusCode(), contentType, bodySnippet);
+                .formatted(response.uri(), response.statusCode(), contentType, body);
     }
 
     private JsonNode parseResponseBody(final HttpResponseEntity response, final URI uri) throws FlowRegistryException {
