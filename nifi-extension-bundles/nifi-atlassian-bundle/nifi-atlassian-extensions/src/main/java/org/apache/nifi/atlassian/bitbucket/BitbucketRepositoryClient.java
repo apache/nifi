@@ -103,6 +103,8 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private static final String ENTRY_FILE_DATA_CENTER = "FILE";
     private static final String ENTRY_FILE_CLOUD = "commit_file";
     private static final int MAX_PUSH_ATTEMPTS = 3;
+    private static final int MAX_ERROR_BODY_LENGTH = 512;
+    private static final String UNKNOWN_CONTENT_TYPE = "unknown";
 
     private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
@@ -433,7 +435,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
             final String branchHead = getBranchHeadCloud(branch);
 
             final StandardMultipartFormDataStreamBuilder multipartBuilder = new StandardMultipartFormDataStreamBuilder();
-            multipartBuilder.addPart(resolvedPath, StandardHttpContentType.APPLICATION_JSON, request.getContent().getBytes(StandardCharsets.UTF_8));
+            multipartBuilder.addPart(resolvedPath, getFileName(resolvedPath), StandardHttpContentType.APPLICATION_JSON, request.getContent().getBytes(StandardCharsets.UTF_8));
             multipartBuilder.addPart(FIELD_MESSAGE, StandardHttpContentType.TEXT_PLAIN, request.getMessage().getBytes(StandardCharsets.UTF_8));
             multipartBuilder.addPart(FIELD_BRANCH, StandardHttpContentType.TEXT_PLAIN, branch.getBytes(StandardCharsets.UTF_8));
             multipartBuilder.addPart(FIELD_PARENTS, StandardHttpContentType.TEXT_PLAIN, branchHead.getBytes(StandardCharsets.UTF_8));
@@ -445,10 +447,11 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
                 multipartBuilder.addPart(FIELD_AUTHOR, StandardHttpContentType.TEXT_PLAIN, authorValue.getBytes(StandardCharsets.UTF_8));
             }
 
+            final byte[] requestBody = toByteArray(multipartBuilder.build());
             final HttpResponseEntity response = this.webClient.getWebClientService()
                     .post()
                     .uri(uri)
-                    .body(multipartBuilder.build(), OptionalLong.empty())
+                    .body(new ByteArrayInputStream(requestBody), OptionalLong.of(requestBody.length))
                     .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
                     .header(CONTENT_TYPE_HEADER, multipartBuilder.getHttpContentType().getContentType())
                     .retrieve();
@@ -639,10 +642,11 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         final URI uri = getRepositoryUriBuilder().addPathSegment("src").build();
         final String errorMessage = "Error while deleting content for repository [%s] on branch %s at path %s"
                 .formatted(repoName, branch, resolvedPath);
+        final byte[] requestBody = toByteArray(multipartBuilder.build());
         try (final HttpResponseEntity response = this.webClient.getWebClientService()
                 .post()
                 .uri(uri)
-                .body(multipartBuilder.build(), OptionalLong.empty())
+                .body(new ByteArrayInputStream(requestBody), OptionalLong.of(requestBody.length))
                 .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
                 .header(CONTENT_TYPE_HEADER, multipartBuilder.getHttpContentType().getContentType())
                 .retrieve()) {
@@ -1066,12 +1070,19 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         }
     }
 
-    private String getErrorMessage(HttpResponseEntity response) throws FlowRegistryException {
+    private String getErrorMessage(final HttpResponseEntity response) throws FlowRegistryException {
+        final byte[] responseBody;
+        try (InputStream body = response.body()) {
+            responseBody = body == null ? new byte[0] : body.readAllBytes();
+        } catch (final IOException e) {
+            throw new FlowRegistryException("Failed to read Bitbucket API response with HTTP status %d".formatted(response.statusCode()), e);
+        }
+
         final JsonNode jsonResponse;
         try {
-            jsonResponse = this.objectMapper.readTree(response.body());
-        } catch (IOException e) {
-            throw new FlowRegistryException("Could not parse response from Bitbucket API", e);
+            jsonResponse = this.objectMapper.readTree(responseBody);
+        } catch (final IOException e) {
+            return getNonJsonErrorMessage(response, responseBody);
         }
         if (jsonResponse == null) {
             return "Unknown error";
@@ -1096,6 +1107,14 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         }
 
         return jsonResponse.toString();
+    }
+
+    private String getNonJsonErrorMessage(final HttpResponseEntity response, final byte[] responseBody) {
+        final String contentType = response.headers().getFirstHeader(CONTENT_TYPE_HEADER).orElse(UNKNOWN_CONTENT_TYPE);
+        final String body = new String(responseBody, StandardCharsets.UTF_8).strip().replaceAll("\\s+", " ");
+        final String bodySnippet = body.length() > MAX_ERROR_BODY_LENGTH ? body.substring(0, MAX_ERROR_BODY_LENGTH) + "..." : body;
+        return "Non-JSON response from Bitbucket API [%s] with HTTP status %d, Content-Type [%s], body [%s]"
+                .formatted(response.uri(), response.statusCode(), contentType, bodySnippet);
     }
 
     private JsonNode parseResponseBody(final HttpResponseEntity response, final URI uri) throws FlowRegistryException {

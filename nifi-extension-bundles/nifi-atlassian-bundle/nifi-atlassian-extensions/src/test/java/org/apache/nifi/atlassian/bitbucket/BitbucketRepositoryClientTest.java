@@ -20,6 +20,7 @@ package org.apache.nifi.atlassian.bitbucket;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
+import org.apache.nifi.web.client.api.HttpEntityHeaders;
 import org.apache.nifi.web.client.api.HttpRequestBodySpec;
 import org.apache.nifi.web.client.api.HttpRequestHeadersSpec;
 import org.apache.nifi.web.client.api.HttpRequestUriSpec;
@@ -30,6 +31,7 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.OngoingStubbing;
@@ -51,6 +53,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,6 +80,8 @@ class BitbucketRepositoryClientTest {
 
     private HttpRequestBodySpec getBodySpec;
     private HttpRequestBodySpec postAfterHeaders;
+
+    private HttpRequestBodySpec postBodySpec;
 
     @BeforeEach
     void setUp() {
@@ -124,7 +129,7 @@ class BitbucketRepositoryClientTest {
 
     private void stubPostChain(final HttpResponseEntity... responses) {
         final HttpRequestUriSpec postSpec = mock(HttpRequestUriSpec.class);
-        final HttpRequestBodySpec postBodySpec = mock(HttpRequestBodySpec.class);
+        postBodySpec = mock(HttpRequestBodySpec.class);
         final HttpRequestHeadersSpec afterBody = mock(HttpRequestHeadersSpec.class);
         postAfterHeaders = mock(HttpRequestBodySpec.class);
         lenient().when(webClientService.post()).thenReturn(postSpec);
@@ -147,7 +152,14 @@ class BitbucketRepositoryClientTest {
     }
 
     private HttpResponseEntity mockResponse(final int statusCode, final String body) {
+        return mockResponse(statusCode, body, "application/json");
+    }
+
+    private HttpResponseEntity mockResponse(final int statusCode, final String body, final String contentType) {
         final HttpResponseEntity response = mock(HttpResponseEntity.class);
+        final HttpEntityHeaders headers = mock(HttpEntityHeaders.class);
+        lenient().when(headers.getFirstHeader("Content-Type")).thenReturn(Optional.of(contentType));
+        lenient().when(response.headers()).thenReturn(headers);
         lenient().when(response.statusCode()).thenReturn(statusCode);
         lenient().when(response.body()).thenReturn(new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8)));
         return response;
@@ -173,10 +185,6 @@ class BitbucketRepositoryClientTest {
         return mockResponse(HttpURLConnection.HTTP_CONFLICT, "{\"error\":{\"message\":\"conflict\"}}");
     }
 
-    private HttpResponseEntity serverErrorResponse() {
-        return mockResponse(HttpURLConnection.HTTP_INTERNAL_ERROR, "{\"error\":{\"message\":\"internal error\"}}");
-    }
-
     private HttpResponseEntity createdResponse() {
         return mockResponse(HttpURLConnection.HTTP_CREATED, "{}");
     }
@@ -197,7 +205,7 @@ class BitbucketRepositoryClientTest {
     }
 
     @Test
-    void testCreateContentCloudSuccess() throws FlowRegistryException {
+    void testCreateContentCloudSuccess() throws FlowRegistryException, IOException {
         stubGetChain(
                 branchListResponse(),
                 branchHeadResponse(BRANCH_HEAD_SHA),
@@ -209,6 +217,14 @@ class BitbucketRepositoryClientTest {
         final BitbucketRepositoryClient client = buildCloudClient();
         final String commitSha = client.createContent(createRequest("existing-sha", null));
         assertEquals(RESULT_COMMIT_SHA, commitSha);
+
+        final ArgumentCaptor<InputStream> requestBody = ArgumentCaptor.forClass(InputStream.class);
+        final ArgumentCaptor<OptionalLong> contentLength = ArgumentCaptor.forClass(OptionalLong.class);
+        verify(postBodySpec).body(requestBody.capture(), contentLength.capture());
+        assertTrue(contentLength.getValue().isPresent());
+        assertTrue(contentLength.getValue().getAsLong() > CONTENT.length());
+        final String multipartBody = new String(requestBody.getValue().readAllBytes(), StandardCharsets.UTF_8);
+        assertTrue(multipartBody.contains("name=\"%s\"; filename=\"test.json\"".formatted(FILE_PATH)));
     }
 
     @Test
@@ -263,11 +279,14 @@ class BitbucketRepositoryClientTest {
                 branchListResponse(),
                 branchHeadResponse(BRANCH_HEAD_SHA)
         );
-        stubPostChain(serverErrorResponse());
+        stubPostChain(mockResponse(HttpURLConnection.HTTP_ENTITY_TOO_LARGE, "\n<html><body>Request Entity Too Large</body></html>", "text/html"));
 
         final BitbucketRepositoryClient client = buildCloudClient();
-        assertThrows(FlowRegistryException.class,
+        final FlowRegistryException exception = assertThrows(FlowRegistryException.class,
                 () -> client.createContent(createRequest("existing-sha", null)));
+        assertTrue(exception.getMessage().contains("HTTP status 413"));
+        assertTrue(exception.getMessage().contains("text/html"));
+        assertTrue(exception.getMessage().contains("Request Entity Too Large"));
     }
 
     @Test
