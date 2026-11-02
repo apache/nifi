@@ -30,7 +30,6 @@ import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
-import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.serialize.FlowSnapshotSerializer;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,9 +40,7 @@ import org.mockito.ArgumentCaptor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Instant;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -230,8 +227,7 @@ public class GitHubFlowRegistryClientTest {
         incomingSnapshot.setFlowContents(new VersionedProcessGroup());
 
         // Mock repository to return a different (newer) commit SHA than what the user expects
-        final GitCommit newerCommit = new GitCommit("new-commit-sha-67890", "author", "message", Instant.now());
-        doReturn(List.of(newerCommit)).when(repositoryClient).getCommits(any(), any());
+        doReturn(Optional.of("new-commit-sha-67890")).when(repositoryClient).getLatestCommitSha(any(), any());
 
         // Attempting to commit should throw a FlowRegistryException due to version conflict
         final FlowRegistryException exception = assertThrows(FlowRegistryException.class, () ->
@@ -264,8 +260,7 @@ public class GitHubFlowRegistryClientTest {
         incomingSnapshot.setFlowContents(new VersionedProcessGroup());
 
         // Mock repository to return a different (newer) commit SHA than what the user expects
-        final GitCommit newerCommit = new GitCommit("new-commit-sha-67890", "author", "message", Instant.now());
-        doReturn(List.of(newerCommit)).when(repositoryClient).getCommits(any(), any());
+        doReturn(Optional.of("new-commit-sha-67890")).when(repositoryClient).getLatestCommitSha(any(), any());
 
         // Mock blob SHA at the expected commit for atomic operation
         doReturn(Optional.of("blob-sha-at-expected-commit")).when(repositoryClient).getContentShaAtCommit(any(), any());

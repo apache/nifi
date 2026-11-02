@@ -220,6 +220,13 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     }
 
     @Override
+    public Optional<String> getLatestCommitSha(final String path, final String branch) throws FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        logger.debug("Getting latest commit for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
+        return execute(() -> gitLab.getRepositoryFileApi().getOptionalFileInfo(projectPath, resolvedPath, branch).map(RepositoryFile::getLastCommitId));
+    }
+
+    @Override
     public InputStream getContentFromBranch(final String path, final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
         logger.debug("Getting content for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
