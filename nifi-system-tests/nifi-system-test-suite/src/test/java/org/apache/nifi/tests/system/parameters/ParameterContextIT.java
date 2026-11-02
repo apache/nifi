@@ -1311,6 +1311,75 @@ public class ParameterContextIT extends NiFiSystemIT {
         waitForStoppedProcessor(ingest.getId());
     }
 
+    @Test
+    public void testSubsequentInheritanceReorderUpdatesEffectiveParameterValues() throws NiFiClientException, IOException, InterruptedException {
+        final String parameterName = "test.parameter";
+        final ParameterContextEntity contextA = getClientUtil().createParameterContext(getTestName() + " A", Map.of(parameterName, "VALUE_A"));
+        final ParameterContextEntity contextB = getClientUtil().createParameterContext(getTestName() + " B", Map.of(parameterName, "VALUE_B"));
+        ParameterContextEntity contextC = getClientUtil().createParameterContext(getTestName() + " C", Map.of(), List.of(contextA.getId(), contextB.getId()), null);
+
+        assertEffectiveParameter(contextC.getId(), parameterName, "VALUE_A", contextA.getId());
+        assertNoLocalParameter(contextC.getId(), parameterName);
+
+        contextC = updateInheritedParameterContexts(contextC, List.of(contextB.getId(), contextA.getId()));
+        assertEffectiveParameter(contextC.getId(), parameterName, "VALUE_B", contextB.getId());
+        assertNoLocalParameter(contextC.getId(), parameterName);
+
+        updateInheritedParameterContexts(contextC, List.of(contextA.getId(), contextB.getId()));
+        assertEffectiveParameter(contextC.getId(), parameterName, "VALUE_A", contextA.getId());
+        assertNoLocalParameter(contextC.getId(), parameterName);
+    }
+
+    @Test
+    public void testSubsequentInheritanceAddRemoveUpdatesEffectiveParameterValues() throws NiFiClientException, IOException, InterruptedException {
+        final String parameterName = "test.parameter";
+        final ParameterContextEntity contextA = getClientUtil().createParameterContext(getTestName() + " A", Map.of(parameterName, "VALUE_A"));
+        final ParameterContextEntity contextB = getClientUtil().createParameterContext(getTestName() + " B", Map.of(parameterName, "VALUE_B"));
+        ParameterContextEntity contextC = getClientUtil().createParameterContext(getTestName() + " C", Map.of(), List.of(contextB.getId()), null);
+
+        assertEffectiveParameter(contextC.getId(), parameterName, "VALUE_B", contextB.getId());
+
+        contextC = updateInheritedParameterContexts(contextC, List.of(contextA.getId(), contextB.getId()));
+        assertEffectiveParameter(contextC.getId(), parameterName, "VALUE_A", contextA.getId());
+        assertNoLocalParameter(contextC.getId(), parameterName);
+
+        updateInheritedParameterContexts(contextC, List.of(contextB.getId()));
+        assertEffectiveParameter(contextC.getId(), parameterName, "VALUE_B", contextB.getId());
+        assertNoLocalParameter(contextC.getId(), parameterName);
+    }
+
+    private ParameterContextEntity updateInheritedParameterContexts(final ParameterContextEntity existing, final List<String> inheritedContextIds)
+            throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity current = getNifiClient().getParamContextClient().getParamContext(existing.getId(), true);
+        final ParameterContextUpdateRequestEntity updateRequest = getClientUtil().updateParameterContext(current, Map.of(), inheritedContextIds);
+        getClientUtil().waitForParameterContextRequestToComplete(existing.getId(), updateRequest.getRequest().getRequestId());
+        return getNifiClient().getParamContextClient().getParamContext(existing.getId(), true);
+    }
+
+    private void assertEffectiveParameter(final String contextId, final String parameterName, final String expectedValue, final String expectedSourceContextId)
+            throws NiFiClientException, IOException {
+        final ParameterDTO parameter = getNifiClient().getParamContextClient().getParamContext(contextId, true)
+                .getComponent()
+                .getParameters()
+                .stream()
+                .map(ParameterEntity::getParameter)
+                .filter(dto -> parameterName.equals(dto.getName()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(parameter);
+        assertEquals(expectedValue, parameter.getValue());
+        assertSame(Boolean.TRUE, parameter.getInherited());
+        assertEquals(expectedSourceContextId, parameter.getParameterContext().getId());
+    }
+
+    private void assertNoLocalParameter(final String contextId, final String parameterName) throws NiFiClientException, IOException {
+        assertTrue(getNifiClient().getParamContextClient().getParamContext(contextId, false)
+                .getComponent()
+                .getParameters()
+                .stream()
+                .noneMatch(parameter -> parameterName.equals(parameter.getParameter().getName())));
+    }
+
     private Map<String, Long> waitForCounter(final String context, final String counterName, final long expectedValue) throws NiFiClientException, IOException, InterruptedException {
         return getClientUtil().waitForCounter(context, counterName, expectedValue);
     }
