@@ -17,7 +17,7 @@
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { extensionTypesFeatureKey, ExtensionTypesState, LoadExtensionTypesForDocumentationResponse } from './index';
-import { DocumentedType, RequiredPermission } from '../shared';
+import { DocumentedType } from '../shared';
 import { Bundle } from '@nifi/shared';
 
 export const selectExtensionTypesState = createFeatureSelector<ExtensionTypesState>(extensionTypesFeatureKey);
@@ -65,57 +65,6 @@ export const selectParameterProviderTypes = createSelector(
 export const selectConnectorTypes = createSelector(
     selectExtensionTypesState,
     (state: ExtensionTypesState) => state.connectorTypes
-);
-
-export const selectTypesToIdentifyComponentRestrictions = createSelector(
-    selectExtensionTypesState,
-    (state: ExtensionTypesState) => {
-        const types: DocumentedType[] = [];
-
-        if (state.processorTypes) {
-            types.push(...state.processorTypes);
-        }
-        if (state.controllerServiceTypes) {
-            types.push(...state.controllerServiceTypes);
-        }
-        if (state.reportingTaskTypes) {
-            types.push(...state.reportingTaskTypes);
-        }
-        if (state.registryClientTypes) {
-            types.push(...state.registryClientTypes);
-        }
-        if (state.parameterProviderTypes) {
-            types.push(...state.parameterProviderTypes);
-        }
-        if (state.flowAnalysisRuleTypes) {
-            types.push(...state.flowAnalysisRuleTypes);
-        }
-
-        return types;
-    }
-);
-
-export const selectRequiredPermissions = createSelector(
-    selectTypesToIdentifyComponentRestrictions,
-    (documentedTypes: DocumentedType[]) => {
-        const requiredPermissions: Map<string, RequiredPermission> = new Map<string, RequiredPermission>();
-
-        documentedTypes
-            .filter((documentedType) => documentedType.restricted)
-            .forEach((documentedType) => {
-                if (documentedType.explicitRestrictions) {
-                    documentedType.explicitRestrictions.forEach((explicitRestriction) => {
-                        const requiredPermission: RequiredPermission = explicitRestriction.requiredPermission;
-
-                        if (!requiredPermissions.has(requiredPermission.id)) {
-                            requiredPermissions.set(requiredPermission.id, requiredPermission);
-                        }
-                    });
-                }
-            });
-
-        return Array.from(requiredPermissions.values());
-    }
 );
 
 export const selectServiceImplementations = (serviceApi: string, serviceApiBundle: Bundle) =>

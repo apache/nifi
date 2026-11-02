@@ -25,8 +25,6 @@ import {
     loadExtensionTypesForConnectorsSuccess,
     loadExtensionTypesForDocumentation,
     loadExtensionTypesForDocumentationSuccess,
-    loadExtensionTypesForPolicies,
-    loadExtensionTypesForPoliciesSuccess,
     loadExtensionTypesForSettings,
     loadExtensionTypesForSettingsSuccess
 } from './extension-types.actions';
@@ -48,7 +46,6 @@ export const extensionTypesReducer = createReducer(
     on(
         loadExtensionTypesForCanvas,
         loadExtensionTypesForSettings,
-        loadExtensionTypesForPolicies,
         loadExtensionTypesForDocumentation,
         (state) => ({
             ...state,
@@ -75,15 +72,6 @@ export const extensionTypesReducer = createReducer(
         controllerServiceTypes: response.controllerServiceTypes,
         reportingTaskTypes: response.reportingTaskTypes,
         registryClientTypes: response.registryClientTypes,
-        parameterProviderTypes: response.parameterProviderTypes,
-        flowAnalysisRuleTypes: response.flowAnalysisRuleTypes,
-        status: 'success' as const
-    })),
-    on(loadExtensionTypesForPoliciesSuccess, (state, { response }) => ({
-        ...state,
-        processorTypes: response.processorTypes,
-        controllerServiceTypes: response.controllerServiceTypes,
-        reportingTaskTypes: response.reportingTaskTypes,
         parameterProviderTypes: response.parameterProviderTypes,
         flowAnalysisRuleTypes: response.flowAnalysisRuleTypes,
         status: 'success' as const

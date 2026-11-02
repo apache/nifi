@@ -20,7 +20,6 @@ import {
     LoadExtensionTypesForCanvasResponse,
     LoadExtensionTypesForConnectorsResponse,
     LoadExtensionTypesForDocumentationResponse,
-    LoadExtensionTypesForPoliciesResponse,
     LoadExtensionTypesForSettingsResponse
 } from './index';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -37,13 +36,6 @@ export const loadExtensionTypesForSettings = createAction('[Extension Types] Loa
 export const loadExtensionTypesForSettingsSuccess = createAction(
     '[Extension Types] Load Extension Types For Settings Success',
     props<{ response: LoadExtensionTypesForSettingsResponse }>()
-);
-
-export const loadExtensionTypesForPolicies = createAction('[Extension Types] Load Extension Types For Policies');
-
-export const loadExtensionTypesForPoliciesSuccess = createAction(
-    '[Extension Types] Load Extension Types For Policies Success',
-    props<{ response: LoadExtensionTypesForPoliciesResponse }>()
 );
 
 export const loadExtensionTypesForDocumentation = createAction(

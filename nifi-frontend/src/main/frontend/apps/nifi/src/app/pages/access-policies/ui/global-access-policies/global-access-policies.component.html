@@ -47,27 +47,6 @@
                                         </mat-select>
                                     </mat-form-field>
                                 </div>
-                                @if (supportsResourceIdentifier) {
-                                    <div class="resource-identifier-select">
-                                        <mat-form-field subscriptSizing="dynamic">
-                                            <mat-label>Option</mat-label>
-                                            <mat-select
-                                                formControlName="resourceIdentifier"
-                                                (selectionChange)="resourceIdentifierChanged()">
-                                                @for (option of requiredPermissionOptions; track option) {
-                                                    <mat-option
-                                                        [value]="option.value"
-                                                        nifiTooltip
-                                                        [tooltipComponentType]="TextTip"
-                                                        [tooltipInputData]="option.description"
-                                                        [delayClose]="false"
-                                                        >{{ option.text }}
-                                                    </mat-option>
-                                                }
-                                            </mat-select>
-                                        </mat-form-field>
-                                    </div>
-                                }
                                 <div class="action-select" [class.hidden]="!supportsReadWriteAction">
                                     <mat-form-field subscriptSizing="dynamic">
                                         <mat-label>Action</mat-label>
@@ -201,11 +180,8 @@
         <a (click)="overridePolicy()">Override</a> this policy.
     }
 </ng-template>
-<ng-template
-    #inheritedFromNoRestrictions
-    let-policy
-    let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
-    No restriction specific users.
+<ng-template #inheritedFromPolicy let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
+    Showing effective policy inherited from another policy.
     @if (supportsConfigurableAuthorizer) {
         <a (click)="createNewPolicy()">Create</a> a new policy.
     }
