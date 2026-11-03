@@ -120,7 +120,7 @@
         <node.version>v24.22.1</node.version>
 
         <!-- NiFi build -->
-        <nifi-api.version>2.15.0</nifi-api.version>
+        <nifi-api.version>2.16.0</nifi-api.version>
         <nifi.nar.maven.plugin.version>2.4.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
@@ -162,7 +162,7 @@
         <jackson.annotations.version>2.22</jackson.annotations.version>
         <jackson.bom.version>2.22.4</jackson.bom.version>
         <jackson3.bom.version>3.2.4</jackson3.bom.version>
-        <json.smart.version>2.6.0</json.smart.version>
+        <json.smart.version>2.6.1</json.smart.version>
         <snakeyaml.version>2.7</snakeyaml.version>
 
         <!-- JVM languages and bytecode -->
@@ -178,7 +178,7 @@
         <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
 
         <!-- Networking and transport -->
-        <netty.4.version>4.2.19.Final</netty.4.version>
+        <netty.4.version>4.2.20.Final</netty.4.version>
         <okhttp.version>5.5.1</okhttp.version>
         <okio.version>3.18.2</okio.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
@@ -636,7 +636,7 @@
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
-                <version>1.23.2</version>
+                <version>1.24.1</version>
             </dependency>
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
