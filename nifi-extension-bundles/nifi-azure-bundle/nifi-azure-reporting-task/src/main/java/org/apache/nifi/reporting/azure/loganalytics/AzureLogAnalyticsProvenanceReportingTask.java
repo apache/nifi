@@ -53,7 +53,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Tags({ "azure", "provenance", "reporting", "log analytics" })
-@CapabilityDescription("Publishes Provenance events to to a Azure Log Analytics workspace.")
+@CapabilityDescription("Publishes Provenance events to a Azure Log Analytics workspace.")
 public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAnalyticsReportingTask {
 
     protected static final String LAST_EVENT_ID_KEY = "last_event_id";

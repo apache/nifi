@@ -98,8 +98,8 @@ public class ExtractMediaMetadata extends AbstractProcessor {
 
     static final PropertyDescriptor METADATA_KEY_PREFIX = new PropertyDescriptor.Builder()
             .name("Metadata Key Prefix")
-            .description("Text to be prefixed to metadata keys as the are added to the FlowFile attributes.  It is"
-                    + " recommended to end with with a separator character like '.' or '-', this is not automatically "
+            .description("Text to be prefixed to metadata keys as they are added to the FlowFile attributes.  It is"
+                    + " recommended to end with a separator character like '.' or '-', this is not automatically "
                     + " added by the processor.")
             .required(false)
             .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)

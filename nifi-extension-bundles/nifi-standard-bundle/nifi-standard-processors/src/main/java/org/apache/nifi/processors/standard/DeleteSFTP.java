@@ -119,7 +119,7 @@ public class DeleteSFTP extends AbstractProcessor {
 
     public static final PropertyDescriptor DIRECTORY_PATH = new PropertyDescriptor.Builder()
             .name("Directory Path")
-            .description("The path to the the actual directory to delete or the path to the directory the file to delete is located in.")
+            .description("The path to the actual directory to delete or the path to the directory the file to delete is located in.")
             .required(true)
             .defaultValue("${" + CoreAttributes.PATH.key() + "}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

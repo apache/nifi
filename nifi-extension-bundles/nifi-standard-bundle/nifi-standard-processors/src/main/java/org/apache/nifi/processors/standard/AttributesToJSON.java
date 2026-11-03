@@ -100,7 +100,7 @@ public class AttributesToJSON extends AbstractProcessor {
             .name("Attributes List")
             .description("Comma separated list of attributes to be included in the resulting JSON. If this value " +
                     "is left empty then all existing Attributes will be included. This list of attributes is " +
-                    "case sensitive. If an attribute specified in the list is not found it will be be emitted " +
+                    "case sensitive. If an attribute specified in the list is not found it will be emitted " +
                     "to the resulting JSON with an empty string or NULL value.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

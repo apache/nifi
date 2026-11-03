@@ -108,7 +108,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .displayName("Transaction Isolation Level")
             .description("""
                     Specifies how the service should handle transaction isolation levels when communicating with Kafka.
-                    The uncommited option means that messages will be received as soon as they are written to Kafka but will be pulled, even if the producer cancels the transactions.
+                    The uncommitted option means that messages will be received as soon as they are written to Kafka but will be pulled, even if the producer cancels the transactions.
                     The committed option configures the service to not receive any messages for which the producer's transaction was canceled, but this can result in some latency since the
                     consumer must wait for the producer to finish its entire transaction instead of pulling as the messages become available.
                     Corresponds to Kafka isolation.level property.

@@ -47,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Looks up ISP information for an IP address and adds the information to FlowFile attributes. The "
         + "ISP data is provided as a MaxMind ISP database. (Note that this is NOT the same as the GeoLite database utilized " +
         "by some geo enrichment tools). The attribute that contains the IP address to lookup is provided by the " +
-        "'IP Address Attribute' property. If the name of the attribute provided is 'X', then the the attributes added by" +
+        "'IP Address Attribute' property. If the name of the attribute provided is 'X', then the attributes added by" +
         " enrichment will take the form X.isp.<fieldName>")
 @WritesAttributes({
     @WritesAttribute(attribute = "X.isp.lookup.micros", description = "The number of microseconds that the geo lookup took"),
