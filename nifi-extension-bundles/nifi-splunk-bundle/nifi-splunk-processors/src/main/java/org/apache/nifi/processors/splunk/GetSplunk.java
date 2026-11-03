@@ -163,7 +163,7 @@ public class GetSplunk extends AbstractProcessor {
     public static final AllowableValue MANAGED_CURRENT_VALUE = new AllowableValue("Managed from Current", "Managed from Current",
             "The processor will manage the date ranges of the query starting from the current time.");
     public static final AllowableValue PROVIDED_VALUE = new AllowableValue("Provided", "Provided",
-            "The the time range provided through the Earliest Time and Latest Time properties will be used.");
+            "The time range provided through the Earliest Time and Latest Time properties will be used.");
 
     public static final PropertyDescriptor TIME_RANGE_STRATEGY = new PropertyDescriptor.Builder()
             .name("Time Range Strategy")

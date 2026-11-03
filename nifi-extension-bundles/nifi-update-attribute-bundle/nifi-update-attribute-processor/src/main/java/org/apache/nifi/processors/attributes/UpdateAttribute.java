@@ -173,7 +173,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                             .subject(subject)
                             .input(input)
                             .valid(false)
-                            .explanation("Expected property to to return type " + AttributeExpression.ResultType.STRING +
+                            .explanation("Expected property to return type " + AttributeExpression.ResultType.STRING +
                                     " but expression returns type " + resultType)
                             .build();
                 }

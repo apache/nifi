@@ -246,7 +246,7 @@ public abstract class AbstractAwsProcessor<C extends AwsClient, B extends AwsCli
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.FAILED)
                     .verificationStepName("Create Client")
-                    .explanation("Failed to crete AWS Client: " + e.getMessage())
+                    .explanation("Failed to create AWS Client: " + e.getMessage())
                     .build());
         }
 

@@ -84,7 +84,7 @@ import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_DIRECTORI
         @WritesAttribute(attribute = "hdfs.group", description = "The group that owns the file in HDFS"),
         @WritesAttribute(attribute = "hdfs.lastModified", description = "The timestamp of when the file in HDFS was last modified, as milliseconds since midnight Jan 1, 1970 UTC"),
         @WritesAttribute(attribute = "hdfs.length", description = "The number of bytes in the file in HDFS"),
-        @WritesAttribute(attribute = "hdfs.replication", description = "The number of HDFS replicas for hte file"),
+        @WritesAttribute(attribute = "hdfs.replication", description = "The number of HDFS replicas for the file"),
         @WritesAttribute(attribute = "hdfs.permissions", description = "The permissions for the file in HDFS. This is formatted as 3 characters for the owner, "
                 + "3 for the group, and 3 for other users. For example rw-rw-r--")
 })

@@ -128,7 +128,7 @@ public class TailFile extends AbstractProcessor {
     static final AllowableValue START_CURRENT_FILE = new AllowableValue("Beginning of File", "Beginning of File",
             "Start with the beginning of the File to Tail. Do not ingest any data that has already been rolled over");
     static final AllowableValue START_CURRENT_TIME = new AllowableValue("Current Time", "Current Time",
-            "Start with the data at the end of the File to Tail. Do not ingest any data thas has already been rolled over or any "
+            "Start with the data at the end of the File to Tail. Do not ingest any data that has already been rolled over or any "
             + "data in the File to Tail that has already been written.");
 
     static final PropertyDescriptor BASE_DIRECTORY = new Builder()

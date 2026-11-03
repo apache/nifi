@@ -180,7 +180,7 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
                 session.transfer(input, REL_ORIGINAL);
             }
         } catch (Exception ex) {
-            getLogger().error("An error occurred wile trying to run the query.", ex);
+            getLogger().error("An error occurred while trying to run the query.", ex);
             if (input != null && operatingMode.equals(MODE_ONE_COMMIT.getValue())) {
                 session.transfer(input, REL_FAILURE);
             } else if (input != null && operatingMode.equals(MODE_MANY_COMMITS.getValue())) {

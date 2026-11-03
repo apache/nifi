@@ -63,7 +63,7 @@ import java.util.stream.Collectors;
 @DynamicProperty(name = "The name of the attribute to add to the FlowFile",
     value = "The name of the key or property to retrieve from the lookup service",
     expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-    description = "Adds a FlowFile attribute specified by the dynamic property's key with the value found in the lookup service using the the dynamic property's value")
+    description = "Adds a FlowFile attribute specified by the dynamic property's key with the value found in the lookup service using the dynamic property's value")
 public class LookupAttribute extends AbstractProcessor {
 
     public static final PropertyDescriptor LOOKUP_SERVICE =
