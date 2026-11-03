@@ -691,7 +691,8 @@ as well as the issuer and expiration from the configured Login Identity Provider
 
 NiFi uses generated Ed25519 Key Pairs to support the `EdDSA` algorithm for JSON Web Signatures. The system stores Ed25519
 Public Keys using the configured local State Provider and retains the Private Key in memory. This approach supports signature verification
-for the expiration configured in the Login Identity Provider without persisting the private key.
+for the expiration configured in the Login Identity Provider without persisting the private key. NiFi generates RSA Key Pairs instead when the
+configured Security Providers do not support Ed25519.
 
 JSON Web Token support includes revocation on logout using JSON Web Token Identifiers. The system denies access for expired tokens based on the
 Login Identity Provider configuration, but revocation invalidates the token prior to expiration. The system stores revoked identifiers using the
@@ -702,7 +703,7 @@ The following settings can be configured in _nifi.properties_ to control JSON We
 [options="header"]
 |==================================================================================================================================================
 | Property Name | Description
-|`nifi.security.user.jws.key.rotation.period` | JSON Web Signature Key Rotation Period defines how often the system generates a new RSA Key Pair, expressed as an ISO 8601 duration. The default is one hour: `PT1H`
+|`nifi.security.user.jws.key.rotation.period` | JSON Web Signature Key Rotation Period defines how often the system generates a new Key Pair for JSON Web Signatures, expressed as an ISO 8601 duration. The default is one hour: `PT1H`
 |==================================================================================================================================================
 
 [[x509_client_certificates]]
