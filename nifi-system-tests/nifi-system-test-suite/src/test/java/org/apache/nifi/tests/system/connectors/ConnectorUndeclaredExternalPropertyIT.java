@@ -19,6 +19,7 @@ package org.apache.nifi.tests.system.connectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.tests.system.InstanceConfiguration;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
@@ -40,6 +41,15 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 /**
  * Verifies that saving a connector drops properties and steps that the current connector does not declare,
  * even when the external configuration provider loaded them.
+ *
+ * A read migrates the older provider document in memory and does not persist it. Apply commits those migrated values
+ * onto the active configuration without saving the provider document. The reload tests start the connector and reload
+ * NiFi while that document is unchanged. One waits for Apply to finish and checks the effective active values. The
+ * other applies a benign edit first, so retaining the previous active configuration cannot satisfy the assertion.
+ *
+ * The sequence of an older runtime, an in-place upgrade, a no-change Apply/COMMIT, and continued ingestion is a
+ * downstream QA release gate. This read/apply coverage does not replace that gate, and neither do direct-node tests
+ * of an immutable configuration commit.
  */
 public class ConnectorUndeclaredExternalPropertyIT extends NiFiSystemIT {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -52,6 +62,7 @@ public class ConnectorUndeclaredExternalPropertyIT extends NiFiSystemIT {
     private static final String DECLARED_PROPERTY_VALUE = "from-external-config";
     private static final String UPDATED_PROPERTY_VALUE = "saved-by-test";
     private static final String RELOADED_PROPERTY_VALUE = "saved-after-reload";
+    private static final String BENIGN_EDIT_VALUE = "applied-after-edit";
     private static final String UNDECLARED_PROPERTY_NAME = "Removed Property";
     private static final String REQUIRED_DEFAULT_PROPERTY_NAME = "Required Default Property";
     private static final String REQUIRED_DEFAULT_PROPERTY_VALUE = "default-value";
@@ -120,16 +131,115 @@ public class ConnectorUndeclaredExternalPropertyIT extends NiFiSystemIT {
         assertFalse(containsProperty(reloadedConfiguration, REQUIRED_DEFAULT_PROPERTY_NAME));
     }
 
+    @Test
+    public void testApplyCommitsMigratedActiveConfigurationWithoutPersisting() throws NiFiClientException, IOException, InterruptedException {
+        assertOlderDocumentUnchanged();
+
+        final ConnectorEntity connector = getClientUtil().createConnector("NopConnector");
+        assertNotNull(connector);
+        final String connectorId = connector.getId();
+
+        final ConnectorEntity loaded = getNifiClient().getConnectorClient().getConnector(connectorId);
+        assertEffectiveValues(loaded.getComponent().getWorkingConfiguration(), DECLARED_PROPERTY_VALUE);
+        assertOlderDocumentUnchanged();
+
+        getClientUtil().applyConnectorUpdate(loaded);
+        final ConnectorEntity applied = getNifiClient().getConnectorClient().getConnector(connectorId);
+        assertEffectiveValues(applied.getComponent().getActiveConfiguration(), DECLARED_PROPERTY_VALUE);
+        assertOlderDocumentUnchanged();
+    }
+
+    @Test
+    public void testApplyAfterReloadCommitsEffectiveActiveConfiguration() throws NiFiClientException, IOException, InterruptedException {
+        final String connectorId = startConnectorAndReloadUnchangedOlderDocument();
+
+        final ConnectorEntity reloaded = getNifiClient().getConnectorClient().getConnector(connectorId);
+        getClientUtil().applyConnectorUpdate(reloaded);
+
+        final ConnectorEntity afterReloadApply = getNifiClient().getConnectorClient().getConnector(connectorId);
+        assertEffectiveValues(afterReloadApply.getComponent().getActiveConfiguration(), DECLARED_PROPERTY_VALUE);
+        assertOlderDocumentUnchanged();
+    }
+
+    @Test
+    public void testEditedApplyAfterReloadReplacesPreviousActiveConfiguration() throws NiFiClientException, IOException, InterruptedException {
+        final String connectorId = startConnectorAndReloadUnchangedOlderDocument();
+
+        getClientUtil().configureConnector(connectorId, STEP_NAME, Map.of(DECLARED_PROPERTY_NAME, BENIGN_EDIT_VALUE));
+        final ConnectorEntity edited = getNifiClient().getConnectorClient().getConnector(connectorId);
+        getClientUtil().applyConnectorUpdate(edited);
+
+        final ConnectorEntity afterEditApply = getNifiClient().getConnectorClient().getConnector(connectorId);
+        assertEffectiveValues(afterEditApply.getComponent().getActiveConfiguration(), BENIGN_EDIT_VALUE);
+
+        final JsonNode savedConfiguration = readConfiguration("saved-config.json");
+        assertEquals(BENIGN_EDIT_VALUE, propertyValue(savedConfiguration, DECLARED_PROPERTY_NAME));
+        assertFalse(containsProperty(savedConfiguration, LEGACY_PROPERTY_NAME));
+        assertFalse(containsProperty(savedConfiguration, UNDECLARED_PROPERTY_NAME));
+        assertInitialDocumentUnchanged();
+    }
+
+    private String startConnectorAndReloadUnchangedOlderDocument() throws NiFiClientException, IOException, InterruptedException {
+        assertOlderDocumentUnchanged();
+
+        final ConnectorEntity connector = getClientUtil().createConnector("NopConnector");
+        assertNotNull(connector);
+        final String connectorId = connector.getId();
+
+        final ConnectorEntity loaded = getNifiClient().getConnectorClient().getConnector(connectorId);
+        assertEffectiveValues(loaded.getComponent().getWorkingConfiguration(), DECLARED_PROPERTY_VALUE);
+        getClientUtil().applyConnectorUpdate(loaded);
+
+        getClientUtil().waitForValidConnector(connectorId);
+        getClientUtil().startConnector(connectorId);
+        assertEquals(ConnectorState.RUNNING.name(), getNifiClient().getConnectorClient().getConnector(connectorId).getComponent().getState());
+
+        getNiFiInstance().stop();
+        getNiFiInstance().start();
+
+        final ConnectorEntity reloaded = getNifiClient().getConnectorClient().getConnector(connectorId);
+        assertEffectiveValues(reloaded.getComponent().getWorkingConfiguration(), DECLARED_PROPERTY_VALUE);
+        assertOlderDocumentUnchanged();
+        return connectorId;
+    }
+
     private JsonNode readConfiguration(final String fileName) throws IOException {
         return OBJECT_MAPPER.readTree(new File(STATE_DIRECTORY, fileName));
     }
 
+    private void assertOlderDocumentUnchanged() throws IOException {
+        assertInitialDocumentUnchanged();
+        assertFalse(new File(STATE_DIRECTORY, "saved-config.json").exists());
+    }
+
+    private void assertInitialDocumentUnchanged() throws IOException {
+        final JsonNode initialConfiguration = readConfiguration("initial-config.json");
+        assertEquals(DECLARED_PROPERTY_VALUE, propertyValue(initialConfiguration, LEGACY_PROPERTY_NAME));
+        assertFalse(containsProperty(initialConfiguration, DECLARED_PROPERTY_NAME));
+        assertEquals("should-be-dropped", propertyValue(initialConfiguration, UNDECLARED_PROPERTY_NAME));
+    }
+
+    private void assertEffectiveValues(final ConnectorConfigurationDTO configuration, final String declaredPropertyValue) {
+        assertEquals(declaredPropertyValue, configurationPropertyValue(configuration, DECLARED_PROPERTY_NAME));
+        assertEquals(REQUIRED_DEFAULT_PROPERTY_VALUE, configurationPropertyValue(configuration, REQUIRED_DEFAULT_PROPERTY_NAME));
+        assertFalse(configurationPropertyValues(configuration).containsKey(LEGACY_PROPERTY_NAME));
+        assertFalse(configurationPropertyValues(configuration).containsKey(UNDECLARED_PROPERTY_NAME));
+    }
+
     private String workingPropertyValue(final ConnectorEntity connector, final String propertyName) {
-        final ConnectorConfigurationDTO workingConfiguration = connector.getComponent().getWorkingConfiguration();
-        final Map<String, ConnectorValueReferenceDTO> propertyValues = workingConfiguration.getConfigurationStepConfigurations().getFirst()
+        return configurationPropertyValue(connector.getComponent().getWorkingConfiguration(), propertyName);
+    }
+
+    private String configurationPropertyValue(final ConnectorConfigurationDTO configuration, final String propertyName) {
+        final ConnectorValueReferenceDTO valueReference = configurationPropertyValues(configuration).get(propertyName);
+        assertNotNull(valueReference);
+        return valueReference.getValue();
+    }
+
+    private Map<String, ConnectorValueReferenceDTO> configurationPropertyValues(final ConnectorConfigurationDTO configuration) {
+        return configuration.getConfigurationStepConfigurations().getFirst()
             .getPropertyGroupConfigurations().getFirst()
             .getPropertyValues();
-        return propertyValues.get(propertyName).getValue();
     }
 
     private String propertyValue(final JsonNode configuration, final String propertyName) {
