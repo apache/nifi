@@ -30,6 +30,8 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.StateMapDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -39,6 +41,8 @@ import java.util.Map;
 
 @Repository
 public class StandardComponentStateDAO implements ComponentStateDAO {
+
+    private static final Logger logger = LoggerFactory.getLogger(StandardComponentStateDAO.class);
 
     private StateManagerProvider stateManagerProvider;
 
@@ -85,7 +89,9 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
                     final Map<String, String> currentLocalState = localStateMap.toMap();
 
                     if (hasExactlyOneKeyRemoved(currentLocalState, newLocalState)) {
-                        manager.setState(newLocalState, Scope.LOCAL);
+                        if (!manager.replace(localStateMap, newLocalState, Scope.LOCAL)) {
+                            throw new IllegalStateException("Unable to remove a state key for component %s. Local state was modified concurrently.".formatted(componentId));
+                        }
                     } else {
                         throw new IllegalStateException("Unable to remove a state key for component %s. Exactly one key removal is supported.".formatted(componentId));
                     }
@@ -104,10 +110,22 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
                 }
 
                 final Map<String, String> newClusterState = toStateMap(clusterStateMapDto);
-                final Map<String, String> currentClusterState = manager.getState(Scope.CLUSTER).toMap();
+                final StateMap currentClusterStateMap = manager.getState(Scope.CLUSTER);
+                final Map<String, String> currentClusterState = currentClusterStateMap.toMap();
 
                 if (hasExactlyOneKeyRemoved(currentClusterState, newClusterState)) {
-                    manager.setState(newClusterState, Scope.CLUSTER);
+                    if (!manager.replace(currentClusterStateMap, newClusterState, Scope.CLUSTER)) {
+                        // Cluster state changed after it was read: accept only if another node already applied the same replicated request
+                        final Map<String, String> latestClusterState = manager.getState(Scope.CLUSTER).toMap();
+                        if (stateManagerProvider.isClusterProviderEnabled() && latestClusterState.equals(newClusterState)) {
+                            logger.debug("Cluster state for component {} already matches the requested state", componentId);
+                        } else {
+                            throw new IllegalStateException("Unable to remove a state key for component %s. Cluster state was modified concurrently.".formatted(componentId));
+                        }
+                    }
+                } else if (stateManagerProvider.isClusterProviderEnabled() && currentClusterState.equals(newClusterState)) {
+                    // Cluster state is shared across nodes, so the replicated request may have already been applied by another node
+                    logger.debug("Cluster state for component {} already matches the requested state", componentId);
                 } else {
                     throw new IllegalStateException("Unable to remove a state key for component %s. Exactly one key removal is supported.".formatted(componentId));
                 }
