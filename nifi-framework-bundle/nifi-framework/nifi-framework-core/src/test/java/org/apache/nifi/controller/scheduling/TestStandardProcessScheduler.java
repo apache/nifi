@@ -40,6 +40,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.SchedulingAgentCallback;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
@@ -57,7 +58,9 @@ import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.StatelessGroupNode;
 import org.apache.nifi.lifecycle.ProcessorStopLifecycleMethods;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
@@ -106,6 +109,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -647,14 +651,7 @@ public class TestStandardProcessScheduler {
             .unschedule(any(Connectable.class), any(LifecycleState.class));
         scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, schedulingAgent);
 
-        final String identifier = UUID.randomUUID().toString();
-        final Processor processor = new NoOpProcessor();
-        processor.initialize(new StandardProcessorInitializationContext(identifier, null, null, null, KerberosConfig.NOT_CONFIGURED));
-        final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), null);
-        final ProcessorNode processorNode = new StandardProcessorNode(loggableComponent, identifier, new StandardValidationContextFactory(serviceProvider), scheduler,
-            serviceProvider, mock(ReloadComponent.class), mock(VerifiableComponentFactory.class), extensionManager, new SynchronousValidationTrigger());
-        rootGroup.addProcessor(processorNode);
-        processorNode.performValidation();
+        final ProcessorNode processorNode = createValidatedProcessorNode();
 
         // Hold the startup task inside SchedulingAgent.schedule() after the Processor transitions to RUNNING.
         scheduler.startProcessor(processorNode, true);
@@ -678,6 +675,129 @@ public class TestStandardProcessScheduler {
         // Releasing the unschedule callback allows the normal stop sequence to finish.
         stopFuture.get(5, TimeUnit.SECONDS);
         assertEquals(ScheduledState.STOPPED, processorNode.getPhysicalScheduledState());
+    }
+
+    @Test
+    @Timeout(30)
+    public void testRepeatedStartWhileRunningCompletesFuture() throws Exception {
+        final HoldingOnScheduledProcessor processor = new HoldingOnScheduledProcessor();
+        final ProcessorNode processorNode = createValidatedProcessorNode(processor);
+
+        final CompletableFuture<Void> firstStart = scheduler.startProcessor(processorNode, true);
+        assertTrue(processor.started.await(5, TimeUnit.SECONDS));
+        assertEquals(ScheduledState.STARTING, processorNode.getPhysicalScheduledState());
+        assertFalse(firstStart.isDone());
+
+        // A second start joins the attempt that is still in @OnScheduled and stays incomplete until that attempt is running.
+        final CompletableFuture<Void> secondStart = scheduler.startProcessor(processorNode, true);
+        assertFalse(secondStart.isDone());
+
+        processor.release.countDown();
+        firstStart.get(5, TimeUnit.SECONDS);
+        secondStart.get(5, TimeUnit.SECONDS);
+        assertEquals(ScheduledState.RUNNING, processorNode.getPhysicalScheduledState());
+
+        // A start request for a Processor that is already running is already complete.
+        assertTrue(scheduler.startProcessor(processorNode, true).isDone());
+        scheduler.startProcessor(processorNode, false).get(5, TimeUnit.SECONDS);
+        assertEquals(ScheduledState.RUNNING, processorNode.getPhysicalScheduledState());
+    }
+
+    @Test
+    @Timeout(30)
+    public void testStartWhileStoppingCompletesFuture() throws Exception {
+        final CountDownLatch unschedulingStarted = new CountDownLatch(1);
+        final Semaphore unschedulingRelease = new Semaphore(0);
+        final SchedulingAgent schedulingAgent = mock(SchedulingAgent.class);
+        doAnswer(invocation -> {
+            final LifecycleState lifecycleState = invocation.getArgument(1);
+            lifecycleState.setScheduled(true);
+            return null;
+        }).when(schedulingAgent).schedule(any(Connectable.class), any(LifecycleState.class));
+        doAnswer(invocation -> scheduleAgent(false, invocation.getArgument(1), unschedulingStarted, unschedulingRelease)).when(schedulingAgent)
+            .unschedule(any(Connectable.class), any(LifecycleState.class));
+        scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, schedulingAgent);
+
+        final ProcessorNode processorNode = createValidatedProcessorNode();
+        scheduler.startProcessor(processorNode, true).get(5, TimeUnit.SECONDS);
+
+        // The test Process Group does not restart a Processor. Point this Processor at a group that does, so the restart after stop is real.
+        final ProcessGroup restartingGroup = mock(ProcessGroup.class);
+        when(restartingGroup.resolveExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+        when(restartingGroup.startProcessor(any(ProcessorNode.class), anyBoolean())).thenAnswer(invocation ->
+            scheduler.startProcessor(invocation.getArgument(0), invocation.getArgument(1)));
+        final Field processGroupField = StandardProcessorNode.class.getDeclaredField("processGroup");
+        processGroupField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        final AtomicReference<ProcessGroup> processGroupRef = (AtomicReference<ProcessGroup>) processGroupField.get(processorNode);
+        processGroupRef.set(restartingGroup);
+
+        // Hold the stop task inside SchedulingAgent.unschedule() so that the Processor remains in the STOPPING state.
+        final CompletableFuture<Void> stopFuture = scheduler.stopProcessor(processorNode, ProcessorStopLifecycleMethods.TRIGGER_ALL);
+
+        try {
+            assertTrue(unschedulingStarted.await(5, TimeUnit.SECONDS));
+            assertEquals(ScheduledState.STOPPING, processorNode.getPhysicalScheduledState());
+
+            // A start that will restart the Processor stays incomplete until the stop finishes and the restart is running.
+            final CompletableFuture<Void> startFuture = scheduler.startProcessor(processorNode, false);
+            assertFalse(startFuture.isDone());
+
+            // A start that does not tolerate stopping is rejected.
+            final ExecutionException rejected = assertThrows(ExecutionException.class, () -> scheduler.startProcessor(processorNode, true).get(5, TimeUnit.SECONDS));
+            assertInstanceOf(IllegalStateException.class, rejected.getCause());
+
+            unschedulingRelease.release();
+            stopFuture.get(5, TimeUnit.SECONDS);
+            startFuture.get(5, TimeUnit.SECONDS);
+            assertEquals(ScheduledState.RUNNING, processorNode.getPhysicalScheduledState());
+        } finally {
+            unschedulingRelease.release();
+        }
+    }
+
+    @Test
+    @Timeout(30)
+    public void testStartWhileStartingThenStoppedFailsFuture() throws Exception {
+        final HoldingOnScheduledProcessor processor = new HoldingOnScheduledProcessor();
+        final ProcessorNode processorNode = createValidatedProcessorNode(processor);
+
+        scheduler.startProcessor(processorNode, true);
+        assertTrue(processor.started.await(5, TimeUnit.SECONDS));
+        assertEquals(ScheduledState.STARTING, processorNode.getPhysicalScheduledState());
+
+        final CompletableFuture<Void> stopFuture = scheduler.stopProcessor(processorNode, ProcessorStopLifecycleMethods.TRIGGER_ALL);
+        assertEquals(ScheduledState.STOPPING, processorNode.getPhysicalScheduledState());
+
+        final CompletableFuture<Void> startFuture = scheduler.startProcessor(processorNode, false);
+        assertFalse(startFuture.isDone());
+
+        processor.release.countDown();
+        stopFuture.get(5, TimeUnit.SECONDS);
+
+        assertThrows(CancellationException.class, () -> startFuture.get(5, TimeUnit.SECONDS));
+        assertEquals(ScheduledState.STOPPED, processorNode.getPhysicalScheduledState());
+    }
+
+    @Test
+    @Timeout(30)
+    public void testStartStatelessGroupWhileRunningCompletesFuture() throws Exception {
+        final ProcessGroup statelessProcessGroup = mock(ProcessGroup.class);
+        when(statelessProcessGroup.findAllControllerServices()).thenReturn(Collections.emptySet());
+        final StatelessGroupNode groupNode = mock(StatelessGroupNode.class);
+        when(groupNode.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        when(groupNode.getDesiredState()).thenReturn(ScheduledState.RUNNING);
+        when(groupNode.getProcessGroup()).thenReturn(statelessProcessGroup);
+        when(groupNode.start(any(ScheduledExecutorService.class), any(SchedulingAgentCallback.class), any(LifecycleState.class)))
+            .thenReturn(CompletableFuture.completedFuture(null))
+            .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("Cannot start group because its current state is STOPPING")));
+
+        // The scheduler completes when the Future returned by the group completes.
+        scheduler.startStatelessGroup(groupNode).get(5, TimeUnit.SECONDS);
+
+        // A failed group start is propagated instead of being reported as a success.
+        final ExecutionException failure = assertThrows(ExecutionException.class, () -> scheduler.startStatelessGroup(groupNode).get(5, TimeUnit.SECONDS));
+        assertInstanceOf(IllegalStateException.class, failure.getCause());
     }
 
     @Test
@@ -976,6 +1096,21 @@ public class TestStandardProcessScheduler {
         return new TerminationTestHarness(localScheduler, lifecycleStateManager, componentLifeCyclePool);
     }
 
+    private ProcessorNode createValidatedProcessorNode() {
+        return createValidatedProcessorNode(new NoOpProcessor());
+    }
+
+    private ProcessorNode createValidatedProcessorNode(final Processor processor) {
+        final String identifier = UUID.randomUUID().toString();
+        processor.initialize(new StandardProcessorInitializationContext(identifier, null, null, null, KerberosConfig.NOT_CONFIGURED));
+        final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), null);
+        final ProcessorNode processorNode = new StandardProcessorNode(loggableComponent, identifier, new StandardValidationContextFactory(serviceProvider), scheduler,
+            serviceProvider, mock(ReloadComponent.class), mock(VerifiableComponentFactory.class), extensionManager, new SynchronousValidationTrigger());
+        rootGroup.addProcessor(processorNode);
+        processorNode.performValidation();
+        return processorNode;
+    }
+
     private ProcessorNode createSimpleProcessorNode(final TerminationTestHarness harness) {
         final String uuid = UUID.randomUUID().toString();
         final Processor processor = new NoOpProcessor();
@@ -999,6 +1134,27 @@ public class TestStandardProcessScheduler {
     }
 
     public static class NoOpProcessor extends AbstractProcessor {
+        @Override
+        public void onTrigger(final ProcessContext context, final ProcessSession session) {
+        }
+    }
+
+    public static class HoldingOnScheduledProcessor extends AbstractProcessor {
+        final CountDownLatch started = new CountDownLatch(1);
+        final CountDownLatch release = new CountDownLatch(1);
+
+        @OnScheduled
+        public void onScheduled(final ProcessContext context) {
+            started.countDown();
+            while (release.getCount() > 0) {
+                try {
+                    release.await();
+                } catch (final InterruptedException ignored) {
+                    // A stop interrupts this thread. Keep holding until the test releases the latch.
+                }
+            }
+        }
+
         @Override
         public void onTrigger(final ProcessContext context, final ProcessSession session) {
         }

@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -233,13 +234,14 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * @param schedulingAgentCallback
      *            the callback provided by the {@link ProcessScheduler} to
      *            execute upon successful start of the Processor
-     * @param failIfStopping If <code>false</code>, and the Processor is in the 'STOPPING' state,
-     *            then the Processor will automatically restart itself as soon as its last thread finishes. If this
-     *            value is <code>true</code> or if the Processor is in any state other than 'STOPPING' or 'RUNNING', then this method
-     *            will throw an {@link IllegalStateException}.
+     * @param failIfStopping If <code>false</code>, and the Processor is in the STOPPING state, the Processor restarts once its last thread finishes
+     *            and the returned Future completes when that restart is running. The Future completes exceptionally with a {@link CancellationException}
+     *            if the stop does not restart the Processor, for example because it was still starting when it was stopped. If <code>true</code> while the Processor is STOPPING, or the Processor
+     *            is disabled or otherwise cannot be started, the returned Future completes exceptionally with an {@link IllegalStateException}.
      * @param triggerLifecycleMethods Whether or not the lifecycle methods (@OnScheduled, @OnUnscheduled, @OnStopped, etc.) should be called.
+     * @return a Future that completes when the Processor is running, or completes exceptionally when the start is rejected or abandoned
      */
-    public abstract void start(ScheduledExecutorService scheduler, long administrativeYieldMillis, long timeoutMillis, Supplier<ProcessContext> processContextFactory,
+    public abstract CompletableFuture<Void> start(ScheduledExecutorService scheduler, long administrativeYieldMillis, long timeoutMillis, Supplier<ProcessContext> processContextFactory,
                                SchedulingAgentCallback schedulingAgentCallback, boolean failIfStopping, boolean triggerLifecycleMethods);
 
     /**
@@ -262,8 +264,9 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * @param schedulingAgentCallback
      *            the callback provided by the {@link ProcessScheduler} to
      *            execute upon successful start of the Processor
+     * @return a Future that completes when the Processor has been triggered to run once, or completes exceptionally when it will not
      */
-    public abstract void runOnce(ScheduledExecutorService scheduler, long administrativeYieldMillis, long timeoutMillis, Supplier<ProcessContext> processContextFactory,
+    public abstract CompletableFuture<Void> runOnce(ScheduledExecutorService scheduler, long administrativeYieldMillis, long timeoutMillis, Supplier<ProcessContext> processContextFactory,
                                  SchedulingAgentCallback schedulingAgentCallback);
 
     /**
