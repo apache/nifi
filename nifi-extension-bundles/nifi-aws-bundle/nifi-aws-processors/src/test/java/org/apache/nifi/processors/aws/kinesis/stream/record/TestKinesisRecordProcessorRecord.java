@@ -151,7 +151,7 @@ public class TestKinesisRecordProcessorRecord {
 
     private static Stream<Arguments.ArgumentSet> testProcessRecordsArgs() {
         final List<Pair<String, Boolean>> endpointOverridden = List.of(
-                Pair.of("Overriden Endpoint", true),
+                Pair.of("Overridden Endpoint", true),
                 Pair.of("Default Endpoint", false)
         );
         final List<Pair<String, Boolean>> usingWrapper = List.of(
