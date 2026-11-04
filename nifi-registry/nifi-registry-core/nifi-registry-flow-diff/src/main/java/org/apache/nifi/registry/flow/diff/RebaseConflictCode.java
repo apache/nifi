@@ -68,6 +68,11 @@ public enum RebaseConflictCode {
     SAME_SCHEDULING,
 
     /**
+     * Both the local and upstream flows modified the same setting of the same connection to different values.
+     */
+    SAME_CONNECTION_SETTING,
+
+    /**
      * The component targeted by the local change does not exist in the target version.
      */
     COMPONENT_NOT_FOUND,

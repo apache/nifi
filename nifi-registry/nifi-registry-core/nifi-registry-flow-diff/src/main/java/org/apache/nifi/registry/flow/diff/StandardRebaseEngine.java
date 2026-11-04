@@ -55,6 +55,10 @@ public class StandardRebaseEngine implements RebaseEngine {
         registerHandler(new ScheduledStateChangedRebaseHandler());
         registerHandler(new SchedulingChangedRebaseHandler(DifferenceType.SCHEDULING_STRATEGY_CHANGED));
         registerHandler(new SchedulingChangedRebaseHandler(DifferenceType.RUN_SCHEDULE_CHANGED));
+        registerHandler(new ConnectionSettingsChangedRebaseHandler(DifferenceType.BACKPRESSURE_OBJECT_THRESHOLD_CHANGED));
+        registerHandler(new ConnectionSettingsChangedRebaseHandler(DifferenceType.BACKPRESSURE_DATA_SIZE_THRESHOLD_CHANGED));
+        registerHandler(new ConnectionSettingsChangedRebaseHandler(DifferenceType.FLOWFILE_EXPIRATION_CHANGED));
+        registerHandler(new ConnectionSettingsChangedRebaseHandler(DifferenceType.PRIORITIZERS_CHANGED));
     }
 
     public StandardRebaseEngine(final Map<DifferenceType, RebaseHandler> handlerRegistry) {

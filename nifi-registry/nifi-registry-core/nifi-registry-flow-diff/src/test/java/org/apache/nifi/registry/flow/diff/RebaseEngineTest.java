@@ -696,6 +696,35 @@ class RebaseEngineTest {
     }
 
     @Test
+    void testBackPressureObjectThresholdChangeCompatibility() {
+        final VersionedConnection originalConn = createConnection("conn-a");
+        originalConn.setBackPressureObjectThreshold(10000L);
+
+        final VersionedConnection localConn = createConnection("conn-a");
+        localConn.setBackPressureObjectThreshold(500L);
+
+        final Set<FlowDifference> localDifferences = new HashSet<>();
+        localDifferences.add(new StandardFlowDifference(DifferenceType.BACKPRESSURE_OBJECT_THRESHOLD_CHANGED, originalConn, localConn,
+                10000L, 500L, "Back pressure object threshold changed"));
+
+        final VersionedConnection targetConn = createConnection("conn-a");
+        targetConn.setBackPressureObjectThreshold(10000L);
+
+        final VersionedProcessGroup targetSnapshot = new VersionedProcessGroup();
+        targetSnapshot.setIdentifier("root");
+        targetSnapshot.getConnections().add(targetConn);
+
+        final RebaseAnalysis analysis = engine.analyze(localDifferences, Collections.emptySet(), targetSnapshot);
+
+        assertTrue(analysis.isRebaseAllowed());
+        assertEquals(RebaseClassification.COMPATIBLE, analysis.getClassifiedLocalChanges().get(0).getClassification());
+        assertNotNull(analysis.getMergedSnapshot());
+
+        final VersionedConnection mergedConn = analysis.getMergedSnapshot().getConnections().iterator().next();
+        assertEquals(500L, mergedConn.getBackPressureObjectThreshold());
+    }
+
+    @Test
     void testCommentsChangeCompatibility() {
         final VersionedProcessor processor = createProcessor("proc-a", "ProcessorA");
         processor.setComments("old comments");
