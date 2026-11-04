@@ -30,6 +30,8 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.StateMapDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -39,6 +41,8 @@ import java.util.Map;
 
 @Repository
 public class StandardComponentStateDAO implements ComponentStateDAO {
+
+    private static final Logger logger = LoggerFactory.getLogger(StandardComponentStateDAO.class);
 
     private StateManagerProvider stateManagerProvider;
 
@@ -108,6 +112,9 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
 
                 if (hasExactlyOneKeyRemoved(currentClusterState, newClusterState)) {
                     manager.setState(newClusterState, Scope.CLUSTER);
+                } else if (stateManagerProvider.isClusterProviderEnabled() && currentClusterState.equals(newClusterState)) {
+                    // Cluster state is shared across nodes, so the replicated request may have already been applied by another node
+                    logger.debug("Cluster state for component {} already matches the requested state", componentId);
                 } else {
                     throw new IllegalStateException("Unable to remove a state key for component %s. Exactly one key removal is supported.".formatted(componentId));
                 }
