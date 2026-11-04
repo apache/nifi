@@ -26,11 +26,26 @@ import { selectControllerService, selectControllerServiceSetEnableRequest } from
 import { OkDialog } from '../../ui/common/ok-dialog/ok-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 import { ControllerServiceStateService } from '../../service/controller-service-state.service';
-import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity } from '../shared';
+import { ControllerServiceEntity } from '../shared';
 import { SetEnableRequest, SetEnableStep } from './index';
-import { isDefinedAndNotNull, MEDIUM_DIALOG } from '@nifi/shared';
+import {
+    ControllerServiceReferencingComponentDTO,
+    ControllerServiceReferencingComponentEntity,
+    isDefinedAndNotNull,
+    MEDIUM_DIALOG
+} from '@nifi/shared';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../service/error-helper.service';
+
+type ReferencingControllerServiceEntity = ControllerServiceReferencingComponentEntity & {
+    component: ControllerServiceReferencingComponentDTO;
+};
+
+function isReferencingControllerService(
+    referencingComponent: ControllerServiceReferencingComponentEntity
+): referencingComponent is ReferencingControllerServiceEntity {
+    return referencingComponent.component?.referenceType === 'ControllerService';
+}
 
 @Injectable()
 export class ControllerServiceStateEffects {
@@ -332,14 +347,18 @@ export class ControllerServiceStateEffects {
         { dispatch: false }
     );
 
-    hasUnauthorizedReferences(referencingComponents: ControllerServiceReferencingComponentEntity[]): boolean {
+    hasUnauthorizedReferences(
+        referencingComponents: ControllerServiceReferencingComponentEntity[] | undefined
+    ): boolean {
+        const components = referencingComponents ?? [];
+
         // if there are no referencing components there is nothing unauthorized
-        if (referencingComponents.length === 0) {
+        if (components.length === 0) {
             return false;
         }
 
         // identify any unauthorized referencing components
-        const unauthorized: boolean = referencingComponents.some((referencingComponentEntity) => {
+        const unauthorized: boolean = components.some((referencingComponentEntity) => {
             return !referencingComponentEntity.permissions.canRead || !referencingComponentEntity.permissions.canWrite;
         });
 
@@ -349,19 +368,17 @@ export class ControllerServiceStateEffects {
         }
 
         // consider the components that are referencing the referencingServices
-        const referencingServices = referencingComponents.filter((referencingComponent) => {
-            return referencingComponent.component.referenceType === 'ControllerService';
-        });
+        const referencingServices = components.filter(isReferencingControllerService);
 
-        if (referencingServices.length === 0) {
-            // if there are no more nested services all references are authorized
-            return false;
-        } else {
-            // if there are nested services, check if they have any referencing components are unauthorized
-            return referencingServices.some((referencingService) => {
-                return this.hasUnauthorizedReferences(referencingService.component.referencingComponents);
-            });
-        }
+        // if there are nested services, check if they have any referencing components that are unauthorized;
+        // a cycle is evaluated where the service was first encountered
+        return referencingServices.some((referencingService) => {
+            const referencingComponent = referencingService.component;
+            return (
+                !referencingComponent.referenceCycle &&
+                this.hasUnauthorizedReferences(referencingComponent.referencingComponents)
+            );
+        });
     }
 
     getNextStep(request: SetEnableRequest, controllerServiceEntity: ControllerServiceEntity): SetEnableStep {
@@ -407,45 +424,43 @@ export class ControllerServiceStateEffects {
     }
 
     isReferencingServicesActionComplete(
-        referencingComponents: ControllerServiceReferencingComponentEntity[],
+        referencingComponents: ControllerServiceReferencingComponentEntity[] | undefined,
         acceptedRunStatus: string[]
     ): boolean {
-        const referencingServices = referencingComponents.filter((referencingComponent) => {
-            return referencingComponent.component.referenceType === 'ControllerService';
-        });
+        const referencingServices = (referencingComponents ?? []).filter(isReferencingControllerService);
 
-        if (referencingServices.length === 0) {
-            return true;
-        }
-
-        return referencingServices.some((referencingService) => {
-            const isEnabled: boolean = acceptedRunStatus.includes(referencingService.component.state);
-
-            if (isEnabled) {
-                // if this service isn't enabled, there is no need to check further...
-                return this.isReferencingServicesActionComplete(
-                    referencingService.component.referencingComponents,
-                    acceptedRunStatus
-                );
+        // every referencing service, and every service beneath it, must reach an accepted state;
+        // a cycle is evaluated where the service was first encountered
+        return referencingServices.every((referencingService) => {
+            const referencingComponent = referencingService.component;
+            if (referencingComponent.state === undefined || !acceptedRunStatus.includes(referencingComponent.state)) {
+                return false;
             }
 
-            return isEnabled;
+            return (
+                referencingComponent.referenceCycle ||
+                this.isReferencingServicesActionComplete(referencingComponent.referencingComponents, acceptedRunStatus)
+            );
         });
     }
 
-    areReferencingComponentsStopped(referencingComponents: ControllerServiceReferencingComponentEntity[]): boolean {
+    areReferencingComponentsStopped(
+        referencingComponents: ControllerServiceReferencingComponentEntity[] | undefined
+    ): boolean {
+        const components = referencingComponents ?? [];
+
         // consider the schedulable components in the referencingComponents
-        const referencingScheduleableComponents = referencingComponents.filter((referencingComponent) => {
+        const referencingScheduleableComponents = components.filter((referencingComponent) => {
             return (
-                referencingComponent.component.referenceType === 'Processor' ||
-                referencingComponent.component.referenceType === 'ReportingTask'
+                referencingComponent.component?.referenceType === 'Processor' ||
+                referencingComponent.component?.referenceType === 'ReportingTask'
             );
         });
         const stillRunning: boolean = referencingScheduleableComponents.some((referencingComponentEntity) => {
             const referencingComponent = referencingComponentEntity.component;
             return (
-                referencingComponent.state === 'RUNNING' ||
-                (referencingComponent.activeThreadCount && referencingComponent.activeThreadCount > 0)
+                referencingComponent?.state === 'RUNNING' ||
+                (referencingComponent?.activeThreadCount !== undefined && referencingComponent.activeThreadCount > 0)
             );
         });
 
@@ -455,18 +470,15 @@ export class ControllerServiceStateEffects {
         }
 
         // consider the scheduleable components that are referencing the referencingServices
-        const referencingServices = referencingComponents.filter((referencingComponent) => {
-            return referencingComponent.component.referenceType === 'ControllerService';
-        });
+        const referencingServices = components.filter(isReferencingControllerService);
 
-        if (referencingServices.length === 0) {
-            // if there are no more nested services all schedulable components have stopped
-            return true;
-        } else {
-            // if there are nested services, check if they have any referencing components that are still running
-            return referencingServices.some((referencingService) => {
-                return this.areReferencingComponentsStopped(referencingService.component.referencingComponents);
-            });
-        }
+        // every nested branch must have stopped; a cycle is evaluated where the service was first encountered
+        return referencingServices.every((referencingService) => {
+            const referencingComponent = referencingService.component;
+            return (
+                referencingComponent.referenceCycle ||
+                this.areReferencingComponentsStopped(referencingComponent.referencingComponents)
+            );
+        });
     }
 }
