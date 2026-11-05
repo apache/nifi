@@ -18,19 +18,14 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import {
-    ControllerServiceEntity,
-    ControllerServiceReferencingComponent,
-    ControllerServiceReferencingComponentEntity
-} from '../state/shared';
+import { ControllerServiceReferencingComponentEntity } from '@nifi/shared';
+import { ControllerServiceEntity } from '../state/shared';
 import { Client } from './client.service';
-import { NiFiCommon } from '@nifi/shared';
 import { ClusterConnectionService } from './cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })
 export class ControllerServiceStateService {
     private httpClient = inject(HttpClient);
-    private nifiCommon = inject(NiFiCommon);
     private client = inject(Client);
     private clusterConnectionService = inject(ClusterConnectionService);
 
@@ -106,36 +101,37 @@ export class ControllerServiceStateService {
      * @param serviceOnly - true includes only services, false includes only schedulable components
      */
     private getReferencingComponentRevisions(
-        referencingComponents: ControllerServiceReferencingComponentEntity[],
+        referencingComponents: ControllerServiceReferencingComponentEntity[] | undefined,
         referencingComponentRevisions: { [key: string]: any },
         serviceOnly: boolean
     ): void {
-        if (this.nifiCommon.isEmpty(referencingComponents)) {
-            return;
-        }
-
         // include the revision of each referencing component
-        referencingComponents.forEach((referencingComponentEntity) => {
-            const referencingComponent: ControllerServiceReferencingComponent = referencingComponentEntity.component;
+        (referencingComponents ?? []).forEach((referencingComponentEntity) => {
+            const referencingComponent = referencingComponentEntity.component;
 
             if (serviceOnly) {
-                if (referencingComponent.referenceType === 'ControllerService') {
-                    referencingComponentRevisions[referencingComponent.id] =
+                if (referencingComponent?.referenceType === 'ControllerService') {
+                    referencingComponentRevisions[referencingComponentEntity.id] =
                         this.client.getRevision(referencingComponentEntity);
                 }
             } else {
                 if (
-                    referencingComponent.referenceType === 'Processor' ||
-                    referencingComponent.referenceType === 'ReportingTask'
+                    referencingComponent?.referenceType === 'Processor' ||
+                    referencingComponent?.referenceType === 'ReportingTask'
                 ) {
-                    referencingComponentRevisions[referencingComponent.id] =
+                    referencingComponentRevisions[referencingComponentEntity.id] =
                         this.client.getRevision(referencingComponentEntity);
                 }
             }
 
+            // a reference cycle is evaluated where the service was first encountered, so its children are not walked again
+            if (referencingComponent?.referenceCycle) {
+                return;
+            }
+
             // recurse
             this.getReferencingComponentRevisions(
-                referencingComponent.referencingComponents,
+                referencingComponent?.referencingComponents,
                 referencingComponentRevisions,
                 serviceOnly
             );
