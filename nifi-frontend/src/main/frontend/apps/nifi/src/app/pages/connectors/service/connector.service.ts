@@ -16,19 +16,14 @@
  */
 
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { defer, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import { ChangeConnectorVersionRequest, ConnectorsResponse, CreateConnectorRequest } from '../state';
-import { ConnectorEntity, ProcessGroupEntity, safeApiPath } from '@nifi/shared';
-import {
-    ControllerServiceEntity,
-    ParameterContextEntity,
-    ProcessGroupFlowEntity,
-    SearchResultsEntity
-} from '../../../state/shared';
+import { ConnectorEntity, ControllerServiceEntity, ProcessGroupEntity, safeApiPath } from '@nifi/shared';
+import { ParameterContextEntity, ProcessGroupFlowEntity, SearchResultsEntity } from '../../../state/shared';
 import { DropRequestEntity } from '../../../state/empty-queue';
 import type { DownloadConnectorFlowRequest } from '../state/connector-canvas/connector-canvas.actions';
 
@@ -45,7 +40,9 @@ export class ConnectorService {
     }
 
     getConnector(connectorId: string): Observable<ConnectorEntity> {
-        return this.httpClient.get<ConnectorEntity>(`${ConnectorService.API}/connectors/${connectorId}`);
+        return defer(() =>
+            this.httpClient.get<ConnectorEntity>(`${ConnectorService.API}/connectors/${safeApiPath(connectorId)}`)
+        );
     }
 
     createConnector(createConnectorRequest: CreateConnectorRequest): Observable<ConnectorEntity> {
@@ -60,82 +57,107 @@ export class ConnectorService {
     }
 
     updateConnector(connector: ConnectorEntity): Observable<ConnectorEntity> {
-        return this.httpClient.put<ConnectorEntity>(`${ConnectorService.API}/connectors/${connector.id}`, {
-            revision: this.client.getRevision(connector),
-            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-            component: connector.component,
-            id: connector.id
-        });
+        return defer(() =>
+            this.httpClient.put<ConnectorEntity>(`${ConnectorService.API}/connectors/${safeApiPath(connector.id)}`, {
+                revision: this.client.getRevision(connector),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                component: connector.component,
+                id: connector.id
+            })
+        );
     }
 
     changeConnectorVersion(request: ChangeConnectorVersionRequest): Observable<ConnectorEntity> {
-        return this.httpClient.put<ConnectorEntity>(`${ConnectorService.API}/connectors/${request.id}`, {
-            revision: this.client.getRevision({ revision: request.payload.revision }),
-            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-            component: request.payload.component,
-            id: request.id
-        });
+        return defer(() =>
+            this.httpClient.put<ConnectorEntity>(`${ConnectorService.API}/connectors/${safeApiPath(request.id)}`, {
+                revision: this.client.getRevision({ revision: request.payload.revision }),
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                component: request.payload.component,
+                id: request.id
+            })
+        );
     }
 
     deleteConnector(connector: ConnectorEntity): Observable<ConnectorEntity> {
-        const revision = this.client.getRevision(connector);
-        const params: Record<string, string | number | boolean> = {
-            ...revision,
-            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
-        };
-        return this.httpClient.delete<ConnectorEntity>(`${ConnectorService.API}/connectors/${connector.id}`, {
-            params
+        return defer(() => {
+            const revision = this.client.getRevision(connector);
+            const params: Record<string, string | number | boolean> = {
+                ...revision,
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            };
+            return this.httpClient.delete<ConnectorEntity>(
+                `${ConnectorService.API}/connectors/${safeApiPath(connector.id)}`,
+                { params }
+            );
         });
     }
 
     updateConnectorRunStatus(connector: ConnectorEntity, runStatus: string): Observable<ConnectorEntity> {
-        const revision = this.client.getRevision(connector);
-        return this.httpClient.put<ConnectorEntity>(`${ConnectorService.API}/connectors/${connector.id}/run-status`, {
-            revision,
-            state: runStatus,
-            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
-        });
-    }
-
-    discardConnectorWorkingConfiguration(connector: ConnectorEntity): Observable<ConnectorEntity> {
-        const revision = this.client.getRevision(connector);
-        const params: Record<string, string | number | boolean> = {
-            ...revision,
-            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
-        };
-        return this.httpClient.delete<ConnectorEntity>(
-            `${ConnectorService.API}/connectors/${connector.id}/working-configuration`,
-            { params }
+        return defer(() =>
+            this.httpClient.put<ConnectorEntity>(
+                `${ConnectorService.API}/connectors/${safeApiPath(connector.id)}/run-status`,
+                {
+                    revision: this.client.getRevision(connector),
+                    state: runStatus,
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+                }
+            )
         );
     }
 
-    drainConnector(connector: ConnectorEntity): Observable<ConnectorEntity> {
-        return this.httpClient.post<ConnectorEntity>(`${ConnectorService.API}/connectors/${connector.id}/drain`, {
-            revision: this.client.getRevision(connector),
-            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+    discardConnectorWorkingConfiguration(connector: ConnectorEntity): Observable<ConnectorEntity> {
+        return defer(() => {
+            const revision = this.client.getRevision(connector);
+            const params: Record<string, string | number | boolean> = {
+                ...revision,
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            };
+            return this.httpClient.delete<ConnectorEntity>(
+                `${ConnectorService.API}/connectors/${safeApiPath(connector.id)}/working-configuration`,
+                { params }
+            );
         });
     }
 
+    drainConnector(connector: ConnectorEntity): Observable<ConnectorEntity> {
+        return defer(() =>
+            this.httpClient.post<ConnectorEntity>(
+                `${ConnectorService.API}/connectors/${safeApiPath(connector.id)}/drain`,
+                {
+                    revision: this.client.getRevision(connector),
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+                }
+            )
+        );
+    }
+
     cancelConnectorDrain(connector: ConnectorEntity): Observable<ConnectorEntity> {
-        const revision = this.client.getRevision(connector);
-        const params: Record<string, string | number | boolean> = {
-            ...revision,
-            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
-        };
-        return this.httpClient.delete<ConnectorEntity>(`${ConnectorService.API}/connectors/${connector.id}/drain`, {
-            params
+        return defer(() => {
+            const revision = this.client.getRevision(connector);
+            const params: Record<string, string | number | boolean> = {
+                ...revision,
+                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+            };
+            return this.httpClient.delete<ConnectorEntity>(
+                `${ConnectorService.API}/connectors/${safeApiPath(connector.id)}/drain`,
+                { params }
+            );
         });
     }
 
     getConnectorFlow(connectorId: string, processGroupId: string): Observable<ProcessGroupFlowEntity> {
-        return this.httpClient.get<ProcessGroupFlowEntity>(
-            `${ConnectorService.API}/connectors/${connectorId}/flow/process-groups/${processGroupId}`
+        return defer(() =>
+            this.httpClient.get<ProcessGroupFlowEntity>(
+                `${ConnectorService.API}/connectors/${safeApiPath(connectorId)}/flow/process-groups/${safeApiPath(processGroupId)}`
+            )
         );
     }
 
     getProcessGroup(connectorId: string, processGroupId: string): Observable<ProcessGroupEntity> {
-        return this.httpClient.get<ProcessGroupEntity>(
-            `${ConnectorService.API}/connectors/${connectorId}/process-groups/${processGroupId}`
+        return defer(() =>
+            this.httpClient.get<ProcessGroupEntity>(
+                `${ConnectorService.API}/connectors/${safeApiPath(connectorId)}/process-groups/${safeApiPath(processGroupId)}`
+            )
         );
     }
 
@@ -148,35 +170,43 @@ export class ConnectorService {
     }
 
     getConnectorControllerServices(connectorId: string, processGroupId: string): Observable<any> {
-        return this.httpClient.get(
-            `${ConnectorService.API}/connectors/${connectorId}/flow/process-groups/${processGroupId}/controller-services`
+        return defer(() =>
+            this.httpClient.get(
+                `${ConnectorService.API}/connectors/${safeApiPath(connectorId)}/flow/process-groups/${safeApiPath(processGroupId)}/controller-services`
+            )
         );
     }
 
     getControllerService(connectorId: string, controllerServiceId: string): Observable<ControllerServiceEntity> {
-        const params: Record<string, boolean> = { uiOnly: true };
-        return this.httpClient.get<ControllerServiceEntity>(
-            `${ConnectorService.API}/connectors/${connectorId}/controller-services/${controllerServiceId}`,
-            { params }
-        );
+        return defer(() => {
+            const params: Record<string, boolean> = { uiOnly: true };
+            return this.httpClient.get<ControllerServiceEntity>(
+                `${ConnectorService.API}/connectors/${safeApiPath(connectorId)}/controller-services/${safeApiPath(controllerServiceId)}`,
+                { params }
+            );
+        });
     }
 
     getConnectorParameterContext(
         connectorId: string,
         processGroupId: string
     ): Observable<ParameterContextEntity | null> {
-        return this.httpClient
-            .get<ParameterContextEntity>(
-                `${ConnectorService.API}/connectors/${connectorId}/flow/process-groups/${processGroupId}/parameter-context`,
-                { observe: 'response' }
-            )
-            .pipe(map((response) => (response.status === 204 ? null : response.body)));
+        return defer(() =>
+            this.httpClient
+                .get<ParameterContextEntity>(
+                    `${ConnectorService.API}/connectors/${safeApiPath(connectorId)}/flow/process-groups/${safeApiPath(processGroupId)}/parameter-context`,
+                    { observe: 'response' }
+                )
+                .pipe(map((response) => (response.status === 204 ? null : response.body)))
+        );
     }
 
     searchConnector(connectorId: string, query: string): Observable<SearchResultsEntity> {
-        return this.httpClient.get<SearchResultsEntity>(
-            `${ConnectorService.API}/connectors/${connectorId}/search-results`,
-            { params: { q: query } }
+        return defer(() =>
+            this.httpClient.get<SearchResultsEntity>(
+                `${ConnectorService.API}/connectors/${safeApiPath(connectorId)}/search-results`,
+                { params: { q: query } }
+            )
         );
     }
 
@@ -185,21 +215,27 @@ export class ConnectorService {
     // ========================================================================================
 
     createPurgeRequest(connectorId: string): Observable<DropRequestEntity> {
-        return this.httpClient.post<DropRequestEntity>(
-            `${ConnectorService.API}/connectors/${connectorId}/purge-requests`,
-            {}
+        return defer(() =>
+            this.httpClient.post<DropRequestEntity>(
+                `${ConnectorService.API}/connectors/${safeApiPath(connectorId)}/purge-requests`,
+                {}
+            )
         );
     }
 
     getPurgeRequest(connectorId: string, purgeRequestId: string): Observable<DropRequestEntity> {
-        return this.httpClient.get<DropRequestEntity>(
-            `${ConnectorService.API}/connectors/${connectorId}/purge-requests/${purgeRequestId}`
+        return defer(() =>
+            this.httpClient.get<DropRequestEntity>(
+                `${ConnectorService.API}/connectors/${safeApiPath(connectorId)}/purge-requests/${safeApiPath(purgeRequestId)}`
+            )
         );
     }
 
     deletePurgeRequest(connectorId: string, purgeRequestId: string): Observable<DropRequestEntity> {
-        return this.httpClient.delete<DropRequestEntity>(
-            `${ConnectorService.API}/connectors/${connectorId}/purge-requests/${purgeRequestId}`
+        return defer(() =>
+            this.httpClient.delete<DropRequestEntity>(
+                `${ConnectorService.API}/connectors/${safeApiPath(connectorId)}/purge-requests/${safeApiPath(purgeRequestId)}`
+            )
         );
     }
 }

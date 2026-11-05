@@ -60,10 +60,7 @@
                             <div>Supports Controller Service</div>
                             <div class="tertiary-color font-medium">
                                 <ul>
-                                    @for (
-                                        serviceApi of request.controllerService.component.controllerServiceApis;
-                                        track serviceApi
-                                    ) {
+                                    @for (serviceApi of component.controllerServiceApis; track serviceApi) {
                                         <li>
                                             <controller-service-api
                                                 [type]="serviceApi.type"
@@ -106,7 +103,7 @@
                             <div class="absolute inset-0 overflow-y-auto p-1">
                                 <controller-service-references
                                     [disabledLinks]="(saving$ | async)!"
-                                    [serviceReferences]="request.controllerService.component.referencingComponents"
+                                    [serviceReferences]="component.referencingComponents ?? []"
                                     [goToReferencingComponent]="
                                         goToReferencingComponent
                                     "></controller-service-references>
@@ -131,7 +128,7 @@
                         [propertyHistory]="request.history"
                         [supportsParameters]="supportsParameters"
                         [supportsSensitiveDynamicProperties]="
-                            request.controllerService.component.supportsSensitiveDynamicProperties
+                            component.supportsSensitiveDynamicProperties
                         "></property-table>
                     <property-verification
                         class="w-1/3"

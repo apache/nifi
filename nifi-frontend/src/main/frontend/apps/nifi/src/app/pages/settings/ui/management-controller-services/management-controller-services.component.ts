@@ -39,7 +39,7 @@ import {
     resetManagementControllerServicesState,
     selectControllerService
 } from '../../state/management-controller-services/management-controller-services.actions';
-import { ControllerServiceEntity } from '../../../../state/shared';
+import { ControllerServiceEntity } from '@nifi/shared';
 import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -123,6 +123,9 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
     }
 
     viewControllerServiceDocumentation(entity: ControllerServiceEntity): void {
+        if (!entity.component) {
+            return;
+        }
         this.store.dispatch(
             navigateToComponentDocumentation({
                 request: {
@@ -190,6 +193,9 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
     }
 
     viewStateControllerService(entity: ControllerServiceEntity): void {
+        if (!entity.component) {
+            return;
+        }
         this.store.dispatch(
             getComponentStateAndOpenDialog({
                 request: {
@@ -203,6 +209,9 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
     }
 
     changeControllerServiceVersion(entity: ControllerServiceEntity): void {
+        if (!entity.component) {
+            return;
+        }
         this.store.dispatch(
             openChangeMgtControllerServiceVersionDialog({
                 request: {

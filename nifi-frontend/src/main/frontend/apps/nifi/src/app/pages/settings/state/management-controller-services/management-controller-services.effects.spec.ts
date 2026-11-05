@@ -32,7 +32,7 @@ import { Client } from '../../../../service/client.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, ControllerServiceEntity } from '@nifi/shared';
 import { managementControllerServicesFeatureKey } from './index';
 import { initialState } from './management-controller-services.reducer';
 import { settingsFeatureKey } from '../index';
@@ -313,6 +313,29 @@ describe('ManagementControllerServicesEffects', () => {
                     })
                 );
             });
+        });
+    });
+
+    describe('openConfigureControllerServiceDialog$', () => {
+        it('does not open the configure dialog when the Controller Service component is not readable', () => {
+            const dialog = TestBed.inject(MatDialog);
+            const propertyTableHelperService = TestBed.inject(PropertyTableHelperService);
+
+            effects.openConfigureControllerServiceDialog$.subscribe();
+            actions$.next(
+                ManagementControllerServicesActions.openConfigureControllerServiceDialog({
+                    request: {
+                        id: 'unreadable-service',
+                        controllerService: {
+                            id: 'unreadable-service',
+                            permissions: { canRead: false, canWrite: false }
+                        } as ControllerServiceEntity
+                    }
+                })
+            );
+
+            expect(propertyTableHelperService.getComponentHistory).not.toHaveBeenCalled();
+            expect(dialog.open).not.toHaveBeenCalled();
         });
     });
 });

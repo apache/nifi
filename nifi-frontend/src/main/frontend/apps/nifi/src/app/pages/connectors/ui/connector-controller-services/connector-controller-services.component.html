@@ -58,6 +58,16 @@
                                         </div>
                                     </div>
                                 }
+                                @if (inTroubleshooting() && state.breadcrumb.permissions.canWrite) {
+                                    <button
+                                        mat-icon-button
+                                        class="primary-icon-button"
+                                        type="button"
+                                        aria-label="New Controller Service"
+                                        (click)="openNewControllerServiceDialog()">
+                                        <i class="fa fa-plus"></i>
+                                    </button>
+                                }
                             </div>
                         </div>
                     }
@@ -71,10 +81,18 @@
                                 [currentUser]="(currentUser$ | async)!"
                                 [flowConfiguration]="flowConfiguration"
                                 [canModifyParent]="canModifyParent()"
-                                [readOnly]="true"
+                                [readOnly]="!inTroubleshooting()"
+                                [hideAccessPolicies]="true"
                                 (selectControllerService)="selectControllerService($event)"
+                                (goToControllerService)="goToControllerService($event)"
                                 (viewControllerServiceDocumentation)="viewControllerServiceDocumentation($event)"
                                 (configureControllerService)="configureControllerService($event)"
+                                (enableControllerService)="enableControllerService($event)"
+                                (disableControllerService)="disableControllerService($event)"
+                                (changeControllerServiceVersion)="changeControllerServiceVersion($event)"
+                                (deleteControllerService)="deleteControllerService($event)"
+                                (clearBulletinsControllerService)="clearBulletinsControllerService($event)"
+                                (openAdvancedUi)="openAdvancedUi($event)"
                                 (viewStateControllerService)="
                                     viewStateControllerService($event)
                                 "></controller-service-table>

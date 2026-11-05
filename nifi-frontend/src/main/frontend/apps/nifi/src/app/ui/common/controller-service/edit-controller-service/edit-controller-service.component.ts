@@ -20,8 +20,6 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Client } from '../../../../service/client.service';
 import {
-    ControllerServiceEntity,
-    ControllerServiceReferencingComponent,
     ConvertToParameterResponse,
     EditControllerServiceDialogRequest,
     InlineServiceCreationRequest,
@@ -31,6 +29,7 @@ import {
     Property,
     UpdateControllerServiceRequest
 } from '../../../../state/shared';
+import { ControllerServiceReferencingComponentDTO } from '@nifi/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -42,7 +41,9 @@ import {
     NifiTooltipDirective,
     CopyDirective,
     ComponentType,
-    NifiSpinnerDirective
+    NifiSpinnerDirective,
+    ControllerServiceDTO,
+    ControllerServiceEntity
 } from '@nifi/shared';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
@@ -108,7 +109,7 @@ export class EditControllerService extends TabbedDialog {
         value: string | null
     ) => Observable<ConvertToParameterResponse>;
     @Input() goToService!: (serviceId: string) => void;
-    @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
+    @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponentDTO) => void;
     @Input() saving$!: Observable<boolean>;
     @Input() supportsParameters = true;
     @Input() propertyVerificationResults$!: Observable<ConfigVerificationResult[]>;
@@ -120,6 +121,7 @@ export class EditControllerService extends TabbedDialog {
 
     editControllerServiceForm: FormGroup;
     readonly: boolean;
+    component: ControllerServiceDTO;
 
     bulletinLevels = [
         {
@@ -147,37 +149,41 @@ export class EditControllerService extends TabbedDialog {
     constructor() {
         super();
         const request = this.request;
+        const component = request.controllerService.component;
+        if (!component) {
+            throw new Error('Controller Service component is required to open configuration');
+        }
+        this.component = component;
 
         this.readonly =
             request.readonly === true ||
             !request.controllerService.permissions.canWrite ||
             request.controllerService.status.runStatus !== 'DISABLED';
 
-        const serviceProperties: any = request.controllerService.component.properties;
-        const properties: Property[] = Object.entries(serviceProperties).map((entry: any) => {
+        const properties: Property[] = Object.entries(component.properties).map((entry) => {
             const [property, value] = entry;
             return {
                 property,
                 value,
-                descriptor: request.controllerService.component.descriptors[property]
+                descriptor: component.descriptors[property] as Property['descriptor']
             };
         });
 
         // build the form
         this.editControllerServiceForm = this.formBuilder.group({
-            name: new FormControl(request.controllerService.component.name, Validators.required),
-            bulletinLevel: new FormControl(request.controllerService.component.bulletinLevel, Validators.required),
+            name: new FormControl(component.name, Validators.required),
+            bulletinLevel: new FormControl(component.bulletinLevel, Validators.required),
             properties: new FormControl({ value: properties, disabled: this.readonly }),
-            comments: new FormControl(request.controllerService.component.comments)
+            comments: new FormControl(component.comments)
         });
     }
 
     formatType(entity: ControllerServiceEntity): string {
-        return this.nifiCommon.formatType(entity.component);
+        return entity.component ? this.nifiCommon.formatType(entity.component) : '';
     }
 
     formatBundle(entity: ControllerServiceEntity): string {
-        return this.nifiCommon.formatBundle(entity.component.bundle);
+        return entity.component ? this.nifiCommon.formatBundle(entity.component.bundle) : '';
     }
 
     submitForm(

@@ -27,8 +27,8 @@
                                 <div>Service</div>
                                 <div
                                     class="tertiary-color font-medium text-ellipsis overflow-hidden whitespace-nowrap"
-                                    [title]="controllerService.component.name">
-                                    {{ controllerService.component.name }}
+                                    [title]="controllerService.component?.name">
+                                    {{ controllerService.component?.name }}
                                 </div>
                             </div>
                             <div>
@@ -61,7 +61,7 @@
                             <div class="relative h-full border" style="min-height: 320px">
                                 <div class="absolute inset-0 overflow-y-auto p-1">
                                     <controller-service-references
-                                        [serviceReferences]="controllerService.component.referencingComponents"
+                                        [serviceReferences]="controllerService.component?.referencingComponents ?? []"
                                         [goToReferencingComponent]="
                                             goToReferencingComponent
                                         "></controller-service-references>
@@ -88,15 +88,15 @@
                                 <div>Service</div>
                                 <div
                                     class="tertiary-color font-medium text-ellipsis overflow-hidden whitespace-nowrap"
-                                    [title]="controllerService.component.name">
-                                    {{ controllerService.component.name }}
+                                    [title]="controllerService.component?.name">
+                                    {{ controllerService.component?.name }}
                                 </div>
                             </div>
                             <div class="flex flex-col">
                                 <div
                                     class="text-ellipsis overflow-hidden whitespace-nowrap"
-                                    title="Steps To Enable {{ controllerService.component.name }}">
-                                    Steps To Enable {{ controllerService.component.name }}
+                                    title="Steps To Enable {{ controllerService.component?.name }}">
+                                    Steps To Enable {{ controllerService.component?.name }}
                                 </div>
                                 <div class="flex flex-col gap-y-1.5">
                                     <div class="flex justify-between items-center">
@@ -174,7 +174,7 @@
                                             enableRequest.currentStep !== SetEnableStep.Completed &&
                                             !enableRequest.error
                                         "
-                                        [serviceReferences]="controllerService.component.referencingComponents"
+                                        [serviceReferences]="controllerService.component?.referencingComponents ?? []"
                                         [goToReferencingComponent]="
                                             goToReferencingComponent
                                         "></controller-service-references>

@@ -1182,7 +1182,9 @@ describe('ConnectorCanvasEffects', () => {
             const dispatchSpy = vi.spyOn(store, 'dispatch');
             mockConnectorService.getControllerService = vi
                 .fn()
-                .mockReturnValue(of({ id: 'svc-1', component: { parentGroupId: 'pg-cs', id: 'svc-1' } }));
+                .mockReturnValue(
+                    of({ id: 'svc-1', parentGroupId: 'pg-cs', component: { parentGroupId: 'pg-cs', id: 'svc-1' } })
+                );
             mockDialogRef.close = vi.fn();
 
             actions$(

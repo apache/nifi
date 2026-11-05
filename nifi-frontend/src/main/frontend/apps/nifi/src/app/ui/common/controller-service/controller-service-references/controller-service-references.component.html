@@ -163,12 +163,12 @@
                                     @if (service.component.referenceCycle) {
                                         <div class="unset neutral-color">Reference cycle detected</div>
                                     } @else {
-                                        @if (service.component.referencingComponents.length > 0) {
+                                        @if ((service.component.referencingComponents ?? []).length > 0) {
                                             <ng-container
                                                 *ngTemplateOutlet="
                                                     referenceListing;
                                                     context: {
-                                                        $implicit: service.component.referencingComponents,
+                                                        $implicit: service.component.referencingComponents ?? [],
                                                         nested: true
                                                     }
                                                 "></ng-container>

@@ -27,12 +27,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, of } from 'rxjs';
 import { Client } from '../../../../../service/client.service';
-import {
-    ControllerServiceReferencingComponent,
-    InlineServiceCreationRequest,
-    InlineServiceCreationResponse,
-    Property
-} from '../../../../../state/shared';
+import { InlineServiceCreationRequest, InlineServiceCreationResponse, Property } from '../../../../../state/shared';
+import { ControllerServiceReferencingComponentDTO } from '@nifi/shared';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import {
     EditReportingTaskDialogRequest,
@@ -97,7 +93,7 @@ export class EditReportingTask extends TabbedDialog {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() goToService!: (serviceId: string) => void;
-    @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
+    @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponentDTO) => void;
     @Input() saving$!: Observable<boolean>;
     @Input() propertyVerificationResults$!: Observable<ConfigVerificationResult[]>;
     @Input() propertyVerificationStatus$: Observable<'pending' | 'loading' | 'success'> = of('pending');

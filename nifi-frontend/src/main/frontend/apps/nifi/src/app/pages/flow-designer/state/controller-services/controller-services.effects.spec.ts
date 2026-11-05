@@ -645,6 +645,30 @@ describe('ControllerServicesEffects', () => {
         });
     });
 
+    describe('openConfigureControllerServiceDialog$', () => {
+        it('does not open the configure dialog when the Controller Service component is not readable', async () => {
+            const { effects } = await setup();
+            const dialog = TestBed.inject(MatDialog);
+            const propertyTableHelperService = TestBed.inject(PropertyTableHelperService);
+
+            effects.openConfigureControllerServiceDialog$.subscribe();
+            action$.next(
+                ControllerServicesActions.openConfigureControllerServiceDialog({
+                    request: {
+                        id: 'unreadable-service',
+                        controllerService: {
+                            id: 'unreadable-service',
+                            permissions: { canRead: false, canWrite: false }
+                        }
+                    } as any
+                })
+            );
+
+            expect(propertyTableHelperService.getComponentHistory).not.toHaveBeenCalled();
+            expect(dialog.open).not.toHaveBeenCalled();
+        });
+    });
+
     describe('openConfigureControllerServiceDialog$ goToParameter', () => {
         const PARAMETER_CONTEXT_ID = 'ctx-1';
         const SERVICE_ID = 'cs-1';
@@ -708,7 +732,21 @@ describe('ControllerServicesEffects', () => {
                 ControllerServicesActions.openConfigureControllerServiceDialog({
                     request: {
                         id: SERVICE_ID,
-                        controllerService: { id: SERVICE_ID, uri: `https://localhost:4200/${SERVICE_ID}` }
+                        controllerService: {
+                            id: SERVICE_ID,
+                            uri: `https://localhost:4200/${SERVICE_ID}`,
+                            component: {
+                                id: SERVICE_ID,
+                                name: 'Service',
+                                type: 'org.apache.nifi.Service',
+                                bundle: {
+                                    group: 'org.apache.nifi',
+                                    artifact: 'nifi-service-nar',
+                                    version: '1.0.0'
+                                },
+                                properties: {}
+                            }
+                        }
                     } as any
                 })
             );

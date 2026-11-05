@@ -33,8 +33,18 @@ import { connectorControllerServicesFeatureKey } from '../../state/connector-con
 import { connectorControllerServicesReducer } from '../../state/connector-controller-services/connector-controller-services.reducer';
 import { ConnectorControllerServicesEffects } from '../../state/connector-controller-services/connector-controller-services.effects';
 import { ConnectorControllerServicesComponent } from './connector-controller-services.component';
+import { AdvancedUi } from '../../../../ui/common/advanced-ui/advanced-ui.component';
+import { connectorTroubleshootingGuard } from '../connector-canvas/guard/connector-troubleshooting.guard';
+import { connectorControllerServiceAdvancedUiParamsResolver } from '../../service/resolver/connector-controller-service-advanced-ui-params.resolver';
 
 const routes: Routes = [
+    {
+        path: ':serviceId/advanced',
+        canActivate: [connectorTroubleshootingGuard],
+        data: { troubleshootingDenyRedirect: 'controller-services' },
+        component: AdvancedUi,
+        resolve: { advancedUiParams: connectorControllerServiceAdvancedUiParamsResolver }
+    },
     {
         path: '',
         component: ConnectorControllerServicesComponent,
@@ -52,6 +62,7 @@ const routes: Routes = [
     exports: [ConnectorControllerServicesComponent],
     imports: [
         CommonModule,
+        AdvancedUi,
         FormsModule,
         RouterModule.forChild(routes),
         StoreModule.forFeature(connectorControllerServicesFeatureKey, connectorControllerServicesReducer),

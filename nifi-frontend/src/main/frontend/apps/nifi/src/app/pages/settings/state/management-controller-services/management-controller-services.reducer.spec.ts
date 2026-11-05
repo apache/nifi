@@ -68,15 +68,25 @@ describe('Management Controller Services Reducer', () => {
                         ],
                         revision: { version: 1, clientId: 'test' },
                         permissions: { canRead: true, canWrite: true },
+                        operatePermissions: { canRead: true, canWrite: true },
                         component: {
                             id: 'controller-service-1',
                             name: 'Test Controller Service',
                             type: 'org.apache.nifi.TestControllerService',
                             bundle: { group: 'org.apache.nifi', artifact: 'test', version: '1.0.0' },
+                            controllerServiceApis: [],
                             state: 'ENABLED',
+                            bulletinLevel: 'WARN',
+                            persistsState: false,
+                            restricted: false,
+                            deprecated: false,
+                            extensionMissing: false,
+                            multipleVersionsAvailable: false,
+                            supportsSensitiveDynamicProperties: false,
                             properties: {},
                             descriptors: {},
-                            validationErrors: []
+                            validationErrors: [],
+                            validationStatus: 'VALID'
                         }
                     },
                     {
@@ -88,15 +98,25 @@ describe('Management Controller Services Reducer', () => {
                         ],
                         revision: { version: 1, clientId: 'test' },
                         permissions: { canRead: true, canWrite: true },
+                        operatePermissions: { canRead: true, canWrite: true },
                         component: {
                             id: 'controller-service-2',
                             name: 'Another Controller Service',
                             type: 'org.apache.nifi.AnotherControllerService',
                             bundle: { group: 'org.apache.nifi', artifact: 'test', version: '1.0.0' },
+                            controllerServiceApis: [],
                             state: 'DISABLED',
+                            bulletinLevel: 'WARN',
+                            persistsState: false,
+                            restricted: false,
+                            deprecated: false,
+                            extensionMissing: false,
+                            multipleVersionsAvailable: false,
+                            supportsSensitiveDynamicProperties: false,
                             properties: {},
                             descriptors: {},
-                            validationErrors: []
+                            validationErrors: [],
+                            validationStatus: 'VALID'
                         }
                     }
                 ]

@@ -15,14 +15,17 @@
  * limitations under the License.
  */
 
-import { ControllerServiceEntity, BreadcrumbEntity } from '../../../../state/shared';
+import { ControllerServiceEntity } from '@nifi/shared';
+import { BreadcrumbEntity } from '../../../../state/shared';
 
 /**
  * Connector Controller Services State
  *
- * Manages the controller services data viewed within a connector's flow.
- * The view is strictly read-only -- no enable/disable, configure, or delete
- * operations are supported from the connector canvas.
+ * Manages the controller services viewed within a connector's flow. The view is
+ * read-only out of TROUBLESHOOTING and editable while the connector is in
+ * TROUBLESHOOTING (create / configure / enable / disable / change-version / delete /
+ * clear-bulletins). The `saving` flag tracks an in-flight write operation so the dialogs
+ * can render their saving state via {@link selectConnectorControllerServicesSaving}.
  */
 export const connectorControllerServicesFeatureKey = 'connectorControllerServices';
 
@@ -43,6 +46,13 @@ export interface LoadConnectorControllerServicesResponse {
     breadcrumb: BreadcrumbEntity | null;
     controllerServices: ControllerServiceEntity[];
     loadedTimestamp: string;
+}
+
+/**
+ * Payload for controller-service creation success.
+ */
+export interface CreateControllerServiceSuccess {
+    controllerService: ControllerServiceEntity;
 }
 
 /**
@@ -72,6 +82,11 @@ export interface ConnectorControllerServicesState {
      * existing content remains in place with an inline spinner).
      */
     hasAttemptedLoad: boolean;
+    /**
+     * True while a write operation (create, update, delete, clear bulletins)
+     * is in flight so editable dialogs can show a spinner.
+     */
+    saving: boolean;
 }
 
 export const initialConnectorControllerServicesState: ConnectorControllerServicesState = {
@@ -82,5 +97,6 @@ export const initialConnectorControllerServicesState: ConnectorControllerService
     loadedTimestamp: '',
     status: 'pending',
     error: null,
-    hasAttemptedLoad: false
+    hasAttemptedLoad: false,
+    saving: false
 };

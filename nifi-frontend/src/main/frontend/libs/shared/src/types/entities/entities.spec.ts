@@ -27,6 +27,7 @@ import {
     ConnectionStatusSnapshotEntity
 } from './connection-entity';
 import {
+    ControllerServiceEntity,
     ControllerServiceReferencingComponentDTO,
     ControllerServiceReferencingComponentEntity
 } from './controller-service-entity';
@@ -535,6 +536,51 @@ function createLabelEntity(componentValue: LabelDTO): LabelEntity {
 }
 
 describe('canonical response entity contracts', () => {
+    it('models readable and denied-read Controller Service response envelopes', () => {
+        const readable: ControllerServiceEntity = {
+            ...entityEnvelope('service'),
+            operatePermissions: permissions,
+            parentGroupId: 'root',
+            status: { runStatus: 'DISABLED', validationStatus: 'VALID' },
+            bulletins: [],
+            component: {
+                id: 'service',
+                parentGroupId: 'root',
+                name: 'Service',
+                type: 'org.apache.nifi.Service',
+                bundle: { group: 'org.apache.nifi', artifact: 'service-nar', version: '1.0.0' },
+                controllerServiceApis: [],
+                state: 'DISABLED',
+                bulletinLevel: 'WARN',
+                persistsState: false,
+                restricted: false,
+                deprecated: false,
+                extensionMissing: false,
+                multipleVersionsAvailable: false,
+                supportsSensitiveDynamicProperties: false,
+                properties: {},
+                descriptors: {},
+                validationStatus: 'VALID'
+            }
+        };
+        const denied: ControllerServiceEntity = {
+            ...entityEnvelope('service'),
+            permissions: deniedPermissions,
+            operatePermissions: deniedPermissions,
+            parentGroupId: 'root',
+            status: { runStatus: 'DISABLED', validationStatus: 'VALID' }
+        };
+
+        expect(readable.component.name).toBe('Service');
+        expect(denied.component).toBeUndefined();
+        expectTypeOf<ControllerServiceEntity['component']>().toEqualTypeOf<
+            ControllerServiceEntity['component'] | undefined
+        >();
+        expectTypeOf<ControllerServiceEntity['bulletins']>().toEqualTypeOf<
+            ControllerServiceEntity['bulletins'] | undefined
+        >();
+    });
+
     it('represents readable forms for every canonical canvas entity kind', () => {
         const inputPort = createPortEntity(port('input', 'INPUT_PORT'), portStatus('input'));
         const outputPort = createPortEntity(port('output', 'OUTPUT_PORT'), portStatus('output'));

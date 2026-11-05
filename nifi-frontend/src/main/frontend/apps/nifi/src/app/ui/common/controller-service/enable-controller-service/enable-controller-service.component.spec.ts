@@ -301,6 +301,7 @@ describe('EnableControllerService', () => {
                                 groupId: 'asdf',
                                 sourceId: 'asdf',
                                 timestamp: '14:08:44 EST',
+                                timestampIso: new Date().toISOString(),
                                 canRead: true,
                                 bulletin: {
                                     id: 0,
@@ -308,9 +309,11 @@ describe('EnableControllerService', () => {
                                     groupId: 'asdf',
                                     sourceId: 'asdf',
                                     sourceName: 'asdf',
+                                    sourceType: 'CONTROLLER_SERVICE',
                                     level: 'ERROR',
                                     message: 'asdf',
-                                    timestamp: '14:08:44 EST'
+                                    timestamp: '14:08:44 EST',
+                                    timestampIso: new Date().toISOString()
                                 }
                             }
                         ],

@@ -16,8 +16,27 @@
  */
 
 import { Bundle, Permissions } from '../rest-api.types';
-import { ComponentDTO, EmbeddedComponentEntityBase } from './component-entity';
+import { ComponentDTO, ComponentEntityBase, EmbeddedComponentEntityBase } from './component-entity';
 import { PropertyDescriptorDTO } from './property-descriptor-dto';
+
+/**
+ * @nifi-source: nifi-framework-bundle/nifi-framework/nifi-client-dto/src/main/java/org/apache/nifi/web/api/entity/ControllerServiceEntity.java
+ * @nifi-revision: c31dc1f2d842 (2026-11-03)
+ * @vetted: 2026-11-04
+ */
+export interface ControllerServiceEntity extends ComponentEntityBase<ControllerServiceDTO> {
+    operatePermissions: Permissions;
+    parentGroupId?: string;
+    status: ControllerServiceStatusDTO;
+}
+
+/**
+ * @nifi-source: nifi-framework-bundle/nifi-framework/nifi-client-dto/src/main/java/org/apache/nifi/web/api/dto/status/ControllerServiceStatusDTO.java
+ */
+export interface ControllerServiceStatusDTO {
+    runStatus: string;
+    validationStatus: string;
+}
 
 /**
  * @nifi-source: nifi-framework-bundle/nifi-framework/nifi-client-dto/src/main/java/org/apache/nifi/web/api/dto/ControllerServiceDTO.java

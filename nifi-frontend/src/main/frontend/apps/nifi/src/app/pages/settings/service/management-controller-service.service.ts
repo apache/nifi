@@ -25,11 +25,11 @@ import {
 import { Client } from '../../../service/client.service';
 import {
     ControllerServiceCreator,
-    ControllerServiceEntity,
     CreateControllerServiceRequest,
     PropertyDescriptorRetriever
 } from '../../../state/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
+import { ControllerServiceEntity } from '@nifi/shared';
 
 @Injectable({ providedIn: 'root' })
 export class ManagementControllerServiceService implements ControllerServiceCreator, PropertyDescriptorRetriever {

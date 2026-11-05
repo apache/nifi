@@ -19,7 +19,7 @@ import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ControllerServicesActions from './controller-services.actions';
-import { catchError, combineLatest, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import { catchError, combineLatest, filter, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -29,10 +29,9 @@ import {
 } from '../../../../state/extension-types/extension-types.selectors';
 import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
 import { Client } from '../../../../service/client.service';
-import { YesNoDialog } from '@nifi/shared';
+import { ControllerServiceReferencingComponentDTO, YesNoDialog } from '@nifi/shared';
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
 import {
-    ControllerServiceReferencingComponent,
     EditControllerServiceDialogRequest,
     OpenChangeComponentVersionDialogRequest,
     PostUpdateNavigationState,
@@ -315,6 +314,7 @@ export class ControllerServicesEffects {
             this.actions$.pipe(
                 ofType(ControllerServicesActions.openConfigureControllerServiceDialog),
                 map((action) => action.request),
+                filter((request) => request.controllerService.component != null),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 switchMap(([request, processGroupId]) =>
                     from(this.propertyTableHelperService.getComponentHistory(request.id)).pipe(
@@ -478,10 +478,15 @@ export class ControllerServicesEffects {
                     };
 
                     editDialogReference.componentInstance.goToReferencingComponent = (
-                        component: ControllerServiceReferencingComponent
+                        component: ControllerServiceReferencingComponentDTO
                     ) => {
-                        const route: string[] = this.getRouteForReference(component);
-                        goTo(route, component.referenceType);
+                        if (!component.referenceType) {
+                            return;
+                        }
+                        const route = this.getRouteForReference(component);
+                        if (route) {
+                            goTo(route, component.referenceType);
+                        }
                     };
 
                     if (parameterContext != null) {
@@ -678,10 +683,12 @@ export class ControllerServicesEffects {
                     });
 
                     enableDialogReference.componentInstance.goToReferencingComponent = (
-                        component: ControllerServiceReferencingComponent
+                        component: ControllerServiceReferencingComponentDTO
                     ) => {
-                        const route: string[] = this.getRouteForReference(component);
-                        this.router.navigate(route);
+                        const route = this.getRouteForReference(component);
+                        if (route) {
+                            this.router.navigate(route);
+                        }
                     };
 
                     enableDialogReference.afterClosed().subscribe((response) => {
@@ -716,10 +723,12 @@ export class ControllerServicesEffects {
                     });
 
                     enableDialogReference.componentInstance.goToReferencingComponent = (
-                        component: ControllerServiceReferencingComponent
+                        component: ControllerServiceReferencingComponentDTO
                     ) => {
-                        const route: string[] = this.getRouteForReference(component);
-                        this.router.navigate(route);
+                        const route = this.getRouteForReference(component);
+                        if (route) {
+                            this.router.navigate(route);
+                        }
                     };
 
                     enableDialogReference.afterClosed().subscribe((response) => {
@@ -748,7 +757,7 @@ export class ControllerServicesEffects {
                         ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Controller Service',
-                            message: `Delete controller service ${request.controllerService.component.name}?`
+                            message: `Delete controller service ${request.controllerService.component?.name ?? request.controllerService.id}?`
                         }
                     });
 
@@ -875,7 +884,7 @@ export class ControllerServicesEffects {
         { dispatch: false }
     );
 
-    private getRouteForReference(reference: ControllerServiceReferencingComponent): string[] {
+    private getRouteForReference(reference: ControllerServiceReferencingComponentDTO): string[] | null {
         if (reference.referenceType == 'ControllerService') {
             if (reference.groupId == null) {
                 return ['/settings', 'management-controller-services', reference.id];
@@ -885,6 +894,9 @@ export class ControllerServicesEffects {
         } else if (reference.referenceType == 'ReportingTask') {
             return ['/settings', 'reporting-tasks', reference.id];
         } else if (reference.referenceType == 'Processor') {
+            if (!reference.groupId) {
+                return null;
+            }
             return ['/process-groups', reference.groupId, ComponentType.Processor, reference.id];
         } else if (reference.referenceType == 'FlowAnalysisRule') {
             return ['/settings', 'flow-analysis-rules', reference.id];
