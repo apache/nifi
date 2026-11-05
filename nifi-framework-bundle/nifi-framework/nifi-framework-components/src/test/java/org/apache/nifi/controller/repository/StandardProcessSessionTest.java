@@ -33,6 +33,7 @@ import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.status.LoadBalanceStatus;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.metrics.CommitTiming;
@@ -98,6 +99,10 @@ class StandardProcessSessionTest {
     private static final long COUNTER_DELTA = 5;
 
     private static final Map<String, String> METRIC_ATTRIBUTES = Map.of("service.name", "Processing", "deployment.environment", "production");
+
+    private static final Map<String, String> INITIAL_LOGGING_ATTRIBUTES = Map.of("registeredFlowIdentifierPath", "/root:1/connector:1.0.0");
+
+    private static final Map<String, String> UPDATED_LOGGING_ATTRIBUTES = Map.of("registeredFlowIdentifierPath", "/root:1/connector:2.0.0");
 
     private static final String INPUT_CONNECTION_ID = "input-connection-id";
     private static final String OUTPUT_CONNECTION_ID = "output-connection-id";
@@ -389,6 +394,31 @@ class StandardProcessSessionTest {
         session.commit();
 
         assertGaugeRecordsMatched();
+    }
+
+    @Test
+    void testCommitRecordsCurrentProcessGroupLoggingAttributes() {
+        setRepositoryContext();
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(connectable.getProcessGroup()).thenReturn(processGroup);
+        when(processGroup.getLoggingAttributes()).thenReturn(INITIAL_LOGGING_ATTRIBUTES);
+
+        session.recordGauge(GAUGE_NAME, GAUGE_VALUE, CommitTiming.SESSION_COMMITTED);
+        session.commit();
+
+        when(processGroup.getLoggingAttributes()).thenReturn(UPDATED_LOGGING_ATTRIBUTES);
+        session.recordGauge(GAUGE_NAME, GAUGE_VALUE, CommitTiming.SESSION_COMMITTED);
+        session.commit();
+
+        verify(repositoryContext, times(2)).recordGauge(gaugeRecordCaptor.capture());
+        final List<GaugeRecord> gaugeRecords = gaugeRecordCaptor.getAllValues();
+        assertEquals(INITIAL_LOGGING_ATTRIBUTES, gaugeRecords.getFirst().componentMetricContext().attributes());
+        assertEquals(UPDATED_LOGGING_ATTRIBUTES, gaugeRecords.getLast().componentMetricContext().attributes());
+
+        verify(repositoryContext, times(2)).recordProcessSessionEvent(processSessionEventCaptor.capture());
+        final List<ProcessSessionEvent> processSessionEvents = processSessionEventCaptor.getAllValues();
+        assertEquals(INITIAL_LOGGING_ATTRIBUTES, processSessionEvents.getFirst().getComponentMetricContext().attributes());
+        assertEquals(UPDATED_LOGGING_ATTRIBUTES, processSessionEvents.getLast().getComponentMetricContext().attributes());
     }
 
     @Test

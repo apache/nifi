@@ -22,6 +22,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.StandardProcessSession;
@@ -38,6 +39,7 @@ import org.apache.nifi.stateless.flow.FailurePortEncounteredException;
 import org.apache.nifi.stateless.flow.StandardStatelessFlow;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
+import org.apache.nifi.util.Connectables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -347,7 +349,8 @@ public class StatelessProcessSession extends StandardProcessSession {
 
     private void registerProcessEvent(final Connectable connectable, final long processingNanos) {
         try {
-            final ProcessSessionEvent procEvent = ProcessSessionEventBuilder.forComponent(getRepositoryContext().getComponentMetricContext())
+            final ComponentMetricContext componentMetricContext = Connectables.createComponentMetricContext(connectable);
+            final ProcessSessionEvent procEvent = ProcessSessionEventBuilder.forComponent(componentMetricContext)
                     .invocations(1)
                     .processingNanoseconds(processingNanos)
                     .build();

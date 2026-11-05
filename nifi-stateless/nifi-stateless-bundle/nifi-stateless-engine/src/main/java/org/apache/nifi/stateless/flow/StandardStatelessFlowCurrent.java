@@ -40,12 +40,12 @@ import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.session.AsynchronousCommitTracker;
 import org.apache.nifi.stateless.session.StatelessProcessSessionFactory;
+import org.apache.nifi.util.Connectables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -313,12 +313,8 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
 
     private void registerProcessEvent(final Connectable connectable, final TrackedStats trackedStats) {
         try {
-            final Map<String, String> groupAttributes = connectable.getProcessGroup() == null
-                    ? Map.of()
-                    : connectable.getProcessGroup().getLoggingAttributes();
-            final ComponentMetricContext metricContext = new ComponentMetricContext(
-                    connectable.getIdentifier(), connectable.getName(), connectable.getComponentType(), groupAttributes);
-            final ProcessSessionEvent procEvent = trackedStats.end(metricContext)
+            final ComponentMetricContext componentMetricContext = Connectables.createComponentMetricContext(connectable);
+            final ProcessSessionEvent procEvent = trackedStats.end(componentMetricContext)
                     .invocations(1)
                     .build();
             repositoryContextFactory.getFlowFileEventRepository().updateRepository(procEvent);
