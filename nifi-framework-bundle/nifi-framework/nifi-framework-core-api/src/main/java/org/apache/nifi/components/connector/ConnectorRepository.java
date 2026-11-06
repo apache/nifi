@@ -125,10 +125,15 @@ public interface ConnectorRepository {
 
     /**
      * Starts the given Connector, managing any appropriate lifecycle events.
+     * When a flow evolution is pending, the context persists the flow after phase one is applied, after the connector starts, and when the evolution fails.
+     * The context is required even when no evolution is pending.
+     *
      * @param connector the Connector to start
+     * @param persistenceContext persists the flow during evolution
      * @return a CompletableFuture that will be completed when the Connector has started
+     * @throws NullPointerException if the persistence context is null
      */
-    Future<Void> startConnector(ConnectorNode connector);
+    Future<Void> startConnector(ConnectorNode connector, ConnectorUpdateContext persistenceContext);
 
     /**
      * Stops the given Connector, managing any appropriate lifecycle events.
@@ -325,5 +330,11 @@ public interface ConnectorRepository {
      *                             when the migration source was an uploaded payload rather than a local Process Group
      */
     default void notifyMigrationComplete(final String connectorId, final String sourceProcessGroupId) {
+    }
+
+    /**
+     * Shuts down repository-managed lifecycle resources.
+     */
+    default void shutdown() {
     }
 }

@@ -43,8 +43,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
-import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
-import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
@@ -66,20 +64,7 @@ public class VersionedDataflowMapper {
         this.stateLookup = stateLookup;
 
         final VersionedComponentStateLookup versionedComponentStateLookup = createStateLookup();
-
-        final FlowMappingOptions mappingOptions = new FlowMappingOptions.Builder()
-            .mapSensitiveConfiguration(true)
-            .mapPropertyDescriptors(false)
-            .stateLookup(versionedComponentStateLookup)
-            .propertyEncryptionProvider(propertyEncryptionProvider)
-            .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
-            .mapInstanceIdentifiers(true)
-            .mapControllerServiceReferencesToVersionedId(false)
-            .mapFlowRegistryClientId(true)
-            .mapAssetReferences(true)
-            .build();
-
-        flowMapper = new VersionedComponentFlowMapper(extensionManager, mappingOptions);
+        flowMapper = VersionedComponentFlowMapper.forPersistedFlow(extensionManager, propertyEncryptionProvider, versionedComponentStateLookup);
     }
 
     public VersionedDataflow createMapping() {

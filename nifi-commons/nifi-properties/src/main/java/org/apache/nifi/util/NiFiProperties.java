@@ -148,6 +148,8 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String CONNECTOR_REPOSITORY_IMPLEMENTATION = "nifi.connector.repository.implementation";
     public static final String CONNECTOR_SYNC_TIMEOUT = "nifi.connector.sync.timeout";
     public static final String DEFAULT_CONNECTOR_SYNC_TIMEOUT = "5 mins";
+    public static final String CONNECTOR_FLOW_EVOLUTION_TIMEOUT = "nifi.components.connectors.flow.evolution.timeout";
+    public static final String DEFAULT_CONNECTOR_FLOW_EVOLUTION_TIMEOUT = "30 mins";
 
     // Connector Configuration Provider properties
     public static final String CONNECTOR_CONFIGURATION_PROVIDER_IMPLEMENTATION = "nifi.connector.configuration.provider.implementation";

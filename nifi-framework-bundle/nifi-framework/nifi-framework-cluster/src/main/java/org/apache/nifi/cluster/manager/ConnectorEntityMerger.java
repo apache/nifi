@@ -18,6 +18,8 @@ package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.components.connector.FlowEvolutionStatus;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorActionDTO;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
@@ -28,11 +30,17 @@ import org.apache.nifi.web.api.entity.ConnectorEntity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class ConnectorEntityMerger {
+    public static final String LOADED_BUNDLE_MISMATCH_REASON = "Cluster nodes load different Connector versions: ";
+
     private static final String CHANGE_VERSION_ACTION = "CHANGE_VERSION";
+    private static final String START_ACTION = "START";
+
     /**
      * Merges the ConnectorEntity responses.
      *
@@ -43,13 +51,10 @@ public class ConnectorEntityMerger {
         final ConnectorDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, ConnectorDTO> dtoMap = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, ConnectorEntity> entry : entityMap.entrySet()) {
-            final ConnectorEntity nodeConnectorEntity = entry.getValue();
-            final ConnectorDTO nodeConnectorDto = nodeConnectorEntity.getComponent();
-            dtoMap.put(entry.getKey(), nodeConnectorDto);
+            dtoMap.put(entry.getKey(), entry.getValue().getComponent());
         }
 
         mergeDtos(clientDto, dtoMap);
-
         mergeStatus(clientEntity, entityMap);
     }
 
@@ -113,6 +118,9 @@ public class ConnectorEntityMerger {
         }
 
         mergeChangeVersion(clientDto, dtoMap);
+        mergeLoadedBundles(clientDto, dtoMap);
+        // Status is merged before state. State merge rewrites the client DTO, and the barrier has to see each node's own state.
+        mergeFlowEvolutionStatus(clientDto, dtoMap);
         mergeState(clientDto, dtoMap);
 
         // Merge configuration steps to handle dynamic property descriptors
@@ -138,6 +146,34 @@ public class ConnectorEntityMerger {
             final ConnectorActionDTO clientAction = findOrCreateChangeVersionAction(clientDto);
             clientAction.setAllowed(Boolean.FALSE);
             clientAction.setReasonNotAllowed(nodeAction == null ? null : nodeAction.getReasonNotAllowed());
+        }
+    }
+
+    /**
+     * Nodes that load different Connector versions would evolve to different flows, so START is not allowed until every node
+     * loads the same bundle.
+     */
+    private static void mergeLoadedBundles(final ConnectorDTO clientDto, final Map<NodeIdentifier, ConnectorDTO> dtoMap) {
+        final Map<String, String> loadedBundles = new TreeMap<>();
+        for (final Map.Entry<NodeIdentifier, ConnectorDTO> entry : dtoMap.entrySet()) {
+            final ConnectorDTO nodeConnector = entry.getValue();
+            if (nodeConnector == null || nodeConnector.getBundle() == null) {
+                continue;
+            }
+
+            final BundleDTO bundle = nodeConnector.getBundle();
+            loadedBundles.put(entry.getKey().getApiAddress() + ":" + entry.getKey().getApiPort(),
+                    bundle.getGroup() + ":" + bundle.getArtifact() + ":" + bundle.getVersion());
+        }
+
+        if (new HashSet<>(loadedBundles.values()).size() <= 1) {
+            return;
+        }
+
+        final ConnectorActionDTO startAction = findAction(clientDto, START_ACTION);
+        if (startAction != null) {
+            startAction.setAllowed(Boolean.FALSE);
+            startAction.setReasonNotAllowed(LOADED_BUNDLE_MISMATCH_REASON + loadedBundles);
         }
     }
 
@@ -200,6 +236,45 @@ public class ConnectorEntityMerger {
         }
 
         clientDto.setState(mergedState);
+    }
+
+    private static void mergeFlowEvolutionStatus(final ConnectorDTO clientDto, final Map<NodeIdentifier, ConnectorDTO> dtoMap) {
+        boolean anyPhaseTwo = false;
+        boolean anyEarlierPhase = false;
+        for (final ConnectorDTO nodeConnector : dtoMap.values()) {
+            final FlowEvolutionStatus status = reportedFlowEvolutionStatus(nodeConnector);
+            if (status == FlowEvolutionStatus.PHASE_TWO_COMPLETE) {
+                anyPhaseTwo = true;
+            } else if (status == FlowEvolutionStatus.PHASE_ONE_PENDING || status == FlowEvolutionStatus.PHASE_ONE_COMPLETE) {
+                anyEarlierPhase = true;
+            }
+        }
+        // A node that has finished reports INACTIVE once it is RUNNING. While a peer is still at phase two, count the
+        // finished node as phase two. Doing that for an earlier phase would hide a node that has not started.
+        final boolean countRunningInactiveAsPhaseTwo = anyPhaseTwo && !anyEarlierPhase;
+
+        final List<FlowEvolutionStatus> statuses = new ArrayList<>(dtoMap.size());
+        for (final ConnectorDTO nodeConnector : dtoMap.values()) {
+            statuses.add(barrierFlowEvolutionStatus(nodeConnector, countRunningInactiveAsPhaseTwo));
+        }
+
+        clientDto.setFlowEvolutionStatus(FlowEvolutionStatus.merge(statuses).name());
+    }
+
+    private static FlowEvolutionStatus reportedFlowEvolutionStatus(final ConnectorDTO nodeConnector) {
+        if (nodeConnector == null || nodeConnector.getFlowEvolutionStatus() == null) {
+            return FlowEvolutionStatus.INACTIVE;
+        }
+        return FlowEvolutionStatus.valueOf(nodeConnector.getFlowEvolutionStatus());
+    }
+
+    private static FlowEvolutionStatus barrierFlowEvolutionStatus(final ConnectorDTO nodeConnector, final boolean countRunningInactiveAsPhaseTwo) {
+        final FlowEvolutionStatus status = reportedFlowEvolutionStatus(nodeConnector);
+        if (countRunningInactiveAsPhaseTwo && status == FlowEvolutionStatus.INACTIVE && nodeConnector != null
+                && ConnectorState.RUNNING.name().equals(nodeConnector.getState())) {
+            return FlowEvolutionStatus.PHASE_TWO_COMPLETE;
+        }
+        return status;
     }
 
     private static int getStatePriority(final String state) {

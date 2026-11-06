@@ -59,4 +59,13 @@ public interface ConnectorRepositoryInitializationContext {
         return Duration.ofMinutes(5);
     }
 
+    /**
+     * Returns the time allowed for each node to drain a connector during local phase one of flow evolution.
+     *
+     * @return the flow evolution drain timeout, defaults to 30 minutes
+     */
+    default Duration getConnectorFlowEvolutionTimeout() {
+        return Duration.ofMinutes(30);
+    }
+
 }

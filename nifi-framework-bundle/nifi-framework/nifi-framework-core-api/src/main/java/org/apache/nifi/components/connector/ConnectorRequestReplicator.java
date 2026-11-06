@@ -25,6 +25,8 @@ public interface ConnectorRequestReplicator {
 
     ConnectorState getState(String connectorId) throws IOException;
 
+    FlowEvolutionStatus getFlowEvolutionStatus(String connectorId) throws IOException;
+
     void setFlowManager(FlowManager flowManager);
 
 }

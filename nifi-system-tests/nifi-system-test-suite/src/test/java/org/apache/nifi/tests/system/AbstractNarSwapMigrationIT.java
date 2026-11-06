@@ -26,6 +26,8 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -40,6 +42,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public abstract class AbstractNarSwapMigrationIT extends NiFiSystemIT {
 
+    private boolean narsSwapped;
+
     @Override
     protected boolean isAllowFactoryReuse() {
         return false;
@@ -52,16 +56,29 @@ public abstract class AbstractNarSwapMigrationIT extends NiFiSystemIT {
 
     @AfterEach
     public void restoreNars() {
+        if (!narsSwapped && getNiFiInstance().isAccessible()) {
+            return;
+        }
+
         // Stop the NiFi instance, ensure that the nifi-system-test-extensions-nar and nifi-alternate-config-extensions bundles
         // are where they need to be. Then, restart the instance so that everything is in the right state for the next test that
         // will run
         getNiFiInstance().stop();
-        switchNarsBack();
+        if (narsSwapped) {
+            switchNarsBack();
+            narsSwapped = false;
+        }
         getNiFiInstance().start(true);
     }
 
     protected void switchOutNars() throws IOException {
-        final File instanceDir = getNiFiInstance().getInstanceDirectory();
+        narsSwapped = true;
+        for (final File instanceDir : instanceDirectories()) {
+            switchOutNars(instanceDir);
+        }
+    }
+
+    private void switchOutNars(final File instanceDir) throws IOException {
         final File lib = new File(instanceDir, "lib");
         final File alternateConfig = new File(lib, "alternate-config");
 
@@ -81,9 +98,17 @@ public abstract class AbstractNarSwapMigrationIT extends NiFiSystemIT {
     }
 
     protected void switchNarsBack() {
-        final File instanceDir = getNiFiInstance().getInstanceDirectory();
+        for (final File instanceDir : instanceDirectories()) {
+            switchNarsBack(instanceDir);
+        }
+    }
+
+    private void switchNarsBack(final File instanceDir) {
         final File lib = new File(instanceDir, "lib");
         final File alternateConfig = new File(lib, "alternate-config");
+        if (findFile(lib, "nifi-system-test-extensions-nar-.*") != null) {
+            return;
+        }
 
         // Move the nifi-system-test-extensions-nar back to the lib directory
         moveNars(alternateConfig, "nifi-system-test-extensions-nar-.*", lib);
@@ -95,6 +120,23 @@ public abstract class AbstractNarSwapMigrationIT extends NiFiSystemIT {
         moveNars(alternateConfig, "nifi-system-test-extensions-services-api-nar-.*", lib);
 
         moveNars(lib, "nifi-alternate-config.*", alternateConfig);
+    }
+
+    /**
+     * Standalone instances report a single directory. A cluster's aggregate instance has no directory of its own,
+     * so the NAR swap has to visit each node.
+     */
+    private List<File> instanceDirectories() {
+        final NiFiInstance instance = getNiFiInstance();
+        if (instance.getNumberOfNodes() <= 1) {
+            return List.of(instance.getInstanceDirectory());
+        }
+
+        final List<File> directories = new ArrayList<>();
+        for (int nodeIndex = 1; nodeIndex <= instance.getNumberOfNodes(); nodeIndex++) {
+            directories.add(instance.getNodeInstance(nodeIndex).getInstanceDirectory());
+        }
+        return directories;
     }
 
     private void deleteRecursively(final File file) throws IOException {
