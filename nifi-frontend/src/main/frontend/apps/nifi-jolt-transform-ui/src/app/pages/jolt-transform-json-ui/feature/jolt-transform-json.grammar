@@ -1,0 +1,72 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the 'License'); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an 'AS IS' BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Custom JSON grammar for the NiFi Jolt Specification editor.
+ *
+ * This grammar extends standard JSON syntax to support single-line
+ * comments (double slash) and multiline comments (slash-asterisk).
+ * It is intentionally separate from the standard @lezer/json grammar
+ * because comments are accepted in Jolt specifications but not in the
+ * Example Data editor.
+ *
+ * When updating @lezer/json or @lezer/generator, review the upstream JSON
+ * grammar for relevant changes and incorporate them here as appropriate.
+ * Regenerate the parser and term definitions after modifying this grammar.
+ */
+@top JsonText { value }
+
+value { True | False | Null | Number | String | Object | Array }
+
+String[isolate] { string }
+Object { "{" list<Property>? "}" }
+Array { "[" list<value>? "]" }
+
+Property { PropertyName ":" value }
+PropertyName[isolate] { string }
+
+@tokens {
+  True { "true" }
+  False { "false" }
+  Null { "null" }
+
+  Number { '-'? int frac? exp? }
+  int { '0' | $[1-9] @digit* }
+  frac { '.' @digit+ }
+  exp { $[eE] $[+\-]? @digit+ }
+
+  string { '"' char* '"' }
+  char { $[\u{20}\u{21}\u{23}-\u{5b}\u{5d}-\u{10ffff}] | "\\" esc }
+  esc { $["\\\/bfnrt] | "u" hex hex hex hex }
+  hex { $[0-9a-fA-F] }
+
+  whitespace { $[ \n\r\t] }
+
+  LineComment { "//" ![\n\r]* }
+  BlockComment { "/*" (![*] | "*" ![/])* "*/" }
+
+  "{" "}" "[" "]" "," ":"
+}
+
+@skip { whitespace | LineComment | BlockComment }
+
+list<item> { item ("," item)* }
+
+@external propSource jsonHighlighting from "./jolt-transform-json-highlight"
+
+@detectDelim
+

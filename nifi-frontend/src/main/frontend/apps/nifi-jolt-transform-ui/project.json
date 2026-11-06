@@ -10,8 +10,16 @@
         }
     },
     "targets": {
+        "build-grammar": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "lezer-generator src/app/pages/jolt-transform-json-ui/feature/jolt-transform-json.grammar --typeScript -o src/app/pages/jolt-transform-json-ui/feature/jolt-transform-json-parser.ts",
+                "cwd": "apps/nifi-jolt-transform-ui"
+            }
+        },
         "build": {
             "executor": "@nx/angular:application",
+            "dependsOn": ["build-grammar", "^build"],
             "outputs": ["{options.outputPath}"],
             "options": {
                 "outputPath": "dist/nifi-jolt-transform-ui",
