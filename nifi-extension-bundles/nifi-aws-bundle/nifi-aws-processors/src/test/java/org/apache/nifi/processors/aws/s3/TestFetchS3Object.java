@@ -20,9 +20,11 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.processors.aws.AbstractAwsProcessor;
 import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -57,9 +59,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -378,4 +382,31 @@ public class TestFetchS3Object {
 
     }
 
+    @Test
+    void testMigrationRetainsCredentialsServiceParameterReferenceWithoutValue() {
+        final String credentialsServiceName = AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE.getName();
+        final MockPropertyConfiguration configuration = new UnresolvedParameterPropertyConfiguration(Map.of(credentialsServiceName, "#{credentials-service}"));
+
+        new FetchS3Object().migrateProperties(configuration);
+
+        assertEquals(Optional.of("#{credentials-service}"), configuration.getRawPropertyValue(credentialsServiceName));
+        assertTrue(configuration.toPropertyMigrationResult().getCreatedControllerServices().isEmpty());
+    }
+
+    private static class UnresolvedParameterPropertyConfiguration extends MockPropertyConfiguration {
+
+        private UnresolvedParameterPropertyConfiguration(final Map<String, String> rawProperties) {
+            super(rawProperties);
+        }
+
+        @Override
+        public boolean isPropertySet(final String propertyName) {
+            return getPropertyValue(propertyName).isPresent();
+        }
+
+        @Override
+        public Optional<String> getPropertyValue(final String propertyName) {
+            return getRawPropertyValue(propertyName).filter(value -> !value.startsWith("#{"));
+        }
+    }
 }

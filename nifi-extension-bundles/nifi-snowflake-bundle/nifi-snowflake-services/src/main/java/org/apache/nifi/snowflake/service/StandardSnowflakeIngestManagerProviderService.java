@@ -218,7 +218,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
         config.renameProperty(SnowflakeProperties.OLD_DATABASE_PROPERTY_NAME, SnowflakeProperties.DATABASE.getName());
         config.renameProperty(SnowflakeProperties.OLD_SCHEMA_PROPERTY_NAME, SnowflakeProperties.SCHEMA.getName());
 
-        final Optional<String> webClientServiceProviderConfigured = config.getPropertyValue(WEB_CLIENT_SERVICE_PROVIDER);
+        final Optional<String> webClientServiceProviderConfigured = config.getRawPropertyValue(WEB_CLIENT_SERVICE_PROVIDER);
         if (webClientServiceProviderConfigured.isEmpty()) {
             final String webClientServiceProviderId = config.createControllerService("org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvider", Map.of());
             config.setProperty(WEB_CLIENT_SERVICE_PROVIDER, webClientServiceProviderId);
