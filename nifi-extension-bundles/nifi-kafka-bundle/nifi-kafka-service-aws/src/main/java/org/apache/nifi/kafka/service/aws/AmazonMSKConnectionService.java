@@ -357,6 +357,8 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
+        super.migrateProperties(config);
+
         // For backward compatibility: if an AWS Profile Name was configured previously,
         // set AWS Role Source to SPECIFIED_PROFILE
         if (config.isPropertySet(AWS_PROFILE_NAME)) {
