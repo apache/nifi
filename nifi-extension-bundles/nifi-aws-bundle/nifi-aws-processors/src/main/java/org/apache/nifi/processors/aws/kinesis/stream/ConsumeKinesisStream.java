@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -160,6 +161,10 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.getRegion;
 @SystemResourceConsideration(resource = SystemResource.NETWORK, description = "Kinesis Client Library will continually poll for new Records, " +
         "requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.")
 @SeeAlso(PutKinesisStream.class)
+@DeprecationNotice(
+        reason = "NIFI-16546: Depends on the AWS Kinesis Client Library requiring buffering and locking outside of framework flow control",
+        classNames = {"org.apache.nifi.processors.aws.kinesis.ConsumeKinesis"}
+)
 public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsyncClient, KinesisAsyncClientBuilder> {
 
     private static final int INITIAL_WINDOW_SIZE_BYTES = 512 * 1024; // 512 KB - suggested by KinesisClientUtil

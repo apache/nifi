@@ -63,7 +63,7 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
     @WritesAttribute(attribute = "aws.kinesis.error.code", description = "Error code for the message when posting to AWS Kinesis"),
     @WritesAttribute(attribute = "aws.kinesis.sequence.number", description = "Sequence number for the message when posting to AWS Kinesis"),
     @WritesAttribute(attribute = "aws.kinesis.shard.id", description = "Shard id of the message posted to AWS Kinesis")})
-@SeeAlso(ConsumeKinesisStream.class)
+@SeeAlso(classNames = {"org.apache.nifi.processors.aws.kinesis.ConsumeKinesis"})
 public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, KinesisClientBuilder> {
     /**
      * Kinesis put record response error message
