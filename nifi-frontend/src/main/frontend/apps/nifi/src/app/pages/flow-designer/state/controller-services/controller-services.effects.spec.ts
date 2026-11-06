@@ -49,6 +49,7 @@ import { ConfigureControllerServiceSuccess, controllerServicesFeatureKey } from 
 import { initialState } from './controller-services.reducer';
 import { ClearBulletinsRequest, ClearBulletinsResponse } from '../../../../state/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
+import { ErrorContextKey } from '../../../../state/error';
 import { canvasFeatureKey } from '../index';
 import { flowFeatureKey } from '../flow';
 
@@ -801,6 +802,93 @@ describe('ControllerServicesEffects', () => {
                     highlightedParameterName: 'my-param'
                 }
             });
+        });
+    });
+
+    describe('openConfigureControllerServiceDialog$ goToService', () => {
+        const SERVICE_ID = 'cs-1';
+
+        // Opens the edit dialog and returns the goToService callback the effect assigned to it.
+        async function openDialogAndGetGoToService(referencedService: object) {
+            const { effects, store, controllerServiceService } = await setup();
+            const router = TestBed.inject(Router);
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+            const editServiceInstance: any = {
+                verify: new EventEmitter<any>(),
+                editControllerService: new EventEmitter<any>(),
+                editControllerServiceForm: { dirty: false }
+            };
+            vi.mocked(TestBed.inject(MatDialog).open).mockReturnValue({
+                close: vi.fn(),
+                afterClosed: () => of(),
+                componentInstance: editServiceInstance
+            } as any);
+            vi.mocked(TestBed.inject(PropertyTableHelperService).getComponentHistory).mockReturnValue(
+                of({ componentHistory: {} }) as any
+            );
+            controllerServiceService.getControllerService.mockReturnValue(of(referencedService) as any);
+
+            effects.openConfigureControllerServiceDialog$.subscribe();
+            action$.next(
+                ControllerServicesActions.openConfigureControllerServiceDialog({
+                    request: {
+                        id: SERVICE_ID,
+                        controllerService: {
+                            id: SERVICE_ID,
+                            uri: `https://localhost:4200/${SERVICE_ID}`,
+                            component: {
+                                id: SERVICE_ID,
+                                name: 'Service',
+                                type: 'org.apache.nifi.Service',
+                                bundle: {
+                                    group: 'org.apache.nifi',
+                                    artifact: 'nifi-service-nar',
+                                    version: '1.0.0'
+                                },
+                                properties: {}
+                            }
+                        }
+                    } as any
+                })
+            );
+
+            return { goToService: editServiceInstance.goToService, router, dispatchSpy };
+        }
+
+        it('navigates to the referenced Controller Service in its parent group', async () => {
+            const { goToService, router } = await openDialogAndGetGoToService({ id: 'svc-2', parentGroupId: 'pg-x' });
+
+            goToService('svc-2');
+
+            expect(router.navigate).toHaveBeenCalledWith(['/process-groups', 'pg-x', 'controller-services', 'svc-2'], {
+                state: {
+                    backNavigation: {
+                        route: ['/process-groups', 'root', 'controller-services', SERVICE_ID, 'edit'],
+                        routeBoundary: ['/process-groups', 'pg-x', 'controller-services'],
+                        context: 'Controller Service'
+                    }
+                }
+            });
+        });
+
+        it('shows a banner instead of navigating when the referenced Controller Service has no parent group', async () => {
+            const { goToService, router, dispatchSpy } = await openDialogAndGetGoToService({
+                id: 'svc-2',
+                component: { id: 'svc-2', parentGroupId: 'pg-x' }
+            });
+
+            goToService('svc-2');
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                ErrorActions.addBannerError({
+                    errorContext: {
+                        errors: ['Unable to determine the Controller Service parent group.'],
+                        context: ErrorContextKey.CONTROLLER_SERVICES
+                    }
+                })
+            );
+            expect(router.navigate).not.toHaveBeenCalled();
         });
     });
 

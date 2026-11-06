@@ -74,6 +74,8 @@ import { MockComponent } from 'ng-mocks';
 import { EventEmitter } from '@angular/core';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { ControllerServiceService } from '../../service/controller-service.service';
+import * as ErrorActions from '../../../../state/error/error.actions';
+import { ErrorContextKey } from '../../../../state/error';
 import { ParameterHelperService } from '../../service/parameter-helper.service';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { RegistryService } from '../../service/registry.service';
@@ -1876,6 +1878,88 @@ describe('FlowEffects', () => {
                     highlightedParameterName: 'my-param'
                 }
             });
+        });
+    });
+
+    describe('openEditProcessorDialog$ goToService', () => {
+        let router: Router;
+
+        // Opens the edit dialog and returns the goToService callback the effect assigned to it.
+        const openDialogAndGetGoToService = (referencedService: object): ((serviceId: string) => void) => {
+            const editProcessorInstance: any = {
+                ...MockComponent(EditProcessor),
+                verify,
+                editProcessor,
+                startComponentRequest: startRequest,
+                stopComponentRequest: stopRequest,
+                disableComponentRequest: disableRequest,
+                enableComponentRequest: enableRequest,
+                editProcessorForm: { dirty: false }
+            };
+            vi.spyOn(dialog, 'open').mockReturnValue({
+                close: vi.fn(),
+                afterClosed: () => of(),
+                componentInstance: editProcessorInstance
+            } as unknown as MatDialogRef<EditProcessor>);
+            vi.spyOn(TestBed.inject(ControllerServiceService), 'getControllerService').mockReturnValue(
+                of(referencedService) as any
+            );
+
+            effects.openEditProcessorDialog$.subscribe();
+            action$.next(
+                FlowActions.openEditProcessorDialog({
+                    request: {
+                        type: mockData.type,
+                        uri: mockData.uri,
+                        entity: mockData.entity
+                    } as any
+                })
+            );
+
+            return editProcessorInstance.goToService;
+        };
+
+        beforeEach(() => {
+            router = TestBed.inject(Router);
+            vi.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
+            store.overrideSelector(selectCurrentProcessGroupId, 'pg-123');
+            store.overrideSelector(flowSelectors.selectCurrentParameterContext, null);
+            store.refreshState();
+        });
+
+        it('navigates to the referenced Controller Service in its parent group', () => {
+            const goToService = openDialogAndGetGoToService({ id: 'svc-2', parentGroupId: 'pg-x' });
+
+            goToService('svc-2');
+
+            expect(router.navigate).toHaveBeenCalledWith(['/process-groups', 'pg-x', 'controller-services', 'svc-2'], {
+                state: {
+                    backNavigation: {
+                        route: ['/process-groups', 'pg-123', ComponentType.Processor, mockData.entity.id, 'edit'],
+                        routeBoundary: ['/process-groups', 'pg-x', 'controller-services'],
+                        context: 'Processor'
+                    }
+                }
+            });
+        });
+
+        it('shows a banner instead of navigating when the referenced Controller Service has no parent group', () => {
+            const goToService = openDialogAndGetGoToService({
+                id: 'svc-2',
+                component: { id: 'svc-2', parentGroupId: 'pg-x' }
+            });
+
+            goToService('svc-2');
+
+            expect(store.dispatch).toHaveBeenCalledWith(
+                ErrorActions.addBannerError({
+                    errorContext: {
+                        errors: ['Unable to determine the Controller Service parent group.'],
+                        context: ErrorContextKey.PROCESSOR
+                    }
+                })
+            );
+            expect(router.navigate).not.toHaveBeenCalled();
         });
     });
 

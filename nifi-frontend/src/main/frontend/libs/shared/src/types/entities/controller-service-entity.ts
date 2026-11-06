@@ -32,10 +32,13 @@ export interface ControllerServiceEntity extends ComponentEntityBase<ControllerS
 
 /**
  * @nifi-source: nifi-framework-bundle/nifi-framework/nifi-client-dto/src/main/java/org/apache/nifi/web/api/dto/status/ControllerServiceStatusDTO.java
+ * @nifi-revision: c31dc1f2d842 (2026-11-03)
+ * @vetted: 2026-11-06
  */
 export interface ControllerServiceStatusDTO {
     runStatus: string;
     validationStatus: string;
+    activeThreadCount?: number;
 }
 
 /**

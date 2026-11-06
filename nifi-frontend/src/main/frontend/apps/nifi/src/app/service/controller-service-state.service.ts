@@ -16,10 +16,10 @@
  */
 
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { defer, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Client } from './client.service';
-import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity } from '@nifi/shared';
+import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity, safeApiPath } from '@nifi/shared';
 import { ClusterConnectionService } from './cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })
@@ -30,22 +30,27 @@ export class ControllerServiceStateService {
 
     private static readonly API: string = '../nifi-api';
 
-    getControllerService(id: string): Observable<any> {
+    getControllerService(id: string): Observable<ControllerServiceEntity> {
         const uiOnly: any = { uiOnly: true };
-        return this.httpClient.get(`${ControllerServiceStateService.API}/controller-services/${id}`, {
-            params: uiOnly
-        });
+        return defer(() =>
+            this.httpClient.get<ControllerServiceEntity>(
+                `${ControllerServiceStateService.API}/controller-services/${safeApiPath(id)}`,
+                { params: uiOnly }
+            )
+        );
     }
 
     setEnable(controllerService: ControllerServiceEntity, enabled: boolean): Observable<any> {
-        return this.httpClient.put(
-            `${ControllerServiceStateService.API}/controller-services/${controllerService.id}/run-status`,
-            {
-                revision: this.client.getRevision(controllerService),
-                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-                state: enabled ? 'ENABLED' : 'DISABLED',
-                uiOnly: true
-            }
+        return defer(() =>
+            this.httpClient.put(
+                `${ControllerServiceStateService.API}/controller-services/${safeApiPath(controllerService.id)}/run-status`,
+                {
+                    revision: this.client.getRevision(controllerService),
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                    state: enabled ? 'ENABLED' : 'DISABLED',
+                    uiOnly: true
+                }
+            )
         );
     }
 
@@ -57,15 +62,17 @@ export class ControllerServiceStateService {
             true
         );
 
-        return this.httpClient.put(
-            `${ControllerServiceStateService.API}/controller-services/${controllerService.id}/references`,
-            {
-                id: controllerService.id,
-                state: enabled ? 'ENABLED' : 'DISABLED',
-                referencingComponentRevisions: referencingComponentRevisions,
-                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-                uiOnly: true
-            }
+        return defer(() =>
+            this.httpClient.put(
+                `${ControllerServiceStateService.API}/controller-services/${safeApiPath(controllerService.id)}/references`,
+                {
+                    id: controllerService.id,
+                    state: enabled ? 'ENABLED' : 'DISABLED',
+                    referencingComponentRevisions: referencingComponentRevisions,
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                    uiOnly: true
+                }
+            )
         );
     }
 
@@ -80,15 +87,17 @@ export class ControllerServiceStateService {
             false
         );
 
-        return this.httpClient.put(
-            `${ControllerServiceStateService.API}/controller-services/${controllerService.id}/references`,
-            {
-                id: controllerService.id,
-                state: running ? 'RUNNING' : 'STOPPED',
-                referencingComponentRevisions: referencingComponentRevisions,
-                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-                uiOnly: true
-            }
+        return defer(() =>
+            this.httpClient.put(
+                `${ControllerServiceStateService.API}/controller-services/${safeApiPath(controllerService.id)}/references`,
+                {
+                    id: controllerService.id,
+                    state: running ? 'RUNNING' : 'STOPPED',
+                    referencingComponentRevisions: referencingComponentRevisions,
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                    uiOnly: true
+                }
+            )
         );
     }
 

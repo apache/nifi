@@ -123,7 +123,8 @@ describe('ConnectorControllerServicesEffects', () => {
             createControllerService: vi.fn(),
             updateControllerService: vi.fn(),
             deleteControllerService: vi.fn(),
-            clearBulletins: vi.fn()
+            clearBulletins: vi.fn(),
+            getControllerService: vi.fn()
         };
         const mockExtensionTypesService = {
             getControllerServiceVersionsForType: vi.fn()
@@ -800,6 +801,48 @@ describe('ConnectorControllerServicesEffects', () => {
                 [['/connectors', 'conn-1', 'canvas', 'pg-2', ComponentType.Processor, 'proc-1']],
                 [['/connectors', 'conn-1', 'canvas', 'pg-2', 'controller-services', 'svc-2']]
             ]);
+        });
+
+        it('should navigate goToService to the parent group of the referenced Controller Service entity', async () => {
+            const { effects, actions$, mockControllerServiceService, mockDialogInstance, mockRouter } = await setup();
+            mockControllerServiceService.getControllerService.mockReturnValue(
+                of(buildService({ id: 'svc-2', parentGroupId: 'pg-x' }))
+            );
+            actions$(of(open));
+
+            await firstValueFrom(effects.openConfigureConnectorControllerServiceDialog$);
+            mockDialogInstance.goToService?.('svc-2');
+
+            expect(mockControllerServiceService.getControllerService).toHaveBeenCalledWith('svc-2');
+            expect(mockRouter.navigate).toHaveBeenCalledWith([
+                '/connectors',
+                'conn-1',
+                'canvas',
+                'pg-x',
+                'controller-services',
+                'svc-2'
+            ]);
+        });
+
+        it('should show a banner instead of navigating when goToService cannot determine the parent group', async () => {
+            const { effects, actions$, store, mockControllerServiceService, mockDialogInstance, mockRouter } =
+                await setup();
+            const dispatch = vi.spyOn(store, 'dispatch');
+            mockControllerServiceService.getControllerService.mockReturnValue(of(buildService()));
+            actions$(of(open));
+
+            await firstValueFrom(effects.openConfigureConnectorControllerServiceDialog$);
+            mockDialogInstance.goToService?.('svc-2');
+
+            expect(dispatch).toHaveBeenCalledWith(
+                ErrorActions.addBannerError({
+                    errorContext: {
+                        errors: ['Unable to determine the Controller Service parent group.'],
+                        context: ErrorContextKey.CONTROLLER_SERVICES
+                    }
+                })
+            );
+            expect(mockRouter.navigate).not.toHaveBeenCalled();
         });
 
         it('should surface a component history failure and still open later requests', async () => {

@@ -571,7 +571,7 @@ describe('canonical response entity contracts', () => {
             status: { runStatus: 'DISABLED', validationStatus: 'VALID' }
         };
 
-        expect(readable.component.name).toBe('Service');
+        expect(readable.component?.name).toBe('Service');
         expect(denied.component).toBeUndefined();
         expectTypeOf<ControllerServiceEntity['component']>().toEqualTypeOf<
             ControllerServiceEntity['component'] | undefined

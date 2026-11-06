@@ -512,9 +512,21 @@ export class ControllerServicesEffects {
                     editDialogReference.componentInstance.goToService = (serviceId: string) => {
                         this.controllerServiceService.getControllerService(serviceId).subscribe({
                             next: (serviceEntity) => {
+                                const processGroupId = serviceEntity.parentGroupId;
+                                if (!processGroupId) {
+                                    this.store.dispatch(
+                                        ErrorActions.addBannerError({
+                                            errorContext: {
+                                                errors: ['Unable to determine the Controller Service parent group.'],
+                                                context: ErrorContextKey.CONTROLLER_SERVICES
+                                            }
+                                        })
+                                    );
+                                    return;
+                                }
                                 const commandBoundary: string[] = [
                                     '/process-groups',
-                                    serviceEntity.component.parentGroupId,
+                                    processGroupId,
                                     'controller-services'
                                 ];
                                 const commands: string[] = [...commandBoundary, serviceEntity.id];

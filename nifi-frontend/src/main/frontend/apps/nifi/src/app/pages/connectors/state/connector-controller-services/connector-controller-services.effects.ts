@@ -314,11 +314,23 @@ export class ConnectorControllerServicesEffects {
                     instance.goToService = (targetServiceId: string) => {
                         this.controllerServiceService.getControllerService(targetServiceId).subscribe({
                             next: (serviceEntity) => {
+                                const processGroupId = serviceEntity.parentGroupId;
+                                if (!processGroupId) {
+                                    this.store.dispatch(
+                                        ErrorActions.addBannerError({
+                                            errorContext: {
+                                                errors: ['Unable to determine the Controller Service parent group.'],
+                                                context: ErrorContextKey.CONTROLLER_SERVICES
+                                            }
+                                        })
+                                    );
+                                    return;
+                                }
                                 this.router.navigate([
                                     '/connectors',
                                     connectorId,
                                     'canvas',
-                                    serviceEntity.component.parentGroupId,
+                                    processGroupId,
                                     'controller-services',
                                     serviceEntity.id
                                 ]);

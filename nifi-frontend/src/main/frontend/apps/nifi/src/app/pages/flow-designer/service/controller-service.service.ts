@@ -54,12 +54,13 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
         );
     }
 
-    getControllerService(id: string): Observable<any> {
+    getControllerService(id: string): Observable<ControllerServiceEntity> {
         const uiOnly: any = { uiOnly: true };
         return defer(() =>
-            this.httpClient.get(`${ControllerServiceService.API}/controller-services/${safeApiPath(id)}`, {
-                params: uiOnly
-            })
+            this.httpClient.get<ControllerServiceEntity>(
+                `${ControllerServiceService.API}/controller-services/${safeApiPath(id)}`,
+                { params: uiOnly }
+            )
         );
     }
 

@@ -33,19 +33,25 @@ import {
     initialConnectorControllerServicesState
 } from '../../state/connector-controller-services';
 
-function createMockService(overrides: { runStatus?: string; customUiUrl?: string; canWrite?: boolean } = {}) {
+function createMockService(
+    overrides: { runStatus?: string; customUiUrl?: string | null; canWrite?: boolean; readable?: boolean } = {}
+) {
     const runStatus = overrides.runStatus ?? 'ENABLED';
-    const customUiUrl = overrides.customUiUrl ?? 'http://custom-ui/cs-1';
+    const customUiUrl =
+        overrides.customUiUrl === undefined ? 'http://custom-ui/cs-1' : (overrides.customUiUrl ?? undefined);
     return {
         id: 'cs-1',
         uri: '/nifi-api/controller-services/cs-1',
         revision: { clientId: 'client-abc', version: 3 },
         status: { runStatus },
         permissions: { canRead: true, canWrite: overrides.canWrite ?? true },
-        component: {
-            id: 'cs-1',
-            customUiUrl
-        }
+        component:
+            overrides.readable === false
+                ? undefined
+                : {
+                      id: 'cs-1',
+                      customUiUrl
+                  }
     };
 }
 
@@ -218,6 +224,28 @@ describe('connectorControllerServiceAdvancedUiParamsResolver', () => {
                 errorDetail: {
                     title: 'Unable to Open Advanced UI',
                     message: 'Network error'
+                }
+            })
+        );
+    });
+
+    it.each([
+        ['an unreadable service', createMockService({ readable: false })],
+        ['a service without a custom UI URL', createMockService({ customUiUrl: null })]
+    ])('dispatches fullScreenError and emits no value for %s', async (_description, service) => {
+        const { dispatchSpy } = await setup({ serviceInStore: service });
+        const emittedValues: AdvancedUiParams[] = [];
+
+        resolve(createRouteSnapshot('cs-1'))
+            .subscribe({ next: (value) => emittedValues.push(value) })
+            .unsubscribe();
+
+        expect(emittedValues).toHaveLength(0);
+        expect(dispatchSpy).toHaveBeenCalledWith(
+            fullScreenError({
+                errorDetail: {
+                    title: 'Unable to Open Advanced UI',
+                    message: 'The Controller Service does not provide an Advanced UI.'
                 }
             })
         );

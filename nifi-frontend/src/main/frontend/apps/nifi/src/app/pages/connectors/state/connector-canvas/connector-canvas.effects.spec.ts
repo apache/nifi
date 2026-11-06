@@ -1237,6 +1237,36 @@ describe('ConnectorCanvasEffects', () => {
             );
         });
 
+        it('dispatches a banner error when the target service has no parent group', async () => {
+            const { effects, actions$, store, mockConnectorService, mockDialogRef } = await setup();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+            mockConnectorService.getControllerService = vi.fn().mockReturnValue(of({ id: 'svc-1' }));
+
+            actions$(
+                of(
+                    viewComponentConfiguration({
+                        request: { entity: baseEntity, componentType: ComponentType.Processor }
+                    })
+                )
+            );
+            await firstValueFrom(effects.viewComponentConfiguration$);
+
+            mockDialogRef.componentInstance.goToService('svc-1');
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                ErrorActions.addBannerError({
+                    errorContext: {
+                        errors: ['Unable to determine the Controller Service parent group.'],
+                        context: ErrorContextKey.CONNECTOR_CANVAS
+                    }
+                })
+            );
+            expect(dispatchSpy).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: navigateToControllerService.type })
+            );
+            expect(mockDialogRef.close).not.toHaveBeenCalled();
+        });
+
         it('dispatches a banner error when goToService cannot resolve the connector id', async () => {
             const { effects, actions$, store, mockConnectorService, mockDialogRef } = await setup({
                 connectorId: null

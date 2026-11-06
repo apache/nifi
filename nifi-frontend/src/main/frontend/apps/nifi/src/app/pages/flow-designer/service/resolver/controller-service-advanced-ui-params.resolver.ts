@@ -17,7 +17,7 @@
 
 import { ActivatedRouteSnapshot, ResolveFn } from '@angular/router';
 import { inject } from '@angular/core';
-import { catchError, EMPTY, map, of, switchMap, take } from 'rxjs';
+import { catchError, EMPTY, of, switchMap, take } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { AdvancedUiParams } from '../../../../state/shared';
@@ -65,19 +65,31 @@ export const controllerServiceAdvancedUiParamsResolver: ResolveFn<AdvancedUiPara
                 );
             }
         }),
-        map((entity) => {
+        switchMap((entity) => {
+            const customUiUrl = entity.component?.customUiUrl;
+            if (!customUiUrl) {
+                store.dispatch(
+                    fullScreenError({
+                        errorDetail: {
+                            title: 'Unable to Open Advanced UI',
+                            message: 'The Controller Service does not provide an Advanced UI.'
+                        }
+                    })
+                );
+                return EMPTY;
+            }
             const revision = client.getRevision(entity);
 
             const editable = entity.status.runStatus === 'DISABLED' && entity.permissions.canWrite;
 
-            return {
-                url: entity.component.customUiUrl,
+            return of({
+                url: customUiUrl,
                 id: entity.id,
                 clientId: revision.clientId,
                 revision: revision.version,
                 editable,
                 disconnectedNodeAcknowledged: clusterConnectionService.isDisconnectionAcknowledged()
-            } as AdvancedUiParams;
+            } as AdvancedUiParams);
         }),
         take(1)
     );
