@@ -54,6 +54,26 @@ import { canvasUiReducer } from './canvas-ui/canvas-ui.reducer';
 import { emptyQueueFeatureKey, EmptyQueueState } from './empty-queue';
 import { emptyQueueReducer } from './empty-queue/empty-queue.reducer';
 
+/**
+ * Session storage key used to remember the route requested before redirecting to the login page.
+ */
+export const RETURN_URL = 'return-url';
+
+/**
+ * Routes that are accessible without authentication and must never be restored after logging in.
+ */
+const UNAUTHENTICATED_ROUTES: ReadonlySet<string> = new Set(['/login', '/logout-complete', '/error', '/404']);
+
+/**
+ * Determines whether the specified url requires authentication. Query strings are ignored when matching routes.
+ *
+ * @param url The url, such as '/settings?tab=1'
+ */
+export function isAuthenticatedRoute(url: string): boolean {
+    const pathname = url.split('?')[0];
+    return !UNAUTHENTICATED_ROUTES.has(pathname);
+}
+
 export interface NiFiState {
     [DEFAULT_ROUTER_FEATURENAME]: RouterReducerState;
     [errorFeatureKey]: ErrorState;
