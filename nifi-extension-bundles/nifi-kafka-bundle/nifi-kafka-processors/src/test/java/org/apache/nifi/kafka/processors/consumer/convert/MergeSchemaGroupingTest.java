@@ -86,8 +86,8 @@ class MergeSchemaGroupingTest {
 
     @Test
     void testDifferentSchemasInSameTopicPartitionMergeIntoOneFlowFile() {
-        final ByteRecord first = new ByteRecord(TOPIC, 0, 10, 1000L, List.of(), null, new byte[0], 0L);
-        final ByteRecord second = new ByteRecord(TOPIC, 0, 11, 500L, List.of(), null, new byte[0], 0L);
+        final ByteRecord first = new ByteRecord(TOPIC, 0, 10, 1000L, List.of(), null, new byte[0], 0L, false);
+        final ByteRecord second = new ByteRecord(TOPIC, 0, 11, 500L, List.of(), null, new byte[0], 0L, false);
 
         grouping.addRecord(session, first, RECORD_A, SCHEMA_A, Map.of(), Map.of());
         grouping.addRecord(session, second, RECORD_B, SCHEMA_B, Map.of(), Map.of());
@@ -110,8 +110,8 @@ class MergeSchemaGroupingTest {
 
     @Test
     void testDifferentPartitionsProduceSeparateFlowFiles() {
-        final ByteRecord first = new ByteRecord(TOPIC, 0, 1, 1000L, List.of(), null, new byte[0], 0L);
-        final ByteRecord second = new ByteRecord(TOPIC, 1, 2, 2000L, List.of(), null, new byte[0], 0L);
+        final ByteRecord first = new ByteRecord(TOPIC, 0, 1, 1000L, List.of(), null, new byte[0], 0L, false);
+        final ByteRecord second = new ByteRecord(TOPIC, 1, 2, 2000L, List.of(), null, new byte[0], 0L, false);
 
         grouping.addRecord(session, first, RECORD_A, SCHEMA_A, Map.of(), Map.of());
         grouping.addRecord(session, second, RECORD_B, SCHEMA_B, Map.of(), Map.of());
@@ -125,8 +125,8 @@ class MergeSchemaGroupingTest {
 
     @Test
     void testDifferentGroupingAttributesProduceSeparateFlowFiles() {
-        final ByteRecord first = new ByteRecord(TOPIC, 0, 1, 1000L, List.of(), null, new byte[0], 0L);
-        final ByteRecord second = new ByteRecord(TOPIC, 0, 2, 2000L, List.of(), null, new byte[0], 0L);
+        final ByteRecord first = new ByteRecord(TOPIC, 0, 1, 1000L, List.of(), null, new byte[0], 0L, false);
+        final ByteRecord second = new ByteRecord(TOPIC, 0, 2, 2000L, List.of(), null, new byte[0], 0L, false);
 
         grouping.addRecord(session, first, RECORD_A, SCHEMA_A, Map.of(), Map.of("hdr", "a"));
         grouping.addRecord(session, second, RECORD_B, SCHEMA_B, Map.of(), Map.of("hdr", "b"));
@@ -160,8 +160,8 @@ class MergeSchemaGroupingTest {
         final MergeSchemaGrouping validatingGrouping = new MergeSchemaGrouping(
                 validatingWriter, runner.getLogger(), BROKER_URI, true);
 
-        final ByteRecord first = new ByteRecord(TOPIC, 0, 10, 1000L, List.of(), null, new byte[0], 0L);
-        final ByteRecord second = new ByteRecord(TOPIC, 0, 11, 2000L, List.of(), null, new byte[0], 0L);
+        final ByteRecord first = new ByteRecord(TOPIC, 0, 10, 1000L, List.of(), null, new byte[0], 0L, false);
+        final ByteRecord second = new ByteRecord(TOPIC, 0, 11, 2000L, List.of(), null, new byte[0], 0L, false);
 
         validatingGrouping.addRecord(validatingSession, first, recordA, nonNullableSchemaA, Map.of(), Map.of());
         validatingGrouping.addRecord(validatingSession, second, recordB, nonNullableSchemaB, Map.of(), Map.of());

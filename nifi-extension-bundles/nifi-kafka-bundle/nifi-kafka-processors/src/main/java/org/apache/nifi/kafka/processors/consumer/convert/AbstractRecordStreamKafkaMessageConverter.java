@@ -87,6 +87,13 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
     public void toFlowFiles(final ProcessSession session, final Iterator<ByteRecord> consumerRecords) {
         while (consumerRecords.hasNext()) {
             final ByteRecord consumerRecord = consumerRecords.next();
+            if (consumerRecord.isTombstone()) {
+                session.adjustCounter("Records Received from " + consumerRecord.getTopic(), 1, false);
+                session.adjustCounter("Tombstones Skipped for " + consumerRecord.getTopic(), 1, false);
+                offsetTracker.update(consumerRecord);
+                continue;
+            }
+
             final byte[] value = consumerRecord.getValue();
 
             final Map<String, String> attributes = KafkaUtils.toAttributes(

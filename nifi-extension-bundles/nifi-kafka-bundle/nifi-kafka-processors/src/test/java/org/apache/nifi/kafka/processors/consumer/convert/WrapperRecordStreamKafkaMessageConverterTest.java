@@ -88,12 +88,12 @@ class WrapperRecordStreamKafkaMessageConverterTest {
         );
 
         // Create ByteRecords
-        final ByteRecord group1Record1 = new ByteRecord("topic1", 0, 0, 0L, List.of(), null, "value1".getBytes(), 0L);
-        final ByteRecord group1Record2 = new ByteRecord("topic1", 0, 3, 0L, List.of(), null, "value4".getBytes(), 0L);
+        final ByteRecord group1Record1 = new ByteRecord("topic1", 0, 0, 0L, List.of(), null, "value1".getBytes(), 0L, false);
+        final ByteRecord group1Record2 = new ByteRecord("topic1", 0, 3, 0L, List.of(), null, "value4".getBytes(), 0L, false);
 
-        final ByteRecord group2Record1 = new ByteRecord("topic1", 1, 1, 0L, List.of(), null, "value2".getBytes(), 0L);
+        final ByteRecord group2Record1 = new ByteRecord("topic1", 1, 1, 0L, List.of(), null, "value2".getBytes(), 0L, false);
 
-        final ByteRecord group3Record1 = new ByteRecord("topic2", 0, 2, 0L, List.of(), null, "value3".getBytes(), 0L);
+        final ByteRecord group3Record1 = new ByteRecord("topic2", 0, 2, 0L, List.of(), null, "value3".getBytes(), 0L, false);
 
         final Iterator<ByteRecord> consumerRecords = List.of(group1Record1, group2Record1, group3Record1, group1Record2).iterator();
         // Mock the session.create() and session.write() methods

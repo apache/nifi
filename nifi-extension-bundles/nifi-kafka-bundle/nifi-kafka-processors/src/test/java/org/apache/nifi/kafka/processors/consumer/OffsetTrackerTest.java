@@ -126,6 +126,6 @@ class OffsetTrackerTest {
     }
 
     private static ByteRecord newByteRecord(final String topic, final int partition, final byte[] key, final byte[] value, final long bundledCount) {
-        return new ByteRecord(topic, partition, 0, 0L, List.of(), key, value, bundledCount);
+        return new ByteRecord(topic, partition, 0, 0L, List.of(), key, value, bundledCount, false);
     }
 }

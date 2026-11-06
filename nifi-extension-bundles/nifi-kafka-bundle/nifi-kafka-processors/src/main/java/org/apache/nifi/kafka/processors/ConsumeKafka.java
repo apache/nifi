@@ -515,6 +515,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                             getLogger().debug("Rebalance detected with revoked partitions, breaking to commit session");
                             break;
                         }
+
                         continue;
                     }
 
@@ -570,6 +571,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 } catch (final Exception e) {
                     getLogger().warn("Failed to commit offsets for revoked partitions", e);
                 }
+
                 consumerServices.offer(consumerService);
                 return;
             }
@@ -791,8 +793,15 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         int recordIndex = 0;
+        int parsedRecords = 0;
+        int skippedTombstones = 0;
         for (final ByteRecord byteRecord : records) {
             recordIndex++;
+            if (byteRecord.isTombstone()) {
+                skippedTombstones++;
+                continue;
+            }
+
             final Map<String, String> recordAttributes = KafkaUtils.toAttributes(
                 byteRecord, keyEncoding, headerNamePattern, headerValueConverter, commitOffsets);
 
@@ -808,23 +817,30 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                     .explanation("Failed to parse Record number " + recordIndex + ": " + e)
                     .build();
             }
+
+            parsedRecords++;
         }
 
-        if (recordIndex == 0) {
+        if (parsedRecords == 0) {
+            final String explanation = skippedTombstones == 0
+                    ? "No records were received to parse"
+                    : "No records were parsed (skipped " + skippedTombstones + " tombstones)";
             return new ConfigVerificationResult.Builder()
                 .verificationStepName("Parse Records")
                 .outcome(Outcome.SKIPPED)
-                .explanation("No records were received to parse")
+                .explanation(explanation)
                 .build();
         }
 
+        final String explanation = skippedTombstones == 0
+                ? "Successfully parsed " + parsedRecords + " records"
+                : "Successfully parsed " + parsedRecords + " records (skipped " + skippedTombstones + " tombstones)";
         return new ConfigVerificationResult.Builder()
             .verificationStepName("Parse Records")
             .outcome(Outcome.SUCCESSFUL)
-            .explanation("Successfully parsed " + recordIndex + " records")
+            .explanation(explanation)
             .build();
     }
-
 
     @ConnectorMethod(
         name = "sampleTopics",
@@ -1032,6 +1048,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 topicPartitionSummaries.add(summary);
                 lastTopicPartition = summary;
             }
+
             return lastTopicPartition;
         }
 
@@ -1047,6 +1064,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             if (key.isPresent()) {
                 recordSize += key.get().length;
             }
+
             return recordSize;
         }
     }

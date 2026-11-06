@@ -189,7 +189,8 @@ class KafkaUtilsTest {
                 headers,
                 null,  // key
                 "test-value".getBytes(StandardCharsets.UTF_8),
-                1  // count
+                1,
+                false
         );
     }
 }

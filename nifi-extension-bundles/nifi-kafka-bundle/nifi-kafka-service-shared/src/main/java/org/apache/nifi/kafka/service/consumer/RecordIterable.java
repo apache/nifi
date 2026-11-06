@@ -58,11 +58,10 @@ public class RecordIterable implements Iterable<ByteRecord> {
                 recordHeaders.add(recordHeader);
             });
 
-            // Support Kafka tombstones
-            byte[] value = consumerRecord.value();
-            if (value == null) {
-                value = new byte[0];
-            }
+            // A null Kafka value is a tombstone. Keep that distinct from a non-null empty value.
+            final byte[] originalValue = consumerRecord.value();
+            final boolean isTombstone = originalValue == null;
+            final byte[] value = isTombstone ? new byte[0] : originalValue;
 
             return new ByteRecord(
                 consumerRecord.topic(),
@@ -72,7 +71,8 @@ public class RecordIterable implements Iterable<ByteRecord> {
                 recordHeaders,
                 consumerRecord.key(),
                 value,
-                1
+                1,
+                isTombstone
             );
         }
     }
