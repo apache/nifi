@@ -75,7 +75,7 @@ export const controllerServiceStateReducer = createReducer(
     })),
     on(updateReferencingServicesSuccess, updateReferencingComponentsSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
-            if (draftState.controllerService) {
+            if (draftState.controllerService?.component) {
                 draftState.controllerService.component.referencingComponents = response.referencingComponents;
             }
             draftState.setEnableRequest.currentStep = response.currentStep;

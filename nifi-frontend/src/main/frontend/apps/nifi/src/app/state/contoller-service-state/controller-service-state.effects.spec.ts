@@ -26,7 +26,7 @@ import { ControllerServiceReferencingComponentEntity, Permissions } from '@nifi/
 import { ControllerServiceStateEffects } from './controller-service-state.effects';
 import { ControllerServiceStateService } from '../../service/controller-service-state.service';
 import { ErrorHelper } from '../../service/error-helper.service';
-import { ControllerServiceEntity } from '../shared';
+import { ControllerServiceEntity } from '@nifi/shared';
 import { SetEnableRequest, SetEnableStep } from './index';
 
 describe('ControllerServiceStateEffects', () => {
@@ -114,7 +114,7 @@ describe('ControllerServiceStateEffects', () => {
                 state: runStatus,
                 referencingComponents
             }
-        };
+        } as unknown as ControllerServiceEntity;
     }
 
     function createSetEnableRequest(

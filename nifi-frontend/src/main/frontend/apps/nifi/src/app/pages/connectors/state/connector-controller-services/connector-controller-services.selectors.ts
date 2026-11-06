@@ -16,11 +16,16 @@
  */
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { selectRouteParams } from '@nifi/shared';
+import { ControllerServiceEntity, selectRouteParams } from '@nifi/shared';
 import { connectorControllerServicesFeatureKey, ConnectorControllerServicesState } from './index';
 
 export const selectConnectorControllerServicesState = createFeatureSelector<ConnectorControllerServicesState>(
     connectorControllerServicesFeatureKey
+);
+
+export const selectConnectorControllerServicesSaving = createSelector(
+    selectConnectorControllerServicesState,
+    (state) => state.saving
 );
 
 export const selectConnectorIdFromRoute = createSelector(selectRouteParams, (params) => params?.['id'] ?? null);
@@ -34,3 +39,8 @@ export const selectControllerServiceIdFromRoute = createSelector(
     selectRouteParams,
     (params) => params?.['serviceId'] ?? null
 );
+
+export const selectConnectorControllerServiceById = (id: string) =>
+    createSelector(selectConnectorControllerServicesState, (state): ControllerServiceEntity | undefined =>
+        state.controllerServices.find((service) => service.id === id)
+    );

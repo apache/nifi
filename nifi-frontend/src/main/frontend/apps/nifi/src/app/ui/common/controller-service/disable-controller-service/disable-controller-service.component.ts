@@ -17,10 +17,7 @@
 
 import { Component, Input, OnDestroy, TemplateRef, ViewChild, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import {
-    ControllerServiceReferencingComponent,
-    SetEnableControllerServiceDialogRequest
-} from '../../../../state/shared';
+import { SetEnableControllerServiceDialogRequest } from '../../../../state/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -29,7 +26,12 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
-import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared';
+import {
+    NifiTooltipDirective,
+    TextTip,
+    CloseOnEscapeDialog,
+    ControllerServiceReferencingComponentDTO
+} from '@nifi/shared';
 import { ControllerServiceState, SetEnableRequest, SetEnableStep } from '../../../../state/contoller-service-state';
 import { Store } from '@ngrx/store';
 import {
@@ -65,7 +67,7 @@ export class DisableControllerService extends CloseOnEscapeDialog implements OnD
     request = inject<SetEnableControllerServiceDialogRequest>(MAT_DIALOG_DATA);
     private store = inject<Store<ControllerServiceState>>(Store);
 
-    @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
+    @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponentDTO) => void;
 
     protected readonly TextTip = TextTip;
     protected readonly SetEnableStep = SetEnableStep;
@@ -116,6 +118,7 @@ export class DisableControllerService extends CloseOnEscapeDialog implements OnD
     }
 
     ngOnDestroy(): void {
+        this.store.dispatch(stopPollingControllerService());
         this.store.dispatch(resetEnableControllerServiceState());
     }
 }

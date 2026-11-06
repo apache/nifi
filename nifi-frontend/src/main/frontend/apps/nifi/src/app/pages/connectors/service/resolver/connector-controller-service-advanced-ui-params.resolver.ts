@@ -1,0 +1,92 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { ActivatedRouteSnapshot, ResolveFn } from '@angular/router';
+import { inject } from '@angular/core';
+import { catchError, EMPTY, of, switchMap, take } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { HttpErrorResponse } from '@angular/common/http';
+import { NiFiState } from '../../../../state';
+import { AdvancedUiParams } from '../../../../state/shared';
+import { Client } from '../../../../service/client.service';
+import { ControllerServiceService } from '../../../flow-designer/service/controller-service.service';
+import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { fullScreenError } from '../../../../state/error/error.actions';
+import { selectConnectorControllerServiceById } from '../../state/connector-controller-services/connector-controller-services.selectors';
+
+export const connectorControllerServiceAdvancedUiParamsResolver: ResolveFn<AdvancedUiParams> = (
+    route: ActivatedRouteSnapshot
+) => {
+    const store: Store<NiFiState> = inject(Store);
+    const controllerServiceService: ControllerServiceService = inject(ControllerServiceService);
+    const client: Client = inject(Client);
+    const clusterConnectionService: ClusterConnectionService = inject(ClusterConnectionService);
+    const errorHelper: ErrorHelper = inject(ErrorHelper);
+
+    const id: string | null = route.paramMap.get('serviceId');
+    if (!id) {
+        return EMPTY;
+    }
+
+    return store.select(selectConnectorControllerServiceById(id)).pipe(
+        switchMap((service) => {
+            if (service) {
+                return of(service);
+            }
+            return controllerServiceService.getControllerService(id).pipe(
+                catchError((errorResponse: HttpErrorResponse) => {
+                    store.dispatch(
+                        fullScreenError({
+                            errorDetail: {
+                                title: 'Unable to Open Advanced UI',
+                                message: errorHelper.getErrorString(errorResponse)
+                            }
+                        })
+                    );
+                    return EMPTY;
+                })
+            );
+        }),
+        switchMap((entity) => {
+            const customUiUrl = entity.component?.customUiUrl;
+            if (!customUiUrl) {
+                store.dispatch(
+                    fullScreenError({
+                        errorDetail: {
+                            title: 'Unable to Open Advanced UI',
+                            message: 'The Controller Service does not provide an Advanced UI.'
+                        }
+                    })
+                );
+                return EMPTY;
+            }
+            const revision = client.getRevision(entity);
+            const editable = entity.status.runStatus === 'DISABLED' && entity.permissions.canWrite;
+
+            return of({
+                url: customUiUrl,
+                id: entity.id,
+                clientId: revision.clientId,
+                revision: revision.version,
+                editable,
+                disconnectedNodeAcknowledged: clusterConnectionService.isDisconnectionAcknowledged()
+            } as AdvancedUiParams);
+        }),
+        take(1)
+    );
+};

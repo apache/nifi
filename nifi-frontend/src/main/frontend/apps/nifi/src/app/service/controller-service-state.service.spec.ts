@@ -18,11 +18,11 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { ControllerServiceReferencingComponentEntity } from '@nifi/shared';
+import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity, UnsafeApiPathError } from '@nifi/shared';
+import { firstValueFrom, Observable } from 'rxjs';
 import { ControllerServiceStateService } from './controller-service-state.service';
 import { Client } from './client.service';
 import { ClusterConnectionService } from './cluster-connection.service';
-import { ControllerServiceEntity } from '../state/shared';
 
 describe('ControllerServiceStateService', () => {
     function createReferencingEntity(
@@ -68,9 +68,9 @@ describe('ControllerServiceStateService', () => {
             operatePermissions: { canRead: true, canWrite: true },
             revision: { version: 1 },
             bulletins: [],
-            status: { runStatus: 'ENABLED' },
+            status: { runStatus: 'ENABLED', validationStatus: 'VALID' },
             component: { id: 'cs-root', referencingComponents }
-        };
+        } as unknown as ControllerServiceEntity;
     }
 
     async function setup() {
@@ -100,6 +100,40 @@ describe('ControllerServiceStateService', () => {
 
     afterEach(() => {
         TestBed.inject(HttpTestingController).verify();
+    });
+
+    describe('path safety', () => {
+        it.each([
+            [
+                'getControllerService',
+                (service: ControllerServiceStateService) => service.getControllerService('../bad')
+            ],
+            [
+                'setEnable',
+                (service: ControllerServiceStateService) =>
+                    service.setEnable({ ...createControllerServiceEntity([]), id: '../bad' }, true)
+            ],
+            [
+                'updateReferencingServices',
+                (service: ControllerServiceStateService) =>
+                    service.updateReferencingServices({ ...createControllerServiceEntity([]), id: '../bad' }, true)
+            ],
+            [
+                'updateReferencingSchedulableComponents',
+                (service: ControllerServiceStateService) =>
+                    service.updateReferencingSchedulableComponents(
+                        { ...createControllerServiceEntity([]), id: '../bad' },
+                        true
+                    )
+            ]
+        ] as const)('rejects an unsafe id in %s before issuing a request', async (_name, invoke) => {
+            const { service, httpTesting } = await setup();
+
+            await expect(firstValueFrom(invoke(service) as Observable<unknown>)).rejects.toBeInstanceOf(
+                UnsafeApiPathError
+            );
+            httpTesting.expectNone(() => true);
+        });
     });
 
     describe('updateReferencingServices', () => {

@@ -45,7 +45,8 @@ import {
 } from '../../state/controller-services/controller-services.actions';
 import { initialState } from '../../state/controller-services/controller-services.reducer';
 import { ComponentType, isDefinedAndNotNull, NiFiCommon, TextTip } from '@nifi/shared';
-import { BreadcrumbEntity, ControllerServiceEntity } from '../../../../state/shared';
+import { BreadcrumbEntity } from '../../../../state/shared';
+import { ControllerServiceEntity } from '@nifi/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { NiFiState } from '../../../../state';
@@ -206,6 +207,9 @@ export class ControllerServices implements OnDestroy {
     }
 
     viewControllerServiceDocumentation(entity: ControllerServiceEntity): void {
+        if (!entity.component) {
+            return;
+        }
         const request: DocumentationRequest = {
             parameters: {
                 componentType: ComponentType.ControllerService,
@@ -291,6 +295,9 @@ export class ControllerServices implements OnDestroy {
     }
 
     viewStateControllerService(entity: ControllerServiceEntity): void {
+        if (!entity.component) {
+            return;
+        }
         this.store.dispatch(
             getComponentStateAndOpenDialog({
                 request: {
@@ -304,6 +311,9 @@ export class ControllerServices implements OnDestroy {
     }
 
     changeControllerServiceVersion(entity: ControllerServiceEntity): void {
+        if (!entity.component) {
+            return;
+        }
         this.store.dispatch(
             openChangeControllerServiceVersionDialog({
                 request: {

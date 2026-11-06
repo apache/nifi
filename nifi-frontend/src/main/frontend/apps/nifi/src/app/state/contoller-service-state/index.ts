@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity } from '../shared';
+import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity } from '@nifi/shared';
 import { SelectOption } from '@nifi/shared';
 
 export const controllerServiceStateFeatureKey = 'enableControllerService';

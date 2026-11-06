@@ -17,7 +17,7 @@
 
 import { createSelector } from '@ngrx/store';
 import { selectCurrentRoute } from '@nifi/shared';
-import { ControllerServiceEntity } from '../../../../state/shared';
+import { ControllerServiceEntity } from '@nifi/shared';
 import { CanvasState, selectCanvasState } from '../index';
 import { controllerServicesFeatureKey, ControllerServicesState } from './index';
 

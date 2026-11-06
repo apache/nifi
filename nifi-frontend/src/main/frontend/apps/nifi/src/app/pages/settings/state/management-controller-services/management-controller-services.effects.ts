@@ -20,7 +20,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ManagementControllerServicesActions from './management-controller-services.actions';
 import * as ErrorActions from '../../../../state/error/error.actions';
-import { catchError, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import { catchError, filter, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { Store } from '@ngrx/store';
@@ -33,7 +33,6 @@ import { CreateControllerService } from '../../../../ui/common/controller-servic
 import { Client } from '../../../../service/client.service';
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
 import {
-    ControllerServiceReferencingComponent,
     EditControllerServiceDialogRequest,
     OpenChangeComponentVersionDialogRequest,
     UpdateControllerServiceRequest
@@ -45,7 +44,14 @@ import { DisableControllerService } from '../../../../ui/common/controller-servi
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { ComponentType, LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG, YesNoDialog } from '@nifi/shared';
+import {
+    ComponentType,
+    ControllerServiceReferencingComponentDTO,
+    LARGE_DIALOG,
+    SMALL_DIALOG,
+    XL_DIALOG,
+    YesNoDialog
+} from '@nifi/shared';
 import { initialState } from './management-controller-services.reducer';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
@@ -253,6 +259,7 @@ export class ManagementControllerServicesEffects {
             this.actions$.pipe(
                 ofType(ManagementControllerServicesActions.openConfigureControllerServiceDialog),
                 map((action) => action.request),
+                filter((request) => request.controllerService.component != null),
                 switchMap((request) =>
                     from(this.propertyTableHelperService.getComponentHistory(request.id)).pipe(
                         map((history) => {
@@ -372,10 +379,15 @@ export class ManagementControllerServicesEffects {
                     };
 
                     editDialogReference.componentInstance.goToReferencingComponent = (
-                        component: ControllerServiceReferencingComponent
+                        component: ControllerServiceReferencingComponentDTO
                     ) => {
-                        const route: string[] = this.getRouteForReference(component);
-                        goTo(route, component.referenceType);
+                        if (!component.referenceType) {
+                            return;
+                        }
+                        const route = this.getRouteForReference(component);
+                        if (route) {
+                            goTo(route, component.referenceType);
+                        }
                     };
 
                     editDialogReference.componentInstance.createNewService =
@@ -526,10 +538,12 @@ export class ManagementControllerServicesEffects {
                     });
 
                     enableDialogReference.componentInstance.goToReferencingComponent = (
-                        component: ControllerServiceReferencingComponent
+                        component: ControllerServiceReferencingComponentDTO
                     ) => {
-                        const route: string[] = this.getRouteForReference(component);
-                        this.router.navigate(route);
+                        const route = this.getRouteForReference(component);
+                        if (route) {
+                            this.router.navigate(route);
+                        }
                     };
 
                     enableDialogReference.afterClosed().subscribe((response) => {
@@ -557,10 +571,12 @@ export class ManagementControllerServicesEffects {
                     });
 
                     enableDialogReference.componentInstance.goToReferencingComponent = (
-                        component: ControllerServiceReferencingComponent
+                        component: ControllerServiceReferencingComponentDTO
                     ) => {
-                        const route: string[] = this.getRouteForReference(component);
-                        this.router.navigate(route);
+                        const route = this.getRouteForReference(component);
+                        if (route) {
+                            this.router.navigate(route);
+                        }
                     };
 
                     enableDialogReference.afterClosed().subscribe((response) => {
@@ -583,7 +599,7 @@ export class ManagementControllerServicesEffects {
                         ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Controller Service',
-                            message: `Delete controller service ${request.controllerService.component.name}?`
+                            message: `Delete controller service ${request.controllerService.component?.name ?? request.controllerService.id}?`
                         }
                     });
 
@@ -733,7 +749,7 @@ export class ManagementControllerServicesEffects {
         )
     );
 
-    private getRouteForReference(reference: ControllerServiceReferencingComponent): string[] {
+    private getRouteForReference(reference: ControllerServiceReferencingComponentDTO): string[] | null {
         if (reference.referenceType == 'ControllerService') {
             if (reference.groupId == null) {
                 return ['/settings', 'management-controller-services', reference.id];
@@ -743,6 +759,9 @@ export class ManagementControllerServicesEffects {
         } else if (reference.referenceType == 'ReportingTask') {
             return ['/settings', 'reporting-tasks', reference.id];
         } else if (reference.referenceType == 'Processor') {
+            if (!reference.groupId) {
+                return null;
+            }
             return ['/process-groups', reference.groupId, ComponentType.Processor, reference.id];
         } else if (reference.referenceType == 'FlowAnalysisRule') {
             return ['/settings', 'flow-analysis-rules', reference.id];

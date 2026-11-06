@@ -16,17 +16,17 @@
  */
 
 import { Injectable, inject } from '@angular/core';
-import { EMPTY, Observable } from 'rxjs';
+import { defer, EMPTY, Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import {
     ControllerServiceCreator,
-    ControllerServiceEntity,
     CreateControllerServiceRequest,
     PropertyDescriptorRetriever
 } from '../../../state/shared';
-import { ConfigureControllerServiceRequest, DeleteControllerServiceRequest } from '../state/controller-services';
+import { ConfigureControllerServiceRequest, DeleteControllerServiceRequest } from '../../../state/flow-shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
+import { ControllerServiceEntity, safeApiPath } from '@nifi/shared';
 
 @Injectable({ providedIn: 'root' })
 export class ControllerServiceService implements ControllerServiceCreator, PropertyDescriptorRetriever {
@@ -38,38 +38,47 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
 
     getControllerServices(processGroupId: string): Observable<any> {
         const uiOnly: any = { uiOnly: true };
-        return this.httpClient.get(
-            `${ControllerServiceService.API}/flow/process-groups/${processGroupId}/controller-services`,
-            {
-                params: uiOnly
-            }
+        return defer(() =>
+            this.httpClient.get(
+                `${ControllerServiceService.API}/flow/process-groups/${safeApiPath(processGroupId)}/controller-services`,
+                {
+                    params: uiOnly
+                }
+            )
         );
     }
 
     getFlow(processGroupId: string): Observable<any> {
-        return this.httpClient.get(`${ControllerServiceService.API}/flow/process-groups/${processGroupId}`);
+        return defer(() =>
+            this.httpClient.get(`${ControllerServiceService.API}/flow/process-groups/${safeApiPath(processGroupId)}`)
+        );
     }
 
-    getControllerService(id: string): Observable<any> {
+    getControllerService(id: string): Observable<ControllerServiceEntity> {
         const uiOnly: any = { uiOnly: true };
-        return this.httpClient.get(`${ControllerServiceService.API}/controller-services/${id}`, {
-            params: uiOnly
-        });
+        return defer(() =>
+            this.httpClient.get<ControllerServiceEntity>(
+                `${ControllerServiceService.API}/controller-services/${safeApiPath(id)}`,
+                { params: uiOnly }
+            )
+        );
     }
 
     createControllerService(createControllerService: CreateControllerServiceRequest): Observable<any> {
         if (createControllerService.processGroupId) {
             const processGroupId: string = createControllerService.processGroupId;
-            return this.httpClient.post(
-                `${ControllerServiceService.API}/process-groups/${processGroupId}/controller-services`,
-                {
-                    revision: createControllerService.revision,
-                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-                    component: {
-                        bundle: createControllerService.controllerServiceBundle,
-                        type: createControllerService.controllerServiceType
+            return defer(() =>
+                this.httpClient.post(
+                    `${ControllerServiceService.API}/process-groups/${safeApiPath(processGroupId)}/controller-services`,
+                    {
+                        revision: createControllerService.revision,
+                        disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                        component: {
+                            bundle: createControllerService.controllerServiceBundle,
+                            type: createControllerService.controllerServiceType
+                        }
                     }
-                }
+                )
             );
         }
         return EMPTY;
@@ -80,15 +89,19 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
             propertyName,
             sensitive
         };
-        return this.httpClient.get(`${ControllerServiceService.API}/controller-services/${id}/descriptors`, {
-            params
-        });
+        return defer(() =>
+            this.httpClient.get(`${ControllerServiceService.API}/controller-services/${safeApiPath(id)}/descriptors`, {
+                params
+            })
+        );
     }
 
     updateControllerService(configureControllerService: ConfigureControllerServiceRequest): Observable<any> {
-        return this.httpClient.put(
-            `${ControllerServiceService.API}/controller-services/${configureControllerService.id}`,
-            configureControllerService.payload
+        return defer(() =>
+            this.httpClient.put(
+                `${ControllerServiceService.API}/controller-services/${safeApiPath(configureControllerService.id)}`,
+                configureControllerService.payload
+            )
         );
     }
 
@@ -96,9 +109,11 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
         const payload = {
             fromTimestamp: request.fromTimestamp
         };
-        return this.httpClient.post(
-            `${ControllerServiceService.API}/controller-services/${request.id}/bulletins/clear-requests`,
-            payload
+        return defer(() =>
+            this.httpClient.post(
+                `${ControllerServiceService.API}/controller-services/${safeApiPath(request.id)}/bulletins/clear-requests`,
+                payload
+            )
         );
     }
 
@@ -110,6 +125,10 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
                 disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
             }
         });
-        return this.httpClient.delete(`${ControllerServiceService.API}/controller-services/${entity.id}`, { params });
+        return defer(() =>
+            this.httpClient.delete(`${ControllerServiceService.API}/controller-services/${safeApiPath(entity.id)}`, {
+                params
+            })
+        );
     }
 }

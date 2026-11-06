@@ -66,9 +66,21 @@ export function bindGoToService(
                 .pipe(takeUntil(dialogRef.afterClosed()))
                 .subscribe({
                     next: (serviceEntity) => {
+                        const processGroupId = serviceEntity.parentGroupId;
+                        if (!processGroupId) {
+                            store.dispatch(
+                                ErrorActions.addBannerError({
+                                    errorContext: {
+                                        errors: ['Unable to determine the Controller Service parent group.'],
+                                        context: errorContext
+                                    }
+                                })
+                            );
+                            return;
+                        }
                         store.dispatch(
                             ConnectorCanvasActions.navigateToControllerService({
-                                processGroupId: serviceEntity.component.parentGroupId,
+                                processGroupId,
                                 serviceId: serviceEntity.id
                             })
                         );

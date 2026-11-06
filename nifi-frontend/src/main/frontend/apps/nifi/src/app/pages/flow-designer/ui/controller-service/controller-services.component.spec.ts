@@ -27,8 +27,7 @@ import { Navigation } from '../../../../ui/common/navigation/navigation.componen
 import { canvasFeatureKey } from '../../state';
 import { controllerServicesFeatureKey } from '../../state/controller-services';
 import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
-import { ControllerServiceEntity } from '../../../../state/shared';
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, ControllerServiceEntity } from '@nifi/shared';
 import {
     clearControllerServiceBulletins,
     loadControllerServices
@@ -60,6 +59,7 @@ describe('ControllerServices', () => {
                         level: 'INFO',
                         message: 'Test bulletin',
                         timestamp: '12:00:00 UTC',
+                        timestampIso: '2023-10-08T12:00:00.000Z',
                         sourceId: 'test-controller-service-id',
                         groupId: 'test-group-id',
                         sourceType: 'CONTROLLER_SERVICE',
@@ -68,6 +68,10 @@ describe('ControllerServices', () => {
                 }
             ],
             permissions: {
+                canRead: true,
+                canWrite: true
+            },
+            operatePermissions: {
                 canRead: true,
                 canWrite: true
             },
@@ -84,7 +88,9 @@ describe('ControllerServices', () => {
                     artifact: 'test-bundle',
                     version: '1.0.0'
                 },
+                controllerServiceApis: [],
                 state: 'ENABLED',
+                bulletinLevel: 'WARN',
                 properties: {},
                 descriptors: {},
                 validationErrors: [],
@@ -95,6 +101,7 @@ describe('ControllerServices', () => {
                 multipleVersionsAvailable: false,
                 persistsState: false,
                 restricted: false,
+                supportsSensitiveDynamicProperties: false,
                 validationStatus: 'VALID'
             },
             status: {
@@ -174,6 +181,7 @@ describe('ControllerServices', () => {
             id,
             parentGroupId,
             permissions: { canRead, canWrite },
+            operatePermissions: { canRead: true, canWrite: true },
             uri: `nifi-api/controller-services/${id}`,
             revision: {
                 version: 0
@@ -183,17 +191,24 @@ describe('ControllerServices', () => {
                 name,
                 type: 'TestService',
                 bundle: { group: 'test', artifact: 'test', version: '1.0' },
+                controllerServiceApis: [],
                 state: 'DISABLED',
+                bulletinLevel: 'WARN',
                 persistsState: false,
                 restricted: false,
                 deprecated: false,
+                extensionMissing: false,
                 multipleVersionsAvailable: false,
+                supportsSensitiveDynamicProperties: false,
                 properties: {},
                 descriptors: {},
                 referencingComponents: [],
-                validationErrors: []
-            }
-        } as ControllerServiceEntity;
+                validationErrors: [],
+                validationStatus: 'VALID'
+            },
+            status: { runStatus: 'DISABLED', validationStatus: 'VALID' },
+            bulletins: []
+        };
     }
 
     function createMockControllerServices(): ControllerServiceEntity[] {

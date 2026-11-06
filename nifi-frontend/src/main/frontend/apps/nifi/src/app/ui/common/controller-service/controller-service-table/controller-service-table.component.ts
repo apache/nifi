@@ -21,8 +21,8 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { NgClass } from '@angular/common';
-import { BulletinsTipInput, ControllerServiceEntity, ValidationErrorsTipInput } from '../../../../state/shared';
-import { NifiTooltipDirective, TextTip, NiFiCommon } from '@nifi/shared';
+import { BulletinsTipInput, ValidationErrorsTipInput } from '../../../../state/shared';
+import { ControllerServiceEntity, NifiTooltipDirective, TextTip, NiFiCommon } from '@nifi/shared';
 import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/validation-errors-tip.component';
 import { FlowConfiguration } from '../../../../state/flow-configuration';
@@ -71,10 +71,12 @@ export class ControllerServiceTable {
      * (View Configuration, View State, View Documentation). Mutating actions
      * such as Edit, Enable, Disable, Change Version, Delete, Clear Bulletins,
      * Advanced UI, and Manage Access Policies are suppressed regardless of
-     * the underlying entity permissions. Used by the connector canvas
-     * controller services view.
+     * the underlying entity permissions. Services defined outside the current
+     * group still offer Go To. Used by the connector canvas controller
+     * services view.
      */
     @Input() readOnly = false;
+    @Input() hideAccessPolicies = false;
 
     @Output() selectControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
@@ -122,7 +124,7 @@ export class ControllerServiceTable {
     }
 
     hasComments(entity: ControllerServiceEntity): boolean {
-        return !this.nifiCommon.isBlank(entity.component.comments);
+        return !this.nifiCommon.isBlank(entity.component?.comments);
     }
 
     viewDocumentationClicked(entity: ControllerServiceEntity): void {
@@ -130,13 +132,13 @@ export class ControllerServiceTable {
     }
 
     hasErrors(entity: ControllerServiceEntity): boolean {
-        return !this.nifiCommon.isEmpty(entity.component.validationErrors);
+        return !this.nifiCommon.isEmpty(entity.component?.validationErrors);
     }
 
     getValidationErrorsTipData(entity: ControllerServiceEntity): ValidationErrorsTipInput {
         return {
             isValidating: entity.status.validationStatus === 'VALIDATING',
-            validationErrors: entity.component.validationErrors
+            validationErrors: entity.component?.validationErrors ?? []
         };
     }
 
@@ -146,12 +148,12 @@ export class ControllerServiceTable {
 
     getBulletinsTipData(entity: ControllerServiceEntity): BulletinsTipInput {
         return {
-            bulletins: entity.bulletins
+            bulletins: entity.bulletins ?? []
         };
     }
 
     getBulletinSeverityClass(entity: ControllerServiceEntity): string {
-        return this.nifiCommon.getBulletinSeverityClass(entity.bulletins);
+        return this.nifiCommon.getBulletinSeverityClass(entity.bulletins ?? []);
     }
 
     getStateIcon(entity: ControllerServiceEntity): string {
@@ -193,15 +195,15 @@ export class ControllerServiceTable {
     }
 
     formatName(entity: ControllerServiceEntity): string {
-        return this.canRead(entity) ? entity.component.name : entity.id;
+        return this.canRead(entity) && entity.component ? entity.component.name : entity.id;
     }
 
     formatType(entity: ControllerServiceEntity): string {
-        return this.canRead(entity) ? this.nifiCommon.formatType(entity.component) : '';
+        return this.canRead(entity) && entity.component ? this.nifiCommon.formatType(entity.component) : '';
     }
 
     formatBundle(entity: ControllerServiceEntity): string {
-        return this.canRead(entity) ? this.nifiCommon.formatBundle(entity.component.bundle) : '';
+        return this.canRead(entity) && entity.component ? this.nifiCommon.formatBundle(entity.component.bundle) : '';
     }
 
     goToControllerServiceClicked(entity: ControllerServiceEntity): void {
@@ -225,7 +227,7 @@ export class ControllerServiceTable {
     }
 
     hasAdvancedUi(entity: ControllerServiceEntity): boolean {
-        return this.canRead(entity) && !!entity.component.customUiUrl;
+        return this.canRead(entity) && !!entity.component?.customUiUrl;
     }
 
     advancedClicked(entity: ControllerServiceEntity): void {
@@ -255,7 +257,7 @@ export class ControllerServiceTable {
             this.isDisabled(entity) &&
             this.canRead(entity) &&
             this.canWrite(entity) &&
-            entity.component.multipleVersionsAvailable
+            entity.component?.multipleVersionsAvailable === true
         );
     }
 
@@ -276,7 +278,7 @@ export class ControllerServiceTable {
     }
 
     canViewState(entity: ControllerServiceEntity): boolean {
-        return this.canRead(entity) && this.canWrite(entity) && entity.component.persistsState === true;
+        return this.canRead(entity) && this.canWrite(entity) && entity.component?.persistsState === true;
     }
 
     canClearBulletins(entity: ControllerServiceEntity): boolean {
@@ -292,7 +294,11 @@ export class ControllerServiceTable {
     }
 
     canManageAccessPolicies(): boolean {
-        return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
+        return (
+            !this.hideAccessPolicies &&
+            this.flowConfiguration.supportsManagedAuthorizer &&
+            this.currentUser.tenantsPermissions.canRead
+        );
     }
 
     select(entity: ControllerServiceEntity): void {

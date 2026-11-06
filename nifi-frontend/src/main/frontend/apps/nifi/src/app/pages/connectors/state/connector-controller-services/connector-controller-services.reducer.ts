@@ -16,24 +16,44 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
+import { produce } from 'immer';
 import { initialConnectorControllerServicesState } from './index';
 import {
+    clearConnectorControllerServiceBulletins,
+    clearConnectorControllerServiceBulletinsFailure,
+    clearConnectorControllerServiceBulletinsSuccess,
+    createConnectorControllerService,
+    createConnectorControllerServiceFailure,
+    createConnectorControllerServiceSuccess,
+    deleteConnectorControllerService,
+    deleteConnectorControllerServiceFailure,
+    deleteConnectorControllerServiceSuccess,
+    inlineCreateConnectorControllerServiceSuccess,
     loadConnectorControllerServices,
     loadConnectorControllerServicesSuccess,
     loadConnectorControllerServicesFailure,
-    resetConnectorControllerServicesState
+    resetConnectorControllerServicesState,
+    saveConnectorControllerService,
+    saveConnectorControllerServiceFailure,
+    saveConnectorControllerServiceSuccess
 } from './connector-controller-services.actions';
 
 export const connectorControllerServicesReducer = createReducer(
     initialConnectorControllerServicesState,
 
-    on(loadConnectorControllerServices, (state, { request }) => ({
-        ...state,
-        connectorId: request.connectorId,
-        processGroupId: request.processGroupId,
-        status: 'loading' as const,
-        error: null
-    })),
+    on(loadConnectorControllerServices, (state, { request }) => {
+        const scopeChanged =
+            state.connectorId !== request.connectorId || state.processGroupId !== request.processGroupId;
+        return {
+            ...state,
+            connectorId: request.connectorId,
+            processGroupId: request.processGroupId,
+            breadcrumb: scopeChanged ? null : state.breadcrumb,
+            controllerServices: scopeChanged ? [] : state.controllerServices,
+            status: 'loading' as const,
+            error: null
+        };
+    }),
 
     on(loadConnectorControllerServicesSuccess, (state, { response }) => ({
         ...state,
@@ -53,6 +73,38 @@ export const connectorControllerServicesReducer = createReducer(
         error: errorContext.errors[0] ?? 'Failed to load controller services',
         hasAttemptedLoad: true
     })),
+
+    on(inlineCreateConnectorControllerServiceSuccess, (state, { response }) =>
+        produce(state, (draftState) => {
+            draftState.controllerServices.push(response.controllerService);
+        })
+    ),
+
+    on(
+        createConnectorControllerService,
+        saveConnectorControllerService,
+        deleteConnectorControllerService,
+        clearConnectorControllerServiceBulletins,
+        (state) => ({
+            ...state,
+            saving: true
+        })
+    ),
+
+    on(
+        createConnectorControllerServiceSuccess,
+        createConnectorControllerServiceFailure,
+        saveConnectorControllerServiceSuccess,
+        saveConnectorControllerServiceFailure,
+        deleteConnectorControllerServiceSuccess,
+        deleteConnectorControllerServiceFailure,
+        clearConnectorControllerServiceBulletinsSuccess,
+        clearConnectorControllerServiceBulletinsFailure,
+        (state) => ({
+            ...state,
+            saving: false
+        })
+    ),
 
     on(resetConnectorControllerServicesState, () => initialConnectorControllerServicesState)
 );

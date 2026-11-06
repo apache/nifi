@@ -16,11 +16,10 @@
  */
 
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { defer, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { ControllerServiceReferencingComponentEntity } from '@nifi/shared';
-import { ControllerServiceEntity } from '../state/shared';
 import { Client } from './client.service';
+import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity, safeApiPath } from '@nifi/shared';
 import { ClusterConnectionService } from './cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })
@@ -31,42 +30,49 @@ export class ControllerServiceStateService {
 
     private static readonly API: string = '../nifi-api';
 
-    getControllerService(id: string): Observable<any> {
+    getControllerService(id: string): Observable<ControllerServiceEntity> {
         const uiOnly: any = { uiOnly: true };
-        return this.httpClient.get(`${ControllerServiceStateService.API}/controller-services/${id}`, {
-            params: uiOnly
-        });
+        return defer(() =>
+            this.httpClient.get<ControllerServiceEntity>(
+                `${ControllerServiceStateService.API}/controller-services/${safeApiPath(id)}`,
+                { params: uiOnly }
+            )
+        );
     }
 
     setEnable(controllerService: ControllerServiceEntity, enabled: boolean): Observable<any> {
-        return this.httpClient.put(
-            `${ControllerServiceStateService.API}/controller-services/${controllerService.id}/run-status`,
-            {
-                revision: this.client.getRevision(controllerService),
-                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-                state: enabled ? 'ENABLED' : 'DISABLED',
-                uiOnly: true
-            }
+        return defer(() =>
+            this.httpClient.put(
+                `${ControllerServiceStateService.API}/controller-services/${safeApiPath(controllerService.id)}/run-status`,
+                {
+                    revision: this.client.getRevision(controllerService),
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                    state: enabled ? 'ENABLED' : 'DISABLED',
+                    uiOnly: true
+                }
+            )
         );
     }
 
     updateReferencingServices(controllerService: ControllerServiceEntity, enabled: boolean): Observable<any> {
         const referencingComponentRevisions: { [key: string]: any } = {};
         this.getReferencingComponentRevisions(
-            controllerService.component.referencingComponents,
+            controllerService.component?.referencingComponents ?? [],
             referencingComponentRevisions,
             true
         );
 
-        return this.httpClient.put(
-            `${ControllerServiceStateService.API}/controller-services/${controllerService.id}/references`,
-            {
-                id: controllerService.id,
-                state: enabled ? 'ENABLED' : 'DISABLED',
-                referencingComponentRevisions: referencingComponentRevisions,
-                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-                uiOnly: true
-            }
+        return defer(() =>
+            this.httpClient.put(
+                `${ControllerServiceStateService.API}/controller-services/${safeApiPath(controllerService.id)}/references`,
+                {
+                    id: controllerService.id,
+                    state: enabled ? 'ENABLED' : 'DISABLED',
+                    referencingComponentRevisions: referencingComponentRevisions,
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                    uiOnly: true
+                }
+            )
         );
     }
 
@@ -76,20 +82,22 @@ export class ControllerServiceStateService {
     ): Observable<any> {
         const referencingComponentRevisions: { [key: string]: any } = {};
         this.getReferencingComponentRevisions(
-            controllerService.component.referencingComponents,
+            controllerService.component?.referencingComponents ?? [],
             referencingComponentRevisions,
             false
         );
 
-        return this.httpClient.put(
-            `${ControllerServiceStateService.API}/controller-services/${controllerService.id}/references`,
-            {
-                id: controllerService.id,
-                state: running ? 'RUNNING' : 'STOPPED',
-                referencingComponentRevisions: referencingComponentRevisions,
-                disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-                uiOnly: true
-            }
+        return defer(() =>
+            this.httpClient.put(
+                `${ControllerServiceStateService.API}/controller-services/${safeApiPath(controllerService.id)}/references`,
+                {
+                    id: controllerService.id,
+                    state: running ? 'RUNNING' : 'STOPPED',
+                    referencingComponentRevisions: referencingComponentRevisions,
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                    uiOnly: true
+                }
+            )
         );
     }
 
@@ -108,16 +116,19 @@ export class ControllerServiceStateService {
         // include the revision of each referencing component
         (referencingComponents ?? []).forEach((referencingComponentEntity) => {
             const referencingComponent = referencingComponentEntity.component;
+            if (!referencingComponent) {
+                return;
+            }
 
             if (serviceOnly) {
-                if (referencingComponent?.referenceType === 'ControllerService') {
+                if (referencingComponent.referenceType === 'ControllerService') {
                     referencingComponentRevisions[referencingComponentEntity.id] =
                         this.client.getRevision(referencingComponentEntity);
                 }
             } else {
                 if (
-                    referencingComponent?.referenceType === 'Processor' ||
-                    referencingComponent?.referenceType === 'ReportingTask'
+                    referencingComponent.referenceType === 'Processor' ||
+                    referencingComponent.referenceType === 'ReportingTask'
                 ) {
                     referencingComponentRevisions[referencingComponentEntity.id] =
                         this.client.getRevision(referencingComponentEntity);
@@ -125,13 +136,13 @@ export class ControllerServiceStateService {
             }
 
             // a reference cycle is evaluated where the service was first encountered, so its children are not walked again
-            if (referencingComponent?.referenceCycle) {
+            if (referencingComponent.referenceCycle) {
                 return;
             }
 
             // recurse
             this.getReferencingComponentRevisions(
-                referencingComponent?.referencingComponents,
+                referencingComponent.referencingComponents ?? [],
                 referencingComponentRevisions,
                 serviceOnly
             );

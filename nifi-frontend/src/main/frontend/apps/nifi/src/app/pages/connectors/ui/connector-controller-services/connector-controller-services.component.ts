@@ -19,8 +19,15 @@ import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { combineLatest, distinctUntilChanged, filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ComponentType, isDefinedAndNotNull, TextTip } from '@nifi/shared';
-import { BreadcrumbEntity, ControllerServiceEntity } from '../../../../state/shared';
+import { ComponentType, ControllerServiceEntity, isDefinedAndNotNull, NiFiCommon, TextTip } from '@nifi/shared';
+import {
+    BreadcrumbEntity,
+    ClearBulletinsRequest,
+    DisableControllerServiceDialogRequest,
+    EditControllerServiceDialogRequest,
+    FetchComponentVersionsRequest,
+    SetEnableControllerServiceDialogRequest
+} from '../../../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { ErrorContextKey } from '../../../../state/error';
@@ -29,10 +36,21 @@ import { navigateToComponentDocumentation } from '../../../../state/documentatio
 import { DocumentationRequest } from '../../../../state/documentation';
 import { BreadcrumbRouteGenerator } from '../../../../ui/common/breadcrumbs/breadcrumbs.component';
 import {
+    clearConnectorControllerServiceBulletins,
     loadConnectorControllerServices,
+    navigateToAdvancedConnectorControllerServiceUi,
+    navigateToConnectorControllerService,
+    openChangeConnectorControllerServiceVersionDialog,
+    openConfigureConnectorControllerServiceDialog,
+    openDisableConnectorControllerServiceDialog,
+    openEnableConnectorControllerServiceDialog,
+    openNewConnectorControllerServiceDialog,
     openViewControllerServiceDialog,
+    promptConnectorControllerServiceDeletion,
     resetConnectorControllerServicesState,
-    selectConnectorControllerService
+    selectConnectorControllerService,
+    startConnectorControllerServicesEntityPolling,
+    stopConnectorControllerServicesEntityPolling
 } from '../../state/connector-controller-services/connector-controller-services.actions';
 import {
     selectConnectorControllerServicesState,
@@ -40,11 +58,13 @@ import {
     selectControllerServiceIdFromRoute,
     selectProcessGroupIdFromRoute
 } from '../../state/connector-controller-services/connector-controller-services.selectors';
+import { selectConnectorCanvasEntity } from '../../state/connector-canvas-entity/connector-canvas-entity.selectors';
+import { loadConnectorEntity } from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
+import { DeleteControllerServiceRequest } from '../../../../state/flow-shared';
 
 /**
- * A read-only view of controller services scoped to a connector's process group.
- * Users can view configuration, documentation, and component state but cannot
- * edit, enable, disable, delete, or otherwise mutate any controller service.
+ * Controller services scoped to a connector's process group. Mutations are
+ * available only while the connector is in troubleshooting.
  *
  * Route: /connectors/:id/canvas/:processGroupId/controller-services
  */
@@ -56,11 +76,14 @@ import {
 })
 export class ConnectorControllerServicesComponent implements OnDestroy {
     private store = inject(Store);
+    private nifiCommon = inject(NiFiCommon);
 
     serviceState = this.store.selectSignal(selectConnectorControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
     flowConfiguration$ = this.store.select(selectFlowConfiguration).pipe(isDefinedAndNotNull());
+    private connectorEntity = this.store.selectSignal(selectConnectorCanvasEntity);
+    readonly inTroubleshooting = computed(() => this.connectorEntity()?.component.state === 'TROUBLESHOOTING');
 
     protected readonly TextTip = TextTip;
     protected readonly ErrorContextKey = ErrorContextKey;
@@ -119,10 +142,13 @@ export class ConnectorControllerServicesComponent implements OnDestroy {
                         }
                     })
                 );
+                this.store.dispatch(loadConnectorEntity({ connectorId: connectorId! }));
+                this.store.dispatch(startConnectorControllerServicesEntityPolling({ connectorId: connectorId! }));
             });
     }
 
     ngOnDestroy(): void {
+        this.store.dispatch(stopConnectorControllerServicesEntityPolling());
         this.store.dispatch(resetConnectorControllerServicesState());
     }
 
@@ -168,13 +194,18 @@ export class ConnectorControllerServicesComponent implements OnDestroy {
         return (entity: ControllerServiceEntity): boolean => breadcrumb.id === entity.parentGroupId;
     }
 
-    /**
-     * Connector controller services are strictly read-only -- the table should
-     * never offer mutating actions regardless of the underlying parent group's
-     * permissions.
-     */
     canModifyParent(): (entity: ControllerServiceEntity) => boolean {
-        return () => false;
+        const state = this.serviceState();
+        if (!this.inTroubleshooting() || !state.breadcrumb) {
+            return () => false;
+        }
+        const breadcrumbs = new Map<string, BreadcrumbEntity>();
+        let breadcrumb: BreadcrumbEntity | undefined = state.breadcrumb;
+        while (breadcrumb) {
+            breadcrumbs.set(breadcrumb.id, breadcrumb);
+            breadcrumb = breadcrumb.parentBreadcrumb;
+        }
+        return (entity) => !!entity.parentGroupId && !!breadcrumbs.get(entity.parentGroupId)?.permissions.canWrite;
     }
 
     selectControllerService(entity: ControllerServiceEntity): void {
@@ -190,13 +221,17 @@ export class ConnectorControllerServicesComponent implements OnDestroy {
     }
 
     viewControllerServiceDocumentation(entity: ControllerServiceEntity): void {
+        if (!entity.permissions.canRead || !entity.component) {
+            return;
+        }
+        const component = entity.component;
         const request: DocumentationRequest = {
             parameters: {
                 componentType: ComponentType.ControllerService,
-                type: entity.component.type,
-                group: entity.component.bundle.group,
-                artifact: entity.component.bundle.artifact,
-                version: entity.component.bundle.version
+                type: component.type,
+                group: component.bundle.group,
+                artifact: component.bundle.artifact,
+                version: component.bundle.version
             },
             backNavigation: {
                 route: [
@@ -216,7 +251,97 @@ export class ConnectorControllerServicesComponent implements OnDestroy {
     }
 
     configureControllerService(entity: ControllerServiceEntity): void {
-        this.store.dispatch(openViewControllerServiceDialog({ controllerService: entity }));
+        if (!entity.permissions.canRead || !entity.component) {
+            return;
+        }
+        if (this.inTroubleshooting()) {
+            const request: EditControllerServiceDialogRequest = {
+                id: entity.id,
+                controllerService: entity,
+                readonly: false
+            };
+            this.store.dispatch(openConfigureConnectorControllerServiceDialog({ request }));
+        } else {
+            this.store.dispatch(openViewControllerServiceDialog({ controllerService: entity }));
+        }
+    }
+
+    goToControllerService(entity: ControllerServiceEntity): void {
+        if (entity.parentGroupId) {
+            this.store.dispatch(
+                navigateToConnectorControllerService({
+                    processGroupId: entity.parentGroupId,
+                    serviceId: entity.id
+                })
+            );
+        }
+    }
+
+    openNewControllerServiceDialog(): void {
+        this.store.dispatch(openNewConnectorControllerServiceDialog());
+    }
+
+    enableControllerService(entity: ControllerServiceEntity): void {
+        if (!entity.permissions.canRead || !entity.component) {
+            return;
+        }
+        const request: SetEnableControllerServiceDialogRequest = {
+            id: entity.id,
+            controllerService: entity
+        };
+        this.store.dispatch(openEnableConnectorControllerServiceDialog({ request }));
+    }
+
+    disableControllerService(entity: ControllerServiceEntity): void {
+        if (!entity.permissions.canRead || !entity.component) {
+            return;
+        }
+        const request: DisableControllerServiceDialogRequest = {
+            id: entity.id,
+            controllerService: entity
+        };
+        this.store.dispatch(openDisableConnectorControllerServiceDialog({ request }));
+    }
+
+    changeControllerServiceVersion(entity: ControllerServiceEntity): void {
+        if (!entity.permissions.canRead || !entity.component) {
+            return;
+        }
+        const component = entity.component;
+        const request: FetchComponentVersionsRequest = {
+            id: entity.id,
+            uri: entity.uri,
+            revision: entity.revision,
+            type: component.type,
+            bundle: component.bundle
+        };
+        this.store.dispatch(openChangeConnectorControllerServiceVersionDialog({ request }));
+    }
+
+    deleteControllerService(entity: ControllerServiceEntity): void {
+        if (!entity.permissions.canRead || !entity.component) {
+            return;
+        }
+        const request: DeleteControllerServiceRequest = { controllerService: entity };
+        this.store.dispatch(promptConnectorControllerServiceDeletion({ request }));
+    }
+
+    clearBulletinsControllerService(entity: ControllerServiceEntity): void {
+        const fromTimestamp = this.nifiCommon.getMostRecentBulletinTimestamp(entity.bulletins ?? []);
+        if (fromTimestamp === null) {
+            return;
+        }
+        const request: ClearBulletinsRequest = {
+            uri: entity.uri,
+            componentId: entity.id,
+            componentType: ComponentType.ControllerService,
+            fromTimestamp
+        };
+        this.store.dispatch(clearConnectorControllerServiceBulletins({ request }));
+    }
+
+    openAdvancedUi(entity: ControllerServiceEntity): void {
+        this.store.dispatch(navigateToAdvancedConnectorControllerServiceUi({ id: entity.id }));
     }
 
     /**
@@ -225,13 +350,16 @@ export class ConnectorControllerServicesComponent implements OnDestroy {
      * the connector-scoped state endpoint instead of the framework endpoint.
      */
     viewStateControllerService(entity: ControllerServiceEntity): void {
+        if (!entity.component) {
+            return;
+        }
         this.store.dispatch(
             getComponentStateAndOpenDialog({
                 request: {
                     componentName: entity.component.name,
                     componentId: entity.id,
                     componentType: ComponentType.ControllerService,
-                    canClear: entity.component.state === 'DISABLED',
+                    canClear: this.inTroubleshooting() && entity.component.state === 'DISABLED',
                     connectorId: this.currentConnectorId
                 }
             })

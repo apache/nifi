@@ -26,9 +26,9 @@ import { selectControllerService, selectControllerServiceSetEnableRequest } from
 import { OkDialog } from '../../ui/common/ok-dialog/ok-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 import { ControllerServiceStateService } from '../../service/controller-service-state.service';
-import { ControllerServiceEntity } from '../shared';
 import { SetEnableRequest, SetEnableStep } from './index';
 import {
+    ControllerServiceEntity,
     ControllerServiceReferencingComponentDTO,
     ControllerServiceReferencingComponentEntity,
     isDefinedAndNotNull,
@@ -63,7 +63,7 @@ export class ControllerServiceStateEffects {
             switchMap(([request, controllerService]) => {
                 if (
                     request.scope === 'SERVICE_AND_REFERENCING_COMPONENTS' &&
-                    this.hasUnauthorizedReferences(controllerService.component.referencingComponents)
+                    this.hasUnauthorizedReferences(controllerService.component?.referencingComponents)
                 ) {
                     return of(
                         ControllerServiceActions.setEnableStepFailure({
@@ -85,7 +85,7 @@ export class ControllerServiceStateEffects {
             ofType(ControllerServiceActions.submitDisableRequest),
             concatLatestFrom(() => this.store.select(selectControllerService).pipe(isDefinedAndNotNull())),
             switchMap(([, controllerService]) => {
-                if (this.hasUnauthorizedReferences(controllerService.component.referencingComponents)) {
+                if (this.hasUnauthorizedReferences(controllerService.component?.referencingComponents)) {
                     return of(
                         ControllerServiceActions.setEnableStepFailure({
                             response: {
@@ -391,7 +391,7 @@ export class ControllerServiceStateEffects {
                     : request.currentStep;
             case SetEnableStep.EnableReferencingServices:
                 return this.isReferencingServicesActionComplete(
-                    controllerServiceEntity.component.referencingComponents,
+                    controllerServiceEntity.component?.referencingComponents,
                     ['ENABLED', 'ENABLING']
                 )
                     ? SetEnableStep.StartReferencingComponents
@@ -400,12 +400,12 @@ export class ControllerServiceStateEffects {
                 // since we are starting components, there is no condition to wait for
                 return SetEnableStep.Completed;
             case SetEnableStep.StopReferencingComponents:
-                return this.areReferencingComponentsStopped(controllerServiceEntity.component.referencingComponents)
+                return this.areReferencingComponentsStopped(controllerServiceEntity.component?.referencingComponents)
                     ? SetEnableStep.DisableReferencingServices
                     : request.currentStep;
             case SetEnableStep.DisableReferencingServices:
                 return this.isReferencingServicesActionComplete(
-                    controllerServiceEntity.component.referencingComponents,
+                    controllerServiceEntity.component?.referencingComponents,
                     ['DISABLED']
                 )
                     ? SetEnableStep.DisableService
