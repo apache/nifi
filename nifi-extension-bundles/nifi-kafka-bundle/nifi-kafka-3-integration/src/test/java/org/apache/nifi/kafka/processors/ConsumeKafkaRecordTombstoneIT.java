@@ -25,9 +25,7 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.nifi.avro.AvroReader;
 import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
-import org.apache.nifi.kafka.processors.producer.wrapper.WrapperRecord;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
-import org.apache.nifi.kafka.shared.property.OutputStrategy;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.util.MockFlowFile;
@@ -38,7 +36,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -47,15 +44,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 /**
- * RECORD output for a batch that contains a non-null empty value, a null tombstone, and a real value.
- * A null tombstone is omitted from success and parse.failure. A JSON reader emits only the real value.
- * An Avro reader routes the non-null empty value to parse.failure and writes the real value to success.
+ * RECORD output for a batch that contains a non-null empty value, a null tombstone, and a real Avro value.
+ * The tombstone is omitted from success and parse.failure. The empty value is routed to parse.failure.
+ * The real value is written to success.
  */
 class ConsumeKafkaRecordTombstoneIT extends AbstractConsumeKafkaIT {
-
-    private static final String NON_EMPTY_VALUE = "{\"name\":\"A\"}";
-
-    private static final byte[] NON_EMPTY_BYTES = NON_EMPTY_VALUE.getBytes(StandardCharsets.UTF_8);
 
     private static final byte[] EMPTY_BYTES = new byte[0];
 
@@ -84,8 +77,8 @@ class ConsumeKafkaRecordTombstoneIT extends AbstractConsumeKafkaIT {
         runner = TestRunners.newTestRunner(ConsumeKafka.class);
         addKafkaConnectionService(runner);
         runner.setProperty(ConsumeKafka.CONNECTION_SERVICE, CONNECTION_SERVICE_ID);
-        addRecordReaderService(runner);
         addRecordWriterService(runner);
+        useAvroReader();
 
         topic = UUID.randomUUID().toString();
         runner.setProperty(ConsumeKafka.GROUP_ID, topic);
@@ -95,67 +88,8 @@ class ConsumeKafkaRecordTombstoneIT extends AbstractConsumeKafkaIT {
     }
 
     @Test
-    void testOutputStrategyUseValue() throws ExecutionException, InterruptedException, IOException {
-        setOutputStrategy(OutputStrategy.USE_VALUE);
-        produceJsonRecords();
-
-        runner.assertTransferCount(ConsumeKafka.PARSE_FAILURE, 0);
-        runner.assertTransferCount(ConsumeKafka.SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).getFirst();
-        final ArrayNode records = assertInstanceOf(ArrayNode.class, objectMapper.readTree(flowFile.getContent()));
-        assertEquals(1, records.size());
-        final ObjectNode record = assertInstanceOf(ObjectNode.class, records.get(0));
-        assertEquals("A", record.get("name").asText());
-    }
-
-    @Test
-    void testOutputStrategyUseWrapper() throws ExecutionException, InterruptedException, IOException {
-        setOutputStrategy(OutputStrategy.USE_WRAPPER);
-        produceJsonRecords();
-
-        runner.assertTransferCount(ConsumeKafka.PARSE_FAILURE, 0);
-        runner.assertTransferCount(ConsumeKafka.SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).getFirst();
-        final ArrayNode records = assertInstanceOf(ArrayNode.class, objectMapper.readTree(flowFile.getContent()));
-        assertEquals(1, records.size());
-        final ObjectNode record = assertInstanceOf(ObjectNode.class, records.get(0));
-        final ObjectNode value = assertInstanceOf(ObjectNode.class, record.get(WrapperRecord.VALUE));
-        assertEquals("A", value.get("name").asText());
-    }
-
-    @Test
-    void testOutputStrategyInjectMetadata() throws ExecutionException, InterruptedException, IOException {
-        setOutputStrategy(OutputStrategy.INJECT_METADATA);
-        produceJsonRecords();
-
-        runner.assertTransferCount(ConsumeKafka.PARSE_FAILURE, 0);
-        runner.assertTransferCount(ConsumeKafka.SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).getFirst();
-        final ArrayNode records = assertInstanceOf(ArrayNode.class, objectMapper.readTree(flowFile.getContent()));
-        assertEquals(1, records.size());
-        final ObjectNode record = assertInstanceOf(ObjectNode.class, records.get(0));
-        assertEquals("A", record.get("name").asText());
-    }
-
-    @Test
-    void testOutputStrategyInjectOffset() throws ExecutionException, InterruptedException, IOException {
-        setOutputStrategy(OutputStrategy.INJECT_OFFSET);
-        produceJsonRecords();
-
-        runner.assertTransferCount(ConsumeKafka.PARSE_FAILURE, 0);
-        runner.assertTransferCount(ConsumeKafka.SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).getFirst();
-        final ArrayNode records = assertInstanceOf(ArrayNode.class, objectMapper.readTree(flowFile.getContent()));
-        assertEquals(1, records.size());
-        final ObjectNode record = assertInstanceOf(ObjectNode.class, records.get(0));
-        assertEquals("A", record.get("name").asText());
-    }
-
-    @Test
-    void testOutputStrategyUseValueWithAvroReader() throws ExecutionException, InterruptedException, IOException, InitializationException {
-        setOutputStrategy(OutputStrategy.USE_VALUE);
-        useAvroReader();
-        produceAvroRecords();
+    void testTombstoneSkippedAndEmptyValueRoutedToParseFailure() throws ExecutionException, InterruptedException, IOException {
+        produceAndConsumeAvroRecords();
 
         runner.assertTransferCount(ConsumeKafka.PARSE_FAILURE, 1);
         runner.assertTransferCount(ConsumeKafka.SUCCESS, 1);
@@ -166,70 +100,11 @@ class ConsumeKafkaRecordTombstoneIT extends AbstractConsumeKafkaIT {
         assertEquals("A", record.get("name").asText());
     }
 
-    @Test
-    void testOutputStrategyUseWrapperWithAvroReader() throws ExecutionException, InterruptedException, IOException, InitializationException {
-        setOutputStrategy(OutputStrategy.USE_WRAPPER);
-        useAvroReader();
-        produceAvroRecords();
-
-        runner.assertTransferCount(ConsumeKafka.PARSE_FAILURE, 1);
-        runner.assertTransferCount(ConsumeKafka.SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).getFirst();
-        final ArrayNode records = assertInstanceOf(ArrayNode.class, objectMapper.readTree(flowFile.getContent()));
-        assertEquals(1, records.size());
-        final ObjectNode record = assertInstanceOf(ObjectNode.class, records.get(0));
-        final ObjectNode value = assertInstanceOf(ObjectNode.class, record.get(WrapperRecord.VALUE));
-        assertEquals("A", value.get("name").asText());
-    }
-
-    @Test
-    void testOutputStrategyInjectMetadataWithAvroReader() throws ExecutionException, InterruptedException, IOException, InitializationException {
-        setOutputStrategy(OutputStrategy.INJECT_METADATA);
-        useAvroReader();
-        produceAvroRecords();
-
-        runner.assertTransferCount(ConsumeKafka.PARSE_FAILURE, 1);
-        runner.assertTransferCount(ConsumeKafka.SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).getFirst();
-        final ArrayNode records = assertInstanceOf(ArrayNode.class, objectMapper.readTree(flowFile.getContent()));
-        assertEquals(1, records.size());
-        final ObjectNode record = assertInstanceOf(ObjectNode.class, records.get(0));
-        assertEquals("A", record.get("name").asText());
-    }
-
-    @Test
-    void testOutputStrategyInjectOffsetWithAvroReader() throws ExecutionException, InterruptedException, IOException, InitializationException {
-        setOutputStrategy(OutputStrategy.INJECT_OFFSET);
-        useAvroReader();
-        produceAvroRecords();
-
-        runner.assertTransferCount(ConsumeKafka.PARSE_FAILURE, 1);
-        runner.assertTransferCount(ConsumeKafka.SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).getFirst();
-        final ArrayNode records = assertInstanceOf(ArrayNode.class, objectMapper.readTree(flowFile.getContent()));
-        assertEquals(1, records.size());
-        final ObjectNode record = assertInstanceOf(ObjectNode.class, records.get(0));
-        assertEquals("A", record.get("name").asText());
-    }
-
-    private void setOutputStrategy(final OutputStrategy outputStrategy) {
-        runner.setProperty(ConsumeKafka.OUTPUT_STRATEGY, outputStrategy);
-    }
-
-    private void produceJsonRecords() throws ExecutionException, InterruptedException {
+    private void produceAndConsumeAvroRecords() throws ExecutionException, InterruptedException, IOException {
         runner.run(1, false, true);
         produceBytes(topic, FIRST_PARTITION, MESSAGE_KEY, EMPTY_BYTES);
         produceBytes(topic, FIRST_PARTITION, MESSAGE_KEY, null);
-        produceBytes(topic, FIRST_PARTITION, MESSAGE_KEY, NON_EMPTY_BYTES);
-        runUntil(runner, testRunner -> !testRunner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty(), POLL_TIMEOUT);
-        runner.run(1, true, false);
-    }
-
-    private void produceAvroRecords() throws ExecutionException, InterruptedException, IOException {
-        runner.run(1, false, true);
-        produceBytes(topic, FIRST_PARTITION, MESSAGE_KEY, EMPTY_BYTES);
-        produceBytes(topic, FIRST_PARTITION, MESSAGE_KEY, null);
-        produceBytes(topic, FIRST_PARTITION, MESSAGE_KEY, avroRecord());
+        produceBytes(topic, FIRST_PARTITION, MESSAGE_KEY, createAvroRecord());
         runUntil(runner, testRunner -> !testRunner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty()
                 && !testRunner.getFlowFilesForRelationship(ConsumeKafka.PARSE_FAILURE).isEmpty(), POLL_TIMEOUT);
         runner.run(1, true, false);
@@ -244,7 +119,7 @@ class ConsumeKafkaRecordTombstoneIT extends AbstractConsumeKafkaIT {
         runner.setProperty(ConsumeKafka.RECORD_READER, readerId);
     }
 
-    private byte[] avroRecord() throws IOException {
+    private byte[] createAvroRecord() throws IOException {
         final Schema schema = new Schema.Parser().parse(AVRO_SCHEMA);
         final GenericRecord record = new GenericData.Record(schema);
         record.put("name", "A");

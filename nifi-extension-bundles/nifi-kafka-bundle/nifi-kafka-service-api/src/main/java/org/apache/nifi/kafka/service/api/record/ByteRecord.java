@@ -45,19 +45,6 @@ public class ByteRecord {
             final List<RecordHeader> headers,
             final byte[] key,
             final byte[] value,
-            final long bundledCount
-    ) {
-        this(topic, partition, offset, timestamp, headers, key, value, bundledCount, false);
-    }
-
-    public ByteRecord(
-            final String topic,
-            final int partition,
-            final long offset,
-            final long timestamp,
-            final List<RecordHeader> headers,
-            final byte[] key,
-            final byte[] value,
             final long bundledCount,
             final boolean tombstone
     ) {

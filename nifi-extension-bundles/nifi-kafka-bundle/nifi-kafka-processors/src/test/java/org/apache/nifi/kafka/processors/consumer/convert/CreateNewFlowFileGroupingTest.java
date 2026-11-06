@@ -83,8 +83,8 @@ class CreateNewFlowFileGroupingTest {
 
     @Test
     void testSameTopicPartitionAndSchemaShareOneFlowFile() throws Exception {
-        final ByteRecord first = new ByteRecord(TOPIC, 0, 10, 1000L, List.of(), null, new byte[0], 0L);
-        final ByteRecord second = new ByteRecord(TOPIC, 0, 11, 500L, List.of(), null, new byte[0], 0L);
+        final ByteRecord first = new ByteRecord(TOPIC, 0, 10, 1000L, List.of(), null, new byte[0], 0L, false);
+        final ByteRecord second = new ByteRecord(TOPIC, 0, 11, 500L, List.of(), null, new byte[0], 0L, false);
 
         grouping.addRecord(session, first, RECORD_A, SCHEMA_A, Map.of(), Map.of());
         grouping.addRecord(session, second, RECORD_A, SCHEMA_A, Map.of(), Map.of());
@@ -105,8 +105,8 @@ class CreateNewFlowFileGroupingTest {
 
     @Test
     void testDifferentWriteSchemasProduceSeparateFlowFiles() throws Exception {
-        final ByteRecord first = new ByteRecord(TOPIC, 0, 1, 1000L, List.of(), null, new byte[0], 0L);
-        final ByteRecord second = new ByteRecord(TOPIC, 0, 2, 2000L, List.of(), null, new byte[0], 0L);
+        final ByteRecord first = new ByteRecord(TOPIC, 0, 1, 1000L, List.of(), null, new byte[0], 0L, false);
+        final ByteRecord second = new ByteRecord(TOPIC, 0, 2, 2000L, List.of(), null, new byte[0], 0L, false);
 
         grouping.addRecord(session, first, RECORD_A, SCHEMA_A, Map.of(), Map.of());
         grouping.addRecord(session, second, RECORD_B, SCHEMA_B, Map.of(), Map.of());
@@ -120,8 +120,8 @@ class CreateNewFlowFileGroupingTest {
 
     @Test
     void testDifferentGroupingAttributesProduceSeparateFlowFiles() throws Exception {
-        final ByteRecord first = new ByteRecord(TOPIC, 0, 1, 1000L, List.of(), null, new byte[0], 0L);
-        final ByteRecord second = new ByteRecord(TOPIC, 0, 2, 2000L, List.of(), null, new byte[0], 0L);
+        final ByteRecord first = new ByteRecord(TOPIC, 0, 1, 1000L, List.of(), null, new byte[0], 0L, false);
+        final ByteRecord second = new ByteRecord(TOPIC, 0, 2, 2000L, List.of(), null, new byte[0], 0L, false);
 
         grouping.addRecord(session, first, RECORD_A, SCHEMA_A, Map.of(), Map.of("hdr", "a"));
         grouping.addRecord(session, second, RECORD_A, SCHEMA_A, Map.of(), Map.of("hdr", "b"));
@@ -135,8 +135,8 @@ class CreateNewFlowFileGroupingTest {
 
     @Test
     void testDifferentPartitionsProduceSeparateFlowFiles() throws Exception {
-        final ByteRecord first = new ByteRecord(TOPIC, 0, 1, 1000L, List.of(), null, new byte[0], 0L);
-        final ByteRecord second = new ByteRecord(TOPIC, 1, 2, 2000L, List.of(), null, new byte[0], 0L);
+        final ByteRecord first = new ByteRecord(TOPIC, 0, 1, 1000L, List.of(), null, new byte[0], 0L, false);
+        final ByteRecord second = new ByteRecord(TOPIC, 1, 2, 2000L, List.of(), null, new byte[0], 0L, false);
 
         grouping.addRecord(session, first, RECORD_A, SCHEMA_A, Map.of(), Map.of());
         grouping.addRecord(session, second, RECORD_A, SCHEMA_A, Map.of(), Map.of());
