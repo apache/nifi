@@ -38,7 +38,16 @@ $handle-size: 15px;
 }
 
 :host:has(.resizable-handle.cdk-drag-dragging) {
+    position: relative;
     cursor: se-resize;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        cursor: se-resize;
+    }
 }
 
 .resizable-triangle {
