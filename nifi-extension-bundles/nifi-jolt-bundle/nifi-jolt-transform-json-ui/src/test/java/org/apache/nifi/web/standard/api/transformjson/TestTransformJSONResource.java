@@ -277,6 +277,35 @@ public class TestTransformJSONResource extends JerseyTest {
         assertTrue(diffy.diff(compareJson, transformedJson).isEmpty());
     }
 
+    @Test
+    public void testExecuteExpressionLanguageUsesSuppliedAttributes() {
+        final Diffy diffy = new Diffy();
+
+        final String attributeName = "label";
+        final String attributeValue = "preview";
+        final String specification = """
+                {"label":"${label}","account":"${user.name}"}
+                """;
+        final String expected = """
+                {"label":"preview","account":""}
+                """;
+
+        final JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-default", specification);
+        joltSpecificationDTO.setInput("{}");
+        final Map<String, String> attributes = Map.of(attributeName, attributeValue);
+        joltSpecificationDTO.setExpressionLanguageAttributes(attributes);
+
+        final String responseString = client().target(getBaseUri())
+                .path("/standard/transformjson/execute")
+                .request()
+                .post(Entity.json(joltSpecificationDTO), String.class);
+
+        final Object transformedJson = JsonUtils.jsonToObject(responseString);
+        final Object expectedJson = JsonUtils.jsonToObject(expected);
+        assertNotNull(transformedJson);
+        assertTrue(diffy.diff(expectedJson, transformedJson).isEmpty());
+    }
+
     public static class MockServletContext implements Factory<ServletContext> {
         @Override
         public ServletContext provide() {

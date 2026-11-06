@@ -265,7 +265,7 @@ public class TestPutSplunk {
 
     @Test
     @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
-    public void testYieldsWhenIdle() throws Exception {
+    public void testYieldsWhenIdle() {
         createTestServer(TransportProtocol.TCP);
 
         runner.run(1);

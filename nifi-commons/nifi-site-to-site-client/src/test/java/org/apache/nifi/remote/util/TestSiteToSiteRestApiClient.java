@@ -34,12 +34,12 @@ public class TestSiteToSiteRestApiClient {
     }
 
     @Test
-    public void testResolveBaseUrlHttp() throws Exception {
+    public void testResolveBaseUrlHttp() {
         assertSingleUri("http://nifi.example.com/nifi-api", parseClusterUrls("http://nifi.example.com/nifi"));
     }
 
     @Test
-    public void testResolveBaseUrlHttpSub() throws Exception {
+    public void testResolveBaseUrlHttpSub() {
         assertSingleUri("http://nifi.example.com/foo/bar/baz/nifi-api", parseClusterUrls("http://nifi.example.com/foo/bar/baz/nifi"));
     }
 
@@ -49,7 +49,7 @@ public class TestSiteToSiteRestApiClient {
     }
 
     @Test
-    public void testResolveBaseUrlHttps() throws Exception {
+    public void testResolveBaseUrlHttps() {
         assertSingleUri("https://nifi.example.com/nifi-api", parseClusterUrls("https://nifi.example.com/nifi"));
     }
 
@@ -121,14 +121,14 @@ public class TestSiteToSiteRestApiClient {
     }
 
     @Test
-    public void testGetUrlsEmpty() throws Exception {
+    public void testGetUrlsEmpty() {
         assertThrows(IllegalArgumentException.class, () -> parseClusterUrls(null));
 
         assertThrows(IllegalArgumentException.class, () -> parseClusterUrls(""));
     }
 
     @Test
-    public void testGetUrlsOne() throws Exception {
+    public void testGetUrlsOne() {
         final Set<String> urls = parseClusterUrls("http://localhost:8080/nifi");
 
         assertEquals(1, urls.size());
@@ -136,7 +136,7 @@ public class TestSiteToSiteRestApiClient {
     }
 
     @Test
-    public void testGetUrlsThree() throws Exception {
+    public void testGetUrlsThree() {
         final Set<String> urls = parseClusterUrls("http://host1:8080/nifi,http://host2:8080/nifi,http://host3:8080/nifi");
 
         assertEquals(3, urls.size());

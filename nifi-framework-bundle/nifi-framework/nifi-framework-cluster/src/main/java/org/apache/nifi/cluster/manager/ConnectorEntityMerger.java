@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.manager;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
+import org.apache.nifi.web.api.dto.ConnectorActionDTO;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.status.ConnectorStatusDTO;
@@ -27,9 +28,11 @@ import org.apache.nifi.web.api.entity.ConnectorEntity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ConnectorEntityMerger {
+    private static final String CHANGE_VERSION_ACTION = "CHANGE_VERSION";
     /**
      * Merges the ConnectorEntity responses.
      *
@@ -101,11 +104,75 @@ public class ConnectorEntityMerger {
             return;
         }
 
+        for (final ConnectorDTO nodeConnector : dtoMap.values()) {
+            if (nodeConnector != null) {
+                if (clientDto.getMultipleVersionsAvailable() == null || !Boolean.TRUE.equals(nodeConnector.getMultipleVersionsAvailable())) {
+                    clientDto.setMultipleVersionsAvailable(Boolean.FALSE);
+                }
+            }
+        }
+
+        mergeChangeVersion(clientDto, dtoMap);
         mergeState(clientDto, dtoMap);
 
         // Merge configuration steps to handle dynamic property descriptors
         mergeActiveConfiguration(clientDto, dtoMap);
         mergeWorkingConfiguration(clientDto, dtoMap);
+    }
+
+    /**
+     * A version change is offered only when every node allows it. If any node is missing the action, or does not allow it, the merged action is not
+     * allowed and keeps that node's reason.
+     */
+    private static void mergeChangeVersion(final ConnectorDTO clientDto, final Map<NodeIdentifier, ConnectorDTO> dtoMap) {
+        for (final ConnectorDTO nodeConnector : dtoMap.values()) {
+            if (nodeConnector == null) {
+                continue;
+            }
+
+            final ConnectorActionDTO nodeAction = findAction(nodeConnector, CHANGE_VERSION_ACTION);
+            if (nodeAction != null && Boolean.TRUE.equals(nodeAction.getAllowed())) {
+                continue;
+            }
+
+            final ConnectorActionDTO clientAction = findOrCreateChangeVersionAction(clientDto);
+            clientAction.setAllowed(Boolean.FALSE);
+            clientAction.setReasonNotAllowed(nodeAction == null ? null : nodeAction.getReasonNotAllowed());
+        }
+    }
+
+    private static ConnectorActionDTO findOrCreateChangeVersionAction(final ConnectorDTO clientDto) {
+        final ConnectorActionDTO existingAction = findAction(clientDto, CHANGE_VERSION_ACTION);
+        if (existingAction != null) {
+            return existingAction;
+        }
+
+        final ConnectorActionDTO changeVersionAction = new ConnectorActionDTO();
+        changeVersionAction.setName(CHANGE_VERSION_ACTION);
+        changeVersionAction.setDescription("Change the connector version");
+
+        final List<ConnectorActionDTO> actions = new ArrayList<>();
+        if (clientDto.getAvailableActions() != null) {
+            actions.addAll(clientDto.getAvailableActions());
+        }
+        actions.add(changeVersionAction);
+        clientDto.setAvailableActions(actions);
+        return changeVersionAction;
+    }
+
+    private static ConnectorActionDTO findAction(final ConnectorDTO connector, final String actionName) {
+        final List<ConnectorActionDTO> actions = connector.getAvailableActions();
+        if (actions == null) {
+            return null;
+        }
+
+        for (final ConnectorActionDTO action : actions) {
+            if (actionName.equals(action.getName())) {
+                return action;
+            }
+        }
+
+        return null;
     }
 
     /**

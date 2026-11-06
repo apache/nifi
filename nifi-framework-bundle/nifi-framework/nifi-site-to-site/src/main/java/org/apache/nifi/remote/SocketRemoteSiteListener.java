@@ -242,7 +242,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                 try {
                                     peer.close();
                                 } catch (final IOException e) {
-                                    LOG.warn("Failed to close {} due to {}", peer, e);
+                                    LOG.warn("Failed to close {}", peer, e);
                                 }
 
                                 // no need to shutdown protocol because we failed to perform handshake

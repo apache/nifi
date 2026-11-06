@@ -24,10 +24,11 @@ import {
     output,
     effect,
     computed,
+    untracked,
     ChangeDetectionStrategy
 } from '@angular/core';
 import * as d3 from 'd3';
-import { CanvasConnection, CanvasRootResolver, CanvasRootSelection, CanvasSelection } from '../../canvas.types';
+import { CanvasConnection, CanvasRootResolver, CanvasRootSelection } from '../../canvas.types';
 import { ConnectionRenderer } from './connection-renderer';
 import { ConnectionReconnectContext, ConnectionRenderContext } from '../render-context.types';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
@@ -35,6 +36,7 @@ import { CanvasFormatUtils } from '../../canvas-format-utils.service';
 import { CanvasComponentUtils } from '../../canvas-component-utils.service';
 import { NiFiCommon } from '@nifi/shared';
 import { ConnectionEndpointReconnectDestination } from '../../../../../state/flow-shared';
+import { ViewportRect } from '../../utils/visibility.utils';
 
 /**
  * ConnectionLayerComponent
@@ -77,9 +79,15 @@ export class ConnectionLayerComponent implements AfterViewInit {
     connections = input<CanvasConnection[]>([]);
 
     /**
-     * Scale factor (not used in rendering, kept for compatibility)
+     * Current canvas scale factor.
      */
     scale = input<number>(1);
+
+    /**
+     * Padded viewport rectangle in canvas-space coordinates published by the canvas.
+     * Null until the canvas is measurable.
+     */
+    viewportBounds = input<ViewportRect | null>(null);
 
     /**
      * Currently selected component IDs
@@ -179,8 +187,6 @@ export class ConnectionLayerComponent implements AfterViewInit {
             ? d3.select<SVGGElement, unknown>(canvasNode)
             : d3.select<SVGGElement, unknown>(null as unknown as SVGGElement);
     };
-    private selectedIdsSet = computed(() => new Set(this.selectedIds()));
-
     /**
      * Stable callback object to prevent unnecessary D3 event handler re-binding
      */
@@ -209,6 +215,17 @@ export class ConnectionLayerComponent implements AfterViewInit {
     };
 
     /**
+     * Memoized Set of selected component IDs for O(1) lookup. Used by
+     * `applySelectionStyling` to keep the per-connection `classed()` lookup
+     * cost flat as the selection grows. Unlike the six component-side layers,
+     * connections are NOT a drag-gesture source for `dragMovingIds` (their
+     * bend translation rides the moving component's gesture via the
+     * canvas's `getComponentConnections` self-loop discovery), so this set
+     * does not need to be bridged through `renderContext.getSelectedIds()`.
+     */
+    private selectedIdsSet = computed<Set<string>>(() => new Set(this.selectedIds()));
+
+    /**
      * Computed render context - encapsulates all data needed by ConnectionRenderer
      */
     private renderContext = computed<ConnectionRenderContext>(() => ({
@@ -216,6 +233,9 @@ export class ConnectionLayerComponent implements AfterViewInit {
         textEllipsis: this.textEllipsis(),
         formatUtils: this.formatUtils(),
         nifiCommon: this.nifiCommon(),
+        // untracked: scale is passive — don't re-render on zoom ticks.
+        scale: untracked(() => this.scale()),
+        viewportBounds: this.viewportBounds(),
         componentUtils: this.componentUtils(),
         getCanEdit: () => this.canEdit(),
         getCanSelect: () => this.canSelect(),
@@ -239,6 +259,21 @@ export class ConnectionLayerComponent implements AfterViewInit {
         const _connections = this.connections();
         const _renderTrigger = this.renderTrigger();
         const _processGroupId = this.processGroupId();
+        // Track `canSelect`, `canEdit`, and `disabledConnectionIds` so
+        // render-time reads (cursor styling on the connection group itself and
+        // on bend-point midpoints, opacity, the `disabled` class) refresh on
+        // runtime toggles. Fire-time gates inside handlers read the same
+        // values via `getCanSelect()` / `getCanEdit()` / `getDisabledConnectionIds()`
+        // and don't require these deps; tracking here exists purely so that
+        // when the saving set clears, the disabled visual treatment lifts
+        // immediately without the consumer having to bump `renderTrigger`
+        // from a confirm handler.
+        const _canSelect = this.canSelect();
+        const _canEdit = this.canEdit();
+        const _disabledConnectionIds = this.disabledConnectionIds();
+        // Track viewportBounds so the renderer re-classifies visibility after
+        // zoom end, resize, or birdseye drag end.
+        const _viewportBounds = this.viewportBounds();
 
         if (this.containerSelection) {
             this.render();
@@ -270,16 +305,16 @@ export class ConnectionLayerComponent implements AfterViewInit {
             return;
         }
 
-        const selectedIds = this.selectedIds();
+        const selectedIdsSet = this.selectedIdsSet();
         const canEdit = this.canEdit();
         const canSelect = this.canSelect();
 
         this.containerSelection
             .selectAll<SVGGElement, CanvasConnection>('g.connection')
-            .classed('selected', (d) => selectedIds.includes(d.entity.id))
+            .classed('selected', (d) => selectedIdsSet.has(d.entity.id))
             .each(function (d) {
                 const connection = d3.select(this);
-                const isSelected = selectedIds.includes(d.entity.id);
+                const isSelected = selectedIdsSet.has(d.entity.id);
                 const labelContainer = connection.select('g.connection-label-container');
 
                 if (!labelContainer.empty()) {
@@ -310,14 +345,6 @@ export class ConnectionLayerComponent implements AfterViewInit {
         }
 
         ConnectionRenderer.render(this.renderContext());
-        this.applySelectionStyling();
-    }
-
-    /**
-     * Pan update for entering/leaving connections (called from canvas during zoom/pan)
-     */
-    public pan(selection: CanvasSelection<CanvasConnection>): void {
-        ConnectionRenderer.pan(selection, this.renderContext());
         this.applySelectionStyling();
     }
 }

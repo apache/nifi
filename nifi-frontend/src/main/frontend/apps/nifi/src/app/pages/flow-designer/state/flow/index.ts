@@ -17,37 +17,31 @@
 
 import { Position } from '@nifi/shared';
 import {
+    Dimensions,
+    FlowComparisonEntity,
+    FlowUpdateRequestEntity,
+    MoveComponentRequest,
+    PasteRequest,
+    SelectedComponent,
+    Snippet,
+    VersionControlInformationEntity
+} from '../../../../state/flow-shared';
+import {
     BacklogRequestEntity,
     BreadcrumbEntity,
     DisableComponentRequest,
     EnableComponentRequest,
-    ParameterContextEntity,
     RegistryClientEntity,
-    SparseVersionedFlow,
     StartComponentRequest,
     StopComponentRequest,
     UpdateComponentRequest,
     VersionedFlowSnapshotMetadataEntity
 } from '../../../../state/shared';
 import { BackNavigation } from '../../../../state/navigation';
-import {
-    BulletinEntity,
-    Bundle,
-    ComponentType,
-    ParameterContextReferenceEntity,
-    Permissions,
-    Revision
-} from '@nifi/shared';
+import { BulletinEntity, ComponentType, ParameterContextReferenceEntity, Permissions, Revision } from '@nifi/shared';
 import { VersionControlInformation } from '../../../../ui/common/tooltips/version-control-tip/version-control-tip.component';
-import { CopyResponseEntity, PasteRequestStrategy } from '../../../../state/copy';
 
 export const flowFeatureKey = 'flowState';
-
-export interface SelectedComponent {
-    id: string;
-    componentType: ComponentType;
-    entity?: any;
-}
 
 export interface SelectComponentsRequest {
     components: SelectedComponent[];
@@ -103,55 +97,6 @@ export interface LoadRemoteProcessGroupSuccess {
   Component Requests
  */
 
-export interface CreateComponentRequest {
-    type: ComponentType;
-    position: Position;
-    revision: any;
-}
-
-export interface CreateLabelRequest extends CreateComponentRequest {
-    zIndex: number;
-}
-
-export interface CreateConnectionRequest {
-    source: SelectedComponent;
-    destination: SelectedComponent;
-    bends?: Position[];
-}
-
-export interface CreateConnectionDialogRequest {
-    request: CreateConnectionRequest;
-    defaults: {
-        flowfileExpiration: string;
-        objectThreshold: number;
-        dataSizeThreshold: string;
-    };
-}
-
-export interface CreateConnection {
-    payload: any;
-}
-
-export interface CreateProcessGroupDialogRequest {
-    request: CreateComponentRequest;
-    currentParameterContextId?: string;
-    parameterContexts: ParameterContextEntity[];
-}
-
-export interface NoRegistryClientsDialogRequest {
-    controllerPermissions: Permissions;
-}
-
-export interface ImportFromRegistryDialogRequest {
-    request: CreateComponentRequest;
-    registryClients: RegistryClientEntity[];
-}
-
-export interface ImportFromRegistryRequest {
-    payload: any;
-    keepExistingParameterContext: boolean;
-}
-
 export interface OpenSaveVersionDialogRequest {
     processGroupId: string;
     forceCommit?: boolean;
@@ -176,18 +121,7 @@ export interface SaveVersionDialogRequest {
     forceCommit?: boolean;
 }
 
-export interface SaveToVersionControlRequest {
-    processGroupId: string;
-    versionedFlow: SparseVersionedFlow;
-    processGroupRevision: Revision;
-}
-
 export interface ConfirmStopVersionControlRequest {
-    processGroupId: string;
-}
-
-export interface StopVersionControlRequest {
-    revision: Revision;
     processGroupId: string;
 }
 
@@ -208,39 +142,6 @@ export interface SaveVersionRequest {
     branch?: string;
 }
 
-export interface VersionControlInformationEntity {
-    processGroupRevision: Revision;
-    versionControlInformation?: VersionControlInformation;
-    disconnectedNodeAcknowledged?: boolean;
-}
-
-export interface OpenGroupComponentsDialogRequest {
-    position: Position;
-    moveComponents: MoveComponentRequest[];
-}
-
-export interface GroupComponentsDialogRequest {
-    request: OpenGroupComponentsDialogRequest;
-    currentParameterContextId?: string;
-    parameterContexts: ParameterContextEntity[];
-}
-
-export interface GroupComponentsRequest extends CreateProcessGroupRequest {
-    components: MoveComponentRequest[];
-}
-
-export interface GroupComponentsSuccess extends CreateComponentResponse {
-    components: MoveComponentRequest[];
-}
-
-export interface CreateProcessorDialogRequest {
-    request: CreateComponentRequest;
-}
-
-export interface GoToRemoteProcessGroupRequest {
-    uri: string;
-}
-
 export interface RefreshRemoteProcessGroupRequest {
     id: string;
     refreshTimestamp: string;
@@ -249,43 +150,6 @@ export interface RefreshRemoteProcessGroupRequest {
 export interface RefreshRemoteProcessGroupPollingDetailsRequest {
     request: RefreshRemoteProcessGroupRequest;
     polling: boolean;
-}
-
-export interface CreateProcessorRequest extends CreateComponentRequest {
-    processorType: string;
-    processorBundle: Bundle;
-}
-
-export interface CreateProcessGroupRequest extends CreateComponentRequest {
-    name: string;
-    parameterContextId: string;
-}
-
-export interface UploadProcessGroupRequest extends CreateComponentRequest {
-    name: string;
-    flowDefinition: File;
-}
-
-export interface CreateRemoteProcessGroupRequest extends CreateComponentRequest {
-    targetUris: string;
-    transportProtocol: string;
-    localNetworkInterface: string;
-    proxyHost: string;
-    proxyPort: string;
-    proxyUser: string;
-    proxyPassword: string;
-    communicationsTimeout: string;
-    yieldDuration: string;
-}
-
-export interface CreatePortRequest extends CreateComponentRequest {
-    name: string;
-    allowRemoteAccess: boolean;
-}
-
-export interface CreateComponentResponse {
-    type: ComponentType;
-    payload: any;
 }
 
 export interface OpenComponentDialogRequest {
@@ -326,40 +190,12 @@ export interface UpdatePositionsRequest {
     connectionUpdates: UpdateComponentRequest[];
 }
 
-export interface SnippetComponentRequest {
-    id: string;
-    uri: string;
-    type: ComponentType;
-    entity: any;
-}
-
-export type MoveComponentRequest = SnippetComponentRequest;
-
 export interface MoveComponentsRequest {
     components: MoveComponentRequest[];
     groupId: string;
 }
 
 ///////////////////////////////////////////////////////////
-
-export interface PasteRequest {
-    copyResponse: CopyResponseEntity;
-    strategy: PasteRequestStrategy;
-    fitToScreen?: boolean;
-    bbox?: any;
-}
-
-export interface PasteRequestEntity {
-    copyResponse: CopyResponseEntity;
-    revision: Revision;
-    disconnectedNodeAcknowledged?: boolean;
-}
-
-export interface PasteRequestContext {
-    processGroupId: string;
-    pasteRequest: PasteRequestEntity;
-    pasteStrategy: PasteRequestStrategy;
-}
 
 export interface PasteResponseEntity {
     flow: Flow;
@@ -371,13 +207,6 @@ export interface PasteResponseContext extends PasteResponseEntity {
 }
 
 ///////////////////////////////////////////////////////////
-
-export interface DeleteComponentRequest {
-    id: string;
-    uri: string;
-    type: ComponentType;
-    entity: any;
-}
 
 export interface DeleteComponentResponse {
     id: string;
@@ -393,11 +222,6 @@ export interface NavigateToComponentRequest {
 export interface NavigateToComponentsRequest {
     ids: string[];
     processGroupId?: string;
-}
-
-export interface ReplayLastProvenanceEventRequest {
-    componentId: string;
-    nodes: string;
 }
 
 export type ConnectionDirection = 'upstream' | 'downstream';
@@ -436,34 +260,6 @@ export interface ComponentConnectionsDialogRequest {
     Snippets
  */
 
-export interface Snippet {
-    parentGroupId: string;
-    processors: {
-        [key: string]: any;
-    };
-    funnels: {
-        [key: string]: any;
-    };
-    inputPorts: {
-        [key: string]: any;
-    };
-    outputPorts: {
-        [key: string]: any;
-    };
-    remoteProcessGroups: {
-        [key: string]: any;
-    };
-    processGroups: {
-        [key: string]: any;
-    };
-    connections: {
-        [key: string]: any;
-    };
-    labels: {
-        [key: string]: any;
-    };
-}
-
 export interface CopiedSnippet {
     snippet: Snippet;
     origin: Position;
@@ -499,11 +295,6 @@ export interface ConnectionEntity extends ComponentEntity {
     destinationId: string;
     destinationGroupId: string;
     destinationType: string;
-}
-
-export interface Dimensions {
-    width: number;
-    height: number;
 }
 
 export interface Flow {
@@ -590,19 +381,8 @@ export interface FlowState {
     status: 'pending' | 'loading' | 'success' | 'complete';
 }
 
-export interface RunOnceRequest {
-    id: string;
-    revision: Revision;
-}
-
 export interface RunOnceResponse {
     component: ComponentEntity;
-}
-
-export interface EnableProcessGroupRequest {
-    id: string;
-    type: ComponentType;
-    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface EnableComponentsRequest {
@@ -622,12 +402,6 @@ export interface EnableProcessGroupResponse {
     };
 }
 
-export interface DisableProcessGroupRequest {
-    id: string;
-    type: ComponentType;
-    errorStrategy: 'snackbar' | 'banner';
-}
-
 export interface DisableComponentsRequest {
     components: DisableComponentRequest[];
 }
@@ -643,12 +417,6 @@ export interface DisableProcessGroupResponse {
         id: string;
         state: string;
     };
-}
-
-export interface StartProcessGroupRequest {
-    id: string;
-    type: ComponentType;
-    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface StartComponentsRequest {
@@ -682,20 +450,8 @@ export interface ComponentRunStatusRequest {
     disconnectedNodeAcknowledged: boolean;
 }
 
-export interface ProcessGroupRunStatusRequest {
-    id: string;
-    state: string;
-    disconnectedNodeAcknowledged: boolean;
-}
-
 export interface StartPollingProcessorUntilStoppedRequest {
     id: string;
-}
-
-export interface StopProcessGroupRequest {
-    id: string;
-    type: ComponentType;
-    errorStrategy: 'snackbar' | 'banner';
 }
 
 export interface StopSourcesRequest {
@@ -718,17 +474,6 @@ export interface StopComponentsRequest {
     components: StopComponentRequest[];
 }
 
-export interface ControllerServiceStateRequest {
-    id: string;
-    state: string;
-    disconnectedNodeAcknowledged: boolean;
-}
-
-export interface TerminateThreadsRequest {
-    id: string;
-    uri: string;
-}
-
 export interface LoadChildProcessGroupRequest {
     id: string;
 }
@@ -737,48 +482,9 @@ export interface LoadChildProcessGroupRequest {
   Clear Bulletins
 */
 
-export interface ClearBulletinsForGroupRequest {
-    processGroupId: string;
-    fromTimestamp: string;
-}
-
 export interface ClearBulletinsForGroupResponse {
     processGroupId: string;
     bulletinsCleared: number;
-}
-
-export interface FlowUpdateRequest {
-    requestId: string;
-    processGroupId: string;
-    uri: string;
-    lastUpdated: string;
-    complete: boolean;
-    percentCompleted: number;
-    state: string;
-    failureReason?: string;
-}
-
-export interface FlowUpdateRequestEntity {
-    processGroupRevision: Revision;
-    request: FlowUpdateRequest;
-}
-
-export interface Difference {
-    differenceType: string;
-    difference: string;
-    environmental?: boolean;
-}
-
-export interface ComponentDifference {
-    componentType: ComponentType;
-    componentId: string;
-    processGroupId: string;
-    differences: Difference[];
-    componentName?: string;
-}
-
-export interface FlowComparisonEntity {
-    componentDifferences: ComponentDifference[];
 }
 
 export interface OpenLocalChangesDialogRequest {
@@ -795,11 +501,6 @@ export interface ProcessorBacklogDialogRequest {
     processorId: string;
     requestEntity?: BacklogRequestEntity;
     errorMessage?: string;
-}
-
-export interface DownloadFlowRequest {
-    processGroupId: string;
-    includeReferencedServices: boolean;
 }
 
 export interface MoveToFrontRequest {

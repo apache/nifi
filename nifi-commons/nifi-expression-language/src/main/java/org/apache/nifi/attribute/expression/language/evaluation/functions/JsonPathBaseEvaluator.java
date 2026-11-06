@@ -64,7 +64,7 @@ public abstract class JsonPathBaseEvaluator extends StringEvaluator {
 
     protected DocumentContext getDocumentContext(EvaluationContext context) {
         final String subjectValue = subject.evaluate(context).getValue();
-        if (subjectValue == null || subjectValue.length() == 0) {
+        if (subjectValue == null || subjectValue.isEmpty()) {
             throw new AttributeExpressionLanguageException("Subject is empty");
         }
         DocumentContext documentContext = null;

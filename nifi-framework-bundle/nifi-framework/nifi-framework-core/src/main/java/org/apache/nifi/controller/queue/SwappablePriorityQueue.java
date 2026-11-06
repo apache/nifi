@@ -547,6 +547,26 @@ public class SwappablePriorityQueue {
         }
     }
 
+    /**
+     * Adds the given FlowFile to the active queue regardless of whether this queue is in swap mode. This is intended only for FlowFiles that
+     * were previously polled from the active queue and are being returned. Such a FlowFile was ahead of everything in the swap queue and swap files,
+     * so adding it back to the active queue keeps it ahead of them. This may cause the active queue to temporarily exceed the swap threshold.
+     *
+     * @param flowFile the FlowFile to add to the active queue
+     */
+    public void putToActive(final FlowFileRecord flowFile) {
+        writeLock.lock();
+        try {
+            incrementActiveQueueSize(1, flowFile.getSize());
+            activeQueue.add(flowFile);
+
+            updateTopPenaltyExpiration();
+            logger.trace("{} put to active queue of {}", flowFile, this);
+        } finally {
+            writeLock.unlock("putToActive");
+        }
+    }
+
     public void putAll(final Collection<FlowFileRecord> flowFiles) {
         final int numFiles = flowFiles.size();
         long bytes = 0L;
@@ -1269,7 +1289,7 @@ public class SwappablePriorityQueue {
         try {
             // We want the oldest timestamp, which will be the min
             long min = getMinLastQueueDate(activeQueue, 0L);
-            min = Long.min(min, getMinLastQueueDate(swapQueue, min));
+            min = getMinLastQueueDate(swapQueue, min);
 
             for (Long minSwapQueueDate: minQueueDateInSwapLocation.values()) {
                 min = min == 0 ? minSwapQueueDate : Long.min(min, minSwapQueueDate);
@@ -1281,14 +1301,15 @@ public class SwappablePriorityQueue {
         }
     }
 
-    private long getMinLastQueueDate(Iterable<FlowFileRecord> iterable, long defaultMin) {
-        long min = 0;
+    private long getMinLastQueueDate(final Iterable<FlowFileRecord> iterable, final long initialMin) {
+        long min = initialMin;
 
-        for (FlowFileRecord flowFileRecord : iterable) {
-            min = min == 0 ? flowFileRecord.getLastQueueDate() : Long.min(flowFileRecord.getLastQueueDate(), min);
+        for (final FlowFileRecord flowFileRecord : iterable) {
+            final long lastQueueDate = flowFileRecord.getLastQueueDate();
+            min = min == 0 ? lastQueueDate : Long.min(lastQueueDate, min);
         }
 
-        return min == 0 ? defaultMin : min;
+        return min;
     }
 
     public long getTotalQueuedDuration(long fromTimestamp) {

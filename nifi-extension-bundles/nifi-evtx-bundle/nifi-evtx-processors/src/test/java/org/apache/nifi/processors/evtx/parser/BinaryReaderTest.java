@@ -183,14 +183,14 @@ public class BinaryReaderTest {
     }
 
     @Test
-    public void testSkip() throws IOException {
+    public void testSkip() {
         BinaryReader binaryReader = new BinaryReader(null);
         binaryReader.skip(10);
         assertEquals(10, binaryReader.getPosition());
     }
 
     @Test
-    public void testReaderPositionConstructor() throws IOException {
+    public void testReaderPositionConstructor() {
         String value = "Hello world";
         BinaryReader binaryReader = new BinaryReader(new BinaryReader(value.getBytes(StandardCharsets.UTF_16LE)), 2);
 

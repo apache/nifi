@@ -49,7 +49,7 @@ public class TestDeleteHDFS {
     private FileSystem mockFileSystem;
 
     @BeforeEach
-    public void setup() throws Exception {
+    public void setup() {
         mockFileSystem = mock(FileSystem.class);
     }
 

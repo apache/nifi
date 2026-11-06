@@ -38,7 +38,7 @@ public abstract class WhitelistFilteringEventHookProvider
         whiteListEvents = new HashSet<>();
         for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
             Matcher matcher = EVENT_WHITELIST_PATTERN.matcher(entry.getKey());
-            if (matcher.matches() && (entry.getValue() != null && entry.getValue().length() > 0)) {
+            if (matcher.matches() && (entry.getValue() != null && !entry.getValue().isEmpty())) {
                 whiteListEvents.add(EventType.valueOf(entry.getValue()));
             }
 

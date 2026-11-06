@@ -18,7 +18,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { ImportFromRegistryRequest } from '../state/flow';
+import { ImportFromRegistryRequest } from '../../../state/flow-shared';
 
 @Injectable({ providedIn: 'root' })
 export class RegistryService {

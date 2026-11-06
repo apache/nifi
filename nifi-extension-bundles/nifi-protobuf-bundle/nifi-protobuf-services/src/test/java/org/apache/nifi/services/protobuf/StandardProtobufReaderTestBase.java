@@ -202,7 +202,7 @@ public abstract class StandardProtobufReaderTestBase {
         }
 
         @Override
-        public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+        public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) {
             throw new UnsupportedOperationException("retrieveSchema is not implemented in MockSchemaRegistry");
         }
 

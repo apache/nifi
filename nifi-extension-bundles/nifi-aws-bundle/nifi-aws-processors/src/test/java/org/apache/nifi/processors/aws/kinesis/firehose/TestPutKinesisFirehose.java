@@ -32,7 +32,7 @@ public class TestPutKinesisFirehose {
     private TestRunner runner;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         runner = TestRunners.newTestRunner(PutKinesisFirehose.class);
         runner.setProperty(PutKinesisFirehose.KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, "deliveryName");
         AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
@@ -40,7 +40,7 @@ public class TestPutKinesisFirehose {
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    public void tearDown() {
         runner = null;
     }
 

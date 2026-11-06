@@ -24,7 +24,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,7 +44,7 @@ public class TestDebugFlow {
     private final Map<String, String> namesToContent = new HashMap<>();
 
     @BeforeEach
-    public void setup() throws IOException {
+    public void setup() {
         for (int n = 0; n < 6; n++) {
             String filename = "testFile" + (n + 1) + ".txt";
             String content = "Hello World " + (n + 1) + "!";
@@ -141,7 +140,7 @@ public class TestDebugFlow {
     }
 
     @Test
-    public void testFlowFileRollback() throws IOException {
+    public void testFlowFileRollback() {
         runner.setProperty(DebugFlow.FF_ROLLBACK_ITERATIONS, "1");
         runner.assertValid();
 

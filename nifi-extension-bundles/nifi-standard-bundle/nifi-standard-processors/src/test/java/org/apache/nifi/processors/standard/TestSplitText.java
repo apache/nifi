@@ -373,7 +373,7 @@ public class TestSplitText {
     }
 
     @Test
-    public void testZeroByteInputWithoutHeader() throws IOException {
+    public void testZeroByteInputWithoutHeader() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitText());
         runner.setProperty(SplitText.HEADER_LINE_COUNT, "0");
         runner.setProperty(SplitText.LINE_SPLIT_COUNT, "1");
@@ -386,7 +386,7 @@ public class TestSplitText {
     }
 
     @Test
-    public void testZeroByteInput() throws IOException {
+    public void testZeroByteInput() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitText());
         runner.setProperty(SplitText.HEADER_LINE_COUNT, "1");
         runner.setProperty(SplitText.LINE_SPLIT_COUNT, "1");
@@ -426,7 +426,7 @@ public class TestSplitText {
     }
 
     @Test
-    public void testOneLineSplitWithoutHeader() throws IOException {
+    public void testOneLineSplitWithoutHeader() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitText());
         runner.setProperty(SplitText.HEADER_LINE_COUNT, "0");
         runner.setProperty(SplitText.LINE_SPLIT_COUNT, "1");
@@ -455,7 +455,7 @@ public class TestSplitText {
     }
 
     @Test
-    public void testFiveLineSplitWithoutHeader() throws IOException {
+    public void testFiveLineSplitWithoutHeader() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitText());
         runner.setProperty(SplitText.HEADER_LINE_COUNT, "0");
         runner.setProperty(SplitText.LINE_SPLIT_COUNT, "5");
@@ -476,7 +476,7 @@ public class TestSplitText {
     }
 
     @Test
-    public void testFiveLineSplitWithoutHeaderRetainNewline() throws IOException {
+    public void testFiveLineSplitWithoutHeaderRetainNewline() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitText());
         runner.setProperty(SplitText.HEADER_LINE_COUNT, "0");
         runner.setProperty(SplitText.LINE_SPLIT_COUNT, "5");
@@ -504,7 +504,7 @@ public class TestSplitText {
     }
 
     @Test
-    public void testFiveLineSplitWithHeaderRetainNewline() throws IOException {
+    public void testFiveLineSplitWithHeaderRetainNewline() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitText());
         runner.setProperty(SplitText.HEADER_LINE_COUNT, "1");
         runner.setProperty(SplitText.LINE_SPLIT_COUNT, "5");
@@ -531,7 +531,7 @@ public class TestSplitText {
     }
 
     @Test
-    public void testFiveLineSplitWithHeaderNotRetainNewline() throws IOException {
+    public void testFiveLineSplitWithHeaderNotRetainNewline() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitText());
         runner.setProperty(SplitText.HEADER_LINE_COUNT, "1");
         runner.setProperty(SplitText.LINE_SPLIT_COUNT, "5");
@@ -558,7 +558,7 @@ public class TestSplitText {
     }
 
     @Test
-    public void testOneLineSplitWithHeader() throws IOException {
+    public void testOneLineSplitWithHeader() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitText());
         runner.setProperty(SplitText.HEADER_LINE_COUNT, "1");
         runner.setProperty(SplitText.LINE_SPLIT_COUNT, "1");

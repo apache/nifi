@@ -37,7 +37,7 @@ public class ControllerServiceLifecycleIT extends StatelessSystemIT {
     }
 
     @Test
-    public void testControllerServices() throws IOException, StatelessConfigurationException, InterruptedException {
+    public void testControllerServices() throws IOException, StatelessConfigurationException {
         final VersionedFlowBuilder builder = new VersionedFlowBuilder();
 
         final VersionedControllerService sleepService = builder.createSimpleControllerService("StandardSleepService", "SleepService");

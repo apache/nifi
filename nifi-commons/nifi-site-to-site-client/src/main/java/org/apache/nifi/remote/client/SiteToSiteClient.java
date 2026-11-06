@@ -221,7 +221,7 @@ public interface SiteToSiteClient extends Closeable {
          */
         public Builder url(final String url) {
             final Set<String> urls = new LinkedHashSet<>();
-            if (url != null && url.length() > 0) {
+            if (url != null && !url.isEmpty()) {
                 urls.add(url);
             }
             this.urls = urls;

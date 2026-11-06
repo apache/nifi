@@ -39,7 +39,7 @@ public class SubstringBeforeEvaluator extends StringEvaluator {
             return new StringQueryResult("");
         }
         final String beforeValue = beforeEvaluator.evaluate(evaluationContext).getValue();
-        if (beforeValue == null || beforeValue.length() == 0) {
+        if (beforeValue == null || beforeValue.isEmpty()) {
             return new StringQueryResult(subjectValue);
         }
         final int index = subjectValue.indexOf(beforeValue);

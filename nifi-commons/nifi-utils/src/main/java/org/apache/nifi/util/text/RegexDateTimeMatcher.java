@@ -260,11 +260,11 @@ public class RegexDateTimeMatcher implements DateTimeMatcher {
 
                 return formatString.length();
             } finally {
-                if (textBuilder.length() == 0) {
+                if (textBuilder.isEmpty()) {
                     patterns.add("'");
                 } else {
                     final String text = textBuilder.toString();
-                    if (text.length() > 0) {
+                    if (!text.isEmpty()) {
                         patterns.add(Pattern.quote(textBuilder.toString()));
                     }
                 }

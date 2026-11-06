@@ -202,7 +202,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         final JsonNode values = response.get(JSON_FIELD_VALUE);
         return values != null
                 && values.isArray()
-                && values.size() > 0
+                && !values.isEmpty()
                 && values.get(0).asBoolean();
     }
 
@@ -347,7 +347,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         }
 
         final JsonNode values = response.get(JSON_FIELD_VALUE);
-        if (values != null && values.size() > 0) {
+        if (values != null && !values.isEmpty()) {
             return Optional.ofNullable(values.get(0).get(JSON_FIELD_COMMIT_ID)).map(JsonNode::asText);
         } else {
             logger.debug("Unable to get content SHA for [{}] from branch [{}] because no commits were found", resolvedPath, branch);

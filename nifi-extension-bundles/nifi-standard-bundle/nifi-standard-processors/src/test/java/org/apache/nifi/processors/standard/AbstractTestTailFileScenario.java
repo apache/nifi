@@ -231,7 +231,7 @@ public class AbstractTestTailFileScenario {
         }
     }
 
-    private void expireRolloverWaitPeriod() throws Exception {
+    private void expireRolloverWaitPeriod() {
         long waitPeriod = POST_ROLLOVER_WAIT_PERIOD_SECONDS * 1000 + 100;
         timeAdjustment.set(timeAdjustment.get() + waitPeriod);
     }

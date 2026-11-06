@@ -120,7 +120,7 @@ public class StandardWebClientServiceTest {
     }
 
     @AfterEach
-    void shutdownServer() throws IOException {
+    void shutdownServer() {
         mockWebServer.close();
     }
 

@@ -77,7 +77,7 @@ public class TestValidateRecord {
     private TestRunner runner;
 
     @BeforeEach
-    public void setup() throws InitializationException {
+    public void setup() {
         runner = TestRunners.newTestRunner(ValidateRecord.class);
     }
 

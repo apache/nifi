@@ -92,7 +92,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
     static final String createTable = "create table if not exists restaurants(id integer, name varchar(20), city varchar(50))";
 
     @BeforeEach
-    public void setup() throws ClassNotFoundException, SQLException, IOException {
+    public void setup() throws SQLException {
         try (
                 Connection connection = getConnection();
                 Statement statement = connection.createStatement()

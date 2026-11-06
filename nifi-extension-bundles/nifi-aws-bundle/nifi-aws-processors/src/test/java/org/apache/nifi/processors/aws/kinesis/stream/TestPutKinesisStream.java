@@ -42,7 +42,7 @@ public class TestPutKinesisStream {
     private TestRunner runner;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         runner = TestRunners.newTestRunner(PutKinesisStream.class);
         runner.setProperty(PutKinesisStream.KINESIS_STREAM_NAME, "kstream");
         AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");

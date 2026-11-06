@@ -119,7 +119,7 @@ public class TestSchemaSwapSerializerDeserializer {
     }
 
     @Test
-    public void testRoundTripSerializeDeserializeFullSwapFile() throws IOException, InterruptedException {
+    public void testRoundTripSerializeDeserializeFullSwapFile() throws IOException {
         final ResourceClaimManager resourceClaimManager = new StandardResourceClaimManager();
 
         final List<FlowFileRecord> toSwap = new ArrayList<>(10000);
@@ -172,7 +172,7 @@ public class TestSchemaSwapSerializerDeserializer {
     @Test
     @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
             disabledReason = "For manual testing, in order to ensure that changes do not negatively impact performance")
-    public void testWritePerformance() throws IOException, InterruptedException {
+    public void testWritePerformance() throws IOException {
         final ResourceClaimManager resourceClaimManager = new StandardResourceClaimManager();
 
         final List<FlowFileRecord> toSwap = new ArrayList<>(10000);

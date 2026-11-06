@@ -69,7 +69,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
     }
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         processor = new MockPutAzureCosmosDBRecord();
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setIncomingConnection(false);

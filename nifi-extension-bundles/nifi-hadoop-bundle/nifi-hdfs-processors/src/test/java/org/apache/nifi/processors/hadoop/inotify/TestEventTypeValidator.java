@@ -32,7 +32,7 @@ public class TestEventTypeValidator {
     EventTypeValidator eventTypeValidator;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         context = Mockito.mock(ValidationContext.class);
         eventTypeValidator = new EventTypeValidator();
     }

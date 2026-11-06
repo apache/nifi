@@ -111,6 +111,18 @@ export interface ConnectorActionSuccess {
     connector: ConnectorEntity;
 }
 
+export interface ChangeConnectorVersionRequest {
+    id: string;
+    uri: string;
+    payload: {
+        revision: Revision;
+        component: {
+            id: string;
+            bundle: Bundle;
+        };
+    };
+}
+
 export interface ViewConnectorRequest {
     connectorId: string;
     processGroupId: string;

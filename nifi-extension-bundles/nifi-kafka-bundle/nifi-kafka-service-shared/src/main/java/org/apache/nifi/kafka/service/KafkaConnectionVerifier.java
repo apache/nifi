@@ -116,7 +116,10 @@ class KafkaConnectionVerifier {
 
         try {
             final AdminClientConfig adminClientConfig = new AdminClientConfig(resolvedProperties);
-            final List<InetSocketAddress> validatedAddresses = ClientUtils.parseAndValidateAddresses(adminClientConfig);
+            final List<InetSocketAddress> validatedAddresses = ClientUtils.parseAndValidateAddresses(
+                    adminClientConfig.getList(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG),
+                    adminClientConfig.getString(AdminClientConfig.CLIENT_DNS_LOOKUP_CONFIG)
+            );
             bootstrapAddresses.addAll(validatedAddresses);
 
             results.add(

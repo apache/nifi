@@ -111,7 +111,7 @@ class PythonProcessTest {
     }
 
     @Test
-    void testResolvePythonCommandFindCommandMissingPythonCmd() throws IOException {
+    void testResolvePythonCommandFindCommandMissingPythonCmd() {
         final File binDir = new File(virtualEnvHome, UNIX_BIN_DIR);
         assertTrue(binDir.mkdir());
         final File scriptsDir = new File(virtualEnvHome, WINDOWS_SCRIPTS_DIR);

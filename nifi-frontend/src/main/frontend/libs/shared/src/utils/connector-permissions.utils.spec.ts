@@ -197,6 +197,10 @@ describe('connector-permissions.utils', () => {
             expect(getConnectorStateVariant(ConnectorState.DISABLED)).toBe('neutral');
         });
 
+        it('should return neutral for UPDATED', () => {
+            expect(getConnectorStateVariant(ConnectorState.UPDATED)).toBe('neutral');
+        });
+
         it('should return info for STARTING', () => {
             expect(getConnectorStateVariant(ConnectorState.STARTING)).toBe('info');
         });

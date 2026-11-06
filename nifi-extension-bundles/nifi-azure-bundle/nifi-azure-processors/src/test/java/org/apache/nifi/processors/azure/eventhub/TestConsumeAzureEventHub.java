@@ -304,7 +304,7 @@ public class TestConsumeAzureEventHub {
     }
 
     @Test
-    public void testProcessorConfigValidityWithComponentStateCheckpointStrategy() throws InitializationException {
+    public void testProcessorConfigValidityWithComponentStateCheckpointStrategy() {
         testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.assertNotValid();
         testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);

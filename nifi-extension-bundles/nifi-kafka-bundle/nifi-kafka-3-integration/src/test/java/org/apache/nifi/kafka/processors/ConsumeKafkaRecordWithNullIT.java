@@ -96,7 +96,7 @@ class ConsumeKafkaRecordWithNullIT extends AbstractConsumeKafkaIT {
     private TestRunner runner;
 
     @BeforeEach
-    void setRunner() throws InitializationException, IOException {
+    void setRunner() throws InitializationException {
         runner = TestRunners.newTestRunner(ConsumeKafka.class);
         addKafkaConnectionService(runner);
         runner.setProperty(ConsumeKafka.CONNECTION_SERVICE, CONNECTION_SERVICE_ID);

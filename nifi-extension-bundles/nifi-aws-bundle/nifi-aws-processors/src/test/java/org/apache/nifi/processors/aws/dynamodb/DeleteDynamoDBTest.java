@@ -19,7 +19,6 @@ package org.apache.nifi.processors.aws.dynamodb;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -61,11 +60,11 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
         when(client.batchWriteItem(any(BatchWriteItemRequest.class))).thenReturn(BatchWriteItemResponse.builder().build());
     }
 
-    private TestRunner createRunner() throws InitializationException {
+    private TestRunner createRunner() {
         return createRunner(deleteDynamoDB);
     }
 
-    private TestRunner createRunner(final DeleteDynamoDB processor) throws InitializationException {
+    private TestRunner createRunner(final DeleteDynamoDB processor) {
         final TestRunner deleteRunner = TestRunners.newTestRunner(processor);
         AuthUtils.enableAccessKey(deleteRunner, "abcd", "cdef");
 
@@ -78,7 +77,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteOnlyHashFailure() throws InitializationException {
+    public void testStringHashStringRangeDeleteOnlyHashFailure() {
         // When writing, mock thrown service exception from AWS
         when(client.batchWriteItem(any(BatchWriteItemRequest.class))).thenThrow(getSampleAwsServiceException());
 
@@ -98,7 +97,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteSuccessfulWithMock() throws InitializationException {
+    public void testStringHashStringRangeDeleteSuccessfulWithMock() {
         final TestRunner deleteRunner = createRunner();
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
@@ -111,7 +110,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteSuccessfulWithMockOneUnprocessed() throws InitializationException {
+    public void testStringHashStringRangeDeleteSuccessfulWithMockOneUnprocessed() {
         final Map<String, List<WriteRequest>> unprocessed = new HashMap<>();
         final DeleteRequest delete = DeleteRequest.builder().key(Map
                 .of(
@@ -136,7 +135,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteNoHashValueFailure() throws InitializationException {
+    public void testStringHashStringRangeDeleteNoHashValueFailure() {
         final TestRunner deleteRunner = createRunner(new DeleteDynamoDB());
 
         deleteRunner.setProperty(RegionUtil.REGION, REGION);
@@ -157,7 +156,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteOnlyHashWithRangeValueNoRangeNameFailure() throws InitializationException {
+    public void testStringHashStringRangeDeleteOnlyHashWithRangeValueNoRangeNameFailure() {
         final TestRunner deleteRunner = createRunner(new DeleteDynamoDB());
 
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
@@ -175,7 +174,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteOnlyHashWithRangeNameNoRangeValueFailure() throws InitializationException {
+    public void testStringHashStringRangeDeleteOnlyHashWithRangeNameNoRangeValueFailure() {
         final TestRunner deleteRunner = createRunner(new DeleteDynamoDB());
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         deleteRunner.enqueue(new byte[] {});
@@ -191,7 +190,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteNonExistentHashSuccess() throws InitializationException {
+    public void testStringHashStringRangeDeleteNonExistentHashSuccess() {
         final TestRunner deleteRunner = createRunner();
 
         deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "nonexistent");
@@ -205,7 +204,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteNonExistentRangeSuccess() throws InitializationException {
+    public void testStringHashStringRangeDeleteNonExistentRangeSuccess() {
         final TestRunner deleteRunner = createRunner();
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "nonexistent");
@@ -217,7 +216,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteThrowsServiceException() throws InitializationException {
+    public void testStringHashStringRangeDeleteThrowsServiceException() {
 
         when(client.batchWriteItem(any(BatchWriteItemRequest.class)))
                 .thenThrow(getSampleAwsServiceException());
@@ -239,7 +238,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteThrowsClientException() throws InitializationException {
+    public void testStringHashStringRangeDeleteThrowsClientException() {
         when(client.batchWriteItem(any(BatchWriteItemRequest.class)))
                 .thenThrow(SdkException.builder().message("sdkException").build());
 
@@ -260,7 +259,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeDeleteThrowsRuntimeException() throws InitializationException {
+    public void testStringHashStringRangeDeleteThrowsRuntimeException() {
         when(client.batchWriteItem(any(BatchWriteItemRequest.class)))
                 .thenThrow(new RuntimeException("runtimeException"));
 

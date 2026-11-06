@@ -2071,6 +2071,19 @@ public interface NiFiServiceFacade {
     RegisteredFlowSnapshot getCurrentFlowSnapshotByGroupId(String processGroupId, boolean includeReferencedServices, boolean includeComponentState, boolean mapAssetReferences);
 
     /**
+     * Get the current state of a Process Group within a Connector's managed flow, converted to a Versioned Flow
+     * Snapshot for download.
+     *
+     * @param connectorId the ID of the Connector
+     * @param processGroupId the ID of the Process Group within the Connector's managed flow
+     * @param includeReferencedServices whether to include referenced controller services from parent groups
+     * @param includeComponentState whether to include component state in the export
+     * @return the current Process Group converted to a Versioned Flow Snapshot for download
+     */
+    RegisteredFlowSnapshot getConnectorCurrentFlowSnapshot(
+            String connectorId, String processGroupId, boolean includeReferencedServices, boolean includeComponentState);
+
+    /**
      * Returns the name of the Flow Registry that is registered with the given ID. If no Flow Registry exists with the given ID, will return
      * the ID itself as the name
      *

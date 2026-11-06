@@ -73,6 +73,7 @@ export class ConnectorTable {
     @Input() selectedConnectorId!: string;
     @Input() flowConfiguration!: FlowConfiguration;
     @Input() currentUser!: CurrentUser;
+    @Input() saving = false;
 
     @Output() selectConnector = new EventEmitter<ConnectorEntity>();
     @Output() viewConnector = new EventEmitter<ConnectorEntity>();
@@ -88,6 +89,7 @@ export class ConnectorTable {
     @Output() drainConnector = new EventEmitter<ConnectorEntity>();
     @Output() cancelDrainConnector = new EventEmitter<ConnectorEntity>();
     @Output() purgeConnector = new EventEmitter<ConnectorEntity>();
+    @Output() changeConnectorVersion = new EventEmitter<ConnectorEntity>();
 
     displayedColumns: string[] = ['moreDetails', 'name', 'type', 'bundle', 'state', 'actions'];
     dataSource: MatTableDataSource<ConnectorEntity> = new MatTableDataSource<ConnectorEntity>();
@@ -155,6 +157,16 @@ export class ConnectorTable {
 
     canPurge(entity: ConnectorEntity): boolean {
         return isConnectorActionAllowed(entity, 'PURGE_FLOWFILES');
+    }
+
+    canChangeVersion(entity: ConnectorEntity): boolean {
+        return (
+            this.canRead(entity) &&
+            this.canModify(entity) &&
+            !this.saving &&
+            entity.component.multipleVersionsAvailable === true &&
+            isConnectorActionAllowed(entity, 'CHANGE_VERSION')
+        );
     }
 
     formatName(entity: ConnectorEntity): string {
@@ -229,6 +241,10 @@ export class ConnectorTable {
 
     purgeClicked(entity: ConnectorEntity): void {
         this.purgeConnector.next(entity);
+    }
+
+    changeVersionClicked(entity: ConnectorEntity): void {
+        this.changeConnectorVersion.next(entity);
     }
 
     canManageAccessPolicies(): boolean {

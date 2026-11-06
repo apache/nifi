@@ -34,12 +34,8 @@ interface PositionableSelectionUi<T extends ComponentType> extends SelectionUiBa
     dimensions?: { width: number; height: number };
 }
 
-interface ProcessorSelectionUi extends PositionableSelectionUi<ComponentType.Processor> {
-    preview?: boolean;
-}
-
 export interface ProcessorSelectionTarget {
-    ui: ProcessorSelectionUi;
+    ui: PositionableSelectionUi<ComponentType.Processor>;
     entity: ProcessorEntity;
 }
 

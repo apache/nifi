@@ -118,7 +118,7 @@ public class TestSlackRecordSink {
     }
 
     @AfterEach
-    public void cleanUp() throws IOException {
+    public void cleanUp() {
         mockWebServer.close();
     }
 

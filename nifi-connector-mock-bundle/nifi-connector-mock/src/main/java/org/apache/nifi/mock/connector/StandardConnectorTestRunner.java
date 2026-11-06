@@ -249,6 +249,26 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
     }
 
     @Override
+    public Long getCounterValue(final String componentId, final String name) {
+        return mockServer.getCounterValue(componentId, name);
+    }
+
+    @Override
+    public Long getCounterValue(final String componentId, final String name, final Map<String, String> attributes) {
+        return mockServer.getCounterValue(componentId, name, attributes);
+    }
+
+    @Override
+    public List<Double> getGaugeValues(final String componentId, final String name) {
+        return mockServer.getGaugeValues(componentId, name);
+    }
+
+    @Override
+    public List<Double> getGaugeValues(final String componentId, final String name, final Map<String, String> attributes) {
+        return mockServer.getGaugeValues(componentId, name, attributes);
+    }
+
+    @Override
     public int getHttpPort() {
         return mockServer.getHttpPort();
     }

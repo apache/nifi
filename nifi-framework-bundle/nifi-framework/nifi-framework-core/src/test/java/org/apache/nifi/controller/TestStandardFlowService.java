@@ -67,6 +67,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -441,7 +442,7 @@ public class TestStandardFlowService {
         final StandardFlowService.GracefulOffloadResult result = context.flowService.awaitGracefulProcessorStop(context.rootGroup, List.of());
 
         assertEquals(StandardFlowService.GracefulOffloadOutcome.EXCEPTIONAL, result.outcome());
-        assertTrue(result.cause() instanceof CancellationException);
+        assertInstanceOf(CancellationException.class, result.cause());
     }
 
     @Test

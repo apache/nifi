@@ -24,7 +24,6 @@ import org.apache.nifi.provenance.index.EventIndex;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.provenance.store.iterator.EventIterator;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,11 +37,11 @@ public class ArrayListEventStore implements EventStore {
     private final AtomicLong idGenerator = new AtomicLong(0L);
 
     @Override
-    public void close() throws IOException {
+    public void close() {
     }
 
     @Override
-    public void initialize() throws IOException {
+    public void initialize() {
     }
 
     public StorageResult addEvent(final ProvenanceEventRecord event) {
@@ -79,7 +78,7 @@ public class ArrayListEventStore implements EventStore {
     }
 
     @Override
-    public long getSize() throws IOException {
+    public long getSize() {
         return 0;
     }
 
@@ -98,12 +97,12 @@ public class ArrayListEventStore implements EventStore {
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxResults) throws IOException {
+    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxResults) {
         return getEvents(firstRecordId, maxResults, EventAuthorizer.GRANT_ALL, EventTransformer.EMPTY_TRANSFORMER);
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxResults, EventAuthorizer authorizer, EventTransformer transformer) throws IOException {
+    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxResults, EventAuthorizer authorizer, EventTransformer transformer) {
         final List<ProvenanceEventRecord> events = new ArrayList<>();
         for (int i = 0; i < maxResults; i++) {
             final Optional<ProvenanceEventRecord> eventOption = getEvent(firstRecordId + i);

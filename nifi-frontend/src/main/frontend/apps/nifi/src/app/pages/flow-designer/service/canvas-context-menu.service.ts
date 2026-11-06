@@ -57,10 +57,10 @@ import { ComponentType } from '@nifi/shared';
 import {
     ConfirmStopVersionControlRequest,
     ConnectionDirection,
-    MoveComponentRequest,
     OpenChangeVersionDialogRequest,
     OpenLocalChangesDialogRequest
 } from '../state/flow';
+import { MoveComponentRequest } from '../../../state/flow-shared';
 import { BreadcrumbEntity, UpdateComponentRequest } from '../../../state/shared';
 import {
     ContextMenuDefinition,

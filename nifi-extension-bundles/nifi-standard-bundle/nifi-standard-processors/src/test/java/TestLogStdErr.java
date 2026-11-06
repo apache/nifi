@@ -15,13 +15,11 @@
  * limitations under the License.
  */
 
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 
 public class TestLogStdErr {
 
-    public static void main(String[] args) throws IOException, URISyntaxException {
+    public static void main(String[] args) {
         char[] chars = new char[1024 * 1024];
         Arrays.fill(chars, 'f');
         System.arraycopy("ÄÖÜäöüß".toCharArray(), 0, chars, 0, 7);

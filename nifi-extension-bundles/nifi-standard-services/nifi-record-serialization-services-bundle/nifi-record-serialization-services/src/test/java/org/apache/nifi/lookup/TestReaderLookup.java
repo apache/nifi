@@ -138,8 +138,7 @@ public class TestReaderLookup {
         }
 
         @Override
-        public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger)
-                throws MalformedRecordException, IOException, SchemaNotFoundException {
+        public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) {
             return new MockRecordReader(this.name);
         }
     }
@@ -152,17 +151,17 @@ public class TestReaderLookup {
         }
 
         @Override
-        public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
+        public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) {
             return null;
         }
 
         @Override
-        public RecordSchema getSchema() throws MalformedRecordException {
+        public RecordSchema getSchema() {
             return null;
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
 
         }
     }

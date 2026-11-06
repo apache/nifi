@@ -98,7 +98,7 @@ public class TestStandardAzureCredentialsControllerService {
     }
 
     @Test
-    public void testIdentityFederationStrategyProvidesTokenCredential() throws Exception {
+    public void testIdentityFederationStrategyProvidesTokenCredential() {
         runner.setProperty(credentialsService,
                 StandardAzureCredentialsControllerService.CREDENTIAL_CONFIGURATION_STRATEGY,
                 StandardAzureCredentialsControllerService.IDENTITY_FEDERATION);

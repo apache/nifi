@@ -78,7 +78,7 @@ public class PutAzureEventHubTest {
     TestRunner testRunner;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         testRunner = TestRunners.newTestRunner(new MockPutAzureEventHub());
     }
 

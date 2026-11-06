@@ -1,0 +1,189 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { Component, ElementRef, EventEmitter, Input, Output, ViewChild, inject } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import {
+    CreateProcessGroupDialogRequest,
+    CreateProcessGroupRequest,
+    UploadProcessGroupRequest
+} from '../../../../state/flow-shared';
+import { AsyncPipe } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatOptionModule } from '@angular/material/core';
+import { MatSelectModule } from '@angular/material/select';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatIconModule } from '@angular/material/icon';
+import { ErrorContextKey } from '../../../../state/error';
+import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
+import { Observable, of } from 'rxjs';
+import { CurrentUser } from '../../../../state/current-user';
+import {
+    CloseOnEscapeDialog,
+    NiFiCommon,
+    NifiTooltipDirective,
+    SelectOption,
+    SortObjectByPropertyPipe,
+    TextTip,
+    NifiSpinnerDirective
+} from '@nifi/shared';
+import { ParameterContextEntity } from '../../../../state/shared';
+
+@Component({
+    selector: 'create-process-group',
+    imports: [
+        AsyncPipe,
+        MatButtonModule,
+        MatDialogModule,
+        MatFormFieldModule,
+        MatInputModule,
+        NifiSpinnerDirective,
+        ReactiveFormsModule,
+        MatOptionModule,
+        MatSelectModule,
+        NifiTooltipDirective,
+        MatIconModule,
+        ContextErrorBanner,
+        SortObjectByPropertyPipe
+    ],
+    templateUrl: './create-process-group.component.html',
+    styleUrls: ['./create-process-group.component.scss']
+})
+export class CreateProcessGroup extends CloseOnEscapeDialog {
+    private dialogRequest = inject<CreateProcessGroupDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+
+    @Input() saving$: Observable<boolean> = of(false);
+    @Input() currentUser$: Observable<CurrentUser | null> = of(null);
+    /**
+     * When false, the parameter-context selector is hidden and submission sends
+     * no parameter context id. Defaults to true for the flow designer.
+     */
+    @Input() supportsParameters = true;
+    @Output() createProcessGroup = new EventEmitter<CreateProcessGroupRequest>();
+    @Output() uploadProcessGroup = new EventEmitter<UploadProcessGroupRequest>();
+    @Output() openNewParameterContext = new EventEmitter<ParameterContextEntity[]>();
+
+    @Input() set parameterContexts(parameterContexts: ParameterContextEntity[]) {
+        this.parameterContextsOptions = [];
+        this._parameterContexts = parameterContexts;
+        let currentParameterContextIdEnabled = false;
+
+        if (parameterContexts.length === 0) {
+            this.parameterContextsOptions = [];
+        } else {
+            parameterContexts.forEach((parameterContext) => {
+                if (parameterContext.permissions.canRead && parameterContext.component) {
+                    this.parameterContextsOptions.push({
+                        text: parameterContext.component.name,
+                        value: parameterContext.id,
+                        description: parameterContext.component.description
+                    });
+
+                    if (this.dialogRequest.currentParameterContextId === parameterContext.id) {
+                        currentParameterContextIdEnabled = true;
+                    }
+                } else {
+                    this.parameterContextsOptions.push({
+                        text: parameterContext.id,
+                        value: parameterContext.id,
+                        disabled: true
+                    });
+                }
+            });
+        }
+
+        if (currentParameterContextIdEnabled) {
+            this.createProcessGroupForm
+                .get('newProcessGroupParameterContext')
+                ?.setValue(this.dialogRequest.currentParameterContextId);
+        }
+    }
+
+    get parameterContexts() {
+        return this._parameterContexts;
+    }
+
+    protected readonly TextTip = TextTip;
+    private _parameterContexts: ParameterContextEntity[] = [];
+
+    @ViewChild('flowUploadControl') flowUploadControl!: ElementRef;
+
+    createProcessGroupForm: FormGroup;
+    parameterContextsOptions: SelectOption[] = [];
+
+    flowNameAttached: string | null = null;
+    flowDefinition: File | null = null;
+
+    constructor() {
+        super();
+
+        this.createProcessGroupForm = this.formBuilder.group({
+            newProcessGroupName: new FormControl('', Validators.required),
+            newProcessGroupParameterContext: new FormControl<string | null>(null)
+        });
+    }
+
+    attachFlow(event: Event): void {
+        const target = event.target as HTMLInputElement;
+        const files = target.files as FileList;
+        const file = files.item(0);
+        if (file) {
+            this.createProcessGroupForm
+                .get('newProcessGroupName')
+                ?.setValue(this.nifiCommon.substringBeforeLast(file.name, '.'));
+            this.createProcessGroupForm.get('newProcessGroupName')?.markAsDirty();
+            this.createProcessGroupForm.get('newProcessGroupParameterContext')?.setValue(null);
+            this.flowNameAttached = file.name;
+            this.flowDefinition = file;
+        }
+    }
+
+    removeAttachedFlow(): void {
+        this.createProcessGroupForm.get('newProcessGroupName')?.setValue('');
+        this.flowUploadControl.nativeElement.value = '';
+        this.flowNameAttached = null;
+        this.flowDefinition = null;
+    }
+
+    submitCreateProcessGroup(): void {
+        if (this.flowDefinition) {
+            this.uploadProcessGroup.emit({
+                ...this.dialogRequest.request,
+                name: this.createProcessGroupForm.get('newProcessGroupName')?.value,
+                flowDefinition: this.flowDefinition
+            });
+        } else {
+            this.createProcessGroup.emit({
+                ...this.dialogRequest.request,
+                name: this.createProcessGroupForm.get('newProcessGroupName')?.value,
+                parameterContextId: this.supportsParameters
+                    ? this.createProcessGroupForm.get('newProcessGroupParameterContext')?.value
+                    : null
+            });
+        }
+    }
+
+    openNewParameterContextDialog(): void {
+        this.openNewParameterContext.emit(this.dialogRequest.parameterContexts);
+    }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
+}

@@ -28,10 +28,16 @@ export interface BaseRenderContextFixtureOverrides {
 
 export function createBaseRenderContextFixture(
     overrides: BaseRenderContextFixtureOverrides = {}
-): Pick<BaseRenderContext, 'textEllipsis' | 'formatUtils' | 'nifiCommon'> {
+): Pick<
+    BaseRenderContext,
+    'textEllipsis' | 'formatUtils' | 'nifiCommon' | 'scale' | 'viewportBounds' | 'getSelectedIds'
+> {
     return {
         textEllipsis: (overrides.textEllipsis ?? {}) as unknown as TextEllipsisUtils,
         formatUtils: (overrides.formatUtils ?? {}) as unknown as CanvasFormatUtils,
-        nifiCommon: (overrides.nifiCommon ?? {}) as unknown as NiFiCommon
+        nifiCommon: (overrides.nifiCommon ?? {}) as unknown as NiFiCommon,
+        scale: 1,
+        viewportBounds: { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity },
+        getSelectedIds: () => new Set()
     };
 }

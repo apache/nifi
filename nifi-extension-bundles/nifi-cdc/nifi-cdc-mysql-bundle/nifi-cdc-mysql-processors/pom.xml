@@ -66,7 +66,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
-            <version>26.7.0</version>
+            <version>26.10.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

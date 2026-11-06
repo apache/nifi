@@ -17,12 +17,8 @@
 
 import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import {
-    FlowComparisonEntity,
-    LocalChangesDialogRequest,
-    NavigateToComponentRequest,
-    VersionControlInformationEntity
-} from '../../../../../state/flow';
+import { LocalChangesDialogRequest, NavigateToComponentRequest } from '../../../../../state/flow';
+import { FlowComparisonEntity, VersionControlInformationEntity } from '../../../../../../../state/flow-shared';
 import { MatButton } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { ReactiveFormsModule } from '@angular/forms';

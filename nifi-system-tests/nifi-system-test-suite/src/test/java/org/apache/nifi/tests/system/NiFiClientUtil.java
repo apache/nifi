@@ -556,7 +556,7 @@ public class NiFiClientUtil {
         }
     }
 
-    public void stopConnectors() throws NiFiClientException, IOException, InterruptedException {
+    public void stopConnectors() throws NiFiClientException, IOException {
         final ConnectorsEntity connectorsEntity = nifiClient.getFlowClient().getConnectors();
         for (final ConnectorEntity connector : connectorsEntity.getConnectors()) {
             connector.setDisconnectedNodeAcknowledged(true);

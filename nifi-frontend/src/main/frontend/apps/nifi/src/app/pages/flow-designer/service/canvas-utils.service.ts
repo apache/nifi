@@ -59,6 +59,7 @@ import {
     getComponentTypeForDestination as getComponentTypeForDestinationUtil,
     getComponentTypeForSource as getComponentTypeForSourceUtil,
     getConnectableTypeForDestination as getConnectableTypeForDestinationUtil,
+    getConnectableTypeForSource as getConnectableTypeForSourceUtil,
     remoteProcessGroupSupportsModification as remoteProcessGroupSupportsModificationUtil,
     runnableSupportsModification as runnableSupportsModificationUtil
 } from '../../../ui/common/utils/component-state.utils';
@@ -837,20 +838,7 @@ export class CanvasUtils {
      * @param type      The type of component
      */
     getConnectableTypeForSource(type: ComponentType): string {
-        switch (type) {
-            case ComponentType.Processor:
-                return 'PROCESSOR';
-            case ComponentType.RemoteProcessGroup:
-                return 'REMOTE_OUTPUT_PORT';
-            case ComponentType.ProcessGroup:
-                return 'OUTPUT_PORT';
-            case ComponentType.InputPort:
-                return 'INPUT_PORT';
-            case ComponentType.Funnel:
-                return 'FUNNEL';
-            default:
-                return '';
-        }
+        return getConnectableTypeForSourceUtil(type);
     }
 
     /**

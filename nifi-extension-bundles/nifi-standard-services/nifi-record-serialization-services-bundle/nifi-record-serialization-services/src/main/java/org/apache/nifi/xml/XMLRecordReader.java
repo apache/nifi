@@ -444,7 +444,7 @@ public class XMLRecordReader implements RecordReader {
             }
         }
 
-        if (content.length() > 0) {
+        if (!content.isEmpty()) {
             if (contentFieldName != null) {
                 final Optional<RecordField> field = schema.getField(contentFieldName);
                 if (field.isPresent()) {

@@ -52,7 +52,7 @@ public class TestGrokRecordReader {
     }
 
     @AfterAll
-    public static void afterClass() throws Exception {
+    public static void afterClass() {
         grokCompiler = null;
     }
 

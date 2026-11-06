@@ -40,6 +40,9 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.components.Backlog;
 import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -69,6 +72,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
@@ -135,6 +139,7 @@ import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.BacklogDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
@@ -295,7 +300,7 @@ public class StandardNiFiServiceFacadeTest {
     private RuleViolationsManager ruleViolationsManager;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         // audit service
         final AuditService auditService = mock(AuditService.class);
         when(auditService.getAction(anyInt())).then(invocation -> {
@@ -791,6 +796,92 @@ public class StandardNiFiServiceFacadeTest {
         assertNull(versionedFlowSnapshot.getFlow());
         assertNull(versionedFlowSnapshot.getBucket());
         assertNull(versionedFlowSnapshot.getSnapshotMetadata());
+    }
+
+    @Test
+    public void testGetConnectorCurrentFlowSnapshot() {
+        final String connectorId = UUID.randomUUID().toString();
+        final String groupId = UUID.randomUUID().toString();
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedGroup = mock(ProcessGroup.class);
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedGroup);
+        when(managedGroup.findProcessGroup(groupId)).thenReturn(processGroup);
+        when(processGroup.getIdentifier()).thenReturn(groupId);
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        final ControllerServiceProvider controllerServiceProvider = mock(ControllerServiceProvider.class);
+        when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
+
+        final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
+        final VersionedComponentFlowMapper flowMapper = mock(VersionedComponentFlowMapper.class);
+        when(serviceFacadeSpy.makeNiFiRegistryFlowMapper(extensionManager)).thenReturn(flowMapper);
+        final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mock(InstantiatedVersionedProcessGroup.class);
+        when(flowMapper.mapNonVersionedProcessGroup(processGroup, controllerServiceProvider)).thenReturn(nonVersionedProcessGroup);
+
+        final RegisteredFlowSnapshot flowSnapshot =
+                serviceFacadeSpy.getConnectorCurrentFlowSnapshot(connectorId, groupId, false, false);
+
+        assertEquals(nonVersionedProcessGroup, flowSnapshot.getFlowContents());
+        verify(connectorDAO).getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY);
+        verify(processGroupDAO, never()).getProcessGroup(anyString());
+    }
+
+    @Test
+    public void testGetConnectorCurrentFlowSnapshotRejectsProcessGroupOutsideConnector() {
+        final String connectorId = UUID.randomUUID().toString();
+        final String groupId = UUID.randomUUID().toString();
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedGroup = mock(ProcessGroup.class);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedGroup);
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> serviceFacade.getConnectorCurrentFlowSnapshot(connectorId, groupId, false, false));
+        verify(processGroupDAO, never()).getProcessGroup(anyString());
+    }
+
+    @Test
+    public void testGetConnectorCurrentFlowSnapshotValidatesComponentState() {
+        final String connectorId = UUID.randomUUID().toString();
+        final String groupId = UUID.randomUUID().toString();
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedGroup = mock(ProcessGroup.class);
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(connectorDAO.getConnector(connectorId, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedGroup);
+        when(managedGroup.findProcessGroup(groupId)).thenReturn(processGroup);
+
+        final ProcessorNode processor = mock(ProcessorNode.class);
+        when(processor.getPhysicalScheduledState()).thenReturn(ScheduledState.RUNNING, ScheduledState.STOPPED);
+        when(processGroup.findAllProcessors()).thenReturn(List.of(processor));
+
+        assertThrows(IllegalStateException.class,
+                () -> serviceFacade.getConnectorCurrentFlowSnapshot(connectorId, groupId, false, true));
+
+        final ControllerServiceNode controllerService = mock(ControllerServiceNode.class);
+        when(controllerService.getState()).thenReturn(ControllerServiceState.ENABLED);
+        when(processGroup.findAllControllerServices()).thenReturn(Set.of(controllerService));
+
+        assertThrows(IllegalStateException.class,
+                () -> serviceFacade.getConnectorCurrentFlowSnapshot(connectorId, groupId, false, true));
     }
 
     @Test
@@ -2423,6 +2514,45 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
+    public void testVerifyUpdateConnectorSkipsReloadVerificationWhenBundleUnchanged() {
+        final String connectorId = "connector-id";
+        final String type = "org.apache.nifi.connectors.TestConnector";
+        final BundleCoordinate coordinate = new BundleCoordinate("org.apache.nifi", "nifi-test-nar", "1.0.0");
+
+        final ConnectorNode connectorNode = configureConnectorForBundleUpdate(connectorId, type, coordinate, coordinate);
+        doThrow(new IllegalStateException("Connector cannot be reloaded in its current state")).when(connectorNode).verifyCanReload();
+
+        final ConnectorDTO connectorDTO = new ConnectorDTO();
+        connectorDTO.setId(connectorId);
+        connectorDTO.setName("Renamed Connector");
+        connectorDTO.setBundle(new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion()));
+
+        serviceFacade.verifyUpdateConnector(connectorDTO);
+
+        verify(connectorNode, never()).verifyCanReload();
+        verify(connectorNode, never()).verifyCanUpdateBundle(any());
+    }
+
+    @Test
+    public void testVerifyUpdateConnectorRequiresReloadVerificationWhenBundleChanges() {
+        final String connectorId = "connector-id";
+        final String type = "org.apache.nifi.connectors.TestConnector";
+        final BundleCoordinate existingCoordinate = new BundleCoordinate("org.apache.nifi", "nifi-test-nar", "1.0.0");
+        final BundleCoordinate incomingCoordinate = new BundleCoordinate("org.apache.nifi", "nifi-test-nar", "2.0.0");
+
+        final ConnectorNode connectorNode = configureConnectorForBundleUpdate(connectorId, type, existingCoordinate, incomingCoordinate);
+
+        final ConnectorDTO connectorDTO = new ConnectorDTO();
+        connectorDTO.setId(connectorId);
+        connectorDTO.setBundle(new BundleDTO(incomingCoordinate.getGroup(), incomingCoordinate.getId(), incomingCoordinate.getVersion()));
+
+        serviceFacade.verifyUpdateConnector(connectorDTO);
+
+        verify(connectorNode).verifyCanUpdateBundle(incomingCoordinate);
+        verify(connectorNode).verifyCanReload();
+    }
+
+    @Test
     public void testGetConnectorClusterNodeRequest() {
         final String connectorId = "connector-id";
         final String managedGroupId = "managed-group-id";
@@ -3031,7 +3161,7 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
-    public void testCreateFlowBranchUnsupportedRegistry() throws IOException, FlowRegistryException {
+    public void testCreateFlowBranchUnsupportedRegistry() {
         final ProcessGroupDAO branchProcessGroupDAO = mock(ProcessGroupDAO.class);
         final FlowRegistryDAO flowRegistryDAO = mock(FlowRegistryDAO.class);
         final FlowManager branchFlowManager = mock(FlowManager.class);
@@ -3077,7 +3207,7 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
-    public void testCreateFlowBranchPropagatesRegistryErrors() throws IOException, FlowRegistryException {
+    public void testCreateFlowBranchPropagatesRegistryErrors() {
         final ProcessGroupDAO branchProcessGroupDAO = mock(ProcessGroupDAO.class);
         final FlowRegistryDAO flowRegistryDAO = mock(FlowRegistryDAO.class);
         final FlowManager branchFlowManager = mock(FlowManager.class);
@@ -3625,4 +3755,31 @@ public class StandardNiFiServiceFacadeTest {
         return assetManager;
     }
 
+    private ConnectorNode configureConnectorForBundleUpdate(final String connectorId, final String type,
+                                                            final BundleCoordinate existingCoordinate, final BundleCoordinate incomingCoordinate) {
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorNode.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connectorNode.getCanonicalClassName()).thenReturn(type);
+        when(connectorNode.getBundleCoordinate()).thenReturn(existingCoordinate);
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        final Bundle incomingBundle = createBundle(incomingCoordinate);
+        when(extensionManager.getBundle(incomingCoordinate)).thenReturn(incomingBundle);
+        when(extensionManager.getBundles(type)).thenReturn(List.of(incomingBundle));
+
+        return connectorNode;
+    }
+
+    private Bundle createBundle(final BundleCoordinate coordinate) {
+        final BundleDetails details = new BundleDetails.Builder()
+                .workingDir(new File("."))
+                .coordinate(coordinate)
+                .build();
+        return new Bundle(details, getClass().getClassLoader());
+    }
 }

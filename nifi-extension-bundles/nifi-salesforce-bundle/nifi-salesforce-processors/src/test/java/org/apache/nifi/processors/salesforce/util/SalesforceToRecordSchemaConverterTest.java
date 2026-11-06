@@ -166,7 +166,7 @@ class SalesforceToRecordSchemaConverterTest {
     }
 
     @Test
-    void testConvertNullSchema() throws IOException {
+    void testConvertNullSchema() {
         final InputStream sfSchema = null;
         assertThrows(IllegalArgumentException.class, () -> converter.getSalesforceObject(sfSchema));
     }

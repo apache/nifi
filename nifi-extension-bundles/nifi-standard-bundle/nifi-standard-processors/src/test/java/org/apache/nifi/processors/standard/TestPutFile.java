@@ -287,7 +287,7 @@ public class TestPutFile {
     private final String testFile = "src" + File.separator + "test" + File.separator + "resources" + File.separator + "hello.txt";
 
     @BeforeEach
-    public void setup() throws IOException {
+    public void setup() {
 
         putFileRunner = TestRunners.newTestRunner(PutFile.class);
         putFileRunner.setProperty(PutFile.CHANGE_OWNER, System.getProperty("user.name"));
@@ -355,7 +355,7 @@ public class TestPutFile {
         Files.walkFileTree(Paths.get("target/test/data/out/PutFile"), new FileVisitor<>() {
 
             @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                 return FileVisitResult.CONTINUE;
             }
 
@@ -366,7 +366,7 @@ public class TestPutFile {
             }
 
             @Override
-            public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+            public FileVisitResult visitFileFailed(Path file, IOException exc) {
                 return FileVisitResult.CONTINUE;
             }
 

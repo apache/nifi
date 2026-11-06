@@ -1,0 +1,94 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { CreateProcessor } from './create-processor.component';
+import { CreateProcessorDialogRequest, CreateProcessorRequest } from '../../../../state/flow-shared';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { ComponentType } from '@nifi/shared';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { DocumentedType } from '../../../../state/shared';
+import { MatIconTestingModule } from '@angular/material/icon/testing';
+import { MockComponent } from 'ng-mocks';
+import { ExtensionCreation } from '../../extension-creation/extension-creation.component';
+import { of } from 'rxjs';
+
+describe('CreateProcessor', () => {
+    let component: CreateProcessor;
+    let fixture: ComponentFixture<CreateProcessor>;
+
+    const data: CreateProcessorDialogRequest = {
+        request: {
+            type: ComponentType.Processor,
+            position: {
+                x: 0,
+                y: 0
+            },
+            revision: {
+                version: 0,
+                clientId: 'user'
+            }
+        }
+    };
+
+    const processorTypes: DocumentedType[] = [
+        {
+            type: 'org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow',
+            bundle: {
+                group: 'org.apache.nifi',
+                artifact: 'nifi-stateful-analysis-nar',
+                version: '2.0.0-SNAPSHOT'
+            },
+            description:
+                "Track a Rolling Window based on evaluating an Expression Language expression on each FlowFile and add that value to the processor's state. Each FlowFile will be emitted with the count of FlowFiles and total aggregate value of values processed in the current time window.",
+            restricted: false,
+            tags: ['rolling', 'data science', 'Attribute Expression Language', 'state', 'window']
+        }
+    ];
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            imports: [CreateProcessor, NoopAnimationsModule, MatIconTestingModule, MockComponent(ExtensionCreation)],
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                { provide: MatDialogRef, useValue: null }
+            ]
+        });
+        fixture = TestBed.createComponent(CreateProcessor);
+        component = fixture.componentInstance;
+        component.processorTypes$ = of(processorTypes);
+        component.processorTypesLoadingStatus$ = of('success');
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+
+    it('should emit createProcessor when a type is selected', () => {
+        const emitted: CreateProcessorRequest[] = [];
+        component.createProcessor.subscribe((request) => emitted.push(request));
+
+        component.onProcessorTypeSelected(processorTypes[0]);
+
+        expect(emitted).toHaveLength(1);
+        expect(emitted[0].processorType).toEqual(processorTypes[0].type);
+        expect(emitted[0].processorBundle).toEqual(processorTypes[0].bundle);
+        expect(emitted[0].position).toEqual(data.request.position);
+    });
+});

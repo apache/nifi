@@ -535,7 +535,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 } else {
                     // figure out portion of path that does not include the provided root dir.
                     String relativePath = getPathDifference(dir, path);
-                    if (relativePath.length() == 0) {
+                    if (relativePath.isEmpty()) {
                         pathToCompare = path.getName();
                     } else {
                         pathToCompare = relativePath + Path.SEPARATOR + path.getName();

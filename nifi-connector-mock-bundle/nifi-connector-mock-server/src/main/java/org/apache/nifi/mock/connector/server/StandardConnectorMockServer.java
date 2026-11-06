@@ -50,7 +50,6 @@ import org.apache.nifi.connectable.FlowFileTransferCounts;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.metrics.DefaultComponentMetricReporter;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
 import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
@@ -115,6 +114,8 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     private static final Duration DEFAULT_STOP_TIMEOUT = Duration.ofSeconds(60);
     private static final long STOP_POLL_INTERVAL_MILLIS = 250L;
 
+    private final RecordingComponentMetricReporter componentMetricReporter = new RecordingComponentMetricReporter();
+
     private Bundle systemBundle;
     private Set<Bundle> bundles;
     private NiFiProperties nifiProperties;
@@ -150,7 +151,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
             nifiProperties,
             authorizer,
             auditService,
-            new DefaultComponentMetricReporter(),
+            componentMetricReporter,
             new MockPropertyEncryptionProvider(),
             bulletinRepository,
             extensionManager,
@@ -489,6 +490,26 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
             .filter(result -> !result.isValid())
             .filter(result -> !DisabledServiceValidationResult.isMatch(result))
             .toList();
+    }
+
+    @Override
+    public Long getCounterValue(final String componentId, final String name) {
+        return componentMetricReporter.getCounterValue(componentId, name);
+    }
+
+    @Override
+    public Long getCounterValue(final String componentId, final String name, final Map<String, String> attributes) {
+        return componentMetricReporter.getCounterValue(componentId, name, attributes);
+    }
+
+    @Override
+    public List<Double> getGaugeValues(final String componentId, final String name) {
+        return componentMetricReporter.getGaugeValues(componentId, name);
+    }
+
+    @Override
+    public List<Double> getGaugeValues(final String componentId, final String name, final Map<String, String> attributes) {
+        return componentMetricReporter.getGaugeValues(componentId, name, attributes);
     }
 
     @Override

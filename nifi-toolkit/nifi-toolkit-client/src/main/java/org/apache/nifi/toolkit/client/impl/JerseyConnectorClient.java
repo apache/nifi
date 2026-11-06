@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.toolkit.client.impl;
 
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.MediaType;
@@ -605,6 +606,49 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
                 .resolveTemplate("processGroupId", processGroupId);
 
             return getRequestBuilder(target).get(ProcessGroupEntity.class);
+        });
+    }
+
+    @Override
+    public File exportProcessGroup(final String connectorId, final String processGroupId, final boolean includeReferencedServices,
+            final File outputFile) throws NiFiClientException, IOException {
+        return exportProcessGroup(connectorId, processGroupId, includeReferencedServices, false, outputFile);
+    }
+
+    @Override
+    public File exportProcessGroup(final String connectorId, final String processGroupId, final boolean includeReferencedServices,
+            final boolean includeComponentState, final File outputFile) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        return executeAction("Error exporting process group for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                    .path("/process-groups/{processGroupId}/download")
+                    .resolveTemplate("id", connectorId)
+                    .resolveTemplate("processGroupId", processGroupId)
+                    .queryParam("includeReferencedServices", includeReferencedServices)
+                    .queryParam("includeComponentState", includeComponentState);
+
+            final Response response = getRequestBuilder(target)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .get();
+            if (response.getStatusInfo().getFamily() != Response.Status.Family.SUCCESSFUL) {
+                throw new WebApplicationException(response);
+            }
+
+            final String contentDispositionHeader = response.getHeaderString("Content-Disposition");
+            if (StringUtils.isBlank(contentDispositionHeader)) {
+                throw new IllegalStateException("Content-Disposition header was blank or missing");
+            }
+
+            try (final InputStream responseInputStream = response.readEntity(InputStream.class)) {
+                Files.copy(responseInputStream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                return outputFile;
+            }
         });
     }
 

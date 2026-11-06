@@ -53,7 +53,7 @@ public class ITPutSNS {
     private static SnsClient client;
 
     @BeforeAll
-    public static void setup() throws InterruptedException {
+    public static void setup() {
         localstack.start();
 
         client = SnsClient.builder()

@@ -21,6 +21,7 @@ import { LabelRenderContext } from '../render-context.types';
 import { DragUtils } from '../../utils/drag.utils';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
 import { CanvasConstants } from '../../canvas.constants';
+import { isInViewport } from '../../utils/visibility.utils';
 
 export class LabelRenderer {
     public static render(context: LabelRenderContext): void {
@@ -37,6 +38,8 @@ export class LabelRenderer {
             .attr('class', 'label component');
 
         LabelRenderer.appendLabelElements(entered);
+        // Selection / dblclick handlers are attached only to newly entered labels.
+        // The fire-time `canSelect` gate is read inside the handlers.
         LabelRenderer.attachEventHandlers(entered, context);
 
         // UPDATE: Merge enter and update selections
@@ -65,15 +68,6 @@ export class LabelRenderer {
 
         // EXIT: Remove labels that are no longer in data
         selection.exit().remove();
-    }
-
-    public static pan(selection: CanvasSelection<CanvasLabel>, context: LabelRenderContext): void {
-        if (selection.empty()) {
-            return;
-        }
-
-        // Simply delegate to updateLabelElements which handles all updates
-        LabelRenderer.updateLabelElements(selection, context);
     }
 
     private static appendLabelElements(entered: CanvasSelection<CanvasLabel>): void {
@@ -117,13 +111,28 @@ export class LabelRenderer {
             return `translate(${position.x}, ${position.y})`;
         });
 
+        const { viewportBounds, scale } = context;
+        updated.each(function (d: CanvasLabel) {
+            const node = d3.select(this);
+            const wasVisible = node.classed('visible');
+            const isVisible = isInViewport(
+                d.ui.currentPosition ?? d.entity.position,
+                d.ui.dimensions,
+                viewportBounds,
+                scale
+            );
+            node.classed('visible', isVisible)
+                .classed('entering', isVisible && !wasVisible)
+                .classed('leaving', !isVisible && wasVisible);
+        });
+
         // Apply disabled state (during save operation)
         updated
-            .classed('disabled', (d) => context.disabledLabelIds?.has(d.entity.id) || false)
-            .style('opacity', (d) => (context.disabledLabelIds?.has(d.entity.id) ? 0.6 : null))
+            .classed('disabled', (d) => context.getDisabledLabelIds().has(d.entity.id))
+            .style('opacity', (d) => (context.getDisabledLabelIds().has(d.entity.id) ? 0.6 : null))
             .style('cursor', (d) => {
-                if (context.disabledLabelIds?.has(d.entity.id)) return 'not-allowed';
-                return context.canSelect ? 'pointer' : 'default';
+                if (context.getDisabledLabelIds().has(d.entity.id)) return 'not-allowed';
+                return context.getCanSelect() ? 'pointer' : 'default';
             });
 
         // Update border
@@ -159,9 +168,9 @@ export class LabelRenderer {
             .select('path.resizable-triangle')
             .style('display', (d) => {
                 // Hide if not selectable, not editable, or if disabled (saving)
-                if (!context.canSelect) return 'none';
+                if (!context.getCanSelect()) return 'none';
                 if (!context.getCanEdit()) return 'none';
-                if (context.disabledLabelIds?.has(d.entity.id)) return 'none';
+                if (context.getDisabledLabelIds().has(d.entity.id)) return 'none';
                 return null; // CSS will control visibility (hidden by default, shown on hover/selected)
             })
             .style('cursor', () => {
@@ -172,11 +181,6 @@ export class LabelRenderer {
                 // Position in bottom-right corner
                 return `translate(${d.ui.dimensions.width - 2}, ${d.ui.dimensions.height - 10})`;
             });
-
-        // Apply disabled state to label
-        updated
-            .classed('disabled', (d) => context.disabledLabelIds?.has(d.entity.id) || false)
-            .style('opacity', (d) => (context.disabledLabelIds?.has(d.entity.id) ? 0.6 : null));
 
         // Update text content with multi-line wrapping and ellipsis
         updated.each(function (this: SVGGElement, d: CanvasLabel) {
@@ -239,17 +243,13 @@ export class LabelRenderer {
     }
 
     private static attachEventHandlers(selection: CanvasSelection<CanvasLabel>, context: LabelRenderContext): void {
-        if (!context.canSelect) {
-            return; // No interactions when selection is disabled
-        }
-
         const callbacks = context.callbacks;
 
         // Use mousedown for selection to ensure single, deterministic event firing
         if (callbacks.onClick) {
             selection.on('mousedown.selection', function (event: MouseEvent, d: CanvasLabel) {
                 // Only handle left mouse button
-                if (event.button !== 0) {
+                if (event.button !== 0 || !context.getCanSelect()) {
                     return;
                 }
 
@@ -260,6 +260,9 @@ export class LabelRenderer {
 
         if (callbacks.onDoubleClick) {
             selection.on('dblclick', function (event: MouseEvent, d: CanvasLabel) {
+                if (!context.getCanSelect()) {
+                    return;
+                }
                 event.stopPropagation();
                 callbacks.onDoubleClick!(d, event);
             });

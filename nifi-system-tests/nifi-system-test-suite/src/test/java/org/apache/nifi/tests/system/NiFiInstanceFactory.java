@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.tests.system;
 
-import java.io.IOException;
-
 public interface NiFiInstanceFactory {
-    NiFiInstance createInstance() throws IOException;
+    NiFiInstance createInstance();
 
     boolean isClusteredInstance();
 }

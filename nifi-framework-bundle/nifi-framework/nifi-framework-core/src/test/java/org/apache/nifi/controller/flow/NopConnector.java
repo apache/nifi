@@ -70,7 +70,7 @@ public class NopConnector implements Connector {
     }
 
     @Override
-    public void stop(final FlowContext activeContext) throws FlowUpdateException {
+    public void stop(final FlowContext activeContext) {
         started = false;
     }
 

@@ -77,7 +77,7 @@ public class StandardKustoIngestServiceTest {
         "false",
         "null" //needs to be a constant
     })
-    void testIsStreamingPolicyEnabled(String isStreamingEnabled) throws Exception {
+    void testIsStreamingPolicyEnabled(String isStreamingEnabled) {
         KustoResultColumn[] krcArray = Map.of(0, "PolicyName", 1, "EntityName", 2, "Policy", 3, "ChildEntities", 4, "EntityType")
             .entrySet().stream().map(entry -> new KustoResultColumn(entry.getValue(), "string", entry.getKey()))
             .toArray(KustoResultColumn[]::new);

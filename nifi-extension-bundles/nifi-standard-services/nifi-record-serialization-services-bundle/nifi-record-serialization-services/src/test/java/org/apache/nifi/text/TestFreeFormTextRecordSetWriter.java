@@ -21,7 +21,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestFreeFormTextRecordSetWriter {
 
-    private TestRunner setup(FreeFormTextRecordSetWriter writer) throws InitializationException, IOException {
+    private TestRunner setup(FreeFormTextRecordSetWriter writer) throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(TestFreeFormTextRecordSetWriterProcessor.class);
 
         runner.addControllerService("writer", writer);
@@ -41,7 +40,7 @@ public class TestFreeFormTextRecordSetWriter {
     }
 
     @Test
-    public void testDefault() throws IOException, InitializationException {
+    public void testDefault() throws InitializationException {
         FreeFormTextRecordSetWriter writer = new FreeFormTextRecordSetWriter();
         TestRunner runner = setup(writer);
 
@@ -61,7 +60,7 @@ public class TestFreeFormTextRecordSetWriter {
     }
 
     @Test
-    public void testDefaultSingleRecord() throws IOException, InitializationException {
+    public void testDefaultSingleRecord() throws InitializationException {
         FreeFormTextRecordSetWriter writer = new FreeFormTextRecordSetWriter();
         TestRunner runner = setup(writer);
 

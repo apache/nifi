@@ -18,7 +18,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatDialogModule, MatDialogTitle } from '@angular/material/dialog';
 import { MatButton } from '@angular/material/button';
-import { FlowUpdateRequestEntity } from '../../../../../state/flow';
+import { FlowUpdateRequestEntity } from '../../../../../../../state/flow-shared';
 import { Observable, of } from 'rxjs';
 import { AsyncPipe } from '@angular/common';
 import { MatProgressBar } from '@angular/material/progress-bar';

@@ -25,7 +25,6 @@ import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.NiFiWebRequestContext;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -58,7 +57,7 @@ public class TestProcessorWebUtils {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testGetRequestContextForProcessor() throws NoSuchMethodException, IOException, InvocationTargetException, IllegalAccessException {
+    public void testGetRequestContextForProcessor() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         Method method = ProcessorWebUtils.class.getDeclaredMethod("getRequestContext", String.class, HttpServletRequest.class);
         method.setAccessible(true);
         NiFiWebRequestContext requestContext = (NiFiWebRequestContext) method.invoke(null, "1", mock(HttpServletRequest.class));

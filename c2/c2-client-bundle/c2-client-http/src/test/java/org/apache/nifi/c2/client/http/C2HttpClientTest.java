@@ -78,7 +78,7 @@ public class C2HttpClientTest {
     }
 
     @AfterEach
-    public void shutdownServer() throws IOException {
+    public void shutdownServer() {
         mockWebServer.close();
     }
 

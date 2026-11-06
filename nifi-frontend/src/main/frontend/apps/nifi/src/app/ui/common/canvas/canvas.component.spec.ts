@@ -61,6 +61,12 @@ type CanvasTestAccess = {
     hasInitialized: WritableSignal<boolean>;
     savingConnections: WritableSignal<Set<string>>;
     applyTransform(x: number, y: number, scale: number, transition?: boolean): void;
+    getComponentsInSelectionBox(box: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    }): Array<{ id: string; type: ComponentType }>;
 };
 
 function asPrivate(component: CanvasComponent): CanvasTestAccess {
@@ -76,18 +82,22 @@ function createMockProcessor(
         name?: string;
         x?: number;
         y?: number;
+        type?: string;
+        bundle?: { group: string; artifact: string; version: string };
+        canRead?: boolean;
     } = {}
 ): ReadableEntity<ProcessorEntity> {
     const id = options.id || `processor-${Math.random().toString(36).substr(2, 9)}`;
     return {
         id,
         uri: `https://localhost/nifi-api/processors/${id}`,
-        permissions: { canRead: true, canWrite: true },
+        permissions: { canRead: options.canRead ?? true, canWrite: true },
         bulletins: [],
         component: {
             id,
             name: options.name || 'Test Processor',
-            type: 'org.apache.nifi.processors.test.TestProcessor',
+            type: options.type ?? 'org.apache.nifi.processors.test.TestProcessor',
+            bundle: options.bundle,
             state: 'STOPPED',
             validationStatus: 'VALID'
         },
@@ -279,6 +289,18 @@ async function setup(options: SetupOptions = {}) {
 }
 
 describe('CanvasComponent', () => {
+    describe('clearConnectionPreview', () => {
+        it('removes the in-flight connector path', async () => {
+            const { component } = await setup();
+            const canvasGroup = asPrivate(component).canvasGroup;
+            canvasGroup.append('path').attr('class', 'connector');
+
+            component.clearConnectionPreview();
+
+            expect(canvasGroup.select('path.connector').empty()).toBe(true);
+        });
+    });
+
     beforeEach(() => {
         vi.clearAllMocks();
     });
@@ -521,22 +543,63 @@ describe('CanvasComponent', () => {
         });
     });
 
-    describe('Birdseye API - updateCanvasVisibility', () => {
-        it('should be callable without error', async () => {
+    describe('Birdseye API - viewportBounds', () => {
+        it('should expose viewportBounds as a callable signal that publishes after initial transform', async () => {
             const { component } = await setup();
 
-            expect(() => {
-                component.updateCanvasVisibility();
-            }).not.toThrow();
+            // Callable signal accessor (not just truthy)
+            expect(typeof component.viewportBounds).toBe('function');
+
+            // The canvas applies the initial transform during ngAfterViewInit and
+            // synchronously publishes the first ViewportRect; the signal must not
+            // be null by the time external consumers (layers, birdseye) read it.
+            const bounds = component.viewportBounds();
+            expect(bounds).not.toBeNull();
+            expect(typeof bounds!.left).toBe('number');
+            expect(typeof bounds!.top).toBe('number');
+            expect(typeof bounds!.right).toBe('number');
+            expect(typeof bounds!.bottom).toBe('number');
+            // ViewportRect must be non-degenerate: right >= left, bottom >= top
+            expect(bounds!.right).toBeGreaterThanOrEqual(bounds!.left);
+            expect(bounds!.bottom).toBeGreaterThanOrEqual(bounds!.top);
         });
 
-        it('should handle visibility update with components', async () => {
-            const processor = createMockProcessor({ id: 'proc-1', x: 100, y: 100 });
-            const { component } = await setup({ processors: [processor] });
+        it('should republish viewportBounds on birdseyeDragEnd', async () => {
+            const { component } = await setup();
+            const baselineBounds = component.viewportBounds();
+            expect(baselineBounds).not.toBeNull();
 
-            expect(() => {
-                component.updateCanvasVisibility();
-            }).not.toThrow();
+            // Move the viewport, then end the drag. The drag-end handler must republish.
+            component.setViewportPosition(baselineBounds!.left + 500, baselineBounds!.top + 500, false);
+            component.birdseyeDragEnd();
+
+            const afterDragBounds = component.viewportBounds();
+            expect(afterDragBounds).not.toBeNull();
+            expect(afterDragBounds).not.toEqual(baselineBounds);
+        });
+    });
+
+    describe('visibility classification', () => {
+        it('classifies a processor added after init as visible', async () => {
+            const { fixture, component } = await setup({ processors: [] });
+
+            // In the test DOM offsetWidth/Height are zero, so the auto-published
+            // viewportBounds rect is degenerate. Set an explicit viewport that covers
+            // a large canvas area to isolate the visibility contract from DOM sizing.
+            component.viewportBounds.set({ left: -500, top: -500, right: 1500, bottom: 1500 });
+
+            // Simulate a paste / create-component flow: data arrives after init.
+            fixture.componentRef.setInput('processors', [createMockProcessor({ id: 'late-add', x: 100, y: 100 })]);
+            fixture.detectChanges();
+            await fixture.whenStable();
+
+            const node = fixture.nativeElement.querySelector('#id-late-add');
+            // (a) If _processors is trimmed from the layer's renderEffect deps the
+            //     element is never created.
+            expect(node).toBeTruthy();
+            // (b) If viewportBounds is dropped from the renderContext spread,
+            //     isInViewport never runs and the element is not classified visible.
+            expect(node!.classList.contains('visible')).toBe(true);
         });
     });
 
@@ -573,28 +636,28 @@ describe('CanvasComponent', () => {
             expect(newTransform).toBeDefined();
         });
 
-        it('should not call updateCanvasVisibility during drag', async () => {
+        it('should only update viewportBounds on drag end, not during drag', async () => {
             const processor = createMockProcessor({ id: 'proc-1' });
             const { component } = await setup({ processors: [processor] });
 
-            // Spy on updateCanvasVisibility
-            const updateVisibilitySpy = vi.spyOn(component, 'updateCanvasVisibility');
+            // The initial transform application (in ngAfterViewInit) already published
+            // a non-null baseline, so the equality check below distinguishes "no change"
+            // from "any change at all".
+            const baselineBounds = component.viewportBounds();
+            expect(baselineBounds).not.toBeNull();
 
-            // Start drag
+            // Mid-drag: setViewportPosition mutates the transform, but the zoom 'end'
+            // handler short-circuits while birdseyeTranslateInProgress is true.
             component.birdseyeDragStart();
+            component.setViewportPosition(500, 500, false);
+            component.setViewportPosition(1000, 1000, false);
+            expect(component.viewportBounds()).toEqual(baselineBounds);
 
-            // Multiple viewport updates during drag
-            component.setViewportPosition(100, 100, false);
-            component.setViewportPosition(200, 200, false);
-
-            // During drag, updateCanvasVisibility should not be called
-            // (The zoom end handler skips it when birdseyeTranslateInProgress is true)
-
-            // End drag - this should call updateCanvasVisibility
+            // Drag end publishes fresh bounds reflecting the new transform.
             component.birdseyeDragEnd();
-
-            // birdseyeDragEnd calls updateCanvasVisibility once
-            expect(updateVisibilitySpy).toHaveBeenCalled();
+            const afterDragBounds = component.viewportBounds();
+            expect(afterDragBounds).not.toBeNull();
+            expect(afterDragBounds).not.toEqual(baselineBounds);
         });
     });
 
@@ -2284,6 +2347,55 @@ describe('CanvasComponent', () => {
                 { version: 2, clientId: 'peer-client' },
                 { version: 8, clientId: 'peer-client' }
             ]);
+        });
+    });
+
+    describe('multi-canvas box selection', () => {
+        it('selects a component at its optimistic current position', async () => {
+            const processor = createMockProcessor({ id: 'processor-1', x: 1000, y: 1000 });
+            const { component } = await setup({ processors: [processor] });
+            component.internalProcessors()[0].ui.currentPosition = { x: 10, y: 10 };
+
+            const selected = asPrivate(component).getComponentsInSelectionBox({
+                x: 0,
+                y: 0,
+                width: 500,
+                height: 500
+            });
+
+            expect(selected).toContainEqual({ id: 'processor-1', type: ComponentType.Processor });
+        });
+
+        it('cleans up each canvas selection rectangle independently on a window mouseup', async () => {
+            const { fixture: firstFixture } = await setup();
+            const secondFixture = TestBed.createComponent(CanvasComponent);
+            secondFixture.componentRef.setInput('labels', []);
+            secondFixture.componentRef.setInput('processors', []);
+            secondFixture.componentRef.setInput('funnels', []);
+            secondFixture.componentRef.setInput('ports', []);
+            secondFixture.componentRef.setInput('remoteProcessGroups', []);
+            secondFixture.componentRef.setInput('processGroups', []);
+            secondFixture.componentRef.setInput('connections', []);
+            secondFixture.componentRef.setInput('processGroupId', 'test-pg-id');
+            secondFixture.componentRef.setInput('selectedComponentIds', []);
+            secondFixture.componentRef.setInput('dataReady', false);
+            secondFixture.detectChanges();
+
+            const firstSvg = firstFixture.nativeElement.querySelector('svg') as SVGSVGElement;
+            const secondSvg = secondFixture.nativeElement.querySelector('svg') as SVGSVGElement;
+            Object.defineProperty(firstSvg, 'createSVGPoint', { value: undefined });
+            Object.defineProperty(secondSvg, 'createSVGPoint', { value: undefined });
+            firstSvg.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, shiftKey: true }));
+            secondSvg.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, shiftKey: true }));
+
+            expect(firstSvg.querySelector('rect.component-selection')).not.toBeNull();
+            expect(secondSvg.querySelector('rect.component-selection')).not.toBeNull();
+
+            window.dispatchEvent(new MouseEvent('mouseup'));
+
+            expect(firstSvg.querySelector('rect.component-selection')).toBeNull();
+            expect(secondSvg.querySelector('rect.component-selection')).toBeNull();
+            secondFixture.destroy();
         });
     });
 });

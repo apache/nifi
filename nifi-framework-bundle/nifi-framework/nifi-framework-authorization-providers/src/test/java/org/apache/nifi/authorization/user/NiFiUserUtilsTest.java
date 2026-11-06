@@ -55,7 +55,7 @@ public class NiFiUserUtilsTest {
     }
 
     @Test
-    public void testShouldBuildProxyChainFromAnonymousUser() throws Exception {
+    public void testShouldBuildProxyChainFromAnonymousUser() {
         final NiFiUser mockProxy1 = createMockNiFiUser(SAFE_USER_NAME_PROXY_1, null, false);
         final NiFiUser mockAnonymous = createMockNiFiUser("anonymous", mockProxy1, true);
 

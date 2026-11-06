@@ -25,10 +25,11 @@ import {
     output,
     effect,
     computed,
+    untracked,
     ChangeDetectionStrategy
 } from '@angular/core';
 import * as d3 from 'd3';
-import { CanvasPort, CanvasRootResolver, CanvasRootSelection, CanvasSelection } from '../../canvas.types';
+import { CanvasPort, CanvasRootResolver, CanvasRootSelection } from '../../canvas.types';
 import { PortRenderer } from './port-renderer';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../../canvas-format-utils.service';
@@ -36,6 +37,7 @@ import { CanvasComponentUtils } from '../../canvas-component-utils.service';
 import { PortRenderContext } from '../render-context.types';
 import { NiFiCommon, Position } from '@nifi/shared';
 import { ConnectableBehaviorHelper } from '../../connectable-behavior.helper';
+import { ViewportRect } from '../../utils/visibility.utils';
 
 @Component({
     // Attribute selector required: this component renders as an SVG <g> element, not a custom HTML element
@@ -54,6 +56,7 @@ export class PortLayerComponent implements AfterViewInit {
 
     ports = input<CanvasPort[]>([]);
     scale = input<number>(1);
+    viewportBounds = input<ViewportRect | null>(null);
     selectedIds = input<string[]>([]);
     textEllipsis = input.required<TextEllipsisUtils>();
     formatUtils = input.required<CanvasFormatUtils>();
@@ -108,6 +111,9 @@ export class PortLayerComponent implements AfterViewInit {
         textEllipsis: this.textEllipsis(),
         formatUtils: this.formatUtils(),
         nifiCommon: this.nifiCommon(),
+        // untracked: scale is passive — don't re-render on zoom ticks.
+        scale: untracked(() => this.scale()),
+        viewportBounds: this.viewportBounds(),
         componentUtils: this.componentUtils(),
         getCanEdit: () => this.canEdit(),
         getCanSelect: () => this.canSelect(),
@@ -122,6 +128,9 @@ export class PortLayerComponent implements AfterViewInit {
 
     private renderEffect = effect(() => {
         const _ports = this.ports();
+        // Track viewportBounds so the renderer re-classifies visibility after
+        // zoom end, resize, or birdseye drag end.
+        const _viewportBounds = this.viewportBounds();
 
         if (this.containerSelection) {
             this.renderPorts();
@@ -184,11 +193,6 @@ export class PortLayerComponent implements AfterViewInit {
         }
 
         PortRenderer.render(this.renderContext());
-        this.applySelectionStyling();
-    }
-
-    public pan(selection: CanvasSelection<CanvasPort>): void {
-        PortRenderer.pan(selection, this.renderContext());
         this.applySelectionStyling();
     }
 }

@@ -19,7 +19,6 @@ package org.apache.nifi.processors.aws.sns;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -58,7 +57,7 @@ public class TestPutSNS {
     }
 
     @Test
-    public void testPublish() throws InitializationException {
+    public void testPublish() {
         AuthUtils.enableCredentialsFile(runner, "src/test/resources/mock-aws-credentials.properties");
         runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:123456789012:test-topic-1");
         runner.setProperty(PutSNS.SUBJECT, "${eval.subject}");
@@ -88,7 +87,7 @@ public class TestPutSNS {
     }
 
     @Test
-    public void testPublishFIFO() throws InitializationException {
+    public void testPublishFIFO() {
         AuthUtils.enableCredentialsFile(runner, "src/test/resources/mock-aws-credentials.properties");
         runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:123456789012:test-topic-1.fifo");
         runner.setProperty(PutSNS.SUBJECT, "${eval.subject}");

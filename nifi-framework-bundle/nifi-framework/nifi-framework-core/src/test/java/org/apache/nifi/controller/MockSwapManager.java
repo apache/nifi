@@ -130,14 +130,14 @@ public class MockSwapManager implements FlowFileSwapManager {
     }
 
     @Override
-    public List<String> recoverSwapLocations(FlowFileQueue flowFileQueue, final String partitionName) throws IOException {
+    public List<String> recoverSwapLocations(FlowFileQueue flowFileQueue, final String partitionName) {
         return swappedOut.keySet().stream()
             .filter(key -> key.endsWith("." + partitionName))
             .collect(Collectors.toList());
     }
 
     @Override
-    public SwapSummary getSwapSummary(String swapLocation) throws IOException {
+    public SwapSummary getSwapSummary(String swapLocation) {
         final List<FlowFileRecord> flowFiles = swappedOut.get(swapLocation);
         if (flowFiles == null) {
             return StandardSwapSummary.EMPTY_SUMMARY;
@@ -174,7 +174,7 @@ public class MockSwapManager implements FlowFileSwapManager {
     }
 
     @Override
-    public void deleteSwapFile(final String swapLocation) throws IOException {
+    public void deleteSwapFile(final String swapLocation) {
         swappedOut.remove(swapLocation);
     }
 
@@ -184,7 +184,7 @@ public class MockSwapManager implements FlowFileSwapManager {
     }
 
     @Override
-    public Set<String> getSwappedPartitionNames(final FlowFileQueue queue) throws IOException {
+    public Set<String> getSwappedPartitionNames(final FlowFileQueue queue) {
         return swappedOut.keySet().stream()
             .filter(key -> key.contains("."))
             .map(key -> key.substring(key.indexOf(".") + 1))

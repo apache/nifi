@@ -370,27 +370,27 @@ public class TestAbstractListProcessor {
         }
 
         @Override
-        public <K> boolean containsKey(K key, Serializer<K> keySerializer) throws IOException {
+        public <K> boolean containsKey(K key, Serializer<K> keySerializer) {
             return false;
         }
 
         @Override
-        public <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+        public <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
             stored.put(key, value);
         }
 
         @Override
         @SuppressWarnings("unchecked")
-        public <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) {
             return (V) stored.get(key);
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
         }
 
         @Override
-        public <K> boolean remove(K key, Serializer<K> serializer) throws IOException {
+        public <K> boolean remove(K key, Serializer<K> serializer) {
             final Object value = stored.remove(key);
             return value != null;
         }

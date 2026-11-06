@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.manager;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.AllowableValueDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
+import org.apache.nifi.web.api.dto.ConnectorActionDTO;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.ConnectorPropertyDescriptorDTO;
@@ -74,6 +75,68 @@ class ConnectorEntityMergerTest {
         ConnectorEntityMerger.merge(clientEntity, entityMap);
 
         assertEquals("RUNNING", clientEntity.getComponent().getState());
+    }
+
+    @Test
+    void testMergeMultipleVersionsAvailable() {
+        final ConnectorEntity clientEntity = createConnectorEntity("connector1", "STOPPED");
+        final ConnectorEntity nodeEntity = createConnectorEntity("connector1", "STOPPED");
+        clientEntity.getComponent().setMultipleVersionsAvailable(true);
+
+        final Map<NodeIdentifier, ConnectorEntity> entityMap = new HashMap<>();
+        entityMap.put(getNodeIdentifier("client", 8000), clientEntity);
+        entityMap.put(getNodeIdentifier("node", 8001), nodeEntity);
+
+        nodeEntity.getComponent().setMultipleVersionsAvailable(false);
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+        assertFalse(clientEntity.getComponent().getMultipleVersionsAvailable());
+
+        clientEntity.getComponent().setMultipleVersionsAvailable(true);
+        nodeEntity.getComponent().setMultipleVersionsAvailable(null);
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+        assertFalse(clientEntity.getComponent().getMultipleVersionsAvailable());
+
+        clientEntity.getComponent().setMultipleVersionsAvailable(true);
+        nodeEntity.getComponent().setMultipleVersionsAvailable(true);
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+        assertTrue(clientEntity.getComponent().getMultipleVersionsAvailable());
+    }
+
+    @Test
+    void testMergeChangeVersionAction() {
+        final ConnectorEntity clientEntity = createConnectorEntity("connector1", "STOPPED");
+        final ConnectorEntity nodeEntity = createConnectorEntity("connector1", "UPDATED");
+        final Map<NodeIdentifier, ConnectorEntity> entityMap = new HashMap<>();
+        entityMap.put(getNodeIdentifier("client", 8000), clientEntity);
+        entityMap.put(getNodeIdentifier("node", 8001), nodeEntity);
+
+        clientEntity.getComponent().setAvailableActions(List.of(changeVersionAction(true, null)));
+        nodeEntity.getComponent().setAvailableActions(List.of(changeVersionAction(false, "Connector must be stopped")));
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+        ConnectorActionDTO mergedAction = findChangeVersionAction(clientEntity);
+        assertFalse(mergedAction.getAllowed());
+        assertEquals("Connector must be stopped", mergedAction.getReasonNotAllowed());
+
+        clientEntity.getComponent().setAvailableActions(List.of(changeVersionAction(true, null)));
+        nodeEntity.getComponent().setAvailableActions(List.of(changeVersionAction(null, "Version availability is unknown")));
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+        mergedAction = findChangeVersionAction(clientEntity);
+        assertFalse(mergedAction.getAllowed());
+        assertEquals("Version availability is unknown", mergedAction.getReasonNotAllowed());
+
+        clientEntity.getComponent().setAvailableActions(List.of(changeVersionAction(true, null)));
+        nodeEntity.getComponent().setAvailableActions(null);
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+        mergedAction = findChangeVersionAction(clientEntity);
+        assertFalse(mergedAction.getAllowed());
+        assertNull(mergedAction.getReasonNotAllowed());
+
+        clientEntity.getComponent().setAvailableActions(List.of(changeVersionAction(true, null)));
+        nodeEntity.getComponent().setAvailableActions(List.of(changeVersionAction(true, null)));
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+        mergedAction = findChangeVersionAction(clientEntity);
+        assertTrue(mergedAction.getAllowed());
+        assertNull(mergedAction.getReasonNotAllowed());
     }
 
     @Test
@@ -265,6 +328,25 @@ class ConnectorEntityMergerTest {
         // Both have null status - should not throw
         ConnectorEntityMerger.merge(clientEntity, entityMap);
         assertNull(clientEntity.getStatus());
+    }
+
+    private ConnectorActionDTO changeVersionAction(final Boolean allowed, final String reasonNotAllowed) {
+        final ConnectorActionDTO action = new ConnectorActionDTO();
+        action.setName("CHANGE_VERSION");
+        action.setDescription("Change the connector version");
+        action.setAllowed(allowed);
+        action.setReasonNotAllowed(reasonNotAllowed);
+        return action;
+    }
+
+    private ConnectorActionDTO findChangeVersionAction(final ConnectorEntity entity) {
+        for (final ConnectorActionDTO action : entity.getComponent().getAvailableActions()) {
+            if ("CHANGE_VERSION".equals(action.getName())) {
+                return action;
+            }
+        }
+
+        return null;
     }
 
     private NodeIdentifier getNodeIdentifier(final String id, final int port) {

@@ -125,7 +125,7 @@ public class FlowDefinitionExportImportStateIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testExportWithStateWhileControllerServiceEnabledReturns409() throws NiFiClientException, IOException, InterruptedException {
+    public void testExportWithStateWhileControllerServiceEnabledReturns409() throws NiFiClientException, IOException {
         final ProcessGroupEntity pg = getClientUtil().createProcessGroup("TestGroup", "root");
         final ControllerServiceEntity service = getClientUtil().createControllerService("StandardCountService", pg.getId());
         getClientUtil().enableControllerService(service);

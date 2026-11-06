@@ -394,7 +394,7 @@ public class StandardIndexManager implements IndexManager {
             try {
                 closeable.close();
             } catch (final Exception e) {
-                logger.warn("Failed to close {} due to {}", closeable, e);
+                logger.warn("Failed to close {}", closeable, e);
             }
         }
     }

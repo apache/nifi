@@ -26,7 +26,6 @@ import org.apache.nifi.processors.aws.AbstractAwsProcessor;
 import org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStarter;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.proxy.ProxyConfigurationService;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -77,7 +76,7 @@ public class StartAwsTranscribeJobTest {
     }
 
     @BeforeEach
-    public void setUp() throws InitializationException {
+    public void setUp() {
         processor = new StartAwsTranscribeJob() {
             @Override
             public TranscribeClient getClient(ProcessContext context) {

@@ -324,14 +324,6 @@ The following binary components are provided under the Apache Software License v
       * HOMEPAGE:
         * https://www.opensource.apple.com/source/configd/configd-453.19/dnsinfo/dnsinfo.h
 
-    This product optionally depends on 'Brotli4j', Brotli compression and
-    decompression for Java., which can be obtained at:
-
-      * LICENSE:
-        * license/LICENSE.brotli4j.txt (Apache License 2.0)
-      * HOMEPAGE:
-        * https://github.com/hyperxpro/Brotli4j
-
 ************************
 Eclipse Public License 1.0
 ************************

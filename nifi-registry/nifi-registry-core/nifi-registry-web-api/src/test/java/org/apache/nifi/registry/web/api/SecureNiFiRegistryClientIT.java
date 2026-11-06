@@ -103,7 +103,7 @@ public class SecureNiFiRegistryClientIT extends IntegrationTestBase {
     }
 
     @Test
-    public void testCreatedBucketWithProxiedEntity() throws IOException, NiFiRegistryException {
+    public void testCreatedBucketWithProxiedEntity() {
         final String proxiedEntity = "user2";
         final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
         final BucketClient bucketClient = client.getBucketClient(requestConfig);

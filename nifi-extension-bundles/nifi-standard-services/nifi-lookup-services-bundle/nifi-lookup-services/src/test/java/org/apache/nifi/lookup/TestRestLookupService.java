@@ -118,7 +118,7 @@ class TestRestLookupService {
     }
 
     @AfterEach
-    void shutdownServer() throws IOException {
+    void shutdownServer() {
         mockWebServer.close();
     }
 

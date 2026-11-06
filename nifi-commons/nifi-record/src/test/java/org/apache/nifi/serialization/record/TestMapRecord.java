@@ -332,7 +332,7 @@ class TestMapRecord {
     }
 
     @Test
-    void testNestedSchemaWithEmptyArray() throws Exception {
+    void testNestedSchemaWithEmptyArray() {
         final String testValue = "test!";
         final String nestedRecordValue = "Hello, world!";
 

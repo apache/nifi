@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class BucketsIT extends UnsecuredITBase {
 
     @Test
-    public void testGetBucketsEmpty() throws Exception {
+    public void testGetBucketsEmpty() {
 
         // Given: a fresh context server with an empty DB
         // When: the /buckets endpoint is queried
@@ -97,7 +97,7 @@ public class BucketsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testGetNonexistentBucket() throws Exception {
+    public void testGetNonexistentBucket() {
         // Given: a fresh context server with an empty DB
         // When: any /buckets/{id} endpoint is queried
         Response response = client.target(createURL("buckets/a-nonexistent-identifier")).request().get();
@@ -107,7 +107,7 @@ public class BucketsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testCreateBucketGetBucket() throws Exception {
+    public void testCreateBucketGetBucket() {
         final String clientId = UUID.randomUUID().toString();
         final RevisionInfo initialRevision = new RevisionInfo(clientId, 0L);
 
@@ -168,7 +168,7 @@ public class BucketsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testUpdateBucket() throws Exception {
+    public void testUpdateBucket() {
         final String clientId = UUID.randomUUID().toString();
         final RevisionInfo initialRevision = new RevisionInfo(clientId, 0L);
 
@@ -200,7 +200,7 @@ public class BucketsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testUpdateBucketWithIncorrectRevision() throws Exception {
+    public void testUpdateBucketWithIncorrectRevision() {
         final String clientId = UUID.randomUUID().toString();
         final RevisionInfo initialRevision = new RevisionInfo(clientId, 0L);
 
@@ -236,7 +236,7 @@ public class BucketsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testDeleteBucket() throws Exception {
+    public void testDeleteBucket() {
         final String clientId = UUID.randomUUID().toString();
         final RevisionInfo initialRevision = new RevisionInfo(clientId, 0L);
 
@@ -275,7 +275,7 @@ public class BucketsIT extends UnsecuredITBase {
     }
 
     @Test
-    public void testDeleteBucketWithIncorrectRevision() throws Exception {
+    public void testDeleteBucketWithIncorrectRevision() {
         final String clientId = UUID.randomUUID().toString();
         final RevisionInfo initialRevision = new RevisionInfo(clientId, 0L);
 

@@ -117,7 +117,7 @@ public class Throwables {
         }
         msg = msg.trim();
         //append dot at the end if no others
-        if (msg.length() > 0 && ".!:,;?".indexOf(msg.substring(msg.length() - 1)) == -1) {
+        if (!msg.isEmpty() && ".!:,;?".indexOf(msg.substring(msg.length() - 1)) == -1) {
             msg += "."; // NOPMD
         }
 

@@ -16,6 +16,7 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
+import { ConnectorEntity } from '@nifi/shared';
 import { initialConnectorCanvasEntityState } from './index';
 import {
     loadConnectorEntity,
@@ -33,6 +34,10 @@ import {
     resetConnectorCanvasEntityState
 } from './connector-canvas-entity.actions';
 
+function reconcileConnectorEntity(current: ConnectorEntity | null, incoming: ConnectorEntity): ConnectorEntity {
+    return current?.id === incoming.id && incoming.revision.version < current.revision.version ? current : incoming;
+}
+
 export const connectorCanvasEntityReducer = createReducer(
     initialConnectorCanvasEntityState,
 
@@ -44,7 +49,7 @@ export const connectorCanvasEntityReducer = createReducer(
 
     on(loadConnectorEntitySuccess, (state, { connectorEntity }) => ({
         ...state,
-        connectorEntity,
+        connectorEntity: reconcileConnectorEntity(state.connectorEntity, connectorEntity),
         loadingStatus: 'success' as const,
         error: null
     })),

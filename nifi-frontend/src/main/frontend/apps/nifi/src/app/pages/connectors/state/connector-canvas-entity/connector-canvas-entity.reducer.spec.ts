@@ -98,6 +98,69 @@ describe('connectorCanvasEntityReducer', () => {
             expect(result.loadingStatus).toBe('success');
             expect(result.error).toBeNull();
         });
+
+        it('should preserve the current entity when the loaded revision is older', () => {
+            const currentEntity = createMockConnectorEntity({ revision: { version: 2 } });
+            const olderEntity = createMockConnectorEntity({
+                revision: { version: 1 },
+                component: { ...currentEntity.component, state: 'RUNNING' }
+            });
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                connectorEntity: currentEntity,
+                loadingStatus: 'loading',
+                error: 'previous error'
+            };
+
+            const result = connectorCanvasEntityReducer(
+                priorState,
+                loadConnectorEntitySuccess({ connectorEntity: olderEntity })
+            );
+
+            expect(result.connectorEntity).toBe(currentEntity);
+            expect(result.loadingStatus).toBe('success');
+            expect(result.error).toBeNull();
+        });
+
+        it('should apply a loaded entity with an equal revision', () => {
+            const currentEntity = createMockConnectorEntity({ revision: { version: 2 } });
+            const equalRevisionEntity = createMockConnectorEntity({
+                revision: { version: 2 },
+                component: { ...currentEntity.component, state: 'RUNNING' }
+            });
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                connectorEntity: currentEntity,
+                loadingStatus: 'loading'
+            };
+
+            const result = connectorCanvasEntityReducer(
+                priorState,
+                loadConnectorEntitySuccess({ connectorEntity: equalRevisionEntity })
+            );
+
+            expect(result.connectorEntity).toBe(equalRevisionEntity);
+        });
+
+        it('should apply a loaded entity with a newer revision', () => {
+            const currentEntity = createMockConnectorEntity({ revision: { version: 2 } });
+            const newerEntity = createMockConnectorEntity({
+                revision: { version: 3 },
+                component: { ...currentEntity.component, state: 'RUNNING' }
+            });
+            const priorState: ConnectorCanvasEntityState = {
+                ...initialConnectorCanvasEntityState,
+                connectorEntity: currentEntity,
+                loadingStatus: 'loading'
+            };
+
+            const result = connectorCanvasEntityReducer(
+                priorState,
+                loadConnectorEntitySuccess({ connectorEntity: newerEntity })
+            );
+
+            expect(result.connectorEntity).toBe(newerEntity);
+        });
     });
 
     describe('loadConnectorEntityFailure', () => {

@@ -54,7 +54,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opentest4j.AssertionFailedError;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -74,6 +73,7 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class FlowControllerTest {
@@ -81,6 +81,8 @@ class FlowControllerTest {
     private static final String CLUSTERED_NODE = "clustered-node";
     private static final String STANDALONE_NODE = "standalone-node";
     private static final String LOCALHOST = "localhost";
+    private static final String JOINING_NODE = "joining-node";
+    private static final String JOINING_HOST = "joining-host";
 
     private final List<FlowController> flowControllers = new ArrayList<>();
     private final AtomicInteger controllerCounter = new AtomicInteger();
@@ -113,7 +115,7 @@ class FlowControllerTest {
     private Path tempDir;
 
     @Test
-    void testRemainStandaloneWhenConnectionStatusIsAssigned() throws IOException {
+    void testRemainStandaloneWhenConnectionStatusIsAssigned() {
         final FlowController flowController = createStandaloneFlowController();
 
         assertEquals(NodeConnectionState.STANDALONE, flowController.getNodeConnectionState());
@@ -121,10 +123,11 @@ class FlowControllerTest {
         flowController.setConnectionStatus(new NodeConnectionStatus(createNodeIdentifier(STANDALONE_NODE), org.apache.nifi.cluster.coordination.node.NodeConnectionState.CONNECTED));
 
         assertEquals(NodeConnectionState.STANDALONE, flowController.getNodeConnectionState());
+        assertEquals(Set.of(), flowController.getClusterMembers());
     }
 
     @Test
-    void testReportDisconnectedForNewClusteredController() throws IOException {
+    void testReportDisconnectedForNewClusteredController() {
         final FlowController flowController = createClusteredFlowController();
 
         assertEquals(NodeConnectionState.DISCONNECTED, flowController.getNodeConnectionState());
@@ -137,7 +140,7 @@ class FlowControllerTest {
     @MethodSource("supportedClusterProtocolStates")
     void testMapClusterProtocolNodeStatesToApiNodeStates(
             final org.apache.nifi.cluster.coordination.node.NodeConnectionState protocolState,
-            final NodeConnectionState apiState) throws IOException {
+            final NodeConnectionState apiState) {
         final FlowController flowController = createClusteredFlowController();
 
         flowController.setConnectionStatus(new NodeConnectionStatus(createNodeIdentifier(CLUSTERED_NODE), protocolState));
@@ -148,10 +151,16 @@ class FlowControllerTest {
     @Test
     void testProvideNodeConnectionStateDuringFlowSynchronization() throws Exception {
         final FlowController flowController = createClusteredFlowController();
-        flowController.setConnectionStatus(new NodeConnectionStatus(
+        final NodeConnectionStatus localNodeStatus = new NodeConnectionStatus(
                 createNodeIdentifier(CLUSTERED_NODE),
                 org.apache.nifi.cluster.coordination.node.NodeConnectionState.CONNECTING
-        ));
+        );
+        final NodeConnectionStatus joiningNodeStatus = new NodeConnectionStatus(
+                new NodeIdentifier(JOINING_NODE, JOINING_HOST, 8443, JOINING_HOST, 9090, JOINING_HOST, 10000, 10001, true),
+                org.apache.nifi.cluster.coordination.node.NodeConnectionState.CONNECTING
+        );
+        when(clusterCoordinator.getConnectionStatuses()).thenReturn(List.of(localNodeStatus, joiningNodeStatus));
+        flowController.setConnectionStatus(localNodeStatus);
 
         final ExecutorService lifecycleExecutor = Executors.newSingleThreadExecutor();
         final AtomicReference<Future<NodeConnectionState>> nodeStateFutureReference = new AtomicReference<>();
@@ -163,6 +172,7 @@ class FlowControllerTest {
 
                 try {
                     assertEquals(NodeConnectionState.CONNECTING, nodeStateFuture.get(5, TimeUnit.SECONDS));
+                    assertEquals(Set.of(LOCALHOST, JOINING_HOST), controller.getClusterMembers());
                 } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new AssertionFailedError("Interrupted while waiting for node connection state", e);
@@ -188,7 +198,7 @@ class FlowControllerTest {
         }
     }
 
-    private FlowController createStandaloneFlowController() throws IOException {
+    private FlowController createStandaloneFlowController() {
         final NiFiProperties nifiProperties = createNiFiProperties(false);
         final FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
         final ExtensionDiscoveringManager extensionManager = createExtensionManager(nifiProperties);
@@ -215,7 +225,7 @@ class FlowControllerTest {
         return flowController;
     }
 
-    private FlowController createClusteredFlowController() throws IOException {
+    private FlowController createClusteredFlowController() {
         final NiFiProperties nifiProperties = createNiFiProperties(true);
         final FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
         final ExtensionDiscoveringManager extensionManager = createExtensionManager(nifiProperties);

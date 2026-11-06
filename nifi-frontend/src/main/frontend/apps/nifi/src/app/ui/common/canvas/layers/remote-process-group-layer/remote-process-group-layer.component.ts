@@ -25,17 +25,19 @@ import {
     output,
     effect,
     computed,
+    untracked,
     ChangeDetectionStrategy
 } from '@angular/core';
 import * as d3 from 'd3';
 import { NiFiCommon, Position } from '@nifi/shared';
-import { CanvasRemoteProcessGroup, CanvasRootResolver, CanvasRootSelection, CanvasSelection } from '../../canvas.types';
+import { CanvasRemoteProcessGroup, CanvasRootResolver, CanvasRootSelection } from '../../canvas.types';
 import { RemoteProcessGroupRenderer } from './remote-process-group-renderer';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../../canvas-format-utils.service';
 import { CanvasComponentUtils } from '../../canvas-component-utils.service';
 import { RemoteProcessGroupRenderContext } from '../render-context.types';
 import { ConnectableBehaviorHelper } from '../../connectable-behavior.helper';
+import { ViewportRect } from '../../utils/visibility.utils';
 
 @Component({
     // Attribute selector required: this component renders as an SVG <g> element, not a custom HTML element
@@ -55,6 +57,7 @@ export class RemoteProcessGroupLayerComponent implements AfterViewInit {
     remoteProcessGroups = input<CanvasRemoteProcessGroup[]>([]);
 
     scale = input<number>(1);
+    viewportBounds = input<ViewportRect | null>(null);
 
     selectedIds = input<string[]>([]);
 
@@ -121,6 +124,9 @@ export class RemoteProcessGroupLayerComponent implements AfterViewInit {
         textEllipsis: this.textEllipsis(),
         formatUtils: this.formatUtils(),
         nifiCommon: this.nifiCommon(),
+        // untracked: scale is passive — don't re-render on zoom ticks.
+        scale: untracked(() => this.scale()),
+        viewportBounds: this.viewportBounds(),
         getCanEdit: () => this.canEdit(),
         getCanSelect: () => this.canSelect(),
         getSelectedIds: () => this.selectedIdsSet(),
@@ -136,6 +142,17 @@ export class RemoteProcessGroupLayerComponent implements AfterViewInit {
     private renderEffect = effect(() => {
         const _remoteProcessGroups = this.remoteProcessGroups();
         const _renderTrigger = this.renderTrigger();
+        // Track `canSelect` and `disabledRemoteProcessGroupIds` so render-time
+        // reads (cursor styling, opacity, the `disabled` class) refresh on
+        // runtime toggles. Fire-time gates inside drag/click handlers read the
+        // same values via `getCanSelect()` / `getDisabledRemoteProcessGroupIds()`
+        // and don't require these deps; tracking here exists purely so that
+        // when the saving set clears, the disabled visual treatment lifts
+        // immediately without the consumer having to bump `renderTrigger`
+        // from a confirm handler.
+        const _canSelect = this.canSelect();
+        const _disabledRemoteProcessGroupIds = this.disabledRemoteProcessGroupIds();
+        const _viewportBounds = this.viewportBounds();
 
         if (this.containerSelection) {
             this.renderRemoteProcessGroups();
@@ -188,19 +205,19 @@ export class RemoteProcessGroupLayerComponent implements AfterViewInit {
             return;
         }
 
-        const selectedIds = this.selectedIds();
+        const selectedIdsSet = this.selectedIdsSet();
 
         const groups = this.containerSelection.selectAll<SVGGElement, CanvasRemoteProcessGroup>(
             'g.remote-process-group'
         );
 
-        groups.classed('selected', (d) => selectedIds.includes(d.entity.id));
+        groups.classed('selected', (d) => selectedIdsSet.has(d.entity.id));
 
         groups.select('rect.border').attr('stroke', (d) => {
             if (d.entity.permissions?.canRead === false) {
                 return '#ba554a';
             }
-            return selectedIds.includes(d.entity.id) ? '#004ba0' : 'transparent';
+            return selectedIdsSet.has(d.entity.id) ? '#004ba0' : 'transparent';
         });
     }
 
@@ -210,11 +227,6 @@ export class RemoteProcessGroupLayerComponent implements AfterViewInit {
         }
 
         RemoteProcessGroupRenderer.render(this.renderContext());
-        this.applySelectionStyling();
-    }
-
-    public pan(selection: CanvasSelection<CanvasRemoteProcessGroup>): void {
-        RemoteProcessGroupRenderer.pan(selection, this.renderContext());
         this.applySelectionStyling();
     }
 }

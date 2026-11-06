@@ -24,7 +24,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <poi.version>5.5.1</poi.version>
+        <poi.version>6.0.0</poi.version>
         <mime4j.version>0.8.15</mime4j.version>
     </properties>
 

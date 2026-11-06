@@ -247,7 +247,7 @@ public class GetZendesk extends AbstractZendesk {
 
     private int extractZendeskResourceData(JsonParser parser, JsonGenerator generator) throws IOException {
         ArrayNode zendeskItems = OBJECT_MAPPER.readTree(parser);
-        if (zendeskItems.size() > 0) {
+        if (!zendeskItems.isEmpty()) {
             generator.writeStartArray();
             for (JsonNode zendeskItem : zendeskItems) {
                 generator.writeTree(zendeskItem);

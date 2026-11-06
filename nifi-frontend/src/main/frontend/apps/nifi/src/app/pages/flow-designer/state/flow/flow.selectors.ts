@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-import { flowFeatureKey, FlowState, SelectedComponent } from './index';
+import { flowFeatureKey, FlowState } from './index';
+import { SelectedComponent } from '../../../../state/flow-shared';
 import { createSelector } from '@ngrx/store';
 import { CanvasState, selectCanvasState } from '../index';
 import { ComponentType, selectCurrentRoute } from '@nifi/shared';

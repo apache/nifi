@@ -144,7 +144,7 @@ public class TestHttpRecordSink {
     }
 
     @AfterEach
-    public void cleanUpEachTest() throws IOException {
+    public void cleanUpEachTest() {
         mockWebServer.close();
     }
 

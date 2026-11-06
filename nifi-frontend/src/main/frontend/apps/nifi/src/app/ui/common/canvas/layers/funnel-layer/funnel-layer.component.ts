@@ -25,16 +25,18 @@ import {
     output,
     effect,
     computed,
+    untracked,
     ChangeDetectionStrategy
 } from '@angular/core';
 import * as d3 from 'd3';
 import { NiFiCommon, Position } from '@nifi/shared';
-import { CanvasFunnel, CanvasRootResolver, CanvasRootSelection, CanvasSelection } from '../../canvas.types';
+import { CanvasFunnel, CanvasRootResolver, CanvasRootSelection } from '../../canvas.types';
 import { FunnelRenderer } from './funnel-renderer';
 import { TextEllipsisUtils } from '../../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../../canvas-format-utils.service';
 import { FunnelRenderContext } from '../render-context.types';
 import { ConnectableBehaviorHelper } from '../../connectable-behavior.helper';
+import { ViewportRect } from '../../utils/visibility.utils';
 
 @Component({
     // Attribute selector required: this component renders as an SVG <g> element, not a custom HTML element
@@ -54,6 +56,7 @@ export class FunnelLayerComponent implements AfterViewInit {
     funnels = input<CanvasFunnel[]>([]);
 
     scale = input<number>(1);
+    viewportBounds = input<ViewportRect | null>(null);
 
     selectedIds = input<string[]>([]);
 
@@ -113,6 +116,8 @@ export class FunnelLayerComponent implements AfterViewInit {
         textEllipsis: this.textEllipsis(),
         formatUtils: this.formatUtils(),
         nifiCommon: this.nifiCommon(),
+        scale: untracked(() => this.scale()),
+        viewportBounds: this.viewportBounds(),
         funnels: this.funnels(),
         canSelect: this.canSelect(),
         getCanEdit: () => this.canEdit(),
@@ -126,6 +131,7 @@ export class FunnelLayerComponent implements AfterViewInit {
 
     private renderEffect = effect(() => {
         const _funnels = this.funnels();
+        const _viewportBounds = this.viewportBounds();
 
         if (this.containerSelection) {
             this.renderFunnels();
@@ -188,11 +194,6 @@ export class FunnelLayerComponent implements AfterViewInit {
         }
 
         FunnelRenderer.render(this.renderContext());
-        this.applySelectionStyling();
-    }
-
-    public pan(selection: CanvasSelection<CanvasFunnel>): void {
-        FunnelRenderer.pan(selection, this.renderContext());
         this.applySelectionStyling();
     }
 }

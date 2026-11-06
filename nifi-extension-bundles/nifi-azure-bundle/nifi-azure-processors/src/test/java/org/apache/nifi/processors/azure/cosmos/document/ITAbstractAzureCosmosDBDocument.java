@@ -186,7 +186,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         runner.assertValid();
     }
 
-    protected void clearTestData() throws Exception {
+    protected void clearTestData() {
         logger.info("clearing test data");
         CosmosQueryRequestOptions queryOptions = new CosmosQueryRequestOptions();
 

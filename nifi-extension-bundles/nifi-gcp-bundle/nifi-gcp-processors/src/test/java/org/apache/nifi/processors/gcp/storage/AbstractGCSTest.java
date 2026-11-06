@@ -51,7 +51,7 @@ public abstract class AbstractGCSTest {
     private AutoCloseable mocksCloseable;
 
     @BeforeEach
-    public void setup() throws Exception {
+    public void setup() {
         mocksCloseable = MockitoAnnotations.openMocks(this);
     }
 

@@ -17,6 +17,7 @@
 
 package org.apache.nifi.json;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.NullSuppression;
 import org.apache.nifi.logging.ComponentLog;
@@ -31,6 +32,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.serialization.record.SerializedForm;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -56,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestWriteJsonResult {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Test
     public void testScientificNotationUsage() throws IOException {
@@ -710,6 +713,55 @@ class TestWriteJsonResult {
 
         final String output = baos.toString(StandardCharsets.UTF_8);
         assertEquals(json, output);
+    }
+
+    @Test
+    void testChoiceArrayOfStringsOrNestedArraysOfRecordsFromMergedSchemas() throws IOException {
+        final String emptyJson = """
+                {"attributes":[]}""";
+        final String nestedJson = """
+                {
+                  "attributes": [
+                    [
+                      []
+                    ],
+                    [
+                      [
+                        {
+                          "key": "a",
+                          "value": "b"
+                        }
+                      ]
+                    ]
+                  ]
+                }
+                """;
+
+        // Schemas inferred separately for an empty array and for nested arrays of records merge into a choice that must keep the nesting
+        final JsonSchemaInference jsonSchemaInference = new JsonSchemaInference(new TimeValueInference(null, null, null));
+        final RecordSchema emptySchema = jsonSchemaInference.inferSchema(new JsonRecordSource(new ByteArrayInputStream(emptyJson.getBytes(StandardCharsets.UTF_8))));
+        final RecordSchema nestedSchema = jsonSchemaInference.inferSchema(new JsonRecordSource(new ByteArrayInputStream(nestedJson.getBytes(StandardCharsets.UTF_8))));
+        final RecordSchema mergedSchema = DataTypeUtils.merge(emptySchema, nestedSchema);
+
+        final RecordSchema entrySchema = new SimpleRecordSchema(List.of(
+                new RecordField("key", RecordFieldType.STRING.getDataType()),
+                new RecordField("value", RecordFieldType.STRING.getDataType())));
+        final Record entry = new MapRecord(entrySchema, Map.of("key", "a", "value", "b"));
+        final Object[] emptyBranch = new Object[] {new Object[0]};
+        final Object[] entries = new Object[] {entry};
+        final Object[] populatedBranch = new Object[] {entries};
+        final Object[] attributes = new Object[] {emptyBranch, populatedBranch};
+        final Record nestedRecord = new MapRecord(nestedSchema, Map.of("attributes", attributes));
+
+        final ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), mergedSchema, new SchemaNameAsAttribute(), output, false,
+                NullSuppression.NEVER_SUPPRESS, OutputGrouping.OUTPUT_ONELINE, null, null, null)) {
+            writer.beginRecordSet();
+            writer.writeRecord(nestedRecord);
+            writer.finishRecordSet();
+        }
+
+        assertEquals(OBJECT_MAPPER.readTree(nestedJson), OBJECT_MAPPER.readTree(output.toString(StandardCharsets.UTF_8)));
     }
 
     @Test

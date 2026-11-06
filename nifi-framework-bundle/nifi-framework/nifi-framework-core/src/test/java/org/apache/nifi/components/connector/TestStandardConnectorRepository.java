@@ -62,6 +62,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -161,7 +162,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorCleansUpUnreferencedAssets() throws Exception {
+    public void testSyncConnectorCleansUpUnreferencedAssets() {
         final AssetManager assetManager = mock(AssetManager.class);
         final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
 
@@ -206,7 +207,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorSkipsAssetCleanupWhileMigrationInProgress() throws Exception {
+    public void testSyncConnectorSkipsAssetCleanupWhileMigrationInProgress() {
         final AssetManager assetManager = mock(AssetManager.class);
         final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
 
@@ -235,7 +236,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorInTroubleshootingDoesNotCleanUpAssets() throws Exception {
+    public void testSyncConnectorInTroubleshootingDoesNotCleanUpAssets() {
         final AssetManager assetManager = mock(AssetManager.class);
         final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
 
@@ -514,7 +515,7 @@ public class TestStandardConnectorRepository {
         final ConnectorConfigurationProviderException exception = assertThrows(
             ConnectorConfigurationProviderException.class, () -> repository.addConnector(connector));
 
-        assertTrue(exception.getCause() instanceof FlowUpdateException);
+        assertInstanceOf(FlowUpdateException.class, exception.getCause());
         assertNull(repository.getConnector("connector-1", ConnectorSyncMode.LOCAL_ONLY));
         verify(connector, never()).setName(anyString());
     }
@@ -1369,7 +1370,7 @@ public class TestStandardConnectorRepository {
         final ConnectorConfigurationProviderException exception = assertThrows(
             ConnectorConfigurationProviderException.class, () -> repository.applyUpdate(connector, updateContext));
 
-        assertTrue(exception.getCause() instanceof FlowUpdateException);
+        assertInstanceOf(FlowUpdateException.class, exception.getCause());
         verify(provider).syncAssets("connector-1");
         verify(connector, never()).setName(anyString());
         verify(connector, never()).transitionStateForUpdating();
@@ -1448,6 +1449,67 @@ public class TestStandardConnectorRepository {
         verify(connector, never()).transitionStateForUpdating();
     }
 
+    /**
+     * A version change can leave a stored value behind when the target version no longer declares the property. The
+     * value is discarded from the configuration at that point, but the Asset it referenced is not reclaimed until the
+     * user applies a configuration. Applying an update saves to the provider and reclaims every Asset that neither the
+     * active nor the working configuration still references.
+     */
+    @Test
+    public void testApplyUpdateReclaimsAssetsNoLongerReferenced() throws Exception {
+        final AssetManager assetManager = mock(AssetManager.class);
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        when(provider.shouldApplyUpdate("connector-1")).thenReturn(true);
+
+        final ConnectorRequestReplicator requestReplicator = mock(ConnectorRequestReplicator.class);
+        when(requestReplicator.getState("connector-1")).thenReturn(ConnectorState.UPDATING, ConnectorState.UPDATED);
+
+        final StandardConnectorRepository repository = new StandardConnectorRepository();
+        final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
+        when(initContext.getFlowManager()).thenReturn(mock(FlowManager.class));
+        when(initContext.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
+        when(initContext.getAssetManager()).thenReturn(assetManager);
+        when(initContext.getConnectorConfigurationProvider()).thenReturn(provider);
+        when(initContext.getRequestReplicator()).thenReturn(requestReplicator);
+        repository.initialize(initContext);
+
+        final Asset referencedAsset = mock(Asset.class);
+        when(referencedAsset.getIdentifier()).thenReturn("referenced-asset");
+        when(referencedAsset.getName()).thenReturn("referenced.txt");
+
+        final Asset droppedAsset = mock(Asset.class);
+        when(droppedAsset.getIdentifier()).thenReturn("dropped-asset");
+        when(droppedAsset.getName()).thenReturn("dropped.txt");
+
+        final MutableConnectorConfigurationContext activeConfigContext = mock(MutableConnectorConfigurationContext.class);
+        when(activeConfigContext.toConnectorConfiguration()).thenReturn(new ConnectorConfiguration(Set.of(
+            new NamedStepConfiguration("step1", new StepConfiguration(Map.of("property", new AssetReference(Set.of("referenced-asset"))))))));
+
+        final FrameworkFlowContext activeFlowContext = mock(FrameworkFlowContext.class);
+        when(activeFlowContext.getConfigurationContext()).thenReturn(activeConfigContext);
+
+        final MutableConnectorConfigurationContext workingConfigContext = mock(MutableConnectorConfigurationContext.class);
+        when(workingConfigContext.toConnectorConfiguration()).thenReturn(new ConnectorConfiguration(Set.of()));
+
+        final FrameworkFlowContext workingFlowContext = mock(FrameworkFlowContext.class);
+        when(workingFlowContext.getConfigurationContext()).thenReturn(workingConfigContext);
+
+        final ConnectorNode connector = mock(ConnectorNode.class);
+        when(connector.getIdentifier()).thenReturn("connector-1");
+        when(connector.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.getDesiredState()).thenReturn(ConnectorState.STOPPED);
+        when(connector.getActiveFlowContext()).thenReturn(activeFlowContext);
+        when(connector.getWorkingFlowContext()).thenReturn(workingFlowContext);
+        repository.addConnector(connector);
+
+        when(assetManager.getAssets("connector-1")).thenReturn(List.of(referencedAsset, droppedAsset));
+
+        repository.applyUpdate(connector, mock(ConnectorUpdateContext.class));
+
+        verify(provider, timeout(5000)).deleteAsset("connector-1", "dropped-asset");
+        verify(provider, never()).deleteAsset("connector-1", "referenced-asset");
+    }
+
     // --- syncConnector tests ---
 
     @Test
@@ -1518,7 +1580,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorPreparingForUpdateIsRejected() throws Exception {
+    public void testSyncConnectorPreparingForUpdateIsRejected() {
         final StandardConnectorRepository repository = createRepositoryWithProvider(null);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
@@ -1534,7 +1596,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorUpdatingIsRejected() throws Exception {
+    public void testSyncConnectorUpdatingIsRejected() {
         final StandardConnectorRepository repository = createRepositoryWithProvider(null);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
@@ -1566,7 +1628,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorUpdatedState() throws Exception {
+    public void testSyncConnectorUpdatedState() {
         final FlowManager flowManager = mock(FlowManager.class);
         final StandardConnectorRepository repository = createRepositoryWithFlowManager(null, flowManager);
 
@@ -1639,7 +1701,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorProviderThrowsException() throws Exception {
+    public void testSyncConnectorProviderThrowsException() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         when(provider.getSyncDirective(eq("connector-1"), any()))
                 .thenThrow(new ConnectorConfigurationProviderException("Provider error"));
@@ -1658,7 +1720,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorStartingWaitsForRunning() throws Exception {
+    public void testSyncConnectorStartingWaitsForRunning() {
         final StandardConnectorRepository repository = createRepositoryWithShortTimeout(null);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
@@ -1676,7 +1738,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorStartingTimesOut() throws Exception {
+    public void testSyncConnectorStartingTimesOut() {
         final StandardConnectorRepository repository = createRepositoryWithShortTimeout(null);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");
@@ -1692,7 +1754,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorProviderReturnsRemoveStopsAndRemoves() throws Exception {
+    public void testSyncConnectorProviderReturnsRemoveStopsAndRemoves() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
@@ -1717,7 +1779,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorProviderReturnsRemoveStoppedConnector() throws Exception {
+    public void testSyncConnectorProviderReturnsRemoveStoppedConnector() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
@@ -1738,7 +1800,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorProviderReturnsRemoveForNonExistent() throws Exception {
+    public void testSyncConnectorProviderReturnsRemoveForNonExistent() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.remove());
         final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
@@ -1751,7 +1813,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorProviderReturnsRejectCreatesNodeForNewConnector() throws Exception {
+    public void testSyncConnectorProviderReturnsRejectCreatesNodeForNewConnector() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         when(provider.getSyncDirective(eq("connector-1"), any())).thenReturn(ConnectorSyncDirective.reject());
 
@@ -1771,7 +1833,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorProviderAllowWithScheduledStateOverride() throws Exception {
+    public void testSyncConnectorProviderAllowWithScheduledStateOverride() {
         final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
         when(provider.getSyncDirective(eq("connector-1"), any()))
                 .thenReturn(ConnectorSyncDirective.allow(null, VersionedConnectorState.ENABLED));
@@ -1864,7 +1926,7 @@ public class TestStandardConnectorRepository {
     }
 
     @Test
-    public void testSyncConnectorTroubleshootingSnapshotRestoreFailureMarksInvalid() throws Exception {
+    public void testSyncConnectorTroubleshootingSnapshotRestoreFailureMarksInvalid() {
         final StandardConnectorRepository repository = createRepositoryWithProvider(null);
 
         final ConnectorNode connector = createConnectorNodeWithEmptyWorkingConfig("connector-1", "Test Connector");

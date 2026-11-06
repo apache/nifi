@@ -19,7 +19,7 @@ import { TextEllipsisUtils } from '../utils/text-ellipsis.utils';
 import { CanvasFormatUtils } from '../canvas-format-utils.service';
 import { CanvasComponentUtils } from '../canvas-component-utils.service';
 import { NiFiCommon, Position } from '@nifi/shared';
-import { DocumentedType, RegistryClientEntity } from '../../../../state/shared';
+import { RegistryClientEntity } from '../../../../state/shared';
 import {
     CanvasLabel,
     CanvasProcessor,
@@ -33,6 +33,7 @@ import {
 } from '../canvas.types';
 import { ConnectableComponentSelection } from '../connectable-behavior.helper';
 import { ConnectionEndpointReconnectDestination } from '../../../../state/flow-shared';
+import { ViewportRect } from '../utils/visibility.utils';
 
 export type ComponentRenderCallbacks<T> = {
     onClick?: (component: T, event: MouseEvent) => void;
@@ -54,6 +55,8 @@ export interface BaseRenderContext {
     textEllipsis: TextEllipsisUtils;
     formatUtils: CanvasFormatUtils;
     nifiCommon: NiFiCommon;
+    scale: number;
+    viewportBounds: ViewportRect | null;
     getCanEdit: () => boolean;
     getCanSelect: () => boolean;
     getSelectedIds: () => Set<string>;
@@ -75,7 +78,6 @@ export interface LabelRenderContext extends BaseRenderContext {
 export interface ProcessorRenderContext extends BaseRenderContext {
     componentUtils: CanvasComponentUtils;
     processors: CanvasProcessor[];
-    previewExtensions: DocumentedType[];
     disabledProcessorIds?: Set<string>;
     getDisabledProcessorIds: () => Set<string>;
     canSelect: boolean;

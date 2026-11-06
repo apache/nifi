@@ -124,7 +124,7 @@ public class TestPutTCP {
     private BlockingQueue<ByteArrayMessage> messages;
 
     @BeforeEach
-    public void setup() throws Exception {
+    public void setup() {
         runner = TestRunners.newTestRunner(PutTCP.class);
         runner.setEnvironmentVariableValue(SERVER_VARIABLE, TCP_SERVER_ADDRESS);
     }

@@ -63,7 +63,7 @@ public enum FragmentAttributes implements FlowFileAttributeKey {
     public static FlowFile copyAttributesToOriginal(final ProcessSession processSession, final FlowFile originalFlowFile,
                                                     final String fragmentId, final int fragmentCount) {
         final Map<String, String> attributesToOriginal = new HashMap<>();
-        if (fragmentId != null && fragmentId.length() > 0) {
+        if (fragmentId != null && !fragmentId.isEmpty()) {
             attributesToOriginal.put(FRAGMENT_ID.key(), fragmentId);
         }
         attributesToOriginal.put(FRAGMENT_COUNT.key(), String.valueOf(fragmentCount));

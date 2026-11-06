@@ -648,7 +648,7 @@ public class TestConsumeMQTT {
     }
 
     @Test
-    void testConsumeMessageDeliveredOnConnect() throws Exception {
+    void testConsumeMessageDeliveredOnConnect() {
         mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber) {
             @Override
             public void connect() {

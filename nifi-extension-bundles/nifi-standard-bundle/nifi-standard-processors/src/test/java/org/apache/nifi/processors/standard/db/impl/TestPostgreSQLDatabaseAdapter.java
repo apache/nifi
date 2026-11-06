@@ -33,7 +33,7 @@ public class TestPostgreSQLDatabaseAdapter {
     private PostgreSQLDatabaseAdapter testSubject;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         testSubject = new PostgreSQLDatabaseAdapter();
     }
 

@@ -56,6 +56,7 @@ export class ConnectorInfoControl {
 
     private static readonly CONTROL_VISIBILITY_KEY = 'graph-control-visibility';
     private static readonly CONNECTOR_KEY = 'connector-info-control';
+    private static readonly REQUEST_IN_PROGRESS_REASON = 'Request in progress';
 
     connectorCollapsed = false;
 
@@ -121,7 +122,7 @@ export class ConnectorInfoControl {
         if (!entity) {
             return false;
         }
-        return canOperateConnector(entity) && isConnectorActionAllowed(entity, 'DRAIN_FLOWFILES');
+        return canOperateConnector(entity) && !isConnectorActionAllowed(entity, 'CANCEL_DRAIN_FLOWFILES');
     }
 
     showCancelDrain(): boolean {
@@ -146,6 +147,24 @@ export class ConnectorInfoControl {
             return false;
         }
         return canOperateConnector(entity) && isConnectorActionAllowed(entity, 'CANCEL_DRAIN_FLOWFILES');
+    }
+
+    getDrainDisabledReason(): string {
+        if (this.entitySaving()) {
+            return ConnectorInfoControl.REQUEST_IN_PROGRESS_REASON;
+        }
+
+        const entity = this.connectorEntity();
+        return entity ? getConnectorActionDisabledReason(entity, 'DRAIN_FLOWFILES') : '';
+    }
+
+    getCancelDrainDisabledReason(): string {
+        if (this.entitySaving()) {
+            return ConnectorInfoControl.REQUEST_IN_PROGRESS_REASON;
+        }
+
+        const entity = this.connectorEntity();
+        return entity ? getConnectorActionDisabledReason(entity, 'CANCEL_DRAIN_FLOWFILES') : '';
     }
 
     showOperateButtons(): boolean {

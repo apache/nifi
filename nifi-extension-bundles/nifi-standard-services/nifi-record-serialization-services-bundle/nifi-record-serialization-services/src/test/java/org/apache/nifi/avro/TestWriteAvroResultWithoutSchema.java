@@ -61,7 +61,7 @@ public class TestWriteAvroResultWithoutSchema extends TestWriteAvroResult {
     private final BlockingQueue<BinaryEncoder> encoderPool = new LinkedBlockingQueue<>(32);
 
     @Override
-    protected RecordSetWriter createWriter(final Schema schema, final OutputStream out) throws IOException {
+    protected RecordSetWriter createWriter(final Schema schema, final OutputStream out) {
         return new WriteAvroResultWithExternalSchema(schema, AvroTypeUtil.createSchema(schema), new WriteAvroSchemaAttributeStrategy(), out, encoderPool,
             new MockComponentLog("id", new Object()));
     }

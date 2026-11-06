@@ -28,32 +28,32 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestNotificationEventPathFilter {
 
     @Test
-    public void acceptShouldProperlyReturnFalseWithNullPath() throws Exception {
+    public void acceptShouldProperlyReturnFalseWithNullPath() {
         assertFalse(new NotificationEventPathFilter(Pattern.compile(""), true).accept(null));
     }
 
     @Test
-    public void acceptPathShouldProperlyIgnorePathsWhereTheLastComponentStartsWithADot() throws Exception {
+    public void acceptPathShouldProperlyIgnorePathsWhereTheLastComponentStartsWithADot() {
         PathFilter filter = new NotificationEventPathFilter(Pattern.compile(".*"), true);
         assertFalse(filter.accept(new Path("/.some_hidden_file")));
         assertFalse(filter.accept(new Path("/some/long/path/.some_hidden_file/")));
     }
 
     @Test
-    public void acceptPathShouldProperlyAcceptPathsWhereTheNonLastComponentStartsWithADot() throws Exception {
+    public void acceptPathShouldProperlyAcceptPathsWhereTheNonLastComponentStartsWithADot() {
         PathFilter filter = new NotificationEventPathFilter(Pattern.compile(".*"), true);
         assertTrue(filter.accept(new Path("/some/long/path/.some_hidden_file/should/work")));
         assertTrue(filter.accept(new Path("/.some_hidden_file/should/still/accept")));
     }
 
     @Test
-    public void acceptPathShouldProperlyMatchAllSubdirectoriesThatMatchWatchDirectoryAndFileFilter() throws Exception {
+    public void acceptPathShouldProperlyMatchAllSubdirectoriesThatMatchWatchDirectoryAndFileFilter() {
         PathFilter filter = new NotificationEventPathFilter(Pattern.compile("/root(/.*)?"), true);
         assertTrue(filter.accept(new Path("/root/sometest.txt")));
     }
 
     @Test
-    public void acceptPathShouldProperlyMatchWhenWatchDirectoryMatchesPath() throws Exception {
+    public void acceptPathShouldProperlyMatchWhenWatchDirectoryMatchesPath() {
         PathFilter filter = new NotificationEventPathFilter(Pattern.compile("/root(/.*)?"), false);
         assertTrue(filter.accept(new Path("/root")));
     }

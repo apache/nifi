@@ -1338,7 +1338,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
      * @throws InitializationException if there is a problem obtaining the ClassLoader
      */
     protected void registerDriver(String locationString, String drvName) throws InitializationException {
-        if (locationString != null && locationString.length() > 0) {
+        if (locationString != null && !locationString.isEmpty()) {
             try {
                 final Class<?> clazz = Class.forName(drvName);
                 final Driver driver = (Driver) clazz.getDeclaredConstructor().newInstance();

@@ -150,8 +150,12 @@ function createMockContext(options: SetupOptions = {}): ProcessGroupRenderContex
         processGroups: options.processGroups || [],
         canSelect: options.canSelect ?? true,
         disabledProcessGroupIds: options.disabledProcessGroupIds,
+        getDisabledProcessGroupIds: () => options.disabledProcessGroupIds ?? new Set(),
         registryClients: options.registryClients || [],
         getCanEdit: () => options.canEdit ?? true,
+        getCanSelect: () => options.canSelect ?? true,
+        getSelectedIds: () => new Set(),
+        canvasRootResolver: () => d3.select(container),
         ...createBaseRenderContextFixture({
             textEllipsis: {
                 applyEllipsis: vi.fn((selection, text, _className) => {
@@ -256,7 +260,8 @@ describe('ProcessGroupRenderer', () => {
 
                 const pgName = getProcessGroupElements().select('text.process-group-name');
                 expect(pgName.empty()).toBe(false);
-                expect(pgName.text()).toBe('My Process Group');
+                // Check the first text node directly (the <title> child is excluded)
+                expect((pgName.node() as Element).childNodes[0]?.textContent).toBe('My Process Group');
 
                 cleanup();
             });
@@ -615,19 +620,18 @@ describe('ProcessGroupRenderer', () => {
                 cleanup();
             });
 
-            it('should remove details when process group becomes not visible', async () => {
+            it('should remove details when process group scrolls out of viewport', async () => {
                 const pg = createMockProcessGroup();
                 const { context, getProcessGroupElements, cleanup } = await setup({
                     processGroups: [pg]
                 });
 
-                // First make visible and render details
-                getProcessGroupElements().classed('visible', true);
+                // Process group is in-viewport — details created
                 ProcessGroupRenderer.render(context);
                 expect(getProcessGroupElements().select('g.process-group-details').empty()).toBe(false);
 
-                // Now make not visible and re-render
-                getProcessGroupElements().classed('visible', false);
+                // Process group scrolls out of viewport — details removed
+                context.viewportBounds = { left: 9000, top: 9000, right: 10000, bottom: 10000 };
                 ProcessGroupRenderer.render(context);
                 expect(getProcessGroupElements().select('g.process-group-details').empty()).toBe(true);
 
@@ -950,45 +954,38 @@ describe('ProcessGroupRenderer', () => {
         });
     });
 
-    describe('pan', () => {
-        it('should update process group elements for entering/leaving process groups', async () => {
-            const pg = createMockProcessGroup({
-                entity: { position: { x: 500, y: 600 } }
-            });
+    describe('visibility', () => {
+        it('should create details when process group enters the viewport', async () => {
+            const pg = createMockProcessGroup();
+            // Start with process group outside the viewport
             const { context, getProcessGroupElements, cleanup } = await setup({
                 processGroups: [pg]
             });
+            context.viewportBounds = { left: 9000, top: 9000, right: 10000, bottom: 10000 };
+            ProcessGroupRenderer.render(context);
+            expect(getProcessGroupElements().select('g.process-group-details').empty()).toBe(true);
 
-            // Mark as entering (becoming visible)
-            getProcessGroupElements().classed('entering', true).classed('visible', true);
-
-            // Call pan to update
-            ProcessGroupRenderer.pan(getProcessGroupElements(), context);
-
-            // Should have created details since it's now visible
+            // Expand viewport to include the process group — details should be created
+            context.viewportBounds = { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity };
+            ProcessGroupRenderer.render(context);
             expect(getProcessGroupElements().select('g.process-group-details').empty()).toBe(false);
 
             cleanup();
         });
 
-        it('should remove details for leaving process groups', async () => {
+        it('should remove details when process group leaves the viewport', async () => {
             const pg = createMockProcessGroup();
             const { context, getProcessGroupElements, cleanup } = await setup({
                 processGroups: [pg]
             });
 
-            // First make visible
-            getProcessGroupElements().classed('visible', true);
+            // Process group is in-viewport — details created
             ProcessGroupRenderer.render(context);
             expect(getProcessGroupElements().select('g.process-group-details').empty()).toBe(false);
 
-            // Now mark as leaving (becoming not visible)
-            getProcessGroupElements().classed('visible', false).classed('leaving', true);
-
-            // Call pan to update
-            ProcessGroupRenderer.pan(getProcessGroupElements(), context);
-
-            // Details should be removed
+            // Process group scrolls out of viewport — details removed
+            context.viewportBounds = { left: 9000, top: 9000, right: 10000, bottom: 10000 };
+            ProcessGroupRenderer.render(context);
             expect(getProcessGroupElements().select('g.process-group-details').empty()).toBe(true);
 
             cleanup();
@@ -1123,6 +1120,259 @@ describe('ProcessGroupRenderer', () => {
 
             // Versioned name should be offset more to make room for version control icon
             expect(versionedX).toBeGreaterThan(notVersionedX);
+
+            cleanup();
+        });
+    });
+
+    // Selection / dblclick handlers are attached once at element entry to keep
+    // the per-element listener list stable across renders. The render-time
+    // `canSelect` value MUST NOT be captured by closure — `getCanSelect()` is
+    // re-read at fire-time so consumers that toggle selection mode at runtime
+    // get correct behavior without re-attachment churn.
+    describe('canSelect runtime gating', () => {
+        function setupWithControllableCanSelect(initialCanSelect: boolean) {
+            const container = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            container.classList.add('process-group-container');
+            document.body.appendChild(container);
+
+            let canSelectFlag = initialCanSelect;
+            const onClick = vi.fn();
+            const onDoubleClick = vi.fn();
+
+            const pg = createMockProcessGroup({ entity: { id: 'pg-1' } });
+            const context: ProcessGroupRenderContext = {
+                containerSelection: d3.select(container),
+                processGroups: [pg],
+                registryClients: [],
+                getCanEdit: () => true,
+                getCanSelect: () => canSelectFlag,
+                getDisabledProcessGroupIds: () => new Set(),
+                textEllipsis: { applyEllipsis: vi.fn((sel, text) => sel.text(text)) } as any,
+                formatUtils: {} as any,
+                nifiCommon: {} as any,
+                componentUtils: {
+                    bulletins: vi.fn(),
+                    activeThreadCount: vi.fn(),
+                    comments: vi.fn(),
+                    canvasTooltip: vi.fn(),
+                    resetCanvasTooltip: vi.fn()
+                } as any,
+                callbacks: { onClick, onDoubleClick }
+            };
+
+            ProcessGroupRenderer.render(context);
+            const element = container.querySelector('g.process-group') as SVGGElement;
+
+            return {
+                element,
+                onClick,
+                onDoubleClick,
+                setCanSelect: (v: boolean) => {
+                    canSelectFlag = v;
+                },
+                cleanup: () => container.remove()
+            };
+        }
+
+        it('should NOT fire onClick when canSelect was true at attach but false at fire-time', () => {
+            const { element, onClick, setCanSelect, cleanup } = setupWithControllableCanSelect(true);
+
+            setCanSelect(false);
+            element.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true }));
+
+            expect(onClick).not.toHaveBeenCalled();
+
+            cleanup();
+        });
+
+        it('should fire onClick when canSelect was false at attach but true at fire-time', () => {
+            const { element, onClick, setCanSelect, cleanup } = setupWithControllableCanSelect(false);
+
+            setCanSelect(true);
+            element.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true }));
+
+            expect(onClick).toHaveBeenCalledTimes(1);
+
+            cleanup();
+        });
+
+        it('should NOT fire onDoubleClick when canSelect is false at fire-time', () => {
+            const { element, onDoubleClick, setCanSelect, cleanup } = setupWithControllableCanSelect(true);
+
+            setCanSelect(false);
+            element.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+
+            expect(onDoubleClick).not.toHaveBeenCalled();
+
+            cleanup();
+        });
+    });
+
+    describe('drag attachment lifecycle (moveable diff)', () => {
+        function makeContext(pg: CanvasProcessGroup, onDragEnd = vi.fn()): ProcessGroupRenderContext {
+            const container = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            container.classList.add('process-group-container');
+            document.body.appendChild(container);
+            return {
+                containerSelection: d3.select(container),
+                processGroups: [pg],
+                registryClients: [],
+                getCanEdit: () => true,
+                getCanSelect: () => true,
+                getDisabledProcessGroupIds: () => new Set(),
+                textEllipsis: { applyEllipsis: vi.fn((sel, text) => sel.text(text)) } as any,
+                formatUtils: {} as any,
+                nifiCommon: {} as any,
+                componentUtils: {
+                    bulletins: vi.fn(),
+                    activeThreadCount: vi.fn(),
+                    comments: vi.fn(),
+                    canvasTooltip: vi.fn(),
+                    resetCanvasTooltip: vi.fn()
+                } as any,
+                callbacks: { onDragEnd }
+            };
+        }
+
+        it('marks writable process groups as moveable on first render and attaches a drag listener', () => {
+            const pg = createMockProcessGroup({ entity: { permissions: { canRead: true, canWrite: true } } });
+            const ctx = makeContext(pg);
+
+            ProcessGroupRenderer.render(ctx);
+
+            const el = ctx.containerSelection.select<SVGGElement>('g.process-group');
+            expect(el.classed('moveable')).toBe(true);
+            expect(el.on('mousedown.drag')).toBeTruthy();
+        });
+
+        it('does NOT mark process groups as moveable when write permission is missing', () => {
+            const pg = createMockProcessGroup({ entity: { permissions: { canRead: true, canWrite: false } } });
+            const ctx = makeContext(pg);
+
+            ProcessGroupRenderer.render(ctx);
+
+            const el = ctx.containerSelection.select<SVGGElement>('g.process-group');
+            expect(el.classed('moveable')).toBe(false);
+            expect(el.on('mousedown.drag')).toBeFalsy();
+        });
+
+        it('detaches drag and clears moveable when write permission is revoked between renders', () => {
+            const pg = createMockProcessGroup({ entity: { permissions: { canRead: true, canWrite: true } } });
+            const ctx = makeContext(pg);
+
+            ProcessGroupRenderer.render(ctx);
+            const el = ctx.containerSelection.select<SVGGElement>('g.process-group');
+            expect(el.classed('moveable')).toBe(true);
+            expect(el.on('mousedown.drag')).toBeTruthy();
+
+            pg.entity.permissions.canWrite = false;
+            ProcessGroupRenderer.render(ctx);
+
+            expect(el.classed('moveable')).toBe(false);
+            expect(el.on('mousedown.drag')).toBeFalsy();
+        });
+
+        it('reattaches drag when write permission is granted between renders', () => {
+            const pg = createMockProcessGroup({ entity: { permissions: { canRead: true, canWrite: false } } });
+            const ctx = makeContext(pg);
+
+            ProcessGroupRenderer.render(ctx);
+            const el = ctx.containerSelection.select<SVGGElement>('g.process-group');
+            expect(el.classed('moveable')).toBe(false);
+
+            pg.entity.permissions.canWrite = true;
+            ProcessGroupRenderer.render(ctx);
+
+            expect(el.classed('moveable')).toBe(true);
+            expect(el.on('mousedown.drag')).toBeTruthy();
+        });
+
+        it('does NOT re-attach the drag listener on a no-op steady-state render', () => {
+            const pg = createMockProcessGroup({ entity: { permissions: { canRead: true, canWrite: true } } });
+            const ctx = makeContext(pg);
+
+            ProcessGroupRenderer.render(ctx);
+            const el = ctx.containerSelection.select<SVGGElement>('g.process-group');
+            const firstHandler = el.on('mousedown.drag');
+            expect(firstHandler).toBeTruthy();
+
+            ProcessGroupRenderer.render(ctx);
+
+            // Same listener instance: the moveable diff suppresses both d3.drag()
+            // construction and the .call(drag) re-attach.
+            expect(el.on('mousedown.drag')).toBe(firstHandler);
+        });
+    });
+
+    // The mousedown.selection handler is attached ONCE per element. The
+    // `getCanSelect` getter MUST be re-read at fire-time so consumers that
+    // toggle selection mode at runtime get correct behavior without
+    // re-attachment churn.
+    describe('canSelect runtime gating (attach-once getter)', () => {
+        it('does NOT fire onClick when canSelect was true at attach but false at fire-time', async () => {
+            const onClick = vi.fn();
+            const pg = createMockProcessGroup({ entity: { id: 'pg-1' } });
+            const options: SetupOptions = { processGroups: [pg], canSelect: true, callbacks: { onClick } };
+
+            const { getProcessGroupElements, cleanup } = await setup(options);
+
+            options.canSelect = false;
+            getProcessGroupElements()
+                .node()!
+                .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
+
+            expect(onClick).not.toHaveBeenCalled();
+
+            cleanup();
+        });
+
+        it('fires onClick when canSelect was false at attach but true at fire-time', async () => {
+            const onClick = vi.fn();
+            const pg = createMockProcessGroup({ entity: { id: 'pg-1' } });
+            const options: SetupOptions = { processGroups: [pg], canSelect: false, callbacks: { onClick } };
+
+            const { getProcessGroupElements, cleanup } = await setup(options);
+
+            options.canSelect = true;
+            getProcessGroupElements()
+                .node()!
+                .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
+
+            expect(onClick).toHaveBeenCalledTimes(1);
+
+            cleanup();
+        });
+    });
+
+    // The drag filter is attached ONCE per element. The
+    // `getDisabledProcessGroupIds` getter MUST be re-read at fire-time so
+    // saving-state toggles take effect immediately without forcing a re-render
+    // to refresh a captured field.
+    describe('drag filter live disabledProcessGroupIds (attach-once getter)', () => {
+        it('blocks drag-end when the live disabled set includes the id, even though the filter was attached when the set was empty', async () => {
+            const onDragEnd = vi.fn();
+            const pg = createMockProcessGroup({ entity: { id: 'pg-1' } });
+            const disabledProcessGroupIds = new Set<string>();
+
+            const { getProcessGroupElements, cleanup } = await setup({
+                processGroups: [pg],
+                disabledProcessGroupIds,
+                callbacks: { onDragEnd }
+            });
+
+            const el = getProcessGroupElements().node()!;
+
+            el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, view: window }));
+            window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0, view: window }));
+            expect(onDragEnd).toHaveBeenCalledTimes(1);
+
+            onDragEnd.mockClear();
+            disabledProcessGroupIds.add('pg-1');
+
+            el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, view: window }));
+            window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0, view: window }));
+            expect(onDragEnd).not.toHaveBeenCalled();
 
             cleanup();
         });

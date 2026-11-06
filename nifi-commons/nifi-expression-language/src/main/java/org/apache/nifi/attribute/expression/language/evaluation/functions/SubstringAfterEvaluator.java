@@ -39,7 +39,7 @@ public class SubstringAfterEvaluator extends StringEvaluator {
             return new StringQueryResult("");
         }
         final String afterValue = afterEvaluator.evaluate(evaluationContext).getValue();
-        if (afterValue == null || afterValue.length() == 0) {
+        if (afterValue == null || afterValue.isEmpty()) {
             return new StringQueryResult(subjectValue);
         }
 

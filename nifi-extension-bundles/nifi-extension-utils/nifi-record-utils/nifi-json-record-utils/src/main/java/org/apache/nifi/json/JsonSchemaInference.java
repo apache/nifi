@@ -97,7 +97,7 @@ public class JsonSchemaInference extends HierarchicalSchemaInference<JsonNode> {
 
     @Override
     protected boolean isEmptyArray(final JsonNode value) {
-        return value.isArray() && value.size() == 0;
+        return value.isArray() && value.isEmpty();
     }
 
     @Override

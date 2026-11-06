@@ -103,7 +103,7 @@ public class TestFileSystemRepository {
     }
 
     @AfterEach
-    public void shutdown() throws IOException {
+    public void shutdown() {
         repository.shutdown();
     }
 

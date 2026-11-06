@@ -39,7 +39,7 @@ import { CanvasView } from '../../service/canvas-view.service';
 import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { SelectedComponent } from '../../state/flow';
+import { SelectedComponent } from '../../../../state/flow-shared';
 import {
     selectAllowTransition,
     selectBulkSelectedComponentIds,

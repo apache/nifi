@@ -106,7 +106,7 @@ public class TestPutDistributedMapCache {
     }
 
     @Test
-    public void testMaxCacheEntrySize() throws IOException {
+    public void testMaxCacheEntrySize() {
 
         runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${uuid}");
         runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_MAX_BYTES, "10 B");

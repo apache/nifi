@@ -103,4 +103,13 @@ export class ExtensionTypesService {
     getConnectorTypes(): Observable<any> {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/connector-types`);
     }
+
+    getConnectorVersionsForType(connectorType: string, bundle: Bundle): Observable<any> {
+        const params = {
+            bundleGroupFilter: bundle.group,
+            bundleArtifactFilter: bundle.artifact,
+            type: connectorType
+        };
+        return this.httpClient.get(`${ExtensionTypesService.API}/flow/connector-types`, { params });
+    }
 }

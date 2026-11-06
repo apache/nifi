@@ -21,10 +21,11 @@ import { RemoteProcessGroupRenderContext } from '../render-context.types';
 import { DragUtils } from '../../utils/drag.utils';
 import { ValidationErrorsTip } from '../../../tooltips/validation-errors-tip/validation-errors-tip.component';
 import { CanvasConstants } from '../../canvas.constants';
+import { isInViewport } from '../../utils/visibility.utils';
 
 export class RemoteProcessGroupRenderer {
     public static render(context: RemoteProcessGroupRenderContext): void {
-        const { containerSelection, remoteProcessGroups, canSelect, callbacks } = context;
+        const { containerSelection, remoteProcessGroups, callbacks } = context;
 
         // D3 data join
         const selection = containerSelection
@@ -41,11 +42,11 @@ export class RemoteProcessGroupRenderer {
 
         // Attach event listeners if selection is enabled
         // Use mousedown for selection to ensure single, deterministic event firing
-        if (canSelect && callbacks) {
+        if (callbacks) {
             if (callbacks.onClick) {
                 merged.on('mousedown.selection', function (event: MouseEvent, d: CanvasRemoteProcessGroup) {
                     // Only handle left mouse button
-                    if (event.button !== 0) {
+                    if (event.button !== 0 || !context.getCanSelect()) {
                         return;
                     }
 
@@ -55,6 +56,9 @@ export class RemoteProcessGroupRenderer {
             }
             if (callbacks.onDoubleClick) {
                 merged.on('dblclick', function (event: MouseEvent, d: CanvasRemoteProcessGroup) {
+                    if (!context.getCanSelect()) {
+                        return;
+                    }
                     event.stopPropagation();
                     callbacks.onDoubleClick!(d, event);
                 });
@@ -357,11 +361,11 @@ export class RemoteProcessGroupRenderer {
 
         // Apply disabled state (during save operation)
         selection
-            .classed('disabled', (d) => context.disabledRemoteProcessGroupIds?.has(d.entity.id) || false)
-            .style('opacity', (d) => (context.disabledRemoteProcessGroupIds?.has(d.entity.id) ? 0.6 : null))
+            .classed('disabled', (d) => context.getDisabledRemoteProcessGroupIds().has(d.entity.id))
+            .style('opacity', (d) => (context.getDisabledRemoteProcessGroupIds().has(d.entity.id) ? 0.6 : null))
             .style('cursor', (d) => {
-                if (context.disabledRemoteProcessGroupIds?.has(d.entity.id)) return 'not-allowed';
-                return context.canSelect ? 'pointer' : 'default';
+                if (context.getDisabledRemoteProcessGroupIds().has(d.entity.id)) return 'not-allowed';
+                return context.getCanSelect() ? 'pointer' : 'default';
             });
 
         // Update border
@@ -369,6 +373,21 @@ export class RemoteProcessGroupRenderer {
 
         // Update body for authorization
         selection.select('rect.body').classed('unauthorized', (d) => d.entity.permissions.canRead === false);
+
+        const { viewportBounds, scale } = context;
+        selection.each(function (d: CanvasRemoteProcessGroup) {
+            const node = d3.select(this);
+            const wasVisible = node.classed('visible');
+            const isVisible = isInViewport(
+                d.ui.currentPosition ?? d.entity.position,
+                d.ui.dimensions,
+                viewportBounds,
+                scale
+            );
+            node.classed('visible', isVisible)
+                .classed('entering', isVisible && !wasVisible)
+                .classed('leaving', !isVisible && wasVisible);
+        });
 
         // Update each remote process group's details
         selection.each(function (this: SVGGElement, d: CanvasRemoteProcessGroup) {
@@ -584,14 +603,6 @@ export class RemoteProcessGroupRenderer {
         // This is called outside permissions check to ensure bulletins are shown regardless of component read permissions
         // (only bulletin.canRead matters, not component.permissions.canRead)
         context.componentUtils.bulletins(rpg, d.entity.bulletins ?? []);
-    }
-
-    public static pan(
-        selection: CanvasSelection<CanvasRemoteProcessGroup>,
-        context: RemoteProcessGroupRenderContext
-    ): void {
-        // Update only the entering/leaving RPGs
-        RemoteProcessGroupRenderer.updateRemoteProcessGroupElements(selection, context);
     }
 
     private static attachDragBehavior(

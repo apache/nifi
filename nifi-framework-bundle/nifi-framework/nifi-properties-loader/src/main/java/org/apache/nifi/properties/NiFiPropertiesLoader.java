@@ -192,7 +192,7 @@ public class NiFiPropertiesLoader {
 
     private static boolean isKeyGenerationRequired(final NiFiProperties properties) {
         final String configuredSensitivePropertiesKey = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
-        return (configuredSensitivePropertiesKey == null || configuredSensitivePropertiesKey.length() == 0);
+        return (configuredSensitivePropertiesKey == null || configuredSensitivePropertiesKey.isEmpty());
     }
 
     private static class DuplicateDetectingProperties extends Properties {

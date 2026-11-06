@@ -25,7 +25,6 @@ import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 import com.rabbitmq.client.UnblockedCallback;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
@@ -118,7 +117,7 @@ class TestConnection implements Connection {
     }
 
     @Override
-    public Channel createChannel() throws IOException {
+    public Channel createChannel() {
         return this.channel;
     }
 
@@ -127,12 +126,12 @@ class TestConnection implements Connection {
     }
 
     @Override
-    public Channel createChannel(int channelNumber) throws IOException {
+    public Channel createChannel(int channelNumber) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         this.open = false;
         try {
             this.channel.close();
@@ -142,17 +141,17 @@ class TestConnection implements Connection {
     }
 
     @Override
-    public void close(int closeCode, String closeMessage) throws IOException {
+    public void close(int closeCode, String closeMessage) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void close(int timeout) throws IOException {
+    public void close(int timeout) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void close(int closeCode, String closeMessage, int timeout) throws IOException {
+    public void close(int closeCode, String closeMessage, int timeout) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 

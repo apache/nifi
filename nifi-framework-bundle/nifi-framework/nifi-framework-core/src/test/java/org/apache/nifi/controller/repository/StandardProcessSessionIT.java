@@ -181,7 +181,7 @@ public class StandardProcessSessionIT {
     }
 
     @BeforeEach
-    public void setup() throws IOException {
+    public void setup() {
         resourceClaimManager = new StandardResourceClaimManager();
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, StandardProcessSessionIT.class.getResource("/conf/nifi.properties").getFile());
@@ -1917,6 +1917,29 @@ public class StandardProcessSessionIT {
         assertEquals(2, flowFileQueue.size().getObjectCount());
         assertFalse(flowFileQueue.isUnacknowledgedFlowFile());
         assertFalse(flowFileQueue.isActiveQueueEmpty());
+    }
+
+    @Test
+    public void testRollbackReturnsFlowFileToFrontOfSwappingQueue() {
+        // The queue's swap threshold is 10,000, so the last FlowFile queued goes to the swap queue and the queue enters swap mode
+        final int flowFileCount = 10_001;
+        for (int i = 0; i < flowFileCount; i++) {
+            final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+                .id(i)
+                .addAttribute("uuid", String.format("00000000-0000-0000-0000-%012d", i))
+                .entryDate(System.currentTimeMillis())
+                .size(0L)
+                .build();
+            flowFileQueue.put(flowFileRecord);
+        }
+
+        final FlowFile firstFlowFile = session.get();
+        assertEquals(0, firstFlowFile.getId());
+        session.rollback();
+
+        final FlowFile flowFileAfterRollback = session.get();
+        assertEquals(0, flowFileAfterRollback.getId());
+        assertEquals(flowFileCount, flowFileQueue.size().getObjectCount());
     }
 
     @Test

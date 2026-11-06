@@ -156,6 +156,12 @@ public class StandardRebalancingPartition implements RebalancingPartition {
     }
 
     @Override
+    public void putToActive(final FlowFileRecord flowFile) {
+        queue.putToActive(flowFile);
+        startRebalanceTask();
+    }
+
+    @Override
     public void putAll(final Collection<FlowFileRecord> flowFiles) {
         queue.putAll(flowFiles);
         startRebalanceTask();

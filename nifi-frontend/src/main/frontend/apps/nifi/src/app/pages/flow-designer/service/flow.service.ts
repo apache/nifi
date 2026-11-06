@@ -18,9 +18,9 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { ComponentRunStatusRequest, StopSourcesRequest, StopSourcesResponse } from '../state/flow';
 import {
     ClearBulletinsForGroupRequest,
-    ComponentRunStatusRequest,
     ControllerServiceStateRequest,
     CreateComponentRequest,
     CreateComponentResponse,
@@ -43,13 +43,11 @@ import {
     SaveToVersionControlRequest,
     StartProcessGroupRequest,
     StopProcessGroupRequest,
-    StopSourcesRequest,
-    StopSourcesResponse,
     StopVersionControlRequest,
     TerminateThreadsRequest,
     UploadProcessGroupRequest,
     VersionControlInformationEntity
-} from '../state/flow';
+} from '../../../state/flow-shared';
 import { Client } from '../../../service/client.service';
 import { ComponentType, NiFiCommon } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
@@ -229,7 +227,7 @@ export class FlowService implements PropertyDescriptorRetriever {
         payload.append('groupName', uploadProcessGroup.name);
         payload.append('positionX', uploadProcessGroup.position.x.toString());
         payload.append('positionY', uploadProcessGroup.position.y.toString());
-        payload.append('clientId', uploadProcessGroup.revision.clientId);
+        payload.append('clientId', uploadProcessGroup.revision.clientId ?? '');
         payload.append(
             'disconnectedNodeAcknowledged',
             String(this.clusterConnectionService.isDisconnectionAcknowledged())

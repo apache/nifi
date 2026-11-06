@@ -239,6 +239,10 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
+            public void putToActive(FlowFileRecord file) {
+            }
+
+            @Override
             public void putAll(Collection<FlowFileRecord> files) {
             }
 

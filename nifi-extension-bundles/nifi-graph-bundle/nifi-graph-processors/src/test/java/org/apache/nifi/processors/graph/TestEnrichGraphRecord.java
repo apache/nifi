@@ -94,7 +94,7 @@ public class TestEnrichGraphRecord {
     }
 
     @Test
-    void testPartialFailureWritesFailedRecords() throws Exception {
+    void testPartialFailureWritesFailedRecords() {
         final String inputContent = """
                 [{"id":"1","price":100},{"id":"2","forceFailure":true}]
                 """;

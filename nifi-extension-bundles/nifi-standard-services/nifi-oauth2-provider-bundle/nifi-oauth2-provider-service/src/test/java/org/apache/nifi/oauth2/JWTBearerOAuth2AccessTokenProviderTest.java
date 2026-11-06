@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.oauth2;
 
-import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -44,7 +43,6 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.net.URISyntaxException;
 import java.security.PrivateKey;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.RSAPrivateKey;
@@ -388,14 +386,14 @@ class JWTBearerOAuth2AccessTokenProviderTest {
         }
 
         @Override
-        protected String getAssertion(JWSHeader jwsHeader, JWTClaimsSet jwtClaimsSet) throws JOSEException {
+        protected String getAssertion(JWSHeader jwsHeader, JWTClaimsSet jwtClaimsSet) {
             this.jwsHeader = jwsHeader;
             this.jwtClaimsSet = jwtClaimsSet;
             return "test-assertion";
         }
 
         @Override
-        protected void requestTokenEndpoint(Map<String, String> formParams) throws URISyntaxException {
+        protected void requestTokenEndpoint(Map<String, String> formParams) {
             this.formParams = formParams;
         }
 

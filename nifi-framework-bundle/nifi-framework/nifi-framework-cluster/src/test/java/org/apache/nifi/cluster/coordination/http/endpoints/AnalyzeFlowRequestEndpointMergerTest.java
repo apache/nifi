@@ -38,12 +38,12 @@ public class AnalyzeFlowRequestEndpointMergerTest {
     private AnalyzeFlowRequestEndpointMerger testSubject;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         testSubject = new AnalyzeFlowRequestEndpointMerger();
     }
 
     @Test
-    public void testAllRequestsWaiting() throws Exception {
+    public void testAllRequestsWaiting() {
         // GIVEN
         AnalyzeFlowRequestDTO clientDto = createRequest(false, null, "WAITING");
 
@@ -61,7 +61,7 @@ public class AnalyzeFlowRequestEndpointMergerTest {
     }
 
     @Test
-    public void testClientRequestWaitingOthersComplete() throws Exception {
+    public void testClientRequestWaitingOthersComplete() {
         // GIVEN
         AnalyzeFlowRequestDTO clientDto = createRequest(false, null, "WAITING");
 
@@ -79,7 +79,7 @@ public class AnalyzeFlowRequestEndpointMergerTest {
     }
 
     @Test
-    public void testOneNonClientRequestCompleteOthersWaiting() throws Exception {
+    public void testOneNonClientRequestCompleteOthersWaiting() {
         // GIVEN
         AnalyzeFlowRequestDTO clientDto = createRequest(false, null, "WAITING");
 
@@ -97,7 +97,7 @@ public class AnalyzeFlowRequestEndpointMergerTest {
     }
 
     @Test
-    public void testAllRequestsComplete() throws Exception {
+    public void testAllRequestsComplete() {
         // GIVEN
         AnalyzeFlowRequestDTO clientDto = createRequest(true, null, "COMPLETE");
 
@@ -115,7 +115,7 @@ public class AnalyzeFlowRequestEndpointMergerTest {
     }
 
     @Test
-    public void testMergeFailures() throws Exception {
+    public void testMergeFailures() {
         // GIVEN
         AnalyzeFlowRequestDTO clientDto = createRequest(true, "failure1", "FAILURE");
 

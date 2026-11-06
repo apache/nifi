@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
@@ -27,8 +30,11 @@ import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.MutableConnectorConfigurationContext;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +46,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.io.File;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -82,6 +89,9 @@ class StandardConnectorDAOTest {
     private static final String CONNECTOR_ID = "test-connector-id";
     private static final String STEP_NAME = "test-step";
     private static final String PROPERTY_NAME = "test-property";
+    private static final String CANONICAL_CLASS_NAME = "org.apache.nifi.connectors.TestConnector";
+    private static final BundleCoordinate EXISTING_COORDINATE = new BundleCoordinate("org.apache.nifi", "nifi-test-nar", "1.0.0");
+    private static final BundleCoordinate INCOMING_COORDINATE = new BundleCoordinate("org.apache.nifi", "nifi-test-nar", "2.0.0");
 
     @BeforeEach
     void setUp() {
@@ -328,6 +338,58 @@ class StandardConnectorDAOTest {
         connectorDAO.verifyCreate(connectorDTO);
 
         verify(connectorRepository, never()).verifyCreate(any());
+    }
+
+    @Test
+    void testUpdateConnectorReloadsBundleWhenVersionChanges() throws Exception {
+        final ReloadComponent reloadComponent = configureBundleUpdate(EXISTING_COORDINATE, INCOMING_COORDINATE);
+        final ConnectorDTO connectorDTO = createConnectorDto(null, INCOMING_COORDINATE);
+
+        connectorDAO.updateConnector(connectorDTO);
+
+        verify(reloadComponent).reload(connectorNode, CANONICAL_CLASS_NAME, INCOMING_COORDINATE);
+        verify(connectorRepository, never()).updateConnector(any(), any());
+    }
+
+    @Test
+    void testUpdateConnectorDoesNotReloadWhenBundleUnchanged() throws Exception {
+        final ReloadComponent reloadComponent = configureBundleUpdate(EXISTING_COORDINATE, EXISTING_COORDINATE);
+        final ConnectorDTO connectorDTO = createConnectorDto(null, EXISTING_COORDINATE);
+
+        connectorDAO.updateConnector(connectorDTO);
+
+        verify(reloadComponent, never()).reload(any(ConnectorNode.class), any(), any());
+    }
+
+    private ReloadComponent configureBundleUpdate(final BundleCoordinate existingCoordinate, final BundleCoordinate incomingCoordinate) {
+        when(connectorRepository.getConnector(CONNECTOR_ID, ConnectorSyncMode.LOCAL_ONLY)).thenReturn(connectorNode);
+        when(connectorNode.getCanonicalClassName()).thenReturn(CANONICAL_CLASS_NAME);
+        when(connectorNode.getBundleCoordinate()).thenReturn(existingCoordinate);
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        when(extensionManager.getBundle(incomingCoordinate)).thenReturn(createBundle(incomingCoordinate));
+        when(extensionManager.getBundles(CANONICAL_CLASS_NAME)).thenReturn(List.of(createBundle(incomingCoordinate)));
+
+        final ReloadComponent reloadComponent = mock(ReloadComponent.class);
+        connectorDAO.setReloadComponent(reloadComponent);
+        return reloadComponent;
+    }
+
+    private ConnectorDTO createConnectorDto(final String name, final BundleCoordinate coordinate) {
+        final ConnectorDTO connectorDTO = new ConnectorDTO();
+        connectorDTO.setId(CONNECTOR_ID);
+        connectorDTO.setName(name);
+        connectorDTO.setBundle(new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion()));
+        return connectorDTO;
+    }
+
+    private Bundle createBundle(final BundleCoordinate coordinate) {
+        final BundleDetails details = new BundleDetails.Builder()
+            .workingDir(new File("."))
+            .coordinate(coordinate)
+            .build();
+        return new Bundle(details, getClass().getClassLoader());
     }
 
 }

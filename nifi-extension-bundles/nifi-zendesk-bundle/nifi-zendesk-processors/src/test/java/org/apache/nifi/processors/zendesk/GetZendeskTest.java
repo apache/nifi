@@ -124,7 +124,7 @@ public class GetZendeskTest {
     }
 
     @AfterEach
-    void tearDown() throws IOException {
+    void tearDown() {
         server.close();
     }
 
@@ -193,7 +193,7 @@ public class GetZendeskTest {
 
     @ParameterizedTest
     @MethodSource("supportedZendeskResourcesExportMethodCombinations")
-    public void testFlowFileIsCreatedAndContentIsAddedAndFlowFileAttributeIsSet(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws InterruptedException {
+    public void testFlowFileIsCreatedAndContentIsAddedAndFlowFileAttributeIsSet(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) {
         // given
         server.enqueue(new MockResponse.Builder()
                 .code(HTTP_OK)
@@ -215,7 +215,7 @@ public class GetZendeskTest {
 
     @ParameterizedTest
     @MethodSource("supportedZendeskResourcesExportMethodCombinations")
-    public void testNoFlowFileIsEmittedWhenZeroRecordsAreSent(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws InterruptedException {
+    public void testNoFlowFileIsEmittedWhenZeroRecordsAreSent(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) {
         // given
         server.enqueue(new MockResponse.Builder()
                 .code(HTTP_OK)

@@ -560,16 +560,6 @@ $drop-shadow-color: black;
             fill: var(--mat-sys-outline);
         }
 
-        text.processor-preview-text {
-            font-size: 10px;
-            font-weight: 600;
-            fill: var(--mat-sys-on-primary-container);
-        }
-
-        rect.processor-preview-badge {
-            fill: var(--mat-sys-primary-container);
-        }
-
         text.processor-name {
             fill: var(--mat-sys-on-surface);
         }

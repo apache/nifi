@@ -714,7 +714,7 @@ public class RunNiFiRegistry {
             }
         } catch (final IOException ioe) {
             if (pid == null) {
-                logger.error("Failed to send shutdown command to port {} due to {}. No PID found for the NiFi Registry process, so unable to kill process; "
+                logger.error("Failed to send shutdown command to port {}. No PID found for the NiFi Registry process, so unable to kill process; "
                         + "the process should be killed manually.", port, ioe);
             } else {
                 logger.error("Failed to send shutdown command to port {} due to {}. Will kill the NiFi Registry Process with PID {}.", port, ioe, pid);
@@ -1136,7 +1136,7 @@ public class RunNiFiRegistry {
         try {
             savePidProperties(nifiProps, defaultLogger);
         } catch (final IOException ioe) {
-            defaultLogger.warn("Apache NiFi Registry has started but failed to persist NiFi Registry Port information to {} due to {}", statusFile.getAbsolutePath(), ioe);
+            defaultLogger.warn("Apache NiFi Registry has started but failed to persist NiFi Registry Port information to {}", statusFile.getAbsolutePath(), ioe);
         }
 
         defaultLogger.info("Apache NiFi Registry now running and listening for Bootstrap requests on port {}", port);

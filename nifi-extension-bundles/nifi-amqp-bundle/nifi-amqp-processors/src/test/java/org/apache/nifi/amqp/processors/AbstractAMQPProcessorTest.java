@@ -89,7 +89,7 @@ public class AbstractAMQPProcessorTest {
     }
 
     @Test
-    public void testNotValidClientCertAuthButNoSSLContextService() throws Exception {
+    public void testNotValidClientCertAuthButNoSSLContextService() {
         testRunner.setProperty(AbstractAMQPProcessor.CLIENT_CERTIFICATE_AUTHENTICATION_ENABLED, "true");
 
         testRunner.assertNotValid();

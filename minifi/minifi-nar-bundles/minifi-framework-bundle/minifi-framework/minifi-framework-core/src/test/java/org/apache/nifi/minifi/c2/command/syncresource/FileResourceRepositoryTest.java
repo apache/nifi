@@ -380,7 +380,7 @@ public class FileResourceRepositoryTest {
     }
 
     @Test
-    public void testGetRelativePathReturnsEmptyInCaseOfResourceNotAvailable() throws IOException {
+    public void testGetRelativePathReturnsEmptyInCaseOfResourceNotAvailable() {
         FileResourceRepository testRepository = createTestRepository();
 
         Optional<Path> relativePath = testRepository.getAbsolutePath("non_existing_resource_id");

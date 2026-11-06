@@ -20,7 +20,7 @@ import * as d3 from 'd3';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
 import { addSelectedComponents, removeSelectedComponents, selectComponents } from '../../state/flow/flow.actions';
-import { SelectedComponent } from '../../state/flow';
+import { SelectedComponent } from '../../../../state/flow-shared';
 
 @Injectable({
     providedIn: 'root'

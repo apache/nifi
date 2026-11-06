@@ -71,7 +71,7 @@ public class ImportFlowWithIncompatibleBundleIT extends NiFiSystemIT {
      * which exercises the code path in ProcessGroupResource that requires the fix.
      */
     @Test
-    public void testUploadFlowWithParameterProviderIncompatibleBundleVersion() throws NiFiClientException, IOException, InterruptedException {
+    public void testUploadFlowWithParameterProviderIncompatibleBundleVersion() throws NiFiClientException, IOException {
         final RegisteredFlowSnapshot snapshot = createSnapshotWithParameterProviderIncompatibleBundle();
 
         final File tempFile = tempDir.resolve("flow-snapshot.json").toFile();

@@ -390,18 +390,19 @@ public class StatelessFlowTask {
         // this.outputRepositoryRecords and this.cloneResults
         if (!inputFlowFiles.isEmpty()) {
             if (destinationPort == null) {
-                // There is no destination port. Create a penalized FlowFile and place it back on its original queue.
-                // Do not penalize FlowFiles if the group was stopped, though. That is not a true failure.
+                // There is no destination port. Create a penalized FlowFile and place it back on the active portion of its original queue,
+                // so that it stays ahead of any FlowFiles that have been swapped out. Do not penalize FlowFiles if the group was stopped, though.
+                // That is not a true failure.
                 for (final PolledFlowFile polledFlowFile : inputFlowFiles) {
                     if (stopped) {
-                        polledFlowFile.getOriginalQueue().put(polledFlowFile.getInputFlowFile());
+                        polledFlowFile.getOriginalQueue().putToActive(polledFlowFile.getInputFlowFile());
                     } else {
                         final FlowFileRecord newFile = new StandardFlowFileRecord.Builder()
                             .fromFlowFile(polledFlowFile.getInputFlowFile())
                             .penaltyExpirationTime(System.currentTimeMillis() + 30_000L)
                             .build();
 
-                        polledFlowFile.getOriginalQueue().put(newFile);
+                        polledFlowFile.getOriginalQueue().putToActive(newFile);
                     }
                 }
             } else {

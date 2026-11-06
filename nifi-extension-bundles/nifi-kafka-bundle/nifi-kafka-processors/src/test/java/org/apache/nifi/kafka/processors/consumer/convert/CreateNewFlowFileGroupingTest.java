@@ -40,7 +40,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
@@ -158,7 +157,7 @@ class CreateNewFlowFileGroupingTest {
 
         @Override
         public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out,
-                final Map<String, String> variables) throws IOException {
+                final Map<String, String> variables) {
             return writer.createWriter(logger, schema, out, variables);
         }
     }

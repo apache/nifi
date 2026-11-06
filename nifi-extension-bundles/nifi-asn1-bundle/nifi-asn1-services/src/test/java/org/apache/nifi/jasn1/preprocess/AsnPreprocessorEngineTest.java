@@ -50,7 +50,7 @@ public class AsnPreprocessorEngineTest {
     private File additionalPreprocessingOutputDirectory;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         mockPreprocessor1 = mock(AsnPreprocessor.class);
         mockPreprocessor2 = mock(AsnPreprocessor.class);
 

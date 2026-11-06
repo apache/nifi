@@ -19,7 +19,7 @@
 
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Dimensions, PasteRequest, PasteRequestContext, PasteRequestEntity } from '../state/flow';
+import { Dimensions, PasteRequest, PasteRequestContext, PasteRequestEntity } from '../../../state/flow-shared';
 import { Observable } from 'rxjs';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import { Position } from '@nifi/shared';

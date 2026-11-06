@@ -1,0 +1,200 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>Import From Registry</h2>
+<form class="import-from-registry-form" [formGroup]="importFromRegistryForm">
+    <context-error-banner [context]="ErrorContextKey.REGISTRY_IMPORT"></context-error-banner>
+    <mat-dialog-content>
+        <div class="dialog-content flex flex-col h-full gap-y-2">
+            <div>
+                <mat-form-field>
+                    <mat-label>Registry</mat-label>
+                    <mat-select formControlName="registry" (selectionChange)="registryChanged($event.value)">
+                        @for (option of registryClientOptions; track option.value) {
+                            @if (option.description) {
+                                <mat-option
+                                    [value]="option.value"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    [tooltipInputData]="option.description"
+                                    [delayClose]="false"
+                                    >{{ option.text }}</mat-option
+                                >
+                            } @else {
+                                <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                            }
+                        }
+                    </mat-select>
+                </mat-form-field>
+
+                @if (supportsBranching) {
+                    <mat-form-field>
+                        <mat-label>Branch</mat-label>
+                        <mat-select formControlName="branch" (selectionChange)="branchChanged($event.value)">
+                            @for (option of branchOptions; track option.value) {
+                                <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                            }
+                        </mat-select>
+                        @if (importFromRegistryForm.controls['branch'].hasError('required')) {
+                            <mat-error>No branches available</mat-error>
+                        }
+                    </mat-form-field>
+                }
+
+                <mat-form-field>
+                    <mat-label>Bucket</mat-label>
+                    <mat-select formControlName="bucket" (selectionChange)="bucketChanged($event.value)">
+                        @for (option of bucketOptions; track option.value) {
+                            @if (option.description) {
+                                <mat-option
+                                    [value]="option.value"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    [tooltipInputData]="option.description"
+                                    [delayClose]="false"
+                                    >{{ option.text }}</mat-option
+                                >
+                            } @else {
+                                <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                            }
+                        }
+                    </mat-select>
+                    @if (importFromRegistryForm.controls['bucket'].hasError('required')) {
+                        <mat-error>No buckets available</mat-error>
+                    }
+                </mat-form-field>
+                <mat-form-field>
+                    <mat-label>Flow</mat-label>
+                    <mat-select formControlName="flow" (selectionChange)="flowChanged($event.value)">
+                        @for (option of flowOptions; track option.value) {
+                            @if (option.description) {
+                                <mat-option
+                                    [value]="option.value"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    [tooltipInputData]="option.description"
+                                    [delayClose]="false"
+                                    >{{ option.text }}</mat-option
+                                >
+                            } @else {
+                                <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                            }
+                        }
+                    </mat-select>
+                    @if (importFromRegistryForm.controls['flow'].hasError('required')) {
+                        <mat-error>No flows available</mat-error>
+                    }
+                </mat-form-field>
+                <div class="mb-5">
+                    <mat-checkbox formControlName="keepParameterContexts">
+                        Keep existing Parameter Contexts
+                        <i
+                            class="fa fa-info-circle primary-color"
+                            nifiTooltip
+                            [tooltipComponentType]="TextTip"
+                            tooltipInputData="When not selected, only directly associated Parameter Contexts will be copied, inherited Contexts with no direct assignment to a Process Group are ignored."></i>
+                    </mat-checkbox>
+                </div>
+                <div class="flex flex-col mb-5">
+                    <div>Flow Description</div>
+                    <div class="tertiary-color font-medium">
+                        {{ selectedFlowDescription || 'No description provided' }}
+                    </div>
+                </div>
+            </div>
+
+            @if (loadingVersions()) {
+                <div data-qa="skeleton-loader-versions" class="w-full">
+                    <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+                </div>
+            } @else if (loadingVersionsError()) {
+                <div
+                    class="flex flex-1 flex-col gap-y-4 justify-center items-center tertiary-color pb-4"
+                    data-qa="loading-versions-error">
+                    <i class="fa fa-exclamation-circle error-color fa-4x"></i>
+                    <div class="text-lg font-semibold">Something went wrong</div>
+                    <div class="text-center">{{ loadingVersionsError() }}</div>
+                </div>
+            } @else {
+                <div class="listing-table flex-1 relative min-h-48" data-qa="versions-listing-table">
+                    <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
+                        <table
+                            mat-table
+                            [dataSource]="dataSource"
+                            matSort
+                            matSortDisableClear
+                            (matSortChange)="sortData($event)"
+                            [matSortActive]="sort.active"
+                            [matSortDirection]="sort.direction">
+                            <!-- Version Column -->
+                            <ng-container matColumnDef="version">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
+                                <td mat-cell *matCellDef="let item">
+                                    <div class="text-ellipsis overflow-hidden whitespace-nowrap" [title]="item.version">
+                                        {{ item.version }}
+                                    </div>
+                                </td>
+                            </ng-container>
+
+                            <!-- Create Column -->
+                            <ng-container matColumnDef="created">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Created</th>
+                                <td mat-cell *matCellDef="let item">
+                                    {{ formatTimestamp(item) }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Comments Column -->
+                            <ng-container matColumnDef="comments">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Comments</th>
+                                <td mat-cell *matCellDef="let item">
+                                    <div
+                                        class="text-ellipsis overflow-hidden whitespace-nowrap"
+                                        [title]="item.comments">
+                                        {{ item.comments }}
+                                    </div>
+                                </td>
+                            </ng-container>
+
+                            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                            <tr
+                                mat-row
+                                *matRowDef="let row; let even = even; columns: displayedColumns"
+                                (click)="select(row)"
+                                (dblclick)="submitImportFromRegistry()"
+                                [class.selected]="isSelected(row)"
+                                [class.even]="even"></tr>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+    </mat-dialog-content>
+    @let saving = (saving$ | async)!;
+    <mat-dialog-actions align="end">
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button
+            [disabled]="
+                importFromRegistryForm.invalid || saving || !selectedFlowVersion || importFromRegistryForm.pending
+            "
+            type="button"
+            (click)="submitImportFromRegistry()"
+            mat-flat-button>
+            <span *nifiSpinner="saving">Import</span>
+        </button>
+    </mat-dialog-actions>
+</form>

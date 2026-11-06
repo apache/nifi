@@ -26,6 +26,8 @@ import org.testcontainers.mariadb.MariaDBContainer;
  * https://github.com/flyway/flyway/issues/2339
  *
  * The work around is to add the useMysqlMetadata=true to the URL.
+ *
+ * The sslMode=disable parameter permits unencrypted connections because the test container does not enable TLS.
  */
 public class MariaDBCustomContainer extends MariaDBContainer {
 
@@ -35,6 +37,6 @@ public class MariaDBCustomContainer extends MariaDBContainer {
 
     @Override
     public String getJdbcUrl() {
-        return super.getJdbcUrl() + "?useMysqlMetadata=true";
+        return super.getJdbcUrl() + "?useMysqlMetadata=true&sslMode=disable";
     }
 }

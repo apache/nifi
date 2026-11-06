@@ -31,7 +31,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -41,7 +40,6 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
 import javax.crypto.Cipher;
-import javax.crypto.EncryptedPrivateKeyInfo;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
@@ -62,10 +60,6 @@ class StandardPrivateKeyServiceTest {
     private static final String PBES2_HMAC_SHA512_AES_128 = "PBEWithHmacSHA512AndAES_128";
 
     private static final String PBE_SHA1_DESEDE = "PBEWithSHA1AndDESede";
-
-    private static final String PBES2_ALGORITHM = "PBES2";
-
-    private static final String PBES2_CIPHER_PREFIX = "PBEWithHmac";
 
     private static final String PRIVATE_KEY_TYPE = "PRIVATE KEY";
 
@@ -178,26 +172,8 @@ class StandardPrivateKeyServiceTest {
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
         final byte[] encrypted = cipher.doFinal(privateKey.getEncoded());
 
-        final EncryptedPrivateKeyInfo encryptedPrivateKeyInfo = new EncryptedPrivateKeyInfo(getEncryptionParameters(cipher), encrypted);
-        return getPem(ENCRYPTED_PRIVATE_KEY_TYPE, encryptedPrivateKeyInfo.getEncoded());
-    }
-
-    /**
-     * Get encryption parameters with an algorithm name that EncryptedPrivateKeyInfo can resolve to an Object Identifier,
-     * which requires PBES2 instead of cipher names such as PBEWithHmacSHA256AndAES_256
-     */
-    private AlgorithmParameters getEncryptionParameters(final Cipher cipher) throws GeneralSecurityException, IOException {
-        final AlgorithmParameters cipherParameters = cipher.getParameters();
-
-        final AlgorithmParameters encryptionParameters;
-        if (cipherParameters.getAlgorithm().startsWith(PBES2_CIPHER_PREFIX)) {
-            encryptionParameters = AlgorithmParameters.getInstance(PBES2_ALGORITHM);
-            encryptionParameters.init(cipherParameters.getEncoded());
-        } else {
-            encryptionParameters = cipherParameters;
-        }
-
-        return encryptionParameters;
+        final byte[] encoded = EncryptedPrivateKeyInfoEncoder.encode(cipher, encrypted);
+        return getPem(ENCRYPTED_PRIVATE_KEY_TYPE, encoded);
     }
 
     private String getPem(final String type, final byte[] encoded) {

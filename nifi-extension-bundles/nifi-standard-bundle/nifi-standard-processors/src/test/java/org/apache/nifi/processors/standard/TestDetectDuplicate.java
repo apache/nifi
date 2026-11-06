@@ -31,7 +31,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -174,7 +173,7 @@ public class TestDetectDuplicate {
         private Object cacheValue;
 
         @Override
-        public void close() throws IOException {
+        public void close() {
         }
 
         @Override
@@ -211,12 +210,12 @@ public class TestDetectDuplicate {
         }
 
         @Override
-        public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
+        public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) {
             return exists;
         }
 
         @Override
-        public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) {
             if (exists) {
                 return (V) cacheValue;
             } else {
@@ -225,13 +224,13 @@ public class TestDetectDuplicate {
         }
 
         @Override
-        public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
+        public <K> boolean remove(final K key, final Serializer<K> serializer) {
             exists = false;
             return true;
         }
 
         @Override
-        public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+        public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
             cacheValue = value;
             exists = true;
         }

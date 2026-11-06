@@ -343,13 +343,13 @@ public class TestNotify {
         }
 
         @Override
-        public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
+        public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) {
             unsupported();
             return false;
         }
 
         @Override
-        public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+        public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
             unsupported();
         }
 
@@ -367,7 +367,7 @@ public class TestNotify {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
         }
 
         @Override

@@ -3774,9 +3774,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ConnectorNode connector = connectorDAO.getConnector(connectorDTO.getId());
         final ConnectorState currentState = connector.getCurrentState();
 
-        if (connectorDTO.getName() != null && currentState == ConnectorState.TROUBLESHOOTING) {
+        if ((connectorDTO.getName() != null || connectorDTO.getBundle() != null) && currentState == ConnectorState.TROUBLESHOOTING) {
             throw new IllegalStateException("Cannot update Connector " + connectorDTO.getId()
                 + " while it is in Troubleshooting mode; exit Troubleshooting mode before modifying the Connector configuration.");
+        }
+
+        if (connectorDTO.getBundle() != null) {
+            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(controllerFacade.getExtensionManager(), connector.getCanonicalClassName(), connectorDTO.getBundle());
+            if (!incomingCoordinate.equals(connector.getBundleCoordinate())) {
+                connector.verifyCanUpdateBundle(incomingCoordinate);
+                connector.verifyCanReload();
+            }
         }
 
         if (connectorDTO.getState() != null) {
@@ -6426,11 +6434,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public RegisteredFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId, final boolean includeReferencedServices, final boolean includeComponentState,
             final boolean mapAssetReferences) {
-        if (!includeComponentState) {
-            return getCurrentFlowSnapshotByGroupId(processGroupId, includeReferencedServices);
-        }
-
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+        return getCurrentFlowSnapshot(processGroup, includeReferencedServices, includeComponentState, mapAssetReferences);
+    }
+
+    @Override
+    public RegisteredFlowSnapshot getConnectorCurrentFlowSnapshot(final String connectorId, final String processGroupId,
+            final boolean includeReferencedServices, final boolean includeComponentState) {
+        final ProcessGroup processGroup = locateConnectorProcessGroup(connectorId, processGroupId);
+        return getCurrentFlowSnapshot(processGroup, includeReferencedServices, includeComponentState, false);
+    }
+
+    private RegisteredFlowSnapshot getCurrentFlowSnapshot(final ProcessGroup processGroup, final boolean includeReferencedServices,
+            final boolean includeComponentState, final boolean mapAssetReferences) {
+        if (!includeComponentState) {
+            return buildFlowSnapshot(processGroup, processGroup.getIdentifier(), includeReferencedServices, null);
+        }
 
         // Validate all processors are stopped and all controller services are disabled
         final List<ProcessorNode> runningProcessors = processGroup.findAllProcessors().stream()
@@ -6466,7 +6485,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .localNodeOrdinal(clusterTopologyProvider.getLocalNodeOrdinal())
                 .build();
 
-        return buildFlowSnapshot(processGroup, processGroupId, includeReferencedServices, mappingOptions);
+        return buildFlowSnapshot(processGroup, processGroup.getIdentifier(), includeReferencedServices, mappingOptions);
     }
 
     private Set<String> getAllSubGroups(ProcessGroup processGroup) {
@@ -6479,7 +6498,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     private RegisteredFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId, final boolean includeReferencedControllerServices) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
-        return buildFlowSnapshot(processGroup, processGroupId, includeReferencedControllerServices, null);
+        return getCurrentFlowSnapshot(processGroup, includeReferencedControllerServices, false, false);
     }
 
     private RegisteredFlowSnapshot buildFlowSnapshot(final ProcessGroup processGroup, final String processGroupId,

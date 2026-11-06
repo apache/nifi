@@ -20,6 +20,7 @@ import {
     getComponentTypeForDestination,
     getComponentTypeForSource,
     getConnectableTypeForDestination,
+    getConnectableTypeForSource,
     remoteProcessGroupSupportsModification,
     runnableSupportsModification
 } from './component-state.utils';
@@ -157,6 +158,19 @@ describe('component-state.utils', () => {
 
         it('should return empty string for unknown type', () => {
             expect(getConnectableTypeForDestination(ComponentType.Label)).toBe('');
+        });
+    });
+
+    describe('getConnectableTypeForSource', () => {
+        it.each([
+            [ComponentType.Processor, 'PROCESSOR'],
+            [ComponentType.RemoteProcessGroup, 'REMOTE_OUTPUT_PORT'],
+            [ComponentType.ProcessGroup, 'OUTPUT_PORT'],
+            [ComponentType.InputPort, 'INPUT_PORT'],
+            [ComponentType.Funnel, 'FUNNEL'],
+            [ComponentType.Label, '']
+        ])('should map %s to %s', (componentType, connectableType) => {
+            expect(getConnectableTypeForSource(componentType)).toBe(connectableType);
         });
     });
 });

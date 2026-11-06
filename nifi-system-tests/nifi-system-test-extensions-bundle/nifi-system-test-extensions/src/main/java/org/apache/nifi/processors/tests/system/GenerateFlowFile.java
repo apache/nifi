@@ -34,7 +34,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
@@ -162,7 +161,7 @@ public class GenerateFlowFile extends AbstractProcessor {
                     return;
                 }
 
-                try (final PrintWriter writer = new PrintWriter(new File(filename))) {
+                try (final PrintWriter writer = new PrintWriter(filename)) {
                     writer.println("Failed to commit session:");
                     cause.printStackTrace(writer);
                 } catch (Exception e) {

@@ -233,7 +233,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
 
     private static void populateSchemaFieldNames(final Grok grok, String grokExpression, final Collection<RecordField> fields) {
         final Set<String> namedGroups = GrokUtils.getNameGroups(GrokUtils.GROK_PATTERN.pattern());
-        while (grokExpression.length() > 0) {
+        while (!grokExpression.isEmpty()) {
             final Matcher matcher = GrokUtils.GROK_PATTERN.matcher(grokExpression);
             if (matcher.find()) {
                 final Map<String, String> extractedGroups = GrokUtils.namedGroups(matcher, namedGroups);

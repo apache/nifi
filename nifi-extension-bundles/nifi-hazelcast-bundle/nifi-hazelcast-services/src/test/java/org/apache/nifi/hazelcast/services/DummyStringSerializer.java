@@ -35,7 +35,7 @@ public final class DummyStringSerializer implements Serializer<String>, Deserial
     }
 
     @Override
-    public String deserialize(final byte[] input) throws DeserializationException, IOException {
+    public String deserialize(final byte[] input) throws DeserializationException {
         return new String(input, StandardCharsets.UTF_8);
     }
 }

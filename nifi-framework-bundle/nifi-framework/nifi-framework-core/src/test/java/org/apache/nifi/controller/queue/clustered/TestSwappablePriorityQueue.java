@@ -22,6 +22,7 @@ import org.apache.nifi.controller.MockSwapManager;
 import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.FlowFileQueueSize;
 import org.apache.nifi.controller.queue.FlowFileQueueSnapshot;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -173,6 +174,18 @@ public class TestSwappablePriorityQueue {
             final MockFlowFileRecord swapQueueFlowFile1 = new MockFlowFileRecord(Map.of("i", iValue), 10_000);
             queue.put(swapQueueFlowFile1);
         }
+
+        // Poll the highest priority FlowFile from the active queue and return it, as a session rollback would. It must go back to the
+        // active queue, ahead of the FlowFiles on the swap queue, even though the queue is in swap mode.
+        final FlowFileRecord returnedFlowFile = queue.poll(Collections.emptySet(), 0);
+        assertEquals("0", returnedFlowFile.getAttribute("i"));
+        queue.putToActive(returnedFlowFile);
+        queue.acknowledge(returnedFlowFile);
+
+        final FlowFileQueueSize queueSize = queue.getFlowFileQueueSize();
+        assertEquals(iterations, queueSize.getActiveCount());
+        assertEquals(3, queueSize.getSwappedCount());
+        assertEquals(0, queueSize.getUnacknowledgedCount());
 
         // The first 10,000 should be ordered. Then all FlowFiles on the swap queue should be transferred over, as a single unit, just as they would be in a swap file.
         for (int i = 0; i < iterations; i++) {
@@ -800,7 +813,7 @@ public class TestSwappablePriorityQueue {
 
     @Test
     @Timeout(5)
-    public void testGetActiveFlowFilesReturnsAllActiveFlowFiles() throws InterruptedException {
+    public void testGetActiveFlowFilesReturnsAllActiveFlowFiles() {
         for (int i = 0; i < 9999; i++) {
             queue.put(new MockFlowFileRecord());
         }
@@ -870,7 +883,7 @@ public class TestSwappablePriorityQueue {
 
     @Test
     @Timeout(5)
-    public void testListFlowFilesResultsLimited() throws InterruptedException {
+    public void testListFlowFilesResultsLimited() {
         for (int i = 0; i < 30050; i++) {
             queue.put(new MockFlowFileRecord());
         }
@@ -928,7 +941,7 @@ public class TestSwappablePriorityQueue {
     @Test
     // The purpose of this test is to populate a SwappablePriorityQueue and to ensure that the minLastQueueDate and TotalQueueDuration are correct.
     // To truly test this we need to get both the in-memory swap queue and swap "on disk" involved.
-    public void testLastQueueDateMetrics() throws IOException {
+    public void testLastQueueDateMetrics() {
         Set<FlowFileRecord> flowFileRecords = new HashSet<>(11001);
         // With threshold of 1000, swapRecordPollSize will also be 1000
         queue = new SwappablePriorityQueue(swapManager, 1000, eventReporter, flowFileQueue, dropAction, "testGetMinLastQueueDate");
@@ -975,5 +988,18 @@ public class TestSwappablePriorityQueue {
         totalNow = now * flowFileRecords.size();
         assertEquals(totalNow - totalQueueDate, queue.getTotalQueuedDuration(now));
         assertEquals(minQueueDate, queue.getMinLastQueueDate());
+    }
+
+    @Test
+    public void testMinLastQueueDateWithEmptyActiveQueue() {
+        queue = new SwappablePriorityQueue(swapManager, 2, eventReporter, flowFileQueue, dropAction, "local");
+        queue.put(new MockFlowFileRecord());
+        queue.put(new MockFlowFileRecord());
+
+        final MockFlowFileRecord swapQueueFlowFile = new MockFlowFileRecord();
+        queue.put(swapQueueFlowFile);
+        queue.poll(2, Collections.emptySet(), -1);
+
+        assertEquals(swapQueueFlowFile.getLastQueueDate().longValue(), queue.getMinLastQueueDate());
     }
 }

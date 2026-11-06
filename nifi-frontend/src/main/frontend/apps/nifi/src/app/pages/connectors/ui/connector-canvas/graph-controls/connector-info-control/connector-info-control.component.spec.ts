@@ -16,7 +16,9 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatTooltip } from '@angular/material/tooltip';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { ConnectorInfoControl } from './connector-info-control.component';
 import { ConnectorEntity, ConnectorStatus, Storage } from '@nifi/shared';
@@ -260,31 +262,86 @@ describe('ConnectorInfoControl', () => {
             expect(button.textContent).toContain('Drain');
         });
 
-        it('should not show drain button when DRAIN_FLOWFILES is not allowed', async () => {
-            const entity = createMockConnectorEntity({
-                component: {
-                    ...createMockConnectorEntity().component,
-                    availableActions: [
-                        { name: 'DRAIN_FLOWFILES', description: 'Drain', allowed: false },
-                        { name: 'CANCEL_DRAIN_FLOWFILES', description: 'Cancel', allowed: false },
-                        { name: 'DISCARD_WORKING_CONFIGURATION', description: 'Discard', allowed: false },
-                        { name: 'CONFIGURE', description: 'Configure', allowed: true }
-                    ]
-                }
-            });
-            const { fixture } = await setup({ connectorEntity: entity });
+        it.each(['Connector must be stopped', 'No data is queued'])(
+            'should disable drain and show "%s" when DRAIN_FLOWFILES is not allowed',
+            async (reasonNotAllowed) => {
+                const entity = createMockConnectorEntity({
+                    component: {
+                        ...createMockConnectorEntity().component,
+                        availableActions: [
+                            {
+                                name: 'DRAIN_FLOWFILES',
+                                description: 'Drain',
+                                allowed: false,
+                                reasonNotAllowed
+                            },
+                            { name: 'CANCEL_DRAIN_FLOWFILES', description: 'Cancel', allowed: false },
+                            { name: 'DISCARD_WORKING_CONFIGURATION', description: 'Discard', allowed: false },
+                            { name: 'CONFIGURE', description: 'Configure', allowed: true }
+                        ]
+                    }
+                });
+                const { fixture } = await setup({ connectorEntity: entity });
 
-            const button = fixture.nativeElement.querySelector('[data-qa="connector-panel-drain"]');
-            expect(button).toBeNull();
-        });
+                const button = fixture.nativeElement.querySelector('[data-qa="connector-panel-drain"]');
+                const tooltip = fixture.debugElement
+                    .query(By.css('[data-qa="connector-panel-drain-tooltip"]'))
+                    .injector.get(MatTooltip);
+
+                expect(button).toBeTruthy();
+                expect(button.disabled).toBe(true);
+                expect(tooltip.message).toBe(reasonNotAllowed);
+                expect(tooltip.disabled).toBe(false);
+            }
+        );
 
         it('should render but disable drain button when entity is saving', async () => {
             const entity = createMockConnectorEntity();
             const { fixture } = await setup({ connectorEntity: entity, entitySaving: true });
 
             const button = fixture.nativeElement.querySelector('[data-qa="connector-panel-drain"]');
+            const tooltip = fixture.debugElement
+                .query(By.css('[data-qa="connector-panel-drain-tooltip"]'))
+                .injector.get(MatTooltip);
+
             expect(button).toBeTruthy();
             expect(button.disabled).toBe(true);
+            expect(button.textContent).toContain('Drain');
+            expect(tooltip.message).toBe('Request in progress');
+            expect(tooltip.disabled).toBe(false);
+        });
+
+        it('should not dispatch when the disabled drain button is clicked', async () => {
+            const entity = createMockConnectorEntity({
+                component: {
+                    ...createMockConnectorEntity().component,
+                    availableActions: [
+                        {
+                            name: 'DRAIN_FLOWFILES',
+                            description: 'Drain',
+                            allowed: false,
+                            reasonNotAllowed: 'No data is queued'
+                        },
+                        { name: 'CANCEL_DRAIN_FLOWFILES', description: 'Cancel', allowed: false }
+                    ]
+                }
+            });
+            const { fixture, dispatchSpy } = await setup({ connectorEntity: entity });
+
+            fixture.nativeElement.querySelector('[data-qa="connector-panel-drain"]').click();
+
+            expect(dispatchSpy).not.toHaveBeenCalled();
+        });
+
+        it('should disable the tooltip when drain is allowed', async () => {
+            const entity = createMockConnectorEntity();
+            const { fixture } = await setup({ connectorEntity: entity });
+
+            const tooltip = fixture.debugElement
+                .query(By.css('[data-qa="connector-panel-drain-tooltip"]'))
+                .injector.get(MatTooltip);
+
+            expect(tooltip.disabled).toBe(true);
         });
 
         it('should dispatch promptDrainConnector when drain button is clicked', async () => {
@@ -302,6 +359,21 @@ describe('ConnectorInfoControl', () => {
         it('showDrain should remain true while entity is saving so the button stays mounted', async () => {
             const entity = createMockConnectorEntity();
             const { component } = await setup({ connectorEntity: entity, entitySaving: true });
+
+            expect(component.showDrain()).toBe(true);
+        });
+
+        it('showDrain should remain true when DRAIN_FLOWFILES is not allowed', async () => {
+            const entity = createMockConnectorEntity({
+                component: {
+                    ...createMockConnectorEntity().component,
+                    availableActions: [
+                        { name: 'DRAIN_FLOWFILES', description: 'Drain', allowed: false },
+                        { name: 'CANCEL_DRAIN_FLOWFILES', description: 'Cancel', allowed: false }
+                    ]
+                }
+            });
+            const { component } = await setup({ connectorEntity: entity });
 
             expect(component.showDrain()).toBe(true);
         });
@@ -332,6 +404,7 @@ describe('ConnectorInfoControl', () => {
             const button = fixture.nativeElement.querySelector('[data-qa="connector-panel-cancel-drain"]');
             expect(button).toBeTruthy();
             expect(button.textContent).toContain('Cancel Drain');
+            expect(fixture.nativeElement.querySelector('[data-qa="connector-panel-drain"]')).toBeNull();
         });
 
         it('should not show cancel drain button when CANCEL_DRAIN_FLOWFILES is not allowed', async () => {
@@ -359,8 +432,16 @@ describe('ConnectorInfoControl', () => {
             const { fixture } = await setup({ connectorEntity: entity, entitySaving: true });
 
             const button = fixture.nativeElement.querySelector('[data-qa="connector-panel-cancel-drain"]');
+            const tooltip = fixture.debugElement
+                .query(By.css('[data-qa="connector-panel-cancel-drain-tooltip"]'))
+                .injector.get(MatTooltip);
+
             expect(button).toBeTruthy();
             expect(button.disabled).toBe(true);
+            expect(button.textContent).toContain('Cancel Drain');
+            expect(tooltip.message).toBe('Request in progress');
+            expect(tooltip.disabled).toBe(false);
+            expect(fixture.nativeElement.querySelector('[data-qa="connector-panel-drain"]')).toBeNull();
         });
 
         it('should dispatch cancelConnectorDrain when cancel drain button is clicked', async () => {
@@ -430,6 +511,7 @@ describe('ConnectorInfoControl', () => {
 
             const button = fixture.nativeElement.querySelector('[data-qa="connector-panel-drain"]');
             expect(button).toBeNull();
+            expect(fixture.nativeElement.querySelector('[data-qa="connector-panel-cancel-drain"]')).toBeNull();
         });
 
         it('should not show start/stop buttons when user lacks operate permissions', async () => {

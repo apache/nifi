@@ -60,7 +60,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
     private MockRecordParser recordReader;
 
     @BeforeEach
-    public void setup() throws Exception {
+    public void setup() {
         super.setup(PutMongoRecord.class);
         recordReader = new MockRecordParser();
     }

@@ -55,7 +55,7 @@ import {
     Revision,
     RevisionRequest
 } from '@nifi/shared';
-import { DocumentedType, RegistryClientEntity } from '../../../state/shared';
+import { RegistryClientEntity } from '../../../state/shared';
 import { NiFiState } from '../../../state';
 import {
     CanvasLabel,
@@ -107,6 +107,7 @@ import {
 } from './connectable-behavior.helper';
 import { ConnectionReconnectContext } from './layers/render-context.types';
 import { DragUtils } from './utils/drag.utils';
+import { ViewportRect } from './utils/visibility.utils';
 
 /**
  * Interface for viewport transform storage
@@ -272,15 +273,6 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     // ViewChild as signal
     canvasSvg = viewChild.required<ElementRef<SVGSVGElement>>('canvasSvg');
 
-    // Layer component references for calling pan() methods
-    labelLayer = viewChild<LabelLayerComponent>('labelLayer');
-    remoteProcessGroupLayer = viewChild<RemoteProcessGroupLayerComponent>('remoteProcessGroupLayer');
-    processGroupLayer = viewChild<ProcessGroupLayerComponent>('processGroupLayer');
-    processorLayer = viewChild<ProcessorLayerComponent>('processorLayer');
-    portLayer = viewChild<PortLayerComponent>('portLayer');
-    funnelLayer = viewChild<FunnelLayerComponent>('funnelLayer');
-    connectionLayer = viewChild<ConnectionLayerComponent>('connectionLayer');
-
     // Text ellipsis utility (shared across all layers)
     // Cache is cleared on process group navigation
     textEllipsisUtils = new TextEllipsisUtils();
@@ -300,9 +292,6 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     processGroups = input<ProcessGroupEntity[]>([]);
     connections = input<ConnectionEntity[]>([]);
 
-    // Preview extensions (processors with Preview tag)
-    previewExtensions = input<DocumentedType[]>([]);
-
     // Registry clients (for version control tooltip)
     registryClients = input<RegistryClientEntity[]>([]);
 
@@ -313,7 +302,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     selectedComponentIds = input<string[]>([]);
 
     // Data ready signal - parent sets this to true when flow data is loaded
-    // Canvas will automatically initialize (updateCanvasVisibility + restoreViewportFromStorage)
+    // Canvas will automatically initialize (viewportBounds + restoreViewportFromStorage)
     // when both canvas is ready AND dataReady is true
     dataReady = input<boolean>(false);
 
@@ -453,7 +442,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     transformChange = output<{ translate: { x: number; y: number }; scale: number }>();
 
     // Initialized event - emitted after canvas is fully ready with data
-    // Canvas automatically handles updateCanvasVisibility() and restoreViewportFromStorage()
+    // Canvas automatically handles viewportBounds publication and restoreViewportFromStorage()
     // Parent only needs to update birdseye when this fires
     initialized = output<void>();
 
@@ -789,6 +778,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Box selection state
     private canvasClicked = false; // Track if canvas was clicked (vs component clicked)
+    private rubberBandEscapeHandler: (() => void) | null = null;
     private panning = false; // Track if user is actually panning (vs simple click)
     private zoomHappened = false; // Track if zoom event fired (to distinguish real zoom from spurious ends)
     private isSettingInitialTransform = false; // Guard to prevent dispatch loop during initialization
@@ -799,6 +789,15 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     // The currentScale is updated synchronously during zoom events
     scale = signal<number>(1);
     scale$: Observable<number> = this.store.select(selectScale); // Keep for backwards compatibility
+
+    /**
+     * Current padded viewport rectangle in canvas-space coordinates.
+     * Updated on zoom end, resize, initial transform, and birdseye drag end.
+     * Null until the canvas element is measurable. Each layer reads this as an
+     * input signal so renderers can classify per-element visibility without the
+     * canvas walking layer DOMs.
+     */
+    viewportBounds = signal<ViewportRect | null>(null);
     canSelect$: Observable<boolean> = this.store
         .select(selectCanvasFeatures)
         .pipe(map((features) => features.canSelect));
@@ -828,22 +827,18 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         /**
          * Auto-initialization Effect
          *
-         * This effect coordinates the initialization timing between the canvas DOM being ready
-         * and the flow data being loaded. The problem it solves:
+         * Coordinates initialization timing between the canvas DOM being ready and
+         * the flow data being loaded. When both are true and the canvas has not yet
+         * been initialized for the current process group, it centers the viewport and
+         * marks the canvas as ready.
          *
-         * 1. D3-based rendering requires SVG elements to exist in the DOM before D3 can select them
-         * 2. Flow data may arrive before or after the DOM is ready (race condition)
-         * 3. Fonts must be loaded before text measurements are accurate
-         *
-         * The solution:
-         * - `internalCanvasReady` becomes true after fonts load and initial render completes
-         * - `dataReady` input is set by parent when flow data is successfully loaded
-         * - When BOTH are true, we initialize visibility and viewport
-         * - `hasInitialized` prevents duplicate initialization
-         *
-         * The setTimeout(0) is necessary because Angular's change detection may not have
-         * propagated the new data to child layer components yet. Deferring to the next
-         * microtask ensures Angular has completed its rendering cycle.
+         * Visibility classification no longer lives here. Each layer's renderEffect
+         * tracks the `viewportBounds` signal (published by zoom end / resize /
+         * birdseye drag end) and classifies its own components' visibility inline
+         * inside the renderer. New components added after init (paste, create, etc.)
+         * trigger the relevant layer's renderEffect through normal data-input changes
+         * and are classified on that same pass — no separate "components added" effect
+         * is needed.
          */
         effect(() => {
             const canvasReady = this.internalCanvasReady();
@@ -868,7 +863,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
             // Defer to next microtask to ensure Angular has propagated data to child components
             setTimeout(() => {
-                this.updateCanvasVisibility();
+                this.updateViewportBounds();
                 if (this.selectedComponentIds().length > 0 && !this.skipInitialCenter()) {
                     this.centerOnSelection(false);
                 } else {
@@ -889,12 +884,12 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             this.canEditSignal.set(canEdit);
         });
 
-        // Update component visibility on window resize (debounced for performance)
+        // Republish viewport bounds on window resize (debounced for performance)
         fromEvent(window, 'resize')
             .pipe(debounceTime(300), takeUntil(this.destroy$))
             .subscribe(() => {
                 if (this.zoomInitialized()) {
-                    this.updateCanvasVisibility();
+                    this.updateViewportBounds();
                 }
             });
     }
@@ -952,24 +947,9 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         });
     }
 
-    /**
-     * Initial visibility is handled by the zoom handler's updateCanvasVisibility() call.
-     *
-     * Flow:
-     * 1. Parent component waits for data loading to complete (loadingStatus === 'success')
-     * 2. Parent calls canvasComponent().restoreViewportFromStorage()
-     * 3. restoreViewportFromStorage() applies a transform, triggering D3 zoom event
-     * 4. Zoom handler calls updateCanvasVisibility() → initial visibility calculated
-     *
-     * Visibility is calculated during the initial viewport restoration, not via a separate effect.
-     *
-     * No effect needed - the zoom handler's updateCanvasVisibility() call handles both:
-     * - Initial visibility (during viewport restoration)
-     * - Ongoing visibility updates (during user zoom/pan)
-     */
-
     ngOnDestroy(): void {
         this.destroyed = true;
+        this.clearRubberBandEscapeHandler();
         this.destroy$.next();
         this.destroy$.complete();
 
@@ -1152,58 +1132,32 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     /**
-     * Calculate viewport bounds for culling (with 1 screen padding in each direction)
+     * Compute the padded 3× viewport rectangle in canvas-space coordinates and
+     * publish it to the `viewportBounds` signal. Called on zoom end, resize, the
+     * initial transform application, and birdseye drag end.
      */
-    public getViewportBounds(): { left: number; top: number; right: number; bottom: number } | null {
+    private updateViewportBounds(): void {
         const canvasContainer = this.elementRef.nativeElement;
         if (!canvasContainer) {
-            return null;
+            return;
         }
 
-        // Get current transform
-        let translate = [this.x, this.y];
         const scale = this.currentScale;
+        const translateX = this.x / scale;
+        const translateY = this.y / scale;
 
-        // Scale the translation
-        translate = [translate[0] / scale, translate[1] / scale];
-
-        // Get the normalized screen width and height
         const screenWidth = canvasContainer.offsetWidth / scale;
         const screenHeight = canvasContainer.offsetHeight / scale;
 
-        // Calculate the screen bounds one screen's worth in each direction (padding)
-        const screenLeft = -translate[0] - screenWidth;
-        const screenTop = -translate[1] - screenHeight;
-        const screenRight = screenLeft + screenWidth * 3;
-        const screenBottom = screenTop + screenHeight * 3;
+        const screenLeft = -translateX - screenWidth;
+        const screenTop = -translateY - screenHeight;
 
-        return { left: screenLeft, top: screenTop, right: screenRight, bottom: screenBottom };
-    }
-
-    /**
-     * Check if a component is visible in the viewport
-     */
-    public isComponentVisible(
-        position: { x: number; y: number },
-        dimensions: { width: number; height: number }
-    ): boolean {
-        const bounds = this.getViewportBounds();
-        if (!bounds) {
-            return true; // If we can't calculate bounds, show everything
-        }
-
-        // Check scale threshold (MIN_SCALE_TO_RENDER = 0.4)
-        if (this.currentScale < 0.4) {
-            return false;
-        }
-
-        const left = position.x;
-        const top = position.y;
-        const right = left + dimensions.width;
-        const bottom = top + dimensions.height;
-
-        // Component is visible if it intersects with viewport bounds
-        return bounds.left < right && bounds.right > left && bounds.top < bottom && bounds.bottom > top;
+        this.viewportBounds.set({
+            left: screenLeft,
+            top: screenTop,
+            right: screenLeft + screenWidth * 3,
+            bottom: screenTop + screenHeight * 3
+        });
     }
 
     /**
@@ -1250,212 +1204,6 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     /**
-     * Update Visibility Classes for Canvas Components
-     *
-     * This method implements viewport culling - components outside the visible viewport
-     * are marked as not visible to avoid rendering their details (improving performance).
-     *
-     * The visibility system uses three CSS classes:
-     * - `visible`: Component is currently in the viewport
-     * - `entering`: Component just became visible (was hidden, now visible)
-     * - `leaving`: Component just became hidden (was visible, now hidden)
-     *
-     * The entering/leaving classes allow layer components to efficiently update only
-     * components that changed visibility, rather than re-rendering everything.
-     *
-     * Called during:
-     * - Initial canvas load (via auto-initialization effect)
-     * - User zoom/pan operations (via D3 zoom end handler)
-     * - Window resize events
-     */
-    public updateCanvasVisibility(): void {
-        // Helper to update visibility classes for a single component
-        const updateVisibility = (
-            selection: d3.Selection<SVGGElement, unknown, d3.BaseType, unknown>,
-            isVisible: boolean
-        ) => {
-            const wasVisible = selection.classed('visible');
-            selection
-                .classed('visible', isVisible)
-                .classed('entering', () => isVisible && !wasVisible)
-                .classed('leaving', () => !isVisible && wasVisible);
-        };
-
-        // Update visibility for all component types
-        // Select all components and update their visibility classes
-        const canvasGroup = d3.select(this.elementRef.nativeElement).select('g.canvas');
-
-        // Processors
-        canvasGroup.selectAll<SVGGElement, CanvasProcessor>('g.processor').each((d, index, nodes) => {
-            const processor = d3.select(nodes[index]);
-            const isVisible = this.isComponentVisible(d.entity.position, d.ui.dimensions);
-            updateVisibility(processor, isVisible);
-        });
-
-        // Process Groups
-        canvasGroup.selectAll<SVGGElement, CanvasProcessGroup>('g.process-group').each((d, index, nodes) => {
-            const pg = d3.select(nodes[index]);
-            const isVisible = this.isComponentVisible(d.entity.position, d.ui.dimensions);
-            updateVisibility(pg, isVisible);
-        });
-
-        // Remote Process Groups
-        canvasGroup
-            .selectAll<SVGGElement, CanvasRemoteProcessGroup>('g.remote-process-group')
-            .each((d, index, nodes) => {
-                const rpg = d3.select(nodes[index]);
-                const isVisible = this.isComponentVisible(d.entity.position, d.ui.dimensions);
-                updateVisibility(rpg, isVisible);
-            });
-
-        // Connections
-        canvasGroup.selectAll<SVGGElement, CanvasConnection>('g.connection').each((d, index, nodes) => {
-            const connection = d3.select(nodes[index]);
-
-            // Check if connection label position is visible in viewport
-            // Get the position where the label would be centered (on bend point or midpoint)
-            const labelPosition = this.getConnectionLabelPosition(d);
-
-            // Use a small dimension for the label check (just checking if the center point is visible)
-            // The actual label is 240px wide x ~40px tall, but we check center point visibility
-            const isVisible = this.isComponentVisible(labelPosition, { width: 240, height: 40 });
-
-            updateVisibility(connection, isVisible);
-        });
-
-        // Ports (input and output)
-        canvasGroup.selectAll<SVGGElement, CanvasPort>('g.input-port, g.output-port').each((d, index, nodes) => {
-            const port = d3.select(nodes[index]);
-            const isVisible = this.isComponentVisible(d.entity.position, d.ui.dimensions);
-            updateVisibility(port, isVisible);
-        });
-
-        // Funnels
-        canvasGroup.selectAll<SVGGElement, CanvasFunnel>('g.funnel').each((d, index, nodes) => {
-            const funnel = d3.select(nodes[index]);
-            const isVisible = this.isComponentVisible(d.entity.position, d.ui.dimensions);
-            updateVisibility(funnel, isVisible);
-        });
-
-        // Labels
-        canvasGroup.selectAll<SVGGElement, CanvasLabel>('g.label').each((d, index, nodes) => {
-            const label = d3.select(nodes[index]);
-            const isVisible = this.isComponentVisible(d.entity.position, d.ui.dimensions);
-            updateVisibility(label, isVisible);
-        });
-
-        // Trigger pan on all layers to update entering/leaving components
-        // This ensures components with 'entering' or 'leaving' classes get their details rendered/removed
-        this.triggerPan();
-    }
-
-    /**
-     * Get the position where a connection label would be centered
-     * Matches existing CanvasUtils.getPositionForCenteringConnection logic
-     */
-    private getConnectionLabelPosition(connection: CanvasConnection): Position {
-        const bends = connection.ui?.bends || connection.entity?.bends || [];
-        const labelIndex = connection.entity?.component?.labelIndex || 0;
-
-        let x: number;
-        let y: number;
-
-        if (bends.length > 0) {
-            const i = Math.min(Math.max(0, labelIndex), bends.length - 1);
-            x = bends[i].x;
-            y = bends[i].y;
-        } else {
-            const start = connection.ui?.start;
-            const end = connection.ui?.end;
-
-            if (start && end) {
-                x = (start.x + end.x) / 2;
-                y = (start.y + end.y) / 2;
-            } else {
-                // Fallback if start/end not available
-                x = 0;
-                y = 0;
-            }
-        }
-
-        return { x, y };
-    }
-
-    /**
-     * Trigger Pan Update on Layer Components
-     *
-     * This method is called after updateCanvasVisibility() to efficiently update
-     * only the components that changed visibility state. Rather than re-rendering
-     * all components, each layer's pan() method processes only components with
-     * 'entering' or 'leaving' CSS classes.
-     *
-     * - Entering components: Just became visible, need their details rendered
-     * - Leaving components: Just became hidden, can have their details removed
-     *
-     * All D3 selections are collected first, then pan() methods are called
-     * synchronously to ensure consistent rendering across all component types.
-     */
-    private triggerPan(): void {
-        const canvasGroup = d3.select(this.elementRef.nativeElement).select('g.canvas');
-
-        // Collect all entering/leaving selections for each component type
-        const enteringLeavingLabels = canvasGroup.selectAll<SVGGElement, CanvasLabel>(
-            'g.label.entering, g.label.leaving'
-        );
-        const enteringLeavingProcessors = canvasGroup.selectAll<SVGGElement, CanvasProcessor>(
-            'g.processor.entering, g.processor.leaving'
-        );
-        const enteringLeavingPorts = canvasGroup.selectAll<SVGGElement, CanvasPort>(
-            'g.input-port.entering, g.input-port.leaving, g.output-port.entering, g.output-port.leaving'
-        );
-        const enteringLeavingFunnels = canvasGroup.selectAll<SVGGElement, CanvasFunnel>(
-            'g.funnel.entering, g.funnel.leaving'
-        );
-        const enteringLeavingRPGs = canvasGroup.selectAll<SVGGElement, CanvasRemoteProcessGroup>(
-            'g.remote-process-group.entering, g.remote-process-group.leaving'
-        );
-        const enteringLeavingPGs = canvasGroup.selectAll<SVGGElement, CanvasProcessGroup>(
-            'g.process-group.entering, g.process-group.leaving'
-        );
-        const enteringLeavingConnections = canvasGroup.selectAll<SVGGElement, CanvasConnection>(
-            'g.connection.entering, g.connection.leaving'
-        );
-
-        // Get layer component references
-        const lblLayer = this.labelLayer();
-        const procLayer = this.processorLayer();
-        const portLayer = this.portLayer();
-        const funnelLayer = this.funnelLayer();
-        const rpgLayer = this.remoteProcessGroupLayer();
-        const pgLayer = this.processGroupLayer();
-        const connLayer = this.connectionLayer();
-
-        // Call pan() on each layer with its entering/leaving selection
-        // D3 selections handle empty selections gracefully
-        if (lblLayer && !enteringLeavingLabels.empty()) {
-            lblLayer.pan(enteringLeavingLabels);
-        }
-        if (procLayer && !enteringLeavingProcessors.empty()) {
-            procLayer.pan(enteringLeavingProcessors);
-        }
-        if (portLayer && !enteringLeavingPorts.empty()) {
-            portLayer.pan(enteringLeavingPorts);
-        }
-        if (funnelLayer && !enteringLeavingFunnels.empty()) {
-            funnelLayer.pan(enteringLeavingFunnels);
-        }
-        if (rpgLayer && !enteringLeavingRPGs.empty()) {
-            rpgLayer.pan(enteringLeavingRPGs);
-        }
-        if (pgLayer && !enteringLeavingPGs.empty()) {
-            pgLayer.pan(enteringLeavingPGs);
-        }
-        if (connLayer && !enteringLeavingConnections.empty()) {
-            connLayer.pan(enteringLeavingConnections);
-        }
-    }
-
-    /**
      * Set up SVG filters and markers (drop shadow, connection arrows, etc.)
      * Create SVG filter and marker definitions
      */
@@ -1483,6 +1231,14 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
                 // For mousedown events, check button (0 = left, 1 = middle, 2 = right)
                 if (event.type === 'mousedown' && event.button !== 0) {
+                    return false;
+                }
+
+                // Shift+mousedown is reserved for rubber-band box selection.
+                // Letting zoom intercept it causes zoom 'end' to fire on mouseup,
+                // which resets canvasClicked and calls deselectAll before
+                // mouseup.selection can process the selection box.
+                if (event.type === 'mousedown' && event.shiftKey) {
                     return false;
                 }
 
@@ -1545,9 +1301,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
                 // Track that zoom happened (to filter spurious ends)
                 this.zoomHappened = true;
 
-                // Note: updateCanvasVisibility() is NOT called here during zoom/pan.
-                // It's only called on zoom 'end' to avoid expensive re-renders during drag.
-                // This matches the existing canvas pattern.
+                // Note: viewportBounds is NOT updated here during zoom/pan.
+                // It's only updated on zoom 'end' to avoid expensive re-renders during drag.
             })
             .on('end', () => {
                 // Guard against events firing after component destruction
@@ -1580,8 +1335,10 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
                     // Persist viewport to localStorage
                     this.persistViewport();
 
-                    // Update visibility after pan/zoom completes (not during drag for performance)
-                    this.updateCanvasVisibility();
+                    // Publish updated viewport bounds so layers can re-classify visibility.
+                    // Done on zoom 'end' (not during 'zoom') to match the existing
+                    // once-per-gesture update cadence.
+                    this.updateViewportBounds();
 
                     // Reset zoom flag
                     this.zoomHappened = false;
@@ -1626,6 +1383,9 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
                 // Reset flag after D3 has processed the transform
                 this.isSettingInitialTransform = false;
                 this.zoomHappened = false; // Also reset this since we don't want to process this zoom
+
+                // Publish initial viewport bounds so layers have a valid value from the start.
+                this.updateViewportBounds();
             });
     }
 
@@ -1745,6 +1505,17 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
                         .attr('stroke-dasharray', () => 4 / this.currentScale)
                         .datum(position);
 
+                    // If the mouse is released outside the SVG boundary the SVG-level
+                    // mouseup.selection never fires. Register a one-shot window-level
+                    // handler to ensure the box is removed and state is reset.
+                    this.clearRubberBandEscapeHandler();
+                    this.rubberBandEscapeHandler = () => {
+                        this.canvasGroup.select('rect.component-selection').remove();
+                        this.canvasClicked = false;
+                        this.rubberBandEscapeHandler = null;
+                    };
+                    window.addEventListener('mouseup', this.rubberBandEscapeHandler, { once: true });
+
                     // Prevent further propagation to zoom handlers
                     event.stopImmediatePropagation();
 
@@ -1793,6 +1564,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
 
                 // Reset the canvas click flag
                 this.canvasClicked = false;
+                this.clearRubberBandEscapeHandler();
 
                 // Get the selection box
                 const selectionBox = this.canvasGroup.select<SVGRectElement>('rect.component-selection');
@@ -1821,6 +1593,13 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             });
     }
 
+    private clearRubberBandEscapeHandler(): void {
+        if (this.rubberBandEscapeHandler) {
+            window.removeEventListener('mouseup', this.rubberBandEscapeHandler);
+            this.rubberBandEscapeHandler = null;
+        }
+    }
+
     /**
      * Get all components that intersect with the selection box
      * Includes already selected components + components within bounds
@@ -1838,16 +1617,16 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         const isInBox = (x: number, y: number, width: number, height: number): boolean => {
             return x >= box.x && x + width <= box.x + box.width && y >= box.y && y + height <= box.y + box.height;
         };
+        const getPosition = (component: {
+            entity: { position: Position };
+            ui: { currentPosition?: Position };
+        }): Position => component.ui.currentPosition ?? component.entity.position;
 
         // Check labels
         this.internalLabels().forEach((label) => {
             const alreadySelected = currentSelection.includes(label.entity.id);
-            const inBox = isInBox(
-                label.entity.position.x,
-                label.entity.position.y,
-                label.ui.dimensions.width,
-                label.ui.dimensions.height
-            );
+            const position = getPosition(label);
+            const inBox = isInBox(position.x, position.y, label.ui.dimensions.width, label.ui.dimensions.height);
             if (alreadySelected || inBox) {
                 selected.push({ id: label.entity.id, type: label.ui.componentType });
             }
@@ -1856,9 +1635,10 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         // Check processors
         this.internalProcessors().forEach((processor) => {
             const alreadySelected = currentSelection.includes(processor.entity.id);
+            const position = getPosition(processor);
             const inBox = isInBox(
-                processor.entity.position.x,
-                processor.entity.position.y,
+                position.x,
+                position.y,
                 processor.ui.dimensions.width,
                 processor.ui.dimensions.height
             );
@@ -1870,12 +1650,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         // Check funnels
         this.internalFunnels().forEach((funnel) => {
             const alreadySelected = currentSelection.includes(funnel.entity.id);
-            const inBox = isInBox(
-                funnel.entity.position.x,
-                funnel.entity.position.y,
-                funnel.ui.dimensions.width,
-                funnel.ui.dimensions.height
-            );
+            const position = getPosition(funnel);
+            const inBox = isInBox(position.x, position.y, funnel.ui.dimensions.width, funnel.ui.dimensions.height);
             if (alreadySelected || inBox) {
                 selected.push({ id: funnel.entity.id, type: funnel.ui.componentType });
             }
@@ -1884,12 +1660,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         // Check ports
         this.internalPorts().forEach((port) => {
             const alreadySelected = currentSelection.includes(port.entity.id);
-            const inBox = isInBox(
-                port.entity.position.x,
-                port.entity.position.y,
-                port.ui.dimensions.width,
-                port.ui.dimensions.height
-            );
+            const position = getPosition(port);
+            const inBox = isInBox(position.x, position.y, port.ui.dimensions.width, port.ui.dimensions.height);
             if (alreadySelected || inBox) {
                 selected.push({ id: port.entity.id, type: port.ui.componentType });
             }
@@ -1898,12 +1670,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         // Check remote process groups
         this.internalRemoteProcessGroups().forEach((rpg) => {
             const alreadySelected = currentSelection.includes(rpg.entity.id);
-            const inBox = isInBox(
-                rpg.entity.position.x,
-                rpg.entity.position.y,
-                rpg.ui.dimensions.width,
-                rpg.ui.dimensions.height
-            );
+            const position = getPosition(rpg);
+            const inBox = isInBox(position.x, position.y, rpg.ui.dimensions.width, rpg.ui.dimensions.height);
             if (alreadySelected || inBox) {
                 selected.push({ id: rpg.entity.id, type: rpg.ui.componentType });
             }
@@ -1912,12 +1680,8 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         // Check process groups
         this.internalProcessGroups().forEach((pg) => {
             const alreadySelected = currentSelection.includes(pg.entity.id);
-            const inBox = isInBox(
-                pg.entity.position.x,
-                pg.entity.position.y,
-                pg.ui.dimensions.width,
-                pg.ui.dimensions.height
-            );
+            const position = getPosition(pg);
+            const inBox = isInBox(position.x, position.y, pg.ui.dimensions.width, pg.ui.dimensions.height);
             if (alreadySelected || inBox) {
                 selected.push({ id: pg.entity.id, type: pg.ui.componentType });
             }
@@ -3624,6 +3388,10 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
      */
     public birdseyeDragEnd(): void {
         this.birdseyeTranslateInProgress = false;
-        this.updateCanvasVisibility();
+        this.updateViewportBounds();
+    }
+
+    public clearConnectionPreview(): void {
+        this.canvasGroup?.select('path.connector').remove();
     }
 }

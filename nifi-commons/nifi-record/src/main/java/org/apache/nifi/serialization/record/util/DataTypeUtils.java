@@ -348,19 +348,105 @@ public class DataTypeUtils {
             }
         }
 
-        int nrOfCompatibleSimpleSubTypes = compatibleSimpleSubTypes.size();
-
-        final DataType chosenSimpleType;
-        if (nrOfCompatibleSimpleSubTypes == 0) {
-            chosenSimpleType = null;
-        } else if (nrOfCompatibleSimpleSubTypes == 1) {
-            chosenSimpleType = compatibleSimpleSubTypes.getFirst();
-        } else {
-            chosenSimpleType = findMostSuitableType(value, compatibleSimpleSubTypes, Function.identity())
-                    .orElse(compatibleSimpleSubTypes.getFirst());
+        if (compatibleSimpleSubTypes.isEmpty()) {
+            return null;
         }
 
-        return chosenSimpleType;
+        if (compatibleSimpleSubTypes.size() == 1) {
+            return compatibleSimpleSubTypes.getFirst();
+        }
+
+        final Optional<DataType> mostSuitableType = findMostSuitableType(value, compatibleSimpleSubTypes, Function.identity());
+        if (mostSuitableType.isPresent()) {
+            return mostSuitableType.get();
+        }
+
+        // Prefer a type that does not flatten nested arrays, collections, or maps into strings
+        for (final DataType compatibleSubType : compatibleSimpleSubTypes) {
+            if (isCompatibleWithoutLosingStructure(value, compatibleSubType)) {
+                return compatibleSubType;
+            }
+        }
+
+        return compatibleSimpleSubTypes.getFirst();
+    }
+
+    /**
+     * Determines whether the given value can be converted to the given type without turning an array, collection, or map
+     * anywhere within the value into a String. The value is expected to already be compatible with the given type.
+     */
+    private static boolean isCompatibleWithoutLosingStructure(final Object value, final DataType dataType) {
+        if (value == null) {
+            return true;
+        }
+
+        switch (dataType.getFieldType()) {
+            case STRING -> {
+                if (value instanceof Byte[]) {
+                    return true;
+                }
+
+                if (value instanceof Object[] || value instanceof Collection || value instanceof Map) {
+                    return false;
+                }
+
+                return true;
+            }
+            case ARRAY -> {
+                final DataType elementType = ((ArrayDataType) dataType).getElementType();
+                if (elementType == null || !(value instanceof final Object[] array)) {
+                    return true;
+                }
+
+                for (final Object element : array) {
+                    if (!isCompatibleWithoutLosingStructure(element, elementType)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            case RECORD -> {
+                final RecordSchema childSchema = ((RecordDataType) dataType).getChildSchema();
+                if (childSchema == null) {
+                    return true;
+                }
+
+                for (final RecordField childField : childSchema.getFields()) {
+                    final Object childValue;
+                    if (value instanceof final Record record) {
+                        childValue = record.getValue(childField);
+                    } else if (value instanceof final Map<?, ?> map) {
+                        childValue = map.get(childField.getFieldName());
+                    } else {
+                        return true;
+                    }
+
+                    if (!isCompatibleWithoutLosingStructure(childValue, childField.getDataType())) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            case MAP -> {
+                final DataType valueType = ((MapDataType) dataType).getValueType();
+                if (valueType == null || !(value instanceof final Map<?, ?> map)) {
+                    return true;
+                }
+
+                for (final Object mapValue : map.values()) {
+                    if (!isCompatibleWithoutLosingStructure(mapValue, valueType)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            default -> {
+                return true;
+            }
+        }
     }
 
     public static <T> Optional<T> findMostSuitableType(Object value, List<T> types, Function<T, DataType> dataTypeMapper) {
@@ -1922,17 +2008,39 @@ public class DataTypeUtils {
                 continue;
             }
 
-            final Optional<DataType> widerType = getWiderType(widerField.get().getDataType(), narrowerField.getDataType());
-            if (widerType.isEmpty()) {
-                return false;
-            }
-
-            if (!widerType.get().equals(widerField.get().getDataType())) {
+            if (!isWiderOrEqual(widerField.get().getDataType(), narrowerField.getDataType())) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    // Nested records and arrays are not passed to getWiderType, which checks both directions and doubles the cost at each nesting level
+    private static boolean isWiderOrEqual(final DataType potentiallyWider, final DataType potentiallyNarrower) {
+        final RecordFieldType widerFieldType = potentiallyWider.getFieldType();
+        final RecordFieldType narrowerFieldType = potentiallyNarrower.getFieldType();
+
+        if (widerFieldType == RecordFieldType.RECORD && narrowerFieldType == RecordFieldType.RECORD) {
+            final RecordSchema widerSchema = ((RecordDataType) potentiallyWider).getChildSchema();
+            final RecordSchema narrowerSchema = ((RecordDataType) potentiallyNarrower).getChildSchema();
+            if (widerSchema != null && narrowerSchema != null) {
+                return isRecordWider(widerSchema, narrowerSchema);
+            }
+        } else if (widerFieldType == RecordFieldType.ARRAY && narrowerFieldType == RecordFieldType.ARRAY) {
+            final DataType widerElementType = ((ArrayDataType) potentiallyWider).getElementType();
+            final DataType narrowerElementType = ((ArrayDataType) potentiallyNarrower).getElementType();
+            if (widerElementType != null && narrowerElementType != null) {
+                return isWiderOrEqual(widerElementType, narrowerElementType) && !((ArrayDataType) potentiallyWider).isElementsNullable();
+            }
+        }
+
+        final Optional<DataType> widerType = getWiderType(potentiallyWider, potentiallyNarrower);
+        if (widerType.isEmpty()) {
+            return false;
+        }
+
+        return widerType.get().equals(potentiallyWider);
     }
 
     private static boolean isDecimalType(final RecordFieldType fieldType) {

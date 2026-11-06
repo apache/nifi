@@ -695,7 +695,7 @@ public class RegistryClientIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testStopVersionControlThenSetVersionControlInfo() throws NiFiClientException, IOException, InterruptedException {
+    public void testStopVersionControlThenSetVersionControlInfo() throws NiFiClientException, IOException {
         final FlowRegistryClientEntity clientEntity = registerClient();
         final ProcessGroupEntity group = getClientUtil().createProcessGroup("Test Set Version Control Info", "root");
 

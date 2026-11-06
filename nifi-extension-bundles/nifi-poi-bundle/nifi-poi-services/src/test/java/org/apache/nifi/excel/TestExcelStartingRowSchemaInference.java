@@ -31,6 +31,8 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.AfterAll;
@@ -61,10 +63,16 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class TestExcelStartingRowSchemaInference {
     private static final TimeValueInference TIME_VALUE_INFERENCE = new TimeValueInference("MM/dd/yyyy", "HH:mm:ss.SSS", "yyyy/MM/dd/ HH:mm");
+    private static final Object FORMATTED_BLANK = new Object();
 
     @Mock
     private ComponentLog logger;
@@ -130,6 +138,34 @@ public class TestExcelStartingRowSchemaInference {
             final IOException ioException = assertThrows(IOException.class, () -> inferSchemaAccessStrategy.getSchema(null, inputStream, null));
             assertInstanceOf(SchemaNotFoundException.class, ioException.getCause());
             assertTrue(ioException.getCause().getMessage().contains("more than"));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(RowEvaluationStrategy.class)
+    void testIgnoreCellsBeyondHeaderWithoutContent(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
+        final Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "Manny", "M", FORMATTED_BLANK, " ", new Formula("\"\"")}, {2, "Moe", "M"}};
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
+
+        try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy, true);
+            final RecordSchema schema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
+            assertEquals(List.of("ID", "First", "Middle"), schema.getFieldNames());
+            verify(logger, never()).warn(anyString(), any(Object[].class));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(RowEvaluationStrategy.class)
+    void testIgnoreCellsBeyondHeaderWithContent(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
+        final Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M", FORMATTED_BLANK, "Extra"}, {3, "Jack", "J", 4}};
+        final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
+
+        try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy, true);
+            final RecordSchema schema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
+            assertEquals(List.of("ID", "First", "Middle"), schema.getFieldNames());
+            verify(logger).warn(anyString(), eq(3), eq(2), eq("Sheet 1"), eq(3), eq("E"));
         }
     }
 
@@ -314,10 +350,47 @@ public class TestExcelStartingRowSchemaInference {
         }
     }
 
+    @ParameterizedTest
+    @EnumSource(RowEvaluationStrategy.class)
+    void testWithFormulaInHeader(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+
+            final Sheet firstSheet = workbook.createSheet("First Sheet");
+            final Row headerRow = firstSheet.createRow(0);
+            headerRow.createCell(0).setCellValue("test_col1");
+            headerRow.createCell(1).setCellFormula(
+                    "\"value_in_\"&'Second Sheet'!B1");
+            headerRow.createCell(2).setCellValue("test_col3");
+
+            final Sheet secondSheet = workbook.createSheet("Second Sheet");
+            final Row firstRow = secondSheet.createRow(0);
+            firstRow.createCell(0).setCellValue("Currency");
+            firstRow.createCell(1).setCellValue("USD");
+
+            // Calculate the formula and save its cached result in the workbook.
+            workbook.getCreationHelper()
+                    .createFormulaEvaluator()
+                    .evaluateAll();
+
+            workbook.write(outputStream);
+            final byte[] output = outputStream.toByteArray();
+            final InputStream inputStream = new ByteArrayInputStream(output);
+            final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
+
+            final RecordSchema schema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
+            assertEquals(List.of("test_col1", "value_in_USD", "test_col3"), schema.getFieldNames());
+        }
+    }
+
     private InferSchemaAccessStrategy<?> getInferSchemaAccessStrategy(RowEvaluationStrategy rowEvaluationStrategy) {
+        return getInferSchemaAccessStrategy(rowEvaluationStrategy, false);
+    }
+
+    private InferSchemaAccessStrategy<?> getInferSchemaAccessStrategy(RowEvaluationStrategy rowEvaluationStrategy, boolean ignoreCellsBeyondHeader) {
         return new InferSchemaAccessStrategy<>(
                 (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
-                new ExcelStartingRowSchemaInference(rowEvaluationStrategy, 1, TIME_VALUE_INFERENCE), logger);
+                new ExcelStartingRowSchemaInference(rowEvaluationStrategy, 1, TIME_VALUE_INFERENCE, ignoreCellsBeyondHeader, logger), logger);
     }
 
     private static ByteArrayOutputStream createWorkbook(Object[][]... sheetData) throws IOException {
@@ -346,15 +419,21 @@ public class TestExcelStartingRowSchemaInference {
                                 cell.setCellValue(localDate);
                                 cell.setCellStyle(dayMonthYearCellStyle);
                             }
+                            case Formula formula -> cell.setCellFormula(formula.expression());
+                            case Object blank when blank == FORMATTED_BLANK -> cell.setCellStyle(dayMonthYearCellStyle);
                             default -> throw new IllegalStateException("Unexpected value: " + field);
                         }
                     }
                 }
                 sheetCount++;
             }
+            creationHelper.createFormulaEvaluator().evaluateAll();
             workbook.write(outputStream);
         }
 
         return outputStream;
+    }
+
+    private record Formula(String expression) {
     }
 }

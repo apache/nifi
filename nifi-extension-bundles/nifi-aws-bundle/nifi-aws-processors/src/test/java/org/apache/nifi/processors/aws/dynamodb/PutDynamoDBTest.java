@@ -19,7 +19,6 @@ package org.apache.nifi.processors.aws.dynamodb;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -69,7 +68,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         };
     }
 
-    private TestRunner createRunner() throws InitializationException {
+    private TestRunner createRunner() {
         return createRunner(putDynamoDB);
     }
 
@@ -86,7 +85,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutOnlyHashFailure() throws InitializationException {
+    public void testStringHashStringRangePutOnlyHashFailure() {
         when(client.batchWriteItem(any(BatchWriteItemRequest.class))).thenThrow(getSampleAwsServiceException());
 
         final TestRunner putRunner = createRunner();
@@ -122,7 +121,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutOnlyHashWithRangeValueNoRangeNameFailure() throws InitializationException {
+    public void testStringHashStringRangePutOnlyHashWithRangeValueNoRangeNameFailure() {
         final TestRunner putRunner = createRunner(new PutDynamoDB());
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
         putRunner.enqueue(new byte[] {});
@@ -138,7 +137,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutOnlyHashWithRangeNameNoRangeValueFailure() throws InitializationException {
+    public void testStringHashStringRangePutOnlyHashWithRangeNameNoRangeValueFailure() {
         final TestRunner putRunner = createRunner(new PutDynamoDB());
 
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
@@ -157,7 +156,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutSuccessfulWithMock() throws InitializationException {
+    public void testStringHashStringRangePutSuccessfulWithMock() {
         final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
@@ -175,7 +174,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutOneSuccessfulOneSizeFailureWithMockBatchSize1() throws InitializationException {
+    public void testStringHashStringRangePutOneSuccessfulOneSizeFailureWithMockBatchSize1() {
         final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
@@ -202,7 +201,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutOneSuccessfulOneSizeFailureWithMockBatchSize5() throws InitializationException {
+    public void testStringHashStringRangePutOneSuccessfulOneSizeFailureWithMockBatchSize5() {
         final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.BATCH_SIZE, "5");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
@@ -230,7 +229,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutFailedWithItemSizeGreaterThan400Kb() throws InitializationException {
+    public void testStringHashStringRangePutFailedWithItemSizeGreaterThan400Kb() {
         final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
@@ -252,7 +251,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutThrowsServiceException() throws InitializationException {
+    public void testStringHashStringRangePutThrowsServiceException() {
         when(client.batchWriteItem(any(BatchWriteItemRequest.class))).thenThrow(getSampleAwsServiceException());
 
         final TestRunner putRunner = createRunner();
@@ -273,7 +272,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutThrowsSdkException() throws InitializationException {
+    public void testStringHashStringRangePutThrowsSdkException() {
         when(client.batchWriteItem(any(BatchWriteItemRequest.class)))
                 .thenThrow(SdkException.builder().message("sdkException").build());
         final TestRunner putRunner = createRunner();
@@ -293,7 +292,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutThrowsRuntimeException() throws InitializationException {
+    public void testStringHashStringRangePutThrowsRuntimeException() {
         when(client.batchWriteItem(any(BatchWriteItemRequest.class))).thenThrow(new RuntimeException("runtimeException"));
         final TestRunner putRunner = createRunner();
 
@@ -313,7 +312,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangePutSuccessfulWithMockOneUnprocessed() throws InitializationException {
+    public void testStringHashStringRangePutSuccessfulWithMockOneUnprocessed() {
         final Map<String, Collection<WriteRequest>> unprocessedTableToKeysMap = new HashMap<>();
         final Map<String, AttributeValue> keyMap = new HashMap<>();
         keyMap.put("hashS", string("h1"));

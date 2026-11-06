@@ -276,6 +276,23 @@ public class TestSocketLoadBalancedFlowFileQueue {
     }
 
     @Test
+    public void testMinLastQueueDateWithEmptyRemotePartitions() {
+        final MockFlowFileRecord localFlowFile = new MockFlowFileRecord();
+        queue.put(localFlowFile);
+
+        final QueuePartition localPartition = queue.getLocalPartition();
+        assertEquals(1, localPartition.size().getObjectCount());
+        for (int i = 0; i < nodeIds.size(); i++) {
+            final QueuePartition partition = queue.getPartition(i);
+            if (partition != localPartition) {
+                assertEquals(0, partition.size().getObjectCount());
+            }
+        }
+
+        assertEquals(localFlowFile.getLastQueueDate().longValue(), queue.getMinLastQueueDate());
+    }
+
+    @Test
     public void testPutAllBinsFlowFilesSeparately() {
         // Partition data based on size. FlowFiles with 0 bytes will go to partition 0 (local partition),
         // FlowFiles with 1 byte will go to partition 1, and FlowFiles with 2 bytes will go to partition 2.

@@ -68,7 +68,7 @@ public class ReflectionUtilsTest {
     }
 
     @Test
-    public void validateFailureWithWrongArgumentType() throws Exception {
+    public void validateFailureWithWrongArgumentType() {
         assertThrows(IllegalArgumentException.class, () ->
                 ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, new B(), "foo"));
     }
@@ -89,26 +89,26 @@ public class ReflectionUtilsTest {
     }
 
     @Test
-    public void validateFailureIfOneOfArgumentsWrongType() throws Exception {
+    public void validateFailureIfOneOfArgumentsWrongType() {
         assertThrows(IllegalArgumentException.class, () ->
             ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, new E(), 3, "hjk", "hjk"));
     }
 
     @Test
-    public void validateNoFailureIfQuietlyIfOneOfArgumentsWrongTypeAndProcessLog() throws Exception {
+    public void validateNoFailureIfQuietlyIfOneOfArgumentsWrongTypeAndProcessLog() {
         ComponentLog pl = mock(ComponentLog.class);
         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, new E(), pl, 3, "hjk", "hjk");
         verify(pl, Mockito.atMost(1)).error(Mockito.anyString());
     }
 
     @Test
-    public void validateInvocationFailure() throws Exception {
+    public void validateInvocationFailure() {
         assertThrows(InvocationTargetException.class, () ->
             ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, new F(), 3));
     }
 
     @Test
-    public void validateQuiteSuccessWithInvocationFailure() throws Exception {
+    public void validateQuiteSuccessWithInvocationFailure() {
         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, new F(), 3);
     }
 

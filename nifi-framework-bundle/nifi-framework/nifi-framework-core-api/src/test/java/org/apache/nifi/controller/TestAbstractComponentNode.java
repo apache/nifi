@@ -462,7 +462,7 @@ public class TestAbstractComponentNode {
         }
 
         @Override
-        public void reload(Set<URL> additionalUrls) throws Exception {
+        public void reload(Set<URL> additionalUrls) {
         }
 
         @Override

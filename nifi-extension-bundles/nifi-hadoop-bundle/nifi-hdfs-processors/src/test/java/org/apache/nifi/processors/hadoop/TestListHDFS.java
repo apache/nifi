@@ -71,7 +71,7 @@ class TestListHDFS {
     private MockComponentLog mockLogger;
 
     @BeforeEach
-    public void setup() throws InitializationException {
+    public void setup() {
         proc = new ListHDFSWithMockedFileSystem();
         mockLogger = spy(new MockComponentLog(UUID.randomUUID().toString(), proc));
         runner = TestRunners.newTestRunner(proc, mockLogger);

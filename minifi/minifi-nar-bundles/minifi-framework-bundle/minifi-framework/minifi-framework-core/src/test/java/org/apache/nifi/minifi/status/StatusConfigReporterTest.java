@@ -98,7 +98,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void processorStatusHealth() throws Exception {
+    public void processorStatusHealth() {
         populateProcessor(false, false);
 
         String statusRequest = "processor:all:health";
@@ -113,7 +113,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void individualProcessorStatusHealth() throws Exception {
+    public void individualProcessorStatusHealth() {
         populateProcessor(false, false);
 
         String statusRequest = "processor:UpdateAttributeProcessorId:health";
@@ -128,7 +128,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void processorStatusWithValidationErrors() throws Exception {
+    public void processorStatusWithValidationErrors() {
         populateProcessor(true, false);
 
         String statusRequest = "processor:all:health";
@@ -143,7 +143,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void processorStatusAll() throws Exception {
+    public void processorStatusAll() {
         populateProcessor(true, true);
 
         String statusRequest = "processor:all:health, stats, bulletins";
@@ -158,7 +158,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void connectionStatusHealth() throws Exception {
+    public void connectionStatusHealth() {
         populateConnection();
 
         String statusRequest = "connection:all:health";
@@ -173,7 +173,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void connectionStatusAll() throws Exception {
+    public void connectionStatusAll() {
         populateConnection();
 
         String statusRequest = "connection:all:health, stats";
@@ -187,7 +187,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void connectionAndProcessorStatusHealth() throws Exception {
+    public void connectionAndProcessorStatusHealth() {
 
         populateConnection();
 
@@ -207,7 +207,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void provenanceReportingTaskStatusHealth() throws Exception {
+    public void provenanceReportingTaskStatusHealth() {
         populateReportingTask(false, false);
 
         String statusRequest = "provenanceReporting:health";
@@ -221,7 +221,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void provenanceReportingTaskStatusBulletins() throws Exception {
+    public void provenanceReportingTaskStatusBulletins() {
         populateReportingTask(true, false);
 
         String statusRequest = "provenanceReporting:bulletins";
@@ -236,7 +236,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void provenanceReportingTaskStatusAll() throws Exception {
+    public void provenanceReportingTaskStatusAll() {
         populateReportingTask(true, true);
 
         String statusRequest = "provenanceReporting:health,bulletins";
@@ -251,7 +251,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void systemDiagnosticHeap() throws Exception {
+    public void systemDiagnosticHeap() {
         populateSystemDiagnostics();
 
         String statusRequest = "systemDiagnostics:heap";
@@ -266,7 +266,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void systemDiagnosticProcessorStats() throws Exception {
+    public void systemDiagnosticProcessorStats() {
         populateSystemDiagnostics();
 
         String statusRequest = "systemDiagnostics:processorStats";
@@ -281,7 +281,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void systemDiagnosticFlowFileRepo() throws Exception {
+    public void systemDiagnosticFlowFileRepo() {
         populateSystemDiagnostics();
 
         String statusRequest = "systemDiagnostics:flowfilerepositoryusage";
@@ -296,7 +296,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void systemDiagnosticContentRepo() throws Exception {
+    public void systemDiagnosticContentRepo() {
         populateSystemDiagnostics();
 
         String statusRequest = "systemDiagnostics:contentrepositoryusage";
@@ -311,7 +311,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void systemDiagnosticGarbageCollection() throws Exception {
+    public void systemDiagnosticGarbageCollection() {
         populateSystemDiagnostics();
 
         String statusRequest = "systemDiagnostics:garbagecollection";
@@ -326,7 +326,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void systemDiagnosticAll() throws Exception {
+    public void systemDiagnosticAll() {
         populateSystemDiagnostics();
 
         String statusRequest = "systemDiagnostics:garbagecollection, heap, processorstats, contentrepositoryusage, flowfilerepositoryusage";
@@ -341,7 +341,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void instanceStatusHealth() throws Exception {
+    public void instanceStatusHealth() {
         populateInstance(false);
 
         String statusRequest = "instance:health";
@@ -355,7 +355,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void instanceStatusBulletins() throws Exception {
+    public void instanceStatusBulletins() {
         populateInstance(true);
 
         String statusRequest = "instance:bulletins";
@@ -370,7 +370,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void instanceStatusStats() throws Exception {
+    public void instanceStatusStats() {
         populateInstance(false);
 
         String statusRequest = "instance:stats";
@@ -385,7 +385,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void instanceStatusAll() throws Exception {
+    public void instanceStatusAll() {
         populateInstance(true);
 
         String statusRequest = "instance:stats, bulletins, health";
@@ -400,7 +400,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void controllerServiceStatusHealth() throws Exception {
+    public void controllerServiceStatusHealth() {
         populateControllerService(false, false);
 
         String statusRequest = "controllerServices:health";
@@ -415,7 +415,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void controllerServiceStatusBulletins() throws Exception {
+    public void controllerServiceStatusBulletins() {
         populateControllerService(false, true);
 
         String statusRequest = "controllerServices:bulletins";
@@ -430,7 +430,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void controllerServiceStatusAll() throws Exception {
+    public void controllerServiceStatusAll() {
         populateControllerService(true, true);
 
         String statusRequest = "controllerServices:bulletins, health";
@@ -446,7 +446,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void remoteProcessGroupStatusHealth() throws Exception {
+    public void remoteProcessGroupStatusHealth() {
         populateRemoteProcessGroup(false, false);
 
         String statusRequest = "remoteProcessGroup:all:health";
@@ -461,7 +461,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void remoteProcessGroupStatusBulletins() throws Exception {
+    public void remoteProcessGroupStatusBulletins() {
         populateRemoteProcessGroup(true, false);
 
         String statusRequest = "remoteProcessGroup:all:bulletins";
@@ -476,7 +476,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void remoteProcessGroupStatusInputPorts() throws Exception {
+    public void remoteProcessGroupStatusInputPorts() {
         populateRemoteProcessGroup(false, false);
 
         String statusRequest = "remoteProcessGroup:all:inputPorts";
@@ -491,7 +491,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void remoteProcessGroupStatusOutputPorts() throws Exception {
+    public void remoteProcessGroupStatusOutputPorts() {
         populateRemoteProcessGroup(false, false);
 
         String statusRequest = "remoteProcessGroup:all:outputPorts";
@@ -506,7 +506,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void remoteProcessGroupStatusStats() throws Exception {
+    public void remoteProcessGroupStatusStats() {
         populateRemoteProcessGroup(false, false);
 
         String statusRequest = "remoteProcessGroup:all:stats";
@@ -521,7 +521,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void remoteProcessGroupStatusAll() throws Exception {
+    public void remoteProcessGroupStatusAll() {
         populateRemoteProcessGroup(true, true);
 
         String statusRequest = "remoteProcessGroup:all:health, bulletins, inputPorts, outputPorts, stats";
@@ -536,7 +536,7 @@ public class StatusConfigReporterTest {
     }
 
     @Test
-    public void statusEverything() throws Exception {
+    public void statusEverything() {
         when(bulletinRepo.findBulletins(any())).thenReturn(Collections.emptyList());
 
         populateControllerService(true, false);

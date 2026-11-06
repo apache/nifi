@@ -342,6 +342,35 @@ public interface ConnectorClient {
     ProcessGroupEntity getProcessGroup(String connectorId, String processGroupId) throws NiFiClientException, IOException;
 
     /**
+     * Exports a Process Group within a Connector's managed flow.
+     *
+     * @param connectorId the connector ID
+     * @param processGroupId the process group ID within the connector's managed flow
+     * @param includeReferencedServices whether referenced services should be included
+     * @param outputFile the file to write
+     * @return the output file
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    File exportProcessGroup(String connectorId, String processGroupId, boolean includeReferencedServices, File outputFile)
+            throws NiFiClientException, IOException;
+
+    /**
+     * Exports a Process Group within a Connector's managed flow.
+     *
+     * @param connectorId the connector ID
+     * @param processGroupId the process group ID within the connector's managed flow
+     * @param includeReferencedServices whether referenced services should be included
+     * @param includeComponentState whether component state should be included
+     * @param outputFile the file to write
+     * @return the output file
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    File exportProcessGroup(String connectorId, String processGroupId, boolean includeReferencedServices,
+            boolean includeComponentState, File outputFile) throws NiFiClientException, IOException;
+
+    /**
      * Gets the status for the process group managed by a connector.
      *
      * @param connectorId the connector ID

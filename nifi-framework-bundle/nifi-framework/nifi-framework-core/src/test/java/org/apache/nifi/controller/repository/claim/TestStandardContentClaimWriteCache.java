@@ -69,7 +69,7 @@ public class TestStandardContentClaimWriteCache {
     }
 
     @AfterEach
-    public void shutdown() throws IOException {
+    public void shutdown() {
         for (final FileSystemRepository createdRepository : repositories) {
             createdRepository.shutdown();
         }

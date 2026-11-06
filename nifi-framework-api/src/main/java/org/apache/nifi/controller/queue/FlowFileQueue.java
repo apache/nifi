@@ -162,6 +162,16 @@ public interface FlowFileQueue {
     void put(FlowFileRecord file);
 
     /**
+     * Places the given FlowFile onto the active portion of the queue, never onto the swap queue, even if the queue is
+     * currently swapping FlowFiles out. This is intended for FlowFiles that were previously polled from this queue and are
+     * being returned to it, such as on session rollback. Because such a FlowFile was polled from the active queue, it was
+     * ahead of any FlowFiles that are swapped out, and placing it back onto the active queue preserves that ordering.
+     *
+     * @param file the FlowFile to place onto the active queue
+     */
+    void putToActive(FlowFileRecord file);
+
+    /**
      * places the given files into the queue
      *
      * @param files to place into queue

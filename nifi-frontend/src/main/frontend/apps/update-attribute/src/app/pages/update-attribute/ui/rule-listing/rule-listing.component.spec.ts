@@ -26,11 +26,21 @@ import { initialState as advancedUiParametersInitialState } from '../../state/ad
 import { updateAttributeFeatureKey } from '../../state';
 import { advancedUiParametersFeatureKey } from '../../state/advanced-ui-parameters';
 import { evaluationContextFeatureKey } from '../../state/evaluation-context';
-import { rulesFeatureKey } from '../../state/rules';
+import { Rule, rulesFeatureKey } from '../../state/rules';
+import { fakeAsync, tick } from '@angular/core/testing';
 
 describe('RuleListing', () => {
     let component: RuleListing;
     let fixture: ComponentFixture<RuleListing>;
+
+    const createRule = (id: string, name: string): Rule =>
+        ({
+            id,
+            name,
+            comments: '',
+            conditions: [],
+            actions: []
+        }) as Rule;
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
@@ -50,10 +60,73 @@ describe('RuleListing', () => {
 
         fixture = TestBed.createComponent(RuleListing);
         component = fixture.componentInstance;
-        fixture.detectChanges();
     });
 
     it('should create', () => {
+        fixture.detectChanges();
         expect(component).toBeTruthy();
+    });
+
+    it('should display the number of filtered rules and total rules', () => {
+        component.rules = [createRule('1', 'Rule One'), createRule('2', 'Rule Two')];
+
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.textContent).toContain('Displaying 2 of 2');
+    });
+
+    it('should display one matching rule out of four when filtered', fakeAsync(() => {
+        component.rules = [
+            createRule('1', 'Apple'),
+            createRule('2', 'Apricot'),
+            createRule('3', 'Banana'),
+            createRule('4', 'Cherry')
+        ];
+
+        component.searchForm.get('searchRules')?.setValue('Ba');
+        tick(500);
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.textContent).toContain('Displaying 1 of 4');
+    }));
+
+    it('should display two matching rules out of four when filtered', fakeAsync(() => {
+        component.rules = [
+            createRule('1', 'Apple'),
+            createRule('2', 'Apricot'),
+            createRule('3', 'Banana'),
+            createRule('4', 'Cherry')
+        ];
+
+        component.searchForm.get('searchRules')?.setValue('Ap');
+        tick(500);
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.textContent).toContain('Displaying 2 of 4');
+    }));
+
+    it('should display zero matching rules when no rules match the search', fakeAsync(() => {
+        component.rules = [
+            createRule('1', 'Apple'),
+            createRule('2', 'Apricot'),
+            createRule('3', 'Banana'),
+            createRule('4', 'Cherry')
+        ];
+
+        component.searchForm.get('searchRules')?.setValue('Plum');
+        tick(500);
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.textContent).toContain('Displaying 0 of 4');
+        expect(fixture.nativeElement.textContent).toContain('No matching rules');
+    }));
+
+    it('should display nothing when there are no rules', () => {
+        component.rules = [];
+
+        fixture.detectChanges();
+
+        // The empty-list template may not display the count at all.
+        expect(fixture.nativeElement.textContent).not.toContain('Displaying');
     });
 });

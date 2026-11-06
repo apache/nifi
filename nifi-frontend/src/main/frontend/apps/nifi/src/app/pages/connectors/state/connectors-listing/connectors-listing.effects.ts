@@ -21,7 +21,7 @@ import { Store } from '@ngrx/store';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { concatLatestFrom } from '@ngrx/operators';
-import { catchError, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import { catchError, concatMap, EMPTY, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { NiFiState } from '../../../../state';
@@ -32,12 +32,15 @@ import { CreateConnector } from '../../ui/create-connector/create-connector.comp
 import { RenameConnectorDialog } from '../../ui/rename-connector-dialog/rename-connector-dialog.component';
 import { selectLoadedTimestamp, selectSaving } from './connectors-listing.selectors';
 import { initialState } from './connectors-listing.reducer';
-import { DocumentedType } from '../../../../state/shared';
+import { DocumentedType, OpenChangeComponentVersionDialogRequest } from '../../../../state/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorContextKey } from '../../../../state/error';
 import {
     cancelConnectorDrain,
     cancelConnectorDrainSuccess,
+    changeConnectorVersion,
+    changeConnectorVersionApiError,
+    changeConnectorVersionSuccess,
     connectorsListingBannerApiError,
     createConnector,
     createConnectorSuccess,
@@ -54,6 +57,7 @@ import {
     navigateToManageAccessPolicies,
     navigateToViewConnector,
     navigateToViewConnectorDetails,
+    openChangeConnectorVersionDialog,
     openNewConnectorDialog,
     openRenameConnectorDialog,
     promptConnectorDeletion,
@@ -70,6 +74,8 @@ import {
 } from './connectors-listing.actions';
 import { RenameConnectorRequest } from '../index';
 import { BackNavigation } from '../../../../state/navigation';
+import { ExtensionTypesService } from '../../../../service/extension-types.service';
+import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 
 @Injectable()
 export class ConnectorsListingEffects {
@@ -80,6 +86,7 @@ export class ConnectorsListingEffects {
     private client = inject(Client);
     private dialog = inject(MatDialog);
     private router = inject(Router);
+    private extensionTypesService = inject(ExtensionTypesService);
 
     loadConnectorsListing$ = createEffect(() =>
         this.actions$.pipe(
@@ -430,6 +437,82 @@ export class ConnectorsListingEffects {
                     })
                 )
             )
+        )
+    );
+
+    openChangeConnectorVersionDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(openChangeConnectorVersionDialog),
+                map((action) => action.request),
+                switchMap((request) =>
+                    from(this.extensionTypesService.getConnectorVersionsForType(request.type, request.bundle)).pipe(
+                        map(
+                            (response) =>
+                                ({
+                                    fetchRequest: request,
+                                    componentVersions: response.connectorTypes
+                                }) as OpenChangeComponentVersionDialogRequest
+                        ),
+                        catchError((errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(
+                                ErrorActions.snackBarError({
+                                    error: this.errorHelper.getErrorString(errorResponse)
+                                })
+                            );
+                            return EMPTY;
+                        })
+                    )
+                ),
+                tap((request) => {
+                    const dialogRequest = this.dialog.open(ChangeComponentVersionDialog, {
+                        ...LARGE_DIALOG,
+                        data: request,
+                        autoFocus: false
+                    });
+
+                    dialogRequest.componentInstance.changeVersion.pipe(take(1)).subscribe((newVersion) => {
+                        this.store.dispatch(
+                            changeConnectorVersion({
+                                request: {
+                                    id: request.fetchRequest.id,
+                                    uri: request.fetchRequest.uri,
+                                    payload: {
+                                        component: {
+                                            bundle: newVersion.bundle,
+                                            id: request.fetchRequest.id
+                                        },
+                                        revision: request.fetchRequest.revision
+                                    }
+                                }
+                            })
+                        );
+                        dialogRequest.close();
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    changeConnectorVersion$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(changeConnectorVersion),
+            map((action) => action.request),
+            concatMap((request) =>
+                from(this.connectorService.changeConnectorVersion(request)).pipe(
+                    map((response) => changeConnectorVersionSuccess({ response: { connector: response } })),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(changeConnectorVersionApiError({ error: this.errorHelper.getErrorString(errorResponse) }))
+                    )
+                )
+            )
+        )
+    );
+
+    changeConnectorVersionApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(changeConnectorVersionApiError),
+            map((action) => ErrorActions.snackBarError({ error: action.error }))
         )
     );
 

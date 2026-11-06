@@ -33,7 +33,7 @@ public class TestAbstractExecuteSQL {
     private AbstractExecuteSQL testSubject;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         testSubject = new AbstractExecuteSQL() {
             @Override
             protected SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context, FlowFile fileToProcess) {

@@ -132,7 +132,7 @@ class PropertyEncryptionProviderIT extends NiFiSystemIT {
         return getClientUtil().createConnection(updateContent, terminate, SUCCESS_RELATIONSHIP);
     }
 
-    private void restart() throws IOException {
+    private void restart() {
         getNiFiInstance().stop();
         getNiFiInstance().start(true);
         setupClient();
