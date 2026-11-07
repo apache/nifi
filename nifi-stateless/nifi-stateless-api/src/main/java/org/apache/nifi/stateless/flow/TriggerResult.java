@@ -83,4 +83,15 @@ public interface TriggerResult {
      */
     void abort(Throwable cause);
 
+    /**
+     * If the dataflow failed because a component threw an Exception while it was being triggered, returns that component.
+     * The Exception itself is available from {@link #getFailureCause()}.
+     *
+     * @return the component whose Exception caused the dataflow to fail, or an empty Optional if the dataflow did not fail
+     * because of an Exception thrown by a component, such as when it succeeded, was canceled or aborted, or transferred a
+     * FlowFile to a failure port
+     */
+    default Optional<FailingComponent> getFailingComponent() {
+        return Optional.empty();
+    }
 }
