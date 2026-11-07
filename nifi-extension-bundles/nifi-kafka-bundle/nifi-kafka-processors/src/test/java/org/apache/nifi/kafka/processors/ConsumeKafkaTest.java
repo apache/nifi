@@ -25,6 +25,7 @@ import org.apache.nifi.kafka.service.api.KafkaConnectionService;
 import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
+import org.apache.nifi.kafka.service.api.consumer.PollingContext;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.reporting.InitializationException;
@@ -33,6 +34,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -59,6 +61,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -93,6 +96,8 @@ class ConsumeKafkaTest {
     private static final String BROKER_URI = "kafka://localhost";
 
     private static final String MAX_UNCOMMITTED_TIME = "250 ms";
+
+    private static final int MAX_POLL_RECORDS = 25;
 
     private static final String DYNAMIC_PROPERTY_KEY_PUBLISH = "delivery.timeout.ms";
     private static final String DYNAMIC_PROPERTY_VALUE_PUBLISH = "60000";
@@ -318,6 +323,44 @@ class ConsumeKafkaTest {
     }
 
     @Test
+    public void testMaxPollRecordsInvalid() throws InitializationException {
+        setConnectionService();
+        configureProcessor();
+
+        runner.setProperty(ConsumeKafka.MAX_POLL_RECORDS, "0");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testOnTriggerMaxPollRecordsConfigured() throws InitializationException {
+        setConnectionService();
+        configureProcessor();
+        runner.setProperty(ConsumeKafka.MAX_POLL_RECORDS, Integer.toString(MAX_POLL_RECORDS));
+        when(kafkaConnectionService.getBrokerUri()).thenReturn(BROKER_URI);
+        when(kafkaConnectionService.getConsumerService(any())).thenReturn(kafkaConsumerService);
+        when(kafkaConsumerService.poll(any(Duration.class))).thenReturn(List.of());
+
+        runner.run();
+
+        final PollingContext pollingContext = getPollingContext();
+        assertEquals(Optional.of(MAX_POLL_RECORDS), pollingContext.getMaxPollRecords());
+    }
+
+    @Test
+    public void testOnTriggerMaxPollRecordsNotConfigured() throws InitializationException {
+        setConnectionService();
+        configureProcessor();
+        when(kafkaConnectionService.getBrokerUri()).thenReturn(BROKER_URI);
+        when(kafkaConnectionService.getConsumerService(any())).thenReturn(kafkaConsumerService);
+        when(kafkaConsumerService.poll(any(Duration.class))).thenReturn(List.of());
+
+        runner.run();
+
+        final PollingContext pollingContext = getPollingContext();
+        assertTrue(pollingContext.getMaxPollRecords().isEmpty());
+    }
+
+    @Test
     public void testOnTriggerEmitsConsumptionWhenPollFailsAfterRecords() throws InitializationException {
         setConnectionService();
         configureProcessor();
@@ -369,6 +412,12 @@ class ConsumeKafkaTest {
         runner.setProperty(TOPICS, TEST_TOPIC_NAME);
         runner.setProperty(GROUP_ID, CONSUMER_GROUP_ID);
         runner.setProperty(ConsumeKafka.MAX_UNCOMMITTED_TIME, MAX_UNCOMMITTED_TIME);
+    }
+
+    private PollingContext getPollingContext() {
+        final ArgumentCaptor<PollingContext> pollingContextCaptor = ArgumentCaptor.forClass(PollingContext.class);
+        verify(kafkaConnectionService, atLeastOnce()).getConsumerService(pollingContextCaptor.capture());
+        return pollingContextCaptor.getValue();
     }
 
     private void setConnectionService() throws InitializationException {

@@ -327,6 +327,34 @@ public class Kafka3ConnectionServiceBaseIT {
     }
 
     @Test
+    void testPollingContextMaxPollRecords() {
+        final long timestamp = System.currentTimeMillis();
+        final String groupId = "MaxPollRecordsGroup_" + timestamp;
+        final String topic = "MaxPollRecordsTopic_" + timestamp;
+        final int maxPollRecords = 2;
+        final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, null, null, 1_000_000);
+        final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
+
+        // produce MAX_POLL_RECORDS_VALUE records, so that a poll limited by the Connection Service would return more than the Polling Context allows
+        final KafkaRecord kafkaRecord = new KafkaRecord(null, 0, timestamp, RECORD_KEY, RECORD_VALUE, emptyList());
+        final List<KafkaRecord> kafkaRecords = Collections.nCopies(MAX_POLL_RECORDS_VALUE_INT, kafkaRecord);
+        producerService.send(kafkaRecords.iterator(), new PublishContext(topic, null, null, null));
+        final RecordSummary summary = producerService.complete();
+        assertNotNull(summary);
+
+        final PollingContext pollingContext = new PollingContext(groupId, Set.of(topic), AutoOffsetReset.EARLIEST, maxPollRecords);
+        final KafkaConsumerService consumerService = service.getConsumerService(pollingContext);
+        final Iterator<ByteRecord> consumerRecords = poll(consumerService);
+
+        int recordsPolled = 0;
+        while (consumerRecords.hasNext()) {
+            consumerRecords.next();
+            recordsPolled++;
+        }
+        assertEquals(maxPollRecords, recordsPolled);
+    }
+
+    @Test
     void testVerifySuccessful() {
         final String bootstrapServers = kafkaContainer.getBootstrapServers();
         final Map<PropertyDescriptor, String> properties = Map.of(
