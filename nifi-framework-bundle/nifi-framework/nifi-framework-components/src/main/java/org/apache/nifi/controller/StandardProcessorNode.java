@@ -123,6 +123,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -183,6 +184,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private volatile LogLevel bulletinLevel = LogLevel.WARN;
     private volatile List<ParameterReference> parameterReferences = Collections.emptyList();
     private final AtomicReference<List<CompletableFuture<Void>>> stopFutures = new AtomicReference<>(new ArrayList<>());
+    private final List<CompletableFuture<Void>> startFutures = new ArrayList<>();
 
     private SchedulingStrategy schedulingStrategy; // guarded by synchronized keyword
     private ExecutionNode executionNode;
@@ -1428,6 +1430,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void disable() {
         setDesiredState(ScheduledState.DISABLED);
+        failStartFutures(new CancellationException("Processor start cancelled because the Processor is disabled"));
         final boolean updated = scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED);
 
         if (updated) {
@@ -1476,10 +1479,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * </p>
      */
     @Override
-    public void start(final ScheduledExecutorService taskScheduler, final long administrativeYieldMillis, final long timeoutMillis, final Supplier<ProcessContext> processContextFactory,
-            final SchedulingAgentCallback schedulingAgentCallback, final boolean failIfStopping, final boolean triggerLifecycleMethods) {
+    public CompletableFuture<Void> start(final ScheduledExecutorService taskScheduler, final long administrativeYieldMillis,
+            final long timeoutMillis, final Supplier<ProcessContext> processContextFactory, final SchedulingAgentCallback schedulingAgentCallback,
+            final boolean failIfStopping, final boolean triggerLifecycleMethods) {
 
-        run(taskScheduler, administrativeYieldMillis, timeoutMillis, processContextFactory, schedulingAgentCallback, failIfStopping,
+        return run(taskScheduler, administrativeYieldMillis, timeoutMillis, processContextFactory, schedulingAgentCallback, failIfStopping,
             ScheduledState.RUNNING, ScheduledState.STARTING, triggerLifecycleMethods);
     }
 
@@ -1497,48 +1501,66 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * </ul>
      */
     @Override
-    public void runOnce(final ScheduledExecutorService taskScheduler, final long administrativeYieldMillis, final long timeoutMillis, final Supplier<ProcessContext> processContextFactory,
-                        final SchedulingAgentCallback schedulingAgentCallback) {
+    public CompletableFuture<Void> runOnce(final ScheduledExecutorService taskScheduler, final long administrativeYieldMillis,
+            final long timeoutMillis, final Supplier<ProcessContext> processContextFactory, final SchedulingAgentCallback schedulingAgentCallback) {
 
-        run(taskScheduler, administrativeYieldMillis, timeoutMillis, processContextFactory, schedulingAgentCallback, true, ScheduledState.RUN_ONCE, ScheduledState.RUN_ONCE, true);
+        return run(taskScheduler, administrativeYieldMillis, timeoutMillis, processContextFactory, schedulingAgentCallback, true, ScheduledState.RUN_ONCE, ScheduledState.RUN_ONCE, true);
     }
 
-    private void run(final ScheduledExecutorService taskScheduler, final long administrativeYieldMillis, final long timeoutMillis, final Supplier<ProcessContext> processContextFactory,
-                     final SchedulingAgentCallback schedulingAgentCallback, final boolean failIfStopping, final ScheduledState desiredState,
-                     final ScheduledState scheduledState, final boolean triggerLifecycleMethods) {
+    private CompletableFuture<Void> run(final ScheduledExecutorService taskScheduler, final long administrativeYieldMillis, final long timeoutMillis,
+                     final Supplier<ProcessContext> processContextFactory, final SchedulingAgentCallback schedulingAgentCallback, final boolean failIfStopping,
+                     final ScheduledState desiredState, final ScheduledState scheduledState, final boolean triggerLifecycleMethods) {
 
         final Processor processor = processorRef.get().getProcessor();
         final ComponentLog procLog = new StandardComponentLog(StandardProcessorNode.this.getIdentifier(), processor, new StandardLoggingContext(StandardProcessorNode.this));
         LOG.debug("Starting {}", this);
 
-        ScheduledState currentState;
-        boolean starting;
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        AtomicLong startupAttemptCount = null;
         synchronized (this) {
-            currentState = this.scheduledState.get();
+            final ScheduledState currentState = this.scheduledState.get();
+
+            if (currentState == ScheduledState.RUNNING && desiredState == ScheduledState.RUNNING) {
+                LOG.debug("Not starting {} because it is already running", this);
+                future.complete(null);
+                return future;
+            }
 
             if (currentState == ScheduledState.STOPPED) {
-                starting = this.scheduledState.compareAndSet(ScheduledState.STOPPED, scheduledState);
-                if (starting) {
+                final boolean transitioned = this.scheduledState.compareAndSet(ScheduledState.STOPPED, scheduledState);
+                if (transitioned) {
                     setDesiredState(desiredState);
+                    startupAttemptCount = new AtomicLong(0);
+                    activeStartupAttempt.set(startupAttemptCount);
+                    startFutures.add(future);
+                } else {
+                    future.completeExceptionally(new IllegalStateException("Cannot start %s because its current state is %s".formatted(this, this.scheduledState.get())));
                 }
-            } else if (currentState == ScheduledState.STOPPING && !failIfStopping) {
+            } else if (currentState == ScheduledState.STARTING && desiredState == ScheduledState.RUNNING) {
+                LOG.debug("Not starting {} yet because it is already starting; this request will complete when the current start finishes", this);
                 setDesiredState(desiredState);
-                return;
+                startFutures.add(future);
+                return future;
+            } else if (currentState == ScheduledState.STOPPING && !failIfStopping) {
+                LOG.debug("Not starting {} yet because it is stopping; it will be started when the stop completes", this);
+                setDesiredState(desiredState);
+                startFutures.add(future);
+                return future;
             } else {
-                starting = false;
+                final String procName = processorRef.get().getProcessor().toString();
+                procLog.warn("Cannot start {} because it is not currently stopped. Current state is {}", procName, currentState);
+                LOG.info("Cannot start {}: current scheduledState={}, current desiredState={}, requested scheduledState={}, requested desiredState={}",
+                        this, currentState, getDesiredState(), scheduledState, desiredState);
+                future.completeExceptionally(new IllegalStateException("Cannot start %s because its current state is %s".formatted(this, currentState)));
+                return future;
             }
         }
 
-        if (starting) { // will ensure that the Processor represented by this node can only be started once
-            final AtomicLong startupAttemptCount = new AtomicLong(0);
-            activeStartupAttempt.set(startupAttemptCount);
+        if (startupAttemptCount != null) {
             initiateStart(taskScheduler, administrativeYieldMillis, timeoutMillis, startupAttemptCount, processContextFactory, schedulingAgentCallback, triggerLifecycleMethods);
-        } else {
-            final String procName = processorRef.get().getProcessor().toString();
-            procLog.warn("Cannot start {} because it is not currently stopped. Current state is {}", procName, currentState);
-            LOG.info("Cannot start {}: current scheduledState={}, current desiredState={}, requested scheduledState={}, requested desiredState={}",
-                    this, currentState, getDesiredState(), scheduledState, desiredState);
         }
+
+        return future;
     }
 
     @Override
@@ -1807,7 +1829,13 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         startupCompleted = true;
                         LOG.debug("Successfully completed the @OnScheduled methods of {}; will now start triggering processor to run", processor);
                         activeStartupAttempt.compareAndSet(startupAttemptCount, null);
-                        schedulingAgentCallback.trigger(); // callback provided by StandardProcessScheduler to essentially initiate component's onTrigger() cycle
+                        try {
+                            schedulingAgentCallback.trigger(); // callback provided by StandardProcessScheduler to essentially initiate component's onTrigger() cycle
+                        } catch (final Exception triggerFailure) {
+                            failStartFutures(triggerFailure);
+                            throw triggerFailure;
+                        }
+                        completeStartFutures();
                     } else {
                         LOG.info("Successfully invoked @OnScheduled methods of {} but scheduled state is no longer STARTING so will stop processor now; current state = {}, desired state = {}",
                             processor, scheduledState.get(), desiredState);
@@ -1882,6 +1910,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             activeStartupAttempt.compareAndSet(startupAttemptCount, null);
             final ValidationState validationState = getValidationState();
             LOG.error("Unable to start {}.  Last known validation state was {} : {}", this, validationState, validationState.getValidationErrors(), rejectedExecutionException);
+            failStartFutures(new CancellationException("Unable to start " + this));
             return;
         }
 
@@ -1937,6 +1966,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final Processor processor = processorRef.get().getProcessor();
         LOG.debug("Stopping processor: {}", this);
         setDesiredState(ScheduledState.STOPPED);
+        // Starts already waiting are cancelled. A start that arrives while this stop is in progress is kept only if this stop restarts the Processor.
+        failStartFutures(new CancellationException("Processor start cancelled by stop request"));
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
         addStopFuture(future);
@@ -1985,17 +2016,15 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             } finally {
                                 cleanupHandled = true;
                                 lifecycleState.decrementActiveThreadCount();
-                                completeStopAction();
+                                markStopped();
+                                restartIfDesiredRunning();
 
-                                // This can happen only when we join a cluster. In such a case, we can inherit a flow from the cluster that says that
-                                // the Processor is to be running. However, if the Processor is already in the process of stopping, we cannot immediately
-                                // start running the Processor. As a result, we check here, since the Processor is stopped, and then immediately start the
-                                // Processor if need be.
                                 final ScheduledState desired = StandardProcessorNode.this.desiredState;
-                                if (desired == ScheduledState.RUNNING) {
-                                    LOG.info("Finished stopping {} but desired state is now RUNNING so will start processor", this);
-                                    getProcessGroup().startProcessor(StandardProcessorNode.this, true);
-                                } else if (desired == ScheduledState.DISABLED) {
+                                if (desired != ScheduledState.RUNNING) {
+                                    failStartFutures(new CancellationException("Processor start cancelled because the Processor stopped before it could start"));
+                                }
+
+                                if (desired == ScheduledState.DISABLED) {
                                     final boolean updated = scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED);
 
                                     if (updated) {
@@ -2183,9 +2212,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     /**
-     * Marks the processor as fully stopped, and completes any futures that are to be completed as a result
+     * Marks the Processor as fully stopped and completes any stop Futures.
      */
-    private void completeStopAction() {
+    private void markStopped() {
         synchronized (this.stopFutures) {
             LOG.info("{} has completely stopped. Completing any associated Futures.", this);
             this.hasActiveThreads = false;
@@ -2193,6 +2222,59 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
             final List<CompletableFuture<Void>> futures = this.stopFutures.getAndSet(new ArrayList<>());
             futures.forEach(f -> f.complete(null));
+        }
+    }
+
+    /**
+     * Marks the Processor as fully stopped, completes any stop Futures, and fails any waiting start Futures.
+     */
+    private void completeStopAction() {
+        markStopped();
+        failStartFutures(new CancellationException("Processor start cancelled because the Processor stopped before it could start"));
+    }
+
+    /**
+     * Starts the Processor when a stop has finished and a start is still desired. A start that arrived while stopping stays incomplete until
+     * that restart reaches {@code trigger()}.
+     */
+    private void restartIfDesiredRunning() {
+        if (desiredState == ScheduledState.RUNNING && scheduledState.get() == ScheduledState.STOPPED) {
+            LOG.info("Finished stopping {} but desired state is now RUNNING so will start processor", this);
+            getProcessGroup().startProcessor(this, true);
+        }
+    }
+
+    /**
+     * Completes every start Future that is waiting for this Processor to be running.
+     */
+    private void completeStartFutures() {
+        final List<CompletableFuture<Void>> futures = takeStartFutures();
+        for (final CompletableFuture<Void> future : futures) {
+            future.complete(null);
+        }
+    }
+
+    /**
+     * Fails every start Future waiting on this Processor.
+     *
+     * @param failure the reason the start will not finish
+     */
+    private void failStartFutures(final Throwable failure) {
+        final List<CompletableFuture<Void>> futures = takeStartFutures();
+        for (final CompletableFuture<Void> future : futures) {
+            future.completeExceptionally(failure);
+        }
+    }
+
+    private List<CompletableFuture<Void>> takeStartFutures() {
+        synchronized (this) {
+            if (startFutures.isEmpty()) {
+                return List.of();
+            }
+
+            final List<CompletableFuture<Void>> futures = new ArrayList<>(startFutures);
+            startFutures.clear();
+            return futures;
         }
     }
 

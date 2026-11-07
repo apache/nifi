@@ -71,7 +71,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -105,7 +104,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final ReloadComponent reloadComponent;
 
     private final ConcurrentMap<SchedulingStrategy, SchedulingAgent> strategyAgentMap = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, CompletableFuture<Void>> processorStartFutures = new ConcurrentHashMap<>();
 
     // thread pool for starting/stopping components
     private volatile boolean shutdown = false;
@@ -415,7 +413,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
         final boolean scheduleActions = procNode.getProcessGroup().resolveExecutionEngine() != ExecutionEngine.STATELESS;
 
-        final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
             @Override
             public void trigger() {
@@ -425,9 +422,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 if (scheduleActions) {
                     getSchedulingAgent(procNode).schedule(procNode, lifecycleState);
                 }
-
-                processorStartFutures.remove(procNode.getIdentifier(), future);
-                future.complete(null);
             }
 
             @Override
@@ -445,10 +439,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         LOG.info("Starting {}", procNode);
 
         procNode.reloadAdditionalResourcesIfNecessary();
-
-        processorStartFutures.put(procNode.getIdentifier(), future);
-        procNode.start(componentMonitoringThreadPool, administrativeYieldMillis, processorStartTimeoutMillis, processContextFactory, callback, failIfStopping, scheduleActions);
-        return future;
+        return procNode.start(componentMonitoringThreadPool, administrativeYieldMillis, processorStartTimeoutMillis, processContextFactory, callback, failIfStopping, scheduleActions);
     }
 
     @Override
@@ -486,7 +477,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 groupNode.getProcessGroup().findAllOutputPorts().forEach(port -> startConnectable(port));
 
                 getSchedulingAgent(groupNode).schedule(groupNode, lifecycleState);
-                future.complete(null);
             }
         };
 
@@ -506,7 +496,14 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final CompletableFuture<?> allServiceStartFutures = CompletableFuture.allOf(serviceStartFutures.toArray(new CompletableFuture<?>[0]));
         allServiceStartFutures.thenRun(() -> {
             LOG.info("Starting {}", groupNode);
-            groupNode.start(componentMonitoringThreadPool, callback, lifecycleState);
+            final CompletableFuture<Void> groupStartFuture = groupNode.start(componentMonitoringThreadPool, callback, lifecycleState);
+            groupStartFuture.whenComplete((result, failure) -> {
+                if (failure == null) {
+                    future.complete(null);
+                } else {
+                    future.completeExceptionally(failure);
+                }
+            });
         });
 
         Thread.ofVirtual().name("Wait for Controller Services Enabled").start(() -> {
@@ -557,13 +554,11 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
             getStateManager(procNode), lifecycleState::isTerminated, nodeTypeProvider);
 
-        final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
             @Override
             public void trigger() {
                 lifecycleState.clearTerminationFlag();
                 getSchedulingAgent(procNode).scheduleOnce(procNode, lifecycleState, stopCallback);
-                future.complete(null);
             }
 
             @Override
@@ -579,9 +574,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         };
 
         LOG.info("Running once {}", procNode);
-        procNode.runOnce(componentMonitoringThreadPool, administrativeYieldMillis, processorStartTimeoutMillis, processContextFactory, callback);
-
-        return future;
+        return procNode.runOnce(componentMonitoringThreadPool, administrativeYieldMillis, processorStartTimeoutMillis, processContextFactory, callback);
     }
 
     /**
@@ -599,13 +592,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             getStateManager(procNode), lifecycleState::isTerminated, nodeTypeProvider);
 
         LOG.info("Stopping {}", procNode);
-        final CompletableFuture<Void> stopFuture = procNode.stop(this, this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), lifecycleState, lifecycleMethods);
-        final CompletableFuture<Void> startFuture = processorStartFutures.remove(procNode.getIdentifier());
-        if (startFuture != null) {
-            startFuture.completeExceptionally(new CancellationException("Processor start cancelled by stop request"));
-        }
-
-        return stopFuture;
+        return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), lifecycleState, lifecycleMethods);
     }
 
     @Override

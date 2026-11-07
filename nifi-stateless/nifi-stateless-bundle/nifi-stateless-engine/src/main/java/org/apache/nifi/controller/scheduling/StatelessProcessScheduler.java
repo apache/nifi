@@ -130,12 +130,10 @@ public class StatelessProcessScheduler implements ProcessScheduler {
 
     @Override
     public CompletableFuture<Void> startProcessor(final ProcessorNode procNode, final boolean failIfStopping) {
-        final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
             @Override
             public void trigger() {
                 // Initialization / scheduling has completed.
-                future.complete(null);
             }
 
             @Override
@@ -151,8 +149,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
         logger.info("Starting {}", procNode);
 
         final Supplier<ProcessContext> processContextSupplier = () -> processContextFactory.createProcessContext(procNode);
-        procNode.start(componentMonitoringThreadPool, ADMINISTRATIVE_YIELD_MILLIS, this.processorStartTimeoutMillis, processContextSupplier, callback, failIfStopping, true);
-        return future;
+        return procNode.start(componentMonitoringThreadPool, ADMINISTRATIVE_YIELD_MILLIS, this.processorStartTimeoutMillis, processContextSupplier, callback, failIfStopping, true);
     }
 
     @Override
