@@ -17,6 +17,7 @@
 
 package org.apache.nifi.migration;
 
+import jakarta.annotation.Nullable;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -38,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -57,13 +59,20 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
     private final FlowManager flowManager;
     private final ControllerServiceProvider serviceProvider;
     private final ComponentNode creator;
+    private final @Nullable String owningGroupIdentity;
 
     public StandardControllerServiceFactory(final ExtensionManager extensionManager, final FlowManager flowManager, final ControllerServiceProvider serviceProvider,
                                             final ComponentNode creator) {
+        this(extensionManager, flowManager, serviceProvider, creator, null);
+    }
+
+    public StandardControllerServiceFactory(final ExtensionManager extensionManager, final FlowManager flowManager, final ControllerServiceProvider serviceProvider,
+                                            final ComponentNode creator, final @Nullable String owningGroupIdentity) {
         this.extensionManager = extensionManager;
         this.flowManager = flowManager;
         this.serviceProvider = serviceProvider;
         this.creator = creator;
+        this.owningGroupIdentity = owningGroupIdentity;
     }
 
     @Override
@@ -104,7 +113,20 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
 
         serviceNode.setProperties(creationDetails.serviceProperties());
 
-        final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(extensionManager, flowManager, serviceProvider, serviceNode);
+        final String versionedId = generateVersionedId(creationDetails, serviceNode);
+        if (versionedId != null) {
+            final Set<ControllerServiceNode> groupControllerServices = group.map(processGroup -> processGroup.getControllerServices(false)).orElse(Collections.emptySet());
+            final boolean occupied = groupControllerServices.stream()
+                    .map(ControllerServiceNode::getVersionedComponentId)
+                    .flatMap(Optional::stream)
+                    .anyMatch(versionedId::equals);
+
+            if (!occupied) {
+                serviceNode.setVersionedComponentId(versionedId);
+            }
+        }
+
+        final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(extensionManager, flowManager, serviceProvider, serviceNode, owningGroupIdentity);
         serviceNode.migrateConfiguration(creationDetails.serviceProperties(), serviceFactory);
 
         // Mark the service as migration-created so that flow-difference filtering can distinguish it from a
@@ -121,6 +143,22 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
         }
 
         return serviceNode;
+    }
+
+    private @Nullable String generateVersionedId(final ControllerServiceCreationDetails creationDetails, final ControllerServiceNode serviceNode) {
+        if (owningGroupIdentity == null) {
+            return null;
+        }
+
+        final Map<String, String> sortedProperties = new TreeMap<>();
+        for (final Map.Entry<String, String> property : creationDetails.serviceProperties().entrySet()) {
+            if (!serviceNode.getPropertyDescriptor(property.getKey()).isSensitive()) {
+                sortedProperties.put(property.getKey(), property.getValue());
+            }
+        }
+
+        final String componentDescription = owningGroupIdentity + creationDetails.type() + sortedProperties;
+        return UUID.nameUUIDFromBytes(componentDescription.getBytes(StandardCharsets.UTF_8)).toString();
     }
 
     private boolean isEnable() {

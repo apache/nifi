@@ -1,0 +1,120 @@
+{
+  "snapshotMetadata" : {
+    "branch" : "main",
+    "bucketIdentifier" : "test-flows",
+    "flowIdentifier" : "0831859c-f4a1-4ff6-99b3-58aeb35cb17f",
+    "version" : "1",
+    "timestamp" : 1792144661845,
+    "author" : "CN=localhost"
+  },
+  "flow" : {
+    "identifier" : "0831859c-f4a1-4ff6-99b3-58aeb35cb17f",
+    "name" : "0831859c-f4a1-4ff6-99b3-58aeb35cb17f",
+    "description" : "Description",
+    "bucketIdentifier" : "test-flows",
+    "bucketName" : "test-flows",
+    "createdTimestamp" : 1792144661847,
+    "lastModifiedTimestamp" : 1792144661847,
+    "permissions" : {
+      "canRead" : true,
+      "canWrite" : true,
+      "canDelete" : true
+    },
+    "versionCount" : 1,
+    "versionInfo" : {
+      "version" : 1
+    }
+  },
+  "bucket" : {
+    "identifier" : "test-flows",
+    "name" : "test-flows",
+    "description" : "Description",
+    "createdTimestamp" : 1792144661847,
+    "permissions" : {
+      "canRead" : true,
+      "canWrite" : true,
+      "canDelete" : true
+    }
+  },
+  "flowContents" : {
+    "identifier" : "702d0577-ae18-3398-b66f-1c8834754e4a",
+    "instanceIdentifier" : "44255cad-01a1-1000-af94-cd7ed0a1222f",
+    "name" : "Store Flow",
+    "comments" : "",
+    "position" : {
+      "x" : 0.0,
+      "y" : 0.0
+    },
+    "processGroups" : [ ],
+    "remoteProcessGroups" : [ ],
+    "processors" : [ {
+      "identifier" : "75dd041c-72f0-3a9c-ac3c-5964c4694cee",
+      "instanceIdentifier" : "44255ced-01a1-1000-aac3-cb42365b64be",
+      "name" : "MigrateToControllerService",
+      "comments" : "",
+      "position" : {
+        "x" : 0.0,
+        "y" : 0.0
+      },
+      "type" : "org.apache.nifi.processors.tests.system.MigrateToControllerService",
+      "bundle" : {
+        "group" : "org.apache.nifi",
+        "artifact" : "nifi-system-test-extensions-nar",
+        "version" : "2.13.0-SNAPSHOT"
+      },
+      "properties" : {
+        "Store Name" : "store"
+      },
+      "propertyDescriptors" : {
+        "Store Name" : {
+          "name" : "Store Name",
+          "displayName" : "Store Name",
+          "identifiesControllerService" : false,
+          "sensitive" : false,
+          "dynamic" : false
+        }
+      },
+      "style" : { },
+      "schedulingPeriod" : "100 ms",
+      "schedulingStrategy" : "TIMER_DRIVEN",
+      "executionNode" : "ALL",
+      "penaltyDuration" : "30 sec",
+      "yieldDuration" : "1 sec",
+      "bulletinLevel" : "WARN",
+      "runDurationMillis" : 0,
+      "concurrentlySchedulableTaskCount" : 1,
+      "autoTerminatedRelationships" : [ "success" ],
+      "scheduledState" : "ENABLED",
+      "retryCount" : 10,
+      "retriedRelationships" : [ ],
+      "backoffMechanism" : "PENALIZE_FLOWFILE",
+      "maxBackoffPeriod" : "10 mins",
+      "instanceGroupId" : "44255cad-01a1-1000-af94-cd7ed0a1222f",
+      "componentType" : "PROCESSOR",
+      "groupIdentifier" : "702d0577-ae18-3398-b66f-1c8834754e4a"
+    } ],
+    "inputPorts" : [ ],
+    "outputPorts" : [ ],
+    "connections" : [ ],
+    "labels" : [ ],
+    "funnels" : [ ],
+    "controllerServices" : [ ],
+    "defaultFlowFileExpiration" : "0 sec",
+    "defaultBackPressureObjectThreshold" : 10000,
+    "defaultBackPressureDataSizeThreshold" : "1 GB",
+    "scheduledState" : "ENABLED",
+    "executionEngine" : "INHERITED",
+    "maxConcurrentTasks" : 1,
+    "statelessFlowTimeout" : "1 min",
+    "externalControllerServiceReferences" : { },
+    "instanceGroupId" : "442550a0-01a1-1000-ce2e-3780e839b63f",
+    "flowFileOutboundPolicy" : "STREAM_WHEN_AVAILABLE",
+    "flowFileConcurrency" : "UNBOUNDED",
+    "componentType" : "PROCESS_GROUP"
+  },
+  "externalControllerServices" : { },
+  "parameterContexts" : { },
+  "flowEncodingVersion" : "1.0",
+  "parameterProviders" : { },
+  "latest" : false
+}
