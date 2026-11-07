@@ -17,6 +17,7 @@
 package org.apache.nifi.events;
 
 import org.apache.nifi.reporting.Bulletin;
+import org.apache.nifi.reporting.BulletinFactory;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.ComponentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -266,5 +267,19 @@ public class VolatileBulletinRepositoryTest {
         BulletinQuery query = new BulletinQuery.Builder().build();
         List<Bulletin> bulletins = repository.findBulletins(query);
         return bulletins.size();
+    }
+
+    @Test
+    public void testProcessGroupBulletinsIncludeControllerServiceBulletins() {
+        final String processGroupId = "processGroupId";
+        final String message = "Test message";
+
+        final Bulletin controllerServiceBulletin = BulletinFactory.createBulletin(processGroupId, "processGroupName", "controllerServiceId",
+                ComponentType.CONTROLLER_SERVICE, "controllerServiceName", "Controller Service", "INFO", message, "/groupPath");
+        repository.addBulletin(controllerServiceBulletin);
+
+        final List<Bulletin> bulletins = repository.findBulletinsForGroupBySource(processGroupId);
+        assertEquals(1, bulletins.size());
+        assertEquals(message, bulletins.getFirst().getMessage());
     }
 }
