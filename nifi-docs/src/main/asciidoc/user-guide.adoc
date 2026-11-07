@@ -259,14 +259,7 @@ image:iconProcessor.png["Processor", width=32]
 
 image::add-processor.png["Add Processor Dialog"]
 
-In the top-right corner, the user is able to filter the list based on the Processor Type or the Tags associated with a Processor.
-Processor developers have the ability to add Tags to their Processors. These tags are used in this dialog for filtering and are
-displayed on the left-hand side in a Tag Cloud. The more Processors that exist with a particular Tag, the larger the Tag appears
-in the Tag Cloud. Clicking a Tag in the Cloud will filter the available Processors to only those that contain that Tag. If multiple
-Tags are selected, only those Processors that contain all of those Tags are shown. For example, if we want to show only those
-Processors that allow us to ingest files, we can select both the `files` Tag and the `ingest` Tag:
-
-image::add-processor-with-tag-cloud.png["Add Processor with Tag Cloud"]
+In the top-left corner, the user is able to filter the list based on the Processor Type.
 
 Restricted components will be marked with a
 image:restricted.png["Restricted"]
@@ -512,9 +505,9 @@ The first tab in the Processor Configuration dialog is the Settings tab:
 image::settings-tab.png["Settings Tab"]
 
 This tab contains several different configuration items. First, it allows the DFM to change the name of the Processor.
-The name of a Processor by default is the same as the Processor type. Next to the Processor Name is a checkbox, indicating
- whether the Processor is Enabled. When a Processor is added to the canvas, it is enabled. If the
-Processor is disabled, it cannot be started. The disabled state is used to indicate that when a group of Processors is started,
+The name of a Processor by default is the same as the Processor type. 
+
+NOTE: When a Processor is added to the canvas, it is enabled. If the Processor is disabled, it cannot be started. The disabled state is used to indicate that when a group of Processors is started,
 such as when a DFM starts an entire Process Group, this (disabled) Processor should be excluded.
 
 Below the Name configuration, the Processor's unique identifier is displayed along with the Processor's type and NAR bundle. These values cannot be modified.
@@ -533,7 +526,7 @@ service is not responding, the Processor cannot make any progress. As a result, 
 prevent the Processor from being scheduled to run for some period of time. That period of time is specified by setting
 the 'Yield Duration'. The default value is `1 second`.
 
-The last configurable option on the left-hand side of the Settings tab is the Bulletin level. Whenever the Processor writes
+The last configurable option of the Settings tab is the Bulletin level. Whenever the Processor writes
 to its log, the Processor also will generate a Bulletin. This setting indicates the lowest level of Bulletin that should be
 shown in the User Interface. By default, the Bulletin level is set to `WARN`, which means it will display all warning and error-level
 bulletins.
@@ -654,6 +647,10 @@ historical values that have been set for the Property.
 Clicking on the value for the property will allow a DFM to change the value. Depending on the values that are allowed for the property,
 the user is either provided a drop-down from which to choose a value or is given a text area to type a value:
 
+image::properties-tab-verification-success.png["Perform Verification (Success)"]
+
+Clicking the checkmark next to `Verification`, performs a validation test against the current configurations of the Processor. Any discrepancies found will be shown at the top of the verification window and will provide guidance on what corrections need to be made to resolve any discrepancies.
+
 image::edit-property-dropdown.png["Edit Property with Dropdown"]
 
 In the top-right corner of the tab is a button for adding a New Property. Clicking this button will provide the DFM with a dialog to
@@ -678,7 +675,9 @@ Note that after a User-Defined property has been added, an icon will appear on t
 image:iconDelete.png["Delete Icon"]
 ). Clicking it will remove the User-Defined property from the Processor.
 
-Some processors also have an Advanced User Interface (UI) built into them. For example, the UpdateAttribute processor has an Advanced UI. To access the Advanced UI, click the "Advanced" button that appears at the bottom of the Configure Processor window. Only processors that have an Advanced UI will have this button.
+Some processors also have an Advanced User Interface (UI) built into them. For example, the UpdateAttribute processor has an Advanced UI. To access the Advanced UI, right-click the Processor and choose the "Advanced" option from the context menu. Only processors that have an Advanced UI will have this option.
+
+image:update-attribute-advanced.png["UpdateAttribute 'Advanced' option "]
 
 Some processors have properties that refer to other components, such as Controller Services, which also need to be configured. For example, the GetHTTP processor has an SSLContextService property, which refers to the StandardSSLContextService controller service. When DFMs want to configure this property but have not yet created and configured the controller service, they have the option to create the service on the spot, as depicted in the image below. For more information about configuring Controller Services, see the <<Controller_Services>> section.
 
@@ -734,7 +733,7 @@ image::comments-tab.png["Comments Tab"]
 
 ==== Additional Help
 
-You can access additional documentation about each Processor's usage by right-clicking on the Processor and selecting 'Usage' from the context menu. Alternatively, select Help from the Global Menu in the top-right corner of the UI to display a Help page with all of the documentation, including usage documentation for all the Processors that are available. Click on the desired Processor to view usage documentation.
+You can access additional documentation about each Processor's usage by right-clicking on the Processor and selecting 'View Documentation' from the context menu. Alternatively, select Help from the Global Menu in the top-right corner of the UI to display a Help page with all of the documentation, including usage documentation for all the Processors that are available. Click on the desired Processor to view usage documentation.
 
 
 [[Configuring_a_ProcessGroup]]
@@ -744,11 +743,11 @@ To configure a Process Group, right-click on the Process Group and select the `C
 image::process-group-configuration-window.png["Configure Process Group"]
 
 
-[[General_tab_ProcessGroup]]
-==== General Tab
-This tab contains several different configuration items. First is the Process Group Name. This is the name that is shown at the top of the Process Group on the canvas as well as in the breadcrumbs at the bottom of the UI. For the Root Process Group (i.e., the highest level group), this is also the name that is shown as the title of the browser tab. Note that this information is visible to any other NiFi instance that connects remotely to this instance (using Remote Process Groups, a.k.a., <<site-to-site>>).
+[[Settings_tab_ProcessGroup]]
+==== Settings Tab
+This tab contains several different configuration items. First is the Process Group's Name. This is the name that is shown at the top of the Process Group on the canvas as well as in the breadcrumbs at the bottom of the UI. For the Root Process Group (i.e., the highest level group), this is also the name that is shown as the title of the browser tab. Note that this information is visible to any other NiFi instance that connects remotely to this instance (using Remote Process Groups, a.k.a., <<site-to-site>>).
 
-The next configuration element is the Process Group Parameter Context, which is used to provide parameters to components of the flow. From this drop-down, the user is able to choose which Parameter Context should be bound to this Process Group and can optionally create a new one to bind to the Process Group. For more information refer to <<Parameters>> and <<parameter-contexts,Parameter Contexts>>.
+The next configuration element is the Parameter Context, which is used to provide parameters to components of the flow. From this drop-down, the user is able to choose which Parameter Context should be bound to this Process Group and can optionally create a new one to bind to the Process Group. For more information refer to <<Parameters>> and <<parameter-contexts,Parameter Contexts>>.
 
 The next section provides configuration elements for determining how the Process Group should be scheduled to run. NiFi
 supports two different Execution Engines: The Traditional Execution Engine, and the Stateless Execution Engine.
@@ -898,7 +897,7 @@ During Parameter Context creation, select the "Parameters" tab. Click the `+` bu
 
 image:add-parameter-during-parameter-context-creation.png[Add Parameter]
 
-To add parameters to an existing Parameter Context, open the Parameter Context window and click the Edit button (image:iconEdit.png["Edit"]) in the row of the desired Parameter Context.
+To add parameters to an existing Parameter Context, open the Parameter Context window and click the `+` button to open the Add Parameter window.
 
 image:edit-parameter-context.png[Edit Parameter Context]
 
@@ -1018,7 +1017,7 @@ Help text describing this process is displayed when hovering over the Expression
 
 image::el-param-support-help-text.png[Expression Language and Parameters Help Text]
 
-Parameters can also be created on the fly. For example, to create a parameter for the "Topic Name" property, select the "Convert to Parameter" icon (image:iconConvertToParameter.png["Convert to Parameter"]) in that property's row. This icon will only be available if the user has appropriate permissions to modify the Parameter Context (see <<accessing-parameters>> for more information).
+Parameters can also be created on the fly. For example, to create a parameter for the "Topic Name" property, select the three vertically-aligned dots, and click the "Convert to Parameter" icon (image:iconConvertToParameter.png["Convert to Parameter"]) in that property's row. This icon will only be available if the user has appropriate permissions to modify the Parameter Context (see <<accessing-parameters>> for more information).
 
 image::convert-property-to-parameter.png[Convert Property to Parameter]
 
@@ -1037,9 +1036,6 @@ image::reference-parameter-option.png[Reference Parameter Option]
 Selecting "Reference parameter..." will display a drop-down list of available parameters, determined by the parameter context assigned to the component's process group and the user's access policies.
 
 image::reference-parameter-available-parameters.png[Reference Parameter Available Parameters]
-
-Hovering over the question mark icon (image:iconInfo.png["Info"]) displays the parameter's description.
-
 
 ===== Using Parameters with Sensitive Properties
 Sensitive properties may only reference sensitive Parameters. This is important for <<versioning_dataflow, versioned flows>>. The value of the sensitive Parameter itself will NOT be sent to the flow registry, only the fact that the property references the sensitive Parameter. For more information see <<parameters-in-versioned-flows>>.
@@ -1082,17 +1078,13 @@ This displays the NiFi Settings window. Select the Parameter Providers tab and c
 
 image:parameter-providers-tab.png["Parameter Providers Tab"]
 
-The Add Parameter Provider window opens. This window is similar to the Add Processor window. It provides a list of the available Parameter Providers on the right and a tag cloud, showing the most common category tags used for Parameter Providers, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Parameter Providers to those that fit the categories desired. The DFM may also use the Filter field at the top-right of the window to search for the desired Parameter Provider or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Parameter Provider from the list, the DFM can see a description of the provider below. Select the desired parameter provider and click Add, or simply double-click the name of the provider to add it.
+The Add Parameter Provider window opens. This window is similar to the Add Processor window. It provides a list of the available Parameter Providers on the right. The DFM may also use the Filter field at the top-right of the window to search for the desired Parameter Provider or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Parameter Provider from the list, the DFM can see a description of the provider below. Select the desired parameter provider and click Add, or simply double-click the name of the provider to add it.
 
 image:add-parameter-provider-window.png["Add Parameter Provider Window"]
 
 Once a Parameter Provider has been added, the DFM may configure it by clicking the "Edit" button in the far-right column. Other buttons in this column include "Fetch Parameters", "Remove" and "Access Policies".
 
 image:parameter-provider-edit-buttons.png["Parameter Providers Edit Buttons"]
-
-You can obtain information about Parameter Providers by clicking the "View Details", "Usage", and "Alerts" buttons in the left-hand column.
-
-image:parameter-provider-tasks-info-buttons.png["Parameter Providers Information Buttons"]
 
 When the DFM clicks the "Edit" button, a Configure Parameter Provider window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Parameter Provider a unique name (if desired). It also lists the UUID, Type, and Bundle information for the provider and displays a list of other components (e.g. parameter contexts) that reference the parameter provider. The DFM may hover the mouse over the question mark icons to see more information about each setting.
 
@@ -1103,10 +1095,6 @@ The Properties tab lists the various properties that may be configured for the p
 image:configure-parameter-provider-properties.png["Configure Parameter Provider Properties"]
 
 The Comments tab is just an open-text field, where the DFM may include comments about the provider. After configuring the Parameter Provider, click "Apply" to save the configuration and close the window, or click "Cancel" to discard the changes and close the window.
-
-When you want to fetch parameters from the Parameter Provider, click the "Fetch" button (image:iconFetch.png["Fetch Button"]).
-
-
 
 [[accessing-parameters]]
 ==== Accessing Parameters
@@ -1123,7 +1111,7 @@ For a user to see Parameter Contexts, they must be added to either the "access t
 
 NOTE: The "access parameter contexts" policies are inherited from the "access the controller" policies unless overridden.
 
-View and modify policies can also be set on individual parameter contexts to determine which users can view or add parameters to the context. Select "Parameter Contexts" from the Global Menu. Select the "Access Policies" button (image:iconAccessPolicies.png["Access Policies"]) in the row of the desired parameter context to manage these policies.
+View and modify policies can also be set on individual parameter contexts to determine which users can view or add parameters to the context. Select "Parameter Contexts" from the Global Menu. Select the "Manage Access Policies" button (image:iconAccessPolicies.png["Access Policies"]) in the row of the desired parameter context to manage these policies.
 
 image::individual-parameter-context-polices.png[Individual Parameter Context Policies]
 
@@ -1181,7 +1169,7 @@ To the right of the General tab is the Management Controller Services tab. From 
 
 image:controller-services-tab.png["Controller Services Tab"]
 
-The Add Controller Service window opens. This window is similar to the Add Processor window. It provides a list of the available Controller Services on the right and a tag cloud, showing the most common category tags used for Controller Services, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Controller Services to those that fit the categories desired. The DFM may also use the Filter field at the top-right of the window to search for the desired Controller Service or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Controller Service from the list, the DFM can see a description of the service below. Select the desired controller service and click Add, or simply double-click the name of the service to add it.
+The Add Controller Service window opens. This window is similar to the Add Processor window. It provides a list of the available Controller Services on the right. The DFM may also use the Filter field at the top-right of the window to search for the desired Controller Service or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Controller Service from the list, the DFM can see a description of the service below. Select the desired controller service and click Add, or simply double-click the name of the service to add it.
 
 image:add-controller-service-window.png["Add Controller Service Window"]
 
@@ -1189,10 +1177,6 @@ Once you have added a Controller Service, you can configure it by clicking the "
 far-right column. Other buttons in this column include "Enable", "Remove" and "Access Policies".
 
 image:controller-services-configure-buttons.png["Controller Services Buttons"]
-
-You can obtain information about Controller Services by clicking the "Usage", "Comments" and "Alerts" buttons in the left-hand column.
-
-image:controller-services-info-buttons.png["Controller Services Information Buttons"]
 
 When the DFM clicks the "Configure" button, a Configure Controller Service window opens. It has three tabs: Settings, Properties,and Comments. This window is similar to the Configure Processor window.
 
@@ -1212,24 +1196,18 @@ The Comments tab is just an open-text field, where the DFM may include comments 
 [[Controller_Services_for_Dataflows]]
 ==== Adding Controller Services for Dataflows
 
-To add a Controller Service for a dataflow, you can either right click a Process Group and select Configure, or click Configure from the Operate Palette.
+To add a Controller Service for a dataflow, you can either right-click a Process Group and select Controller Settings, or click the menu in the top-right corner and select Controller Settings.
 
 image:process-group-configuration-options.png["Process Group Configuration Options"]
 
-When you click Configure from the Operate Palette with nothing selected on your canvas, you add a Controller Service for your Root Process Group. That Controller Service is then available to all nested Process Groups in your dataflow.  When you select a Process Group on the canvas and then click Configure from either the Operate Palette or the Process Group context menu, the service will be available to all Processors and Controller Services defined in that Process Group and below.
-
-image:process-group-controller-services-scope.png["Process Group Controller Services Scope"]
+When you click Controller Settings from the menu image:iconMenu.png["Menu Icon"], you add a Controller Service for your Root Process Group. That Controller Service is then available to all nested Process Groups in your dataflow. When you right-click on a Process Group on the canvas and then click Controller Settings from the Process Group context menu, the service will be available to all Processors and Controller Services defined in that Process Group and below.
 
 Use the following steps to add a Controller Service:
 
-1. Click Configure, either from the Operate Palette, or from the Process Group context menu.  This displays the process group Configuration window.  The window has two tabs: General and Controller Services. The <<General_tab_ProcessGroup>> is for settings that pertain to general information about the process group.
-+
-image::process-group-configuration-window.png["Process Group Configuration Window"]
-2. From the Process Group Configuration page, select the Controller Services tab.
-3. Click the `+` button to display the Add Controller Service dialog.
+1. Right-click on the Process Group and select Controller Settings from the Process Group context menu.
+2. From the Controller Services page, click the `+` button to display the Add Controller Service dialog.
 4. Select the Controller Service desired, and click Add.
-5. Perform any necessary Controller Service configuration tasks by clicking the Configure icon (image:iconConfigure.png["Configure"]) in the right-hand column.
-
+5. Perform any necessary Controller Service configuration tasks by right-clicking the three, vertically aligned dots at the right, and select the Edit icon (image:iconConfigure.png["Configure"])
 
 [[Enabling_Disabling_Controller_Services]]
 ==== Enabling/Disabling Controller Services
@@ -1249,17 +1227,13 @@ This displays the NiFi Settings window. Select the Reporting Tasks tab and click
 
 image:reporting-tasks-tab.png["Reporting Tasks Tab"]
 
-The Add Reporting Task window opens. This window is similar to the Add Processor window. It provides a list of the available Reporting Tasks on the right and a tag cloud, showing the most common category tags used for Reporting Tasks, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Reporting Tasks to those that fit the categories desired. The DFM may also use the Filter field at the top-right of the window to search for the desired Reporting Task or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Reporting Task from the list, the DFM can see a description of the task below. Select the desired reporting task and click Add, or simply double-click the name of the service to add it.
+The Add Reporting Task window opens. This window is similar to the Add Processor window. It provides a list of the available Reporting Tasks on the right. The DFM may also use the Filter field at the top-right of the window to search for the desired Reporting Task or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Reporting Task from the list, the DFM can see a description of the task below. Select the desired reporting task and click Add, or simply double-click the name of the service to add it.
 
 image:add-reporting-task-window.png["Add Reporting Task Window"]
 
-Once a Reporting Task has been added, the DFM may configure it by clicking the "Edit" button in the far-right column. Other buttons in this column include "Start", "Remove", "State" and "Access Policies".
+Once a Reporting Task has been added, the DFM may configure it by clicking the three, vertically aligned dots, in the far-right column, and selecting the "Edit" button . Other buttons in this column include "Remove", "View Documentation" and "Manage Access Policies".
 
 image:reporting-tasks-edit-buttons.png["Reporting Tasks Edit Buttons"]
-
-You can obtain information about Reporting Tasks by clicking the "View Details", "Usage", "Comments" and "Alerts" buttons in the left-hand column.
-
-image:reporting-tasks-info-buttons.png["Reporting Tasks Information Buttons"]
 
 When the DFM clicks the "Edit" button, a Configure Reporting Task window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Reporting Task a unique name (if desired). It also lists the UUID, Type, and Bundle information for the task and provides settings for the task's Scheduling Strategy and Run Schedule (similar to the same settings in a processor). The DFM may hover the mouse over the question mark icons to see more information about each setting.
 
@@ -1289,17 +1263,13 @@ This displays the NiFi Settings window. Select the Flow Analysis Rules tab and c
 
 image:flow-analysis-rules-tab.png["Flow Analysis Rules Tab"]
 
-The Add Flow Analysis Rule window opens. This window is similar to the Add Processor window. It provides a list of the available Flow Analysis Rules on the right and a tag cloud, showing the most common category tags used for Flow Analysis Rules, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Flow Analysis Rules to those that fit the categories desired. The DFM may also use the Filter field at the top-right of the window to search for the desired Flow Analysis Rule or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Flow Analysis Rule from the list, the DFM can see a description of the rule below. Select the desired flow analysis rule and click Add, or simply double-click the name of the service to add it.
+The Add Flow Analysis Rule window opens. This window is similar to the Add Processor window. It provides a list of the available Flow Analysis Rules on the right. The DFM may also use the Filter field at the top-right of the window to search for the desired Flow Analysis Rule or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Flow Analysis Rule from the list, the DFM can see a description of the rule below. Select the desired flow analysis rule and click Add, or simply double-click the name of the service to add it.
 
 image:add-flow-analysis-rule-window.png["Add Flow Analysis Rule Window"]
 
-Once a Flow Analysis Rule has been added, the DFM may configure it by clicking the "Configure" button in the far-right column (when the rule is disabled). Other buttons in this column include "Enable", "Disable", "View Configuration", "Remove", "State" and "Access Policies".
+Once a Flow Analysis Rule has been added, the DFM may configure it by clicking the three, vertically aligned dots, in the far-right column, and selecting the "Edit" button . Other buttons in this column include "Remove", "View Documentation" and "Manage Access Policies".
 
 image:flow-analysis-rules-configure-buttons.png["Flow Analysis Rules Configure Buttons"]
-
-You can obtain information about Flow Analysis Rules by clicking the "View Details", "Usage", and "Alerts" buttons in the left-hand column.
-
-image:flow-analysis-rules-info-buttons.png["Flow Analysis Rules Information Buttons"]
 
 When the DFM clicks the "Configure" button, a Configure Flow Analysis Rule window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Flow Analysis Rule a unique name (if desired). It also lists the UUID, Type, and Bundle information for the rule and provides a setting for its type (Recommendation or Policy). The DFM may hover the mouse over the question mark icons to see more information about each setting.
 
@@ -1435,7 +1405,7 @@ When data is actively being transferred between the nodes in the cluster, the lo
 image:load_balance_active_connection.png["Active Load Balance Connection"]
 
 ====== Cluster Connection Summary
-To see where data has been distributed among the cluster nodes, select Summary from the Global Menu.  Then select the "Connections" tab and the "View Connection Details" icon for a source:
+To see where data has been distributed among the cluster nodes, select Summary from the Global Menu. Then select the "Connections" tab and the "View Clustered Details" icon for a source:
 
 image:summary_connections.png["NiFi Summary Connections"]
 
@@ -2046,7 +2016,7 @@ There are times when the DFM may want to either enable or disable transmission f
 
 image::remote-group-ports-dialog.png["Remote Process Group Ports"]
 
-The left-hand side lists all of the Input Ports that the remote instance of NiFi allows data to be sent to. The right-hand side lists all of the Output Ports from which this instance is able to pull data. If the remote instance is using secure communications (the URL of the NiFi instance begins with `https://`, rather than `http://`), any ports that the remote instance has not made available to this instance will not be shown.
+The left-hand side lists all of the Input and Ouput Ports that the remote instance of NiFi allows data to be sent to (Input) and from which to be pulled (Output). If the remote instance is using secure communications (the URL of the NiFi instance begins with `https://`, rather than `http://`), any ports that the remote instance has not made available to this instance will not be shown.
 
 NOTE: If a port that is expected to be shown is not shown in this dialog, ensure that the instance has proper permissions and that the Remote Process Group's flow is current. This can be checked by closing the Remote Process Group Ports dialog and looking at the bottom-left corner of the Remote Process Group. The date and time when the flow was last refreshed is displayed. If the flow appears to be outdated, it can be updated by right-clicking on the Remote Process Group and selecting "Refresh remote". (See <<remote_group_anatomy>> for more information).
 
@@ -2440,8 +2410,7 @@ image:iconNotSecure.png["Not Secure"]
 === Queue Interaction
 
 The FlowFiles enqueued in a Connection can be viewed when necessary. The Queue listing is opened via `List queue` in
-a Connection's context menu. The listing will return the top 100 FlowFiles in the active queue according to the
-configured priority. The listing can be performed even if the source and destination are actively running.
+a Connection's context menu. The listing will return the top 100 FlowFiles in the active queue according to the configured priority. The listing can be performed even if the source and destination are actively running. The priority will be indicated by the values in the "Position" column. When a NiFi is in a clustered implementation, there will be duplicate values seen since files are on separate nodes. The "Position" value is also utilized when configuring "Selected prioritizers" for the queue.
 
 Additionally, details for a FlowFile in the listing can be viewed by clicking the "Details" button (image:iconDetails.png["Details"]) in the left most column. From here, the FlowFile details and attributes are available as well as buttons for
 downloading or viewing the content. If the source or destination of the Connection are actively running, there is a chance that the desired FlowFile will no longer be in the active queue.
