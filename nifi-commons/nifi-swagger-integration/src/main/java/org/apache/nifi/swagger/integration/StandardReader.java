@@ -17,8 +17,6 @@
 package org.apache.nifi.swagger.integration;
 
 import com.fasterxml.jackson.annotation.JsonView;
-import com.fasterxml.jackson.databind.introspect.AnnotatedMethod;
-import io.swagger.v3.jaxrs2.Reader;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.models.ExternalDocumentation;
@@ -28,8 +26,10 @@ import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.servers.Server;
+import io.swagger.v3.rest.Reader;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.Produces;
+import tools.jackson.databind.introspect.AnnotatedMethod;
 
 import java.lang.reflect.Method;
 import java.util.List;

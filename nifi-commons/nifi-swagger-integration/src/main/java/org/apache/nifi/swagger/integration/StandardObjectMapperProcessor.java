@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.swagger.integration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import io.swagger.v3.oas.integration.api.ObjectMapperProcessor;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.cfg.EnumFeature;
 
 /**
  * Standard Jackson Object Mapper Processor for customizing OpenAPI Specification generation
@@ -26,8 +26,8 @@ import io.swagger.v3.oas.integration.api.ObjectMapperProcessor;
 public class StandardObjectMapperProcessor implements ObjectMapperProcessor {
 
     @Override
-    public void processJsonObjectMapper(final ObjectMapper mapper) {
+    public ObjectMapper processJsonObjectMapper(final ObjectMapper mapper) {
         // Write enums using name() instead of toString()
-        mapper.disable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING);
+        return mapper.rebuild().disable(EnumFeature.WRITE_ENUMS_USING_TO_STRING).build();
     }
 }
