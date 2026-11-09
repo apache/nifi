@@ -48,7 +48,8 @@ function processComponentCollection<E extends { id: string; revision: Revision }
     proposedComponents: E[],
     currentComponents: E[],
     addedCache: string[],
-    removedCache: string[]
+    removedCache: string[],
+    connectedStateChanged: boolean
 ): E[] {
     const currentById = new Map(currentComponents.map((component) => [component.id, component]));
     const proposedIds = new Set(proposedComponents.map((component) => component.id));
@@ -56,7 +57,9 @@ function processComponentCollection<E extends { id: string; revision: Revision }
         .filter((component) => !removedCache.includes(component.id))
         .map((proposedComponent) => {
             const currentComponent = currentById.get(proposedComponent.id);
-            return currentComponent && !hasCurrentOrNewerRevision(currentComponent.revision, proposedComponent.revision)
+            return currentComponent &&
+                !connectedStateChanged &&
+                !hasCurrentOrNewerRevision(currentComponent.revision, proposedComponent.revision)
                 ? currentComponent
                 : proposedComponent;
         });
@@ -91,8 +94,10 @@ export const connectorCanvasReducer = createReducer(
                   connections: [],
                   addedCache: [],
                   removedCache: [],
+                  pendingAuthoritativeSnapshot: false,
                   hasLoadedFlow: false,
-                  parameterContext: null
+                  parameterContext: null,
+                  processGroupRevision: null
               }
             : {})
     })),
@@ -108,6 +113,7 @@ export const connectorCanvasReducer = createReducer(
             {
                 connectorId,
                 processGroupId,
+                processGroupRevision,
                 parentProcessGroupId,
                 breadcrumb,
                 labels,
@@ -117,9 +123,19 @@ export const connectorCanvasReducer = createReducer(
                 remoteProcessGroups,
                 processGroups,
                 processors,
-                connections
+                connections,
+                reconciliationSnapshot,
+                connectedStateChanged
             }
         ) => {
+            const requestedAddedIds = new Set(reconciliationSnapshot.addedCache);
+            const requestedRemovedIds = new Set(reconciliationSnapshot.removedCache);
+            const addedCache = connectedStateChanged
+                ? state.addedCache.filter((id) => !requestedAddedIds.has(id))
+                : state.addedCache;
+            const removedCache = connectedStateChanged
+                ? state.removedCache.filter((id) => !requestedRemovedIds.has(id))
+                : state.removedCache;
             const snapshotIds = new Set(
                 [
                     ...labels,
@@ -138,55 +154,80 @@ export const connectorCanvasReducer = createReducer(
             ]);
             const reconciledConnections = connections.filter(
                 (connection) =>
-                    !state.removedCache.includes(connection.sourceId) &&
-                    !state.removedCache.includes(connection.destinationId)
+                    !removedCache.includes(connection.sourceId) && !removedCache.includes(connection.destinationId)
             );
             return {
                 ...state,
                 connectorId,
                 processGroupId,
+                processGroupRevision,
                 parentProcessGroupId,
                 breadcrumb,
-                labels: processComponentCollection(labels, state.labels, state.addedCache, state.removedCache),
-                funnels: processComponentCollection(funnels, state.funnels, state.addedCache, state.removedCache),
+                labels: processComponentCollection(
+                    labels,
+                    state.labels,
+                    addedCache,
+                    removedCache,
+                    connectedStateChanged
+                ),
+                funnels: processComponentCollection(
+                    funnels,
+                    state.funnels,
+                    addedCache,
+                    removedCache,
+                    connectedStateChanged
+                ),
                 inputPorts: processComponentCollection(
                     inputPorts,
                     state.inputPorts,
-                    state.addedCache,
-                    state.removedCache
+                    addedCache,
+                    removedCache,
+                    connectedStateChanged
                 ),
                 outputPorts: processComponentCollection(
                     outputPorts,
                     state.outputPorts,
-                    state.addedCache,
-                    state.removedCache
+                    addedCache,
+                    removedCache,
+                    connectedStateChanged
                 ),
                 remoteProcessGroups: processComponentCollection(
                     remoteProcessGroups,
                     state.remoteProcessGroups,
-                    state.addedCache,
-                    state.removedCache
+                    addedCache,
+                    removedCache,
+                    connectedStateChanged
                 ),
                 processGroups: processComponentCollection(
                     processGroups,
                     state.processGroups,
-                    state.addedCache,
-                    state.removedCache
+                    addedCache,
+                    removedCache,
+                    connectedStateChanged
                 ),
                 processors: processComponentCollection(
                     processors,
                     state.processors,
-                    state.addedCache,
-                    state.removedCache
+                    addedCache,
+                    removedCache,
+                    connectedStateChanged
                 ),
                 connections: processComponentCollection(
                     reconciledConnections,
                     state.connections,
-                    state.addedCache,
-                    state.removedCache
+                    addedCache,
+                    removedCache,
+                    connectedStateChanged
                 ),
-                addedCache: state.addedCache.filter((id) => !snapshotIds.has(id)),
-                removedCache: state.removedCache.filter((id) => snapshotIdsOrConnectionEndpoints.has(id)),
+                addedCache: connectedStateChanged
+                    ? addedCache
+                    : state.addedCache.filter((id) => !requestedAddedIds.has(id) || !snapshotIds.has(id)),
+                removedCache: connectedStateChanged
+                    ? removedCache
+                    : state.removedCache.filter(
+                          (id) => !requestedRemovedIds.has(id) || snapshotIdsOrConnectionEndpoints.has(id)
+                      ),
+                pendingAuthoritativeSnapshot: false,
                 hasLoadedFlow: true,
                 loadingStatus: 'success' as const,
                 error: null
@@ -194,11 +235,20 @@ export const connectorCanvasReducer = createReducer(
         }
     ),
 
-    on(ConnectorCanvasActions.loadConnectorFlowFailure, (state, { errorContext, isRefresh }) => ({
+    on(ConnectorCanvasActions.markAuthoritativeSnapshotPending, (state) => ({
         ...state,
-        loadingStatus: isRefresh ? ('refresh-error' as const) : ('error' as const),
-        error: errorContext.errors.join(', ')
+        pendingAuthoritativeSnapshot: true
     })),
+
+    on(
+        ConnectorCanvasActions.loadConnectorFlowFailure,
+        (state, { errorContext, isRefresh, connectedStateChanged }) => ({
+            ...state,
+            loadingStatus: isRefresh ? ('refresh-error' as const) : ('error' as const),
+            error: errorContext.errors.join(', '),
+            pendingAuthoritativeSnapshot: state.pendingAuthoritativeSnapshot || connectedStateChanged
+        })
+    ),
 
     on(ConnectorCanvasActions.navigateWithoutTransform, (state) => ({
         ...state,
@@ -373,5 +423,78 @@ export const connectorCanvasReducer = createReducer(
     on(ConnectorCanvasActions.loadConnectorParameterContextFailure, (state) => ({
         ...state,
         parameterContext: null
-    }))
+    })),
+
+    on(
+        ConnectorCanvasActions.startComponentSuccess,
+        ConnectorCanvasActions.stopComponentSuccess,
+        ConnectorCanvasActions.enableComponentSuccess,
+        ConnectorCanvasActions.disableComponentSuccess,
+        (state, { componentId, componentType, component }) => {
+            const patch = <E extends { id: string; revision: Revision; status?: unknown; component?: unknown }>(
+                collection: E[],
+                incoming: E
+            ): E[] =>
+                collection.map((existing) =>
+                    existing.id === componentId && hasCurrentOrNewerRevision(existing.revision, incoming.revision)
+                        ? ({
+                              ...existing,
+                              status: incoming.status ?? existing.status,
+                              component: incoming.component ?? existing.component,
+                              revision: incoming.revision
+                          } as E)
+                        : existing
+                );
+
+            switch (componentType) {
+                case ComponentType.Processor:
+                    return {
+                        ...state,
+                        processors: patch(state.processors, component as (typeof state.processors)[number])
+                    };
+                case ComponentType.InputPort:
+                    return {
+                        ...state,
+                        inputPorts: patch(state.inputPorts, component as (typeof state.inputPorts)[number])
+                    };
+                case ComponentType.OutputPort:
+                    return {
+                        ...state,
+                        outputPorts: patch(state.outputPorts, component as (typeof state.outputPorts)[number])
+                    };
+                case ComponentType.RemoteProcessGroup:
+                    return {
+                        ...state,
+                        remoteProcessGroups: patch(
+                            state.remoteProcessGroups,
+                            component as (typeof state.remoteProcessGroups)[number]
+                        )
+                    };
+                default:
+                    return state;
+            }
+        }
+    ),
+
+    on(ConnectorCanvasActions.loadChildProcessGroupSuccess, (state, { processGroupId, processGroup }) => ({
+        ...state,
+        processGroups: replaceIfCurrentOrNewer(state.processGroups, processGroupId, processGroup)
+    })),
+
+    on(
+        ConnectorCanvasActions.runOnceComponentSuccess,
+        ConnectorCanvasActions.terminateComponentThreadsSuccess,
+        (state, { componentId, component }) => ({
+            ...state,
+            processors: state.processors.map((existing) =>
+                existing.id === componentId && hasCurrentOrNewerRevision(existing.revision, component.revision)
+                    ? {
+                          ...existing,
+                          status: component.status ?? existing.status,
+                          revision: component.revision
+                      }
+                    : existing
+            )
+        })
+    )
 );

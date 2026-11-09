@@ -103,12 +103,12 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     static final AllowableValue AUTO_ACK = new AllowableValue(String.valueOf(Session.AUTO_ACKNOWLEDGE),
             "AUTO_ACKNOWLEDGE (" + Session.AUTO_ACKNOWLEDGE + ")",
-            "Automatically acknowledges a client's receipt of a message, regardless if NiFi session has been commited. "
-                    + "Can result in data loss in the event where NiFi abruptly stopped before session was commited.");
+            "Automatically acknowledges a client's receipt of a message, regardless if NiFi session has been committed. "
+                    + "Can result in data loss in the event where NiFi abruptly stopped before session was committed.");
 
     static final AllowableValue CLIENT_ACK = new AllowableValue(String.valueOf(Session.CLIENT_ACKNOWLEDGE),
             "CLIENT_ACKNOWLEDGE (" + Session.CLIENT_ACKNOWLEDGE + ")",
-            "(DEFAULT) Manually acknowledges a client's receipt of a message after NiFi Session was commited, thus ensuring no data loss");
+            "(DEFAULT) Manually acknowledges a client's receipt of a message after NiFi Session was committed, thus ensuring no data loss");
 
     static final AllowableValue DUPS_OK = new AllowableValue(String.valueOf(Session.DUPS_OK_ACKNOWLEDGE),
             "DUPS_OK_ACKNOWLEDGE (" + Session.DUPS_OK_ACKNOWLEDGE + ")",

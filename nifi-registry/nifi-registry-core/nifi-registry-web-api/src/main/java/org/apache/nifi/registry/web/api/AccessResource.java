@@ -653,7 +653,7 @@ public class AccessResource extends ApplicationResource {
             summary = "Retrieves a JWT following a successful login sequence using the configured OpenId Connect provider.",
             description = NON_GUARANTEED_ENDPOINT
     )
-    public Response oidcExchange(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+    public Response oidcExchange(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
             throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");

@@ -199,7 +199,7 @@ final class CEFRecordReader implements RecordReader {
     }
 
     @Override
-    public RecordSchema getSchema() throws MalformedRecordException {
+    public RecordSchema getSchema() {
         return schema;
     }
 

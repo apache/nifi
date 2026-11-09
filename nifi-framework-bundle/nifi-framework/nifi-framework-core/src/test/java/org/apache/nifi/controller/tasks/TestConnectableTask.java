@@ -26,6 +26,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.GarbageCollectionLog;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RepositoryContext;
@@ -34,34 +35,50 @@ import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.status.FlowFileAvailability;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestConnectableTask {
 
+    private static final Map<String, String> INITIAL_LOGGING_ATTRIBUTES = Map.of("registeredFlowIdentifierPath", "/root:1/connector:1.0.0");
+
+    private static final Map<String, String> UPDATED_LOGGING_ATTRIBUTES = Map.of("registeredFlowIdentifierPath", "/root:1/connector:2.0.0");
+
     private ConnectableTask createTask(final Connectable connectable) {
+        return createTask(connectable, mock(FlowFileEventRepository.class));
+    }
+
+    private ConnectableTask createTask(final Connectable connectable, final FlowFileEventRepository flowFileEventRepository) {
         final FlowController flowController = mock(FlowController.class);
         when(flowController.getStateManagerProvider()).thenReturn(mock(StateManagerProvider.class));
         when(flowController.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
 
         final RepositoryContext repoContext = mock(StandardRepositoryContext.class);
-        when(repoContext.getFlowFileEventRepository()).thenReturn(mock(FlowFileEventRepository.class));
+        when(repoContext.getFlowFileEventRepository()).thenReturn(flowFileEventRepository);
 
         when(flowController.getGarbageCollectionLog()).thenReturn(mock(GarbageCollectionLog.class));
 
@@ -100,6 +117,33 @@ public class TestConnectableTask {
 
         assertTrue(processorInvoked.get());
         assertFalse(taskMonitorHeld.get());
+    }
+
+    @Test
+    public void testInvokeRecordsCurrentProcessGroupLoggingAttributes() throws IOException {
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.getLoggingAttributes()).thenReturn(INITIAL_LOGGING_ATTRIBUTES);
+
+        final ProcessorNode processorNode = mock(ProcessorNode.class);
+        when(processorNode.getIdentifier()).thenReturn("processor-id");
+        when(processorNode.getRunnableComponent()).thenReturn(mock(Processor.class));
+        when(processorNode.getRelationships()).thenReturn(Collections.emptySet());
+        when(processorNode.getIncomingConnections()).thenReturn(Collections.emptyList());
+        when(processorNode.getScheduledState()).thenReturn(ScheduledState.RUNNING);
+        when(processorNode.getProcessGroup()).thenReturn(processGroup);
+
+        final FlowFileEventRepository flowFileEventRepository = mock(FlowFileEventRepository.class);
+        final ConnectableTask task = createTask(processorNode, flowFileEventRepository);
+        task.invoke();
+
+        when(processGroup.getLoggingAttributes()).thenReturn(UPDATED_LOGGING_ATTRIBUTES);
+        task.invoke();
+
+        final ArgumentCaptor<ProcessSessionEvent> eventCaptor = ArgumentCaptor.forClass(ProcessSessionEvent.class);
+        verify(flowFileEventRepository, times(2)).updateRepository(eventCaptor.capture());
+        final List<ProcessSessionEvent> events = eventCaptor.getAllValues();
+        assertEquals(INITIAL_LOGGING_ATTRIBUTES, events.getFirst().getComponentMetricContext().attributes());
+        assertEquals(UPDATED_LOGGING_ATTRIBUTES, events.getLast().getComponentMetricContext().attributes());
     }
 
     @Test

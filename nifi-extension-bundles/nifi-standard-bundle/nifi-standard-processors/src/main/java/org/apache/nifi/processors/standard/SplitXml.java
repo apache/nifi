@@ -43,7 +43,6 @@ import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.Locator;
-import org.xml.sax.SAXException;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
@@ -196,7 +195,7 @@ public class SplitXml extends AbstractProcessor {
         }
 
         @Override
-        public void characters(char[] ch, int start, int length) throws SAXException {
+        public void characters(char[] ch, int start, int length) {
             // if we're not at a level where we care about capturing text, then return
             if (depth <= splitDepth) {
                 return;

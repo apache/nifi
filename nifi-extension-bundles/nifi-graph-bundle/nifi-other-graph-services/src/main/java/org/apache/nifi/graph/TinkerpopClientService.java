@@ -45,7 +45,6 @@ import org.apache.nifi.graph.gremlin.SimpleEntry;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
@@ -246,7 +245,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
     }
 
     @OnEnabled
-    public void onEnabled(final ConfigurationContext context) throws InitializationException {
+    public void onEnabled(final ConfigurationContext context) {
         loadClasses(context);
         GroovyClassLoader loader = new GroovyClassLoader(this.getClass().getClassLoader());
         groovyShell = new GroovyShell(loader);

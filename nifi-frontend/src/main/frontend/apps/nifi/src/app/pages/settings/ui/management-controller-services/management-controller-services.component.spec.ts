@@ -21,8 +21,7 @@ import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
 import { managementControllerServicesFeatureKey } from '../../state/management-controller-services';
 import { settingsFeatureKey } from '../../state';
-import { ControllerServiceEntity } from '../../../../state/shared';
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, ControllerServiceEntity } from '@nifi/shared';
 import { CurrentUser, currentUserFeatureKey } from '../../../../state/current-user';
 import * as fromCurrentUser from '../../../../state/current-user/current-user.reducer';
 import {
@@ -50,6 +49,7 @@ describe('ManagementControllerServices', () => {
                         level: 'INFO',
                         message: 'Test bulletin',
                         timestamp: '12:00:00 UTC',
+                        timestampIso: '2023-10-08T12:00:00.000Z',
                         sourceId: 'test-controller-service-id',
                         groupId: 'test-group-id',
                         sourceType: 'CONTROLLER_SERVICE',
@@ -58,6 +58,10 @@ describe('ManagementControllerServices', () => {
                 }
             ],
             permissions: {
+                canRead: true,
+                canWrite: true
+            },
+            operatePermissions: {
                 canRead: true,
                 canWrite: true
             },
@@ -74,7 +78,9 @@ describe('ManagementControllerServices', () => {
                     artifact: 'test-bundle',
                     version: '1.0.0'
                 },
+                controllerServiceApis: [],
                 state: 'ENABLED',
+                bulletinLevel: 'WARN',
                 properties: {},
                 descriptors: {},
                 validationErrors: [],
@@ -85,6 +91,7 @@ describe('ManagementControllerServices', () => {
                 multipleVersionsAvailable: false,
                 persistsState: false,
                 restricted: false,
+                supportsSensitiveDynamicProperties: false,
                 validationStatus: 'VALID'
             },
             status: {

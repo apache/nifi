@@ -38,7 +38,7 @@ When executing either the Notify or Node Manager tools in a secured environment 
 
 [[nifi_CLI]]
 == NiFi CLI
-This tool offers a CLI focused on interacting with NiFi and NiFi Registry in order to automate tasks, such as deploying flows from a NIFi Registy to a NiFi instance or managing process groups and cluster nodes.
+This tool offers a CLI focused on interacting with NiFi and NiFi Registry in order to automate tasks, such as deploying flows from a NIFi Registry to a NiFi instance or managing process groups and cluster nodes.
 
 === Usage
 The CLI toolkit can be executed in standalone mode to execute a single command, or interactive mode to enter an interactive shell.

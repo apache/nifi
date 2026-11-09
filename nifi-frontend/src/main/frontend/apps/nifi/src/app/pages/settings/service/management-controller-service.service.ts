@@ -16,7 +16,7 @@
  */
 
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { defer, Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import {
     ConfigureControllerServiceRequest,
@@ -25,11 +25,11 @@ import {
 import { Client } from '../../../service/client.service';
 import {
     ControllerServiceCreator,
-    ControllerServiceEntity,
     CreateControllerServiceRequest,
     PropertyDescriptorRetriever
 } from '../../../state/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
+import { ControllerServiceEntity, safeApiPath } from '@nifi/shared';
 
 @Injectable({ providedIn: 'root' })
 export class ManagementControllerServiceService implements ControllerServiceCreator, PropertyDescriptorRetriever {
@@ -57,11 +57,14 @@ export class ManagementControllerServiceService implements ControllerServiceCrea
         });
     }
 
-    getControllerService(id: string): Observable<any> {
+    getControllerService(id: string): Observable<ControllerServiceEntity> {
         const uiOnly: any = { uiOnly: true };
-        return this.httpClient.get(`${ManagementControllerServiceService.API}/controller-services/${id}`, {
-            params: uiOnly
-        });
+        return defer(() =>
+            this.httpClient.get<ControllerServiceEntity>(
+                `${ManagementControllerServiceService.API}/controller-services/${safeApiPath(id)}`,
+                { params: uiOnly }
+            )
+        );
     }
 
     getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {
@@ -69,15 +72,20 @@ export class ManagementControllerServiceService implements ControllerServiceCrea
             propertyName,
             sensitive
         };
-        return this.httpClient.get(`${ManagementControllerServiceService.API}/controller-services/${id}/descriptors`, {
-            params
-        });
+        return defer(() =>
+            this.httpClient.get(
+                `${ManagementControllerServiceService.API}/controller-services/${safeApiPath(id)}/descriptors`,
+                { params }
+            )
+        );
     }
 
     updateControllerService(configureControllerService: ConfigureControllerServiceRequest): Observable<any> {
-        return this.httpClient.put(
-            `${ManagementControllerServiceService.API}/controller-services/${configureControllerService.id}`,
-            configureControllerService.payload
+        return defer(() =>
+            this.httpClient.put(
+                `${ManagementControllerServiceService.API}/controller-services/${safeApiPath(configureControllerService.id)}`,
+                configureControllerService.payload
+            )
         );
     }
 
@@ -89,18 +97,23 @@ export class ManagementControllerServiceService implements ControllerServiceCrea
                 disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
             }
         });
-        return this.httpClient.delete(`${ManagementControllerServiceService.API}/controller-services/${entity.id}`, {
-            params
-        });
+        return defer(() =>
+            this.httpClient.delete(
+                `${ManagementControllerServiceService.API}/controller-services/${safeApiPath(entity.id)}`,
+                { params }
+            )
+        );
     }
 
     clearBulletins(request: { id: string; fromTimestamp: string }): Observable<any> {
         const payload = {
             fromTimestamp: request.fromTimestamp
         };
-        return this.httpClient.post(
-            `${ManagementControllerServiceService.API}/controller-services/${request.id}/bulletins/clear-requests`,
-            payload
+        return defer(() =>
+            this.httpClient.post(
+                `${ManagementControllerServiceService.API}/controller-services/${safeApiPath(request.id)}/bulletins/clear-requests`,
+                payload
+            )
         );
     }
 }

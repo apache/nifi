@@ -153,7 +153,7 @@ import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
         """
 )
 @UseCase(
-    description = "Keep only specific fields in a a Record, where the names of the fields to keep are known",
+    description = "Keep only specific fields in a Record, where the names of the fields to keep are known",
     keywords = {"keep", "filter", "retain", "select", "include", "record", "fields", "sql"},
     configuration = """
         "Record Reader" should be set to a Record Reader that is appropriate for your data.

@@ -141,6 +141,13 @@ public class ManagedStateProvider implements StateProvider {
     }
 
     @Override
+    public void patchState(final Map<String, String> updatedState, final String componentId) throws IOException {
+        try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
+            stateProvider.patchState(updatedState, componentId);
+        }
+    }
+
+    @Override
     public void clear(final String componentId) throws IOException {
         try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
             stateProvider.clear(componentId);

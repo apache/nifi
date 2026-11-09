@@ -28,14 +28,33 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Serializes component state for the write-ahead log. Full records, which are used for snapshots, always hold the whole state map.
+ * Starting with version 1, an edit in the journal holds either the whole state map or only the patches. An edit that holds
+ * only the patches is applied on top of the component's previous record when the journal is recovered. Version 0 edits always
+ * hold the whole state map, in the same layout as full records.
+ */
 public class StateMapSerDe implements SerDe<StateMapUpdate> {
     private static final long EMPTY_VERSION = -1;
 
-    private static final int VERSION = 0;
+    private static final int PATCHES_VERSION = 1;
+    private static final int VERSION = PATCHES_VERSION;
 
     @Override
     public void serializeEdit(final StateMapUpdate previousRecordState, final StateMapUpdate newRecordState, final DataOutputStream out) throws IOException {
-        serializeRecord(newRecordState, out);
+        out.writeUTF(newRecordState.getComponentId());
+        out.writeUTF(newRecordState.getUpdateType().name());
+        if (newRecordState.getUpdateType() == UpdateType.DELETE) {
+            return;
+        }
+
+        // Only the patches can be written if the journal is able to recover the previous record to apply them to
+        final boolean writePatchesOnly = newRecordState.getPatches() != null && previousRecordState != null && previousRecordState.getStateMap() != null;
+        out.writeBoolean(writePatchesOnly);
+
+        final StateMap stateMap = newRecordState.getStateMap();
+        out.writeLong(stateMap.getStateVersion().map(Long::parseLong).orElse(EMPTY_VERSION));
+        writeEntries(writePatchesOnly ? newRecordState.getPatches() : stateMap.toMap(), out);
     }
 
     @Override
@@ -49,8 +68,10 @@ public class StateMapSerDe implements SerDe<StateMapUpdate> {
         final StateMap stateMap = record.getStateMap();
         final long recordVersion = stateMap.getStateVersion().map(Long::parseLong).orElse(EMPTY_VERSION);
         out.writeLong(recordVersion);
+        writeEntries(stateMap.toMap(), out);
+    }
 
-        final Map<String, String> map = stateMap.toMap();
+    private void writeEntries(final Map<String, String> map, final DataOutputStream out) throws IOException {
         out.writeInt(map.size());
         for (final Map.Entry<String, String> entry : map.entrySet()) {
             final boolean hasKey = entry.getKey() != null;
@@ -69,7 +90,30 @@ public class StateMapSerDe implements SerDe<StateMapUpdate> {
 
     @Override
     public StateMapUpdate deserializeEdit(final DataInputStream in, final Map<Object, StateMapUpdate> currentRecordStates, final int version) throws IOException {
-        return deserializeRecord(in, version);
+        if (version < PATCHES_VERSION) {
+            return deserializeRecord(in, version);
+        }
+
+        final String componentId = in.readUTF();
+        final UpdateType updateType = UpdateType.valueOf(in.readUTF());
+        if (updateType == UpdateType.DELETE) {
+            return new StateMapUpdate(null, componentId, updateType);
+        }
+
+        final boolean patchesOnly = in.readBoolean();
+        final String stateVersion = String.valueOf(in.readLong());
+        final Map<String, String> entries = readEntries(in);
+        if (!patchesOnly) {
+            return new StateMapUpdate(new StandardStateMap(entries, Optional.of(stateVersion)), componentId, updateType);
+        }
+
+        final StateMapUpdate previousRecord = currentRecordStates.get(componentId);
+        if (previousRecord == null || previousRecord.getStateMap() == null) {
+            throw new IOException("Journal holds state patches for component " + componentId + " but no previous state was recovered for that component");
+        }
+
+        final Map<String, String> patchedState = previousRecord.getStateMap().toMap(entries);
+        return new StateMapUpdate(new StandardStateMap(patchedState, Optional.of(stateVersion)), componentId, updateType);
     }
 
     @Override
@@ -82,18 +126,23 @@ public class StateMapSerDe implements SerDe<StateMapUpdate> {
         }
 
         final long recordVersion = in.readLong();
+        final Map<String, String> stateValues = readEntries(in);
+        final String stateVersion = String.valueOf(recordVersion);
+        return new StateMapUpdate(new StandardStateMap(stateValues, Optional.of(stateVersion)), componentId, updateType);
+    }
+
+    private Map<String, String> readEntries(final DataInputStream in) throws IOException {
         final int numEntries = in.readInt();
-        final Map<String, String> stateValues = new HashMap<>(numEntries);
+        final Map<String, String> entries = new HashMap<>(numEntries);
         for (int i = 0; i < numEntries; i++) {
             final boolean hasKey = in.readBoolean();
             final String key = hasKey ? in.readUTF() : null;
             final boolean hasValue = in.readBoolean();
             final String value = hasValue ? in.readUTF() : null;
-            stateValues.put(key, value);
+            entries.put(key, value);
         }
 
-        final String stateVersion = String.valueOf(recordVersion);
-        return new StateMapUpdate(new StandardStateMap(stateValues, Optional.of(stateVersion)), componentId, updateType);
+        return entries;
     }
 
     @Override

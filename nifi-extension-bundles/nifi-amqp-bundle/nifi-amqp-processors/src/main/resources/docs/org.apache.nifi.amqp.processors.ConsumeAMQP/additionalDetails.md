@@ -26,7 +26,7 @@ may also help you to brush up on some of the AMQP basics.
 
 This processor does two things. It constructs FlwFile by extracting information from the consumed AMQP message (both
 body and attributes). Once message is consumed a FlowFile is constructed. The message body is written to a FlowFile and
-its _com.rabbitmq.client.AMQP.BasicProperties_ are transfered into the FlowFile as attributes. AMQP attribute names are
+its _com.rabbitmq.client.AMQP.BasicProperties_ are transferred into the FlowFile as attributes. AMQP attribute names are
 prefixed with _amqp$_ prefix.
 
 ## AMQP Properties

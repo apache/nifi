@@ -68,7 +68,7 @@ environment variable that doesn't match the pattern 'command.argument.<commandIn
 
 Consider that we want to execute a Maven command with the processor. If there are multiple Java versions installed on
 the system, you can specify which version will be used by setting the `JAVA_HOME` environment variable. The output
-FlowFile will looke like this if we run `mvn` command with `--version` argument:
+FlowFile will look like this if we run `mvn` command with `--version` argument:
 
 ```
 Apache Maven 3.8.6 (84538c9988a25aec085021c365c560670ad80f63) 

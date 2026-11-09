@@ -23,7 +23,6 @@ import org.eclipse.jetty.rewrite.handler.Rule;
 import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.util.Callback;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -53,7 +52,7 @@ public class ContextPathRedirectPatternRule extends RedirectPatternRule {
     }
 
     @Override
-    public Rule.Handler apply(Rule.Handler input) throws IOException {
+    public Rule.Handler apply(Rule.Handler input) {
         return new Rule.Handler(input) {
             @Override
             protected boolean handle(Response response, Callback callback) {

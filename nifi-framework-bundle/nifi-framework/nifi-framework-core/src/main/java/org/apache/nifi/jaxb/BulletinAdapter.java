@@ -25,7 +25,7 @@ import org.apache.nifi.reporting.Bulletin;
 public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
 
     @Override
-    public Bulletin unmarshal(final AdaptedBulletin b) throws Exception {
+    public Bulletin unmarshal(final AdaptedBulletin b) {
         if (b == null) {
             return null;
         }
@@ -42,7 +42,7 @@ public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
     }
 
     @Override
-    public AdaptedBulletin marshal(final Bulletin b) throws Exception {
+    public AdaptedBulletin marshal(final Bulletin b) {
         if (b == null) {
             return null;
         }

@@ -341,7 +341,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public long getContainerUsableSpace(String containerName) throws IOException {
+    public long getContainerUsableSpace(String containerName) {
         Map<String, File> map = config.getStorageDirectories();
 
         File container = map.get(containerName);

@@ -108,6 +108,7 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
         private String username;
         private String password;
         private SSLContextProvider sslContextProvider;
+        private String passivePortRange;
 
         public Builder sessionFactory(AtomicReference<ProcessSessionFactory> sessionFactory) {
             this.sessionFactory = sessionFactory;
@@ -153,6 +154,11 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
             return this;
         }
 
+        public Builder passivePortRange(String passivePortRange) {
+            this.passivePortRange = passivePortRange;
+            return this;
+        }
+
         public NifiFtpServer build() throws ProcessException {
             try {
                 boolean anonymousLoginEnabled = (username == null);
@@ -161,7 +167,7 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
                 CommandMapFactory commandMapFactory = new CommandMapFactory(sessionFactory, sessionFactorySetSignal, relationshipSuccess);
                 Map<String, Command> commandMap = commandMapFactory.createCommandMap();
                 ConnectionConfig connectionConfig = createConnectionConfig(anonymousLoginEnabled);
-                Listener listener = createListener(bindAddress, port, sslContextProvider);
+                Listener listener = createListener(bindAddress, port, sslContextProvider, passivePortRange);
                 User user = createUser(username, password, HOME_DIRECTORY);
 
                 return new NifiFtpServer(commandMap, fileSystemFactory, connectionConfig, listener, user);
@@ -176,10 +182,16 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
             return connectionConfigFactory.createConnectionConfig();
         }
 
-        private Listener createListener(String bindAddress, int port, SSLContextProvider sslContextProvider) throws FtpServerConfigurationException {
+        private Listener createListener(String bindAddress, int port, SSLContextProvider sslContextProvider, String passivePortRange) throws FtpServerConfigurationException {
             ListenerFactory listenerFactory = new ListenerFactory();
             listenerFactory.setServerAddress(bindAddress);
             listenerFactory.setPort(port);
+
+            DataConnectionConfigurationFactory dataConnectionConfigurationFactory = new DataConnectionConfigurationFactory();
+            if (passivePortRange != null) {
+                dataConnectionConfigurationFactory.setPassivePorts(passivePortRange);
+            }
+
             if (sslContextProvider != null) {
                 final SSLContext sslContext = sslContextProvider.createContext();
                 SslConfiguration sslConfiguration = new StandardSslConfiguration(sslContext);
@@ -189,12 +201,12 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
                 listenerFactory.setImplicitSsl(true);
 
                 // Set implicit security for the data connection
-                DataConnectionConfigurationFactory dataConnectionConfigurationFactory = new DataConnectionConfigurationFactory();
                 dataConnectionConfigurationFactory.setImplicitSsl(true);
                 dataConnectionConfigurationFactory.setSslConfiguration(sslConfiguration);
-                DataConnectionConfiguration dataConnectionConfiguration = dataConnectionConfigurationFactory.createDataConnectionConfiguration();
-                listenerFactory.setDataConnectionConfiguration(dataConnectionConfiguration);
             }
+
+            DataConnectionConfiguration dataConnectionConfiguration = dataConnectionConfigurationFactory.createDataConnectionConfiguration();
+            listenerFactory.setDataConnectionConfiguration(dataConnectionConfiguration);
             return listenerFactory.createListener();
         }
 

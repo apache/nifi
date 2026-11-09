@@ -20,7 +20,6 @@ package org.apache.nifi.minifi.bootstrap.service;
 import org.apache.nifi.minifi.properties.BootstrapProperties;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -92,9 +91,8 @@ public class MiNiFiExecCommandProvider {
      * @param listenPort the port where the Bootstrap process is listening
      * @param workingDir working dir of the MiNiFi
      * @return the list of arguments to start the process
-     * @throws IOException throws IOException if any of the configuration file read fails
      */
-    public List<String> getMiNiFiExecCommand(int listenPort, File workingDir) throws IOException {
+    public List<String> getMiNiFiExecCommand(int listenPort, File workingDir) {
         BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
 
         File confDir = getFile(bootstrapProperties.getProperty(CONF_DIR_KEY, DEFAULT_CONF_DIR).trim(), workingDir);

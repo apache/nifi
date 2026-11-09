@@ -88,6 +88,12 @@ public class StandardStateManager implements StateManager {
     }
 
     @Override
+    public void patchState(final Map<String, String> updatedState, final Scope scope) throws IOException {
+        getLogger(componentId).debug("Patching {} State with {}", scope, updatedState);
+        getProvider(scope).patchState(updatedState, componentId);
+    }
+
+    @Override
     public void clear(final Scope scope) throws IOException {
         getLogger(componentId).debug("Clearing {} State", scope);
         getProvider(scope).clear(componentId);

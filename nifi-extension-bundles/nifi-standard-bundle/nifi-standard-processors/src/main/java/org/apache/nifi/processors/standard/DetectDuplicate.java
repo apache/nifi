@@ -257,7 +257,7 @@ public class DetectDuplicate extends AbstractProcessor {
 
         @Override
         @SuppressWarnings("PMD.UnnecessaryCast")
-        public CacheValue deserialize(final byte[] input) throws DeserializationException, IOException {
+        public CacheValue deserialize(final byte[] input) throws DeserializationException {
             if (input.length == 0) {
                 return null;
             }

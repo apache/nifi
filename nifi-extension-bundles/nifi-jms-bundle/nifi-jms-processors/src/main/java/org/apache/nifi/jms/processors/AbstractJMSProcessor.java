@@ -122,7 +122,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
     static final PropertyDescriptor CF_SERVICE = new PropertyDescriptor.Builder()
             .name("Connection Factory Service")
             .description("The Controller Service that is used to obtain Connection Factory. Alternatively, the 'JNDI *' or the 'JMS *' properties " +
-                    "can also be be used to configure the Connection Factory.")
+                    "can also be used to configure the Connection Factory.")
             .required(false)
             .identifiesControllerService(JMSConnectionFactoryProviderDefinition.class)
             .build();

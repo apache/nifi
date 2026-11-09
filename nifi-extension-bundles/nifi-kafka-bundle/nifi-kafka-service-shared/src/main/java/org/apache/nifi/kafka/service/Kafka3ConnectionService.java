@@ -67,7 +67,9 @@ import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvi
 import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextProvider;
 
@@ -108,7 +110,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .displayName("Transaction Isolation Level")
             .description("""
                     Specifies how the service should handle transaction isolation levels when communicating with Kafka.
-                    The uncommited option means that messages will be received as soon as they are written to Kafka but will be pulled, even if the producer cancels the transactions.
+                    The uncommitted option means that messages will be received as soon as they are written to Kafka but will be pulled, even if the producer cancels the transactions.
                     The committed option configures the service to not receive any messages for which the producer's transaction was canceled, but this can result in some latency since the
                     consumer must wait for the producer to finish its entire transaction instead of pulling as the messages become available.
                     Corresponds to Kafka isolation.level property.
@@ -126,6 +128,32 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .required(true)
             .defaultValue("10000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor MAX_PARTITION_FETCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Max Partition Fetch Size")
+            .description("""
+                    Maximum amount of data that the broker returns for each partition in a single fetch.
+                    When a consumer is assigned only a few partitions, this limit determines how much data each poll returns and how much each consumer holds in memory.
+                    A record batch larger than the limit is still returned so that the consumer can make progress.
+                    Corresponds to Kafka max.partition.fetch.bytes property.
+                    """)
+            .required(true)
+            .defaultValue("1 MB")
+            .addValidator(StandardValidators.createDataSizeBoundsValidator(0, Integer.MAX_VALUE))
+            .build();
+
+    public static final PropertyDescriptor MAX_FETCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Max Fetch Size")
+            .description("""
+                    Maximum amount of data that the broker returns for a single fetch request across all partitions.
+                    Applies only when the per-partition limits of the partitions fetched from one broker add up to more than this value.
+                    A record batch larger than the limit is still returned so that the consumer can make progress.
+                    Corresponds to Kafka fetch.max.bytes property.
+                    """)
+            .required(true)
+            .defaultValue("50 MB")
+            .addValidator(StandardValidators.createDataSizeBoundsValidator(0, Integer.MAX_VALUE))
             .build();
 
     public static final PropertyDescriptor CLIENT_TIMEOUT = new PropertyDescriptor.Builder()
@@ -176,12 +204,16 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             SSL_CONTEXT_SERVICE,
             TRANSACTION_ISOLATION_LEVEL,
             MAX_POLL_RECORDS,
+            MAX_PARTITION_FETCH_SIZE,
+            MAX_FETCH_SIZE,
             CLIENT_TIMEOUT,
             METADATA_WAIT_TIME,
             ACK_WAIT_TIME
     );
 
     private static final KafkaConnectionVerifier kafkaConnectionVerifier = new KafkaConnectionVerifier();
+
+    private static final Pattern BYTES_PATTERN = Pattern.compile("\\d+");
 
     /**
      * Bound applied to the Admin client used only for backlog determination, in place of the
@@ -255,6 +287,21 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
                 .dynamic(true)
                 .expressionLanguageSupported(expressionLanguageScope)
                 .build();
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        migrateBytesProperty(config, ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG, MAX_PARTITION_FETCH_SIZE);
+        migrateBytesProperty(config, ConsumerConfig.FETCH_MAX_BYTES_CONFIG, MAX_FETCH_SIZE);
+    }
+
+    private void migrateBytesProperty(final PropertyConfiguration config, final String bytesPropertyName, final PropertyDescriptor dataSizeProperty) {
+        if (config.renameProperty(bytesPropertyName, dataSizeProperty.getName())) {
+            config.getRawPropertyValue(dataSizeProperty)
+                    .map(String::trim)
+                    .filter(value -> BYTES_PATTERN.matcher(value).matches())
+                    .ifPresent(value -> config.setProperty(dataSizeProperty, value + " B"));
+        }
     }
 
     @Override
@@ -489,6 +536,12 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
         final IsolationLevel isolationLevel = propertyContext.getProperty(TRANSACTION_ISOLATION_LEVEL).asAllowableValue(IsolationLevel.class);
         properties.put(TRANSACTION_ISOLATION_LEVEL.getName(), isolationLevel.getValue());
+
+        final int maxPartitionFetchSize = propertyContext.getProperty(MAX_PARTITION_FETCH_SIZE).asDataSize(DataUnit.B).intValue();
+        properties.put(ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG, maxPartitionFetchSize);
+
+        final int maxFetchSize = propertyContext.getProperty(MAX_FETCH_SIZE).asDataSize(DataUnit.B).intValue();
+        properties.put(ConsumerConfig.FETCH_MAX_BYTES_CONFIG, maxFetchSize);
 
         return properties;
     }

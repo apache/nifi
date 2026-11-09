@@ -214,7 +214,7 @@ NOTE: Setting a port between 1 - 1024 requires `root` access on *nix systems
 
 Apache NiFi requires link:https://en.wikipedia.org/wiki/Transport_Layer_Security[Transport Layer Security (TLS)^] configuration for multiple reasons.
 
-. To encrypt communication between clients and server (this provides confidentialty and integrity over transmitted data)
+. To encrypt communication between clients and server (this provides confidentiality and integrity over transmitted data)
 . To prevent malicious users from intercepting data or impersonating the server
 . To enable any authentication & authorization mechanisms
 

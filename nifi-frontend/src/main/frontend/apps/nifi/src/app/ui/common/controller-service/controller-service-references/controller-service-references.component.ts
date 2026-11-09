@@ -16,17 +16,17 @@
  */
 
 import { Component, Input, inject } from '@angular/core';
-import {
-    BulletinsTipInput,
-    ControllerServiceReferencingComponent,
-    ControllerServiceReferencingComponentEntity,
-    ValidationErrorsTipInput
-} from '../../../../state/shared';
+import { BulletinsTipInput, ValidationErrorsTipInput } from '../../../../state/shared';
 import { MatTreeModule } from '@angular/material/tree';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
-import { NifiTooltipDirective, NiFiCommon } from '@nifi/shared';
+import {
+    ControllerServiceReferencingComponentDTO,
+    ControllerServiceReferencingComponentEntity,
+    NifiTooltipDirective,
+    NiFiCommon
+} from '@nifi/shared';
 import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/validation-errors-tip.component';
 import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -50,7 +50,7 @@ export class ControllerServiceReferences {
 
     @Input() disabledLinks = false;
     @Input() serviceReferences!: ControllerServiceReferencingComponentEntity[];
-    @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
+    @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponentDTO) => void;
 
     protected readonly ValidationErrorsTip = ValidationErrorsTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -61,26 +61,26 @@ export class ControllerServiceReferences {
 
     getReferencesByType(references: ControllerServiceReferencingComponentEntity[], referenceType: string) {
         return references.filter(
-            (reference) => reference.permissions.canRead && reference.component.referenceType == referenceType
+            (reference) => reference.permissions.canRead && reference.component?.referenceType === referenceType
         );
     }
 
-    isServiceInvalid(reference: ControllerServiceReferencingComponent): boolean {
+    isServiceInvalid(reference: ControllerServiceReferencingComponentDTO): boolean {
         return reference.state == 'DISABLED' && !this.nifiCommon.isEmpty(reference.validationErrors);
     }
 
-    isNonServiceInvalid(reference: ControllerServiceReferencingComponent): boolean {
+    isNonServiceInvalid(reference: ControllerServiceReferencingComponentDTO): boolean {
         return reference.state == 'STOPPED' && !this.nifiCommon.isEmpty(reference.validationErrors);
     }
 
-    getValidationErrorTipData(reference: ControllerServiceReferencingComponent): ValidationErrorsTipInput {
+    getValidationErrorTipData(reference: ControllerServiceReferencingComponentDTO): ValidationErrorsTipInput {
         return {
             isValidating: false,
-            validationErrors: reference.validationErrors
+            validationErrors: reference.validationErrors ?? []
         };
     }
 
-    getNonServiceStateIcon(reference: ControllerServiceReferencingComponent): string {
+    getNonServiceStateIcon(reference: ControllerServiceReferencingComponentDTO): string {
         if (reference.state == 'STOPPED') {
             return 'stopped fa fa-stop error-color-variant';
         } else if (reference.state == 'RUNNING') {
@@ -90,7 +90,7 @@ export class ControllerServiceReferences {
         }
     }
 
-    getServiceStateIcon(reference: ControllerServiceReferencingComponent): string {
+    getServiceStateIcon(reference: ControllerServiceReferencingComponentDTO): string {
         if (reference.state == 'ENABLED') {
             return 'enabled fa fa-flash success-color-variant';
         } else {
@@ -98,7 +98,7 @@ export class ControllerServiceReferences {
         }
     }
 
-    goToReferencingComponentClicked(event: MouseEvent, component: ControllerServiceReferencingComponent) {
+    goToReferencingComponentClicked(event: MouseEvent, component: ControllerServiceReferencingComponentDTO) {
         event.stopPropagation();
         this.goToReferencingComponent(component);
     }
@@ -109,15 +109,15 @@ export class ControllerServiceReferences {
 
     getBulletinsTipData(entity: ControllerServiceReferencingComponentEntity): BulletinsTipInput {
         return {
-            bulletins: entity.bulletins
+            bulletins: entity.bulletins ?? []
         };
     }
 
     getBulletinSeverityClass(entity: ControllerServiceReferencingComponentEntity): string {
-        return this.nifiCommon.getBulletinSeverityClass(entity.bulletins);
+        return this.nifiCommon.getBulletinSeverityClass(entity.bulletins ?? []);
     }
 
-    hasActiveThreads(reference: ControllerServiceReferencingComponent): boolean {
+    hasActiveThreads(reference: ControllerServiceReferencingComponentDTO): boolean {
         return reference.activeThreadCount != null && reference.activeThreadCount > 0;
     }
 }

@@ -22,6 +22,7 @@ import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.coordination.node.OffloadCode;
+import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.FlowController;
@@ -62,6 +63,11 @@ public class ClusterDecommissionTask implements DecommissionTask {
             throw new IllegalStateException("Node has not yet connected to the cluster");
         }
 
+        final Set<NodeIdentifier> connectedNodeIds = clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED);
+        if (connectedNodeIds.size() == 1 && connectedNodeIds.contains(localNodeIdentifier)) {
+            throw new IllegalStateException("Cannot decommission Node because it is the only Node currently connected to the cluster");
+        }
+
         final boolean wasCoordinator = clusterCoordinator.isActiveClusterCoordinator();
         final NodeIdentifier coordinatorId = clusterCoordinator.getElectedActiveCoordinatorNode();
         if (wasCoordinator) {
@@ -72,7 +78,15 @@ public class ClusterDecommissionTask implements DecommissionTask {
         flowController.setClustered(false, null);
         logger.info("Instructed FlowController to stop sending heartbeats to Cluster Coordinator and take Cluster Disconnect actions");
 
-        disconnectNode();
+        try {
+            disconnectNode();
+        } catch (final IllegalNodeDisconnectionException e) {
+            logger.warn("Cluster Coordinator rejected disconnect request; restoring clustered state and heartbeats", e);
+            flowController.setClustered(true, null);
+            flowController.startHeartbeating();
+            throw e;
+        }
+
         logger.info("Requested that node be disconnected from cluster");
 
         waitForDisconnection();
@@ -125,7 +139,7 @@ public class ClusterDecommissionTask implements DecommissionTask {
                 break;
             } catch (final ExecutionException e) {
                 final Throwable cause = e.getCause();
-                logger.error("Failed when attempting to disconnect node from cluster", cause);
+                logger.error("Failed when attempting to offload node", cause);
             }
         }
 

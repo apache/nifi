@@ -1576,7 +1576,7 @@ Qualified class name: `org.apache.nifi.registry.provider.extension.FileSystemBun
 
 ==== S3BundlePersistenceProvider
 
-The `S3BundlePersistenceProvider` stores the content of extension bundles in a AWS S3 bucket. The bucket is expected to already exist and be accessible to the credentials provided to the persistence providcer.
+The `S3BundlePersistenceProvider` stores the content of extension bundles in a AWS S3 bucket. The bucket is expected to already exist and be accessible to the credentials provided to the persistence provider.
 
 NOTE: This provider must be added to the classpath by specifying a custom extension directory in _nifi-registry.properties_, such as `nifi.registry.extension.dir.aws=./ext/aws/lib`, where `./ext/aws/` contains the contents of the extracted _nifi-registry-aws-assembly-<version>-bin.zip_.
 
@@ -1604,7 +1604,7 @@ Qualified class name: `org.apache.nifi.registry.aws.S3BundlePersistenceProvider`
 |====
 
 == Event Hooks
-Event hooks are an integration point that allows for custom code to to be triggered when NiFi Registry application events occur.
+Event hooks are an integration point that allows for custom code to be triggered when NiFi Registry application events occur.
 
 [options="header,footer"]
 |==================================================================================================================================================

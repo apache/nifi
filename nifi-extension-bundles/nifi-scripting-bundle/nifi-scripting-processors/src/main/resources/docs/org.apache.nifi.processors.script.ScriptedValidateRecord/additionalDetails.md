@@ -17,7 +17,7 @@
 
 ### Description
 
-The ScriptedValidateRecord Processor provides the ability to use a scripting language, such as Groovy or Jyton in order
+The ScriptedValidateRecord Processor provides the ability to use a scripting language, such as Groovy or Jython in order
 to validate Records in an incoming FlowFile. The provided script will be evaluated against each Record in an incoming
 FlowFile. Each of those records will then be routed to either the "valid" or "invalid" FlowFile. As a result, each
 incoming FlowFile may be broken up into two individual FlowFiles (if some records are valid and some are invalid,
@@ -96,7 +96,7 @@ return recordIndex < 2 ? true : false
 ### Validating based on Record contents
 
 The following script will filter the Records based on their content. Any Records satisfies the condition will be part of
-the FlowFile routed to the `valid` Relationship, others wil lbe routed to the `invalid` Relationship.
+the FlowFile routed to the `valid` Relationship, others will lbe routed to the `invalid` Relationship.
 
 Example Input (JSON):
 

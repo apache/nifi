@@ -173,17 +173,17 @@ public class XmlBxmlNodeVisitor implements BxmlNodeVisitor {
         }
 
         @Override
-        public void visit(VariantTypeNode variantTypeNode) throws IOException {
+        public void visit(VariantTypeNode variantTypeNode) {
             value = variantTypeNode.getValue();
         }
 
         @Override
-        public void visit(NormalSubstitutionNode normalSubstitutionNode) throws IOException {
+        public void visit(NormalSubstitutionNode normalSubstitutionNode) {
             value = substitutions.get(normalSubstitutionNode.getIndex()).getValue();
         }
 
         @Override
-        public void visit(ConditionalSubstitutionNode conditionalSubstitutionNode) throws IOException {
+        public void visit(ConditionalSubstitutionNode conditionalSubstitutionNode) {
             value = substitutions.get(conditionalSubstitutionNode.getIndex()).getValue();
         }
     }

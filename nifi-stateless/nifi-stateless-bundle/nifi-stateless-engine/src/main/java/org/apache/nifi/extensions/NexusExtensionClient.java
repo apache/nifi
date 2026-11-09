@@ -34,7 +34,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -118,7 +117,7 @@ public class NexusExtensionClient implements ExtensionClient {
         return webClientService;
     }
 
-    private String resolveUrl(final BundleCoordinate bundleCoordinate) throws UnsupportedEncodingException {
+    private String resolveUrl(final BundleCoordinate bundleCoordinate) {
         final StringBuilder sb = new StringBuilder(baseUrl);
         if (!baseUrl.endsWith("/")) {
             sb.append("/");

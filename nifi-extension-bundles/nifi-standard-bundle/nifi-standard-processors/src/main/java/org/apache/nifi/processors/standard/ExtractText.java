@@ -166,7 +166,7 @@ public class ExtractText extends AbstractProcessor {
     public static final PropertyDescriptor MULTILINE = new PropertyDescriptor.Builder()
             .name("Enable Multiline Mode")
             .description("Indicates that '^' and '$' should match just after and just before a line terminator or end of sequence, instead of "
-                    + "only the beginning or end of the entire input.  Can also be specified via the embeded flag (?m).")
+                    + "only the beginning or end of the entire input.  Can also be specified via the embedded flag (?m).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")

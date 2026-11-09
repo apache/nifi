@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ControllerServiceEntity } from '../../../../state/shared';
+import { ControllerServiceEntity } from '@nifi/shared';
 
 export const managementControllerServicesFeatureKey = 'managementControllerServices';
 

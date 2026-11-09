@@ -49,7 +49,7 @@ public class LocalDirectoryNarProvider implements ExternalResourceProvider {
     }
 
     @Override
-    public Collection<ExternalResourceDescriptor> listResources() throws IOException {
+    public Collection<ExternalResourceDescriptor> listResources() {
         return Arrays.stream(sourceDir.listFiles((dir, name) -> name.endsWith(".nar")))
                 .map(this::createDescriptor)
                 .collect(Collectors.toList());

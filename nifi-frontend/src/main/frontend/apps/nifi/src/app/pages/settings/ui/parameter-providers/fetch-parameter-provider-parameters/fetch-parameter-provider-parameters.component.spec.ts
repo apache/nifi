@@ -16,6 +16,7 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 
 import { FetchParameterProviderParameters } from './fetch-parameter-provider-parameters.component';
 import { FetchParameterProviderDialogRequest } from '../../../state/parameter-providers';
@@ -26,6 +27,7 @@ import { parameterProvidersFeatureKey } from '../../../state/parameter-providers
 import { settingsFeatureKey } from '../../../state';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
+import { EllipsisTooltipDirective } from '@nifi/shared';
 import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
 import { errorFeatureKey } from '../../../../../state/error';
 
@@ -190,5 +192,68 @@ describe('FetchParameterProviderParameters', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should render each sensitive-selection parameter name for the ellipsis tooltip', () => {
+        const nameCells: HTMLElement[] = Array.from(
+            fixture.nativeElement.querySelectorAll('[data-qa="parameter-name"]')
+        );
+
+        expect(nameCells.map((cell) => cell.textContent?.trim())).toEqual(['bytes', 'password', 'username']);
+        for (const cell of nameCells) {
+            expect(cell.classList.contains('truncate')).toBe(true);
+            expect(cell.hasAttribute('ellipsistooltip')).toBe(true);
+        }
+    });
+
+    describe('fetched parameter list', () => {
+        let unsyncedFixture: ComponentFixture<FetchParameterProviderParameters>;
+
+        const longName = 'Company Private Key Service Account';
+
+        beforeEach(() => {
+            TestBed.resetTestingModule();
+            const unsynced: FetchParameterProviderDialogRequest = structuredClone(data);
+            const group = unsynced.parameterProvider.component.parameterGroupConfigurations[0];
+            group.synchronized = false;
+            group.parameterSensitivities = {
+                [longName]: 'NON_SENSITIVE'
+            };
+
+            TestBed.configureTestingModule({
+                imports: [FetchParameterProviderParameters, NoopAnimationsModule],
+                providers: [
+                    {
+                        provide: MAT_DIALOG_DATA,
+                        useValue: unsynced
+                    },
+                    provideMockStore({
+                        initialState: {
+                            [errorFeatureKey]: initialErrorState,
+                            [settingsFeatureKey]: {
+                                [parameterProvidersFeatureKey]: initialParameterProvidersState
+                            }
+                        }
+                    }),
+                    {
+                        provide: ClusterConnectionService,
+                        useValue: {
+                            isDisconnectionAcknowledged: vi.fn()
+                        }
+                    },
+                    { provide: MatDialogRef, useValue: null }
+                ]
+            });
+            unsyncedFixture = TestBed.createComponent(FetchParameterProviderParameters);
+            unsyncedFixture.detectChanges();
+        });
+
+        it('should truncate a long fetched parameter name and attach the ellipsis tooltip', () => {
+            const listItem = unsyncedFixture.debugElement.query(By.css('li.truncate'));
+
+            expect(listItem.nativeElement.textContent?.trim()).toBe(longName);
+            expect(listItem.nativeElement.classList.contains('truncate')).toBe(true);
+            expect(listItem.injector.get(EllipsisTooltipDirective)).toBeTruthy();
+        });
     });
 });

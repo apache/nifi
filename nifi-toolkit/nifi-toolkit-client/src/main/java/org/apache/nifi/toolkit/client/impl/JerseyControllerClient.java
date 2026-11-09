@@ -80,7 +80,7 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
     }
 
     @Override
-    public FlowRegistryClientEntity getRegistryClient(final String id) throws NiFiClientException, IOException {
+    public FlowRegistryClientEntity getRegistryClient(final String id) {
         if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException("Registry client id cannot be null");
         }

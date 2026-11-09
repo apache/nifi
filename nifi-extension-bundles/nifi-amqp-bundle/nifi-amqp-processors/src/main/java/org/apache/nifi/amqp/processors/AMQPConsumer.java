@@ -55,7 +55,7 @@ final class AMQPConsumer extends AMQPWorker {
         final Channel channel = getChannel();
         consumer = new DefaultConsumer(channel) {
             @Override
-            public void handleDelivery(final String consumerTag, final Envelope envelope, final BasicProperties properties, final byte[] body) throws IOException {
+            public void handleDelivery(final String consumerTag, final Envelope envelope, final BasicProperties properties, final byte[] body) {
                 if (closed) {
                     // simply discard the messages, all unacknowledged messages will be redelivered by the broker when the consumer connects again
                     processorLog.info("Consumer is closed, discarding message (delivery tag: {}).", envelope.getDeliveryTag());
@@ -70,7 +70,7 @@ final class AMQPConsumer extends AMQPWorker {
             }
 
             @Override
-            public void handleCancel(String consumerTag) throws IOException {
+            public void handleCancel(String consumerTag) {
                 processorLog.error("Consumer has been cancelled by the broker, eg. due to deleted queue.");
                 try {
                     close();

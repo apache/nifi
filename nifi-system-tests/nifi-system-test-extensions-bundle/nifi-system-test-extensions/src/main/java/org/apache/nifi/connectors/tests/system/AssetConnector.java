@@ -70,7 +70,7 @@ public class AssetConnector extends AbstractConnector {
     }
 
     @Override
-    public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
+    public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
         // No-op: this connector does not manipulate the flow.
     }
 

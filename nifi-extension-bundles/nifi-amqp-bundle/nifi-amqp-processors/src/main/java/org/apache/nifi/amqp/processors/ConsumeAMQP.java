@@ -124,7 +124,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .build();
     public static final PropertyDescriptor HEADER_KEY_PREFIX = new PropertyDescriptor.Builder()
         .name("Header Key Prefix")
-        .description("Text to be prefixed to header keys as the are added to the FlowFile attributes. Processor will append '.' to the value of this property")
+        .description("Text to be prefixed to header keys as they are added to the FlowFile attributes. Processor will append '.' to the value of this property")
         .defaultValue(DEFAULT_HEADERS_KEY_PREFIX)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .dependsOn(HEADER_FORMAT, OutputHeaderFormat.ATTRIBUTES)

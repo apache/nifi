@@ -297,6 +297,37 @@ public class TestJSLTTransformJSON {
         );
     }
 
+    @Test
+    public void testJsonLinesSkipsNullTransformationResults() {
+        final String input = """
+            {"id":1,"event":"deposit","amount":10}
+            {"id":2,"event":"payment_updated","amount":10}
+            {"id":3,"event":"deposit","amount":25}
+            {"id":4,"event":"payment_updated","amount":25}
+            {"id":5,"event":"deposit","amount":40}
+            """;
+
+        runner.setProperty(JSLTTransformJSON.INPUT_FORMAT, JSLTTransformJSON.InputFormat.JSON_LINES);
+        runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM,
+                """
+                    if (.event == "deposit") {"id": .id, "amount": .amount}""");
+
+        runner.enqueue(input);
+        runner.run();
+
+        runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
+        runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
+
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).getFirst();
+        final String expectedJson = """
+                {"id":1,"amount":10}
+                {"id":3,"amount":25}
+                {"id":5,"amount":40}
+                """.trim();
+
+        assertEquals(expectedJson, flowFile.getContent());
+    }
+
     // This test verifies transformCache cleanup does not throw an exception
     @Test
     public void testShutdown() {

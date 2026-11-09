@@ -20,7 +20,6 @@ package org.apache.nifi.cs.tests.system;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -67,7 +66,7 @@ public class MockCSVReader extends AbstractControllerService implements RecordRe
 
         return new RecordReader() {
             @Override
-            public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
+            public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException {
                 String nextLine;
                 final Map<String, Object> values = new HashMap<>();
 

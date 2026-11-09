@@ -415,10 +415,22 @@ class RebaseEngineTest {
                 "oldVal", "newVal", "Property propX changed"));
         localDifferences.add(new StandardFlowDifference(DifferenceType.COMMENTS_CHANGED, processorA, localProcessorA,
                 "old comments", "new comments", "Comments changed"));
+        localDifferences.add(new StandardFlowDifference(DifferenceType.NAME_CHANGED, processorA, localProcessorA,
+                "ProcessorA", "Renamed ProcessorA", "Name changed"));
+        localDifferences.add(new StandardFlowDifference(DifferenceType.CONCURRENT_TASKS_CHANGED, processorA, localProcessorA,
+                1, 6, "Concurrent tasks changed"));
+        localDifferences.add(new StandardFlowDifference(DifferenceType.SCHEDULED_STATE_CHANGED, processorA, localProcessorA,
+                ScheduledState.DISABLED, ScheduledState.ENABLED, "Scheduled state changed"));
+        localDifferences.add(new StandardFlowDifference(DifferenceType.SCHEDULING_STRATEGY_CHANGED, processorA, localProcessorA,
+                "TIMER_DRIVEN", "CRON_DRIVEN", "Scheduling strategy changed"));
+        localDifferences.add(new StandardFlowDifference(DifferenceType.RUN_SCHEDULE_CHANGED, processorA, localProcessorA,
+                "1 min", "0 0 1 * * ?", "Run schedule changed"));
 
         final VersionedProcessor targetProcessor = createProcessorWithProperty("proc-a", "ProcessorA", "propX", "oldVal");
         targetProcessor.setPosition(new Position(10.0, 20.0));
         targetProcessor.setComments("old comments");
+        targetProcessor.setConcurrentlySchedulableTaskCount(1);
+        targetProcessor.setScheduledState(ScheduledState.DISABLED);
 
         final VersionedProcessGroup targetSnapshot = new VersionedProcessGroup();
         targetSnapshot.setIdentifier("root");
@@ -427,7 +439,7 @@ class RebaseEngineTest {
         final RebaseAnalysis analysis = engine.analyze(localDifferences, Collections.emptySet(), targetSnapshot);
 
         assertTrue(analysis.isRebaseAllowed());
-        assertEquals(3, analysis.getClassifiedLocalChanges().size());
+        assertEquals(8, analysis.getClassifiedLocalChanges().size());
         for (final RebaseAnalysis.ClassifiedDifference classified : analysis.getClassifiedLocalChanges()) {
             assertEquals(RebaseClassification.COMPATIBLE, classified.getClassification());
         }
@@ -440,6 +452,11 @@ class RebaseEngineTest {
         assertEquals(60.0, mergedProc.getPosition().getY());
         assertEquals("newVal", mergedProc.getProperties().get("propX"));
         assertEquals("new comments", mergedProc.getComments());
+        assertEquals("Renamed ProcessorA", mergedProc.getName());
+        assertEquals(6, mergedProc.getConcurrentlySchedulableTaskCount());
+        assertEquals(ScheduledState.ENABLED, mergedProc.getScheduledState());
+        assertEquals("CRON_DRIVEN", mergedProc.getSchedulingStrategy());
+        assertEquals("0 0 1 * * ?", mergedProc.getSchedulingPeriod());
     }
 
     @Test

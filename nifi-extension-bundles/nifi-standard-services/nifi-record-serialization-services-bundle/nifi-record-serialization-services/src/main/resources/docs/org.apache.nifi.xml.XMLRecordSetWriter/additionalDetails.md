@@ -87,7 +87,7 @@ RecordSet (
 ```
 
 If the writer is configured always to suppress missing or null values, only the field of name "name1" will appear in the
-XML. If the writer ist configured only to suppress missing values, the field of name "name2" will appear in the XML as a
+XML. If the writer is configured only to suppress missing values, the field of name "name2" will appear in the XML as a
 node without content for the first record. If the writer is configured never to suppress anything, the field of name "
 name2" will appear in the XML as a node without content for both records.
 

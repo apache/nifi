@@ -24,6 +24,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.lifecycle.TaskTerminationAwareStateManager;
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.metrics.ProcessSessionEvent;
 import org.apache.nifi.controller.repository.ActiveProcessSessionFactory;
 import org.apache.nifi.controller.repository.BatchingSessionFactory;
@@ -321,7 +322,8 @@ public class ConnectableTask {
     }
 
     private void updateEventRepo(final TrackedStats stats, final int invocationCount) throws IOException {
-        final ProcessSessionEvent flowFileEvent = stats.end(repositoryContext.getComponentMetricContext())
+        final ComponentMetricContext componentMetricContext = Connectables.createComponentMetricContext(connectable);
+        final ProcessSessionEvent flowFileEvent = stats.end(componentMetricContext)
                 .invocations(invocationCount)
                 .build();
         repositoryContext.getFlowFileEventRepository().updateRepository(flowFileEvent);

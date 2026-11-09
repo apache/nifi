@@ -18,8 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ControllerServiceTable } from './controller-service-table.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ControllerServiceEntity } from '../../../../state/shared';
-import { BulletinEntity } from '@nifi/shared';
+import { BulletinEntity, ControllerServiceEntity } from '@nifi/shared';
 import { CurrentUser } from '../../../../state/current-user';
 import { FlowConfiguration } from '../../../../state/flow-configuration';
 
@@ -57,6 +56,10 @@ describe('ControllerServiceTable', () => {
                 canRead: true,
                 canWrite: true
             },
+            operatePermissions: {
+                canRead: true,
+                canWrite: true
+            },
             revision: {
                 version: 1,
                 clientId: 'test-client'
@@ -70,7 +73,9 @@ describe('ControllerServiceTable', () => {
                     artifact: 'test-bundle',
                     version: '1.0.0'
                 },
+                controllerServiceApis: [],
                 state: 'ENABLED',
+                bulletinLevel: 'WARN',
                 properties: {},
                 descriptors: {},
                 validationErrors: [],
@@ -81,6 +86,7 @@ describe('ControllerServiceTable', () => {
                 multipleVersionsAvailable: false,
                 persistsState: false,
                 restricted: false,
+                supportsSensitiveDynamicProperties: false,
                 validationStatus: 'VALID'
             },
             status: {
@@ -108,6 +114,7 @@ describe('ControllerServiceTable', () => {
         readOnly?: boolean;
         controllerServices?: ControllerServiceEntity[];
         canModifyParent?: (entity: ControllerServiceEntity) => boolean;
+        definedByCurrentGroup?: (entity: ControllerServiceEntity) => boolean;
         canManageAccessPolicies?: boolean;
     }
 
@@ -120,7 +127,7 @@ describe('ControllerServiceTable', () => {
         component.readOnly = options.readOnly ?? false;
         component.canModifyParent = options.canModifyParent ?? (() => false);
         component.formatScope = () => '';
-        component.definedByCurrentGroup = () => true;
+        component.definedByCurrentGroup = options.definedByCurrentGroup ?? (() => true);
         component.flowConfiguration = {
             supportsManagedAuthorizer: options.canManageAccessPolicies ?? true
         } as FlowConfiguration;
@@ -284,10 +291,10 @@ describe('ControllerServiceTable', () => {
         it('should restrict the action menu to view-only entries when readOnly is true', async () => {
             const entity = createMockControllerServiceEntity();
             entity.status.runStatus = 'DISABLED';
-            entity.component.persistsState = true;
+            entity.component!.persistsState = true;
             entity.bulletins = [createTestBulletin(1, '12:00:00 UTC')];
-            entity.component.customUiUrl = 'https://example.com/advanced';
-            entity.component.multipleVersionsAvailable = true;
+            entity.component!.customUiUrl = 'https://example.com/advanced';
+            entity.component!.multipleVersionsAvailable = true;
 
             const { fixture } = await setupTable({
                 readOnly: true,
@@ -301,7 +308,7 @@ describe('ControllerServiceTable', () => {
         it('should omit View State when persistsState is false even in readOnly mode', async () => {
             const entity = createMockControllerServiceEntity();
             entity.status.runStatus = 'DISABLED';
-            entity.component.persistsState = false;
+            entity.component!.persistsState = false;
 
             const { fixture } = await setupTable({
                 readOnly: true,
@@ -337,6 +344,30 @@ describe('ControllerServiceTable', () => {
             expect(labels).toContain('Edit');
             expect(labels).toContain('Enable');
             expect(labels).toContain('View Documentation');
+            expect(labels).not.toContain('Go To');
+        });
+
+        it('should only offer Go To for a service defined outside the current group', async () => {
+            const entity = createMockControllerServiceEntity();
+            entity.status.runStatus = 'DISABLED';
+
+            const { fixture } = await setupTable({
+                readOnly: false,
+                controllerServices: [entity],
+                definedByCurrentGroup: () => false
+            });
+
+            expect(getMenuItemTexts(fixture)).toEqual(['Go To']);
+        });
+
+        it('should only offer Go To for a service defined outside the current group in readOnly mode', async () => {
+            const { fixture } = await setupTable({
+                readOnly: true,
+                controllerServices: [createMockControllerServiceEntity()],
+                definedByCurrentGroup: () => false
+            });
+
+            expect(getMenuItemTexts(fixture)).toEqual(['Go To']);
         });
     });
 });

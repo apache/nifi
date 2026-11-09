@@ -145,7 +145,7 @@ public class RouteText extends AbstractProcessor {
     public static final AllowableValue CONTAINS_REGULAR_EXPRESSION = new AllowableValue(containsRegularExpressionValue, containsRegularExpressionValue,
         "Match lines based on whether the line contains some text that matches the Regular Expression that is provided as the Property value");
     public static final AllowableValue SATISFIES_EXPRESSION = new AllowableValue(satisfiesExpression, satisfiesExpression,
-        "Match lines based on whether or not the the text satisfies the given Expression Language expression. I.e., the line will match if the property value, evaluated as "
+        "Match lines based on whether or not the text satisfies the given Expression Language expression. I.e., the line will match if the property value, evaluated as "
             + "an Expression, returns true. The expression is able to reference FlowFile Attributes, as well as the variables 'line' (which is the text of the line to evaluate) and "
             + "'lineNo' (which is the line number being evaluated. This will be 1 for the first line, 2 for the second and so on).");
 

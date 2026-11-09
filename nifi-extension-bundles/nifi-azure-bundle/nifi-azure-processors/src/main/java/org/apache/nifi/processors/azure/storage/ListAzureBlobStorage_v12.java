@@ -192,7 +192,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
     }
 
     @Override
-    protected Integer countUnfilteredListing(ProcessContext context) throws IOException {
+    protected Integer countUnfilteredListing(ProcessContext context) {
         return null;
     }
 

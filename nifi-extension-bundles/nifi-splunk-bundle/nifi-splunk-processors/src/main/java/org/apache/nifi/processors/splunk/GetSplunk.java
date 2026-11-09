@@ -163,7 +163,7 @@ public class GetSplunk extends AbstractProcessor {
     public static final AllowableValue MANAGED_CURRENT_VALUE = new AllowableValue("Managed from Current", "Managed from Current",
             "The processor will manage the date ranges of the query starting from the current time.");
     public static final AllowableValue PROVIDED_VALUE = new AllowableValue("Provided", "Provided",
-            "The the time range provided through the Earliest Time and Latest Time properties will be used.");
+            "The time range provided through the Earliest Time and Latest Time properties will be used.");
 
     public static final PropertyDescriptor TIME_RANGE_STRATEGY = new PropertyDescriptor.Builder()
             .name("Time Range Strategy")
@@ -265,7 +265,14 @@ public class GetSplunk extends AbstractProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections.")
+            .description("""
+                         SSL Context Provider supporting encrypted communication over TLS with custom Certificate Authorities.
+                         Configuring an SSL Context Provider removes standard TLS hostname verification and instead compares
+                         the configured Hostname property value to the peer host from the TLS session. Limiting verification to
+                         Certificate Authority signing without checking Subject Alternative Names does not provide the same level
+                         of security as described in RFC 9525 Section 6, but it is necessary to support deployments such as Splunk Cloud.
+                         """
+            )
             .required(false)
             .identifiesControllerService(SSLContextProvider.class)
             .build();

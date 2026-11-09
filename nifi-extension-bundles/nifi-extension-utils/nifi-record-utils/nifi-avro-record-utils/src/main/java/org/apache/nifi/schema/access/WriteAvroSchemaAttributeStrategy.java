@@ -22,7 +22,6 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -36,7 +35,7 @@ public class WriteAvroSchemaAttributeStrategy implements SchemaAccessWriter {
             .build(schema -> AvroTypeUtil.extractAvroSchema(schema).toString());
 
     @Override
-    public void writeHeader(final RecordSchema schema, final OutputStream out) throws IOException {
+    public void writeHeader(final RecordSchema schema, final OutputStream out) {
     }
 
     @Override
@@ -54,7 +53,7 @@ public class WriteAvroSchemaAttributeStrategy implements SchemaAccessWriter {
     }
 
     @Override
-    public void validateSchema(final RecordSchema schema) throws SchemaNotFoundException {
+    public void validateSchema(final RecordSchema schema) {
     }
 
     @Override

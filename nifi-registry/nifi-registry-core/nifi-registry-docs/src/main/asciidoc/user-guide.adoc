@@ -68,7 +68,7 @@ NOTE: The minimum recommended screen size is 1080px X 445px.
 
 The NiFi Registry UI displays the shared resources available and provides mechanisms for creating and administering users/groups, buckets and policies.
 
-When the application is started, the user is able to navigate to the UI by going to the default address of `http://<hostname>:18080/nifi-registry` in a web browser. There are no permissions configured by default, so anyone is able to view and modify the flows and buckets. For information on securing the system, see the <<administration-guide.adocc#apache-nifi-registry-system-administrators-guide,System Administrator’s Guide>>.
+When the application is started, the user is able to navigate to the UI by going to the default address of `http://<hostname>:18080/nifi-registry` in a web browser. There are no permissions configured by default, so anyone is able to view and modify the flows and buckets. For information on securing the system, see the <<administration-guide.adoc#apache-nifi-registry-system-administrators-guide,System Administrator’s Guide>>.
 
 When an administrator navigates to the UI for the first time, the registry is empty as there are no flow resources available to share yet:
 

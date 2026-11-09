@@ -29,7 +29,7 @@ per usual - will show error messages related to the failure but interpreting tho
 For help troubleshooting such messages please refer to the _Troubleshooting_ section below.**
 
 The root model type can be defined via the _Root Model Name_ property. It's format should be "MODULE-NAME.ModelType". 
-"MODULE-NAME" is the name of the ASN module defined at the beginnig of the ASN schema file. "ModelType" is an ASN type
+"MODULE-NAME" is the name of the ASN module defined at the beginning of the ASN schema file. "ModelType" is an ASN type
 defined in the ASN files that is not referenced by any other type. The reader created by this service expects ASN
 records of this root model type.
 

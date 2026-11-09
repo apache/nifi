@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { provideRouter } from '@angular/router';
-import { ComponentType, selectRouteParams } from '@nifi/shared';
+import { ComponentType, ControllerServiceEntity, selectRouteParams } from '@nifi/shared';
 
 import { ConnectorControllerServicesComponent } from './connector-controller-services.component';
 import {
@@ -27,11 +27,23 @@ import {
     selectControllerServiceIdFromRoute
 } from '../../state/connector-controller-services/connector-controller-services.selectors';
 import {
+    clearConnectorControllerServiceBulletins,
     loadConnectorControllerServices,
+    navigateToAdvancedConnectorControllerServiceUi,
+    navigateToConnectorControllerService,
+    openChangeConnectorControllerServiceVersionDialog,
+    openConfigureConnectorControllerServiceDialog,
+    openDisableConnectorControllerServiceDialog,
+    openEnableConnectorControllerServiceDialog,
+    openNewConnectorControllerServiceDialog,
     openViewControllerServiceDialog,
+    promptConnectorControllerServiceDeletion,
     resetConnectorControllerServicesState,
-    selectConnectorControllerService
+    selectConnectorControllerService,
+    startConnectorControllerServicesEntityPolling,
+    stopConnectorControllerServicesEntityPolling
 } from '../../state/connector-controller-services/connector-controller-services.actions';
+import { loadConnectorEntity } from '../../state/connector-canvas-entity/connector-canvas-entity.actions';
 import {
     ConnectorControllerServicesState,
     initialConnectorControllerServicesState
@@ -40,8 +52,8 @@ import { selectCurrentUser } from '../../../../state/current-user/current-user.s
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
-import { BreadcrumbEntity, ControllerServiceEntity } from '../../../../state/shared';
-
+import { BreadcrumbEntity } from '../../../../state/shared';
+import { selectConnectorCanvasEntity } from '../../state/connector-canvas-entity/connector-canvas-entity.selectors';
 const CONNECTOR_ID = 'connector-1';
 const PROCESS_GROUP_ID = 'pg-current';
 
@@ -62,8 +74,12 @@ function buildControllerService(overrides: Partial<ControllerServiceEntity> = {}
     return {
         id: 'svc-1',
         permissions: { canRead: true, canWrite: false },
+        operatePermissions: { canRead: true, canWrite: true },
+        revision: { version: 1 },
+        uri: `/controller-services/${overrides.id ?? 'svc-1'}`,
         bulletins: [],
         parentGroupId: PROCESS_GROUP_ID,
+        status: { runStatus: 'DISABLED', validationStatus: 'VALID' },
         component: {
             id: 'svc-1',
             parentGroupId: PROCESS_GROUP_ID,
@@ -81,6 +97,7 @@ interface SetupOptions {
     state?: Partial<ConnectorControllerServicesState>;
     routeParams?: Record<string, string>;
     selectedServiceId?: string | null;
+    inTroubleshooting?: boolean;
 }
 
 function buildState(overrides: Partial<ConnectorControllerServicesState> = {}): ConnectorControllerServicesState {
@@ -122,6 +139,18 @@ function setup(options: SetupOptions = {}): {
                     },
                     { selector: selectControllerServiceIdFromRoute, value: options.selectedServiceId ?? null },
                     { selector: selectRouteParams, value: routeParams },
+                    {
+                        selector: selectConnectorCanvasEntity,
+                        value:
+                            options.inTroubleshooting === undefined
+                                ? null
+                                : {
+                                      id: CONNECTOR_ID,
+                                      component: {
+                                          state: options.inTroubleshooting ? 'TROUBLESHOOTING' : 'STOPPED'
+                                      }
+                                  }
+                    },
                     { selector: selectCurrentUser, value: null },
                     { selector: selectFlowConfiguration, value: null }
                 ]
@@ -154,24 +183,35 @@ describe('ConnectorControllerServicesComponent', () => {
             );
         }));
 
+        it('should load the connector entity and start entity polling when route params are available', fakeAsync(() => {
+            const { dispatchSpy } = setup();
+            tick();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(loadConnectorEntity({ connectorId: CONNECTOR_ID }));
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                startConnectorControllerServicesEntityPolling({ connectorId: CONNECTOR_ID })
+            );
+        }));
+
         it('should not dispatch loadConnectorControllerServices when connectorId is missing from route', fakeAsync(() => {
             const { dispatchSpy } = setup({ routeParams: { processGroupId: PROCESS_GROUP_ID } });
             tick();
 
             const loadDispatches = dispatchSpy.mock.calls.filter(
-                (call) => (call[0] as { type: string }).type === loadConnectorControllerServices.type
+                (call: unknown[]) => (call[0] as { type: string }).type === loadConnectorControllerServices.type
             );
             expect(loadDispatches).toHaveLength(0);
         }));
     });
 
     describe('Destruction', () => {
-        it('should dispatch resetConnectorControllerServicesState on destroy', () => {
+        it('should stop entity polling and reset state on destroy', () => {
             const { fixture, dispatchSpy } = setup();
             dispatchSpy.mockClear();
 
             fixture.destroy();
 
+            expect(dispatchSpy).toHaveBeenCalledWith(stopConnectorControllerServicesEntityPolling());
             expect(dispatchSpy).toHaveBeenCalledWith(resetConnectorControllerServicesState());
         });
     });
@@ -211,6 +251,23 @@ describe('ConnectorControllerServicesComponent', () => {
             );
         }));
 
+        it('goToControllerService should navigate to the service owning process group', fakeAsync(() => {
+            const { component, dispatchSpy } = setup();
+            tick();
+            dispatchSpy.mockClear();
+
+            component.goToControllerService(
+                buildControllerService({ id: 'svc-inherited', parentGroupId: 'pg-parent' })
+            );
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                navigateToConnectorControllerService({
+                    processGroupId: 'pg-parent',
+                    serviceId: 'svc-inherited'
+                })
+            );
+        }));
+
         it('configureControllerService should dispatch openViewControllerServiceDialog', fakeAsync(() => {
             const { component, dispatchSpy } = setup();
             tick();
@@ -222,8 +279,99 @@ describe('ConnectorControllerServicesComponent', () => {
             expect(dispatchSpy).toHaveBeenCalledWith(openViewControllerServiceDialog({ controllerService: entity }));
         }));
 
+        it('configureControllerService should dispatch the editable dialog in troubleshooting', fakeAsync(() => {
+            const { component, dispatchSpy } = setup({ inTroubleshooting: true });
+            tick();
+            dispatchSpy.mockClear();
+            const entity = buildControllerService();
+
+            component.configureControllerService(entity);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                openConfigureConnectorControllerServiceDialog({
+                    request: { id: entity.id, controllerService: entity, readonly: false }
+                })
+            );
+        }));
+
+        it('should not dispatch Controller Service operations for an unreadable entity', fakeAsync(() => {
+            const { component, dispatchSpy } = setup({ inTroubleshooting: true });
+            tick();
+            dispatchSpy.mockClear();
+            const entity = buildControllerService({
+                permissions: { canRead: false, canWrite: false },
+                component: undefined
+            });
+
+            component.viewControllerServiceDocumentation(entity);
+            component.configureControllerService(entity);
+            component.enableControllerService(entity);
+            component.disableControllerService(entity);
+            component.changeControllerServiceVersion(entity);
+            component.deleteControllerService(entity);
+
+            expect(dispatchSpy).not.toHaveBeenCalled();
+        }));
+
+        it('should dispatch the troubleshooting operations for a readable entity', fakeAsync(() => {
+            const { component, dispatchSpy } = setup({ inTroubleshooting: true });
+            tick();
+            dispatchSpy.mockClear();
+            const entity = buildControllerService();
+
+            component.openNewControllerServiceDialog();
+            component.enableControllerService(entity);
+            component.disableControllerService(entity);
+            component.changeControllerServiceVersion(entity);
+            component.deleteControllerService(entity);
+            component.openAdvancedUi(entity);
+
+            expect(dispatchSpy.mock.calls.map(([action]: unknown[]) => action)).toEqual([
+                openNewConnectorControllerServiceDialog(),
+                openEnableConnectorControllerServiceDialog({ request: { id: entity.id, controllerService: entity } }),
+                openDisableConnectorControllerServiceDialog({ request: { id: entity.id, controllerService: entity } }),
+                openChangeConnectorControllerServiceVersionDialog({
+                    request: {
+                        id: entity.id,
+                        uri: entity.uri,
+                        revision: entity.revision,
+                        type: 'org.apache.nifi.MyService',
+                        bundle: { group: 'org.apache.nifi', artifact: 'nifi-services-nar', version: '2.0.0' }
+                    }
+                }),
+                promptConnectorControllerServiceDeletion({ request: { controllerService: entity } }),
+                navigateToAdvancedConnectorControllerServiceUi({ id: entity.id })
+            ]);
+        }));
+
+        it('clearBulletinsControllerService should clear from the most recent bulletin timestamp', fakeAsync(() => {
+            const { component, dispatchSpy } = setup({ inTroubleshooting: true });
+            tick();
+            dispatchSpy.mockClear();
+            const entity = buildControllerService({
+                bulletins: [
+                    { id: 2, canRead: true, timestamp: '12:00:00 UTC', timestampIso: '2026-01-01T12:00:00.000Z' },
+                    { id: 1, canRead: true, timestamp: '11:00:00 UTC', timestampIso: '2026-01-01T11:00:00.000Z' }
+                ] as ControllerServiceEntity['bulletins']
+            });
+
+            component.clearBulletinsControllerService(entity);
+            component.clearBulletinsControllerService(buildControllerService({ bulletins: [] }));
+
+            expect(dispatchSpy.mock.calls.map(([action]: unknown[]) => action)).toEqual([
+                clearConnectorControllerServiceBulletins({
+                    request: {
+                        uri: entity.uri,
+                        componentId: entity.id,
+                        componentType: ComponentType.ControllerService,
+                        fromTimestamp: '2026-01-01T12:00:00.000Z'
+                    }
+                })
+            ]);
+        }));
+
         it('viewStateControllerService should dispatch with connectorId and canClear true for DISABLED state', fakeAsync(() => {
-            const { component, dispatchSpy } = setup();
+            const { component, dispatchSpy } = setup({ inTroubleshooting: true });
             tick();
             dispatchSpy.mockClear();
 
@@ -261,6 +409,7 @@ describe('ConnectorControllerServicesComponent', () => {
 
             const entity = buildControllerService({
                 id: 'svc-state',
+                status: { runStatus: 'ENABLED', validationStatus: 'VALID' },
                 component: {
                     parentGroupId: PROCESS_GROUP_ID,
                     name: 'Enabled Service',
@@ -502,12 +651,29 @@ describe('ConnectorControllerServicesComponent', () => {
     });
 
     describe('canModifyParent', () => {
-        it('always returns false to enforce the read-only contract of the connector view', () => {
+        it('returns false outside troubleshooting', () => {
             const { component } = setup();
             const predicate = component.canModifyParent();
 
             expect(predicate(buildControllerService())).toBe(false);
         });
+
+        it('uses the actual owning parent breadcrumb permission in troubleshooting', fakeAsync(() => {
+            const parent = buildBreadcrumb({
+                id: 'pg-parent',
+                permissions: { canRead: true, canWrite: false },
+                breadcrumb: { id: 'pg-parent', name: 'Parent' }
+            });
+            const { component } = setup({
+                inTroubleshooting: true,
+                state: { breadcrumb: buildBreadcrumb({}, parent) }
+            });
+            tick();
+            const predicate = component.canModifyParent();
+
+            expect(predicate(buildControllerService({ parentGroupId: PROCESS_GROUP_ID }))).toBe(true);
+            expect(predicate(buildControllerService({ parentGroupId: 'pg-parent' }))).toBe(false);
+        }));
     });
 
     describe('Breadcrumb route generator', () => {

@@ -29,7 +29,9 @@
                 <ng-container matColumnDef="groupName">
                     <th mat-header-cell *matHeaderCellDef mat-sort-header>Parameter Group Name</th>
                     <td mat-cell *matCellDef="let item" class="items-center">
-                        <div>{{ item.groupName }}</div>
+                        <div class="truncate min-w-0" ellipsisTooltip>
+                            {{ item.groupName }}
+                        </div>
                     </td>
                 </ng-container>
 

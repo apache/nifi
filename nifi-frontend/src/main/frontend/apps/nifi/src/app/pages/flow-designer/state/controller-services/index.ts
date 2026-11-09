@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { BreadcrumbEntity, ControllerServiceEntity, PostUpdateNavigationState } from '../../../../state/shared';
-import { ParameterContextReferenceEntity } from '@nifi/shared';
+import { BreadcrumbEntity, PostUpdateNavigationState } from '../../../../state/shared';
+import { ControllerServiceEntity, ParameterContextReferenceEntity } from '@nifi/shared';
 
 export const controllerServicesFeatureKey = 'controllerServiceListing';
 
@@ -36,25 +36,12 @@ export interface CreateControllerServiceSuccess {
     controllerService: ControllerServiceEntity;
 }
 
-export interface ConfigureControllerServiceRequest {
-    id: string;
-    uri: string;
-    payload: any;
-    postUpdateNavigation?: string[];
-    postUpdateNavigationBoundary?: string[];
-    postUpdateNavigationState?: PostUpdateNavigationState;
-}
-
 export interface ConfigureControllerServiceSuccess {
     id: string;
     controllerService: ControllerServiceEntity;
     postUpdateNavigation?: string[];
     postUpdateNavigationBoundary?: string[];
     postUpdateNavigationState?: PostUpdateNavigationState;
-}
-
-export interface DeleteControllerServiceRequest {
-    controllerService: ControllerServiceEntity;
 }
 
 export interface DeleteControllerServiceSuccess {

@@ -52,7 +52,6 @@ import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.status.LoadBalanceStatus;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.ProcessSession;
@@ -77,6 +76,7 @@ import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.NonFlushableOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.Connectables;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,8 +140,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private static final String CONNECTION_COMPONENT_TYPE = "Connection";
     private static final AtomicLong idGenerator = new AtomicLong(0L);
     private static final AtomicLong enqueuedIndex = new AtomicLong(0L);
-    private static final StateMap EMPTY_STATE_MAP = new StandardStateMap(Collections.emptyMap(), Optional.empty());
-
     // determines how many things must be transferred, removed, modified in order to avoid logging the FlowFile ID's on commit/rollback
     public static final int VERBOSE_LOG_THRESHOLD = 10;
     public static final String DEFAULT_FLOWFILE_PATH = "./";
@@ -205,8 +203,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private Checkpoint checkpoint = null;
     private final ContentClaimWriteCache claimCache;
 
-    private StateMap localState;
-    private StateMap clusterState;
+    private SessionStateUpdate localStateUpdate;
+    private SessionStateUpdate clusterStateUpdate;
     private final String retryAttribute;
     private final FlowFileLinkage flowFileLinkage = new FlowFileLinkage();
 
@@ -719,40 +717,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 LOG.debug("{}", timingInfo);
             }
 
-            // Update local state
             final StateManager stateManager = context.getStateManager();
-            if (checkpoint.localState != null) {
-                try {
-                    final StateMap stateMap = stateManager.getState(Scope.LOCAL);
-                    final Optional<String> stateVersion = stateMap.getStateVersion();
-                    if (!stateVersion.equals(checkpoint.localState.getStateVersion())) {
-                        LOG.debug("Updating State Manager's Local State");
-                        stateManager.setState(checkpoint.localState.toMap(), Scope.LOCAL);
-                    } else {
-                        LOG.debug("Will not update State Manager's Local State because the State Manager reports the latest version as {}, which is newer than the session's known version of {}.",
-                                stateVersion, checkpoint.localState.getStateVersion());
-                    }
-                } catch (final Exception e) {
-                    LOG.warn("Failed to update Local State for {}. If NiFi is restarted before the state is able to be updated, it could result in data duplication.", connectableDescription, e);
-                }
-            }
-
-            // Update cluster state
-            if (checkpoint.clusterState != null) {
-                try {
-                    final StateMap stateMap = stateManager.getState(Scope.CLUSTER);
-                    final Optional<String> stateVersion = stateMap.getStateVersion();
-                    if (!stateVersion.equals(checkpoint.clusterState.getStateVersion())) {
-                        LOG.debug("Updating State Manager's Cluster State");
-                        stateManager.setState(checkpoint.clusterState.toMap(), Scope.CLUSTER);
-                    } else {
-                        LOG.debug("Will not update State Manager's Cluster State because the State Manager reports the latest version as {}, which is newer than the session's known version of {}.",
-                                stateVersion, checkpoint.clusterState.getStateVersion());
-                    }
-                } catch (final Exception e) {
-                    LOG.warn("Failed to update Cluster State for {}. If NiFi is restarted before the state is able to be updated, it could result in data duplication.", connectableDescription, e);
-                }
-            }
+            commitStateUpdate(stateManager, checkpoint.localStateUpdate, Scope.LOCAL);
+            commitStateUpdate(stateManager, checkpoint.clusterStateUpdate, Scope.CLUSTER);
 
             // Acknowledge records in order to update counts for incoming connections' queues
             acknowledgeRecords();
@@ -781,6 +748,40 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
     }
 
+    /**
+     * Sends the session's state update to the State Manager. An update that was made only by patching state always sends its patches, because
+     * the patches change only their own keys and so apply on top of whatever state is stored at the time of the commit. Any other update sends
+     * the whole state, unless the State Manager already reports the session's version.
+     */
+    private void commitStateUpdate(final StateManager stateManager, final SessionStateUpdate stateUpdate, final Scope scope) {
+        if (stateUpdate == null) {
+            return;
+        }
+
+        final String scopeName = scope == Scope.LOCAL ? "Local" : "Cluster";
+        try {
+            final Map<String, String> patches = stateUpdate.getPatches();
+            if (patches != null) {
+                LOG.debug("Patching {} keys in State Manager's {} State", patches.size(), scopeName);
+                stateManager.patchState(patches, scope);
+                return;
+            }
+
+            final Optional<String> stateVersion = stateManager.getState(scope).getStateVersion();
+            final Optional<String> sessionStateVersion = stateUpdate.getStateMap().getStateVersion();
+            if (stateVersion.equals(sessionStateVersion)) {
+                LOG.debug("Will not update State Manager's {} State because the State Manager reports the latest version as {}, which is newer than the session's known version of {}.",
+                        scopeName, stateVersion, sessionStateVersion);
+                return;
+            }
+
+            LOG.debug("Updating State Manager's {} State", scopeName);
+            stateManager.setState(stateUpdate.getStateMap().toMap(), scope);
+        } catch (final Exception e) {
+            LOG.warn("Failed to update {} State for {}. If NiFi is restarted before the state is able to be updated, it could result in data duplication.", scopeName, connectableDescription, e);
+        }
+    }
+
     private void updateEventRepository(final Checkpoint checkpoint) {
         try {
             // update event repository
@@ -794,7 +795,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             final Map<String, Long> counters = combineCounters(checkpoint.countersOnCommit, checkpoint.immediateCounters);
 
-            final ProcessSessionEvent flowFileEvent = ProcessSessionEventBuilder.forComponent(context.getComponentMetricContext())
+            final ComponentMetricContext componentMetricContext = Connectables.createComponentMetricContext(context.getConnectable());
+            final ProcessSessionEvent flowFileEvent = ProcessSessionEventBuilder.forComponent(componentMetricContext)
                     .flowFilesIn(checkpoint.flowFilesIn)
                     .flowFilesOut(checkpoint.flowFilesOut)
                     .flowFilesRemoved(checkpoint.removedCount)
@@ -832,12 +834,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             for (final Connection connection : checkpoint.processedConnections.values()) {
                 final Connectable source = connection.getSource();
                 final ComponentMetricContext sourceContext = connectableMetricContexts.computeIfAbsent(source.getIdentifier(),
-                    id -> getComponentMetricContext(source)
+                    id -> Connectables.createComponentMetricContext(source)
                 );
 
                 final Connectable destination = connection.getDestination();
                 final ComponentMetricContext destinationContext = connectableMetricContexts.computeIfAbsent(destination.getIdentifier(),
-                        id -> getComponentMetricContext(destination)
+                        id -> Connectables.createComponentMetricContext(destination)
                 );
 
                 final ComponentMetricContext connectionMetricContext = checkpoint.connectionMetricContexts.get(connection.getIdentifier());
@@ -862,17 +864,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 context.recordConnectionStatusEvent(connectionStatusEvent);
             }
         }
-    }
-
-    private ComponentMetricContext getComponentMetricContext(final Connectable connectable) {
-        final ProcessGroup processGroup = connectable.getProcessGroup();
-        final Map<String, String> attributes = processGroup == null ? Map.of() : processGroup.getLoggingAttributes();
-        return new ComponentMetricContext(
-                connectable.getIdentifier(),
-                connectable.getName(),
-                connectable.getComponentType(),
-                attributes
-        );
     }
 
     private LoadBalanceStatus getLoadBalanceStatus(final FlowFileQueue flowFileQueue) {
@@ -1342,10 +1333,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             LOG.warn("{} Attempted to close Output Stream for {} due to session rollback but close failed", this, this.connectableDescription, e1);
         }
 
-        if (localState != null || clusterState != null) {
+        if (localStateUpdate != null || clusterStateUpdate != null) {
             LOG.debug("Rolling back session that has state stored. This state will not be updated.");
         }
-        if (rollbackCheckpoint && checkpoint != null && (checkpoint.localState != null || checkpoint.clusterState != null)) {
+        if (rollbackCheckpoint && checkpoint != null && (checkpoint.localStateUpdate != null || checkpoint.clusterStateUpdate != null)) {
             LOG.debug("Rolling back checkpoint that has state stored. This state will not be updated.");
         }
 
@@ -1421,7 +1412,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             }
         }
 
-        final ProcessSessionEvent flowFileEvent = ProcessSessionEventBuilder.forComponent(context.getComponentMetricContext())
+        final ComponentMetricContext componentMetricContext = Connectables.createComponentMetricContext(context.getConnectable());
+        final ProcessSessionEvent flowFileEvent = ProcessSessionEventBuilder.forComponent(componentMetricContext)
                 .bytesRead(bytesRead)
                 .bytesWritten(bytesWritten)
                 .counters(getCounterValues(immediateCounters))
@@ -1565,8 +1557,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         forkEventBuilders.clear();
         provenanceReporter.clear();
 
-        localState = null;
-        clusterState = null;
+        localStateUpdate = null;
+        clusterStateUpdate = null;
 
         processingStartTime = System.nanoTime();
     }
@@ -2034,7 +2026,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         Objects.requireNonNull(commitTiming, "Commit Timing required");
 
         final Instant recorded = Instant.now();
-        final GaugeRecord gaugeRecord = new GaugeRecord(name, value, Map.copyOf(attributes), recorded, context.getComponentMetricContext());
+        final ComponentMetricContext componentMetricContext = Connectables.createComponentMetricContext(context.getConnectable());
+        final GaugeRecord gaugeRecord = new GaugeRecord(name, value, Map.copyOf(attributes), recorded, componentMetricContext);
 
         if (CommitTiming.NOW == commitTiming) {
             context.recordGauge(gaugeRecord);
@@ -4026,37 +4019,38 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     private void setState(final StateMap stateMap, final Scope scope) {
+        setStateUpdate(SessionStateUpdate.createWholeStateUpdate(stateMap), scope);
+    }
+
+    private void setStateUpdate(final SessionStateUpdate stateUpdate, final Scope scope) {
         if (scope == Scope.LOCAL) {
-            localState = stateMap;
+            localStateUpdate = stateUpdate;
         } else {
-            clusterState = stateMap;
+            clusterStateUpdate = stateUpdate;
         }
     }
 
     @Override
     public StateMap getState(final Scope scope) throws IOException {
-        if (scope == Scope.LOCAL) {
-            if (localState != null) {
-                return localState;
-            }
-
-            if (checkpoint != null && checkpoint.localState != null) {
-                return checkpoint.localState;
-            }
-
-            // If no state is held locally, get it from the State Manager.
-            return context.getStateManager().getState(scope);
+        final SessionStateUpdate pendingUpdate = getPendingStateUpdate(scope);
+        if (pendingUpdate != null) {
+            return pendingUpdate.getStateMap();
         }
 
-        if (clusterState != null) {
-            return clusterState;
-        }
-
-        if (checkpoint != null && checkpoint.clusterState != null) {
-            return checkpoint.clusterState;
-        }
-
+        // If no state is held locally, get it from the State Manager.
         return context.getStateManager().getState(scope);
+    }
+
+    /**
+     * @return the state update held by this session for the given scope, or else the one held by the checkpoint, or {@code null} if neither holds one
+     */
+    private SessionStateUpdate getPendingStateUpdate(final Scope scope) {
+        final SessionStateUpdate sessionUpdate = scope == Scope.LOCAL ? localStateUpdate : clusterStateUpdate;
+        if (sessionUpdate != null || checkpoint == null) {
+            return sessionUpdate;
+        }
+
+        return scope == Scope.LOCAL ? checkpoint.localStateUpdate : checkpoint.clusterStateUpdate;
     }
 
     @Override
@@ -4082,9 +4076,42 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         return false;
     }
 
+    /**
+     * Applies the given changes to the session's view of the state. When the session commits, only the patches are sent to the
+     * State Manager, unless the session or its checkpoint already holds a whole-state update from {@link #setState(Map, Scope)},
+     * {@link #replaceState(StateMap, Map, Scope)}, or {@link #clearState(Scope)}, in which case the whole state is sent.
+     */
     @Override
-    public void clearState(final Scope scope) {
-        setState(EMPTY_STATE_MAP, scope);
+    public void patchState(final Map<String, String> updatedState, final Scope scope) throws IOException {
+        Objects.requireNonNull(updatedState, "Updated State required");
+        if (updatedState.isEmpty()) {
+            return;
+        }
+
+        final StateMap currentState = getState(scope);
+        final Map<String, String> patchedValues = currentState.toMap(updatedState);
+        final String version = currentState.getStateVersion().map(this::getIncrementedVersion).orElse(INITIAL_VERSION);
+        final StateMap patchedStateMap = new StandardStateMap(patchedValues, Optional.of(version));
+
+        final SessionStateUpdate pendingUpdate = getPendingStateUpdate(scope);
+        if (pendingUpdate == null) {
+            setStateUpdate(SessionStateUpdate.createPatchUpdate(patchedStateMap, updatedState), scope);
+            return;
+        }
+
+        if (pendingUpdate.getPatches() == null) {
+            setState(patchedStateMap, scope);
+            return;
+        }
+
+        final Map<String, String> combinedPatches = new HashMap<>(pendingUpdate.getPatches());
+        combinedPatches.putAll(updatedState);
+        setStateUpdate(SessionStateUpdate.createPatchUpdate(patchedStateMap, combinedPatches), scope);
+    }
+
+    @Override
+    public void clearState(final Scope scope) throws IOException {
+        setState(Collections.emptyMap(), scope);
     }
 
     @Override
@@ -4153,8 +4180,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         private long bytesSent = 0L;
 
         private boolean initialized = false;
-        private StateMap localState;
-        private StateMap clusterState;
+        private SessionStateUpdate localStateUpdate;
+        private SessionStateUpdate clusterStateUpdate;
 
         private void initializeForCopy() {
             if (initialized) {
@@ -4228,11 +4255,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             this.flowFilesSent = session.provenanceReporter.getFlowFilesSent();
             this.bytesSent = session.provenanceReporter.getBytesSent();
 
-            if (session.localState != null) {
-                this.localState = session.localState;
+            if (session.localStateUpdate != null) {
+                this.localStateUpdate = session.localStateUpdate;
             }
-            if (session.clusterState != null) {
-                this.clusterState = session.clusterState;
+            if (session.clusterStateUpdate != null) {
+                this.clusterStateUpdate = session.clusterStateUpdate;
             }
         }
 
@@ -4283,11 +4310,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             this.flowFilesSent += session.provenanceReporter.getFlowFilesSent();
             this.bytesSent += session.provenanceReporter.getBytesSent();
 
-            if (session.localState != null) {
-                this.localState = session.localState;
+            if (session.localStateUpdate != null) {
+                this.localStateUpdate = session.localStateUpdate;
             }
-            if (session.clusterState != null) {
-                this.clusterState = session.clusterState;
+            if (session.clusterStateUpdate != null) {
+                this.clusterStateUpdate = session.clusterStateUpdate;
             }
         }
 

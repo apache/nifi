@@ -50,7 +50,7 @@ import java.util.concurrent.locks.Lock;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Looks up geolocation information for an IP address and adds the geo information to FlowFile attributes. The "
         + "geo data is provided as a MaxMind database. The attribute that contains the IP address to lookup is provided by the "
-        + "'IP Address Attribute' property. If the name of the attribute provided is 'X', then the the attributes added by enrichment "
+        + "'IP Address Attribute' property. If the name of the attribute provided is 'X', then the attributes added by enrichment "
         + "will take the form X.geo.<fieldName>")
 @WritesAttributes({
         @WritesAttribute(attribute = "X.geo.lookup.micros", description = "The number of microseconds that the geo lookup took"),

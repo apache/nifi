@@ -26,7 +26,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.controller.ControllerFacade;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -104,7 +103,7 @@ public class VirtualThreadParallelProcessingService implements PredictionBasedPa
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         if (parallelProcessingExecutorService != null) {
             parallelProcessingExecutorService.close();
         }

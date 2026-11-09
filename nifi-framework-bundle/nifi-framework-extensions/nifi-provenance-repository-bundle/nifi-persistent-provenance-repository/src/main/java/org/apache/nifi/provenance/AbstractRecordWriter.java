@@ -39,7 +39,7 @@ public abstract class AbstractRecordWriter implements RecordWriter {
     private volatile boolean dirty = false;
     private volatile boolean closed = false;
 
-    public AbstractRecordWriter(final File file, final TocWriter writer) throws IOException {
+    public AbstractRecordWriter(final File file, final TocWriter writer) {
         logger.trace("Creating Record Writer for {}", file);
 
         this.file = file;
@@ -47,7 +47,7 @@ public abstract class AbstractRecordWriter implements RecordWriter {
         this.tocWriter = writer;
     }
 
-    public AbstractRecordWriter(final String storageLocation, final TocWriter writer) throws IOException {
+    public AbstractRecordWriter(final String storageLocation, final TocWriter writer) {
         logger.trace("Creating Record Writer for {}", storageLocation);
 
         this.file = null;

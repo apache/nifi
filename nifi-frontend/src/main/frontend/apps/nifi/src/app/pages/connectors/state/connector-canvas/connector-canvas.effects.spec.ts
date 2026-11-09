@@ -66,6 +66,7 @@ import {
     loadConnectorFlowComplete,
     loadConnectorFlowFailure,
     loadConnectorFlowSuccess,
+    markAuthoritativeSnapshotPending,
     loadConnectorParameterContext,
     loadConnectorParameterContextFailure,
     loadConnectorParameterContextSuccess,
@@ -107,7 +108,9 @@ import {
     selectHasLoadedFlow,
     selectLoadingStatus,
     selectMaxConnectionZIndex,
+    selectOptimisticCacheSnapshot,
     selectParentProcessGroupId,
+    selectPendingAuthoritativeSnapshot,
     selectProcessGroupId,
     selectProcessGroupIdFromRoute,
     selectSaving
@@ -117,6 +120,10 @@ import { DocumentVisibility } from '../../../../state/document-visibility';
 import type { Mock } from 'vitest';
 import { selectPrioritizerTypes } from '../../../../state/extension-types/extension-types.selectors';
 import { EditConnectionComponent } from '../../../../ui/common/component-dialogs/edit-connection/edit-connection.component';
+import { resetConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.actions';
+import { selectConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.selectors';
+import { FlowService } from '../../../flow-designer/service/flow.service';
+import * as ConnectorCanvasActions from './connector-canvas.actions';
 
 describe('ConnectorCanvasEffects', () => {
     // Setup function following SIFERS pattern
@@ -129,6 +136,10 @@ describe('ConnectorCanvasEffects', () => {
             documentVisibility?: DocumentVisibility;
             loadingStatus?: 'pending' | 'loading' | 'success' | 'refresh-error' | 'error';
             hasLoadedFlow?: boolean;
+            connectedStateChanged?: boolean;
+            pendingAuthoritativeSnapshot?: boolean;
+            addedCache?: string[];
+            removedCache?: string[];
             parameterContext?: ParameterContextEntity | null;
             parameterContextResponse?: ParameterContextEntity | null;
             parameterContextError?: unknown;
@@ -178,6 +189,21 @@ describe('ConnectorCanvasEffects', () => {
         const mockClusterConnectionService = {
             isDisconnectionAcknowledged: vi.fn().mockReturnValue(false)
         };
+        const mockFlowService = {
+            startComponent: vi.fn().mockReturnValue(of(makeProcessor('proc-1', { revision: { version: 2 } }))),
+            stopComponent: vi.fn().mockReturnValue(of(makeProcessor('proc-1', { revision: { version: 2 } }))),
+            enableComponent: vi.fn().mockReturnValue(of(makeProcessor('proc-1', { revision: { version: 2 } }))),
+            disableComponent: vi.fn().mockReturnValue(of(makeProcessor('proc-1', { revision: { version: 2 } }))),
+            startProcessGroup: vi.fn().mockReturnValue(of({})),
+            startRemoteProcessGroupsInProcessGroup: vi.fn().mockReturnValue(of({})),
+            stopProcessGroup: vi.fn().mockReturnValue(of({})),
+            stopRemoteProcessGroupsInProcessGroup: vi.fn().mockReturnValue(of({})),
+            enableProcessGroup: vi.fn().mockReturnValue(of({})),
+            disableProcessGroup: vi.fn().mockReturnValue(of({})),
+            getProcessGroup: vi.fn().mockReturnValue(of(makeProcessGroup('pg-1'))),
+            runOnce: vi.fn().mockReturnValue(of(makeProcessor('proc-1', { revision: { version: 2 } }))),
+            terminateThreads: vi.fn().mockReturnValue(of(makeProcessor('proc-1', { revision: { version: 2 } })))
+        };
 
         const mockRouter = {
             navigate: vi.fn().mockResolvedValue(true)
@@ -217,6 +243,18 @@ describe('ConnectorCanvasEffects', () => {
                         { selector: selectMaxConnectionZIndex, value: 4 },
                         { selector: selectLoadingStatus, value: loadingStatus },
                         { selector: selectHasLoadedFlow, value: options.hasLoadedFlow ?? false },
+                        { selector: selectConnectedStateChanged, value: options.connectedStateChanged ?? false },
+                        {
+                            selector: selectPendingAuthoritativeSnapshot,
+                            value: options.pendingAuthoritativeSnapshot ?? false
+                        },
+                        {
+                            selector: selectOptimisticCacheSnapshot,
+                            value: {
+                                addedCache: options.addedCache ?? [],
+                                removedCache: options.removedCache ?? []
+                            }
+                        },
                         {
                             selector: selectDocumentVisibilityState,
                             value: { documentVisibility, changedTimestamp: 0 }
@@ -230,6 +268,7 @@ describe('ConnectorCanvasEffects', () => {
                 { provide: ConnectorService, useValue: mockConnectorService },
                 { provide: ConnectorEditService, useValue: mockConnectorEditService },
                 { provide: ClusterConnectionService, useValue: mockClusterConnectionService },
+                { provide: FlowService, useValue: mockFlowService },
                 { provide: ErrorHelper, useValue: mockErrorHelper },
                 { provide: Router, useValue: mockRouter },
                 { provide: MatDialog, useValue: mockDialog },
@@ -248,6 +287,7 @@ describe('ConnectorCanvasEffects', () => {
             },
             mockConnectorService,
             mockConnectorEditService,
+            mockFlowService,
             mockErrorHelper,
             mockRouter,
             mockDialog,
@@ -549,7 +589,10 @@ describe('ConnectorCanvasEffects', () => {
 
     describe('loadConnectorFlow$', () => {
         it('should call getConnectorFlow and dispatch loadConnectorFlowSuccess', async () => {
-            const { effects, actions$, mockConnectorService } = await setup();
+            const { effects, actions$, mockConnectorService, store } = await setup({
+                connectedStateChanged: true
+            });
+            const dispatch = vi.spyOn(store, 'dispatch');
             const label = makeLabel('l1', { position: { x: 10, y: 20 } });
             const flowResponse = {
                 processGroupFlow: {
@@ -584,6 +627,7 @@ describe('ConnectorCanvasEffects', () => {
                 loadConnectorFlowSuccess({
                     connectorId: 'conn-a',
                     processGroupId: 'pg-123',
+                    processGroupRevision: null,
                     parentProcessGroupId: 'parent-456',
                     breadcrumb: null,
                     labels: [label],
@@ -593,9 +637,14 @@ describe('ConnectorCanvasEffects', () => {
                     remoteProcessGroups: [],
                     processGroups: [],
                     processors: [],
-                    connections: []
+                    connections: [],
+                    reconciliationSnapshot: { addedCache: [], removedCache: [] },
+                    connectedStateChanged: true
                 })
             );
+            expect(dispatch).toHaveBeenCalledWith(markAuthoritativeSnapshotPending());
+            expect(dispatch).toHaveBeenCalledWith(resetConnectedStateChanged());
+            expect(dispatch).toHaveBeenCalledTimes(2);
         });
 
         it('should default flow collections when processGroupFlow.flow is missing', async () => {
@@ -622,6 +671,7 @@ describe('ConnectorCanvasEffects', () => {
                 loadConnectorFlowSuccess({
                     connectorId: 'conn-a',
                     processGroupId: 'pg-123',
+                    processGroupRevision: null,
                     parentProcessGroupId: null,
                     breadcrumb: null,
                     labels: [],
@@ -631,7 +681,73 @@ describe('ConnectorCanvasEffects', () => {
                     remoteProcessGroups: [],
                     processGroups: [],
                     processors: [],
-                    connections: []
+                    connections: [],
+                    reconciliationSnapshot: { addedCache: [], removedCache: [] },
+                    connectedStateChanged: false
+                })
+            );
+        });
+
+        it('should preserve a pending authoritative snapshot after the cluster signal has been reset', async () => {
+            const { effects, actions$, mockConnectorService } = await setup({
+                pendingAuthoritativeSnapshot: true
+            });
+            (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(
+                of({
+                    processGroupFlow: {
+                        id: 'pg-123',
+                        parentGroupId: null,
+                        breadcrumb: null
+                    }
+                })
+            );
+            actions$(of(loadConnectorFlow({ connectorId: 'conn-a', processGroupId: 'pg-in' })));
+
+            const action = await firstValueFrom(effects.loadConnectorFlow$);
+
+            expect(action).toEqual(expect.objectContaining({ connectedStateChanged: true }));
+        });
+
+        it('should mark the authoritative snapshot pending before the request completes', async () => {
+            const { effects, actions$, mockConnectorService, store } = await setup({
+                connectedStateChanged: true
+            });
+            const dispatch = vi.spyOn(store, 'dispatch');
+            const response$ = new Subject<ProcessGroupFlowEntity>();
+            (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(response$);
+            actions$(of(loadConnectorFlow({ connectorId: 'conn-a', processGroupId: 'pg-in' })));
+
+            const subscription = effects.loadConnectorFlow$.subscribe();
+
+            expect(dispatch).toHaveBeenCalledWith(markAuthoritativeSnapshotPending());
+            expect(dispatch).toHaveBeenCalledWith(resetConnectedStateChanged());
+            subscription.unsubscribe();
+        });
+
+        it('should capture optimistic caches when the request begins', async () => {
+            const { effects, actions$, mockConnectorService } = await setup({
+                addedCache: ['proc-created'],
+                removedCache: ['proc-deleted']
+            });
+            (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(
+                of({
+                    processGroupFlow: {
+                        id: 'pg-123',
+                        parentGroupId: null,
+                        breadcrumb: null
+                    }
+                })
+            );
+            actions$(of(loadConnectorFlow({ connectorId: 'conn-a', processGroupId: 'pg-in' })));
+
+            const action = await firstValueFrom(effects.loadConnectorFlow$);
+
+            expect(action).toEqual(
+                expect.objectContaining({
+                    reconciliationSnapshot: {
+                        addedCache: ['proc-created'],
+                        removedCache: ['proc-deleted']
+                    }
                 })
             );
         });
@@ -657,13 +773,17 @@ describe('ConnectorCanvasEffects', () => {
                         errors: ['Error message'],
                         context: ErrorContextKey.CONNECTORS
                     },
-                    isRefresh: false
+                    isRefresh: false,
+                    connectedStateChanged: false
                 })
             );
         });
 
         it('should dispatch a recoverable failure and banner when a refresh fails', async () => {
-            const { effects, actions$, mockConnectorService } = await setup({ hasLoadedFlow: true });
+            const { effects, actions$, mockConnectorService } = await setup({
+                hasLoadedFlow: true,
+                connectedStateChanged: true
+            });
             const errorResponse = new HttpErrorResponse({ error: 'Failed', status: 503, statusText: 'Unavailable' });
             (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(throwError(() => errorResponse));
             actions$(
@@ -680,7 +800,8 @@ describe('ConnectorCanvasEffects', () => {
             expect(emitted[0]).toEqual(
                 expect.objectContaining({
                     type: loadConnectorFlowFailure.type,
-                    isRefresh: true
+                    isRefresh: true,
+                    connectedStateChanged: true
                 })
             );
             expect(emitted[1]).toEqual(
@@ -700,6 +821,7 @@ describe('ConnectorCanvasEffects', () => {
                     loadConnectorFlowSuccess({
                         connectorId: 'c1',
                         processGroupId: 'pg1',
+                        processGroupRevision: null,
                         parentProcessGroupId: null,
                         breadcrumb: null,
                         labels: [],
@@ -709,7 +831,9 @@ describe('ConnectorCanvasEffects', () => {
                         remoteProcessGroups: [],
                         processGroups: [],
                         processors: [],
-                        connections: []
+                        connections: [],
+                        reconciliationSnapshot: { addedCache: [], removedCache: [] },
+                        connectedStateChanged: false
                     })
                 )
             );
@@ -1058,7 +1182,9 @@ describe('ConnectorCanvasEffects', () => {
             const dispatchSpy = vi.spyOn(store, 'dispatch');
             mockConnectorService.getControllerService = vi
                 .fn()
-                .mockReturnValue(of({ id: 'svc-1', component: { parentGroupId: 'pg-cs', id: 'svc-1' } }));
+                .mockReturnValue(
+                    of({ id: 'svc-1', parentGroupId: 'pg-cs', component: { parentGroupId: 'pg-cs', id: 'svc-1' } })
+                );
             mockDialogRef.close = vi.fn();
 
             actions$(
@@ -1109,6 +1235,36 @@ describe('ConnectorCanvasEffects', () => {
                     }
                 })
             );
+        });
+
+        it('dispatches a banner error when the target service has no parent group', async () => {
+            const { effects, actions$, store, mockConnectorService, mockDialogRef } = await setup();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+            mockConnectorService.getControllerService = vi.fn().mockReturnValue(of({ id: 'svc-1' }));
+
+            actions$(
+                of(
+                    viewComponentConfiguration({
+                        request: { entity: baseEntity, componentType: ComponentType.Processor }
+                    })
+                )
+            );
+            await firstValueFrom(effects.viewComponentConfiguration$);
+
+            mockDialogRef.componentInstance.goToService('svc-1');
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                ErrorActions.addBannerError({
+                    errorContext: {
+                        errors: ['Unable to determine the Controller Service parent group.'],
+                        context: ErrorContextKey.CONNECTOR_CANVAS
+                    }
+                })
+            );
+            expect(dispatchSpy).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: navigateToControllerService.type })
+            );
+            expect(mockDialogRef.close).not.toHaveBeenCalled();
         });
 
         it('dispatches a banner error when goToService cannot resolve the connector id', async () => {
@@ -1658,6 +1814,7 @@ describe('ConnectorCanvasEffects', () => {
             return loadConnectorFlowSuccess({
                 connectorId,
                 processGroupId,
+                processGroupRevision: null,
                 parentProcessGroupId: null,
                 breadcrumb: null,
                 labels: [],
@@ -1667,7 +1824,9 @@ describe('ConnectorCanvasEffects', () => {
                 remoteProcessGroups: [],
                 processGroups: [],
                 processors: [],
-                connections: []
+                connections: [],
+                reconciliationSnapshot: { addedCache: [], removedCache: [] },
+                connectedStateChanged: false
             });
         }
 
@@ -2284,6 +2443,99 @@ describe('ConnectorCanvasEffects', () => {
                 updateConnectionBendPointsFailure({ connectionId: 'connection-1', error: 'Error message' })
             );
             expect(results[1].type).toBe(ErrorActions.addBannerError.type);
+        });
+    });
+
+    describe('component run status', () => {
+        it('starts a component and emits the returned entity', async () => {
+            const { effects, actions$, mockFlowService } = await setup();
+            const request = {
+                id: 'proc-1',
+                type: ComponentType.Processor,
+                revision: { version: 1 },
+                errorStrategy: 'banner' as const
+            };
+            actions$(of(ConnectorCanvasActions.startComponent({ request })));
+
+            const result = await firstValueFrom(effects.startComponent$);
+
+            expect(mockFlowService.startComponent).toHaveBeenCalledWith(request);
+            expect(result.type).toBe(ConnectorCanvasActions.startComponentSuccess.type);
+        });
+
+        it('surfaces a run-status failure through the connector error context', async () => {
+            const { effects, actions$, mockFlowService } = await setup();
+            mockFlowService.startComponent.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 409 })));
+            actions$(
+                of(
+                    ConnectorCanvasActions.startComponent({
+                        request: {
+                            id: 'proc-1',
+                            type: ComponentType.Processor,
+                            revision: { version: 1 },
+                            errorStrategy: 'banner'
+                        }
+                    })
+                )
+            );
+
+            const results = await firstValueFrom(effects.startComponent$.pipe(toArray()));
+
+            expect(results[0]).toEqual(
+                ConnectorCanvasActions.startComponentFailure({
+                    componentId: 'proc-1',
+                    error: 'Error message'
+                })
+            );
+            expect(results[1].type).toBe(ErrorActions.addBannerError.type);
+        });
+
+        it('stops, enables, and disables components through FlowService', async () => {
+            const { effects, actions$, mockFlowService } = await setup();
+            const request = {
+                id: 'proc-1',
+                type: ComponentType.Processor,
+                revision: { version: 1 },
+                errorStrategy: 'banner' as const
+            };
+
+            actions$(of(ConnectorCanvasActions.stopComponent({ request })));
+            expect((await firstValueFrom(effects.stopComponent$)).type).toBe(
+                ConnectorCanvasActions.stopComponentSuccess.type
+            );
+
+            actions$(of(ConnectorCanvasActions.enableComponent({ request })));
+            expect((await firstValueFrom(effects.enableComponent$)).type).toBe(
+                ConnectorCanvasActions.enableComponentSuccess.type
+            );
+
+            actions$(of(ConnectorCanvasActions.disableComponent({ request })));
+            expect((await firstValueFrom(effects.disableComponent$)).type).toBe(
+                ConnectorCanvasActions.disableComponentSuccess.type
+            );
+
+            expect(mockFlowService.stopComponent).toHaveBeenCalledWith(request);
+            expect(mockFlowService.enableComponent).toHaveBeenCalledWith(request);
+            expect(mockFlowService.disableComponent).toHaveBeenCalledWith(request);
+        });
+
+        it('runs once and terminates threads through FlowService', async () => {
+            const { effects, actions$, mockFlowService } = await setup();
+            const runOnceRequest = { id: 'proc-1', revision: { version: 1 } };
+            const terminateRequest = { id: 'proc-1', uri: '/processors/proc-1' };
+
+            actions$(of(ConnectorCanvasActions.runOnceComponent({ request: runOnceRequest })));
+            expect((await firstValueFrom(effects.runOnceComponent$)).type).toBe(
+                ConnectorCanvasActions.runOnceComponentSuccess.type
+            );
+
+            actions$(of(ConnectorCanvasActions.terminateComponentThreads({ request: terminateRequest })));
+            expect((await firstValueFrom(effects.terminateComponentThreads$)).type).toBe(
+                ConnectorCanvasActions.terminateComponentThreadsSuccess.type
+            );
+
+            expect(mockFlowService.runOnce).toHaveBeenCalledWith(runOnceRequest);
+            expect(mockFlowService.terminateThreads).toHaveBeenCalledWith(terminateRequest);
         });
     });
 });

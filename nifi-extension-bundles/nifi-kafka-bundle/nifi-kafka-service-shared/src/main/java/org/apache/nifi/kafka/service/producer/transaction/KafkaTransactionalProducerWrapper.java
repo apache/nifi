@@ -56,7 +56,7 @@ public class KafkaTransactionalProducerWrapper extends KafkaProducerWrapper {
                     // If we logged any warning that we timed out and will retry, we should log a notification
                     // that we were successful this time. Otherwise, don't spam the logs.
                     if (failure) {
-                        logger.info("Successfully commited producer transaction after {} retries", i);
+                        logger.info("Successfully committed producer transaction after {} retries", i);
                     }
                     break;
                 } catch (final TimeoutException te) {

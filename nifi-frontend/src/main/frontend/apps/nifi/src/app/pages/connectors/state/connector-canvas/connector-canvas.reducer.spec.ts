@@ -67,7 +67,12 @@ describe('connectorCanvasReducer', () => {
 
     describe('loadConnectorFlow', () => {
         it('should clear component data when navigating to a different process group', () => {
-            const previousState = createPopulatedState({ processGroupId: 'pg-current' });
+            const previousState = createPopulatedState({
+                processGroupId: 'pg-current',
+                addedCache: ['proc-added'],
+                removedCache: ['proc-removed'],
+                pendingAuthoritativeSnapshot: true
+            });
 
             const result = connectorCanvasReducer(
                 previousState,
@@ -86,10 +91,16 @@ describe('connectorCanvasReducer', () => {
             expect(result.processGroups).toEqual([]);
             expect(result.processors).toEqual([]);
             expect(result.connections).toEqual([]);
+            expect(result.addedCache).toEqual([]);
+            expect(result.removedCache).toEqual([]);
+            expect(result.pendingAuthoritativeSnapshot).toBe(false);
         });
 
         it('should preserve component data when refreshing the same process group', () => {
-            const previousState = createPopulatedState({ processGroupId: 'pg-current' });
+            const previousState = createPopulatedState({
+                processGroupId: 'pg-current',
+                pendingAuthoritativeSnapshot: true
+            });
 
             const result = connectorCanvasReducer(
                 previousState,
@@ -107,12 +118,16 @@ describe('connectorCanvasReducer', () => {
             expect(result.outputPorts).toEqual(previousState.outputPorts);
             expect(result.remoteProcessGroups).toEqual(previousState.remoteProcessGroups);
             expect(result.processGroups).toEqual(previousState.processGroups);
+            expect(result.pendingAuthoritativeSnapshot).toBe(true);
         });
 
         it('should clear component data when navigating to a different connector with the same process group id', () => {
             const previousState = createPopulatedState({
                 connectorId: 'connector-1',
-                processGroupId: 'pg-current'
+                processGroupId: 'pg-current',
+                addedCache: ['proc-added'],
+                removedCache: ['proc-removed'],
+                pendingAuthoritativeSnapshot: true
             });
 
             const result = connectorCanvasReducer(
@@ -131,10 +146,38 @@ describe('connectorCanvasReducer', () => {
             expect(result.processors).toEqual([]);
             expect(result.connections).toEqual([]);
             expect(result.parameterContext).toBeNull();
+            expect(result.addedCache).toEqual([]);
+            expect(result.removedCache).toEqual([]);
+            expect(result.pendingAuthoritativeSnapshot).toBe(false);
         });
     });
 
     describe('loadConnectorFlowSuccess', () => {
+        it('stores the current process-group revision for operation controls', () => {
+            const result = connectorCanvasReducer(
+                initialConnectorCanvasState,
+                ConnectorCanvasActions.loadConnectorFlowSuccess({
+                    connectorId: 'connector-1',
+                    processGroupId: 'pg-1',
+                    processGroupRevision: { version: 7, clientId: 'client-1' },
+                    parentProcessGroupId: null,
+                    breadcrumb: null,
+                    labels: [],
+                    funnels: [],
+                    inputPorts: [],
+                    outputPorts: [],
+                    remoteProcessGroups: [],
+                    processGroups: [],
+                    processors: [],
+                    connections: [],
+                    reconciliationSnapshot: { addedCache: [], removedCache: [] },
+                    connectedStateChanged: false
+                })
+            );
+
+            expect(result.processGroupRevision).toEqual({ version: 7, clientId: 'client-1' });
+        });
+
         it('should populate state with flow data', () => {
             const processors = [makeProcessor('proc-new')];
             const connections = [makeConnection('conn-new')];
@@ -145,6 +188,7 @@ describe('connectorCanvasReducer', () => {
                 ConnectorCanvasActions.loadConnectorFlowSuccess({
                     connectorId: 'connector-1',
                     processGroupId: 'pg-1',
+                    processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     labels,
@@ -154,7 +198,9 @@ describe('connectorCanvasReducer', () => {
                     remoteProcessGroups: [],
                     processGroups: [],
                     processors,
-                    connections
+                    connections,
+                    reconciliationSnapshot: { addedCache: [], removedCache: [] },
+                    connectedStateChanged: false
                 })
             );
 
@@ -177,6 +223,7 @@ describe('connectorCanvasReducer', () => {
                 ConnectorCanvasActions.loadConnectorFlowSuccess({
                     connectorId: 'connector-1',
                     processGroupId: 'pg-current',
+                    processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     labels: [],
@@ -186,7 +233,9 @@ describe('connectorCanvasReducer', () => {
                     remoteProcessGroups: [],
                     processGroups: [],
                     processors: [stale],
-                    connections: []
+                    connections: [],
+                    reconciliationSnapshot: { addedCache: [], removedCache: [] },
+                    connectedStateChanged: false
                 })
             );
 
@@ -204,6 +253,7 @@ describe('connectorCanvasReducer', () => {
             const staleAction = ConnectorCanvasActions.loadConnectorFlowSuccess({
                 connectorId: 'connector-1',
                 processGroupId: 'pg-current',
+                processGroupRevision: null,
                 parentProcessGroupId: 'pg-parent',
                 breadcrumb: null,
                 labels: [],
@@ -213,7 +263,9 @@ describe('connectorCanvasReducer', () => {
                 remoteProcessGroups: [],
                 processGroups: [],
                 processors: [],
-                connections: []
+                connections: [],
+                reconciliationSnapshot: { addedCache: [connection.id], removedCache: [] },
+                connectedStateChanged: false
             });
             const afterFirstStaleLoad = connectorCanvasReducer(state, staleAction);
             const afterSecondStaleLoad = connectorCanvasReducer(afterFirstStaleLoad, staleAction);
@@ -241,6 +293,7 @@ describe('connectorCanvasReducer', () => {
             const staleAction = ConnectorCanvasActions.loadConnectorFlowSuccess({
                 connectorId: 'connector-1',
                 processGroupId: 'pg-current',
+                processGroupRevision: null,
                 parentProcessGroupId: 'pg-parent',
                 breadcrumb: null,
                 labels: [],
@@ -250,7 +303,9 @@ describe('connectorCanvasReducer', () => {
                 remoteProcessGroups: [],
                 processGroups: [],
                 processors: [staleProcessor],
-                connections: []
+                connections: [],
+                reconciliationSnapshot: { addedCache: [], removedCache: ['proc-removed'] },
+                connectedStateChanged: false
             });
 
             const afterFirstStaleLoad = connectorCanvasReducer(state, staleAction);
@@ -285,6 +340,7 @@ describe('connectorCanvasReducer', () => {
                 ConnectorCanvasActions.loadConnectorFlowSuccess({
                     connectorId: 'connector-1',
                     processGroupId: 'pg-current',
+                    processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     labels: [],
@@ -294,13 +350,137 @@ describe('connectorCanvasReducer', () => {
                     remoteProcessGroups: [],
                     processGroups: [],
                     processors: [makeProcessor('proc-other')],
-                    connections: [connection]
+                    connections: [connection],
+                    reconciliationSnapshot: { addedCache: [], removedCache: ['proc-removed'] },
+                    connectedStateChanged: false
                 })
             );
 
             expect(result.connections).toEqual([]);
             expect(result.removedCache).toContain('proc-removed');
         });
+
+        it('should accept a lower-revision entity from an authoritative snapshot', () => {
+            const current = makeProcessor('proc-1', { revision: { version: 2 } });
+            const authoritative = makeProcessor('proc-1', { revision: { version: 1 } });
+
+            const result = connectorCanvasReducer(
+                createPopulatedState({ processors: [current] }),
+                ConnectorCanvasActions.loadConnectorFlowSuccess({
+                    connectorId: 'connector-1',
+                    processGroupId: 'pg-current',
+                    processGroupRevision: null,
+                    parentProcessGroupId: 'pg-parent',
+                    breadcrumb: null,
+                    labels: [],
+                    funnels: [],
+                    inputPorts: [],
+                    outputPorts: [],
+                    remoteProcessGroups: [],
+                    processGroups: [],
+                    processors: [authoritative],
+                    connections: [],
+                    reconciliationSnapshot: { addedCache: [], removedCache: [] },
+                    connectedStateChanged: true
+                })
+            );
+
+            expect(result.processors).toEqual([authoritative]);
+        });
+
+        it('should ignore both caches and use the authoritative component and connection sets', () => {
+            const source = makeProcessor('proc-restored');
+            const destination = makeProcessor('proc-destination');
+            const connection = makeConnection('conn-restored', {
+                sourceId: source.id,
+                destinationId: destination.id
+            });
+
+            const result = connectorCanvasReducer(
+                createPopulatedState({
+                    processors: [makeProcessor('proc-local')],
+                    connections: [],
+                    addedCache: ['proc-local'],
+                    removedCache: [source.id],
+                    pendingAuthoritativeSnapshot: true
+                }),
+                ConnectorCanvasActions.loadConnectorFlowSuccess({
+                    connectorId: 'connector-1',
+                    processGroupId: 'pg-current',
+                    processGroupRevision: null,
+                    parentProcessGroupId: 'pg-parent',
+                    breadcrumb: null,
+                    labels: [],
+                    funnels: [],
+                    inputPorts: [],
+                    outputPorts: [],
+                    remoteProcessGroups: [],
+                    processGroups: [],
+                    processors: [source, destination],
+                    connections: [connection],
+                    reconciliationSnapshot: {
+                        addedCache: ['proc-local'],
+                        removedCache: [source.id]
+                    },
+                    connectedStateChanged: true
+                })
+            );
+
+            expect(result.processors).toEqual([source, destination]);
+            expect(result.connections).toEqual([connection]);
+            expect(result.addedCache).toEqual([]);
+            expect(result.removedCache).toEqual([]);
+            expect(result.pendingAuthoritativeSnapshot).toBe(false);
+        });
+
+        it('should preserve optimistic mutations completed while an authoritative request is in flight', () => {
+            const local = makeProcessor('proc-local');
+            const removed = makeProcessor('proc-removed');
+            const destination = makeProcessor('proc-destination');
+            const connection = makeConnection('conn-removed', {
+                sourceId: removed.id,
+                destinationId: destination.id
+            });
+
+            const result = connectorCanvasReducer(
+                createPopulatedState({
+                    processors: [local, destination],
+                    addedCache: [local.id],
+                    removedCache: [removed.id]
+                }),
+                ConnectorCanvasActions.loadConnectorFlowSuccess({
+                    connectorId: 'connector-1',
+                    processGroupId: 'pg-current',
+                    processGroupRevision: null,
+                    parentProcessGroupId: 'pg-parent',
+                    breadcrumb: null,
+                    labels: [],
+                    funnels: [],
+                    inputPorts: [],
+                    outputPorts: [],
+                    remoteProcessGroups: [],
+                    processGroups: [],
+                    processors: [removed, destination],
+                    connections: [connection],
+                    reconciliationSnapshot: { addedCache: [], removedCache: [] },
+                    connectedStateChanged: true
+                })
+            );
+
+            expect(result.processors).toEqual([destination, local]);
+            expect(result.connections).toEqual([]);
+            expect(result.addedCache).toEqual([local.id]);
+            expect(result.removedCache).toEqual([removed.id]);
+        });
+    });
+
+    it('should retain the authoritative requirement as soon as the cluster signal is consumed', () => {
+        const result = connectorCanvasReducer(
+            createPopulatedState({ pendingAuthoritativeSnapshot: false }),
+            ConnectorCanvasActions.markAuthoritativeSnapshotPending()
+        );
+
+        expect(result.pendingAuthoritativeSnapshot).toBe(true);
     });
 
     describe('loadConnectorFlowFailure', () => {
@@ -314,7 +494,8 @@ describe('connectorCanvasReducer', () => {
                         context: ErrorContextKey.CONNECTORS,
                         errors: ['Connection refused']
                     },
-                    isRefresh: false
+                    isRefresh: false,
+                    connectedStateChanged: false
                 })
             );
 
@@ -336,13 +517,46 @@ describe('connectorCanvasReducer', () => {
                         context: ErrorContextKey.CONNECTORS,
                         errors: ['Service unavailable']
                     },
-                    isRefresh: true
+                    isRefresh: true,
+                    connectedStateChanged: false
                 })
             );
 
             expect(result.loadingStatus).toBe('refresh-error');
             expect(result.hasLoadedFlow).toBe(true);
             expect(result.processors).toEqual(previousState.processors);
+        });
+
+        it('should retain an authoritative snapshot requirement after a refresh fails', () => {
+            const result = connectorCanvasReducer(
+                createPopulatedState({ loadingStatus: 'loading' }),
+                ConnectorCanvasActions.loadConnectorFlowFailure({
+                    errorContext: {
+                        context: ErrorContextKey.CONNECTORS,
+                        errors: ['Service unavailable']
+                    },
+                    isRefresh: true,
+                    connectedStateChanged: true
+                })
+            );
+
+            expect(result.pendingAuthoritativeSnapshot).toBe(true);
+        });
+
+        it('should preserve an existing authoritative requirement after a later ordinary failure', () => {
+            const result = connectorCanvasReducer(
+                createPopulatedState({ loadingStatus: 'loading', pendingAuthoritativeSnapshot: true }),
+                ConnectorCanvasActions.loadConnectorFlowFailure({
+                    errorContext: {
+                        context: ErrorContextKey.CONNECTORS,
+                        errors: ['Service unavailable']
+                    },
+                    isRefresh: true,
+                    connectedStateChanged: false
+                })
+            );
+
+            expect(result.pendingAuthoritativeSnapshot).toBe(true);
         });
     });
 
@@ -609,6 +823,7 @@ describe('connectorCanvasReducer', () => {
             const staleLoad = ConnectorCanvasActions.loadConnectorFlowSuccess({
                 connectorId: 'connector-1',
                 processGroupId: 'pg-current',
+                processGroupRevision: null,
                 parentProcessGroupId: 'pg-parent',
                 breadcrumb: null,
                 labels: [],
@@ -618,7 +833,9 @@ describe('connectorCanvasReducer', () => {
                 remoteProcessGroups: [],
                 processGroups: [],
                 processors: [makeProcessor('proc-1')],
-                connections: []
+                connections: [],
+                reconciliationSnapshot: { addedCache: [], removedCache: ['proc-1'] },
+                connectedStateChanged: false
             });
 
             state = connectorCanvasReducer(state, staleLoad);
@@ -670,6 +887,7 @@ describe('connectorCanvasReducer', () => {
                 ConnectorCanvasActions.loadConnectorFlowSuccess({
                     connectorId: 'connector-1',
                     processGroupId: 'pg-current',
+                    processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     labels: [],
@@ -679,11 +897,66 @@ describe('connectorCanvasReducer', () => {
                     remoteProcessGroups: [],
                     processGroups: [],
                     processors: [makeProcessor('proc-1')],
-                    connections: []
+                    connections: [],
+                    reconciliationSnapshot: { addedCache: [], removedCache: [] },
+                    connectedStateChanged: false
                 })
             );
 
             expect(restored.processors.some((processor) => processor.id === 'proc-1')).toBe(true);
+        });
+    });
+    describe('run status operations', () => {
+        it('applies a current run-status response', () => {
+            const processor = makeProcessor('proc-1', { revision: { version: 1 } });
+            const result = connectorCanvasReducer(
+                createPopulatedState({ processors: [processor] }),
+                ConnectorCanvasActions.startComponentSuccess({
+                    componentId: processor.id,
+                    componentType: ComponentType.Processor,
+                    component: makeProcessor(processor.id, { revision: { version: 2 } })
+                })
+            );
+
+            expect(result.processors[0].revision.version).toBe(2);
+        });
+
+        it('does not apply a stale run-status response', () => {
+            const current = makeProcessor('proc-1', { revision: { version: 3 } });
+
+            const result = connectorCanvasReducer(
+                createPopulatedState({ processors: [current] }),
+                ConnectorCanvasActions.stopComponentSuccess({
+                    componentId: current.id,
+                    componentType: ComponentType.Processor,
+                    component: makeProcessor(current.id, { revision: { version: 2 } })
+                })
+            );
+
+            expect(result.processors[0]).toBe(current);
+        });
+
+        it('preserves the processor component body after run-once succeeds', () => {
+            const current = makeProcessor('proc-1', {
+                revision: { version: 1 },
+                component: { id: 'proc-1', name: 'Configured Processor' }
+            });
+            const response = makeProcessor('proc-1', {
+                revision: { version: 2 },
+                component: { id: 'proc-1', name: 'Sparse Response' }
+            });
+
+            const result = connectorCanvasReducer(
+                createPopulatedState({ processors: [current] }),
+                ConnectorCanvasActions.runOnceComponentSuccess({
+                    componentId: current.id,
+                    component: response
+                })
+            );
+
+            expect(result.processors[0].component).toBe(current.component);
+            expect(result.processors[0].status).toBe(response.status);
+            expect(result.processors[0].revision).toBe(response.revision);
         });
     });
 });

@@ -29,7 +29,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -71,8 +70,6 @@ public class VerifyLocalClusterStateService extends AbstractControllerService im
 
     @Override
     public void setState(final String key, final String value, final Scope scope) throws IOException {
-        final Map<String, String> state = new HashMap<>(getStateManager().getState(scope).toMap());
-        state.put(key, value);
-        getStateManager().setState(state, scope);
+        getStateManager().patchState(Map.of(key, value), scope);
     }
 }

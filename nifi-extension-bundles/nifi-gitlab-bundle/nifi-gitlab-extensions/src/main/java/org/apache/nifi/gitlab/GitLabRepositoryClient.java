@@ -220,6 +220,13 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     }
 
     @Override
+    public Optional<String> getLatestCommitSha(final String path, final String branch) throws FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        logger.debug("Getting latest commit for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
+        return execute(() -> gitLab.getRepositoryFileApi().getOptionalFileInfo(projectPath, resolvedPath, branch).map(RepositoryFile::getLastCommitId));
+    }
+
+    @Override
     public InputStream getContentFromBranch(final String path, final String branch) throws FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
         logger.debug("Getting content for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
@@ -308,7 +315,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
 
     @Override
     public void createBranch(final String newBranchName, final String sourceBranch, final Optional<String> sourceCommitSha)
-            throws IOException, FlowRegistryException {
+            throws FlowRegistryException {
         if (StringUtils.isBlank(newBranchName)) {
             throw new IllegalArgumentException("Branch name must be specified");
         }

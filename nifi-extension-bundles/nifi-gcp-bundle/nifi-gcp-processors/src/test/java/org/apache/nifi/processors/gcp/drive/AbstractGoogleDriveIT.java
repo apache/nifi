@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.AbstractInputStreamContent;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -74,7 +73,7 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
         testSubject = createTestSubject();
         testRunner = createTestRunner();
 
-        NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+        NetHttpTransport httpTransport = new NetHttpTransport();
 
         driveService = new Drive.Builder(
                 httpTransport,

@@ -246,7 +246,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                 destinationRelationship = REL_SUCCESS;
                 transferFile = false;
                 penalizeFile = false;
-                logger.info("Resolving conflict for {}  by not transferring file and and still considering the process a success.", flowFile);
+                logger.info("Resolving conflict for {}  by not transferring file and still considering the process a success.", flowFile);
                 break;
             case FileTransfer.CONFLICT_RESOLUTION_FAIL:
                 destinationRelationship = REL_FAILURE;

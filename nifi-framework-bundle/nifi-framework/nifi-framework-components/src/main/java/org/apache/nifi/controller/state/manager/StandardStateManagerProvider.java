@@ -460,6 +460,13 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             }
 
             @Override
+            public void patchState(Map<String, String> updatedState, String componentId) throws IOException {
+                try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
+                    stateProvider.patchState(updatedState, componentId);
+                }
+            }
+
+            @Override
             public void clear(String componentId) throws IOException {
                 try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.clear(componentId);

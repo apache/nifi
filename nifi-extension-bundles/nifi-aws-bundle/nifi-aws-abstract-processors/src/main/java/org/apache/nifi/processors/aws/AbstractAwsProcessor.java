@@ -156,10 +156,8 @@ public abstract class AbstractAwsProcessor<C extends AwsClient, B extends AwsCli
      */
     protected abstract void configureHttpClient(AwsClientBuilder<?, ?> clientBuilder, ProcessContext context);
 
-    /*
-     * Allow optional override of onTrigger with the ProcessSessionFactory where required for AWS processors (e.g. ConsumeKinesisStream)
-     *
-     * @see AbstractProcessor
+    /**
+     * Allow optional override of onTrigger with the ProcessSessionFactory where required for AWS processors
      */
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
@@ -246,7 +244,7 @@ public abstract class AbstractAwsProcessor<C extends AwsClient, B extends AwsCli
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.FAILED)
                     .verificationStepName("Create Client")
-                    .explanation("Failed to crete AWS Client: " + e.getMessage())
+                    .explanation("Failed to create AWS Client: " + e.getMessage())
                     .build());
         }
 

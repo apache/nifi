@@ -21,7 +21,7 @@ This client service configures a connection to a Gremlin Server and allows Greml
 Gremlin Server. For more information on Gremlin and Gremlin Server, see
 the [Apache Tinkerpop](http://tinkerpop.apache.org/) project.
 
-This client service supports two differnt modes of operation: Script Submission and Bytecode Submission, described
+This client service supports two different modes of operation: Script Submission and Bytecode Submission, described
 below.
 
 ## Script Submission

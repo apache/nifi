@@ -17,11 +17,10 @@
 
 import { Injectable, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { catchError, EMPTY, map, Observable, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import { catchError, defer, EMPTY, map, Observable, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import {
     ComponentHistoryEntity,
     ControllerServiceCreator,
-    ControllerServiceEntity,
     CreateControllerServiceRequest,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
@@ -39,7 +38,7 @@ import { NiFiState } from '../state';
 import { Store } from '@ngrx/store';
 import { snackBarError } from '../state/error/error.actions';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { LARGE_DIALOG, SMALL_DIALOG } from '@nifi/shared';
+import { ControllerServiceEntity, LARGE_DIALOG, safeApiPath, SMALL_DIALOG } from '@nifi/shared';
 import { ErrorHelper } from './error-helper.service';
 
 @Injectable({
@@ -56,8 +55,10 @@ export class PropertyTableHelperService {
     private static readonly API: string = '../nifi-api';
 
     getComponentHistory(componentId: string): Observable<ComponentHistoryEntity> {
-        return this.httpClient.get<ComponentHistoryEntity>(
-            `${PropertyTableHelperService.API}/flow/history/components/${componentId}`
+        return defer(() =>
+            this.httpClient.get<ComponentHistoryEntity>(
+                `${PropertyTableHelperService.API}/flow/history/components/${safeApiPath(componentId)}`
+            )
         );
     }
 

@@ -128,6 +128,10 @@ public class ClusterStateKeyDropIT extends AbstractStateKeyDropIT {
         assertEquals(newState, updatedState);
 
         waitForProcessorState(processorId, Scope.CLUSTER, newState);
+
+        // MultiKeyState patches all three keys, so the dropped key is created again alongside the updated keys
+        runProcessorOnce(processor);
+        waitForProcessorState(processorId, Scope.CLUSTER, Map.of("a", "1", "b", "2", "c", "2"));
     }
 
     @Test

@@ -344,7 +344,7 @@ categorizing them by their functions.
 	and the system call is expected to receive no input. In order to provide input to the process, use the ExecuteStreamCommand Processor.
 
 - *ExecuteStreamCommand*: Runs the user-defined Operating System command. The contents of the FlowFile are optionally streamed to the StdIn
-  of the process. The content that is written to StdOut becomes the content of hte outbound FlowFile. This Processor cannot be used a Source Processor -
+  of the process. The content that is written to StdOut becomes the content of the outbound FlowFile. This Processor cannot be used a Source Processor -
 	it must be fed incoming FlowFiles in order to perform its work. To perform the same type of functionality with a Source Processor, see the
 	ExecuteProcess Processor.
 

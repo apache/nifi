@@ -186,3 +186,14 @@ Handling depends on Processing Strategy:
 - DEMARCATOR: The tombstone is included in the bundle records as empty byte array.
 - RECORD: The tombstone is skipped for every Output Strategy. The processor increments `Tombstones Skipped for <topic>` counter.
 
+### Memory Usage with Continue with Merged Schema
+
+When the Schema Conflict Resolution property is set to 'Continue with Merged Schema', the records from an entire poll are grouped by topic and partition and held in memory until they are written to FlowFiles.
+Each concurrent task holds its own poll, and when the consumer falls behind, every poll is full.
+
+Memory usage can be limited by lowering the following properties of the Kafka Connection Service:
+
+- 'Max Partition Fetch Size' limits how much data the broker returns for each partition in a single fetch.
+- 'Max Poll Records' limits how many records a single poll returns.
+
+Lower values reduce throughput: smaller fetches mean more requests to the broker, and fewer records per poll mean smaller FlowFiles.

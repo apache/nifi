@@ -35,7 +35,7 @@ Some conversions and simplifications are necessary during inserting the data. Th
 * Internal record structures are converted into maps.
 * Choice is not a supported data type, regardless of the actual wrapped data type, values enveloped in Choice are
   handled as Strings.
-* Unknown data types are handled as stings.
+* Unknown data types are handled as strings.
 
 ## Limitations
 

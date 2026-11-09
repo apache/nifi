@@ -378,7 +378,7 @@ public class RecordBin {
                 Integer expectedFragmentCount = thresholds.getFragmentCount();
                 if (expectedFragmentCount != flowFiles.size()) {
                     logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute had a value of '{}' but only {} of {} FlowFiles were encountered before this bin was evicted "
-                                    + "(due to to Max Bin Age being reached or due to the Maximum Number of Bins being exceeded).",
+                                    + "(due to Max Bin Age being reached or due to the Maximum Number of Bins being exceeded).",
                             flowFiles.size(), countAttr.get(), expectedFragmentCount, flowFiles.size(), expectedFragmentCount);
                     fail();
                     return;

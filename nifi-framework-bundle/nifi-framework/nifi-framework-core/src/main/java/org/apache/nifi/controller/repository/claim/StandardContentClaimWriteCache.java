@@ -136,7 +136,7 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
             }
 
             @Override
-            public void flush() throws IOException {
+            public void flush() {
                 // do nothing - do not flush underlying stream.
             }
 

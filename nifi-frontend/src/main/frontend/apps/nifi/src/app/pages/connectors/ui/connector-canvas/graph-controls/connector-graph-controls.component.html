@@ -35,6 +35,21 @@
         <connector-info-control
             [connectorEntity]="connectorEntity()"
             [entitySaving]="entitySaving()"></connector-info-control>
+        @if (inTroubleshooting()) {
+            <canvas-operation-control
+                storageKey="connector-operation-control"
+                [selection]="operationSelection()"
+                [breadcrumbEntity]="operationBreadcrumb()"
+                [canvasPermissions]="operationCanvasPermissions()"
+                [currentProcessGroupId]="operationCurrentProcessGroupId()"
+                [processGroupRevision]="operationProcessGroupRevision()"
+                (enable)="operationEnable.emit($event)"
+                (disable)="operationDisable.emit($event)"
+                (startComponents)="operationStart.emit($event)"
+                (stop)="operationStop.emit($event)"
+                (runOnce)="operationRunOnce.emit($event)">
+            </canvas-operation-control>
+        }
         @if (canAccessProvenance()) {
             <provenance-preview
                 storageKey="connector-provenance-control"

@@ -19,11 +19,11 @@ import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { ParameterGroupConfiguration } from '../../../../state/parameter-providers';
-import { NiFiCommon } from '@nifi/shared';
+import { EllipsisTooltipDirective, NiFiCommon } from '@nifi/shared';
 
 @Component({
     selector: 'parameter-groups-table',
-    imports: [MatSortModule, MatTableModule],
+    imports: [MatSortModule, MatTableModule, EllipsisTooltipDirective],
     templateUrl: './parameter-groups-table.component.html',
     styleUrls: ['./parameter-groups-table.component.scss']
 })

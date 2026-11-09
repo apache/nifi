@@ -104,7 +104,7 @@ inference logic:
   RECORD, ARRAY, and CHOICE.
 * If two values are encountered for the same field in two different records (or two values are encountered for an ARRAY
   type), but neither value is of a type that is wider than the other, then a CHOICE type is used. In the example above,
-  the "values" field will be inferred as a CHOICE between a STRING or an ARRRAY<STRING>.
+  the "values" field will be inferred as a CHOICE between a STRING or an ARRAY<STRING>.
 * If the "Time Format," "Timestamp Format," or "Date Format" properties are configured, any value that would otherwise
   be considered a STRING type is first checked against the configured formats to see if it matches any of them. If the
   value matches the Timestamp Format, the value is considered a Timestamp field. If it matches the Date Format, it is

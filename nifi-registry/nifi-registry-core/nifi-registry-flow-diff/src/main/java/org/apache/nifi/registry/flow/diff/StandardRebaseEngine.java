@@ -50,6 +50,11 @@ public class StandardRebaseEngine implements RebaseEngine {
         registerHandler(new PropertyChangedRebaseHandler());
         registerHandler(new PropertyAddedRebaseHandler());
         registerHandler(new CommentsChangedRebaseHandler());
+        registerHandler(new NameChangedRebaseHandler());
+        registerHandler(new ConcurrentTasksChangedRebaseHandler());
+        registerHandler(new ScheduledStateChangedRebaseHandler());
+        registerHandler(new SchedulingChangedRebaseHandler(DifferenceType.SCHEDULING_STRATEGY_CHANGED));
+        registerHandler(new SchedulingChangedRebaseHandler(DifferenceType.RUN_SCHEDULE_CHANGED));
     }
 
     public StandardRebaseEngine(final Map<DifferenceType, RebaseHandler> handlerRegistry) {

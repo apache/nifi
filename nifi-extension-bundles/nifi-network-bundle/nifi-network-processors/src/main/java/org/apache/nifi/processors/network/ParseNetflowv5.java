@@ -14,7 +14,6 @@
  */
 package org.apache.nifi.processors.network;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -169,8 +168,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
         config.renameProperty("FIELDS_DESTINATION", FIELDS_DESTINATION.getName());
     }
 
-    private void generateJSON(final List<FlowFile> multipleRecords, final ProcessSession session, final FlowFile flowFile, final Netflowv5Parser parser, final int processedRecord)
-            throws JsonProcessingException {
+    private void generateJSON(final List<FlowFile> multipleRecords, final ProcessSession session, final FlowFile flowFile, final Netflowv5Parser parser, final int processedRecord) {
         int numberOfRecords = processedRecord;
         FlowFile recordFlowFile = flowFile;
         int record = 0;

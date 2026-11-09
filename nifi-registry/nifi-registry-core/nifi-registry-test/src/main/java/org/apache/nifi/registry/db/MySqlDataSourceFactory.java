@@ -22,8 +22,6 @@ import org.testcontainers.delegate.DatabaseDelegate;
 import org.testcontainers.jdbc.JdbcDatabaseDelegate;
 import org.testcontainers.mysql.MySQLContainer;
 
-import java.sql.SQLException;
-import javax.script.ScriptException;
 import javax.sql.DataSource;
 
 public abstract class MySqlDataSourceFactory extends TestDataSourceFactory {
@@ -42,7 +40,7 @@ public abstract class MySqlDataSourceFactory extends TestDataSourceFactory {
     }
 
     @PostConstruct
-    public void initDatabase() throws SQLException, ScriptException {
+    public void initDatabase() {
         DatabaseDelegate databaseDelegate = new JdbcDatabaseDelegate(mysqlContainer(), "");
         databaseDelegate.execute("DROP DATABASE test; CREATE DATABASE test;", "", 0, false, true);
     }

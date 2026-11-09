@@ -21,6 +21,7 @@ import {
     ConnectableDTO,
     ConnectionDTO,
     ConnectionEntity,
+    ControllerServiceEntity,
     CreateRevisionRequest,
     FunnelDTO,
     FunnelEntity,
@@ -42,7 +43,12 @@ import {
     VersionControlInformationDTO
 } from '@nifi/shared';
 import { CopyResponseEntity, PasteRequestStrategy } from '../copy';
-import { ParameterContextEntity, RegistryClientEntity, SparseVersionedFlow } from '../shared';
+import {
+    ParameterContextEntity,
+    PostUpdateNavigationState,
+    RegistryClientEntity,
+    SparseVersionedFlow
+} from '../shared';
 import { VersionControlInformation } from '../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 
 /**
@@ -533,6 +539,19 @@ export interface ControllerServiceStateRequest {
     id: string;
     state: string;
     disconnectedNodeAcknowledged: boolean;
+}
+
+export interface ConfigureControllerServiceRequest {
+    id: string;
+    uri: string;
+    payload: any;
+    postUpdateNavigation?: string[];
+    postUpdateNavigationBoundary?: string[];
+    postUpdateNavigationState?: PostUpdateNavigationState;
+}
+
+export interface DeleteControllerServiceRequest {
+    controllerService: ControllerServiceEntity;
 }
 
 export interface TerminateThreadsRequest {

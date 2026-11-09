@@ -54,7 +54,7 @@ public class InputStreamWritable implements Writable {
     }
 
     @Override
-    public void readFields(DataInput di) throws IOException {
+    public void readFields(DataInput di) {
         throw new UnsupportedOperationException("InputStreamWritable does not implement #readFields");
     }
 }

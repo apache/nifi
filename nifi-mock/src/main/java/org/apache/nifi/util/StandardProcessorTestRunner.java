@@ -301,7 +301,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     private class RunProcessor implements Callable<Throwable> {
 
         @Override
-        public Throwable call() throws Exception {
+        public Throwable call() {
             invocations.incrementAndGet();
             try {
                 processor.onTrigger(context, sessionFactory);

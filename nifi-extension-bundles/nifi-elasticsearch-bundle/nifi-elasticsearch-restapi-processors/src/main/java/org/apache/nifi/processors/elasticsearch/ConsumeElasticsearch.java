@@ -175,7 +175,7 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
             .name("Additional Filters")
             .description("One or more query filters in JSON syntax, not Lucene syntax. " +
                     "Ex: [{\"match\":{\"somefield\":\"somevalue\"}}, {\"match\":{\"anotherfield\":\"anothervalue\"}}]. " +
-                    "These filters wil be used as part of a Bool query's filter.")
+                    "These filters will be used as part of a Bool query's filter.")
             .addValidator(JsonValidator.INSTANCE)
             .required(false)
             .build();

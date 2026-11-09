@@ -17,15 +17,14 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
-    ConfigureControllerServiceRequest,
     ConfigureControllerServiceSuccess,
     CreateControllerServiceSuccess,
-    DeleteControllerServiceRequest,
     DeleteControllerServiceSuccess,
     LoadControllerServicesRequest,
     LoadControllerServicesResponse,
     SelectControllerServiceRequest
 } from './index';
+import { ConfigureControllerServiceRequest, DeleteControllerServiceRequest } from '../../../../state/flow-shared';
 import {
     ClearBulletinsRequest,
     ClearBulletinsResponse,

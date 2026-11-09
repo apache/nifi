@@ -20,7 +20,6 @@ package org.apache.nifi.mock.connectors;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.AbstractConnector;
 import org.apache.nifi.components.connector.ConfigurationStep;
-import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.Position;
@@ -103,7 +102,7 @@ public class MissingBundleConnector extends AbstractConnector {
     }
 
     @Override
-    public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
+    public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
     }
 
     @Override

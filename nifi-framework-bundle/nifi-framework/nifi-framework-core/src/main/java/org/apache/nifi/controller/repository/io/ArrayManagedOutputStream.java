@@ -192,7 +192,7 @@ public class ArrayManagedOutputStream extends OutputStream {
             long bytesRead = 0L;
 
             @Override
-            public int read() throws IOException {
+            public int read() {
                 readLock.lock();
                 try {
                     if (bytesRead >= totalSize) {
@@ -215,7 +215,7 @@ public class ArrayManagedOutputStream extends OutputStream {
             }
 
             @Override
-            public int read(final byte[] b, final int off, final int len) throws IOException {
+            public int read(final byte[] b, final int off, final int len) {
                 readLock.lock();
                 try {
                     if (bytesRead >= totalSize) {

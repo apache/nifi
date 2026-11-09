@@ -312,7 +312,12 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         }
 
         @Override
-        public void clearState(final Scope scope) {
+        public void patchState(final Map<String, String> updatedState, final Scope scope) throws IOException {
+            session.patchState(updatedState, scope);
+        }
+
+        @Override
+        public void clearState(final Scope scope) throws IOException {
             session.clearState(scope);
         }
 

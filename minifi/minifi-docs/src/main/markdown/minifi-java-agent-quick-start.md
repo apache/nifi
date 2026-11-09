@@ -143,7 +143,7 @@ To load a new dataflow for a MiNiFi instance to run:
 2. When a new flow is available on the C2 server, MiNiFi will download it via C2 and restart itself to pick up the changes
 
 ## C2 Heartbeat
-Heartbeat provides status(agent, flowm device) and operational capabilities to C2 server(s)
+Heartbeat provides status(agent, flow, device) and operational capabilities to C2 server(s)
 
 ### Agent manifest
 The agent manifest is the descriptor of the available extensions. The size of the heartbeat

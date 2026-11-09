@@ -210,7 +210,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
     public static final PropertyDescriptor AUTHORIZED_DN_PATTERN = new PropertyDescriptor.Builder()
         .name("Authorized Subject DN Pattern")
         .description("A Regular Expression to apply against the Subject's Distinguished Name of incoming connections. If the Pattern does not match the Subject DN, " +
-                "the the processor will respond with a status of HTTP 403 Forbidden.")
+                "the processor will respond with a status of HTTP 403 Forbidden.")
         .required(true)
         .defaultValue(MATCH_ALL)
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)

@@ -94,7 +94,7 @@ public class CronScheduleConnector extends AbstractConnector {
     }
 
     @Override
-    public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
+    public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
     }
 
     @Override

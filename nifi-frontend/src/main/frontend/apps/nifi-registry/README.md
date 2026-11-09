@@ -53,7 +53,7 @@ The NiFi Registry Server will need to know about the key store, which has its ke
 
 This will make the NiFi Registry available at https://localhost:18443.
 
-Now stop any running nifi registy you have running locally. In nifi-registry/nifi-registry-assembly/target/nifi-registry-2.7.0-SNAPSHOT-bin/nifi-registry-2.7.0-SNAPSHOT/conf/ update the authorizers.xml and identity-providers.xml with the following:
+Now stop any running nifi registry you have running locally. In nifi-registry/nifi-registry-assembly/target/nifi-registry-2.7.0-SNAPSHOT-bin/nifi-registry-2.7.0-SNAPSHOT/conf/ update the authorizers.xml and identity-providers.xml with the following:
 
 ### (authorizers.xml)
 
@@ -288,7 +288,7 @@ Now stop any running nifi registy you have running locally. In nifi-registry/nif
 </identityProviders>
 ```
 
-Now delete the users.xml file if you have onw. It will get recreated when you restart the nifi registry backend.
+Now delete the users.xml file if you have one. It will get recreated when you restart the nifi registry backend.
 
 Next, update your nifi-frontend/src/main/frontend/apps/nifi-registry/proxy.config.mjs so that when you start your local frontend dev server it will proxy through to the secured nifi registry backend:
 

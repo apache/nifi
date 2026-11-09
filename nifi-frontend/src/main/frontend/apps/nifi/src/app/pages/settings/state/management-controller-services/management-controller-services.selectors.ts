@@ -18,8 +18,7 @@
 import { createSelector } from '@ngrx/store';
 import { selectSettingsState, SettingsState } from '../index';
 import { managementControllerServicesFeatureKey, ManagementControllerServicesState } from './index';
-import { selectCurrentRoute } from '@nifi/shared';
-import { ControllerServiceEntity } from '../../../../state/shared';
+import { ControllerServiceEntity, selectCurrentRoute } from '@nifi/shared';
 
 export const selectManagementControllerServicesState = createSelector(
     selectSettingsState,

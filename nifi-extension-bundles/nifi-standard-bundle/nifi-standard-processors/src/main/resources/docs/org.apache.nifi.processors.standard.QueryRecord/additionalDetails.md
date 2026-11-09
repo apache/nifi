@@ -142,7 +142,7 @@ WHERE RPATH(addresses, '/state[/label = ''home'']') <> RPATH(addresses, '/state[
 
 To explain this query in English, we can say that it selects the "title" and "name" fields from any Record in the
 FlowFile for which there is an address whose "label" is "home" and another address whose "label" is "work" and for which
-the two addreses have different states.
+the two addresses have different states.
 
 Similarly, we could select the entire Record (all fields) of any person who has a "project" whose maintainer is the
 Apache Software Foundation using the query:

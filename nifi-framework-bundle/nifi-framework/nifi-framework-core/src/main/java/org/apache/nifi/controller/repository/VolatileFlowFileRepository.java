@@ -50,12 +50,12 @@ public class VolatileFlowFileRepository implements FlowFileRepository {
     }
 
     @Override
-    public long getStorageCapacity() throws IOException {
+    public long getStorageCapacity() {
         return 1L;
     }
 
     @Override
-    public long getUsableStorageSpace() throws IOException {
+    public long getUsableStorageSpace() {
         return 0L;
     }
 
@@ -142,12 +142,12 @@ public class VolatileFlowFileRepository implements FlowFileRepository {
     }
 
     @Override
-    public long loadFlowFiles(final QueueProvider queueProvider) throws IOException {
+    public long loadFlowFiles(final QueueProvider queueProvider) {
         return 0;
     }
 
     @Override
-    public Set<String> findQueuesWithFlowFiles(FlowFileSwapManager swapManager) throws IOException {
+    public Set<String> findQueuesWithFlowFiles(FlowFileSwapManager swapManager) {
         return Collections.emptySet();
     }
 
@@ -172,16 +172,16 @@ public class VolatileFlowFileRepository implements FlowFileRepository {
     }
 
     @Override
-    public long getMaxFlowFileIdentifier() throws IOException {
+    public long getMaxFlowFileIdentifier() {
         return idGenerator.get() - 1;
     }
 
     @Override
-    public void swapFlowFilesIn(String swapLocation, List<FlowFileRecord> flowFileRecords, FlowFileQueue queue) throws IOException {
+    public void swapFlowFilesIn(String swapLocation, List<FlowFileRecord> flowFileRecords, FlowFileQueue queue) {
     }
 
     @Override
-    public void swapFlowFilesOut(List<FlowFileRecord> swappedOut, FlowFileQueue queue, String swapLocation) throws IOException {
+    public void swapFlowFilesOut(List<FlowFileRecord> swappedOut, FlowFileQueue queue, String swapLocation) {
     }
 
     @Override

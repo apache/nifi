@@ -115,7 +115,7 @@ Taken together, this rule says:
 
 Continuing with this example, we can add another rule to check for files that are larger than one gigabyte. When we add
 this second rule, we can use the previous rule as a template, so to speak, by taking advantage of the "Clone Rule" option 
-in the menu for the Rule that you wan to clone. This will open with new Rule form with the exisitng Rules criteria
+in the menu for the Rule that you wan to clone. This will open with new Rule form with the existing Rules criteria
 pre-populated.
 
 In this example, the CheckForGiantFiles rule has these conditions:

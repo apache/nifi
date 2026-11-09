@@ -17,14 +17,28 @@
 
 import { connectorControllerServicesReducer } from './connector-controller-services.reducer';
 import {
+    clearConnectorControllerServiceBulletins,
+    clearConnectorControllerServiceBulletinsFailure,
+    clearConnectorControllerServiceBulletinsSuccess,
+    createConnectorControllerService,
+    createConnectorControllerServiceFailure,
+    createConnectorControllerServiceSuccess,
+    deleteConnectorControllerService,
+    deleteConnectorControllerServiceFailure,
+    deleteConnectorControllerServiceSuccess,
+    inlineCreateConnectorControllerServiceSuccess,
     loadConnectorControllerServices,
     loadConnectorControllerServicesFailure,
     loadConnectorControllerServicesSuccess,
-    resetConnectorControllerServicesState
+    resetConnectorControllerServicesState,
+    saveConnectorControllerService,
+    saveConnectorControllerServiceFailure,
+    saveConnectorControllerServiceSuccess
 } from './connector-controller-services.actions';
 import { ConnectorControllerServicesState, initialConnectorControllerServicesState } from './index';
 import { ErrorContextKey } from '../../../../state/error';
-import { BreadcrumbEntity, ControllerServiceEntity } from '../../../../state/shared';
+import { BreadcrumbEntity } from '../../../../state/shared';
+import { ComponentType, ControllerServiceEntity } from '@nifi/shared';
 
 function buildBreadcrumb(): BreadcrumbEntity {
     return {
@@ -46,6 +60,7 @@ function buildService(overrides: Partial<ControllerServiceEntity> = {}): Control
 }
 
 describe('connectorControllerServicesReducer', () => {
+    const scope = { connectorId: 'conn-1', processGroupId: 'pg-1' };
     it('should mark the slice as loading and capture connector + process group IDs on load', () => {
         const next = connectorControllerServicesReducer(
             initialConnectorControllerServicesState,
@@ -59,6 +74,42 @@ describe('connectorControllerServicesReducer', () => {
         expect(next.processGroupId).toBe('pg-1');
         expect(next.error).toBeNull();
         expect(next.hasAttemptedLoad).toBe(false);
+    });
+
+    it('should clear the previous listing when loading a different process group', () => {
+        const state: ConnectorControllerServicesState = {
+            ...initialConnectorControllerServicesState,
+            ...scope,
+            breadcrumb: buildBreadcrumb(),
+            controllerServices: [buildService()],
+            status: 'success'
+        };
+
+        const next = connectorControllerServicesReducer(
+            state,
+            loadConnectorControllerServices({ request: { connectorId: 'conn-1', processGroupId: 'pg-2' } })
+        );
+
+        expect(next.processGroupId).toBe('pg-2');
+        expect(next.breadcrumb).toBeNull();
+        expect(next.controllerServices).toEqual([]);
+    });
+
+    it('should keep the current listing while reloading the same process group', () => {
+        const breadcrumb = buildBreadcrumb();
+        const service = buildService();
+        const state: ConnectorControllerServicesState = {
+            ...initialConnectorControllerServicesState,
+            ...scope,
+            breadcrumb,
+            controllerServices: [service],
+            status: 'success'
+        };
+
+        const next = connectorControllerServicesReducer(state, loadConnectorControllerServices({ request: scope }));
+
+        expect(next.breadcrumb).toEqual(breadcrumb);
+        expect(next.controllerServices).toEqual([service]);
     });
 
     it('should populate breadcrumbs, services, and timestamp on load success', () => {
@@ -128,5 +179,87 @@ describe('connectorControllerServicesReducer', () => {
         const next = connectorControllerServicesReducer(populated, resetConnectorControllerServicesState());
 
         expect(next).toEqual(initialConnectorControllerServicesState);
+    });
+
+    it('should append an inline created service to the current listing', () => {
+        const currentState: ConnectorControllerServicesState = {
+            ...initialConnectorControllerServicesState,
+            ...scope,
+            controllerServices: [buildService({ id: 'service-a' })]
+        };
+
+        const result = connectorControllerServicesReducer(
+            currentState,
+            inlineCreateConnectorControllerServiceSuccess({
+                response: { controllerService: buildService({ id: 'service-b' }) }
+            })
+        );
+
+        expect(result.controllerServices.map((service) => service.id)).toEqual(['service-a', 'service-b']);
+        expect(currentState.controllerServices.map((service) => service.id)).toEqual(['service-a']);
+    });
+
+    describe('saving flag', () => {
+        const service = buildService();
+
+        it.each([
+            [
+                'create',
+                createConnectorControllerService({
+                    request: {
+                        revision: { clientId: 'client-1', version: 0 },
+                        processGroupId: 'pg-1',
+                        controllerServiceType: 'org.apache.nifi.TestService',
+                        controllerServiceBundle: { group: 'org.apache.nifi', artifact: 'test-nar', version: '1.0' }
+                    }
+                })
+            ],
+            [
+                'save',
+                saveConnectorControllerService({
+                    request: {
+                        id: service.id,
+                        uri: 'uri',
+                        payload: { revision: { version: 0 }, component: { id: service.id } }
+                    }
+                })
+            ],
+            ['delete', deleteConnectorControllerService({ request: { controllerService: service } })],
+            [
+                'clear bulletins',
+                clearConnectorControllerServiceBulletins({
+                    request: {
+                        uri: 'uri',
+                        componentId: service.id,
+                        componentType: ComponentType.ControllerService,
+                        fromTimestamp: '2023-03-01T12:00:00Z'
+                    }
+                })
+            ]
+        ])('should set saving when %s starts', (_name, action) => {
+            const next = connectorControllerServicesReducer(initialConnectorControllerServicesState, action);
+
+            expect(next.saving).toBe(true);
+        });
+
+        it.each([
+            ['create success', createConnectorControllerServiceSuccess({ response: { controllerService: service } })],
+            ['create failure', createConnectorControllerServiceFailure({ error: 'error' })],
+            ['save success', saveConnectorControllerServiceSuccess({ response: service })],
+            ['save failure', saveConnectorControllerServiceFailure({ error: 'error' })],
+            ['delete success', deleteConnectorControllerServiceSuccess()],
+            ['delete failure', deleteConnectorControllerServiceFailure({ error: 'error' })],
+            ['clear bulletins success', clearConnectorControllerServiceBulletinsSuccess()],
+            ['clear bulletins failure', clearConnectorControllerServiceBulletinsFailure({ error: 'error' })]
+        ])('should clear saving on %s', (_name, action) => {
+            const state: ConnectorControllerServicesState = {
+                ...initialConnectorControllerServicesState,
+                saving: true
+            };
+
+            const next = connectorControllerServicesReducer(state, action);
+
+            expect(next.saving).toBe(false);
+        });
     });
 });
