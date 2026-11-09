@@ -45,7 +45,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -993,7 +992,7 @@ public class TestXMLRecordReader {
         Object[] nestedArrayFirstRecord = (Object[]) valuesFirstRecord[valuesFirstRecord.length - 1];
         assertEquals(2, nestedArrayFirstRecord.length);
         assertArrayEquals(new Object[] {"child1", "child2"}, nestedArrayFirstRecord);
-        assertNotEquals(null, firstRecord.getValue("CHILD"));
+        assertNotNull(firstRecord.getValue("CHILD"));
 
         Record secondRecord = reader.nextRecord();
         Object[] valuesSecondRecord = secondRecord.getValues();
@@ -1001,7 +1000,7 @@ public class TestXMLRecordReader {
         Object[] nestedArraySecondRecord = (Object[]) valuesSecondRecord[valuesSecondRecord.length - 1];
         assertEquals(1, nestedArraySecondRecord.length);
         assertArrayEquals(new Object[] {"child1"}, nestedArraySecondRecord);
-        assertNotEquals(null, secondRecord.getValue("CHILD"));
+        assertNotNull(secondRecord.getValue("CHILD"));
 
         Record thirdRecord = reader.nextRecord();
         Object[] valuesThirdRecord = thirdRecord.getValues();
@@ -1009,7 +1008,7 @@ public class TestXMLRecordReader {
         Object[] nestedArrayThirdRecord = (Object[]) valuesThirdRecord[valuesThirdRecord.length - 1];
         assertEquals(3, nestedArrayThirdRecord.length);
         assertArrayEquals(new Object[] {"child1", "child2", "child3"}, nestedArrayThirdRecord);
-        assertNotEquals(null, thirdRecord.getValue("CHILD"));
+        assertNotNull(thirdRecord.getValue("CHILD"));
 
         Record valuesFourthRecord = reader.nextRecord();
         assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, Arrays.copyOfRange(valuesFourthRecord.getValues(), 0, valuesFourthRecord.getValues().length - 1));
@@ -1029,14 +1028,14 @@ public class TestXMLRecordReader {
         Object[] nestedArrayFirstRecord = (Object[]) valuesFirstRecord[valuesFirstRecord.length - 1];
         assertEquals(2, nestedArrayFirstRecord.length);
         assertArrayEquals(new Object[] {"child1", "child2"}, nestedArrayFirstRecord);
-        assertNotEquals(null, first.getValue("CHILD"));
+        assertNotNull(first.getValue("CHILD"));
 
         Record second = reader.nextRecord(false, false);
         Object[] valuesSecondRecord = second.getValues();
         assertArrayEquals(new Object[] {"Ainslie Fletcher", "33", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
         String nestedArraySecondRecord = (String) valuesSecondRecord[valuesSecondRecord.length - 1];
         assertEquals("child1", nestedArraySecondRecord);
-        assertNotEquals(null, second.getValue("CHILD"));
+        assertNotNull(second.getValue("CHILD"));
 
         Record third = reader.nextRecord(false, false);
         Object[] valuesThirdRecord = third.getValues();
@@ -1044,7 +1043,7 @@ public class TestXMLRecordReader {
         Object[] nestedArrayThirdRecord = (Object[]) valuesThirdRecord[valuesThirdRecord.length - 1];
         assertEquals(3, nestedArrayThirdRecord.length);
         assertArrayEquals(new Object[] {"child1", "child2", "child3"}, nestedArrayThirdRecord);
-        assertNotEquals(null, third.getValue("CHILD"));
+        assertNotNull(third.getValue("CHILD"));
 
         Record fourth = reader.nextRecord(false, false);
         assertArrayEquals(new Object[] {"Elenora Scrivens", "16", "USA"}, Arrays.copyOfRange(fourth.getValues(), 0, fourth.getValues().length - 1));
