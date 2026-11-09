@@ -16,7 +16,59 @@
   -->
 <div class="flex flex-col h-full">
     <header class="nifi-header">
-        <navigation></navigation>
+        <navigation>
+            @if (canEdit()) {
+                <new-canvas-item
+                    [dragging]="dragging()"
+                    iconClass="icon-processor"
+                    iconHoverClass="icon-processor-add"
+                    tooltip="Processor"
+                    (dragStarted)="onChipDragStarted()"
+                    (dragEnded)="onChipDragEnded(ComponentType.Processor, $event)"></new-canvas-item>
+                <new-canvas-item
+                    [dragging]="dragging()"
+                    iconClass="icon-port-in"
+                    iconHoverClass="icon-port-in-add"
+                    tooltip="Input Port"
+                    (dragStarted)="onChipDragStarted()"
+                    (dragEnded)="onChipDragEnded(ComponentType.InputPort, $event)"></new-canvas-item>
+                <new-canvas-item
+                    [dragging]="dragging()"
+                    iconClass="icon-port-out"
+                    iconHoverClass="icon-port-out-add"
+                    tooltip="Output Port"
+                    (dragStarted)="onChipDragStarted()"
+                    (dragEnded)="onChipDragEnded(ComponentType.OutputPort, $event)"></new-canvas-item>
+                <new-canvas-item
+                    [dragging]="dragging()"
+                    iconClass="icon-group"
+                    iconHoverClass="icon-group-add"
+                    tooltip="Process Group"
+                    (dragStarted)="onChipDragStarted()"
+                    (dragEnded)="onChipDragEnded(ComponentType.ProcessGroup, $event)"></new-canvas-item>
+                <new-canvas-item
+                    [dragging]="dragging()"
+                    iconClass="icon-group-remote"
+                    iconHoverClass="icon-group-remote-add"
+                    tooltip="Remote Process Group"
+                    (dragStarted)="onChipDragStarted()"
+                    (dragEnded)="onChipDragEnded(ComponentType.RemoteProcessGroup, $event)"></new-canvas-item>
+                <new-canvas-item
+                    [dragging]="dragging()"
+                    iconClass="icon-funnel"
+                    iconHoverClass="icon-funnel-add"
+                    tooltip="Funnel"
+                    (dragStarted)="onChipDragStarted()"
+                    (dragEnded)="onChipDragEnded(ComponentType.Funnel, $event)"></new-canvas-item>
+                <new-canvas-item
+                    [dragging]="dragging()"
+                    iconClass="icon-label"
+                    iconHoverClass="icon-label-add"
+                    tooltip="Label"
+                    (dragStarted)="onChipDragStarted()"
+                    (dragEnded)="onChipDragEnded(ComponentType.Label, $event)"></new-canvas-item>
+            }
+        </navigation>
     </header>
     <connector-canvas-header-bar
         [connectorId]="currentConnectorId"
@@ -102,7 +154,7 @@
                             (labelResizeEnd)="onLabelResizeEnd($event)"
                             (createConnectionRequested)="onCreateConnectionRequested($event)"
                             (connectionDestinationChangeRequested)="onConnectionDestinationChangeRequested($event)"
-                            [menuProvider]="contextMenuProvider"
+                            [menuProvider]="contextMenu"
                             (contextMenuOpened)="onContextMenuOpened($event)">
                         </reusable-canvas>
                     }

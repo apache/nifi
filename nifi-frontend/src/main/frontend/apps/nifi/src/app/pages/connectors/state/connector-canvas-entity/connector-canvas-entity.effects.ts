@@ -29,6 +29,9 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorContextKey } from '../../../../state/error';
 import * as ConnectorCanvasActions from '../connector-canvas/connector-canvas.actions';
 import { selectConnectorIdFromRoute } from '../connector-canvas/connector-canvas.selectors';
+import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
+import { selectCanvasFeatures } from '../../../../state/canvas-ui/canvas-ui.selectors';
+import { selectConnectorCanvasEntity } from './connector-canvas-entity.selectors';
 import {
     loadConnectorEntity,
     loadConnectorEntitySuccess,
@@ -78,6 +81,30 @@ export class ConnectorCanvasEntityEffects {
                     )
                 )
             )
+        )
+    );
+
+    /**
+     * Keeps the canvas edit feature in line with the connector's troubleshooting state.
+     *
+     * Every flow load refreshes the connector entity, so the canvas follows the state
+     * the server reports. The connector canvas initializes the feature to read-only, so
+     * a configuration is dispatched only when the feature diverges from the entity.
+     */
+    troubleshootingTransitions$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(loadConnectorEntitySuccess),
+            concatLatestFrom(() => [
+                this.store.select(selectConnectorCanvasEntity),
+                this.store.select(selectCanvasFeatures)
+            ]),
+            filter(([, connectorEntity]) => connectorEntity !== null),
+            map(([, connectorEntity, features]) => ({
+                canEdit: connectorEntity!.component.state === 'TROUBLESHOOTING',
+                currentCanEdit: features.canEdit
+            })),
+            filter(({ canEdit, currentCanEdit }) => canEdit !== currentCanEdit),
+            map(({ canEdit }) => setConfiguration({ configuration: { features: { canEdit, canSelect: true } } }))
         )
     );
 

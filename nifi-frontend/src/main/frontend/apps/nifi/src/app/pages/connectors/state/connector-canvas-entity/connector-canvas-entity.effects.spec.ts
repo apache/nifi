@@ -31,6 +31,8 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorContextKey } from '../../../../state/error';
 import { selectConnectorCanvasEntity } from './connector-canvas-entity.selectors';
 import { selectConnectorIdFromRoute } from '../connector-canvas/connector-canvas.selectors';
+import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
+import { selectCanvasFeatures } from '../../../../state/canvas-ui/canvas-ui.selectors';
 import {
     cancelConnectorDrain,
     cancelConnectorDrainSuccess,
@@ -75,6 +77,7 @@ describe('ConnectorCanvasEntityEffects', () => {
     interface SetupOptions {
         existingConnectorEntity?: ConnectorEntity | null;
         connectorIdFromRoute?: string | null;
+        canvasCanEdit?: boolean;
     }
 
     function createMockDialogRef(data: Record<string, Observable<unknown> | Subject<unknown>> = {}) {
@@ -113,6 +116,10 @@ describe('ConnectorCanvasEntityEffects', () => {
                         {
                             selector: selectConnectorIdFromRoute,
                             value: options.connectorIdFromRoute ?? null
+                        },
+                        {
+                            selector: selectCanvasFeatures,
+                            value: { canEdit: options.canvasCanEdit ?? false, canSelect: true }
                         }
                     ]
                 }),
@@ -219,6 +226,56 @@ describe('ConnectorCanvasEntityEffects', () => {
             const result = await firstValueFrom(effects.loadConnectorEntity$);
             expect(result).toEqual(loadConnectorEntityFailure({ error: 'Error message' }));
             expect(mockErrorHelper.getErrorString).toHaveBeenCalledWith(errorResponse);
+        });
+    });
+
+    describe('troubleshootingTransitions$', () => {
+        function troubleshootingEntity(): ConnectorEntity {
+            const entity = createMockConnectorEntity();
+            return { ...entity, component: { ...entity.component, state: 'TROUBLESHOOTING' } };
+        }
+
+        async function emittedFor(options: SetupOptions): Promise<Action[]> {
+            const { effects, actions$ } = await setup(options);
+            const emitted: Action[] = [];
+            const subscription = effects.troubleshootingTransitions$.subscribe((action) => emitted.push(action));
+            actions$.next(loadConnectorEntitySuccess({ connectorEntity: createMockConnectorEntity() }));
+            subscription.unsubscribe();
+            return emitted;
+        }
+
+        it('enables canvas editing when the connector is in troubleshooting', async () => {
+            const emitted = await emittedFor({
+                existingConnectorEntity: troubleshootingEntity(),
+                canvasCanEdit: false
+            });
+
+            expect(emitted).toEqual([
+                setConfiguration({ configuration: { features: { canEdit: true, canSelect: true } } })
+            ]);
+        });
+
+        it('disables canvas editing when the connector is not in troubleshooting', async () => {
+            const emitted = await emittedFor({
+                existingConnectorEntity: createMockConnectorEntity(),
+                canvasCanEdit: true
+            });
+
+            expect(emitted).toEqual([
+                setConfiguration({ configuration: { features: { canEdit: false, canSelect: true } } })
+            ]);
+        });
+
+        it('does not dispatch when canvas editing already matches the connector state', async () => {
+            const emitted = await emittedFor({ existingConnectorEntity: troubleshootingEntity(), canvasCanEdit: true });
+
+            expect(emitted).toEqual([]);
+        });
+
+        it('does not dispatch when no connector entity is retained', async () => {
+            const emitted = await emittedFor({ existingConnectorEntity: null, canvasCanEdit: true });
+
+            expect(emitted).toEqual([]);
         });
     });
 

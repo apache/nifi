@@ -1089,6 +1089,22 @@ describe('PortRenderer', () => {
 
             expect(el.on('mousedown.drag')).toBe(firstHandler);
         });
+
+        it('selects on mousedown after a re-render while drag is attached', async () => {
+            const onClick = vi.fn();
+            const port = createMockPort({ entity: { permissions: { canRead: true, canWrite: true } } });
+            const { context, cleanup } = await setup({ ports: [port], callbacks: { onClick, onDragEnd: vi.fn() } });
+
+            PortRenderer.render(context);
+            const el = context.containerSelection.select<SVGGElement>('g.input-port, g.output-port');
+            expect(el.on('mousedown.drag')).toBeTruthy();
+            el.node()!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, view: window }));
+            window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0, view: window }));
+
+            expect(onClick).toHaveBeenCalledTimes(1);
+
+            cleanup();
+        });
     });
 
     // The mousedown.selection handler is attached ONCE per element. The

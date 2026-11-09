@@ -18,7 +18,7 @@
 import { createReducer, on } from '@ngrx/store';
 import { initialConnectorCanvasState } from './index';
 import * as ConnectorCanvasActions from './connector-canvas.actions';
-import { ComponentType, Revision } from '@nifi/shared';
+import { ComponentType, ConnectionEntity, Revision } from '@nifi/shared';
 
 function hasCurrentOrNewerRevision(current: Revision, incoming: Revision): boolean {
     return incoming.version >= current.version;
@@ -116,6 +116,7 @@ export const connectorCanvasReducer = createReducer(
                 processGroupRevision,
                 parentProcessGroupId,
                 breadcrumb,
+                permissions,
                 labels,
                 funnels,
                 inputPorts,
@@ -163,6 +164,7 @@ export const connectorCanvasReducer = createReducer(
                 processGroupRevision,
                 parentProcessGroupId,
                 breadcrumb,
+                permissions,
                 labels: processComponentCollection(
                     labels,
                     state.labels,
@@ -235,6 +237,11 @@ export const connectorCanvasReducer = createReducer(
         }
     ),
 
+    on(ConnectorCanvasActions.setDragging, (state, { dragging }) => ({
+        ...state,
+        dragging
+    })),
+
     on(ConnectorCanvasActions.markAuthoritativeSnapshotPending, (state) => ({
         ...state,
         pendingAuthoritativeSnapshot: true
@@ -268,8 +275,87 @@ export const connectorCanvasReducer = createReducer(
         ConnectorCanvasActions.saveEditedConnection,
         ConnectorCanvasActions.resizeLabel,
         ConnectorCanvasActions.submitCreateConnection,
+        ConnectorCanvasActions.createCanvasComponent,
+        ConnectorCanvasActions.uploadProcessGroup,
+        ConnectorCanvasActions.deleteSelectedComponents,
         (state) => ({ ...state, saving: true })
     ),
+
+    // Clear dragging as well so dialog-less drops (Funnel, Label) reset the palette.
+    on(ConnectorCanvasActions.createCanvasComponentSuccess, (state, { response }) => {
+        const next = {
+            ...state,
+            saving: false,
+            dragging: false,
+            addedCache: [...new Set([...state.addedCache, response.payload.id])]
+        };
+        switch (response.type) {
+            case ComponentType.Processor:
+                return { ...next, processors: reconcileIfCurrentOrNewer(state.processors, response.payload) };
+            case ComponentType.InputPort:
+                return { ...next, inputPorts: reconcileIfCurrentOrNewer(state.inputPorts, response.payload) };
+            case ComponentType.OutputPort:
+                return { ...next, outputPorts: reconcileIfCurrentOrNewer(state.outputPorts, response.payload) };
+            case ComponentType.ProcessGroup:
+                return { ...next, processGroups: reconcileIfCurrentOrNewer(state.processGroups, response.payload) };
+            case ComponentType.RemoteProcessGroup:
+                return {
+                    ...next,
+                    remoteProcessGroups: reconcileIfCurrentOrNewer(state.remoteProcessGroups, response.payload)
+                };
+            case ComponentType.Funnel:
+                return { ...next, funnels: reconcileIfCurrentOrNewer(state.funnels, response.payload) };
+            case ComponentType.Label:
+                return { ...next, labels: reconcileIfCurrentOrNewer(state.labels, response.payload) };
+        }
+    }),
+
+    on(ConnectorCanvasActions.createCanvasComponentFailure, (state) => ({
+        ...state,
+        saving: false,
+        dragging: false
+    })),
+
+    // Upload pushes the new process group through createCanvasComponentSuccess.
+    on(
+        ConnectorCanvasActions.uploadProcessGroupSuccess,
+        ConnectorCanvasActions.uploadProcessGroupFailure,
+        ConnectorCanvasActions.deleteSelectedComponentsFailure,
+        (state) => ({
+            ...state,
+            saving: false
+        })
+    ),
+
+    on(ConnectorCanvasActions.deleteSelectedComponentsSuccess, (state, { ids }) => {
+        const requestedIds = new Set(ids.map((deleted) => deleted.id));
+        // The server removes a deleted component's outgoing connections, including those leaving a
+        // remote process group's ports; incoming connections block the delete.
+        const sourceComponentId = (connection: ConnectionEntity): string =>
+            connection.sourceGroupId !== state.processGroupId ? connection.sourceGroupId : connection.sourceId;
+        const deletedIds = new Set([
+            ...requestedIds,
+            ...state.connections
+                .filter((connection) => requestedIds.has(sourceComponentId(connection)))
+                .map((connection) => connection.id)
+        ]);
+        const notDeleted = <E extends { id: string }>(entity: E): boolean => !deletedIds.has(entity.id);
+        return {
+            ...state,
+            saving: false,
+            processors: state.processors.filter(notDeleted),
+            processGroups: state.processGroups.filter(notDeleted),
+            remoteProcessGroups: state.remoteProcessGroups.filter(notDeleted),
+            funnels: state.funnels.filter(notDeleted),
+            labels: state.labels.filter(notDeleted),
+            inputPorts: state.inputPorts.filter(notDeleted),
+            outputPorts: state.outputPorts.filter(notDeleted),
+            connections: state.connections.filter(notDeleted),
+            // Deletion supersedes an unacknowledged local creation of the same entity.
+            addedCache: state.addedCache.filter((id) => !deletedIds.has(id)),
+            removedCache: [...new Set([...state.removedCache, ...deletedIds])]
+        };
+    }),
 
     on(ConnectorCanvasActions.moveCanvasComponents, (state, { components }) => {
         const movedIds = new Set(components.map((component) => component.id));
@@ -310,75 +396,79 @@ export const connectorCanvasReducer = createReducer(
         };
     }),
 
-    on(ConnectorCanvasActions.updateComponentPositionSuccess, (state, { componentId, componentType, component }) => {
-        switch (componentType) {
-            case ComponentType.Processor:
-                return {
-                    ...state,
-                    processors: replaceIfCurrentOrNewer(
-                        state.processors,
-                        componentId,
-                        component as (typeof state.processors)[number]
-                    )
-                };
-            case ComponentType.InputPort:
-                return {
-                    ...state,
-                    inputPorts: replaceIfCurrentOrNewer(
-                        state.inputPorts,
-                        componentId,
-                        component as (typeof state.inputPorts)[number]
-                    )
-                };
-            case ComponentType.OutputPort:
-                return {
-                    ...state,
-                    outputPorts: replaceIfCurrentOrNewer(
-                        state.outputPorts,
-                        componentId,
-                        component as (typeof state.outputPorts)[number]
-                    )
-                };
-            case ComponentType.ProcessGroup:
-                return {
-                    ...state,
-                    processGroups: replaceIfCurrentOrNewer(
-                        state.processGroups,
-                        componentId,
-                        component as (typeof state.processGroups)[number]
-                    )
-                };
-            case ComponentType.RemoteProcessGroup:
-                return {
-                    ...state,
-                    remoteProcessGroups: replaceIfCurrentOrNewer(
-                        state.remoteProcessGroups,
-                        componentId,
-                        component as (typeof state.remoteProcessGroups)[number]
-                    )
-                };
-            case ComponentType.Funnel:
-                return {
-                    ...state,
-                    funnels: replaceIfCurrentOrNewer(
-                        state.funnels,
-                        componentId,
-                        component as (typeof state.funnels)[number]
-                    )
-                };
-            case ComponentType.Label:
-                return {
-                    ...state,
-                    labels: replaceIfCurrentOrNewer(
-                        state.labels,
-                        componentId,
-                        component as (typeof state.labels)[number]
-                    )
-                };
-            default:
-                return state;
+    on(
+        ConnectorCanvasActions.updateComponentPositionSuccess,
+        ConnectorCanvasActions.loadConnectionEndpointSuccess,
+        (state, { componentId, componentType, component }) => {
+            switch (componentType) {
+                case ComponentType.Processor:
+                    return {
+                        ...state,
+                        processors: replaceIfCurrentOrNewer(
+                            state.processors,
+                            componentId,
+                            component as (typeof state.processors)[number]
+                        )
+                    };
+                case ComponentType.InputPort:
+                    return {
+                        ...state,
+                        inputPorts: replaceIfCurrentOrNewer(
+                            state.inputPorts,
+                            componentId,
+                            component as (typeof state.inputPorts)[number]
+                        )
+                    };
+                case ComponentType.OutputPort:
+                    return {
+                        ...state,
+                        outputPorts: replaceIfCurrentOrNewer(
+                            state.outputPorts,
+                            componentId,
+                            component as (typeof state.outputPorts)[number]
+                        )
+                    };
+                case ComponentType.ProcessGroup:
+                    return {
+                        ...state,
+                        processGroups: replaceIfCurrentOrNewer(
+                            state.processGroups,
+                            componentId,
+                            component as (typeof state.processGroups)[number]
+                        )
+                    };
+                case ComponentType.RemoteProcessGroup:
+                    return {
+                        ...state,
+                        remoteProcessGroups: replaceIfCurrentOrNewer(
+                            state.remoteProcessGroups,
+                            componentId,
+                            component as (typeof state.remoteProcessGroups)[number]
+                        )
+                    };
+                case ComponentType.Funnel:
+                    return {
+                        ...state,
+                        funnels: replaceIfCurrentOrNewer(
+                            state.funnels,
+                            componentId,
+                            component as (typeof state.funnels)[number]
+                        )
+                    };
+                case ComponentType.Label:
+                    return {
+                        ...state,
+                        labels: replaceIfCurrentOrNewer(
+                            state.labels,
+                            componentId,
+                            component as (typeof state.labels)[number]
+                        )
+                    };
+                default:
+                    return state;
+            }
         }
-    }),
+    ),
 
     on(
         ConnectorCanvasActions.updateConnectionBendPointsSuccess,

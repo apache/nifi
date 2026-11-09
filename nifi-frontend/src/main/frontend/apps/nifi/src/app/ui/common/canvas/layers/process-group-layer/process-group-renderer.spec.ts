@@ -1303,6 +1303,25 @@ describe('ProcessGroupRenderer', () => {
             // construction and the .call(drag) re-attach.
             expect(el.on('mousedown.drag')).toBe(firstHandler);
         });
+
+        it('selects on mousedown after a re-render while drag is attached', async () => {
+            const onClick = vi.fn();
+            const pg = createMockProcessGroup({ entity: { permissions: { canRead: true, canWrite: true } } });
+            const { context, cleanup } = await setup({
+                processGroups: [pg],
+                callbacks: { onClick, onDragEnd: vi.fn() }
+            });
+
+            ProcessGroupRenderer.render(context);
+            const el = context.containerSelection.select<SVGGElement>('g.process-group');
+            expect(el.on('mousedown.drag')).toBeTruthy();
+            el.node()!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, view: window }));
+            window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0, view: window }));
+
+            expect(onClick).toHaveBeenCalledTimes(1);
+
+            cleanup();
+        });
     });
 
     // The mousedown.selection handler is attached ONCE per element. The

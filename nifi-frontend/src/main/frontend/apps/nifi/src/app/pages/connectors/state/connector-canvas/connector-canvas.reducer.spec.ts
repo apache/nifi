@@ -162,6 +162,7 @@ describe('connectorCanvasReducer', () => {
                     processGroupRevision: { version: 7, clientId: 'client-1' },
                     parentProcessGroupId: null,
                     breadcrumb: null,
+                    permissions: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -191,6 +192,7 @@ describe('connectorCanvasReducer', () => {
                     processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
+                    permissions: null,
                     labels,
                     funnels: [],
                     inputPorts: [],
@@ -226,6 +228,7 @@ describe('connectorCanvasReducer', () => {
                     processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
+                    permissions: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -256,6 +259,7 @@ describe('connectorCanvasReducer', () => {
                 processGroupRevision: null,
                 parentProcessGroupId: 'pg-parent',
                 breadcrumb: null,
+                permissions: null,
                 labels: [],
                 funnels: [],
                 inputPorts: [],
@@ -296,6 +300,7 @@ describe('connectorCanvasReducer', () => {
                 processGroupRevision: null,
                 parentProcessGroupId: 'pg-parent',
                 breadcrumb: null,
+                permissions: null,
                 labels: [],
                 funnels: [],
                 inputPorts: [],
@@ -343,6 +348,7 @@ describe('connectorCanvasReducer', () => {
                     processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
+                    permissions: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -372,6 +378,7 @@ describe('connectorCanvasReducer', () => {
                     processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
+                    permissions: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -410,6 +417,7 @@ describe('connectorCanvasReducer', () => {
                     processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
+                    permissions: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -454,6 +462,7 @@ describe('connectorCanvasReducer', () => {
                     processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
+                    permissions: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -779,6 +788,33 @@ describe('connectorCanvasReducer', () => {
             expect(unchanged.processors[0]).toEqual(newer);
         });
 
+        it('applies a reloaded connection endpoint at the current revision and ignores a stale one', () => {
+            const current = makeProcessor('proc-1', { revision: { version: 5 } });
+            const reloaded = makeProcessor('proc-1', { revision: { version: 5 }, physicalState: 'DISABLED' });
+            const stale = makeProcessor('proc-1', { revision: { version: 4 } });
+            const state = createPopulatedState({ processors: [current] });
+
+            const updated = connectorCanvasReducer(
+                state,
+                ConnectorCanvasActions.loadConnectionEndpointSuccess({
+                    componentId: 'proc-1',
+                    componentType: ComponentType.Processor,
+                    component: reloaded
+                })
+            );
+            const unchanged = connectorCanvasReducer(
+                updated,
+                ConnectorCanvasActions.loadConnectionEndpointSuccess({
+                    componentId: 'proc-1',
+                    componentType: ComponentType.Processor,
+                    component: stale
+                })
+            );
+
+            expect(updated.processors[0]).toEqual(reloaded);
+            expect(unchanged.processors[0]).toEqual(reloaded);
+        });
+
         it('optimistically removes moved components and clears saving on failure', () => {
             const action = ConnectorCanvasActions.moveCanvasComponents({
                 processGroupId: 'pg-current',
@@ -826,6 +862,7 @@ describe('connectorCanvasReducer', () => {
                 processGroupRevision: null,
                 parentProcessGroupId: 'pg-parent',
                 breadcrumb: null,
+                permissions: null,
                 labels: [],
                 funnels: [],
                 inputPorts: [],
@@ -890,6 +927,7 @@ describe('connectorCanvasReducer', () => {
                     processGroupRevision: null,
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
+                    permissions: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -957,6 +995,256 @@ describe('connectorCanvasReducer', () => {
             expect(result.processors[0].component).toBe(current.component);
             expect(result.processors[0].status).toBe(response.status);
             expect(result.processors[0].revision).toBe(response.revision);
+        });
+    });
+
+    describe('component create and delete', () => {
+        function loadSnapshot(
+            overrides: Partial<Parameters<typeof ConnectorCanvasActions.loadConnectorFlowSuccess>[0]> = {}
+        ) {
+            return ConnectorCanvasActions.loadConnectorFlowSuccess({
+                connectorId: 'connector-1',
+                processGroupId: 'pg-current',
+                processGroupRevision: null,
+                parentProcessGroupId: 'pg-parent',
+                breadcrumb: null,
+                permissions: null,
+                labels: [],
+                funnels: [],
+                inputPorts: [],
+                outputPorts: [],
+                remoteProcessGroups: [],
+                processGroups: [],
+                processors: [],
+                connections: [],
+                reconciliationSnapshot: { addedCache: [], removedCache: [] },
+                connectedStateChanged: false,
+                ...overrides
+            });
+        }
+
+        it('stores the flow-level permissions from the loaded process group', () => {
+            const permissions = { canRead: true, canWrite: true };
+
+            const result = connectorCanvasReducer(initialConnectorCanvasState, loadSnapshot({ permissions }));
+
+            expect(result.permissions).toEqual(permissions);
+        });
+
+        it('clears saving when a delete fails', () => {
+            const result = connectorCanvasReducer(
+                createPopulatedState({ saving: true }),
+                ConnectorCanvasActions.deleteSelectedComponentsFailure({ error: 'boom' })
+            );
+
+            expect(result.saving).toBe(false);
+        });
+
+        it('tracks palette dragging', () => {
+            const result = connectorCanvasReducer(
+                initialConnectorCanvasState,
+                ConnectorCanvasActions.setDragging({ dragging: true })
+            );
+
+            expect(result.dragging).toBe(true);
+        });
+
+        it.each([
+            [ComponentType.Processor, 'processors', makeProcessor('new-component')],
+            [ComponentType.InputPort, 'inputPorts', makePort('new-component')],
+            [ComponentType.OutputPort, 'outputPorts', makePort('new-component', { portType: 'OUTPUT_PORT' })],
+            [ComponentType.ProcessGroup, 'processGroups', makeProcessGroup('new-component')],
+            [ComponentType.RemoteProcessGroup, 'remoteProcessGroups', makeRemoteProcessGroup('new-component')],
+            [ComponentType.Funnel, 'funnels', makeFunnel('new-component')],
+            [ComponentType.Label, 'labels', makeLabel('new-component')]
+        ] as const)('adds a created %s to %s and the added cache', (type, collection, payload) => {
+            const state = createPopulatedState({ saving: true, dragging: true });
+
+            const result = connectorCanvasReducer(
+                state,
+                ConnectorCanvasActions.createCanvasComponentSuccess({
+                    response: { type, payload } as Parameters<
+                        typeof ConnectorCanvasActions.createCanvasComponentSuccess
+                    >[0]['response']
+                })
+            );
+
+            expect(result[collection]).toContainEqual(payload);
+            expect(result[collection]).toHaveLength(state[collection].length + 1);
+            expect(result.addedCache).toEqual(['new-component']);
+            expect(result.saving).toBe(false);
+            expect(result.dragging).toBe(false);
+        });
+
+        it('keeps a created component when an older snapshot omits it', () => {
+            const created = makeFunnel('funnel-new');
+            const afterCreate = connectorCanvasReducer(
+                createPopulatedState(),
+                ConnectorCanvasActions.createCanvasComponentSuccess({
+                    response: { type: ComponentType.Funnel, payload: created }
+                })
+            );
+
+            const result = connectorCanvasReducer(afterCreate, loadSnapshot({ funnels: [makeFunnel('funnel-1')] }));
+
+            expect(result.funnels.map((funnel) => funnel.id)).toEqual(['funnel-1', 'funnel-new']);
+            expect(result.addedCache).toEqual(['funnel-new']);
+        });
+
+        it('clears saving and dragging when a create fails', () => {
+            const result = connectorCanvasReducer(
+                createPopulatedState({ saving: true, dragging: true }),
+                ConnectorCanvasActions.createCanvasComponentFailure({
+                    error: 'boom',
+                    errorContextKey: ErrorContextKey.PROCESSOR
+                })
+            );
+
+            expect(result.saving).toBe(false);
+            expect(result.dragging).toBe(false);
+        });
+
+        it('sets saving while a delete is in flight', () => {
+            const result = connectorCanvasReducer(
+                createPopulatedState(),
+                ConnectorCanvasActions.deleteSelectedComponents({
+                    request: [{ id: 'proc-1', type: ComponentType.Processor, revision: { version: 0 } }]
+                })
+            );
+
+            expect(result.saving).toBe(true);
+        });
+
+        it('removes deleted components and their outgoing connections', () => {
+            const state = createPopulatedState({
+                saving: true,
+                connections: [
+                    makeConnection('outgoing', { sourceId: 'proc-1', destinationId: 'funnel-1' }),
+                    makeConnection('self-loop', { sourceId: 'proc-1', destinationId: 'proc-1' }),
+                    makeConnection('unrelated', { sourceId: 'proc-2', destinationId: 'funnel-1' })
+                ]
+            });
+
+            const result = connectorCanvasReducer(
+                state,
+                ConnectorCanvasActions.deleteSelectedComponentsSuccess({
+                    ids: [{ id: 'proc-1', type: ComponentType.Processor }]
+                })
+            );
+
+            expect(result.processors.map((processor) => processor.id)).toEqual(['proc-2']);
+            expect(result.connections.map((connection) => connection.id)).toEqual(['unrelated']);
+            expect(result.removedCache).toEqual(['proc-1', 'outgoing', 'self-loop']);
+            expect(result.saving).toBe(false);
+        });
+
+        it('removes connections leaving a deleted remote process group', () => {
+            const state = createPopulatedState({
+                remoteProcessGroups: [makeRemoteProcessGroup('rpg-1')],
+                connections: [
+                    makeConnection('from-rpg', {
+                        sourceId: 'remote-output-port-1',
+                        sourceGroupId: 'rpg-1',
+                        sourceType: 'REMOTE_OUTPUT_PORT',
+                        destinationId: 'funnel-1'
+                    }),
+                    makeConnection('unrelated', { sourceId: 'proc-2', destinationId: 'funnel-1' })
+                ]
+            });
+
+            const result = connectorCanvasReducer(
+                state,
+                ConnectorCanvasActions.deleteSelectedComponentsSuccess({
+                    ids: [{ id: 'rpg-1', type: ComponentType.RemoteProcessGroup }]
+                })
+            );
+
+            expect(result.remoteProcessGroups).toEqual([]);
+            expect(result.connections.map((connection) => connection.id)).toEqual(['unrelated']);
+            expect(result.removedCache).toEqual(['rpg-1', 'from-rpg']);
+        });
+
+        it('does not restore a deleted component or its connections from an older snapshot', () => {
+            const outgoing = makeConnection('outgoing', { sourceId: 'proc-1', destinationId: 'funnel-1' });
+            const afterDelete = connectorCanvasReducer(
+                createPopulatedState({ connections: [outgoing] }),
+                ConnectorCanvasActions.deleteSelectedComponentsSuccess({
+                    ids: [{ id: 'proc-1', type: ComponentType.Processor }]
+                })
+            );
+
+            const result = connectorCanvasReducer(
+                afterDelete,
+                loadSnapshot({
+                    processors: [makeProcessor('proc-1'), makeProcessor('proc-2')],
+                    connections: [outgoing]
+                })
+            );
+
+            expect(result.processors.map((processor) => processor.id)).toEqual(['proc-2']);
+            expect(result.connections).toEqual([]);
+        });
+
+        it('does not restore a connection leaving a deleted remote process group from an older snapshot', () => {
+            const fromRpg = makeConnection('from-rpg', {
+                sourceId: 'remote-output-port-1',
+                sourceGroupId: 'rpg-1',
+                sourceType: 'REMOTE_OUTPUT_PORT',
+                destinationId: 'funnel-1'
+            });
+            const afterDelete = connectorCanvasReducer(
+                createPopulatedState({
+                    remoteProcessGroups: [makeRemoteProcessGroup('rpg-1')],
+                    connections: [fromRpg]
+                }),
+                ConnectorCanvasActions.deleteSelectedComponentsSuccess({
+                    ids: [{ id: 'rpg-1', type: ComponentType.RemoteProcessGroup }]
+                })
+            );
+
+            const result = connectorCanvasReducer(
+                afterDelete,
+                loadSnapshot({ remoteProcessGroups: [makeRemoteProcessGroup('rpg-1')], connections: [fromRpg] })
+            );
+
+            expect(result.remoteProcessGroups).toEqual([]);
+            expect(result.connections).toEqual([]);
+        });
+
+        it('does not restore a created-then-deleted component from a snapshot taken in between', () => {
+            const created = makeFunnel('funnel-new');
+            const afterCreate = connectorCanvasReducer(
+                createPopulatedState(),
+                ConnectorCanvasActions.createCanvasComponentSuccess({
+                    response: { type: ComponentType.Funnel, payload: created }
+                })
+            );
+            const afterDelete = connectorCanvasReducer(
+                afterCreate,
+                ConnectorCanvasActions.deleteSelectedComponentsSuccess({
+                    ids: [{ id: 'funnel-new', type: ComponentType.Funnel }]
+                })
+            );
+
+            const result = connectorCanvasReducer(
+                afterDelete,
+                loadSnapshot({
+                    funnels: [makeFunnel('funnel-1'), created],
+                    reconciliationSnapshot: { addedCache: ['funnel-new'], removedCache: [] }
+                })
+            );
+
+            expect(afterDelete.addedCache).toEqual([]);
+            expect(result.funnels.map((funnel) => funnel.id)).toEqual(['funnel-1']);
+        });
+
+        it('clears saving when an upload settles', () => {
+            const result = connectorCanvasReducer(
+                createPopulatedState({ saving: true }),
+                ConnectorCanvasActions.uploadProcessGroupFailure({ error: 'boom' })
+            );
+
+            expect(result.saving).toBe(false);
         });
     });
 });

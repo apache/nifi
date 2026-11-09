@@ -18,9 +18,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { HeaderComponent } from './header.component';
-import { provideMockStore } from '@ngrx/store/testing';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
+import { CdkDragEnd } from '@angular/cdk/drag-drop';
+import { ComponentType } from '@nifi/shared';
+import { CanvasView } from '../../../service/canvas-view.service';
+import { createComponentRequest, setDragging } from '../../../state/flow/flow.actions';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { NewCanvasItem } from './new-canvas-item/new-canvas-item.component';
+import { NewCanvasItem } from '../../../../../ui/common/canvas/new-canvas-item/new-canvas-item.component';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { selectControllerBulletins, selectControllerStatus } from '../../../state/flow/flow.selectors';
@@ -92,6 +96,7 @@ describe('HeaderComponent', () => {
                 ReactiveFormsModule
             ],
             providers: [
+                { provide: CanvasView, useValue: { getCanvasPosition: vi.fn() } },
                 provideMockStore({
                     initialState: {
                         [canvasFeatureKey]: {
@@ -146,5 +151,46 @@ describe('HeaderComponent', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    describe('palette drag', () => {
+        let store: MockStore;
+        let canvasView: CanvasView;
+
+        beforeEach(() => {
+            store = TestBed.inject(MockStore);
+            canvasView = TestBed.inject(CanvasView);
+            vi.spyOn(store, 'dispatch');
+        });
+
+        it('sets dragging when a chip drag starts', () => {
+            component.onDragStarted();
+
+            expect(store.dispatch).toHaveBeenCalledWith(setDragging({ dragging: true }));
+        });
+
+        it('requests the component at the drop position', () => {
+            vi.spyOn(canvasView, 'getCanvasPosition').mockReturnValue({ x: 10, y: 20 });
+
+            component.onDragEnded(ComponentType.Funnel, { dropPoint: { x: 1, y: 2 } } as CdkDragEnd);
+
+            expect(store.dispatch).toHaveBeenCalledWith(
+                createComponentRequest({
+                    request: {
+                        revision: { clientId: expect.any(String), version: 0 },
+                        type: ComponentType.Funnel,
+                        position: { x: 10, y: 20 }
+                    }
+                })
+            );
+        });
+
+        it('clears dragging when dropped outside the canvas', () => {
+            vi.spyOn(canvasView, 'getCanvasPosition').mockReturnValue(null);
+
+            component.onDragEnded(ComponentType.Funnel, { dropPoint: { x: 1, y: 2 } } as CdkDragEnd);
+
+            expect(store.dispatch).toHaveBeenCalledWith(setDragging({ dragging: false }));
+        });
     });
 });

@@ -39,10 +39,6 @@ The NiFi UI uses [Angular Material](https://material.angular.io/) which implemen
 [Material Design 3](https://m3.material.io/) specification. The theme applies a minimally
 customized MD3 appearance — functional and accessible, without a proprietary design token layer.
 
-Snowflake's fork (`openflow-ui`) sits on top of this same Angular Material base but replaces the
-palette values with Snowflake's Stellar design system tokens (Balto). Code flows in both directions
-between the repositories, so it is important to understand where the two implementations differ.
-
 ---
 
 ## Theme Stack
@@ -88,11 +84,7 @@ Angular Material's `mat.theme-overrides()` sets component tokens (`--mdc-*`, `--
 in dark mode. Our `mat.*-overrides()` set them on `<html>` (`:root`). Since `<body>` is a child of
 `<html>`, the `<body>` value wins the cascade.
 
-In **openflow-ui**, this matters because our per-component colors come from `--themed-*` tokens
-which auto-rebind under `.darkMode`. When those tokens are used inside `mat.*-overrides()`, the
-`<body>` Material dark-theme value overrides our `:root` value unless we re-declare in `.darkMode`.
-
-In **NiFi**, most `mat.*-overrides()` use `--mat-sys-*` tokens (e.g., `--mat-sys-secondary-container`).
+Most `mat.*-overrides()` use `--mat-sys-*` tokens (e.g., `--mat-sys-secondary-container`).
 These tokens are themselves already set correctly for dark mode by `mat.theme()`. Angular Material's
 dark-theme defaults for those same component tokens typically equal the light-mode values when those
 tokens use `--mat-sys-*` references, so no explicit `.darkMode` is needed.

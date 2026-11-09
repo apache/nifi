@@ -15,18 +15,17 @@
  * limitations under the License.
  */
 
-import { Component, Input, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CdkDrag, CdkDragEnd } from '@angular/cdk/drag-drop';
-import { Store } from '@ngrx/store';
-import { CanvasState } from '../../../../state';
-import { createComponentRequest, setDragging } from '../../../../state/flow/flow.actions';
-import { Client } from '../../../../../../service/client.service';
-import { selectDragging } from '../../../../state/flow/flow.selectors';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CanvasView } from '../../../../service/canvas-view.service';
-import { ComponentType, NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { ConnectedPosition } from '@angular/cdk/overlay';
 
+/**
+ * A draggable palette chip that callers wire to a canvas. The chip is
+ * intentionally agnostic about state management: it emits dragStarted /
+ * dragEnded events and lets the host (flow-designer header, connector
+ * canvas, etc.) decide how to translate them into actions.
+ */
 @Component({
     selector: 'new-canvas-item',
     templateUrl: './new-canvas-item.component.html',
@@ -34,15 +33,19 @@ import { ConnectedPosition } from '@angular/cdk/overlay';
     styleUrls: ['./new-canvas-item.component.scss']
 })
 export class NewCanvasItem {
-    private client = inject(Client);
-    private canvasView = inject(CanvasView);
-    private store = inject<Store<CanvasState>>(Store);
-
-    @Input() type!: ComponentType;
     @Input() iconClass = '';
     @Input() iconHoverClass = '';
     @Input() disabled = false;
     @Input() tooltip = '';
+
+    /**
+     * When true the chip suppresses hover styling while any palette item is
+     * being dragged.
+     */
+    @Input() dragging = false;
+
+    @Output() dragStarted = new EventEmitter<void>();
+    @Output() dragEnded = new EventEmitter<CdkDragEnd>();
 
     protected readonly TextTip = TextTip;
 
@@ -54,18 +57,7 @@ export class NewCanvasItem {
         offsetY: 8
     };
 
-    dragging = false;
-
     private hovering = false;
-
-    constructor() {
-        this.store
-            .select(selectDragging)
-            .pipe(takeUntilDestroyed())
-            .subscribe((dragging) => {
-                this.dragging = dragging;
-            });
-    }
 
     mouseEnter() {
         if (!this.disabled) {
@@ -84,35 +76,11 @@ export class NewCanvasItem {
     }
 
     onDragStarted(): void {
-        this.store.dispatch(
-            setDragging({
-                dragging: true
-            })
-        );
+        this.dragStarted.emit();
     }
 
     onDragEnded(event: CdkDragEnd): void {
-        const dropPoint = event.dropPoint;
-
-        const position = this.canvasView.getCanvasPosition(dropPoint);
-        if (position) {
-            this.store.dispatch(
-                createComponentRequest({
-                    request: {
-                        revision: {
-                            clientId: this.client.getClientId(),
-                            version: 0
-                        },
-                        type: this.type,
-                        position
-                    }
-                })
-            );
-        } else {
-            this.store.dispatch(setDragging({ dragging: false }));
-        }
-
-        // reset dragging state
+        this.dragEnded.emit(event);
         event.source._dragRef.reset();
     }
 }

@@ -27,6 +27,7 @@ import {
     viewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { CdkDragEnd } from '@angular/cdk/drag-drop';
 import { Router } from '@angular/router';
 import { MatButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -35,12 +36,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import {
-    canOperateConnector,
     ComponentType,
     ConnectionEntity,
     FunnelEntity,
     LabelEntity,
-    isConnectorActionAllowed,
     PortEntity,
     Position,
     ProcessGroupEntity,
@@ -54,22 +53,11 @@ import {
 import { RegistryClientEntity } from '../../../../state/shared';
 import { combineLatest, distinctUntilChanged, filter, map, Observable } from 'rxjs';
 import { NiFiState } from '../../../../state';
-import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { CanvasConfiguration } from '../../../../state/canvas-ui';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import { CanvasComponent } from '../../../../ui/common/canvas/canvas.component';
 import { BirdseyeComponentData, BirdseyeTransform } from '../../../../ui/common/birdseye/birdseye.types';
-import {
-    ContextMenuContext,
-    Dimension,
-    DragEndBaselineItem,
-    isProcessorDatum
-} from '../../../../ui/common/canvas/canvas.types';
-import {
-    ContextMenuDefinition,
-    ContextMenuDefinitionProvider,
-    ContextMenuItemDefinition
-} from '../../../../ui/common/context-menu/context-menu.component';
+import { ContextMenuContext, Dimension, DragEndBaselineItem } from '../../../../ui/common/canvas/canvas.types';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { ConnectorCanvasHeaderBarComponent } from './header-bar/connector-canvas-header-bar.component';
 import { ConnectorCanvasFooterComponent } from './footer/footer.component';
@@ -93,27 +81,22 @@ import {
     ReplayEventRequest,
     ViewContentRequest
 } from '../../state/connector-provenance-preview';
-import * as EmptyQueueActions from '../../../../state/empty-queue/empty-queue.actions';
 import {
     selectConnectorCanvasEntity,
     selectConnectorCanvasEntitySaving
 } from '../../state/connector-canvas-entity/connector-canvas-entity.selectors';
-import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 import { Client } from '../../../../service/client.service';
 import { ConnectablePolicy, CreateConnectionPayload } from '../../../../ui/common/canvas/connectable-behavior.helper';
-import { ConnectionEndpointReconnectDestination, CreateConnectionRequest } from '../../../../state/flow-shared';
+import {
+    ConnectionEndpointReconnectDestination,
+    CreateComponentRequest,
+    CreateConnectionRequest
+} from '../../../../state/flow-shared';
 import { ConnectorConnectablePolicy } from './connector-connectable.policy';
 import { ConnectorCanvasCommands } from './connector-canvas-commands.service';
-import { SelectionTarget } from '../../../../ui/common/canvas/utils/selection.utils';
 import * as ExtensionTypesActions from '../../../../state/extension-types/extension-types.actions';
-import {
-    areAllDisableable,
-    areAllEnableable,
-    areAnyRunnable,
-    areAnyStoppable,
-    canRunOnce,
-    canTerminate
-} from '../../../../ui/common/canvas/utils/run-status.utils';
+import { ConnectorCanvasContextMenu } from './connector-canvas-context-menu.service';
+import { NewCanvasItem } from '../../../../ui/common/canvas/new-canvas-item/new-canvas-item.component';
 
 @Component({
     selector: 'connector-canvas',
@@ -129,11 +112,12 @@ import {
         ConnectorCanvasHeaderBarComponent,
         ConnectorCanvasFooterComponent,
         ConnectorGraphControls,
-        ContextErrorBanner
+        ContextErrorBanner,
+        NewCanvasItem
     ],
     templateUrl: './connector-canvas.component.html',
     styleUrl: './connector-canvas.component.scss',
-    providers: [ConnectorCanvasCommands]
+    providers: [ConnectorCanvasCommands, ConnectorCanvasContextMenu]
 })
 export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     private store = inject(Store<NiFiState>);
@@ -144,6 +128,7 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     private storage = inject(Storage);
     private client = inject(Client);
     protected readonly commands = inject(ConnectorCanvasCommands);
+    readonly contextMenu = inject(ConnectorCanvasContextMenu);
 
     private static readonly CONTROL_VISIBILITY_KEY = 'graph-control-visibility';
     private static readonly GRAPH_CONTROL_KEY = 'connector-graph-controls';
@@ -165,7 +150,9 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
 
     connectorEntity = this.store.selectSignal(selectConnectorCanvasEntity);
     entitySaving = this.store.selectSignal(selectConnectorCanvasEntitySaving);
-    inTroubleshooting = computed(() => this.connectorEntity()?.component.state === 'TROUBLESHOOTING');
+    inTroubleshooting = this.contextMenu.inTroubleshooting;
+    canEdit = this.contextMenu.canEdit;
+    dragging = this.store.selectSignal(ConnectorCanvasSelectors.selectConnectorCanvasDragging);
     operationBreadcrumb = this.store.selectSignal(ConnectorCanvasSelectors.selectBreadcrumbs);
     operationProcessGroupRevision = this.store.selectSignal(ConnectorCanvasSelectors.selectProcessGroupRevision);
     operationSelection = this.store.selectSignal(ConnectorCanvasSelectors.selectConnectorCanvasSelectedComponents);
@@ -192,8 +179,16 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     private lastDeferredComponentId: string | null = null;
 
     protected readonly ErrorContextKey = ErrorContextKey;
+    protected readonly ComponentType = ComponentType;
 
     constructor() {
+        this.contextMenu.setHost({
+            connectorId: () => this.currentConnectorId,
+            processGroupId: () => this.currentProcessGroupId,
+            canNavigateToParent: () => this.canNavigateToParent,
+            centerOnSelection: () => this.canvasComponent().centerOnSelection(true)
+        });
+
         try {
             const item: { [key: string]: boolean } | null = this.storage.getItem(
                 ConnectorCanvasComponent.CONTROL_VISIBILITY_KEY
@@ -220,276 +215,14 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
         ConnectorCanvasSelectors.selectRegistryClients
     );
 
-    private currentUser = this.store.selectSignal(selectCurrentUser);
-    canAccessProvenance = computed(() => this.currentUser().provenancePermissions.canRead);
+    canAccessProvenance = this.contextMenu.canAccessProvenance;
 
     // =========================================================================
     // Context Menu
     // =========================================================================
 
-    private currentContextMenuContext: ContextMenuContext | null = null;
-
-    contextMenuProvider: ContextMenuDefinitionProvider = {
-        getMenu: (menuId: string): ContextMenuDefinition | undefined => {
-            if (menuId === 'download') {
-                return {
-                    id: menuId,
-                    menuItems: [
-                        {
-                            text: 'Without External Services',
-                            clazz: 'fa',
-                            action: () => this.downloadFlowAction(false)
-                        },
-                        {
-                            text: 'With External Services',
-                            clazz: 'fa',
-                            action: () => this.downloadFlowAction(true)
-                        }
-                    ]
-                };
-            }
-
-            if (menuId !== 'root') {
-                return undefined;
-            }
-
-            const context = this.currentContextMenuContext;
-            let menuItems: ContextMenuItemDefinition[] = [];
-
-            if (context?.targetType === 'canvas') {
-                menuItems = [
-                    {
-                        text: 'Start',
-                        clazz: 'fa fa-play',
-                        condition: () => this.inTroubleshooting() && this.currentProcessGroupId !== null,
-                        action: () => this.commands.startComponents([])
-                    },
-                    {
-                        text: 'Stop',
-                        clazz: 'fa fa-stop',
-                        condition: () => this.inTroubleshooting() && this.currentProcessGroupId !== null,
-                        action: () => this.commands.stopComponents([])
-                    },
-                    {
-                        text: 'Enable',
-                        clazz: 'fa fa-flash',
-                        condition: () => this.inTroubleshooting() && this.currentProcessGroupId !== null,
-                        action: () => this.commands.enableComponents([])
-                    },
-                    {
-                        text: 'Disable',
-                        clazz: 'icon icon-enable-false',
-                        condition: () => this.inTroubleshooting() && this.currentProcessGroupId !== null,
-                        action: () => this.commands.disableComponents([])
-                    },
-                    { isSeparator: true },
-                    {
-                        text: 'Refresh',
-                        clazz: 'fa fa-refresh',
-                        condition: () => true,
-                        action: () => this.refreshAction(),
-                        shortcut: { control: true, code: 'R' }
-                    },
-                    {
-                        text: 'Leave Group',
-                        clazz: 'fa fa-level-up',
-                        condition: () => this.canNavigateToParent,
-                        action: () => this.leaveGroupAction(),
-                        shortcut: { code: 'ESC' }
-                    },
-                    { isSeparator: true },
-                    {
-                        text: 'Controller Services',
-                        clazz: 'fa fa-list',
-                        condition: () => !!this.currentProcessGroupId,
-                        action: () => this.controllerServicesAction(this.currentProcessGroupId!)
-                    },
-                    {
-                        text: 'Download Flow Definition',
-                        clazz: 'fa',
-                        subMenuId: 'download',
-                        condition: () => this.canDownloadFlow()
-                    },
-                    { isSeparator: true },
-                    {
-                        text: 'Empty All Queues',
-                        clazz: 'fa fa-minus-circle',
-                        condition: () => !!this.currentProcessGroupId,
-                        action: () => this.emptyAllQueuesAction(this.currentProcessGroupId!)
-                    },
-                    { isSeparator: true },
-                    {
-                        text: 'Drain',
-                        clazz: 'fa',
-                        condition: () => this.canDrain(),
-                        action: () => this.drainConnectorAction()
-                    },
-                    {
-                        text: 'Cancel Drain',
-                        clazz: 'fa',
-                        condition: () => this.canCancelDrain(),
-                        action: () => this.cancelDrainConnectorAction()
-                    }
-                ];
-            } else if (context?.targetType === 'component') {
-                const clicked = context.clickedComponent;
-                const isSingleSelection = context.selectedComponents.length <= 1;
-                const isProcessGroup = clicked?.ui.componentType === ComponentType.ProcessGroup;
-                const isConnection = clicked?.ui.componentType === ComponentType.Connection;
-                const isFunnel = clicked?.ui.componentType === ComponentType.Funnel;
-                const isProvenanceTarget =
-                    !!clicked &&
-                    isSingleSelection &&
-                    !isProcessGroup &&
-                    !isConnection &&
-                    clicked.ui.componentType !== ComponentType.RemoteProcessGroup &&
-                    clicked.ui.componentType !== ComponentType.Label;
-                const isViewConfigurationTarget =
-                    !!clicked && isSingleSelection && !isFunnel && clicked.entity.permissions.canRead === true;
-                const operationCandidates = (
-                    clicked && !context.selectedComponents.some((selected) => selected.entity.id === clicked.entity.id)
-                        ? [clicked]
-                        : context.selectedComponents
-                ) as SelectionTarget[];
-                menuItems = [
-                    {
-                        text: 'Start',
-                        clazz: 'fa fa-play',
-                        condition: () => this.inTroubleshooting() && areAnyRunnable(operationCandidates),
-                        action: () => this.commands.startComponents(operationCandidates)
-                    },
-                    {
-                        text: 'Stop',
-                        clazz: 'fa fa-stop',
-                        condition: () => this.inTroubleshooting() && areAnyStoppable(operationCandidates),
-                        action: () => this.commands.stopComponents(operationCandidates)
-                    },
-                    {
-                        text: 'Enable',
-                        clazz: 'fa fa-flash',
-                        condition: () => this.inTroubleshooting() && areAllEnableable(operationCandidates),
-                        action: () => this.commands.enableComponents(operationCandidates)
-                    },
-                    {
-                        text: 'Disable',
-                        clazz: 'icon icon-enable-false',
-                        condition: () => this.inTroubleshooting() && areAllDisableable(operationCandidates),
-                        action: () => this.commands.disableComponents(operationCandidates)
-                    },
-                    {
-                        text: 'Run Once',
-                        clazz: 'fa fa-caret-right',
-                        condition: () => this.inTroubleshooting() && canRunOnce(operationCandidates),
-                        action: () => this.commands.runOnce(operationCandidates)
-                    },
-                    {
-                        text: 'Terminate',
-                        clazz: 'fa fa-hourglass-end',
-                        condition: () => this.inTroubleshooting() && canTerminate(operationCandidates),
-                        action: () => this.commands.terminateThreads(operationCandidates)
-                    },
-                    {
-                        text: 'Advanced',
-                        clazz: 'fa fa-cog',
-                        condition: () =>
-                            this.inTroubleshooting() &&
-                            !!clicked &&
-                            isProcessorDatum(clicked) &&
-                            isSingleSelection &&
-                            clicked.entity.permissions.canRead === true &&
-                            clicked.entity.component?.extensionMissing !== true &&
-                            !!clicked.entity.component?.config?.customUiUrl,
-                        action: () => this.commands.openAdvancedProcessor(clicked!.entity.id)
-                    },
-                    { isSeparator: true },
-                    {
-                        text: 'View Configuration',
-                        clazz: 'fa fa-gear',
-                        condition: () => isViewConfigurationTarget,
-                        action: () => this.viewConfigurationAction(clicked!.entity, clicked!.ui.componentType)
-                    },
-                    {
-                        text: 'Enter Group',
-                        clazz: 'fa fa-sign-in',
-                        condition: () => isProcessGroup && isSingleSelection,
-                        action: () => this.enterGroupAction(clicked!.entity.id)
-                    },
-                    { isSeparator: true },
-                    {
-                        text: 'View Data Provenance',
-                        clazz: 'icon icon-provenance',
-                        condition: () => isProvenanceTarget && this.canAccessProvenance(),
-                        action: () => this.viewDataProvenanceAction(clicked!.entity.id, clicked!.ui.componentType)
-                    },
-                    {
-                        text: 'View State',
-                        clazz: 'fa fa-tasks',
-                        condition: () =>
-                            clicked != null &&
-                            isProcessorDatum(clicked) &&
-                            isSingleSelection &&
-                            clicked.entity.component?.persistsState === true &&
-                            clicked.entity.permissions.canRead === true &&
-                            clicked.entity.permissions.canWrite === true,
-                        action: () => this.viewProcessorStateAction(clicked!.entity)
-                    },
-                    { isSeparator: true },
-                    {
-                        text: 'List Queue',
-                        clazz: 'fa fa-list',
-                        condition: () => isConnection && isSingleSelection,
-                        action: () => this.listQueueAction(clicked!.entity.id)
-                    },
-                    {
-                        text: 'Empty Queue',
-                        clazz: 'fa fa-minus-circle',
-                        condition: () => isConnection && isSingleSelection,
-                        action: () => this.emptyQueueAction(clicked!.entity.id)
-                    },
-                    {
-                        text: 'Empty All Queues',
-                        clazz: 'fa fa-minus-circle',
-                        condition: () => isProcessGroup && isSingleSelection,
-                        action: () => this.emptyAllQueuesAction(clicked!.entity.id)
-                    },
-                    {
-                        text: 'Controller Services',
-                        clazz: 'fa fa-list',
-                        condition: () => isProcessGroup && isSingleSelection,
-                        action: () => this.controllerServicesAction(clicked!.entity.id)
-                    },
-                    {
-                        text: 'Download Flow Definition',
-                        clazz: 'fa',
-                        subMenuId: 'download',
-                        condition: () => this.canDownloadFlow()
-                    },
-                    { isSeparator: true },
-                    this.getCenterInViewMenuItem()
-                ];
-            }
-
-            return { id: menuId, menuItems };
-        },
-        filterMenuItem: (menuItem: ContextMenuItemDefinition): boolean => {
-            return menuItem.condition ? menuItem.condition(null) : true;
-        },
-        menuItemClicked: (menuItem: ContextMenuItemDefinition, event: MouseEvent): void => {
-            menuItem.action?.(null, event);
-        }
-    };
-
     onContextMenuOpened(context: ContextMenuContext): void {
-        this.currentContextMenuContext = context;
-    }
-
-    private getCenterInViewMenuItem(): ContextMenuItemDefinition {
-        return {
-            text: 'Center In View',
-            clazz: 'fa fa-crosshairs',
-            condition: () => true,
-            action: () => this.centerInViewAction()
-        };
+        this.contextMenu.setContext(context);
     }
 
     // Once loaded, data remains ready while same-canvas refreshes run or fail.
@@ -566,12 +299,19 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                 this.canNavigateToParent = parentProcessGroupId != null;
             });
 
-        // Refresh birdseye geometry whenever a flow load completes (initial load or refresh).
+        // Refresh birdseye geometry whenever a flow load, create, or delete completes.
         // Without this, the minimap would only reflect the data captured during the very first
-        // canvas initialization and would go stale after subsequent refreshes / process-group
-        // navigations performed against an already-mounted canvas.
+        // canvas initialization and would go stale after subsequent refreshes, edits, or
+        // process-group navigations performed against an already-mounted canvas.
         this.actions$
-            .pipe(ofType(ConnectorCanvasActions.loadConnectorFlowSuccess), takeUntilDestroyed(this.destroyRef))
+            .pipe(
+                ofType(
+                    ConnectorCanvasActions.loadConnectorFlowSuccess,
+                    ConnectorCanvasActions.createCanvasComponentSuccess,
+                    ConnectorCanvasActions.deleteSelectedComponentsSuccess
+                ),
+                takeUntilDestroyed(this.destroyRef)
+            )
             .subscribe(() => {
                 // Defer one tick so the entity arrays flow through async pipes into the canvas
                 // and the canvas's internal signals (read by getBirdseyeComponentData) update.
@@ -695,11 +435,7 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     }
 
     viewConfigurationAction(entity: any, componentType: ComponentType): void {
-        this.store.dispatch(
-            ConnectorCanvasActions.viewComponentConfiguration({
-                request: { entity, componentType }
-            })
-        );
+        this.contextMenu.viewConfigurationAction(entity, componentType);
     }
 
     onSelectComponents(components: Array<{ id: string; type: ComponentType }>): void {
@@ -796,6 +532,25 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
                 revision: this.withLocalClientId(event.revision)
             })
         );
+    }
+
+    onChipDragStarted(): void {
+        this.store.dispatch(ConnectorCanvasActions.setDragging({ dragging: true }));
+    }
+
+    onChipDragEnded(type: ComponentType, event: CdkDragEnd): void {
+        const position = this.canEdit() ? this.canvasComponent().getCanvasPosition(event.dropPoint) : null;
+        if (!position || !this.currentProcessGroupId) {
+            this.store.dispatch(ConnectorCanvasActions.setDragging({ dragging: false }));
+            return;
+        }
+
+        const request: CreateComponentRequest = {
+            revision: { clientId: this.client.getClientId(), version: 0 },
+            type,
+            position
+        };
+        this.store.dispatch(ConnectorCanvasActions.createComponentRequest({ request }));
     }
 
     onCreateConnectionRequested(payload: CreateConnectionPayload): void {
@@ -1112,143 +867,31 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     // =========================================================================
 
     refreshAction(): void {
-        if (this.currentConnectorId && this.currentProcessGroupId) {
-            this.store.dispatch(
-                ConnectorCanvasActions.loadConnectorFlow({
-                    connectorId: this.currentConnectorId,
-                    processGroupId: this.currentProcessGroupId
-                })
-            );
-        }
+        this.contextMenu.refreshAction();
     }
 
     leaveGroupAction(): void {
-        if (this.canNavigateToParent) {
-            this.store.dispatch(ConnectorCanvasActions.leaveProcessGroup());
-        }
-    }
-
-    enterGroupAction(processGroupId: string): void {
-        this.store.dispatch(ConnectorCanvasActions.enterProcessGroup({ request: { id: processGroupId } }));
-    }
-
-    viewDataProvenanceAction(componentId: string, componentType: ComponentType): void {
-        this.store.dispatch(
-            ConnectorCanvasActions.navigateToProvenanceForComponent({ id: componentId, componentType })
-        );
+        this.contextMenu.leaveGroupAction();
     }
 
     viewProcessorStateAction(processorEntity: any): void {
-        this.store.dispatch(
-            getComponentStateAndOpenDialog({
-                request: {
-                    componentName: processorEntity.component.name,
-                    componentId: processorEntity.id,
-                    componentType: ComponentType.Processor,
-                    canClear: this.canClearProcessorState(processorEntity),
-                    connectorId: this.currentConnectorId
-                }
-            })
-        );
-    }
-
-    private canClearProcessorState(processorEntity: any): boolean {
-        const runStatus = processorEntity.status?.aggregateSnapshot?.runStatus;
-        const activeThreadCount = processorEntity.status?.aggregateSnapshot?.activeThreadCount || 0;
-        return runStatus !== 'Running' && activeThreadCount === 0;
-    }
-
-    centerInViewAction(): void {
-        this.canvasComponent().centerOnSelection(true);
-    }
-
-    controllerServicesAction(processGroupId: string): void {
-        this.store.dispatch(ConnectorCanvasActions.navigateToControllerServices({ processGroupId }));
-    }
-
-    downloadFlowAction(includeReferencedServices: boolean): void {
-        const processGroupId = this.getDownloadProcessGroupId();
-        if (this.currentConnectorId && processGroupId) {
-            this.store.dispatch(
-                ConnectorCanvasActions.downloadFlow({
-                    request: {
-                        connectorId: this.currentConnectorId,
-                        processGroupId,
-                        includeReferencedServices
-                    }
-                })
-            );
-        }
-    }
-
-    private canDownloadFlow(): boolean {
-        return this.connectorEntity()?.permissions.canRead === true && this.getDownloadProcessGroupId() !== null;
-    }
-
-    private getDownloadProcessGroupId(): string | null {
-        const context = this.currentContextMenuContext;
-        if (context?.targetType === 'canvas') {
-            return this.currentProcessGroupId;
-        }
-
-        if (context?.targetType === 'component') {
-            const clicked = context.clickedComponent;
-            if (context.selectedComponents.length <= 1 && clicked?.ui.componentType === ComponentType.ProcessGroup) {
-                return clicked.entity.id;
-            }
-        }
-
-        return null;
+        this.contextMenu.viewProcessorStateAction(processorEntity);
     }
 
     canDrain(): boolean {
-        const entity = this.connectorEntity();
-        if (!entity || this.entitySaving()) {
-            return false;
-        }
-        return canOperateConnector(entity) && isConnectorActionAllowed(entity, 'DRAIN_FLOWFILES');
+        return this.contextMenu.canDrain();
     }
 
     canCancelDrain(): boolean {
-        const entity = this.connectorEntity();
-        if (!entity || this.entitySaving()) {
-            return false;
-        }
-        return canOperateConnector(entity) && isConnectorActionAllowed(entity, 'CANCEL_DRAIN_FLOWFILES');
+        return this.contextMenu.canCancelDrain();
     }
 
     drainConnectorAction(): void {
-        const entity = this.connectorEntity();
-        if (entity) {
-            this.store.dispatch(ConnectorCanvasEntityActions.promptDrainConnector({ connector: entity }));
-        }
+        this.contextMenu.drainConnectorAction();
     }
 
     cancelDrainConnectorAction(): void {
-        const entity = this.connectorEntity();
-        if (entity) {
-            this.store.dispatch(ConnectorCanvasEntityActions.cancelConnectorDrain({ connector: entity }));
-        }
-    }
-
-    listQueueAction(connectionId: string): void {
-        this.store.dispatch(ConnectorCanvasActions.navigateToQueueListing({ request: { connectionId } }));
-    }
-
-    emptyQueueAction(connectionId: string): void {
-        this.store.dispatch(
-            EmptyQueueActions.promptEmptyQueueRequest({
-                request: { connectionId, source: 'connector-canvas' }
-            })
-        );
-    }
-
-    emptyAllQueuesAction(processGroupId: string): void {
-        this.store.dispatch(
-            EmptyQueueActions.promptEmptyQueuesRequest({
-                request: { processGroupId, source: 'connector-canvas' }
-            })
-        );
+        this.contextMenu.cancelDrainConnectorAction();
     }
 
     // =========================================================================
@@ -1271,6 +914,20 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
             event.preventDefault();
             this.refreshAction();
         }
+    }
+
+    @HostListener('window:keydown.delete', ['$event'])
+    @HostListener('window:keydown.backspace', ['$event'])
+    handleDeleteShortcut(event: Event): void {
+        if (!this.canEdit() || !this.shouldProcessKeyboardEvent(event)) {
+            return;
+        }
+        const selection = this.operationSelection();
+        if (!this.contextMenu.hasDeletableSelection(selection)) {
+            return;
+        }
+        event.preventDefault();
+        this.commands.delete(selection);
     }
 
     private shouldProcessKeyboardEvent(event: Event): boolean {
