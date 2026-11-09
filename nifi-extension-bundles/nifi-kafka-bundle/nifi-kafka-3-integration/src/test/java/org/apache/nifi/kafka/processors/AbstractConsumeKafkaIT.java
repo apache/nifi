@@ -21,6 +21,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.nifi.util.TestRunner;
 
@@ -55,6 +56,19 @@ public abstract class AbstractConsumeKafkaIT extends AbstractKafkaBaseIT {
             final ProducerRecord<String, String> record = new ProducerRecord<>(topic, partition, key, value, headers);
             final Future<RecordMetadata> future = producer.send(record);
             final RecordMetadata metadata = future.get();
+            assertEquals(topic, metadata.topic());
+            assertTrue(metadata.hasOffset());
+        }
+    }
+
+    protected void produceBytes(final String topic, final int partition, final String key, final byte[] value)
+            throws ExecutionException, InterruptedException {
+        final Properties properties = getKafkaProducerProperties();
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+
+        try (final KafkaProducer<String, byte[]> producer = new KafkaProducer<>(properties)) {
+            final ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic, partition, key, value);
+            final RecordMetadata metadata = producer.send(record).get();
             assertEquals(topic, metadata.topic());
             assertTrue(metadata.hasOffset());
         }
