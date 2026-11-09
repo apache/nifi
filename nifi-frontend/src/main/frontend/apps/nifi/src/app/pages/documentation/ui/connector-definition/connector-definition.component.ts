@@ -42,6 +42,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { SeeAlsoComponent } from '../common/see-also/see-also.component';
 import { MarkdownComponent } from 'ngx-markdown';
 import { ConnectorPropertyDefinitionComponent } from '../common/connector-property-definition/connector-property-definition.component';
+import { DeprecationBannerComponent } from '../common/deprecation-banner/deprecation-banner.component';
 
 @Component({
     selector: 'connector-definition',
@@ -51,7 +52,8 @@ import { ConnectorPropertyDefinitionComponent } from '../common/connector-proper
         MatButtonModule,
         SeeAlsoComponent,
         MarkdownComponent,
-        ConnectorPropertyDefinitionComponent
+        ConnectorPropertyDefinitionComponent,
+        DeprecationBannerComponent
     ],
     templateUrl: './connector-definition.component.html',
     styleUrl: './connector-definition.component.scss'
