@@ -334,6 +334,11 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
                         logger.info("NiFi Startup Completed [{}]", instanceDirectory.getName());
                         return;
                     } catch (final Exception e) {
+                        if (!process.isAlive()) {
+                            throw new IOException("NiFi instance [%s] process exited with code %d before startup completed; see %s/logs/nifi-app.log"
+                                    .formatted(instanceDirectory.getName(), process.exitValue(), instanceDirectory.getAbsolutePath()), e);
+                        }
+
                         if (System.currentTimeMillis() > timeoutMillis) {
                             throw new IOException("After waiting 5 minutes, NiFi instance still has not started");
                         }

@@ -468,6 +468,22 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         logger.info("Wait successful for {}", description);
     }
 
+    /**
+     * Waits for the condition to be met on each node of the cluster in turn, with the client switched to that node. Conditions that
+     * inspect node-specific state must issue their requests with {@link #DO_NOT_REPLICATE}, because replicated responses are merged
+     * and may reflect only one node. The client is switched back to the default node before returning.
+     */
+    protected void waitForOnAllNodes(final ExceptionalBooleanSupplier condition, final String description) throws InterruptedException {
+        try {
+            for (int nodeIndex = 1; nodeIndex <= getNumberOfNodes(); nodeIndex++) {
+                switchClientToNode(nodeIndex);
+                waitFor(condition, 100L, description + " on Node " + nodeIndex);
+            }
+        } finally {
+            setupClient();
+        }
+    }
+
     protected void waitForNodeStatus(final NodeDTO nodeDto, final String status) throws InterruptedException {
         waitFor(() -> {
             try {

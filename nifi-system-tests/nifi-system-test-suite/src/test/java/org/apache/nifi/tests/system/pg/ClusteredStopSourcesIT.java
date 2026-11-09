@@ -28,6 +28,7 @@ import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -143,6 +144,13 @@ public class ClusteredStopSourcesIT extends NiFiSystemIT {
         getClientUtil().waitForRunningProcessor(flow.standardDownstream().getId());
         getClientUtil().waitForRunningProcessor(flow.statelessSource().getId());
         getClientUtil().waitForRunningProcessor(flow.statelessDownstream().getId());
+
+        // Stateless Group components are started asynchronously on each node, so the merged cluster response may not reflect every node
+        for (final ProcessorEntity processor : List.of(flow.standardSource(), flow.standardDownstream(), flow.statelessSource(), flow.statelessDownstream())) {
+            waitForOnAllNodes(() -> isProcessorStateOnCurrentNode(processor.getId(), ScheduledState.RUNNING), "Processor " + processor.getId() + " to be RUNNING");
+        }
+        waitForOnAllNodes(() -> StatelessGroupScheduledState.RUNNING.name().equals(getNifiClient().getProcessGroupClient(DO_NOT_REPLICATE)
+                .getProcessGroup(flow.statelessGroup().getId()).getComponent().getStatelessGroupScheduledState()), "Stateless Group to be RUNNING");
     }
 
     private ScheduleComponentsEntity stopSourcesRequest(final String groupId) {
@@ -191,11 +199,13 @@ public class ClusteredStopSourcesIT extends NiFiSystemIT {
     }
 
     private void waitForProcessorStateOnCurrentNode(final String processorId, final ScheduledState expectedState) throws InterruptedException {
-        waitFor(() -> {
-            final ProcessorEntity processor = getNifiClient().getProcessorClient(DO_NOT_REPLICATE).getProcessor(processorId);
-            return expectedState.name().equals(processor.getComponent().getState())
-                    && expectedState.name().equals(processor.getComponent().getPhysicalState());
-        });
+        waitFor(() -> isProcessorStateOnCurrentNode(processorId, expectedState));
+    }
+
+    private boolean isProcessorStateOnCurrentNode(final String processorId, final ScheduledState expectedState) throws NiFiClientException, IOException {
+        final ProcessorEntity processor = getNifiClient().getProcessorClient(DO_NOT_REPLICATE).getProcessor(processorId);
+        return expectedState.name().equals(processor.getComponent().getState())
+                && expectedState.name().equals(processor.getComponent().getPhysicalState());
     }
 
     private void assertProcessorStateOnNode(final String processorId, final ScheduledState expectedState, final int nodeIndex)
