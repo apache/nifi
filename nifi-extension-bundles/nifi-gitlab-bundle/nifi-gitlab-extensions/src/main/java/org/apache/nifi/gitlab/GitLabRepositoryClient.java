@@ -32,6 +32,8 @@ import org.apache.nifi.ssl.SSLContextProvider;
 import org.gitlab4j.api.CommitsApi;
 import org.gitlab4j.api.GitLabApi;
 import org.gitlab4j.api.GitLabApiException;
+import org.gitlab4j.api.GitLabApiForm;
+import org.gitlab4j.api.Pager;
 import org.gitlab4j.api.ProjectApi;
 import org.gitlab4j.api.RepositoryApi;
 import org.gitlab4j.api.models.AccessLevel;
@@ -43,6 +45,7 @@ import org.gitlab4j.api.models.Project;
 import org.gitlab4j.api.models.ProjectAccess;
 import org.gitlab4j.api.models.RepositoryFile;
 import org.gitlab4j.api.models.TreeItem;
+import org.gitlab4j.api.utils.UrlEncoder;
 import org.gitlab4j.models.Constants;
 import org.gitlab4j.models.Constants.Encoding;
 import org.glassfish.jersey.client.ClientProperties;
@@ -82,6 +85,10 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
 
     private static final int DEFAULT_ITEMS_PER_PAGE = 100;
     private static final int COMMIT_PAGE_SIZE = 10;
+
+    private static final String REF_NAME_PARAMETER = "ref_name";
+    private static final String PATH_PARAMETER = "path";
+    private static final String FOLLOW_PARAMETER = "follow";
 
     private static final TokenInfo UNKNOWN_TOKEN = new TokenInfo("unknown", false, false);
 
@@ -213,10 +220,17 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
         logger.debug("Getting commits for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, projectPath);
 
         final CommitsApi commitsApi = gitLab.getCommitsApi();
-        return execute(() -> commitsApi.getCommits(projectPath, branch, null, null, resolvedPath, COMMIT_PAGE_SIZE).next().stream()
-                .map(this::toGitCommit)
-                .toList()
-        );
+        return execute(() -> {
+            final GitLabApiForm queryParameters = new GitLabApiForm()
+                    .withParam(REF_NAME_PARAMETER, branch)
+                    .withParam(PATH_PARAMETER, UrlEncoder.urlEncode(resolvedPath))
+                    .withParam(FOLLOW_PARAMETER, false);
+            final Pager<Commit> commits = new Pager<>(commitsApi, Commit.class, COMMIT_PAGE_SIZE, queryParameters.asMap(),
+                    "projects", commitsApi.getProjectIdOrPath(projectPath), "repository", "commits");
+            return commits.next().stream()
+                    .map(this::toGitCommit)
+                    .toList();
+        });
     }
 
     @Override
