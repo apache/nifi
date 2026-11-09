@@ -22,10 +22,16 @@ import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
+import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -33,9 +39,12 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocket;
@@ -52,6 +61,8 @@ class SocketUtilsTest {
     private static final Duration CERTIFICATE_VALIDITY = Duration.ofHours(1);
 
     private static final int TIMEOUT_MILLISECONDS = 5000;
+
+    private static final int CONNECT_TIMEOUT_MILLISECONDS = 500;
 
     private static final String LOCALHOST = "localhost";
 
@@ -87,6 +98,49 @@ class SocketUtilsTest {
         final X509Certificate certificate = buildCertificate(keyPair, NON_MATCHING_HOST);
 
         assertThrows(SSLHandshakeException.class, () -> connectAndHandshake(keyPair, certificate));
+    }
+
+    @Test
+    void testCreateSocketConnected() throws IOException {
+        try (ServerSocket serverSocket = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+            final SocketConfiguration config = new SocketConfiguration();
+            config.setConnectTimeout(CONNECT_TIMEOUT_MILLISECONDS);
+            config.setSocketTimeout(TIMEOUT_MILLISECONDS);
+
+            try (Socket socket = SocketUtils.createSocket(InetSocketAddress.createUnresolved(LOCALHOST, serverSocket.getLocalPort()), config)) {
+                assertTrue(socket.isConnected());
+                assertEquals(TIMEOUT_MILLISECONDS, socket.getSoTimeout());
+            }
+        }
+    }
+
+    /**
+     * Linux drops SYNs once the accept queue of a listener is full, which makes connect() hang like it does against an unreachable peer.
+     * We use this to simulate dropped packages here - depends on the value of tcp_abort_on_overflow on the host, should works for the
+     * linux default.
+     */
+    @Test
+    @EnabledOnOs(OS.LINUX)
+    @Timeout(value = 30, unit = TimeUnit.SECONDS)
+    void testCreateSocketConnectTimeout() throws IOException {
+        final List<Socket> backlogSockets = new ArrayList<>();
+        try (ServerSocket serverSocket = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+            final InetSocketAddress address = InetSocketAddress.createUnresolved(LOCALHOST, serverSocket.getLocalPort());
+            final SocketConfiguration config = new SocketConfiguration();
+            config.setConnectTimeout(CONNECT_TIMEOUT_MILLISECONDS);
+
+            final long started = System.nanoTime();
+            assertThrows(SocketTimeoutException.class, () -> {
+                // Fill the accept queue until a connection attempt times out
+                while (true) {
+                    backlogSockets.add(SocketUtils.createSocket(address, config));
+                }
+            });
+            final long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
+            assertTrue(elapsed < TIMEOUT_MILLISECONDS, "Connect took %d ms".formatted(elapsed));
+        } finally {
+            backlogSockets.forEach(SocketUtils::closeQuietly);
+        }
     }
 
     private void connectAndHandshake(final KeyPair serverKeyPair, final X509Certificate serverCertificate) throws Exception {

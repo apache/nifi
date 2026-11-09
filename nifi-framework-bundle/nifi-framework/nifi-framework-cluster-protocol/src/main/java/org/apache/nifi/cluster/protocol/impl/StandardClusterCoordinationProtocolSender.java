@@ -46,6 +46,7 @@ import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -200,6 +201,11 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
         this.handshakeTimeoutSeconds = (int) FormatUtils.getTimeDuration(handshakeTimeout, TimeUnit.SECONDS);
     }
 
+    private static boolean isConnectFailure(final Throwable cause) {
+        // A SocketTimeoutException wrapped by createSocket can only come from connect, so the node could not be reached
+        return cause instanceof ConnectException || cause instanceof SocketTimeoutException;
+    }
+
     private Socket createSocket(final NodeIdentifier nodeId, final boolean applyHandshakeTimeout) {
         return createSocket(nodeId.getSocketAddress(), nodeId.getSocketPort(), applyHandshakeTimeout);
     }
@@ -296,8 +302,8 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
                         final OutputStream out = socket.getOutputStream();
                         out.write(msgBytes);
                     } catch (final Exception e) {
-                        if (e instanceof ProtocolException && e.getCause() instanceof ConnectException && nodeId.equals(msg.getNodeId())) {
-                            // We treat Connect Exceptions different because it means we're not able to reach the node at all. If that is the case and the
+                        if (e instanceof ProtocolException && isConnectFailure(e.getCause()) && nodeId.equals(msg.getNodeId())) {
+                            // We treat connect failures different because it means we're not able to reach the node at all. If that is the case and the
                             // node is the affected node, we don't want to retry. This is common when trying to remove a node that has been terminated, etc.
                             // and retrying is not likely to help; additionally, when the node reconnects to the cluster, it will get the update at that point
                             // and does not need the update until then.

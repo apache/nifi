@@ -20,6 +20,7 @@ import javax.net.ssl.SSLContext;
 
 public final class SocketConfiguration {
 
+    private Integer connectTimeout;
     private Integer socketTimeout;
     private Integer receiveBufferSize;
     private Integer sendBufferSize;
@@ -36,6 +37,14 @@ public final class SocketConfiguration {
 
     public void setSslContext(final SSLContext sslContext) {
         this.sslContext = sslContext;
+    }
+
+    public Integer getConnectTimeout() {
+        return connectTimeout;
+    }
+
+    public void setConnectTimeout(Integer connectTimeout) {
+        this.connectTimeout = connectTimeout;
     }
 
     public Integer getSocketTimeout() {
