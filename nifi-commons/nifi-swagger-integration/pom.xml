@@ -26,12 +26,12 @@
         <!-- Swagger Integration required for Object Mapper Processor -->
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-integration-jakarta</artifactId>
+            <artifactId>swagger-integration</artifactId>
             <version>${swagger.annotations.version}</version>
         </dependency>
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-jaxrs2-jakarta</artifactId>
+            <artifactId>swagger-rest</artifactId>
             <version>${swagger.annotations.version}</version>
         </dependency>
         <dependency>
@@ -39,7 +39,7 @@
             <artifactId>jakarta.ws.rs-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
+            <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
     </dependencies>
