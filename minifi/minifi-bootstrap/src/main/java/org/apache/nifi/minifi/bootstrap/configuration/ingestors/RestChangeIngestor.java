@@ -62,9 +62,10 @@ import static org.apache.nifi.minifi.bootstrap.configuration.differentiators.Who
 
 public class RestChangeIngestor implements ChangeIngestor {
 
-    public static final String GET_TEXT = "This is a config change listener for an Apache NiFi - MiNiFi instance.\n" +
-        "Use this rest server to upload a flow.json to configure the MiNiFi instance.\n" +
-        "Send a POST http request to '/' to upload the file.";
+    public static final String GET_TEXT = """
+            This is a config change listener for an Apache NiFi - MiNiFi instance.
+            Use this rest server to upload a flow.json to configure the MiNiFi instance.
+            Send a POST http request to '/' to upload the file.""";
     public static final String OTHER_TEXT = "This is not a supported HTTP operation. Please use GET to get more information or POST to upload a new flow.json file.\n";
     public static final String POST = "POST";
     public static final String GET = "GET";

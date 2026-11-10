@@ -24,17 +24,19 @@ import javax.script.ScriptException;
 public class GroovyScriptRunner extends BaseScriptRunner {
 
     private static final String PRELOADS =
-            "import org.apache.nifi.components.*\n"
-                    + "import org.apache.nifi.flowfile.FlowFile\n"
-                    + "import org.apache.nifi.processor.*\n"
-                    + "import org.apache.nifi.processor.exception.*\n"
-                    + "import org.apache.nifi.processor.io.*\n"
-                    + "import org.apache.nifi.processor.util.*\n"
-                    + "import org.apache.nifi.processors.script.*\n"
-                    + "import org.apache.nifi.logging.ComponentLog\n"
-                    + "import org.apache.nifi.script.*\n"
-                    + "import org.apache.nifi.record.sink.*\n"
-                    + "import org.apache.nifi.lookup.*\n";
+            """
+                    import org.apache.nifi.components.*
+                    import org.apache.nifi.flowfile.FlowFile
+                    import org.apache.nifi.processor.*
+                    import org.apache.nifi.processor.exception.*
+                    import org.apache.nifi.processor.io.*
+                    import org.apache.nifi.processor.util.*
+                    import org.apache.nifi.processors.script.*
+                    import org.apache.nifi.logging.ComponentLog
+                    import org.apache.nifi.script.*
+                    import org.apache.nifi.record.sink.*
+                    import org.apache.nifi.lookup.*
+                    """;
 
     public GroovyScriptRunner(ScriptEngine engine, String scriptBody, String[] modulePaths) {
         super(engine, scriptBody, PRELOADS, modulePaths);

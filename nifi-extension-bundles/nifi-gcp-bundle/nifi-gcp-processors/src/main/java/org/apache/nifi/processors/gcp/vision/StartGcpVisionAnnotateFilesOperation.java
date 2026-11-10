@@ -45,27 +45,28 @@ public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVision
             .description("JSON request for AWS Machine Learning services. The Processor will use FlowFile content for the request when this property is not specified.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
-            .defaultValue("{\n" +
-                    "    \"requests\": [\n" +
-                    "        {\n" +
-                    "            \"inputConfig\": {\n" +
-                    "                \"gcsSource\": {\n" +
-                    "                    \"uri\": \"gs://${gcs.bucket}/${filename}\"\n" +
-                    "                },\n" +
-                    "                \"mimeType\": \"application/pdf\"\n" +
-                    "            },\n" +
-                    "            \"features\": [{\n" +
-                    "                    \"type\": \"${vision-feature-type}\",\n" +
-                    "                    \"maxResults\": 4\n" +
-                    "                }],\n" +
-                    "            \"outputConfig\": {\n" +
-                    "                \"gcsDestination\": {\n" +
-                    "                    \"uri\": \"gs://${output-bucket}/${filename}/\"\n" +
-                    "                },\n" +
-                    "                \"batchSize\": 2\n" +
-                    "            }\n" +
-                    "        }]\n" +
-                    "}")
+            .defaultValue("""
+                    {
+                        "requests": [
+                            {
+                                "inputConfig": {
+                                    "gcsSource": {
+                                        "uri": "gs://${gcs.bucket}/${filename}"
+                                    },
+                                    "mimeType": "application/pdf"
+                                },
+                                "features": [{
+                                        "type": "${vision-feature-type}",
+                                        "maxResults": 4
+                                    }],
+                                "outputConfig": {
+                                    "gcsDestination": {
+                                        "uri": "gs://${output-bucket}/${filename}/"
+                                    },
+                                    "batchSize": 2
+                                }
+                            }]
+                    }""")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

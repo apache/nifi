@@ -26,25 +26,24 @@ import javax.script.ScriptException;
 public class ClojureScriptRunner extends BaseScriptRunner {
 
     private static final String PRELOADS =
-            "(:import \n"
-                    + "[org.apache.nifi.components "
-                    + "AbstractConfigurableComponent AllowableValue ConfigurableComponent PropertyDescriptor PropertyValue ValidationContext ValidationResult Validator"
-                    + "]\n"
-                    + "[org.apache.nifi.components.state Scope StateManager StateMap]\n"
-                    + "[org.apache.nifi.flowfile FlowFile]\n"
-                    + "[org.apache.nifi.processor "
-                    + "AbstractProcessor AbstractSessionFactoryProcessor DataUnit FlowFileFilter ProcessContext Processor "
-                    + "ProcessorInitializationContext ProcessSession ProcessSessionFactory Relationship ProcessContext"
-                    + "]\n"
-                    + "[org.apache.nifi.processor.exception FlowFileAccessException FlowFileHandlingException MissingFlowFileException ProcessException]\n"
-                    + "[org.apache.nifi.processor.io InputStreamCallback OutputStreamCallback StreamCallback]\n"
-                    + "[org.apache.nifi.processor.util FlowFileFilters StandardValidators]\n"
-                    + "[org.apache.nifi.processors.script ExecuteScript InvokeScriptedProcessor ScriptRunner]\n"
-                    + "[org.apache.nifi.script ScriptingComponentHelper ScriptingComponentUtils]\n"
-                    + "[org.apache.nifi.logging ComponentLog]\n"
-                    + "[org.apache.nifi.lookup LookupService RecordLookupService StringLookupService LookupFailureException]\n"
-                    + "[org.apache.nifi.record.sink RecordSinkService]\n"
-                    + ")\n";
+            """
+                    (:import
+                    [org.apache.nifi.components AbstractConfigurableComponent AllowableValue ConfigurableComponent PropertyDescriptor PropertyValue ValidationContext ValidationResult Validator]
+                    [org.apache.nifi.components.state Scope StateManager StateMap]
+                    [org.apache.nifi.flowfile FlowFile]
+                    [org.apache.nifi.processor \
+                    AbstractProcessor AbstractSessionFactoryProcessor DataUnit FlowFileFilter ProcessContext Processor \
+                    ProcessorInitializationContext ProcessSession ProcessSessionFactory Relationship ProcessContext]
+                    [org.apache.nifi.processor.exception FlowFileAccessException FlowFileHandlingException MissingFlowFileException ProcessException]
+                    [org.apache.nifi.processor.io InputStreamCallback OutputStreamCallback StreamCallback]
+                    [org.apache.nifi.processor.util FlowFileFilters StandardValidators]
+                    [org.apache.nifi.processors.script ExecuteScript InvokeScriptedProcessor ScriptRunner]
+                    [org.apache.nifi.script ScriptingComponentHelper ScriptingComponentUtils]
+                    [org.apache.nifi.logging ComponentLog]
+                    [org.apache.nifi.lookup LookupService RecordLookupService StringLookupService LookupFailureException]
+                    [org.apache.nifi.record.sink RecordSinkService]
+                    )
+                    """;
 
     public ClojureScriptRunner(ScriptEngine engine, String scriptBody, String[] modulePaths) {
         super(engine, scriptBody, buildPreloads(engine), modulePaths);
