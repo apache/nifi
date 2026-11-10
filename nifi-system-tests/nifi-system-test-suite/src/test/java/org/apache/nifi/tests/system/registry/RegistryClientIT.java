@@ -58,18 +58,7 @@ public class RegistryClientIT extends NiFiSystemIT {
     public static final String TEST_FLOWS_BUCKET = "test-flows";
 
     public static final String FIRST_FLOW_ID = "first-flow";
-    private static final String RESTART_SYNCHRONIZATION_TEST_NAME = "testVersionControlledProcessGroupSynchronizesAfterRestart()";
     private static final long VERSION_CONTROL_SYNC_TIMEOUT_SECONDS = 55;
-
-    @Override
-    protected boolean isAllowFactoryReuse() {
-        return !RESTART_SYNCHRONIZATION_TEST_NAME.equals(getTestName()) && super.isAllowFactoryReuse();
-    }
-
-    @Override
-    protected boolean isDestroyEnvironmentAfterEachTest() {
-        return RESTART_SYNCHRONIZATION_TEST_NAME.equals(getTestName()) || super.isDestroyEnvironmentAfterEachTest();
-    }
 
     /**
      * Test a scenario where we have Parent Process Group with a child process group. The child group is under Version Control.
@@ -388,15 +377,20 @@ public class RegistryClientIT extends NiFiSystemIT {
 
         getClientUtil().updateRegistryClientProperties(registryClient, Collections.singletonMap("Validate Sleep Time", "15 sec"));
 
-        getNiFiInstance().stop();
-        getNiFiInstance().start();
-        setupClient();
+        try {
+            getNiFiInstance().stop();
+            getNiFiInstance().start();
+            setupClient();
 
-        if (getNiFiInstance().isClustered()) {
-            waitForAllNodesConnected();
+            if (getNiFiInstance().isClustered()) {
+                waitForAllNodesConnected();
+            }
+
+            waitForVersionControlState(processGroup.getId(), VersionControlInformationDTO.UP_TO_DATE);
+        } finally {
+            final FlowRegistryClientEntity currentRegistryClient = getNifiClient().getControllerClient().getRegistryClient(registryClient.getId());
+            getClientUtil().updateRegistryClientProperties(currentRegistryClient, Collections.singletonMap("Validate Sleep Time", "0 sec"));
         }
-
-        waitForVersionControlState(processGroup.getId(), VersionControlInformationDTO.UP_TO_DATE);
     }
 
     /**
