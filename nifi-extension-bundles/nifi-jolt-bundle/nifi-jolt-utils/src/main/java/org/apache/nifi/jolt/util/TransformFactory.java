@@ -53,6 +53,10 @@ public class TransformFactory {
 
     public static JoltTransform getCustomTransform(final ClassLoader classLoader, final String customTransformType, final Object specJson) throws Exception {
         final Class<?> clazz = classLoader.loadClass(customTransformType);
+        if (!JoltTransform.class.isAssignableFrom(clazz)) {
+            throw new SpecException("JOLT custom transform class [%s] does not implement JoltTransform".formatted(customTransformType));
+        }
+
         if (SpecDriven.class.isAssignableFrom(clazz)) {
             final Constructor<?> constructor = clazz.getConstructor(Object.class);
             return (JoltTransform) constructor.newInstance(specJson);

@@ -25,6 +25,7 @@ import io.joltcommunity.jolt.JsonUtils;
 import io.joltcommunity.jolt.Modifier;
 import io.joltcommunity.jolt.Shiftr;
 import io.joltcommunity.jolt.Sortr;
+import io.joltcommunity.jolt.exception.SpecException;
 import io.joltcommunity.jolt.removr.Removr;
 import org.apache.nifi.processors.jolt.CustomTransformJarProvider;
 import org.junit.jupiter.api.Test;
@@ -35,8 +36,10 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -136,5 +139,21 @@ class TestTransformFactory {
         ClassNotFoundException cnf = assertThrows(ClassNotFoundException.class,
                 () -> TransformFactory.getCustomTransform(this.getClass().getClassLoader(), MISSING_CUSTOM_CLASS_NAME, chainrSpec));
         assertEquals(MISSING_CUSTOM_CLASS_NAME, cnf.getLocalizedMessage());
+    }
+
+    @Test
+    void testGetCustomTransformationRejectsClassNotImplementingJoltTransform() {
+        NonJoltTransform.CONSTRUCTED.set(false);
+        final String className = NonJoltTransform.class.getName();
+        assertThrows(SpecException.class, () -> TransformFactory.getCustomTransform(getClass().getClassLoader(), className, null));
+        assertFalse(NonJoltTransform.CONSTRUCTED.get());
+    }
+
+    public static class NonJoltTransform {
+        static final AtomicBoolean CONSTRUCTED = new AtomicBoolean();
+
+        public NonJoltTransform() {
+            CONSTRUCTED.set(true);
+        }
     }
 }
