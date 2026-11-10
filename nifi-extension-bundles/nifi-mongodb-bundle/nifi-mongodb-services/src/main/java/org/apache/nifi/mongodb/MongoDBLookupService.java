@@ -60,11 +60,12 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 
 @Tags({"mongo", "mongodb", "lookup", "record"})
 @CapabilityDescription(
-    "Provides a lookup service based around MongoDB. Each key that is specified \n" +
-    "will be added to a query as-is. For example, if you specify the two keys, \n" +
-    "user and email, the resulting query will be { \"user\": \"tester\", \"email\": \"tester@test.com\" }.\n" +
-    "The query is limited to the first result (findOne in the Mongo documentation). If no \"Lookup Value Field\" is specified " +
-    "then the entire MongoDB result document minus the _id field will be returned as a record."
+        """
+                Provides a lookup service based around MongoDB. Each key that is specified
+                will be added to a query as-is. For example, if you specify the two keys,
+                user and email, the resulting query will be { "user": "tester", "email": "tester@test.com" }.
+                The query is limited to the first result (findOne in the Mongo documentation). If no "Lookup Value Field" is specified \
+                then the entire MongoDB result document minus the _id field will be returned as a record."""
 )
 public class MongoDBLookupService extends JsonInferenceSchemaRegistryService implements LookupService<Object> {
     public static final PropertyDescriptor LOCAL_SCHEMA_NAME = new PropertyDescriptor.Builder()
