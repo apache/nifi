@@ -21,6 +21,7 @@ import {
     ConnectionEntity,
     FunnelEntity,
     LabelEntity,
+    Permissions,
     PortEntity,
     ProcessGroupEntity,
     ProcessorEntity,
@@ -40,7 +41,12 @@ import {
     UpdateConnectionRequest
 } from '../../../../state/shared';
 import { ErrorContext, ErrorContextKey } from '../../../../state/error';
-import type { ConnectorCanvasComponentEntity } from './index';
+import type {
+    ConnectorCanvasComponentEntity,
+    ConnectorCanvasCreatedComponent,
+    ConnectorCanvasCreateRequest,
+    ConnectorCanvasDeleteRequest
+} from './index';
 import {
     ConnectionEndpointReconnectDestination,
     DisableProcessGroupRequest,
@@ -51,9 +57,13 @@ import {
     TerminateThreadsRequest
 } from '../../../../state/flow-shared';
 import {
+    CreateComponentRequest,
     CreateConnection,
     CreateConnectionDialogRequest,
-    CreateConnectionRequest
+    CreateConnectionRequest,
+    CreateProcessGroupDialogRequest,
+    CreateProcessorDialogRequest,
+    UploadProcessGroupRequest
 } from '../../../../state/flow-shared';
 
 /**
@@ -92,6 +102,7 @@ export const loadConnectorFlowSuccess = createAction(
         processGroupRevision: Revision | null;
         parentProcessGroupId: string | null;
         breadcrumb: BreadcrumbEntity | null;
+        permissions: Permissions | null;
         labels: LabelEntity[];
         funnels: FunnelEntity[];
         inputPorts: PortEntity[];
@@ -381,7 +392,12 @@ export const updateConnectionDestination = createAction(
 
 export const updateConnectionDestinationSuccess = createAction(
     '[Connector Canvas] Update Connection Destination Success',
-    props<{ connectionId: string; connection: ConnectionEntity }>()
+    props<{
+        connectionId: string;
+        connection: ConnectionEntity;
+        /** The destination the connection moved away from, which may need to be reloaded. */
+        previousDestination?: { id?: string; type?: string; groupId?: string };
+    }>()
 );
 
 export const updateConnectionDestinationFailure = createAction(
@@ -584,6 +600,127 @@ export const terminateComponentThreadsSuccess = createAction(
 export const terminateComponentThreadsFailure = createAction(
     '[Connector Canvas] Terminate Component Threads Failure',
     props<{ componentId: string; error: string }>()
+);
+
+// --- Palette drag and component creation ---
+
+/** True while the user is dragging a palette chip toward the canvas. */
+export const setDragging = createAction('[Connector Canvas] Set Dragging', props<{ dragging: boolean }>());
+
+/**
+ * Palette chip drop. The `createComponentRequest$` effect switches on `request.type`
+ * and forwards to the matching create dialog or direct create.
+ */
+export const createComponentRequest = createAction(
+    '[Connector Canvas] Create Component Request',
+    props<{ request: CreateComponentRequest }>()
+);
+
+export const openNewProcessorDialog = createAction(
+    '[Connector Canvas] Open New Processor Dialog',
+    props<{ request: CreateProcessorDialogRequest }>()
+);
+
+export const openNewPortDialog = createAction(
+    '[Connector Canvas] Open New Port Dialog',
+    props<{ request: CreateComponentRequest }>()
+);
+
+export const openNewProcessGroupDialog = createAction(
+    '[Connector Canvas] Open New Process Group Dialog',
+    props<{ request: CreateProcessGroupDialogRequest }>()
+);
+
+export const openNewRemoteProcessGroupDialog = createAction(
+    '[Connector Canvas] Open New Remote Process Group Dialog',
+    props<{ request: CreateComponentRequest }>()
+);
+
+export const createFunnel = createAction(
+    '[Connector Canvas] Create Funnel',
+    props<{ request: CreateComponentRequest }>()
+);
+
+/**
+ * The effect assigns `zIndex` from `selectMaxLabelZIndex + 1` before creating the label.
+ */
+export const createLabel = createAction(
+    '[Connector Canvas] Create Label',
+    props<{ request: CreateComponentRequest }>()
+);
+
+export const createCanvasComponent = createAction(
+    '[Connector Canvas] Create Canvas Component',
+    props<{ request: ConnectorCanvasCreateRequest; processGroupId: string; errorContextKey: ErrorContextKey }>()
+);
+
+export const createCanvasComponentSuccess = createAction(
+    '[Connector Canvas] Create Canvas Component Success',
+    props<{ response: ConnectorCanvasCreatedComponent }>()
+);
+
+export const createCanvasComponentFailure = createAction(
+    '[Connector Canvas] Create Canvas Component Failure',
+    props<{ error: string; errorContextKey: ErrorContextKey }>()
+);
+
+/**
+ * Upload a local flow definition into a new process group. Emitted by the shared
+ * create process group dialog when a file is attached.
+ */
+export const uploadProcessGroup = createAction(
+    '[Connector Canvas] Upload Process Group',
+    props<{ request: UploadProcessGroupRequest; processGroupId: string }>()
+);
+
+export const uploadProcessGroupSuccess = createAction(
+    '[Connector Canvas] Upload Process Group Success',
+    props<{ response: ConnectorCanvasCreatedComponent }>()
+);
+
+export const uploadProcessGroupFailure = createAction(
+    '[Connector Canvas] Upload Process Group Failure',
+    props<{ error: string }>()
+);
+
+// --- Delete ---
+
+export const deleteSelectedComponents = createAction(
+    '[Connector Canvas] Delete Selected Components',
+    props<{ request: ConnectorCanvasDeleteRequest[] }>()
+);
+
+export const deleteSelectedComponentsSuccess = createAction(
+    '[Connector Canvas] Delete Selected Components Success',
+    props<{ ids: Array<{ id: string; type: ComponentType }> }>()
+);
+
+export const deleteSelectedComponentsFailure = createAction(
+    '[Connector Canvas] Delete Selected Components Failure',
+    props<{ error: string }>()
+);
+
+// --- Connection endpoints ---
+// Reloads the components a connection touches so their validity updates
+// without reloading the entire flow.
+
+export const loadComponentsForConnection = createAction(
+    '[Connector Canvas] Load Components For Connection',
+    props<{ connection: ConnectionEntity }>()
+);
+
+export const loadConnectionEndpoint = createAction(
+    '[Connector Canvas] Load Connection Endpoint',
+    props<{ componentId: string; componentType: ComponentType }>()
+);
+
+export const loadConnectionEndpointSuccess = createAction(
+    '[Connector Canvas] Load Connection Endpoint Success',
+    props<{
+        componentId: string;
+        componentType: ComponentType;
+        component: ConnectorCanvasComponentEntity;
+    }>()
 );
 
 export const resetConnectorCanvasState = createAction('[Connector Canvas] Reset State');

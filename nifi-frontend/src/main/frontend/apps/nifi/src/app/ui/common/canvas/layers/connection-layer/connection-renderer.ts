@@ -43,11 +43,6 @@ type PositionableCanvasDatum = Exclude<CanvasDatum, CanvasConnection>;
  * - updateConnectionElements(): Update existing elements
  * - Uses D3's enter/update/exit pattern for efficiency
  */
-interface LabelDragBounds extends Position {
-    width: number;
-    height: number;
-}
-
 export class ConnectionRenderer {
     /**
      * Main render method - orchestrates the D3 data join pattern
@@ -792,6 +787,19 @@ export class ConnectionRenderer {
                 });
             }
 
+            // The label drag stops immediate propagation, so a label mousedown never
+            // reaches the connection's selection handler. Selection is attached here,
+            // before the drag, so it dispatches first.
+            if (context.callbacks.onClick) {
+                connectionLabelContainer.on('mousedown.selection', function (event: MouseEvent, d: CanvasConnection) {
+                    if (event.button !== 0 || !context.getCanSelect()) {
+                        return;
+                    }
+                    event.stopPropagation();
+                    context.callbacks.onClick!(d, event);
+                });
+            }
+
             // Connection label border
             connectionLabelContainer
                 .append('rect')
@@ -813,7 +821,7 @@ export class ConnectionRenderer {
         // `getCanSelect()` / `getCanEdit()` at fire-time so runtime toggles are
         // honored without re-attaching.
         if (context.callbacks.onLabelDragEnd) {
-            ConnectionRenderer.addLabelDragBehavior(connectionLabelContainer, d, connection, context);
+            ConnectionRenderer.addLabelDragBehavior(connectionLabelContainer, connection, context);
         }
 
         // Calculate label height based on content
@@ -1534,13 +1542,24 @@ export class ConnectionRenderer {
      */
     private static addLabelDragBehavior(
         labelContainer: CanvasSelection<CanvasConnection>,
-        connectionData: CanvasConnection,
         connection: CanvasSelection<CanvasConnection>,
         context: ConnectionRenderContext
     ): void {
+        // Attached once per label container. Re-attaching on every render replaces the
+        // drag listener, and a render triggered by the label's selection handler during
+        // the same mousedown would drop the drag listener before it dispatches. The
+        // handlers read the bound datum so they follow the current connection wrapper.
+        if (labelContainer.classed('moveable')) {
+            return;
+        }
+
+        // Tracked in a closure rather than on the rect's datum, which a `select` from the
+        // connection would overwrite with the connection's datum.
+        let dragIndicator: { x: number; y: number; width: number; height: number } | null = null;
+
         const labelDrag = d3
             .drag<SVGGElement, CanvasConnection>()
-            .filter(function () {
+            .filter(function (_event: MouseEvent, connectionData: CanvasConnection) {
                 // Block drag if editing is disabled
                 if (!context.getCanEdit()) {
                     return false;
@@ -1559,15 +1578,16 @@ export class ConnectionRenderer {
                 }
                 return true;
             })
-            .on('start', function (event) {
+            .on('start', function (event, connectionData) {
                 // Stop propagation to prevent canvas pan
                 event.sourceEvent.stopPropagation();
 
                 // Mark as dragging
                 connectionData.ui.dragging = true;
                 connectionData.ui.dragStartRevision = connectionData.entity.revision;
+                dragIndicator = null;
             })
-            .on('drag', function (event) {
+            .on('drag', function (event, connectionData) {
                 // Stop propagation to prevent canvas pan
                 event.sourceEvent.stopPropagation();
 
@@ -1578,10 +1598,9 @@ export class ConnectionRenderer {
                     return;
                 }
 
-                // Get or create the drag indicator rectangle
-                let dragRect = connection.selectAll<SVGRectElement, LabelDragBounds>('rect.label-drag');
+                const dragRect = connection.select<SVGRectElement>('rect.label-drag');
 
-                if (dragRect.empty()) {
+                if (dragRect.empty() || !dragIndicator) {
                     // Get label dimensions
                     const body = labelContainer.select('rect.body');
                     const labelWidth = CanvasConstants.CONNECTION_LABEL.width;
@@ -1593,43 +1612,33 @@ export class ConnectionRenderer {
                     const currentX = match ? parseFloat(match[1]) : 0;
                     const currentY = match ? parseFloat(match[2]) : 0;
 
+                    dragIndicator = { x: currentX, y: currentY, width: labelWidth, height: labelHeight };
+
                     // Create drag indicator
-                    connection
-                        .append('rect')
-                        .attr('class', 'label-drag')
-                        .attr('x', currentX)
-                        .attr('y', currentY)
-                        .attr('width', labelWidth)
-                        .attr('height', labelHeight)
-                        .attr('fill', 'none')
-                        .attr('stroke-width', 1)
-                        .attr('stroke-dasharray', 4)
-                        .attr('pointer-events', 'none')
-                        .datum({
-                            x: currentX,
-                            y: currentY,
-                            width: labelWidth,
-                            height: labelHeight
-                        });
-                    dragRect = connection.selectAll<SVGRectElement, LabelDragBounds>('rect.label-drag');
+                    if (dragRect.empty()) {
+                        connection
+                            .append('rect')
+                            .attr('class', 'label-drag')
+                            .attr('x', currentX)
+                            .attr('y', currentY)
+                            .attr('width', labelWidth)
+                            .attr('height', labelHeight)
+                            .attr('fill', 'none')
+                            .attr('stroke-width', 1)
+                            .attr('stroke-dasharray', 4)
+                            .attr('pointer-events', 'none');
+                    }
                 } else {
                     // Update drag indicator position
-                    dragRect
-                        .attr('x', function (d: LabelDragBounds) {
-                            d.x += event.dx;
-                            return d.x;
-                        })
-                        .attr('y', function (d: LabelDragBounds) {
-                            d.y += event.dy;
-                            return d.y;
-                        });
+                    dragIndicator.x += event.dx;
+                    dragIndicator.y += event.dy;
+                    dragRect.attr('x', dragIndicator.x).attr('y', dragIndicator.y);
                 }
 
                 // Calculate current center point of drag indicator
-                const datum = dragRect.datum();
                 const currentPoint: Position = {
-                    x: datum.x + datum.width / 2,
-                    y: datum.y + datum.height / 2
+                    x: dragIndicator.x + dragIndicator.width / 2,
+                    y: dragIndicator.y + dragIndicator.height / 2
                 };
 
                 // Find closest bend point
@@ -1652,7 +1661,7 @@ export class ConnectionRenderer {
                 const snapPosition = ConnectionRenderer.getLabelPosition(connectionData, context.canvasRootResolver());
                 labelContainer.attr('transform', `translate(${snapPosition.x}, ${snapPosition.y})`);
             })
-            .on('end', function (event) {
+            .on('end', function (event, connectionData) {
                 // Stop propagation
                 event.sourceEvent.stopPropagation();
 
@@ -1681,6 +1690,7 @@ export class ConnectionRenderer {
                 // Mark dragging complete
                 delete connectionData.ui.dragStartRevision;
                 connectionData.ui.dragging = false;
+                dragIndicator = null;
             });
 
         labelContainer.classed('moveable', true).call(labelDrag);

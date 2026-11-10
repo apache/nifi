@@ -38,11 +38,13 @@ export class FunnelRenderer {
         const merged = selection.merge(appendedGroups);
         FunnelRenderer.updateFunnelElements(merged, context);
 
-        // Attach event listeners if interactive
-        // Use mousedown for selection to ensure single, deterministic event firing
+        // Attach event listeners if interactive. Use mousedown for selection to ensure
+        // single, deterministic event firing. Selection and dblclick are attached once per
+        // element so they keep their dispatch order ahead of the drag listener; re-attaching
+        // them every render moves them behind it, and d3-drag stops immediate propagation.
         if (callbacks) {
             if (callbacks.onClick) {
-                merged.on('mousedown.selection', function (event: MouseEvent, d: CanvasFunnel) {
+                appendedGroups.on('mousedown.selection', function (event: MouseEvent, d: CanvasFunnel) {
                     // Only handle left mouse button
                     if (event.button !== 0 || !context.getCanSelect()) {
                         return;
@@ -53,7 +55,7 @@ export class FunnelRenderer {
                 });
             }
             if (callbacks.onDoubleClick) {
-                merged.on('dblclick', function (event: MouseEvent, d: CanvasFunnel) {
+                appendedGroups.on('dblclick', function (event: MouseEvent, d: CanvasFunnel) {
                     if (!context.getCanSelect()) {
                         return;
                     }

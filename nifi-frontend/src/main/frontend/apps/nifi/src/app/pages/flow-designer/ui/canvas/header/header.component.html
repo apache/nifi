@@ -18,54 +18,71 @@
 <header class="nifi-header">
     <navigation>
         @if (canvasPermissions$ | async; as canvasPermissions) {
+            @let dragging = (dragging$ | async) ?? false;
             <new-canvas-item
-                [type]="ComponentType.Processor"
                 [disabled]="!canvasPermissions.canWrite"
+                [dragging]="dragging"
                 iconClass="icon-processor"
                 iconHoverClass="icon-processor-add"
-                tooltip="Processor"></new-canvas-item>
+                tooltip="Processor"
+                (dragStarted)="onDragStarted()"
+                (dragEnded)="onDragEnded(ComponentType.Processor, $event)"></new-canvas-item>
             <new-canvas-item
-                [type]="ComponentType.InputPort"
                 [disabled]="!canvasPermissions.canWrite"
+                [dragging]="dragging"
                 iconClass="icon-port-in"
                 iconHoverClass="icon-port-in-add"
-                tooltip="Input Port"></new-canvas-item>
+                tooltip="Input Port"
+                (dragStarted)="onDragStarted()"
+                (dragEnded)="onDragEnded(ComponentType.InputPort, $event)"></new-canvas-item>
             <new-canvas-item
-                [type]="ComponentType.OutputPort"
                 [disabled]="!canvasPermissions.canWrite"
+                [dragging]="dragging"
                 iconClass="icon-port-out"
                 iconHoverClass="icon-port-out-add"
-                tooltip="Output Port"></new-canvas-item>
+                tooltip="Output Port"
+                (dragStarted)="onDragStarted()"
+                (dragEnded)="onDragEnded(ComponentType.OutputPort, $event)"></new-canvas-item>
             <new-canvas-item
-                [type]="ComponentType.ProcessGroup"
                 [disabled]="!canvasPermissions.canWrite"
+                [dragging]="dragging"
                 iconClass="icon-group"
                 iconHoverClass="icon-group-add"
-                tooltip="Process Group"></new-canvas-item>
+                tooltip="Process Group"
+                (dragStarted)="onDragStarted()"
+                (dragEnded)="onDragEnded(ComponentType.ProcessGroup, $event)"></new-canvas-item>
             <new-canvas-item
-                [type]="ComponentType.RemoteProcessGroup"
                 [disabled]="!canvasPermissions.canWrite"
+                [dragging]="dragging"
                 iconClass="icon-group-remote"
                 iconHoverClass="icon-group-remote-add"
-                tooltip="Remote Process Group"></new-canvas-item>
+                tooltip="Remote Process Group"
+                (dragStarted)="onDragStarted()"
+                (dragEnded)="onDragEnded(ComponentType.RemoteProcessGroup, $event)"></new-canvas-item>
             <new-canvas-item
-                [type]="ComponentType.Funnel"
                 [disabled]="!canvasPermissions.canWrite"
+                [dragging]="dragging"
                 iconClass="icon-funnel"
                 iconHoverClass="icon-funnel-add"
-                tooltip="Funnel"></new-canvas-item>
+                tooltip="Funnel"
+                (dragStarted)="onDragStarted()"
+                (dragEnded)="onDragEnded(ComponentType.Funnel, $event)"></new-canvas-item>
             <new-canvas-item
-                [type]="ComponentType.Flow"
                 [disabled]="!canvasPermissions.canWrite"
+                [dragging]="dragging"
                 iconClass="icon-import-from-registry"
                 iconHoverClass="icon-import-from-registry-add"
-                tooltip="Import from Registry"></new-canvas-item>
+                tooltip="Import from Registry"
+                (dragStarted)="onDragStarted()"
+                (dragEnded)="onDragEnded(ComponentType.Flow, $event)"></new-canvas-item>
             <new-canvas-item
-                [type]="ComponentType.Label"
                 [disabled]="!canvasPermissions.canWrite"
+                [dragging]="dragging"
                 iconClass="icon-label"
                 iconHoverClass="icon-label-add"
-                tooltip="Label"></new-canvas-item>
+                tooltip="Label"
+                (dragStarted)="onDragStarted()"
+                (dragEnded)="onDragEnded(ComponentType.Label, $event)"></new-canvas-item>
         }
     </navigation>
     <flow-status

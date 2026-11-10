@@ -21,7 +21,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { Action, Store } from '@ngrx/store';
 import { Router } from '@angular/router';
-import { asyncScheduler, forkJoin, from, interval, NEVER, Observable, of } from 'rxjs';
+import { asyncScheduler, EMPTY, forkJoin, from, interval, NEVER, Observable, of } from 'rxjs';
 import {
     catchError,
     distinctUntilChanged,
@@ -46,6 +46,7 @@ import {
     LabelEntity,
     MEDIUM_DIALOG,
     NiFiCommon,
+    SMALL_DIALOG,
     Permissions,
     PortEntity,
     Position,
@@ -55,7 +56,11 @@ import {
     XL_DIALOG
 } from '@nifi/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
-import { selectPrioritizerTypes } from '../../../../state/extension-types/extension-types.selectors';
+import {
+    selectExtensionTypesLoadingStatus,
+    selectPrioritizerTypes,
+    selectProcessorTypes
+} from '../../../../state/extension-types/extension-types.selectors';
 import {
     selectPropertyVerificationResults,
     selectPropertyVerificationStatus
@@ -78,6 +83,10 @@ import { EditLabel } from '../../../../ui/common/component-dialogs/edit-label/ed
 import { EditProcessGroup } from '../../../../ui/common/component-dialogs/edit-process-group/edit-process-group.component';
 import { EditRemoteProcessGroup } from '../../../../ui/common/component-dialogs/edit-remote-process-group/edit-remote-process-group.component';
 import { CreateConnection as CreateConnectionDialog } from '../../../../ui/common/component-dialogs/create-connection/create-connection.component';
+import { CreatePort } from '../../../../ui/common/component-dialogs/create-port/create-port.component';
+import { CreateProcessGroup } from '../../../../ui/common/component-dialogs/create-process-group/create-process-group.component';
+import { CreateProcessor } from '../../../../ui/common/component-dialogs/create-processor/create-processor.component';
+import { CreateRemoteProcessGroup } from '../../../../ui/common/component-dialogs/create-remote-process-group/create-remote-process-group.component';
 import * as ConnectorCanvasActions from './connector-canvas.actions';
 import * as ConnectorControllerServicesActions from '../connector-controller-services/connector-controller-services.actions';
 import { bindConnectorParameterContext } from './bind-connector-parameter-context';
@@ -93,6 +102,7 @@ import {
     selectInputPort,
     selectLoadingStatus,
     selectMaxConnectionZIndex,
+    selectMaxLabelZIndex,
     selectOptimisticCacheSnapshot,
     selectOutputPort,
     selectParentProcessGroupId,
@@ -106,13 +116,17 @@ import {
 } from './connector-canvas.selectors';
 import { selectDocumentVisibilityState } from '../../../../state/document-visibility/document-visibility.selectors';
 import { DocumentVisibility } from '../../../../state/document-visibility';
-import type { ConnectorCanvasComponentEntity } from './index';
+import type { ConnectorCanvasComponentEntity, ConnectorCanvasCreatedComponent } from './index';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 import { ConnectorEditService } from '../../service/connector-edit.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { resetConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.actions';
 import { selectConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { FlowService } from '../../../flow-designer/service/flow.service';
+import {
+    getComponentTypeForDestination,
+    getComponentTypeForSource
+} from '../../../../ui/common/utils/component-state.utils';
 
 /**
  * Shallow-copies `entity` with `permissions.canWrite` forced to false.
@@ -128,6 +142,11 @@ function withReadonlyPermissions<E extends { permissions: Permissions; operatePe
         permissions: { ...entity.permissions, canWrite: false },
         ...(entity.operatePermissions ? { operatePermissions: { ...entity.operatePermissions, canWrite: false } } : {})
     };
+}
+
+interface ConnectionEndpoint {
+    componentId: string;
+    componentType: ComponentType;
 }
 
 @Injectable()
@@ -220,6 +239,7 @@ export class ConnectorCanvasEffects {
                             // Extract process group IDs for navigation
                             const processGroupId = processGroupFlow?.id ?? null;
                             const processGroupRevision = flowResponse.revision ?? null;
+                            const permissions = flowResponse.permissions ?? null;
                             const parentProcessGroupId = processGroupFlow?.parentGroupId ?? null;
 
                             // Extract breadcrumb for navigation trail
@@ -231,6 +251,7 @@ export class ConnectorCanvasEffects {
                                 processGroupRevision,
                                 parentProcessGroupId,
                                 breadcrumb,
+                                permissions,
                                 labels,
                                 funnels,
                                 inputPorts,
@@ -1071,7 +1092,8 @@ export class ConnectorCanvasEffects {
                         map((connection) =>
                             ConnectorCanvasActions.updateConnectionDestinationSuccess({
                                 connectionId: request.id,
-                                connection
+                                connection,
+                                previousDestination: request.previousDestination
                             })
                         ),
                         catchError((error: HttpErrorResponse) => {
@@ -1139,9 +1161,61 @@ export class ConnectorCanvasEffects {
                             }
                         })
                     );
+                    this.store.dispatch(ConnectorCanvasActions.loadComponentsForConnection({ connection }));
                 })
             ),
         { dispatch: false }
+    );
+
+    /**
+     * After a destination change persists, reloads the connection's endpoints and the
+     * destination it moved away from.
+     */
+    reloadComponentsAfterConnectionDestinationChange$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.updateConnectionDestinationSuccess),
+            mergeMap(({ connection, previousDestination }) => {
+                const endpoint = this.previousDestinationEndpoint(previousDestination);
+                return from([
+                    ConnectorCanvasActions.loadComponentsForConnection({ connection }),
+                    ...(endpoint ? [ConnectorCanvasActions.loadConnectionEndpoint(endpoint)] : [])
+                ]);
+            })
+        )
+    );
+
+    /**
+     * Reloads the source and destination of a connection. Endpoints are read from the
+     * connection's top-level fields, which are present even when the connection is not readable.
+     */
+    loadComponentsForConnection$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.loadComponentsForConnection),
+            mergeMap(({ connection }) =>
+                from(
+                    this.connectionEndpoints(connection).map((endpoint) =>
+                        ConnectorCanvasActions.loadConnectionEndpoint(endpoint)
+                    )
+                )
+            )
+        )
+    );
+
+    /**
+     * Reloads one connection endpoint. A failed reload is left for the next flow poll to correct.
+     */
+    loadConnectionEndpoint$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.loadConnectionEndpoint),
+            mergeMap(({ componentId, componentType }) =>
+                this.connectorEditService.getComponent(componentType, componentId).pipe(
+                    map((component) =>
+                        ConnectorCanvasActions.loadConnectionEndpointSuccess({ componentId, componentType, component })
+                    ),
+                    catchError(() => EMPTY)
+                )
+            )
+        )
     );
 
     updateComponentPositionsBulk$ = createEffect(() =>
@@ -1334,8 +1408,11 @@ export class ConnectorCanvasEffects {
     updateConnectionDestination$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ConnectorCanvasActions.updateConnectionDestination),
+            // The store still holds the connection's current destination until the save succeeds.
             concatLatestFrom(() => this.store.select(selectConnections)),
-            mergeMap(([action]) => {
+            mergeMap(([action, connections]) => {
+                const previousDestination = connections.find((connection) => connection.id === action.connectionId)
+                    ?.component?.destination;
                 const destinationType = this.getConnectableDestinationType(action.newDestination.componentType);
                 if (!destinationType) {
                     const message = `Unsupported connection destination type: ${action.newDestination.componentType}`;
@@ -1374,7 +1451,8 @@ export class ConnectorCanvasEffects {
                         map((connection) =>
                             ConnectorCanvasActions.updateConnectionDestinationSuccess({
                                 connectionId: action.connectionId,
-                                connection
+                                connection,
+                                previousDestination
                             })
                         ),
                         catchError((error: HttpErrorResponse) =>
@@ -1890,6 +1968,449 @@ export class ConnectorCanvasEffects {
         )
     );
 
+    createComponentRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.createComponentRequest),
+            map((action) => action.request),
+            concatLatestFrom(() => this.store.select(selectProcessGroupId)),
+            switchMap(([request, processGroupId]) => {
+                // Downstream create effects drop requests without a process group, so clear dragging here.
+                if (processGroupId == null) {
+                    return of(ConnectorCanvasActions.setDragging({ dragging: false }));
+                }
+                switch (request.type) {
+                    case ComponentType.Processor:
+                        return of(ConnectorCanvasActions.openNewProcessorDialog({ request: { request } }));
+                    case ComponentType.InputPort:
+                    case ComponentType.OutputPort:
+                        return of(ConnectorCanvasActions.openNewPortDialog({ request }));
+                    case ComponentType.ProcessGroup:
+                        return of(
+                            ConnectorCanvasActions.openNewProcessGroupDialog({
+                                request: { request, parameterContexts: [] }
+                            })
+                        );
+                    case ComponentType.RemoteProcessGroup:
+                        return of(ConnectorCanvasActions.openNewRemoteProcessGroupDialog({ request }));
+                    case ComponentType.Funnel:
+                        return of(ConnectorCanvasActions.createFunnel({ request }));
+                    case ComponentType.Label:
+                        return of(ConnectorCanvasActions.createLabel({ request }));
+                    default:
+                        // No dialog opens to clear dragging through afterClosed().
+                        return from([
+                            ConnectorCanvasActions.setDragging({ dragging: false }),
+                            ErrorActions.addBannerError({
+                                errorContext: {
+                                    errors: [`Unsupported component type: ${request.type}`],
+                                    context: ErrorContextKey.CONNECTOR_CANVAS
+                                }
+                            })
+                        ]);
+                }
+            })
+        )
+    );
+
+    openNewProcessorDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.openNewProcessorDialog),
+                concatLatestFrom(() => this.store.select(selectProcessGroupId)),
+                filter(([, processGroupId]) => processGroupId != null),
+                tap(([{ request }, processGroupId]) => {
+                    const dialogRef = this.dialog.open(CreateProcessor, {
+                        ...LARGE_DIALOG,
+                        data: request
+                    });
+                    const instance = dialogRef.componentInstance;
+                    instance.saving$ = this.store.select(selectSaving);
+                    instance.processorTypes$ = this.store.select(selectProcessorTypes);
+                    instance.processorTypesLoadingStatus$ = this.store.select(selectExtensionTypesLoadingStatus);
+
+                    const afterClosed$ = dialogRef.afterClosed().pipe(take(1));
+                    instance.createProcessor.pipe(takeUntil(afterClosed$)).subscribe((createRequest) => {
+                        this.store.dispatch(
+                            ConnectorCanvasActions.createCanvasComponent({
+                                request: { ...createRequest, type: ComponentType.Processor },
+                                processGroupId: processGroupId!,
+                                // The processor dialog has no error banner of its own.
+                                errorContextKey: ErrorContextKey.CONNECTOR_CANVAS
+                            })
+                        );
+                    });
+                    afterClosed$.subscribe(() =>
+                        this.store.dispatch(ConnectorCanvasActions.setDragging({ dragging: false }))
+                    );
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openNewPortDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.openNewPortDialog),
+                concatLatestFrom(() => [
+                    this.store.select(selectProcessGroupId),
+                    this.store.select(selectParentProcessGroupId)
+                ]),
+                filter(([, processGroupId]) => processGroupId != null),
+                tap(([{ request }, processGroupId, parentProcessGroupId]) => {
+                    const dialogRef = this.dialog.open(CreatePort, {
+                        ...SMALL_DIALOG,
+                        data: request
+                    });
+                    const instance = dialogRef.componentInstance;
+                    instance.saving$ = this.store.select(selectSaving);
+                    instance.isRootProcessGroup = parentProcessGroupId == null;
+
+                    const afterClosed$ = dialogRef.afterClosed().pipe(take(1));
+                    instance.createPort.pipe(takeUntil(afterClosed$)).subscribe((createRequest) => {
+                        const type =
+                            createRequest.type === ComponentType.OutputPort
+                                ? ComponentType.OutputPort
+                                : ComponentType.InputPort;
+                        this.store.dispatch(
+                            ConnectorCanvasActions.createCanvasComponent({
+                                request: { ...createRequest, type },
+                                processGroupId: processGroupId!,
+                                errorContextKey: ErrorContextKey.PORT
+                            })
+                        );
+                    });
+                    afterClosed$.subscribe(() =>
+                        this.store.dispatch(ConnectorCanvasActions.setDragging({ dragging: false }))
+                    );
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openNewProcessGroupDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.openNewProcessGroupDialog),
+                concatLatestFrom(() => this.store.select(selectProcessGroupId)),
+                filter(([, processGroupId]) => processGroupId != null),
+                tap(([{ request }, processGroupId]) => {
+                    const dialogRef = this.dialog.open(CreateProcessGroup, {
+                        ...MEDIUM_DIALOG,
+                        data: request
+                    });
+                    const instance = dialogRef.componentInstance;
+                    instance.parameterContexts = request.parameterContexts;
+                    instance.saving$ = this.store.select(selectSaving);
+                    instance.currentUser$ = this.store.select(selectCurrentUser);
+                    // Connector flows bind the connector's own parameter context.
+                    instance.supportsParameters = false;
+
+                    const afterClosed$ = dialogRef.afterClosed().pipe(take(1));
+                    instance.createProcessGroup.pipe(takeUntil(afterClosed$)).subscribe((createRequest) => {
+                        this.store.dispatch(
+                            ConnectorCanvasActions.createCanvasComponent({
+                                request: { ...createRequest, type: ComponentType.ProcessGroup },
+                                processGroupId: processGroupId!,
+                                errorContextKey: ErrorContextKey.PROCESS_GROUP
+                            })
+                        );
+                    });
+                    instance.uploadProcessGroup.pipe(takeUntil(afterClosed$)).subscribe((uploadRequest) => {
+                        this.store.dispatch(
+                            ConnectorCanvasActions.uploadProcessGroup({
+                                request: uploadRequest,
+                                processGroupId: processGroupId!
+                            })
+                        );
+                    });
+                    afterClosed$.subscribe(() =>
+                        this.store.dispatch(ConnectorCanvasActions.setDragging({ dragging: false }))
+                    );
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openNewRemoteProcessGroupDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.openNewRemoteProcessGroupDialog),
+                concatLatestFrom(() => this.store.select(selectProcessGroupId)),
+                filter(([, processGroupId]) => processGroupId != null),
+                tap(([{ request }, processGroupId]) => {
+                    const dialogRef = this.dialog.open(CreateRemoteProcessGroup, {
+                        ...LARGE_DIALOG,
+                        data: request
+                    });
+                    const instance = dialogRef.componentInstance;
+                    instance.saving$ = this.store.select(selectSaving);
+
+                    const afterClosed$ = dialogRef.afterClosed().pipe(take(1));
+                    instance.createRemoteProcessGroup.pipe(takeUntil(afterClosed$)).subscribe((createRequest) => {
+                        this.store.dispatch(
+                            ConnectorCanvasActions.createCanvasComponent({
+                                request: { ...createRequest, type: ComponentType.RemoteProcessGroup },
+                                processGroupId: processGroupId!,
+                                errorContextKey: ErrorContextKey.REMOTE_PROCESS_GROUP
+                            })
+                        );
+                    });
+                    afterClosed$.subscribe(() =>
+                        this.store.dispatch(ConnectorCanvasActions.setDragging({ dragging: false }))
+                    );
+                })
+            ),
+        { dispatch: false }
+    );
+
+    createFunnel$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.createFunnel),
+            concatLatestFrom(() => this.store.select(selectProcessGroupId)),
+            filter(([, processGroupId]) => processGroupId != null),
+            map(([{ request }, processGroupId]) =>
+                ConnectorCanvasActions.createCanvasComponent({
+                    request: { ...request, type: ComponentType.Funnel },
+                    processGroupId: processGroupId!,
+                    errorContextKey: ErrorContextKey.CONNECTOR_CANVAS
+                })
+            )
+        )
+    );
+
+    createLabel$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.createLabel),
+            concatLatestFrom(() => [this.store.select(selectProcessGroupId), this.store.select(selectMaxLabelZIndex)]),
+            filter(([, processGroupId]) => processGroupId != null),
+            map(([{ request }, processGroupId, maxZIndex]) =>
+                ConnectorCanvasActions.createCanvasComponent({
+                    request: { ...request, type: ComponentType.Label, zIndex: maxZIndex + 1 },
+                    processGroupId: processGroupId!,
+                    errorContextKey: ErrorContextKey.CONNECTOR_CANVAS
+                })
+            )
+        )
+    );
+
+    /**
+     * exhaustMap drops a second submit while the first is in flight so a double click
+     * cannot create two components.
+     */
+    createCanvasComponent$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.createCanvasComponent),
+            exhaustMap(({ request, processGroupId, errorContextKey }) =>
+                this.connectorEditService.createComponent(processGroupId, request).pipe(
+                    map((response) => ConnectorCanvasActions.createCanvasComponentSuccess({ response })),
+                    catchError((error: HttpErrorResponse) =>
+                        from(
+                            this.mutationFailure(
+                                error,
+                                (message) =>
+                                    ConnectorCanvasActions.createCanvasComponentFailure({
+                                        error: message,
+                                        errorContextKey
+                                    }),
+                                errorContextKey
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    );
+
+    createCanvasComponentSuccess$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.createCanvasComponentSuccess),
+                tap(({ response }) => {
+                    this.dialog.closeAll();
+                    this.store.dispatch(
+                        ConnectorCanvasActions.selectComponents({
+                            request: {
+                                components: [{ id: response.payload.id, componentType: response.type }]
+                            }
+                        })
+                    );
+                })
+            ),
+        { dispatch: false }
+    );
+
+    /**
+     * Dialogs with their own error banner stay open so the user can retry. Any other
+     * failure is shown on the canvas banner, which an open dialog would cover.
+     */
+    createCanvasComponentFailure$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ConnectorCanvasActions.createCanvasComponentFailure),
+                filter(({ errorContextKey }) => errorContextKey === ErrorContextKey.CONNECTOR_CANVAS),
+                tap(() => this.dialog.closeAll())
+            ),
+        { dispatch: false }
+    );
+
+    uploadProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.uploadProcessGroup),
+            exhaustMap(({ request, processGroupId }) =>
+                this.connectorEditService.uploadProcessGroup(processGroupId, request).pipe(
+                    switchMap((payload) => {
+                        const response: ConnectorCanvasCreatedComponent = {
+                            type: ComponentType.ProcessGroup,
+                            payload
+                        };
+                        return from([
+                            ConnectorCanvasActions.createCanvasComponentSuccess({ response }),
+                            ConnectorCanvasActions.uploadProcessGroupSuccess({ response })
+                        ]);
+                    }),
+                    catchError((error: HttpErrorResponse) =>
+                        from(
+                            this.mutationFailure(
+                                error,
+                                (message) => ConnectorCanvasActions.uploadProcessGroupFailure({ error: message }),
+                                ErrorContextKey.PROCESS_GROUP
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    );
+
+    /**
+     * A single component is deleted directly; a multi-selection goes through a snippet.
+     * Deleting a single connection reloads its endpoints so their validity updates.
+     * A failure reloads the flow so the canvas reflects what the server kept.
+     * exhaustMap drops a second delete while the first is in flight so the same revisions
+     * are not sent twice.
+     */
+    deleteSelectedComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorCanvasActions.deleteSelectedComponents),
+            concatLatestFrom(() => [
+                this.store.select(selectConnectorId),
+                this.store.select(selectProcessGroupId),
+                this.store.select(selectConnections)
+            ]),
+            filter(
+                ([{ request }, connectorId, processGroupId]) =>
+                    request.length > 0 && connectorId !== '' && processGroupId !== null
+            ),
+            exhaustMap(([{ request }, connectorId, processGroupId, connections]) => {
+                const sourceProcessGroupId = processGroupId as string;
+                const delete$ =
+                    request.length === 1
+                        ? this.connectorEditService.deleteComponent(request[0])
+                        : this.connectorEditService.deleteComponents(request, sourceProcessGroupId);
+                const deletedConnection =
+                    request.length === 1 && request[0].type === ComponentType.Connection
+                        ? connections.find((connection) => connection.id === request[0].id)
+                        : undefined;
+
+                return delete$.pipe(
+                    mergeMap(() => {
+                        const actions: Action[] = [
+                            ConnectorCanvasActions.deleteSelectedComponentsSuccess({
+                                ids: request.map((component) => ({ id: component.id, type: component.type }))
+                            })
+                        ];
+                        if (deletedConnection) {
+                            actions.push(
+                                ConnectorCanvasActions.loadComponentsForConnection({ connection: deletedConnection })
+                            );
+                        }
+                        return from(actions);
+                    }),
+                    catchError((error: HttpErrorResponse) =>
+                        of(error).pipe(
+                            concatLatestFrom(() => [
+                                this.store.select(selectConnectorId),
+                                this.store.select(selectProcessGroupId)
+                            ]),
+                            mergeMap(([, currentConnectorId, currentProcessGroupId]) => {
+                                const actions: Action[] = this.mutationFailure(error, (message) =>
+                                    ConnectorCanvasActions.deleteSelectedComponentsFailure({ error: message })
+                                );
+                                if (
+                                    currentConnectorId === connectorId &&
+                                    currentProcessGroupId === sourceProcessGroupId
+                                ) {
+                                    actions.push(
+                                        ConnectorCanvasActions.loadConnectorFlow({
+                                            connectorId,
+                                            processGroupId: sourceProcessGroupId
+                                        })
+                                    );
+                                }
+                                return from(actions);
+                            })
+                        )
+                    )
+                );
+            })
+        )
+    );
+
+    /**
+     * The components a connection touches whose displayed state depends on it. A remote
+     * port resolves to its remote process group; funnels and child process groups are skipped.
+     */
+    private connectionEndpoints(connection: ConnectionEntity): ConnectionEndpoint[] {
+        const endpoints = [
+            {
+                componentType: getComponentTypeForSource(connection.sourceType),
+                id: connection.sourceId,
+                groupId: connection.sourceGroupId
+            },
+            {
+                componentType: getComponentTypeForDestination(connection.destinationType),
+                id: connection.destinationId,
+                groupId: connection.destinationGroupId
+            }
+        ];
+        return endpoints.flatMap(({ componentType, id, groupId }): ConnectionEndpoint[] => {
+            switch (componentType) {
+                case ComponentType.Processor:
+                case ComponentType.InputPort:
+                case ComponentType.OutputPort:
+                    return [{ componentId: id, componentType }];
+                case ComponentType.RemoteProcessGroup:
+                    return [{ componentId: groupId, componentType }];
+                default:
+                    return [];
+            }
+        });
+    }
+
+    /**
+     * The destination a connection moved away from, when losing the connection can change what
+     * it displays. Processors and output ports may become invalid without an incoming connection,
+     * and a remote process group's port summary changes. A funnel has no connection-dependent
+     * state, and a child group's input port reports its validity inside that group.
+     */
+    private previousDestinationEndpoint(
+        previousDestination: { id?: string; type?: string; groupId?: string } | undefined
+    ): ConnectionEndpoint | null {
+        if (!previousDestination?.type) {
+            return null;
+        }
+        const componentType = getComponentTypeForDestination(previousDestination.type);
+        switch (componentType) {
+            case ComponentType.Processor:
+            case ComponentType.OutputPort:
+                return previousDestination.id ? { componentId: previousDestination.id, componentType } : null;
+            case ComponentType.RemoteProcessGroup:
+                return previousDestination.groupId ? { componentId: previousDestination.groupId, componentType } : null;
+            default:
+                return null;
+        }
+    }
+
     private mutationFailure(
         error: HttpErrorResponse,
         failure: (message: string) => Action,
@@ -1919,8 +2440,8 @@ export class ConnectorCanvasEffects {
 
     /**
      * Sanitize all positions in a connector flow snapshot before they enter NgRx state.
-     * Even though the connector canvas is read-only, it renders via the same reusable canvas
-     * component, so out-of-range coordinates must be clamped here to prevent SVG overflow.
+     * The connector canvas renders via the reusable canvas component, so out-of-range
+     * coordinates must be clamped here to prevent SVG overflow.
      */
     private sanitizeConnectorFlowPositions(flow: FlowDTO | undefined): FlowDTO {
         const sanitizeCollectionPositions = <E extends { id: string; position: Position }>(

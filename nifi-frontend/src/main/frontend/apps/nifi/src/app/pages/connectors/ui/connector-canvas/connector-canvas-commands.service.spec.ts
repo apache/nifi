@@ -144,4 +144,27 @@ describe('ConnectorCanvasCommands', () => {
 
         expect(dispatch).not.toHaveBeenCalled();
     });
+
+    it('deletes every selected component with its current revision', async () => {
+        const { commands, dispatch } = await setup();
+
+        commands.delete([processor('Stopped', 0, 'processor-1'), processor('Stopped', 0, 'processor-2')]);
+
+        expect(dispatch).toHaveBeenCalledWith(
+            ConnectorCanvasActions.deleteSelectedComponents({
+                request: [
+                    { id: 'processor-1', type: ComponentType.Processor, revision: { version: 4 } },
+                    { id: 'processor-2', type: ComponentType.Processor, revision: { version: 4 } }
+                ]
+            })
+        );
+    });
+
+    it('does not delete an empty selection', async () => {
+        const { commands, dispatch } = await setup();
+
+        commands.delete([]);
+
+        expect(dispatch).not.toHaveBeenCalled();
+    });
 });

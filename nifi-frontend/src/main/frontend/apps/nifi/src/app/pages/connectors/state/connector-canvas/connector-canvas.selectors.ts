@@ -66,6 +66,10 @@ export const selectMaxConnectionZIndex = createSelector(selectConnectorCanvasSta
     state.connections.reduce((max, connection) => Math.max(max, connection.zIndex ?? 0), 0)
 );
 
+export const selectMaxLabelZIndex = createSelector(selectConnectorCanvasState, (state) =>
+    state.labels.reduce((max, label) => Math.max(max, label.zIndex ?? 0), 0)
+);
+
 export const selectConnectorId = createSelector(selectConnectorCanvasState, (state) => state.connectorId);
 
 export const selectProcessGroupId = createSelector(selectConnectorCanvasState, (state) => state.processGroupId);
@@ -97,6 +101,18 @@ export const selectPendingAuthoritativeSnapshot = createSelector(
 export const selectError = createSelector(selectConnectorCanvasState, (state) => state.error);
 
 export const selectSaving = createSelector(selectConnectorCanvasState, (state) => state.saving);
+
+/**
+ * Flow-level permissions for the current process group, from
+ * `ProcessGroupFlowEntity.permissions` on `loadConnectorFlowSuccess`.
+ */
+export const selectConnectorCanvasPermissions = createSelector(
+    selectConnectorCanvasState,
+    (state) => state.permissions
+);
+
+/** True while the user is dragging a palette chip toward the canvas. */
+export const selectConnectorCanvasDragging = createSelector(selectConnectorCanvasState, (state) => state.dragging);
 
 export const selectRegistryClients = createSelector(selectConnectorCanvasState, (state) => state.registryClients);
 

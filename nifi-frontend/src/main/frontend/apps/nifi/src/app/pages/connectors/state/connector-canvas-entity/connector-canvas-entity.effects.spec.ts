@@ -30,7 +30,12 @@ import * as ConnectorCanvasActions from '../connector-canvas/connector-canvas.ac
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorContextKey } from '../../../../state/error';
 import { selectConnectorCanvasEntity } from './connector-canvas-entity.selectors';
-import { selectConnectorIdFromRoute } from '../connector-canvas/connector-canvas.selectors';
+import {
+    selectConnectorCanvasPermissions,
+    selectConnectorIdFromRoute
+} from '../connector-canvas/connector-canvas.selectors';
+import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
+import { selectCanvasFeatures } from '../../../../state/canvas-ui/canvas-ui.selectors';
 import {
     cancelConnectorDrain,
     cancelConnectorDrainSuccess,
@@ -46,7 +51,7 @@ import {
     stopConnector,
     stopConnectorSuccess
 } from './connector-canvas-entity.actions';
-import { ConnectorEntity } from '@nifi/shared';
+import { ConnectorEntity, Permissions } from '@nifi/shared';
 import type { Mock } from 'vitest';
 
 describe('ConnectorCanvasEntityEffects', () => {
@@ -75,6 +80,8 @@ describe('ConnectorCanvasEntityEffects', () => {
     interface SetupOptions {
         existingConnectorEntity?: ConnectorEntity | null;
         connectorIdFromRoute?: string | null;
+        canvasCanEdit?: boolean;
+        canvasPermissions?: Permissions | null;
     }
 
     function createMockDialogRef(data: Record<string, Observable<unknown> | Subject<unknown>> = {}) {
@@ -113,6 +120,17 @@ describe('ConnectorCanvasEntityEffects', () => {
                         {
                             selector: selectConnectorIdFromRoute,
                             value: options.connectorIdFromRoute ?? null
+                        },
+                        {
+                            selector: selectConnectorCanvasPermissions,
+                            value:
+                                options.canvasPermissions === undefined
+                                    ? { canRead: true, canWrite: true }
+                                    : options.canvasPermissions
+                        },
+                        {
+                            selector: selectCanvasFeatures,
+                            value: { canEdit: options.canvasCanEdit ?? false, canSelect: true }
                         }
                     ]
                 }),
@@ -219,6 +237,93 @@ describe('ConnectorCanvasEntityEffects', () => {
             const result = await firstValueFrom(effects.loadConnectorEntity$);
             expect(result).toEqual(loadConnectorEntityFailure({ error: 'Error message' }));
             expect(mockErrorHelper.getErrorString).toHaveBeenCalledWith(errorResponse);
+        });
+    });
+
+    describe('troubleshootingTransitions$', () => {
+        function troubleshootingEntity(): ConnectorEntity {
+            const entity = createMockConnectorEntity();
+            return { ...entity, component: { ...entity.component, state: 'TROUBLESHOOTING' } };
+        }
+
+        async function emittedFor(options: SetupOptions): Promise<Action[]> {
+            const { effects, actions$ } = await setup(options);
+            const emitted: Action[] = [];
+            const subscription = effects.troubleshootingTransitions$.subscribe((action) => emitted.push(action));
+            actions$.next(loadConnectorEntitySuccess({ connectorEntity: createMockConnectorEntity() }));
+            subscription.unsubscribe();
+            return emitted;
+        }
+
+        it('enables canvas editing when the connector is in troubleshooting', async () => {
+            const emitted = await emittedFor({
+                existingConnectorEntity: troubleshootingEntity(),
+                canvasCanEdit: false
+            });
+
+            expect(emitted).toEqual([
+                setConfiguration({ configuration: { features: { canEdit: true, canSelect: true } } })
+            ]);
+        });
+
+        it('disables canvas editing when the connector is not in troubleshooting', async () => {
+            const emitted = await emittedFor({
+                existingConnectorEntity: createMockConnectorEntity(),
+                canvasCanEdit: true
+            });
+
+            expect(emitted).toEqual([
+                setConfiguration({ configuration: { features: { canEdit: false, canSelect: true } } })
+            ]);
+        });
+
+        it('does not dispatch when canvas editing already matches the connector state', async () => {
+            const emitted = await emittedFor({ existingConnectorEntity: troubleshootingEntity(), canvasCanEdit: true });
+
+            expect(emitted).toEqual([]);
+        });
+
+        it('does not dispatch when no connector entity is retained', async () => {
+            const emitted = await emittedFor({ existingConnectorEntity: null, canvasCanEdit: true });
+
+            expect(emitted).toEqual([]);
+        });
+
+        it('keeps canvas editing disabled in troubleshooting when the flow is not writable', async () => {
+            const emitted = await emittedFor({
+                existingConnectorEntity: troubleshootingEntity(),
+                canvasPermissions: { canRead: true, canWrite: false },
+                canvasCanEdit: false
+            });
+
+            expect(emitted).toEqual([]);
+        });
+
+        it('disables canvas editing in troubleshooting when write permission is not yet known', async () => {
+            const emitted = await emittedFor({
+                existingConnectorEntity: troubleshootingEntity(),
+                canvasPermissions: null,
+                canvasCanEdit: true
+            });
+
+            expect(emitted).toEqual([
+                setConfiguration({ configuration: { features: { canEdit: false, canSelect: true } } })
+            ]);
+        });
+
+        it('enables canvas editing when the flow load delivers write permission', async () => {
+            const { effects, actions$ } = await setup({
+                existingConnectorEntity: troubleshootingEntity(),
+                canvasCanEdit: false
+            });
+            const emitted: Action[] = [];
+            const subscription = effects.troubleshootingTransitions$.subscribe((action) => emitted.push(action));
+            actions$.next({ type: ConnectorCanvasActions.loadConnectorFlowSuccess.type });
+            subscription.unsubscribe();
+
+            expect(emitted).toEqual([
+                setConfiguration({ configuration: { features: { canEdit: true, canSelect: true } } })
+            ]);
         });
     });
 

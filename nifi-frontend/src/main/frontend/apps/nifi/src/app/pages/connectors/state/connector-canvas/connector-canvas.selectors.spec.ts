@@ -16,7 +16,9 @@
  */
 
 import { ComponentType, ProcessorEntity } from '@nifi/shared';
-import { selectConnectorCanvasSelectedComponents } from './connector-canvas.selectors';
+import { selectConnectorCanvasSelectedComponents, selectMaxLabelZIndex } from './connector-canvas.selectors';
+import { initialConnectorCanvasState } from './index';
+import { makeLabel } from '../../testing/connector-canvas-entity-fixtures';
 
 function processor(id: string): ProcessorEntity {
     return {
@@ -62,5 +64,17 @@ describe('selectConnectorCanvasSelectedComponents', () => {
 
     it('returns an empty selection when the route has no selected component parameters', () => {
         expect(project({ processGroupId: 'pg-1' }, [processor('processor-1')])).toEqual([]);
+    });
+});
+
+describe('selectMaxLabelZIndex', () => {
+    it('returns 0 when there are no labels', () => {
+        expect(selectMaxLabelZIndex.projector(initialConnectorCanvasState)).toBe(0);
+    });
+
+    it('returns the highest label z-index', () => {
+        const labels = [makeLabel('label-1', { zIndex: 3 }), makeLabel('label-2', { zIndex: 7 }), makeLabel('label-3')];
+
+        expect(selectMaxLabelZIndex.projector({ ...initialConnectorCanvasState, labels })).toBe(7);
     });
 });

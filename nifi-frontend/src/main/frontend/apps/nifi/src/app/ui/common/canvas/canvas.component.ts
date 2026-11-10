@@ -2147,24 +2147,27 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     /**
-     * Handle bend point add - update UI state and emit to parent for server save
+     * Handle bend point add - update UI state and emit to parent for server save.
+     *
+     * The label stays anchored to the same physical bend: the first bend takes the
+     * label, and a bend inserted at or before the label's bend shifts its index up.
      */
     onConnectionBendPointAdd(event: {
         connection: CanvasConnection;
         point: { x: number; y: number; index: number };
     }): void {
-        const connectionId = event.connection.entity.id;
+        // The renderer has already inserted the new bend into ui.bends
+        const newBends = event.connection.ui.bends || [];
 
-        // UI state is already updated by the renderer
-        // Mark as saving (this will disable further bend point operations)
-        this.savingConnections.update((connections) => new Set(connections).add(connectionId));
+        const currentLabelIndex = event.connection.entity.component?.labelIndex ?? 0;
+        let adjustedLabelIndex: number | undefined;
+        if (newBends.length === 1) {
+            adjustedLabelIndex = 0;
+        } else if (event.point.index <= currentLabelIndex) {
+            adjustedLabelIndex = currentLabelIndex + 1;
+        }
 
-        // Emit current ui.bends to parent for server save (unified event)
-        this.connectionBendPointsUpdate.emit({
-            id: connectionId,
-            bends: event.connection.ui.bends || [],
-            revision: this.toRevisionRequest(event.connection.entity.revision)
-        });
+        this.emitBendPointUpdate(event.connection, newBends, adjustedLabelIndex);
     }
 
     /**
@@ -2198,12 +2201,40 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
             }
         }
 
+        // The label stays anchored to the same physical bend. When its own bend is
+        // removed, it moves to the previous bend.
+        const currentLabelIndex = event.connection.entity.component?.labelIndex ?? 0;
+        let adjustedLabelIndex: number | undefined;
+        if (event.index < currentLabelIndex || (event.index === currentLabelIndex && currentLabelIndex > 0)) {
+            adjustedLabelIndex = currentLabelIndex - 1;
+        }
+
+        this.emitBendPointUpdate(event.connection, currentBends, adjustedLabelIndex);
+    }
+
+    /**
+     * Marks the connection as saving and emits its bends for server save. An adjusted
+     * label index is applied to ui.tempLabelIndex so the label renders at its new bend
+     * before the save completes; confirm/revert of the bend points clears it.
+     */
+    private emitBendPointUpdate(
+        connection: CanvasConnection,
+        bends: Position[],
+        adjustedLabelIndex: number | undefined
+    ): void {
+        const connectionId = connection.entity.id;
+
         this.savingConnections.update((connections) => new Set(connections).add(connectionId));
+
+        if (adjustedLabelIndex !== undefined) {
+            connection.ui.tempLabelIndex = adjustedLabelIndex;
+        }
 
         this.connectionBendPointsUpdate.emit({
             id: connectionId,
-            bends: currentBends,
-            revision: this.toRevisionRequest(event.connection.entity.revision)
+            bends,
+            ...(adjustedLabelIndex === undefined ? {} : { labelIndex: adjustedLabelIndex }),
+            revision: this.toRevisionRequest(connection.entity.revision)
         });
     }
 
@@ -2300,6 +2331,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         const connection = this._internalConnections.find((c) => c.entity.id === connectionId);
         if (connection) {
             connection.ui.bends = undefined;
+            delete connection.ui.tempLabelIndex;
         }
 
         // Force a re-render to pick up the updated entity.bends
@@ -2367,6 +2399,7 @@ export class CanvasComponent implements OnInit, AfterViewInit, OnDestroy {
         const connection = this._internalConnections.find((c) => c.entity.id === connectionId);
         if (connection) {
             connection.ui.bends = connection.entity.bends ? [...connection.entity.bends] : [];
+            delete connection.ui.tempLabelIndex;
             // Force re-render to show reverted bends
             this.renderTriggerValue.update((v) => v + 1);
         }

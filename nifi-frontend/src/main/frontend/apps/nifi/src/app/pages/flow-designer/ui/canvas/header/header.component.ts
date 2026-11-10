@@ -16,6 +16,7 @@
  */
 
 import { Component, inject } from '@angular/core';
+import { CdkDragEnd } from '@angular/cdk/drag-drop';
 import { ComponentType } from '@nifi/shared';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
@@ -24,11 +25,15 @@ import {
     selectControllerBulletins,
     selectControllerStatus,
     selectCurrentProcessGroupId,
+    selectDragging,
     selectFlowAnalysisOpen,
     selectLastRefreshed
 } from '../../../state/flow/flow.selectors';
+import { createComponentRequest, setDragging } from '../../../state/flow/flow.actions';
 import { LoadingService } from '../../../../../service/loading.service';
-import { NewCanvasItem } from './new-canvas-item/new-canvas-item.component';
+import { Client } from '../../../../../service/client.service';
+import { CanvasView } from '../../../service/canvas-view.service';
+import { NewCanvasItem } from '../../../../../ui/common/canvas/new-canvas-item/new-canvas-item.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { AsyncPipe } from '@angular/common';
@@ -46,6 +51,8 @@ import { selectFlowAnalysisState } from '../../../state/flow-analysis/flow-analy
 })
 export class HeaderComponent {
     private store = inject<Store<CanvasState>>(Store);
+    private client = inject(Client);
+    private canvasView = inject(CanvasView);
     loadingService = inject(LoadingService);
 
     protected readonly ComponentType = ComponentType;
@@ -58,4 +65,29 @@ export class HeaderComponent {
     canvasPermissions$ = this.store.select(selectCanvasPermissions);
     flowAnalysisState$ = this.store.select(selectFlowAnalysisState);
     flowAnalysisOpen$ = this.store.select(selectFlowAnalysisOpen);
+    dragging$ = this.store.select(selectDragging);
+
+    onDragStarted(): void {
+        this.store.dispatch(setDragging({ dragging: true }));
+    }
+
+    onDragEnded(type: ComponentType, event: CdkDragEnd): void {
+        const position = this.canvasView.getCanvasPosition(event.dropPoint);
+        if (position) {
+            this.store.dispatch(
+                createComponentRequest({
+                    request: {
+                        revision: {
+                            clientId: this.client.getClientId(),
+                            version: 0
+                        },
+                        type,
+                        position
+                    }
+                })
+            );
+        } else {
+            this.store.dispatch(setDragging({ dragging: false }));
+        }
+    }
 }

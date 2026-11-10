@@ -1883,6 +1883,7 @@ describe('ConnectionRenderer', () => {
     describe('label drag click no-op (tempLabelIndex undefined)', () => {
         async function setupLabelDrag(opts: { labelIndex: number; bends: Position[] }) {
             const onLabelDragEnd = vi.fn();
+            const onClick = vi.fn();
             const connection = createMockConnection({
                 entity: {
                     bends: opts.bends,
@@ -1890,7 +1891,7 @@ describe('ConnectionRenderer', () => {
                     permissions: { canRead: true, canWrite: true }
                 }
             });
-            const { container, cleanup } = await setup({
+            const { context, container, cleanup } = await setup({
                 connections: [connection],
                 sourceComponent: {
                     id: 'source-1',
@@ -1902,12 +1903,86 @@ describe('ConnectionRenderer', () => {
                     position: { x: 300, y: 0 },
                     dimensions: { width: 184, height: 52 }
                 },
-                callbacks: { onLabelDragEnd }
+                callbacks: { onLabelDragEnd, onClick }
             });
 
             const labelContainer = container.querySelector('g.connection-label-container') as SVGGElement;
-            return { connection, labelContainer, onLabelDragEnd, cleanup };
+            return { context, connection, labelContainer, onLabelDragEnd, onClick, cleanup };
         }
+
+        function pressAndRelease(labelContainer: SVGGElement, beforeRelease: () => void = () => undefined) {
+            labelContainer.dispatchEvent(
+                new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 100, clientY: 100, view: window })
+            );
+            beforeRelease();
+            window.dispatchEvent(
+                new MouseEvent('mouseup', { bubbles: true, button: 0, clientX: 100, clientY: 100, view: window })
+            );
+        }
+
+        it('should keep the same drag listener across renders', async () => {
+            const { context, labelContainer, cleanup } = await setupLabelDrag({
+                labelIndex: 0,
+                bends: [
+                    { x: 50, y: 50 },
+                    { x: 200, y: 100 }
+                ]
+            });
+            const listener = d3.select(labelContainer).on('mousedown.drag');
+
+            ConnectionRenderer.render(context);
+
+            expect(listener).toBeDefined();
+            expect(d3.select(labelContainer).on('mousedown.drag')).toBe(listener);
+
+            cleanup();
+        });
+
+        it('should select the connection on a label mousedown after a re-render', async () => {
+            const { context, connection, labelContainer, onClick, cleanup } = await setupLabelDrag({
+                labelIndex: 0,
+                bends: [
+                    { x: 50, y: 50 },
+                    { x: 200, y: 100 }
+                ]
+            });
+
+            ConnectionRenderer.render(context);
+            pressAndRelease(labelContainer);
+
+            expect(onClick).toHaveBeenCalledTimes(1);
+            expect(onClick).toHaveBeenCalledWith(connection, expect.any(MouseEvent));
+
+            cleanup();
+        });
+
+        it('should drag the connection currently bound to the label after its wrapper is replaced', async () => {
+            const bends = [
+                { x: 50, y: 50 },
+                { x: 200, y: 100 }
+            ];
+            const { context, labelContainer, onLabelDragEnd, cleanup } = await setupLabelDrag({
+                labelIndex: 0,
+                bends
+            });
+            const replacement = createMockConnection({
+                entity: {
+                    bends,
+                    component: { labelIndex: 0 },
+                    permissions: { canRead: true, canWrite: true }
+                }
+            });
+            context.connections = [replacement];
+            ConnectionRenderer.render(context);
+
+            pressAndRelease(labelContainer, () => {
+                replacement.ui.tempLabelIndex = 1;
+            });
+
+            expect(onLabelDragEnd).toHaveBeenCalledWith(replacement, 1);
+
+            cleanup();
+        });
 
         it('should mark the label container as moveable so the drag listener is attached once', async () => {
             const { labelContainer, cleanup } = await setupLabelDrag({

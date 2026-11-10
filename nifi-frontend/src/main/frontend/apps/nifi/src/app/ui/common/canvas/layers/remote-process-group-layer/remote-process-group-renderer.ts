@@ -40,11 +40,14 @@ export class RemoteProcessGroupRenderer {
         const merged = selection.merge(appendedGroups);
         RemoteProcessGroupRenderer.updateRemoteProcessGroupElements(merged, context);
 
-        // Attach event listeners if selection is enabled
-        // Use mousedown for selection to ensure single, deterministic event firing
+        // Attach event listeners if selection is enabled. Use mousedown for selection to
+        // ensure single, deterministic event firing. Selection and dblclick are attached once
+        // per element so they keep their dispatch order ahead of the drag listener;
+        // re-attaching them every render moves them behind it, and d3-drag stops immediate
+        // propagation.
         if (callbacks) {
             if (callbacks.onClick) {
-                merged.on('mousedown.selection', function (event: MouseEvent, d: CanvasRemoteProcessGroup) {
+                appendedGroups.on('mousedown.selection', function (event: MouseEvent, d: CanvasRemoteProcessGroup) {
                     // Only handle left mouse button
                     if (event.button !== 0 || !context.getCanSelect()) {
                         return;
@@ -55,7 +58,7 @@ export class RemoteProcessGroupRenderer {
                 });
             }
             if (callbacks.onDoubleClick) {
-                merged.on('dblclick', function (event: MouseEvent, d: CanvasRemoteProcessGroup) {
+                appendedGroups.on('dblclick', function (event: MouseEvent, d: CanvasRemoteProcessGroup) {
                     if (!context.getCanSelect()) {
                         return;
                     }

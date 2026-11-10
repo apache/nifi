@@ -16,9 +16,11 @@
  */
 
 import {
+    ComponentType,
     ConnectionEntity,
     FunnelEntity,
     LabelEntity,
+    Permissions,
     PortEntity,
     ProcessGroupEntity,
     ProcessorEntity,
@@ -26,6 +28,14 @@ import {
     Revision
 } from '@nifi/shared';
 import { BreadcrumbEntity, ParameterContextEntity, RegistryClientEntity } from '../../../../state/shared';
+import {
+    CreateComponentRequest,
+    CreateLabelRequest,
+    CreatePortRequest,
+    CreateProcessGroupRequest,
+    CreateProcessorRequest,
+    CreateRemoteProcessGroupRequest
+} from '../../../../state/flow-shared';
 
 export const connectorCanvasFeatureKey = 'connectorCanvas';
 
@@ -41,12 +51,48 @@ export type ConnectorCanvasComponentEntity =
     | ConnectionEntity
     | LabelEntity;
 
+/**
+ * Create requests accepted by the connector canvas, discriminated by component type.
+ */
+export type ConnectorCanvasCreateRequest =
+    | (CreateProcessorRequest & { type: ComponentType.Processor })
+    | (CreatePortRequest & { type: ComponentType.InputPort | ComponentType.OutputPort })
+    | (CreateProcessGroupRequest & { type: ComponentType.ProcessGroup })
+    | (CreateRemoteProcessGroupRequest & { type: ComponentType.RemoteProcessGroup })
+    | (CreateComponentRequest & { type: ComponentType.Funnel })
+    | (CreateLabelRequest & { type: ComponentType.Label });
+
+/**
+ * A component created on the connector canvas, discriminated by component type.
+ */
+export type ConnectorCanvasCreatedComponent =
+    | { type: ComponentType.Processor; payload: ProcessorEntity }
+    | { type: ComponentType.InputPort | ComponentType.OutputPort; payload: PortEntity }
+    | { type: ComponentType.ProcessGroup; payload: ProcessGroupEntity }
+    | { type: ComponentType.RemoteProcessGroup; payload: RemoteProcessGroupEntity }
+    | { type: ComponentType.Funnel; payload: FunnelEntity }
+    | { type: ComponentType.Label; payload: LabelEntity };
+
+/**
+ * A component selected for deletion from the connector canvas.
+ */
+export interface ConnectorCanvasDeleteRequest {
+    id: string;
+    type: ComponentType;
+    revision: Revision;
+}
+
 export interface ConnectorCanvasState {
     connectorId: string;
     processGroupId: string | null;
     processGroupRevision: Revision | null;
     parentProcessGroupId: string | null;
     breadcrumb: BreadcrumbEntity | null;
+    /**
+     * Flow-level permissions for the currently loaded process group, from
+     * `ProcessGroupFlowEntity.permissions`. Null until the first flow load completes.
+     */
+    permissions: Permissions | null;
     labels: LabelEntity[];
     funnels: FunnelEntity[];
     inputPorts: PortEntity[];
@@ -65,6 +111,8 @@ export interface ConnectorCanvasState {
     error: string | null;
     parameterContext: ParameterContextEntity | null;
     saving: boolean;
+    /** True while the user is dragging a palette chip toward the canvas. */
+    dragging: boolean;
 }
 
 export const initialConnectorCanvasState: ConnectorCanvasState = {
@@ -73,6 +121,7 @@ export const initialConnectorCanvasState: ConnectorCanvasState = {
     processGroupRevision: null,
     parentProcessGroupId: null,
     breadcrumb: null,
+    permissions: null,
     labels: [],
     funnels: [],
     inputPorts: [],
@@ -90,5 +139,6 @@ export const initialConnectorCanvasState: ConnectorCanvasState = {
     loadingStatus: 'pending',
     error: null,
     parameterContext: null,
-    saving: false
+    saving: false,
+    dragging: false
 };

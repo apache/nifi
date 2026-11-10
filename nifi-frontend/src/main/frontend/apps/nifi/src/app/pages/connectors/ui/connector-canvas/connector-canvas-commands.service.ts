@@ -155,6 +155,21 @@ export class ConnectorCanvasCommands {
         }
     }
 
+    delete(candidates: SelectionTarget[]): void {
+        if (candidates.length === 0) {
+            return;
+        }
+        this.store.dispatch(
+            ConnectorCanvasActions.deleteSelectedComponents({
+                request: candidates.map((candidate) => ({
+                    id: candidate.entity.id,
+                    type: candidate.ui.componentType,
+                    revision: this.client.getRevision(candidate.entity)
+                }))
+            })
+        );
+    }
+
     openAdvancedProcessor(id: string): void {
         this.store.dispatch(ConnectorCanvasActions.navigateToAdvancedProcessorUi({ id }));
     }

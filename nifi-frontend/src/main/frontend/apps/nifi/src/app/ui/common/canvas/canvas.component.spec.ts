@@ -30,6 +30,7 @@ import {
     FunnelEntity,
     LabelEntity,
     PortEntity,
+    Position,
     ProcessGroupEntity,
     ProcessorEntity,
     RemoteProcessGroupEntity,
@@ -2368,6 +2369,99 @@ describe('CanvasComponent', () => {
                 { version: 2, clientId: 'peer-client' },
                 { version: 8, clientId: 'peer-client' }
             ]);
+        });
+    });
+
+    describe('bend point label anchoring', () => {
+        type BendUpdate = { id: string; bends: Position[]; labelIndex?: number };
+
+        function connectionWithBends(bends: Position[], labelIndex: number): CanvasConnection {
+            return {
+                entity: { id: 'connection-1', revision: { version: 1 }, component: { labelIndex } },
+                ui: { componentType: ComponentType.Connection, start: { x: 0, y: 0 }, end: { x: 10, y: 10 }, bends }
+            } as unknown as CanvasConnection;
+        }
+
+        async function setupBendUpdates() {
+            const { component } = await setup();
+            const emitted: BendUpdate[] = [];
+            outputToObservable(component.connectionBendPointsUpdate).subscribe((event) => emitted.push(event));
+            return { component, emitted };
+        }
+
+        it('anchors the label to the first bend point', async () => {
+            const { component, emitted } = await setupBendUpdates();
+            const connection = connectionWithBends([{ x: 5, y: 5 }], 0);
+
+            component.onConnectionBendPointAdd({ connection, point: { x: 5, y: 5, index: 0 } });
+
+            expect(emitted[0].labelIndex).toBe(0);
+            expect(connection.ui.tempLabelIndex).toBe(0);
+        });
+
+        it('shifts the label index when a bend point is inserted before the label', async () => {
+            const { component, emitted } = await setupBendUpdates();
+            const connection = connectionWithBends(
+                [
+                    { x: 1, y: 1 },
+                    { x: 5, y: 5 }
+                ],
+                0
+            );
+
+            component.onConnectionBendPointAdd({ connection, point: { x: 1, y: 1, index: 0 } });
+
+            expect(emitted[0].labelIndex).toBe(1);
+            expect(connection.ui.tempLabelIndex).toBe(1);
+        });
+
+        it('leaves the label index when a bend point is inserted after the label', async () => {
+            const { component, emitted } = await setupBendUpdates();
+            const connection = connectionWithBends(
+                [
+                    { x: 5, y: 5 },
+                    { x: 9, y: 9 }
+                ],
+                0
+            );
+
+            component.onConnectionBendPointAdd({ connection, point: { x: 9, y: 9, index: 1 } });
+
+            expect(emitted[0].labelIndex).toBeUndefined();
+            expect(connection.ui.tempLabelIndex).toBeUndefined();
+        });
+
+        it('shifts the label index when a bend point before the label is removed', async () => {
+            const { component, emitted } = await setupBendUpdates();
+            const connection = connectionWithBends([{ x: 5, y: 5 }], 1);
+
+            component.onConnectionBendPointRemove({ connection, index: 0 });
+
+            expect(emitted[0].labelIndex).toBe(0);
+        });
+
+        it('moves the label to the previous bend point when its bend point is removed', async () => {
+            const { component, emitted } = await setupBendUpdates();
+            const connection = connectionWithBends(
+                [
+                    { x: 1, y: 1 },
+                    { x: 9, y: 9 }
+                ],
+                2
+            );
+
+            component.onConnectionBendPointRemove({ connection, index: 2 });
+
+            expect(emitted[0].labelIndex).toBe(1);
+        });
+
+        it('leaves the label index when a bend point after the label is removed', async () => {
+            const { component, emitted } = await setupBendUpdates();
+            const connection = connectionWithBends([{ x: 5, y: 5 }], 0);
+
+            component.onConnectionBendPointRemove({ connection, index: 1 });
+
+            expect(emitted[0].labelIndex).toBeUndefined();
         });
     });
 

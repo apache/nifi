@@ -17,6 +17,7 @@
 
 import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { CdkDragEnd } from '@angular/cdk/drag-drop';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideRouter, Router } from '@angular/router';
@@ -62,10 +63,13 @@ import {
     navigateToControllerServices,
     navigateToProvenanceForComponent,
     navigateToQueueListing,
+    createComponentRequest,
     createConnectionDialogClosed,
     createConnectionFailure,
     createConnectionRequested,
     createConnectionSuccess,
+    deleteSelectedComponents,
+    deleteSelectedComponentsSuccess,
     editConnectionDialogClosed,
     openReconnectConnectionDialog,
     updateConnectionDestination,
@@ -73,6 +77,7 @@ import {
     resetConnectorCanvasState,
     resizeLabel,
     selectComponents,
+    setDragging,
     setSkipTransform,
     startConnectorCanvasPolling,
     stopConnectorCanvasPolling,
@@ -184,13 +189,14 @@ class MockReusableCanvasComponent {
     confirmLabelResize = vi.fn();
     revertLabelDimensions = vi.fn();
     clearConnectionPreview = vi.fn();
+    getCanvasPosition = vi.fn();
 }
 
 @Component({
     selector: 'navigation',
     standalone: true,
     imports: [CommonModule],
-    template: ''
+    template: '<ng-content></ng-content>'
 })
 class MockNavigationComponent {
     heading = input<string>('');
@@ -304,6 +310,9 @@ interface SetupOptions {
     contentViewerUrl?: string | null;
     connections?: ReturnType<typeof makeConnection>[];
     connectorCanRead?: boolean;
+    connectorState?: string;
+    canvasPermissions?: { canRead: boolean; canWrite: boolean } | null;
+    selection?: unknown[];
 }
 
 const DEFAULT_CONNECTOR_ID = 'connector-1';
@@ -352,7 +361,12 @@ function buildMockSelectors(options: SetupOptions = {}) {
         { selector: ConnectorCanvasSelectors.selectRegistryClients, value: [] },
         { selector: ConnectorCanvasSelectors.selectBreadcrumbs, value: null },
         { selector: ConnectorCanvasSelectors.selectProcessGroupRevision, value: null },
-        { selector: ConnectorCanvasSelectors.selectConnectorCanvasSelectedComponents, value: [] },
+        { selector: ConnectorCanvasSelectors.selectConnectorCanvasSelectedComponents, value: options.selection ?? [] },
+        {
+            selector: ConnectorCanvasSelectors.selectConnectorCanvasPermissions,
+            value: options.canvasPermissions ?? null
+        },
+        { selector: ConnectorCanvasSelectors.selectConnectorCanvasDragging, value: false },
         { selector: ConnectorCanvasSelectors.selectLoadingStatus, value: loadingStatus },
         {
             selector: ConnectorCanvasSelectors.selectHasLoadedFlow,
@@ -368,20 +382,20 @@ function buildMockSelectors(options: SetupOptions = {}) {
         {
             selector: selectConnectorCanvasEntity,
             value:
-                options.connectorCanRead === undefined
+                options.connectorCanRead === undefined && options.connectorState === undefined
                     ? null
                     : {
                           id: DEFAULT_CONNECTOR_ID,
                           uri: `/connectors/${DEFAULT_CONNECTOR_ID}`,
                           revision: { version: 1 },
-                          permissions: { canRead: options.connectorCanRead, canWrite: false },
+                          permissions: { canRead: options.connectorCanRead ?? true, canWrite: false },
                           bulletins: [],
                           status: {} as never,
                           component: {
                               id: DEFAULT_CONNECTOR_ID,
                               name: 'Connector',
                               type: 'type',
-                              state: 'STOPPED',
+                              state: options.connectorState ?? 'STOPPED',
                               bundle: { group: 'group', artifact: 'artifact', version: '1' },
                               availableActions: [],
                               managedProcessGroupId: DEFAULT_PROCESS_GROUP_ID
@@ -1121,13 +1135,13 @@ describe('ConnectorCanvasComponent', () => {
         describe('getMenu', () => {
             it('should return undefined for non-root menuId', () => {
                 const { component } = setup();
-                const result = component.contextMenuProvider.getMenu('other');
+                const result = component.contextMenu.getMenu('other');
                 expect(result).toBeUndefined();
             });
 
             it('should return download menu variants', () => {
                 const { component } = setup();
-                const menu = component.contextMenuProvider.getMenu('download');
+                const menu = component.contextMenu.getMenu('download');
 
                 expect(menu).toBeDefined();
                 expect(menu!.menuItems.map((item) => item.text)).toEqual([
@@ -1143,7 +1157,7 @@ describe('ConnectorCanvasComponent', () => {
 
                 component.onContextMenuOpened(buildCanvasContext());
 
-                const menu = component.contextMenuProvider.getMenu('root');
+                const menu = component.contextMenu.getMenu('root');
                 expect(menu).toBeDefined();
 
                 const items = menu!.menuItems.filter((item) => !item.isSeparator);
@@ -1169,7 +1183,7 @@ describe('ConnectorCanvasComponent', () => {
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1'));
 
-                const menu = component.contextMenuProvider.getMenu('root');
+                const menu = component.contextMenu.getMenu('root');
                 expect(menu).toBeDefined();
 
                 const items = menu!.menuItems.filter((item) => !item.isSeparator);
@@ -1190,13 +1204,14 @@ describe('ConnectorCanvasComponent', () => {
                     'Empty All Queues',
                     'Controller Services',
                     'Download Flow Definition',
-                    'Center In View'
+                    'Center In View',
+                    'Delete'
                 ]);
             }));
 
             it('should return empty menu when no context is set', () => {
                 const { component } = setup();
-                const menu = component.contextMenuProvider.getMenu('root');
+                const menu = component.contextMenu.getMenu('root');
                 expect(menu).toBeDefined();
                 expect(menu!.menuItems).toEqual([]);
             });
@@ -1209,7 +1224,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const download = menu.menuItems.find((item) => item.text === 'Download Flow Definition');
 
                 expect(download).toBeDefined();
@@ -1222,7 +1237,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const download = menu.menuItems.find((item) => item.text === 'Download Flow Definition');
 
                 expect(download).toBeDefined();
@@ -1235,7 +1250,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-child'));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const download = menu.menuItems.find((item) => item.text === 'Download Flow Definition');
 
                 expect(download).toBeDefined();
@@ -1252,7 +1267,7 @@ describe('ConnectorCanvasComponent', () => {
                         permissions: { canRead: false, canWrite: false }
                     })
                 );
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const download = menu.menuItems.find((item) => item.text === 'Download Flow Definition');
 
                 expect(download).toBeDefined();
@@ -1266,7 +1281,7 @@ describe('ConnectorCanvasComponent', () => {
                 dispatchSpy.mockClear();
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('download')!;
+                const menu = component.contextMenu.getMenu('download')!;
                 menu.menuItems.find((item) => item.text === 'Without External Services')!.action!(null);
 
                 expect(dispatchSpy).toHaveBeenCalledWith(
@@ -1287,7 +1302,7 @@ describe('ConnectorCanvasComponent', () => {
                 dispatchSpy.mockClear();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-child'));
-                const menu = component.contextMenuProvider.getMenu('download')!;
+                const menu = component.contextMenu.getMenu('download')!;
                 menu.menuItems.find((item) => item.text === 'With External Services')!.action!(null);
 
                 expect(dispatchSpy).toHaveBeenCalledWith(
@@ -1309,7 +1324,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const refresh = menu.menuItems.find((i) => i.text === 'Refresh');
 
                 expect(refresh).toBeDefined();
@@ -1322,7 +1337,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const leaveGroup = menu.menuItems.find((i) => i.text === 'Leave Group');
 
                 expect(leaveGroup).toBeDefined();
@@ -1335,7 +1350,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const leaveGroup = menu.menuItems.find((i) => i.text === 'Leave Group');
 
                 expect(leaveGroup).toBeDefined();
@@ -1348,7 +1363,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const controllerServices = menu.menuItems.find((i) => i.text === 'Controller Services');
 
                 expect(controllerServices).toBeDefined();
@@ -1362,7 +1377,7 @@ describe('ConnectorCanvasComponent', () => {
                 component.currentProcessGroupId = null;
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const controllerServices = menu.menuItems.find((i) => i.text === 'Controller Services');
 
                 expect(controllerServices).toBeDefined();
@@ -1375,7 +1390,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const emptyAll = menu.menuItems.find((i) => i.text === 'Empty All Queues');
 
                 expect(emptyAll).toBeDefined();
@@ -1389,7 +1404,7 @@ describe('ConnectorCanvasComponent', () => {
                 component.currentProcessGroupId = null;
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const emptyAll = menu.menuItems.find((i) => i.text === 'Empty All Queues');
 
                 expect(emptyAll).toBeDefined();
@@ -1412,7 +1427,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const drain = menu.menuItems.find((i) => i.text === 'Drain');
 
                 expect(drain).toBeDefined();
@@ -1425,7 +1440,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const drain = menu.menuItems.find((i) => i.text === 'Drain');
 
                 expect(drain).toBeDefined();
@@ -1449,7 +1464,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const drain = menu.menuItems.find((i) => i.text === 'Drain');
 
                 expect(drain).toBeDefined();
@@ -1472,7 +1487,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const cancelDrain = menu.menuItems.find((i) => i.text === 'Cancel Drain');
 
                 expect(cancelDrain).toBeDefined();
@@ -1485,7 +1500,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildCanvasContext());
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const cancelDrain = menu.menuItems.find((i) => i.text === 'Cancel Drain');
 
                 expect(cancelDrain).toBeDefined();
@@ -1500,7 +1515,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const enterGroup = menu.menuItems.find((i) => i.text === 'Enter Group');
 
                 expect(enterGroup).toBeDefined();
@@ -1513,7 +1528,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const enterGroup = menu.menuItems.find((i) => i.text === 'Enter Group');
 
                 expect(enterGroup).toBeDefined();
@@ -1526,7 +1541,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 3));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const enterGroup = menu.menuItems.find((i) => i.text === 'Enter Group');
 
                 expect(enterGroup).toBeDefined();
@@ -1539,7 +1554,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const center = menu.menuItems.find((i) => i.text === 'Center In View');
 
                 expect(center).toBeDefined();
@@ -1552,7 +1567,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const provenance = menu.menuItems.find((i) => i.text === 'View Data Provenance');
 
                 expect(provenance).toBeDefined();
@@ -1565,7 +1580,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const provenance = menu.menuItems.find((i) => i.text === 'View Data Provenance');
 
                 expect(provenance).toBeDefined();
@@ -1578,7 +1593,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const provenance = menu.menuItems.find((i) => i.text === 'View Data Provenance');
 
                 expect(provenance).toBeDefined();
@@ -1591,7 +1606,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Connection, 'conn-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const provenance = menu.menuItems.find((i) => i.text === 'View Data Provenance');
 
                 expect(provenance).toBeDefined();
@@ -1604,7 +1619,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 3));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const provenance = menu.menuItems.find((i) => i.text === 'View Data Provenance');
 
                 expect(provenance).toBeDefined();
@@ -1622,7 +1637,7 @@ describe('ConnectorCanvasComponent', () => {
                         permissions: { canRead: true, canWrite: true }
                     })
                 );
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const viewState = menu.menuItems.find((i) => i.text === 'View State');
 
                 expect(viewState).toBeDefined();
@@ -1639,7 +1654,7 @@ describe('ConnectorCanvasComponent', () => {
                         component: { persistsState: true }
                     })
                 );
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const viewState = menu.menuItems.find((i) => i.text === 'View State');
 
                 expect(viewState).toBeDefined();
@@ -1657,7 +1672,7 @@ describe('ConnectorCanvasComponent', () => {
                         permissions: { canRead: true, canWrite: true }
                     })
                 );
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const viewState = menu.menuItems.find((i) => i.text === 'View State');
 
                 expect(viewState).toBeDefined();
@@ -1675,7 +1690,7 @@ describe('ConnectorCanvasComponent', () => {
                         permissions: { canRead: true, canWrite: false }
                     })
                 );
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const viewState = menu.menuItems.find((i) => i.text === 'View State');
 
                 expect(viewState).toBeDefined();
@@ -1693,7 +1708,7 @@ describe('ConnectorCanvasComponent', () => {
                         permissions: { canRead: true, canWrite: true }
                     })
                 );
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const viewState = menu.menuItems.find((i) => i.text === 'View State');
 
                 expect(viewState).toBeDefined();
@@ -1706,7 +1721,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const viewConfig = menu.menuItems.find((i) => i.text === 'View Configuration');
 
                 expect(viewConfig).toBeDefined();
@@ -1723,7 +1738,7 @@ describe('ConnectorCanvasComponent', () => {
                         permissions: { canRead: false, canWrite: false }
                     })
                 );
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const viewConfig = menu.menuItems.find((i) => i.text === 'View Configuration');
 
                 expect(viewConfig).toBeDefined();
@@ -1736,7 +1751,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Funnel, 'funnel-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const viewConfig = menu.menuItems.find((i) => i.text === 'View Configuration');
 
                 expect(viewConfig).toBeDefined();
@@ -1749,7 +1764,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 3));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const viewConfig = menu.menuItems.find((i) => i.text === 'View Configuration');
 
                 expect(viewConfig).toBeDefined();
@@ -1762,7 +1777,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Connection, 'conn-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const listQueue = menu.menuItems.find((i) => i.text === 'List Queue');
 
                 expect(listQueue).toBeDefined();
@@ -1775,7 +1790,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const listQueue = menu.menuItems.find((i) => i.text === 'List Queue');
 
                 expect(listQueue).toBeDefined();
@@ -1788,7 +1803,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Connection, 'conn-1', 2));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const listQueue = menu.menuItems.find((i) => i.text === 'List Queue');
 
                 expect(listQueue).toBeDefined();
@@ -1801,7 +1816,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Connection, 'conn-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const emptyQueue = menu.menuItems.find((i) => i.text === 'Empty Queue');
 
                 expect(emptyQueue).toBeDefined();
@@ -1814,7 +1829,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const emptyQueue = menu.menuItems.find((i) => i.text === 'Empty Queue');
 
                 expect(emptyQueue).toBeDefined();
@@ -1827,7 +1842,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const emptyAll = menu.menuItems.find((i) => i.text === 'Empty All Queues');
 
                 expect(emptyAll).toBeDefined();
@@ -1840,7 +1855,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const emptyAll = menu.menuItems.find((i) => i.text === 'Empty All Queues');
 
                 expect(emptyAll).toBeDefined();
@@ -1853,7 +1868,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 3));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const emptyAll = menu.menuItems.find((i) => i.text === 'Empty All Queues');
 
                 expect(emptyAll).toBeDefined();
@@ -1866,7 +1881,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.ProcessGroup, 'pg-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const controllerServices = menu.menuItems.find((i) => i.text === 'Controller Services');
 
                 expect(controllerServices).toBeDefined();
@@ -1879,7 +1894,7 @@ describe('ConnectorCanvasComponent', () => {
                 tick();
 
                 component.onContextMenuOpened(buildComponentContext(ComponentType.Processor, 'proc-1', 1));
-                const menu = component.contextMenuProvider.getMenu('root')!;
+                const menu = component.contextMenu.getMenu('root')!;
                 const controllerServices = menu.menuItems.find((i) => i.text === 'Controller Services');
 
                 expect(controllerServices).toBeDefined();
@@ -1891,19 +1906,19 @@ describe('ConnectorCanvasComponent', () => {
             it('should return true when condition returns true', () => {
                 const { component } = setup();
                 const item = { condition: () => true, text: 'test' };
-                expect(component.contextMenuProvider.filterMenuItem(item)).toBe(true);
+                expect(component.contextMenu.filterMenuItem(item)).toBe(true);
             });
 
             it('should return false when condition returns false', () => {
                 const { component } = setup();
                 const item = { condition: () => false, text: 'test' };
-                expect(component.contextMenuProvider.filterMenuItem(item)).toBe(false);
+                expect(component.contextMenu.filterMenuItem(item)).toBe(false);
             });
 
             it('should return true when no condition is set (separators)', () => {
                 const { component } = setup();
                 const item = { isSeparator: true };
-                expect(component.contextMenuProvider.filterMenuItem(item)).toBe(true);
+                expect(component.contextMenu.filterMenuItem(item)).toBe(true);
             });
         });
 
@@ -1914,7 +1929,7 @@ describe('ConnectorCanvasComponent', () => {
                 const item = { text: 'test', action };
                 const event = new MouseEvent('click');
 
-                component.contextMenuProvider.menuItemClicked(item, event);
+                component.contextMenu.menuItemClicked(item, event);
 
                 expect(action).toHaveBeenCalled();
             });
@@ -1927,7 +1942,7 @@ describe('ConnectorCanvasComponent', () => {
 
                 component.onContextMenuOpened(context);
 
-                const menu = component.contextMenuProvider.getMenu('root');
+                const menu = component.contextMenu.getMenu('root');
                 expect(menu).toBeDefined();
                 expect(menu!.menuItems.length).toBeGreaterThan(0);
             });
@@ -1969,7 +1984,7 @@ describe('ConnectorCanvasComponent', () => {
                 const { component, dispatchSpy } = setup();
                 dispatchSpy.mockClear();
 
-                component.enterGroupAction('pg-nested');
+                component.contextMenu.enterGroupAction('pg-nested');
 
                 expect(dispatchSpy).toHaveBeenCalledWith(enterProcessGroup({ request: { id: 'pg-nested' } }));
             });
@@ -1980,7 +1995,7 @@ describe('ConnectorCanvasComponent', () => {
                 const { component, dispatchSpy } = setup();
                 dispatchSpy.mockClear();
 
-                component.viewDataProvenanceAction('proc-1', ComponentType.Processor);
+                component.contextMenu.viewDataProvenanceAction('proc-1', ComponentType.Processor);
 
                 expect(dispatchSpy).toHaveBeenCalledWith(
                     navigateToProvenanceForComponent({ id: 'proc-1', componentType: ComponentType.Processor })
@@ -2202,7 +2217,7 @@ describe('ConnectorCanvasComponent', () => {
                 const { component, dispatchSpy } = setup();
                 dispatchSpy.mockClear();
 
-                component.listQueueAction('conn-1');
+                component.contextMenu.listQueueAction('conn-1');
 
                 expect(dispatchSpy).toHaveBeenCalledWith(
                     navigateToQueueListing({ request: { connectionId: 'conn-1' } })
@@ -2213,7 +2228,7 @@ describe('ConnectorCanvasComponent', () => {
                 const { component, dispatchSpy } = setup();
                 dispatchSpy.mockClear();
 
-                component.emptyQueueAction('conn-1');
+                component.contextMenu.emptyQueueAction('conn-1');
 
                 expect(dispatchSpy).toHaveBeenCalledWith(
                     promptEmptyQueueRequest({
@@ -2226,7 +2241,7 @@ describe('ConnectorCanvasComponent', () => {
                 const { component, dispatchSpy } = setup();
                 dispatchSpy.mockClear();
 
-                component.emptyAllQueuesAction('pg-1');
+                component.contextMenu.emptyAllQueuesAction('pg-1');
 
                 expect(dispatchSpy).toHaveBeenCalledWith(
                     promptEmptyQueuesRequest({
@@ -2239,7 +2254,7 @@ describe('ConnectorCanvasComponent', () => {
                 const { component, dispatchSpy } = setup();
                 dispatchSpy.mockClear();
 
-                component.controllerServicesAction('pg-target');
+                component.contextMenu.controllerServicesAction('pg-target');
 
                 expect(dispatchSpy).toHaveBeenCalledWith(navigateToControllerServices({ processGroupId: 'pg-target' }));
             });
@@ -2480,6 +2495,7 @@ describe('ConnectorCanvasComponent', () => {
                     processGroupRevision: null,
                     parentProcessGroupId: null,
                     breadcrumb: null,
+                    permissions: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -2497,6 +2513,22 @@ describe('ConnectorCanvasComponent', () => {
             await Promise.resolve();
 
             expect(component.birdseyeComponents()).toEqual(refreshedComponents);
+        });
+
+        it('should refresh birdseye components when deleteSelectedComponentsSuccess is dispatched', async () => {
+            const { fixture, component } = setup();
+            fixture.detectChanges();
+
+            const canvas = getCanvasMock(fixture);
+            attachCanvasMock(component, canvas);
+            component.onCanvasInitialized();
+            canvas.getBirdseyeComponentData.mockReturnValue([]);
+
+            actions$.next(deleteSelectedComponentsSuccess({ ids: [{ id: 'p1', type: ComponentType.Processor }] }));
+            await Promise.resolve();
+
+            expect(canvas.getBirdseyeComponentData).toHaveBeenCalledTimes(2);
+            expect(component.birdseyeComponents()).toEqual([]);
         });
 
         it('should delegate zoom buttons to the canvas', fakeAsync(() => {
@@ -3181,5 +3213,166 @@ describe('ConnectorCanvasComponent', () => {
 
             expect(component.connectablePolicy()).not.toBeNull();
         });
+    });
+
+    describe('Editing', () => {
+        const editable = {
+            connectorState: 'TROUBLESHOOTING',
+            canvasPermissions: { canRead: true, canWrite: true }
+        };
+        const writableProcessor = {
+            entity: { id: 'proc-1', permissions: { canRead: true, canWrite: true }, revision: { version: 2 } },
+            ui: { componentType: ComponentType.Processor }
+        };
+
+        function paletteChips(fixture: ComponentFixture<ConnectorCanvasComponent>) {
+            return fixture.nativeElement.querySelectorAll('new-canvas-item');
+        }
+
+        it('shows the palette only when the canvas is editable', () => {
+            const editableSetup = setup(editable);
+            editableSetup.fixture.detectChanges();
+            expect(paletteChips(editableSetup.fixture).length).toBe(7);
+
+            const readOnlySetup = setup({ ...editable, canvasPermissions: { canRead: true, canWrite: false } });
+            readOnlySetup.fixture.detectChanges();
+            expect(paletteChips(readOnlySetup.fixture).length).toBe(0);
+
+            const notTroubleshootingSetup = setup({ ...editable, connectorState: 'STOPPED' });
+            notTroubleshootingSetup.fixture.detectChanges();
+            expect(paletteChips(notTroubleshootingSetup.fixture).length).toBe(0);
+        });
+
+        it('requests a component at the drop position', () => {
+            const { fixture, component, dispatchSpy } = setup(editable);
+            fixture.detectChanges();
+            const canvas = getCanvasMock(fixture);
+            attachCanvasMock(component, canvas);
+            canvas.getCanvasPosition.mockReturnValue({ x: 40, y: 60 });
+
+            component.onChipDragEnded(ComponentType.RemoteProcessGroup, {
+                dropPoint: { x: 400, y: 300 }
+            } as CdkDragEnd);
+
+            expect(canvas.getCanvasPosition).toHaveBeenCalledWith({ x: 400, y: 300 });
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                createComponentRequest({
+                    request: {
+                        revision: { clientId: expect.any(String), version: 0 },
+                        type: ComponentType.RemoteProcessGroup,
+                        position: { x: 40, y: 60 }
+                    }
+                })
+            );
+        });
+
+        it('clears dragging when a chip is dropped outside the canvas', () => {
+            const { fixture, component, dispatchSpy } = setup(editable);
+            fixture.detectChanges();
+            const canvas = getCanvasMock(fixture);
+            attachCanvasMock(component, canvas);
+            canvas.getCanvasPosition.mockReturnValue(null);
+
+            component.onChipDragEnded(ComponentType.Funnel, { dropPoint: { x: 0, y: 0 } } as CdkDragEnd);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(setDragging({ dragging: false }));
+            expect(dispatchSpy).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: createComponentRequest.type })
+            );
+        });
+
+        it('deletes a writable selection on the Delete key when editable', fakeAsync(() => {
+            const { fixture, dispatchSpy } = setup({ ...editable, selection: [writableProcessor] });
+            fixture.detectChanges();
+            tick();
+
+            dispatchWindowKeydown('Delete');
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                deleteSelectedComponents({
+                    request: [
+                        {
+                            id: 'proc-1',
+                            type: ComponentType.Processor,
+                            revision: expect.objectContaining({ version: 2 })
+                        }
+                    ]
+                })
+            );
+        }));
+
+        it.each([
+            [
+                'a selected component is not writable',
+                {
+                    ...writableProcessor,
+                    entity: { ...writableProcessor.entity, permissions: { canRead: true, canWrite: false } }
+                }
+            ],
+            [
+                'a selected processor is running',
+                {
+                    ...writableProcessor,
+                    entity: {
+                        ...writableProcessor.entity,
+                        status: { aggregateSnapshot: { runStatus: 'Running', activeThreadCount: 0 } }
+                    }
+                }
+            ]
+        ])('ignores the Delete key when %s', (_description, selected) =>
+            fakeAsync(() => {
+                const { fixture, dispatchSpy } = setup({ ...editable, selection: [selected] });
+                fixture.detectChanges();
+                tick();
+
+                dispatchWindowKeydown('Delete');
+
+                expect(dispatchSpy).not.toHaveBeenCalledWith(
+                    expect.objectContaining({ type: deleteSelectedComponents.type })
+                );
+            })()
+        );
+
+        it('ignores the Delete key while a dialog is open', fakeAsync(() => {
+            const { fixture, dispatchSpy } = setup({ ...editable, selection: [writableProcessor] });
+            fixture.detectChanges();
+            tick();
+            const dialog = TestBed.inject(MatDialog);
+            dialog.open(MockBlockingDialogComponent);
+
+            dispatchWindowKeydown('Delete');
+
+            expect(dispatchSpy).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: deleteSelectedComponents.type })
+            );
+            dialog.closeAll();
+        }));
+
+        it('ignores the Backspace key while typing in an input', fakeAsync(() => {
+            const { fixture, dispatchSpy } = setup({ ...editable, selection: [writableProcessor] });
+            fixture.detectChanges();
+            tick();
+            const input = document.createElement('input');
+            const event = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true });
+            Object.defineProperty(event, 'target', { value: input, configurable: true });
+
+            window.dispatchEvent(event);
+
+            expect(dispatchSpy).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: deleteSelectedComponents.type })
+            );
+        }));
+
+        it('ignores the Backspace key when the canvas is not editable', fakeAsync(() => {
+            const { fixture, dispatchSpy } = setup({ connectorState: 'STOPPED', selection: [writableProcessor] });
+            fixture.detectChanges();
+            tick();
+
+            dispatchWindowKeydown('Backspace');
+
+            expect(dispatchSpy).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: deleteSelectedComponents.type })
+            );
+        }));
     });
 });

@@ -16,12 +16,39 @@
  */
 
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, switchMap } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { defer, map, Observable, switchMap } from 'rxjs';
 import { UpdateComponentRequest } from '../../../state/shared';
-import { CreateConnection } from '../../../state/flow-shared';
-import { ComponentType, ConnectionEntity, NiFiCommon, RevisionRequest } from '@nifi/shared';
+import {
+    CreateComponentRequest,
+    CreateConnection,
+    CreateLabelRequest,
+    CreatePortRequest,
+    CreateProcessGroupRequest,
+    CreateProcessorRequest,
+    CreateRemoteProcessGroupRequest,
+    UploadProcessGroupRequest
+} from '../../../state/flow-shared';
+import {
+    ComponentType,
+    ConnectionEntity,
+    FunnelEntity,
+    LabelEntity,
+    NiFiCommon,
+    PortEntity,
+    ProcessGroupEntity,
+    ProcessorEntity,
+    RemoteProcessGroupEntity,
+    RevisionRequest,
+    safeApiPath
+} from '@nifi/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
+import {
+    ConnectorCanvasComponentEntity,
+    ConnectorCanvasCreatedComponent,
+    ConnectorCanvasCreateRequest,
+    ConnectorCanvasDeleteRequest
+} from '../state/connector-canvas';
 
 export type ConnectorComponentUpdateRequest = Pick<UpdateComponentRequest, 'id' | 'type' | 'payload'>;
 
@@ -40,14 +67,229 @@ export class ConnectorEditService {
     private readonly clusterConnectionService = inject(ClusterConnectionService);
 
     updateComponent<T>(request: ConnectorComponentUpdateRequest): Observable<T> {
-        const path = this.nifiCommon.getComponentTypeApiPath(request.type);
-        return this.httpClient.put<T>(`${ConnectorEditService.API}/${path}/${request.id}`, request.payload);
+        return defer(() => {
+            const path = this.nifiCommon.getComponentTypeApiPath(request.type);
+            return this.httpClient.put<T>(
+                `${ConnectorEditService.API}/${path}/${safeApiPath(request.id)}`,
+                request.payload
+            );
+        });
     }
 
     createConnection(processGroupId: string, request: CreateConnection): Observable<ConnectionEntity> {
-        return this.httpClient.post<ConnectionEntity>(
-            `${ConnectorEditService.API}/process-groups/${processGroupId}/connections`,
-            request.payload
+        return defer(() =>
+            this.httpClient.post<ConnectionEntity>(
+                `${ConnectorEditService.API}/process-groups/${safeApiPath(processGroupId)}/connections`,
+                request.payload
+            )
+        );
+    }
+
+    /**
+     * Create a component of the request's type and return it tagged with that type.
+     */
+    createComponent(
+        processGroupId: string,
+        request: ConnectorCanvasCreateRequest
+    ): Observable<ConnectorCanvasCreatedComponent> {
+        switch (request.type) {
+            case ComponentType.Processor:
+                return this.createProcessor(processGroupId, request).pipe(
+                    map((payload) => ({ type: request.type, payload }))
+                );
+            case ComponentType.InputPort:
+            case ComponentType.OutputPort:
+                return this.createPort(processGroupId, request).pipe(
+                    map((payload) => ({ type: request.type, payload }))
+                );
+            case ComponentType.ProcessGroup:
+                return this.createProcessGroup(processGroupId, request).pipe(
+                    map((payload) => ({ type: request.type, payload }))
+                );
+            case ComponentType.RemoteProcessGroup:
+                return this.createRemoteProcessGroup(processGroupId, request).pipe(
+                    map((payload) => ({ type: request.type, payload }))
+                );
+            case ComponentType.Funnel:
+                return this.createFunnel(processGroupId, request).pipe(
+                    map((payload) => ({ type: request.type, payload }))
+                );
+            case ComponentType.Label:
+                return this.createLabel(processGroupId, request).pipe(
+                    map((payload) => ({ type: request.type, payload }))
+                );
+        }
+    }
+
+    createProcessor(processGroupId: string, request: CreateProcessorRequest): Observable<ProcessorEntity> {
+        return defer(() =>
+            this.httpClient.post<ProcessorEntity>(
+                `${ConnectorEditService.API}/process-groups/${safeApiPath(processGroupId)}/processors`,
+                {
+                    revision: request.revision,
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                    component: {
+                        position: request.position,
+                        type: request.processorType,
+                        bundle: request.processorBundle
+                    }
+                }
+            )
+        );
+    }
+
+    createPort(processGroupId: string, request: CreatePortRequest): Observable<PortEntity> {
+        const portType = request.type === ComponentType.InputPort ? 'input-ports' : 'output-ports';
+        return defer(() =>
+            this.httpClient.post<PortEntity>(
+                `${ConnectorEditService.API}/process-groups/${safeApiPath(processGroupId)}/${portType}`,
+                {
+                    revision: request.revision,
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                    component: {
+                        position: request.position,
+                        name: request.name,
+                        allowRemoteAccess: request.allowRemoteAccess
+                    }
+                }
+            )
+        );
+    }
+
+    createProcessGroup(processGroupId: string, request: CreateProcessGroupRequest): Observable<ProcessGroupEntity> {
+        return defer(() =>
+            this.httpClient.post<ProcessGroupEntity>(
+                `${ConnectorEditService.API}/process-groups/${safeApiPath(processGroupId)}/process-groups`,
+                {
+                    revision: request.revision,
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                    component: {
+                        position: request.position,
+                        name: request.name,
+                        ...(request.parameterContextId ? { parameterContext: { id: request.parameterContextId } } : {})
+                    }
+                }
+            )
+        );
+    }
+
+    createRemoteProcessGroup(
+        processGroupId: string,
+        request: CreateRemoteProcessGroupRequest
+    ): Observable<RemoteProcessGroupEntity> {
+        return defer(() =>
+            this.httpClient.post<RemoteProcessGroupEntity>(
+                `${ConnectorEditService.API}/process-groups/${safeApiPath(processGroupId)}/remote-process-groups`,
+                {
+                    revision: request.revision,
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                    component: {
+                        position: request.position,
+                        targetUris: request.targetUris,
+                        transportProtocol: request.transportProtocol,
+                        localNetworkInterface: request.localNetworkInterface,
+                        proxyHost: request.proxyHost,
+                        proxyPort: request.proxyPort,
+                        proxyUser: request.proxyUser,
+                        proxyPassword: request.proxyPassword,
+                        communicationsTimeout: request.communicationsTimeout,
+                        yieldDuration: request.yieldDuration
+                    }
+                }
+            )
+        );
+    }
+
+    createFunnel(processGroupId: string, request: CreateComponentRequest): Observable<FunnelEntity> {
+        return defer(() =>
+            this.httpClient.post<FunnelEntity>(
+                `${ConnectorEditService.API}/process-groups/${safeApiPath(processGroupId)}/funnels`,
+                {
+                    revision: request.revision,
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                    component: {
+                        position: request.position
+                    }
+                }
+            )
+        );
+    }
+
+    createLabel(processGroupId: string, request: CreateLabelRequest): Observable<LabelEntity> {
+        return defer(() =>
+            this.httpClient.post<LabelEntity>(
+                `${ConnectorEditService.API}/process-groups/${safeApiPath(processGroupId)}/labels`,
+                {
+                    revision: request.revision,
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+                    component: {
+                        position: request.position,
+                        zIndex: request.zIndex
+                    }
+                }
+            )
+        );
+    }
+
+    uploadProcessGroup(processGroupId: string, request: UploadProcessGroupRequest): Observable<ProcessGroupEntity> {
+        return defer(() => {
+            const payload = new FormData();
+            payload.append('id', processGroupId);
+            payload.append('groupName', request.name);
+            payload.append('positionX', request.position.x.toString());
+            payload.append('positionY', request.position.y.toString());
+            payload.append('clientId', request.revision.clientId ?? '');
+            payload.append(
+                'disconnectedNodeAcknowledged',
+                String(this.clusterConnectionService.isDisconnectionAcknowledged())
+            );
+            payload.append('file', request.flowDefinition);
+
+            return this.httpClient.post<ProcessGroupEntity>(
+                `${ConnectorEditService.API}/process-groups/${safeApiPath(processGroupId)}/process-groups/upload`,
+                payload
+            );
+        });
+    }
+
+    getComponent(type: ComponentType, id: string): Observable<ConnectorCanvasComponentEntity> {
+        return defer(() =>
+            this.httpClient.get<ConnectorCanvasComponentEntity>(
+                `${ConnectorEditService.API}/${this.nifiCommon.getComponentTypeApiPath(type)}/${safeApiPath(id)}`
+            )
+        );
+    }
+
+    deleteComponent(component: ConnectorCanvasDeleteRequest): Observable<unknown> {
+        return defer(() => {
+            const path = this.nifiCommon.getComponentTypeApiPath(component.type);
+            const params = new HttpParams({
+                fromObject: {
+                    version: component.revision.version,
+                    clientId: component.revision.clientId ?? '',
+                    disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+                }
+            });
+            return this.httpClient.delete(`${ConnectorEditService.API}/${path}/${safeApiPath(component.id)}`, {
+                params
+            });
+        });
+    }
+
+    /**
+     * Delete several components atomically by creating and then deleting a snippet.
+     */
+    deleteComponents(components: ConnectorSnippetComponent[], processGroupId: string): Observable<unknown> {
+        const disconnectedNodeAcknowledged = this.clusterConnectionService.isDisconnectionAcknowledged();
+
+        return this.createSnippet(components, processGroupId).pipe(
+            switchMap((response) =>
+                defer(() =>
+                    this.httpClient.delete(`${ConnectorEditService.API}/snippets/${safeApiPath(response.snippet.id)}`, {
+                        params: new HttpParams({ fromObject: { disconnectedNodeAcknowledged } })
+                    })
+                )
+            )
         );
     }
 
@@ -56,6 +298,25 @@ export class ConnectorEditService {
         processGroupId: string,
         targetGroupId: string
     ): Observable<unknown> {
+        const disconnectedNodeAcknowledged = this.clusterConnectionService.isDisconnectionAcknowledged();
+
+        return this.createSnippet(components, processGroupId).pipe(
+            switchMap((response) =>
+                this.httpClient.put(`${ConnectorEditService.API}/snippets/${safeApiPath(response.snippet.id)}`, {
+                    disconnectedNodeAcknowledged,
+                    snippet: {
+                        id: response.snippet.id,
+                        parentGroupId: targetGroupId
+                    }
+                })
+            )
+        );
+    }
+
+    private createSnippet(
+        components: ConnectorSnippetComponent[],
+        processGroupId: string
+    ): Observable<{ snippet: { id: string } }> {
         const snippet = {
             parentGroupId: processGroupId,
             processors: this.revisionsFor(components, ComponentType.Processor),
@@ -67,24 +328,11 @@ export class ConnectorEditService {
             labels: this.revisionsFor(components, ComponentType.Label),
             connections: this.revisionsFor(components, ComponentType.Connection)
         };
-        const disconnectedNodeAcknowledged = this.clusterConnectionService.isDisconnectionAcknowledged();
 
-        return this.httpClient
-            .post<{ snippet: { id: string } }>(`${ConnectorEditService.API}/snippets`, {
-                disconnectedNodeAcknowledged,
-                snippet
-            })
-            .pipe(
-                switchMap((response) =>
-                    this.httpClient.put(`${ConnectorEditService.API}/snippets/${response.snippet.id}`, {
-                        disconnectedNodeAcknowledged,
-                        snippet: {
-                            id: response.snippet.id,
-                            parentGroupId: targetGroupId
-                        }
-                    })
-                )
-            );
+        return this.httpClient.post<{ snippet: { id: string } }>(`${ConnectorEditService.API}/snippets`, {
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
+            snippet
+        });
     }
 
     private revisionsFor(
