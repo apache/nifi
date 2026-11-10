@@ -29,6 +29,7 @@ import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.jolt.util.JoltTransformStrategy;
 import org.apache.nifi.jolt.util.TransformFactory;
 import org.apache.nifi.jolt.util.TransformUtils;
 import org.apache.nifi.parameter.Parameter;
@@ -40,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -51,6 +53,34 @@ public class TransformJSONResource extends AbstractStandardResource {
 
     private static final String CUSTOM_TRANSFORM_NAME = "jolt-transform-custom";
 
+    private static final String OPERATION_KEY = "operation";
+
+    private static final Set<String> STANDARD_TRANSFORM_NAMES = Set.of(
+            JoltTransformStrategy.SHIFTR.getValue(),
+            JoltTransformStrategy.CHAINR.getValue(),
+            JoltTransformStrategy.DEFAULTR.getValue(),
+            JoltTransformStrategy.REMOVR.getValue(),
+            JoltTransformStrategy.CARDINALITY.getValue(),
+            JoltTransformStrategy.SORTR.getValue(),
+            JoltTransformStrategy.MODIFIER_DEFAULTR.getValue(),
+            JoltTransformStrategy.MODIFIER_OVERWRITER.getValue(),
+            JoltTransformStrategy.MODIFIER_DEFINER.getValue()
+    );
+
+    private static final Set<String> STANDARD_CHAIN_OPERATIONS = Set.of(
+            "shift",
+            "default",
+            "remove",
+            "sort",
+            "cardinality",
+            "modify-overwrite",
+            "modify-default",
+            "modify-define",
+            "modify-overwrite-beta",
+            "modify-default-beta",
+            "modify-define-beta"
+    );
+
     protected Object getSpecificationJsonObject(JoltSpecificationDTO specificationDTO, boolean evaluateAttributes) {
         if (!StringUtils.isEmpty(specificationDTO.getSpecification())) {
             final String specification;
@@ -61,7 +91,7 @@ public class TransformJSONResource extends AbstractStandardResource {
                         : specificationDTO.getExpressionLanguageAttributes();
                 specification = preparedQuery.evaluateExpressions(new AttributeEvaluationContext(attributes), null);
             } else {
-                specification = specificationDTO.getSpecification().replaceAll("\\$\\{", "\\\\\\\\\\$\\{");
+                specification = specificationDTO.getSpecification().replaceAll("\\$\\{", "\\\\\\\\\\${");
             }
             return JsonUtils.jsonToObject(specification, DEFAULT_CHARSET);
 
@@ -85,6 +115,8 @@ public class TransformJSONResource extends AbstractStandardResource {
             final String message;
             if (CUSTOM_TRANSFORM_NAME.equals(specificationDTO.getTransform())) {
                 message = "Custom Transform not supported for advanced validation";
+            } else if (e instanceof IllegalArgumentException) {
+                message = e.getMessage();
             } else {
                 message = "Validation Failed: Please review the Jolt Specification formatting";
             }
@@ -112,12 +144,36 @@ public class TransformJSONResource extends AbstractStandardResource {
     private JoltTransform getTransformation(JoltSpecificationDTO specificationDTO, boolean evaluateAttributes) throws Exception {
         final String transformName = specificationDTO.getTransform();
 
-        if (CUSTOM_TRANSFORM_NAME.equals(transformName)) {
-            throw new IllegalArgumentException("Custom Transform Classes not supported for dynamic evaluation");
+        if (transformName == null || !STANDARD_TRANSFORM_NAMES.contains(transformName)) {
+            throw new IllegalArgumentException("Transform not supported [%s]".formatted(transformName));
         }
 
-        Object specJson = getSpecificationJsonObject(specificationDTO, evaluateAttributes);
-        return TransformFactory.getTransform(getClass().getClassLoader(), specificationDTO.getTransform(), specJson);
+        final Object specJson = getSpecificationJsonObject(specificationDTO, evaluateAttributes);
+        if (JoltTransformStrategy.CHAINR.getValue().equals(transformName)) {
+            validateChainOperations(specJson);
+        }
+
+        return TransformFactory.getTransform(getClass().getClassLoader(), transformName, specJson);
+    }
+
+    private void validateChainOperations(final Object specJson) {
+        if (!(specJson instanceof final List<?> operations)) {
+            throw new IllegalArgumentException("Chain specification must be a JSON array of operations");
+        }
+
+        for (final Object operation : operations) {
+            if (!(operation instanceof final Map<?, ?> operationMap)) {
+                throw new IllegalArgumentException("Chain operation must be a JSON object");
+            }
+
+            if (!(operationMap.get(OPERATION_KEY) instanceof final String operationName)) {
+                throw new IllegalArgumentException("Chain operation must name its operation as a string");
+            }
+
+            if (!STANDARD_CHAIN_OPERATIONS.contains(operationName)) {
+                throw new IllegalArgumentException("Chain operation not supported [%s]".formatted(operationName));
+            }
+        }
     }
 
     /**
