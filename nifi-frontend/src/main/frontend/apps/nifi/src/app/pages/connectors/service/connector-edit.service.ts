@@ -67,14 +67,21 @@ export class ConnectorEditService {
     private readonly clusterConnectionService = inject(ClusterConnectionService);
 
     updateComponent<T>(request: ConnectorComponentUpdateRequest): Observable<T> {
-        const path = this.nifiCommon.getComponentTypeApiPath(request.type);
-        return this.httpClient.put<T>(`${ConnectorEditService.API}/${path}/${request.id}`, request.payload);
+        return defer(() => {
+            const path = this.nifiCommon.getComponentTypeApiPath(request.type);
+            return this.httpClient.put<T>(
+                `${ConnectorEditService.API}/${path}/${safeApiPath(request.id)}`,
+                request.payload
+            );
+        });
     }
 
     createConnection(processGroupId: string, request: CreateConnection): Observable<ConnectionEntity> {
-        return this.httpClient.post<ConnectionEntity>(
-            `${ConnectorEditService.API}/process-groups/${processGroupId}/connections`,
-            request.payload
+        return defer(() =>
+            this.httpClient.post<ConnectionEntity>(
+                `${ConnectorEditService.API}/process-groups/${safeApiPath(processGroupId)}/connections`,
+                request.payload
+            )
         );
     }
 

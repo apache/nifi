@@ -62,6 +62,39 @@ describe('ConnectorEditService', () => {
         http.verify();
     });
 
+    it('fails closed without a request for an unsafe component id on update', () => {
+        const { service, http } = setup();
+        const error = vi.fn();
+
+        service
+            .updateComponent({ id: '../controller', type: ComponentType.Processor, payload: {} })
+            .subscribe({ error });
+
+        expect(error).toHaveBeenCalledWith(expect.objectContaining({ name: 'UnsafeApiPathError' }));
+        http.verify();
+    });
+
+    it('fails closed without a request for an unsafe process group id when creating a connection', () => {
+        const { service, http } = setup();
+        const error = vi.fn();
+
+        service
+            .createConnection('../pg-1', {
+                payload: {
+                    revision: { version: 0, clientId: 'local-client' },
+                    component: {
+                        labelIndex: 0,
+                        source: { id: 'source-1', groupId: 'pg-1', type: 'FUNNEL' },
+                        destination: { id: 'destination-1', groupId: 'pg-1', type: 'FUNNEL' }
+                    }
+                }
+            })
+            .subscribe({ error });
+
+        expect(error).toHaveBeenCalledWith(expect.objectContaining({ name: 'UnsafeApiPathError' }));
+        http.verify();
+    });
+
     it('posts only the dialog create payload when creating a connection', () => {
         const { service, http } = setup();
         const payload: ConnectionCreateRequest = {

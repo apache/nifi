@@ -1164,6 +1164,31 @@ describe('connectorCanvasReducer', () => {
             expect(result.removedCache).toEqual(['rpg-1', 'from-rpg']);
         });
 
+        it('removes connections leaving an output port of a deleted child process group', () => {
+            const state = createPopulatedState({
+                connections: [
+                    makeConnection('from-child', {
+                        sourceId: 'output-port-1',
+                        sourceGroupId: 'pg-child-1',
+                        sourceType: 'OUTPUT_PORT',
+                        destinationId: 'funnel-1'
+                    }),
+                    makeConnection('unrelated', { sourceId: 'proc-2', destinationId: 'funnel-1' })
+                ]
+            });
+
+            const result = connectorCanvasReducer(
+                state,
+                ConnectorCanvasActions.deleteSelectedComponentsSuccess({
+                    ids: [{ id: 'pg-child-1', type: ComponentType.ProcessGroup }]
+                })
+            );
+
+            expect(result.processGroups).toEqual([]);
+            expect(result.connections.map((connection) => connection.id)).toEqual(['unrelated']);
+            expect(result.removedCache).toEqual(['pg-child-1', 'from-child']);
+        });
+
         it('does not restore a deleted component or its connections from an older snapshot', () => {
             const outgoing = makeConnection('outgoing', { sourceId: 'proc-1', destinationId: 'funnel-1' });
             const afterDelete = connectorCanvasReducer(

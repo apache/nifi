@@ -3039,8 +3039,9 @@ describe('ConnectorCanvasEffects', () => {
             ]);
         });
 
-        it('closes dialogs after a successful create', async () => {
-            const { effects, actions$, mockDialog } = await setup();
+        it('closes dialogs and selects the new component after a successful create', async () => {
+            const { effects, actions$, store, mockDialog } = await setup();
+            const dispatch = vi.spyOn(store, 'dispatch');
             actions$(
                 of(
                     ConnectorCanvasActions.createCanvasComponentSuccess({
@@ -3052,6 +3053,13 @@ describe('ConnectorCanvasEffects', () => {
             await firstValueFrom(effects.createCanvasComponentSuccess$);
 
             expect(mockDialog.closeAll).toHaveBeenCalled();
+            expect(dispatch).toHaveBeenCalledWith(
+                selectComponents({
+                    request: {
+                        components: [{ id: 'funnel-new', componentType: ComponentType.Funnel }]
+                    }
+                })
+            );
         });
 
         it.each([
@@ -3123,6 +3131,27 @@ describe('ConnectorCanvasEffects', () => {
 
             expect(mockConnectorEditService.deleteComponents).toHaveBeenCalledWith(request, 'child-pg');
             expect(mockConnectorEditService.deleteComponent).not.toHaveBeenCalled();
+        });
+
+        it('drops a second delete while the first is in flight', async () => {
+            const { effects, actions$, mockConnectorEditService } = await setup();
+            const inFlight = new Subject<unknown>();
+            mockConnectorEditService.deleteComponent.mockReturnValue(inFlight);
+            const deleteRequest = ConnectorCanvasActions.deleteSelectedComponents({ request: [processor] });
+            actions$(of(deleteRequest, deleteRequest));
+
+            const emitted: Action[] = [];
+            const subscription = effects.deleteSelectedComponents$.subscribe((action) => emitted.push(action));
+            inFlight.next({});
+            inFlight.complete();
+            subscription.unsubscribe();
+
+            expect(mockConnectorEditService.deleteComponent).toHaveBeenCalledTimes(1);
+            expect(emitted).toEqual([
+                ConnectorCanvasActions.deleteSelectedComponentsSuccess({
+                    ids: [{ id: 'proc-1', type: ComponentType.Processor }]
+                })
+            ]);
         });
 
         it('reloads the endpoints of a single deleted connection', async () => {

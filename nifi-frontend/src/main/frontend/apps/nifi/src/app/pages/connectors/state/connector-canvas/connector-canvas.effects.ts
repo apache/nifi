@@ -2225,7 +2225,16 @@ export class ConnectorCanvasEffects {
         () =>
             this.actions$.pipe(
                 ofType(ConnectorCanvasActions.createCanvasComponentSuccess),
-                tap(() => this.dialog.closeAll())
+                tap(({ response }) => {
+                    this.dialog.closeAll();
+                    this.store.dispatch(
+                        ConnectorCanvasActions.selectComponents({
+                            request: {
+                                components: [{ id: response.payload.id, componentType: response.type }]
+                            }
+                        })
+                    );
+                })
             ),
         { dispatch: false }
     );
@@ -2277,6 +2286,8 @@ export class ConnectorCanvasEffects {
      * A single component is deleted directly; a multi-selection goes through a snippet.
      * Deleting a single connection reloads its endpoints so their validity updates.
      * A failure reloads the flow so the canvas reflects what the server kept.
+     * exhaustMap drops a second delete while the first is in flight so the same revisions
+     * are not sent twice.
      */
     deleteSelectedComponents$ = createEffect(() =>
         this.actions$.pipe(
@@ -2290,7 +2301,7 @@ export class ConnectorCanvasEffects {
                 ([{ request }, connectorId, processGroupId]) =>
                     request.length > 0 && connectorId !== '' && processGroupId !== null
             ),
-            mergeMap(([{ request }, connectorId, processGroupId, connections]) => {
+            exhaustMap(([{ request }, connectorId, processGroupId, connections]) => {
                 const sourceProcessGroupId = processGroupId as string;
                 const delete$ =
                     request.length === 1

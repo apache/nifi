@@ -28,7 +28,10 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorContextKey } from '../../../../state/error';
 import * as ConnectorCanvasActions from '../connector-canvas/connector-canvas.actions';
-import { selectConnectorIdFromRoute } from '../connector-canvas/connector-canvas.selectors';
+import {
+    selectConnectorCanvasPermissions,
+    selectConnectorIdFromRoute
+} from '../connector-canvas/connector-canvas.selectors';
 import { setConfiguration } from '../../../../state/canvas-ui/canvas-ui.actions';
 import { selectCanvasFeatures } from '../../../../state/canvas-ui/canvas-ui.selectors';
 import { selectConnectorCanvasEntity } from './connector-canvas-entity.selectors';
@@ -85,22 +88,26 @@ export class ConnectorCanvasEntityEffects {
     );
 
     /**
-     * Keeps the canvas edit feature in line with the connector's troubleshooting state.
+     * Keeps the canvas edit feature in line with the connector's troubleshooting state
+     * and the user's write permission on the current process group.
      *
      * Every flow load refreshes the connector entity, so the canvas follows the state
-     * the server reports. The connector canvas initializes the feature to read-only, so
-     * a configuration is dispatched only when the feature diverges from the entity.
+     * the server reports. The entity and the flow load in parallel, and the permissions
+     * arrive with the flow, so both completions re-evaluate the feature. The connector
+     * canvas initializes the feature to read-only, so a configuration is dispatched only
+     * when the feature diverges.
      */
     troubleshootingTransitions$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(loadConnectorEntitySuccess),
+            ofType(loadConnectorEntitySuccess, ConnectorCanvasActions.loadConnectorFlowSuccess),
             concatLatestFrom(() => [
                 this.store.select(selectConnectorCanvasEntity),
+                this.store.select(selectConnectorCanvasPermissions),
                 this.store.select(selectCanvasFeatures)
             ]),
             filter(([, connectorEntity]) => connectorEntity !== null),
-            map(([, connectorEntity, features]) => ({
-                canEdit: connectorEntity!.component.state === 'TROUBLESHOOTING',
+            map(([, connectorEntity, permissions, features]) => ({
+                canEdit: connectorEntity!.component.state === 'TROUBLESHOOTING' && permissions?.canWrite === true,
                 currentCanEdit: features.canEdit
             })),
             filter(({ canEdit, currentCanEdit }) => canEdit !== currentCanEdit),
