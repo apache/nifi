@@ -134,6 +134,38 @@ describe('ComboEditor', () => {
         }
     });
 
+    it('verify allowable values without a description use the display name as title', async () => {
+        if (item) {
+            const displayName = 'prod-orders-kafka-connection-service-primary';
+            item.descriptor.allowableValues = [
+                {
+                    allowableValue: {
+                        displayName,
+                        value: 'service-id'
+                    },
+                    canRead: true
+                }
+            ];
+            item.value = 'service-id';
+
+            component.item = item;
+            component.parameterConfig = {
+                supportsParameters: false,
+                parameters: null
+            };
+
+            fixture.detectChanges();
+
+            fixture.nativeElement.querySelector('.mat-mdc-select-trigger').click();
+            fixture.detectChanges();
+            await fixture.whenStable();
+
+            const options = document.querySelectorAll('mat-option');
+            expect(options.length).toBe(1);
+            expect(options[0].getAttribute('title')).toBe(displayName);
+        }
+    });
+
     it('verify combo value', () => {
         if (item) {
             component.item = item;
