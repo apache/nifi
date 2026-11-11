@@ -19,6 +19,7 @@ package org.apache.nifi.tests.system.pg;
 import jakarta.ws.rs.WebApplicationException;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.groups.StatelessGroupScheduledState;
+import org.apache.nifi.tests.system.ExceptionalBooleanSupplier;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
@@ -151,6 +152,17 @@ public class ClusteredStopSourcesIT extends NiFiSystemIT {
         }
         waitForOnAllNodes(() -> StatelessGroupScheduledState.RUNNING.name().equals(getNifiClient().getProcessGroupClient(DO_NOT_REPLICATE)
                 .getProcessGroup(flow.statelessGroup().getId()).getComponent().getStatelessGroupScheduledState()), "Stateless Group to be RUNNING");
+    }
+
+    private void waitForOnAllNodes(final ExceptionalBooleanSupplier condition, final String description) throws InterruptedException {
+        try {
+            for (int nodeIndex = 1; nodeIndex <= 2; nodeIndex++) {
+                switchClientToNode(nodeIndex);
+                waitFor(condition, 100L, description + " on Node " + nodeIndex);
+            }
+        } finally {
+            switchClientToNode(1);
+        }
     }
 
     private ScheduleComponentsEntity stopSourcesRequest(final String groupId) {
