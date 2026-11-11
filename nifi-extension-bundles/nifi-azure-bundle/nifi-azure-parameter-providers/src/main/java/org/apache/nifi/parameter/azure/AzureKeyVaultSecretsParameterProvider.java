@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.AbstractParameterProvider;
 import org.apache.nifi.parameter.Parameter;
@@ -65,6 +66,7 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
             .description("Vault URI of the Key Vault that contains the secrets")
             .required(true)
             .addValidator(StandardValidators.URI_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor GROUP_NAME_PATTERN = new PropertyDescriptor.Builder()
             .name("group-name-pattern")
@@ -192,7 +194,7 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
     SecretClient configureSecretClient(final ConfigurationContext context) {
         final AzureCredentialsService credentialsService =
                 context.getProperty(AZURE_CREDENTIALS_SERVICE).asControllerService(AzureCredentialsService.class);
-        final String vaultUrl = context.getProperty(KEY_VAULT_URI).getValue();
+        final String vaultUrl = context.getProperty(KEY_VAULT_URI).evaluateAttributeExpressions().getValue();
         final HttpClient httpClient = new JdkHttpClientBuilder().build();
         return new SecretClientBuilder()
                 .httpClient(httpClient)
