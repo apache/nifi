@@ -21,10 +21,12 @@ import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowRegistryClientConfigurationContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientInitializationContext;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.FlowVersionLocation;
+import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
@@ -32,8 +34,10 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,6 +49,10 @@ import javax.net.ssl.SSLContext;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class AbstractGitFlowRegistryClientTest {
 
@@ -159,6 +167,34 @@ class AbstractGitFlowRegistryClientTest {
 
         assertEquals("Configured repository client does not support branch creation", exception.getMessage());
         assertTrue(repositoryClient.getCreatedBranchCommit().isEmpty());
+    }
+
+    @Test
+    void repeatedQuestionsForUnchangedBranchAreAnsweredFromCache() throws Exception {
+        final GitRepositoryClient repositoryClient = mock(GitRepositoryClient.class);
+        when(repositoryClient.hasReadPermission()).thenReturn(true);
+        when(repositoryClient.getBranchHeadSha("main")).thenReturn(Optional.of("head-1"));
+        when(repositoryClient.getLatestCommitSha("bucket-a/flow-1.json", "main")).thenReturn(Optional.of("commit-1"));
+        when(repositoryClient.getContentFromBranch("bucket-a/flow-1.json", "main")).thenAnswer(invocation -> new ByteArrayInputStream("""
+                {"flow": {"identifier": "flow-1", "name": "Flow 1"}, "flowContents": {"identifier": "contents"}}
+                """.getBytes(StandardCharsets.UTF_8)));
+
+        final TestGitFlowRegistryClient flowRegistryClient = new TestGitFlowRegistryClient(() -> repositoryClient, "git@example.git");
+        flowRegistryClient.initialize(createInitializationContext());
+        final FlowRegistryClientConfigurationContext context = createContext("main", "[.].*");
+        final FlowLocation flowLocation = new FlowLocation("main", "bucket-a", "flow-1");
+
+        for (int i = 0; i < 3; i++) {
+            assertEquals(Optional.of("commit-1"), flowRegistryClient.getLatestVersion(context, flowLocation));
+            final RegisteredFlow flow = flowRegistryClient.getFlow(context, flowLocation);
+            assertEquals("Flow 1", flow.getName());
+            assertEquals("bucket-a", flow.getBucketIdentifier());
+            assertEquals("main", flow.getBranch());
+        }
+
+        verify(repositoryClient, times(1)).getBranchHeadSha("main");
+        verify(repositoryClient, times(1)).getLatestCommitSha("bucket-a/flow-1.json", "main");
+        verify(repositoryClient, times(1)).getContentFromBranch("bucket-a/flow-1.json", "main");
     }
 
     private FlowRegistryClientConfigurationContext createContext(final String branch, final String exclusionPattern) {

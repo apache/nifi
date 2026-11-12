@@ -95,6 +95,32 @@ public interface GitRepositoryClient {
     }
 
     /**
+     * Retrieves the SHA of the commit at the head of the given branch. Clients that support it let the registry client
+     * answer repeated questions about unchanged flows without further requests.
+     *
+     * @param branch the branch name
+     * @return the SHA of the head commit, or empty if the client does not support it
+     * @throws IOException if an I/O error occurs
+     * @throws FlowRegistryException if a non-I/O error occurs
+     */
+    default Optional<String> getBranchHeadSha(String branch) throws IOException, FlowRegistryException {
+        return Optional.empty();
+    }
+
+    /**
+     * Retrieves the paths of the files changed from one commit to a later one, relative to the repository path of the client.
+     *
+     * @param fromCommitSha the SHA of the earlier commit
+     * @param toCommitSha the SHA of the later commit
+     * @return the changed paths, or empty if they cannot be determined, for example when the history diverged
+     * @throws IOException if an I/O error occurs
+     * @throws FlowRegistryException if a non-I/O error occurs
+     */
+    default Optional<Set<String>> getChangedPaths(String fromCommitSha, String toCommitSha) throws IOException, FlowRegistryException {
+        return Optional.empty();
+    }
+
+    /**
      * Retrieves the content for the file at the given path on the given branch.
      *
      * @param path the path of the file

@@ -147,6 +147,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
     private volatile GitRepositoryClient repositoryClient;
     private volatile Pattern directoryExclusionPattern;
     private final AtomicBoolean clientInitialized = new AtomicBoolean(false);
+    private final GitBranchStateCache branchStateCache = new GitBranchStateCache();
 
     private volatile List<PropertyDescriptor> propertyDescriptors;
 
@@ -313,6 +314,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
                 .build();
 
         repositoryClient.createContent(request);
+        branchStateCache.invalidate(branch, filePath);
 
         // Re-populate fields before returning
         flow.setBucketName(originalBucketId);
@@ -332,6 +334,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String commitMessage = DEREGISTER_FLOW_MESSAGE_FORMAT.formatted(flowLocation.getFlowId());
         final String userIdentity = resolveAuthorIdentity(context);
         try (final InputStream deletedSnapshotContent = repositoryClient.deleteContent(filePath, commitMessage, branch, userIdentity, userIdentity)) {
+            branchStateCache.invalidate(branch, filePath);
             final RegisteredFlowSnapshot deletedSnapshot = getSnapshot(deletedSnapshotContent);
             populateFlowAndSnapshotMetadata(deletedSnapshot, flowLocation);
             updateBucketReferences(repositoryClient, deletedSnapshot, flowLocation.getBucketId());
@@ -347,12 +350,19 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String branch = flowLocation.getBranch();
         final String filePath = getSnapshotFilePath(flowLocation);
 
+        final Optional<GitBranchStateCache.BranchState> branchState = branchStateCache.getState(repositoryClient, branch);
+        final Optional<RegisteredFlow> cachedFlow = branchState.flatMap(state -> state.getFlow(filePath));
+        if (cachedFlow.isPresent()) {
+            return cachedFlow.get();
+        }
+
         final RegisteredFlowSnapshot existingSnapshot = getSnapshot(repositoryClient, filePath, branch);
         populateFlowAndSnapshotMetadata(existingSnapshot, flowLocation);
         updateBucketReferences(repositoryClient, existingSnapshot, flowLocation.getBucketId());
 
         final RegisteredFlow registeredFlow = existingSnapshot.getFlow();
         registeredFlow.setBranch(branch);
+        branchState.ifPresent(state -> state.putFlow(filePath, registeredFlow));
         return registeredFlow;
     }
 
@@ -503,6 +513,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
                 .build();
 
         final String createContentCommitSha = repositoryClient.createContent(createContentRequest);
+        branchStateCache.invalidate(branch, filePath);
         if (createContentCommitSha == null) {
             throw new FlowRegistryException("Created Content Commit SHA is null");
         } else if (createContentCommitSha.isEmpty() || createContentCommitSha.isBlank()) {
@@ -561,7 +572,15 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String branch = flowLocation.getBranch();
         final String filePath = getSnapshotFilePath(flowLocation);
 
-        return repositoryClient.getLatestCommitSha(filePath, branch);
+        final Optional<GitBranchStateCache.BranchState> branchState = branchStateCache.getState(repositoryClient, branch);
+        final Optional<GitBranchStateCache.LatestVersion> cachedLatestVersion = branchState.flatMap(state -> state.getLatestVersion(filePath));
+        if (cachedLatestVersion.isPresent()) {
+            return cachedLatestVersion.get().toOptional();
+        }
+
+        final Optional<String> latestVersion = repositoryClient.getLatestCommitSha(filePath, branch);
+        branchState.ifPresent(state -> state.putLatestVersion(filePath, latestVersion));
+        return latestVersion;
     }
 
     @Override
@@ -739,6 +758,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
 
     protected void invalidateClient() {
         clientInitialized.set(false);
+        branchStateCache.clear();
         if (repositoryClient != null) {
             try {
                 repositoryClient.close();
