@@ -264,7 +264,6 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
                 for (final Map.Entry<String, VersionedParameterContext> childParameterContext : childParameterContexts.entrySet()) {
                     flowSnapshot.getParameterContexts().putIfAbsent(childParameterContext.getKey(), childParameterContext.getValue());
                 }
-                populateVersionedContentsRecursively(context, child, snapshotContainer);
             }
         }
 
@@ -419,7 +418,8 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         final VersionedFlowCoordinates coordinates = group.getVersionedFlowCoordinates();
 
         if (coordinates != null) {
-            final RegisteredFlowSnapshot snapshot = fetchFlowContents(context, coordinates, true);
+            // Fetch only this flow: its own nested versioned flows are fetched once each by the loop over its children below
+            final RegisteredFlowSnapshot snapshot = fetchFlowContents(context, coordinates, false);
             final VersionedProcessGroup contents = snapshot.getFlowContents();
 
             group.setVersionedFlowCoordinates(coordinates);
