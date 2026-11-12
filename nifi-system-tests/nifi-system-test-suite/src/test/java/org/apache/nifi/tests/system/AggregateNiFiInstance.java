@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.CopyOnWriteArrayList;
 import javax.net.ssl.SSLContext;
 
 public class AggregateNiFiInstance implements NiFiInstance {
@@ -35,10 +36,17 @@ public class AggregateNiFiInstance implements NiFiInstance {
     @Override
     public void start(boolean waitForCompletion) {
         final Map<Thread, NiFiInstance> startupThreads = new HashMap<>();
+        final List<RuntimeException> startupFailures = new CopyOnWriteArrayList<>();
 
         for (final NiFiInstance instance : instances) {
             if (instance.isAutoStart()) {
-                final Thread t = new Thread(() -> instance.start(waitForCompletion));
+                final Thread t = new Thread(() -> {
+                    try {
+                        instance.start(waitForCompletion);
+                    } catch (final RuntimeException e) {
+                        startupFailures.add(e);
+                    }
+                });
                 t.start();
                 startupThreads.put(t, instance);
             }
@@ -52,6 +60,12 @@ public class AggregateNiFiInstance implements NiFiInstance {
             } catch (final InterruptedException ie) {
                 throw new RuntimeException("Interrupted while waiting for instance " + entry.getValue() + " to finish starting");
             }
+        }
+
+        if (!startupFailures.isEmpty()) {
+            final RuntimeException startupFailure = new RuntimeException("Failed to start %d NiFi instance(s)".formatted(startupFailures.size()), startupFailures.getFirst());
+            startupFailures.stream().skip(1).forEach(startupFailure::addSuppressed);
+            throw startupFailure;
         }
     }
 
