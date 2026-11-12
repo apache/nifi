@@ -16,28 +16,25 @@
  */
 package org.apache.nifi.kafka.processors.consumer.convert;
 
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.kafka.processors.ConsumeKafka;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessSession;
+import org.apache.nifi.util.SharedSessionState;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Answers;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FlowFileStreamKafkaMessageConverterTest {
 
@@ -45,17 +42,16 @@ class FlowFileStreamKafkaMessageConverterTest {
     private static final String BROKER_URI = "brokerUri";
     private static final byte[] NON_EMPTY_VALUE = "payload".getBytes(StandardCharsets.UTF_8);
 
-    @Test
-    void testTombstoneAttributeSetOnlyForTombstoneRecords() {
-        final ProcessSession session = mock(ProcessSession.class, withSettings().defaultAnswer(Answers.RETURNS_DEEP_STUBS));
-        final FlowFile tombstoneFlowFile = new MockFlowFile(1);
-        final FlowFile emptyFlowFile = new MockFlowFile(2);
-        final FlowFile valueFlowFile = new MockFlowFile(3);
-        when(session.create()).thenReturn(tombstoneFlowFile, emptyFlowFile, valueFlowFile);
-        when(session.putAttribute(any(FlowFile.class), any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(session.putAllAttributes(any(FlowFile.class), any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(session.write(any(FlowFile.class), any(OutputStreamCallback.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    private MockProcessSession session;
 
+    @BeforeEach
+    void setUp() {
+        final Processor processor = TestRunners.newTestRunner(ConsumeKafka.class).getProcessor();
+        session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0)), processor);
+    }
+
+    @Test
+    void testTombstoneAttributeSetOnlyForTombstoneRecords() throws IOException {
         final FlowFileStreamKafkaMessageConverter converter = newConverter();
 
         final ByteRecord tombstone = new ByteRecord(TOPIC, 0, 0L, 1000L, List.of(), null, new byte[0], 1L, true);
@@ -63,15 +59,20 @@ class FlowFileStreamKafkaMessageConverterTest {
         final ByteRecord value = new ByteRecord(TOPIC, 0, 2L, 1000L, List.of(), null, NON_EMPTY_VALUE, 1L, false);
         converter.toFlowFiles(session, List.of(tombstone, emptyValue, value).iterator());
 
-        verify(session).putAttribute(eq(tombstoneFlowFile), eq(KafkaFlowFileAttribute.KAFKA_TOMBSTONE), eq(Boolean.TRUE.toString()));
-        verify(session, never()).putAttribute(eq(emptyFlowFile), eq(KafkaFlowFileAttribute.KAFKA_TOMBSTONE), any());
-        verify(session, never()).putAttribute(eq(valueFlowFile), eq(KafkaFlowFileAttribute.KAFKA_TOMBSTONE), any());
-        verify(session, never()).write(eq(tombstoneFlowFile), any(OutputStreamCallback.class));
-        verify(session, never()).write(eq(emptyFlowFile), any(OutputStreamCallback.class));
-        verify(session).write(eq(valueFlowFile), any(OutputStreamCallback.class));
-        verify(session).transfer(tombstoneFlowFile, ConsumeKafka.SUCCESS);
-        verify(session).transfer(emptyFlowFile, ConsumeKafka.SUCCESS);
-        verify(session).transfer(valueFlowFile, ConsumeKafka.SUCCESS);
+        final List<MockFlowFile> flowFiles = session.getFlowFilesForRelationship(ConsumeKafka.SUCCESS);
+        assertEquals(3, flowFiles.size());
+
+        final MockFlowFile tombstoneFlowFile = flowFiles.get(0);
+        tombstoneFlowFile.assertContentEquals("");
+        tombstoneFlowFile.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_TOMBSTONE, Boolean.TRUE.toString());
+
+        final MockFlowFile emptyFlowFile = flowFiles.get(1);
+        emptyFlowFile.assertContentEquals("");
+        emptyFlowFile.assertAttributeNotExists(KafkaFlowFileAttribute.KAFKA_TOMBSTONE);
+
+        final MockFlowFile valueFlowFile = flowFiles.get(2);
+        valueFlowFile.assertContentEquals(NON_EMPTY_VALUE);
+        valueFlowFile.assertAttributeNotExists(KafkaFlowFileAttribute.KAFKA_TOMBSTONE);
     }
 
     private static FlowFileStreamKafkaMessageConverter newConverter() {

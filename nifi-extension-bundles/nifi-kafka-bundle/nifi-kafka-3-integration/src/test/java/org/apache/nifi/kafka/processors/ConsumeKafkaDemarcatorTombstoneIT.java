@@ -35,7 +35,7 @@ import java.util.concurrent.ExecutionException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Demarcator output when a batch contains a null tombstone, a non-null empty value, or both together with a real value.
+ * Verifies DEMARCATOR output when a batch contains a null tombstone, a non-null empty value, or both together with a real value.
  * Null and empty values are written into the bundle as zero-length content. An empty bundle sets kafka.tombstone;
  * a bundle that also contains a non-empty value does not.
  */

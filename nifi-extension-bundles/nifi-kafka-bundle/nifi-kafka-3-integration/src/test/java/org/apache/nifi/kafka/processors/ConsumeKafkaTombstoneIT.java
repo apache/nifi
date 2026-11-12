@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -44,6 +45,8 @@ class ConsumeKafkaTombstoneIT extends AbstractConsumeKafkaIT {
     private static final long FIRST_OFFSET = 0;
 
     private static final byte[] EMPTY_BYTES = new byte[0];
+
+    private static final Duration POLL_TIMEOUT = Duration.ofSeconds(30);
 
     private TestRunner runner;
 
@@ -88,9 +91,7 @@ class ConsumeKafkaTombstoneIT extends AbstractConsumeKafkaIT {
                 new RecordHeader("bbb", "value".getBytes(StandardCharsets.UTF_8)),
                 new RecordHeader("ccc", "value".getBytes(StandardCharsets.UTF_8)));
         produceOne(topic, 0, "key-record", null, headers);
-        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
-            runner.run(1, false, false);
-        }
+        runUntil(runner, testRunner -> !testRunner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty(), POLL_TIMEOUT);
 
         runner.run(1, true, false);
 
@@ -122,9 +123,7 @@ class ConsumeKafkaTombstoneIT extends AbstractConsumeKafkaIT {
         runner.run(1, false, true);
 
         produceBytes(topic, FIRST_PARTITION, "key-record", EMPTY_BYTES);
-        while (runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty()) {
-            runner.run(1, false, false);
-        }
+        runUntil(runner, testRunner -> !testRunner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).isEmpty(), POLL_TIMEOUT);
 
         runner.run(1, true, false);
 

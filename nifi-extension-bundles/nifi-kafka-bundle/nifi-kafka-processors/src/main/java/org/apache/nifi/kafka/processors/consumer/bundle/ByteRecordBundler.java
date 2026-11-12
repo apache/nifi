@@ -66,7 +66,7 @@ public class ByteRecordBundler {
         key.headers.add(new RecordHeader(KafkaFlowFileAttribute.KAFKA_MAX_OFFSET, Long.toString(value.getLastOffset()).getBytes(StandardCharsets.UTF_8)));
         key.headers.add(new RecordHeader(KafkaFlowFileAttribute.KAFKA_COUNT, Long.toString(value.getCount()).getBytes(StandardCharsets.UTF_8)));
         final byte[] data = value.getData();
-        // Demarcator emits one FlowFile per bundle, so an empty bundle is still reported as a tombstone.
+        // Backward-compatibility: DEMARCATOR treats empty bundle content as a tombstone.
         final boolean tombstone = data.length == 0;
         return new ByteRecord(topicPartition.getTopic(), topicPartition.getPartition(),
                 value.getFirstOffset(), key.getTimestamp(), key.getHeaders(), key.getMessageKey(), data, value.getCount(), tombstone);
