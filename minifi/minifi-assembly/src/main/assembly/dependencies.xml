@@ -45,6 +45,7 @@
                 <include>org.apache.nifi:nifi-framework-api</include>
                 <include>org.apache.nifi:nifi-python-framework-api</include>
                 <include>org.apache.nifi:nifi-nar-utils</include>
+                <include>org.apache.nifi:nifi-per-process-group-logging</include>
                 <include>org.apache.nifi:nifi-properties</include>
                 <include>org.apache.nifi:nifi-property-utils</include>
                 <include>org.apache.nifi:nifi-runtime</include>
