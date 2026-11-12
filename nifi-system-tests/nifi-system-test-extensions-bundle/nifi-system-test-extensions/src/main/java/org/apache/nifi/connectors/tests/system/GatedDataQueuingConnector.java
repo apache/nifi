@@ -44,11 +44,15 @@ import java.util.Set;
  * A connector that generates FlowFiles and allows controlling when the TerminateFlowFile processor
  * will process them via a gate file. If the gate file does not exist, FlowFiles will queue up.
  * When the gate file exists, the TerminateFlowFile processor will process the queued FlowFiles.
+ * Before reaching TerminateFlowFile, each FlowFile passes through a WriteLifecycleEvents processor,
+ * which records its lifecycle events in the file {@code gated-connector-lifecycle-events.txt} in the working directory of NiFi.
  * <p>
  * The connector uses a configuration step to specify the gate file path. The test must configure
  * the connector with a gate file path and apply the update before starting the connector.
  */
 public class GatedDataQueuingConnector extends AbstractConnector {
+
+    private static final String LIFECYCLE_EVENT_FILE_PATH = "./gated-connector-lifecycle-events.txt";
 
     static final ConnectorPropertyDescriptor GATE_FILE_PATH = new ConnectorPropertyDescriptor.Builder()
             .name("Gate File Path")
@@ -83,6 +87,10 @@ public class GatedDataQueuingConnector extends AbstractConnector {
         generate.getProperties().put("File Size", "1 KB");
         generate.setSchedulingPeriod("100 millis");
 
+        final VersionedProcessor lifecycleEvents = VersionedFlowUtils.addProcessor(rootGroup,
+            "org.apache.nifi.processors.tests.system.WriteLifecycleEvents", bundle, "WriteLifecycleEvents", new Position(0, 0));
+        lifecycleEvents.getProperties().put("Event File", LIFECYCLE_EVENT_FILE_PATH);
+
         final VersionedProcessor terminate = VersionedFlowUtils.addProcessor(rootGroup,
             "org.apache.nifi.processors.tests.system.TerminateFlowFile", bundle, "TerminateFlowFile", new Position(0, 0));
 
@@ -92,6 +100,8 @@ public class GatedDataQueuingConnector extends AbstractConnector {
         disabled.setAutoTerminatedRelationships(Set.of("success"));
 
         VersionedFlowUtils.addConnection(rootGroup, VersionedFlowUtils.createConnectableComponent(generate),
+            VersionedFlowUtils.createConnectableComponent(lifecycleEvents), Set.of("success"));
+        VersionedFlowUtils.addConnection(rootGroup, VersionedFlowUtils.createConnectableComponent(lifecycleEvents),
             VersionedFlowUtils.createConnectableComponent(terminate), Set.of("success"));
 
         final VersionedExternalFlow flow = new VersionedExternalFlow();

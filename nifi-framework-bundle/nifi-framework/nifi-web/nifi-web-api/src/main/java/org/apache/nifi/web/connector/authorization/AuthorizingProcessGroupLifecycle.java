@@ -126,4 +126,16 @@ public class AuthorizingProcessGroupLifecycle implements ProcessGroupLifecycle {
         authContext.authorizeRead();
         return delegate.getActiveThreadCount();
     }
+
+    @Override
+    public CompletableFuture<Void> beginDrain() {
+        authContext.authorizeWrite();
+        return delegate.beginDrain();
+    }
+
+    @Override
+    public void endDrain() {
+        authContext.authorizeWrite();
+        delegate.endDrain();
+    }
 }

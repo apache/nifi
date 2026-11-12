@@ -2072,6 +2072,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         triggerLifecycleMethod(processContext, OnStopped.class);
     }
 
+    @Override
+    public void invokeDrainLifecycleMethods(final Class<? extends Annotation> lifecycleAnnotation, final ProcessContext processContext) {
+        triggerLifecycleMethod(processContext, lifecycleAnnotation);
+    }
+
     private void triggerLifecycleMethod(final ProcessContext processContext, final Class<? extends Annotation> lifecycleAnnotation) {
         final Processor processor = processorRef.get().getProcessor();
 

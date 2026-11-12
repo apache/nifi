@@ -173,8 +173,20 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         // see if the remote process group can start/stop transmitting
         if (isNotNull(remoteProcessGroupDto.isTransmitting())) {
             if (!remoteProcessGroup.isTransmitting() && remoteProcessGroupDto.isTransmitting()) {
+                for (final RemoteGroupPort port : remoteProcessGroup.getOutputPorts()) {
+                    if (!port.isRunning() && !port.getConnections().isEmpty()) {
+                        verifyDrainAllowsStart(port);
+                    }
+                }
+
                 remoteProcessGroup.verifyCanStartTransmitting();
             } else if (remoteProcessGroup.isTransmitting() && !remoteProcessGroupDto.isTransmitting()) {
+                for (final RemoteGroupPort port : remoteProcessGroup.getInputPorts()) {
+                    if (port.isRunning()) {
+                        verifyDrainAllowsStop(port);
+                    }
+                }
+
                 remoteProcessGroup.verifyCanStopTransmitting();
             }
         }
@@ -231,8 +243,10 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         // see if the remote process group can start/stop transmitting
         if (isNotNull(remoteProcessGroupPortDto.isTransmitting())) {
             if (!port.isRunning() && remoteProcessGroupPortDto.isTransmitting()) {
+                verifyDrainAllowsStart(port);
                 port.verifyCanStart();
             } else if (port.isRunning() && !remoteProcessGroupPortDto.isTransmitting()) {
+                verifyDrainAllowsStop(port);
                 port.verifyCanStop();
             }
         }
@@ -404,8 +418,10 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         if (isNotNull(isTransmitting)) {
             // start or stop as necessary
             if (!port.isRunning() && isTransmitting) {
+                endDrainKeepingStopped(port);
                 remoteProcessGroup.startTransmitting(port);
             } else if (port.isRunning() && !isTransmitting) {
+                endDrainKeepingRunning(port);
                 remoteProcessGroup.stopTransmitting(port);
             }
         }
@@ -481,8 +497,20 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         if (isNotNull(isTransmitting)) {
             // start or stop as necessary
             if (!remoteProcessGroup.isConfiguredToTransmit() && isTransmitting) {
+                for (final RemoteGroupPort port : remoteProcessGroup.getOutputPorts()) {
+                    if (!port.isRunning() && !port.getConnections().isEmpty()) {
+                        endDrainKeepingStopped(port);
+                    }
+                }
+
                 remoteProcessGroup.startTransmitting();
             } else if (remoteProcessGroup.isConfiguredToTransmit() && !isTransmitting) {
+                for (final RemoteGroupPort port : remoteProcessGroup.getInputPorts()) {
+                    if (port.isRunning()) {
+                        endDrainKeepingRunning(port);
+                    }
+                }
+
                 remoteProcessGroup.stopTransmitting();
             }
         }

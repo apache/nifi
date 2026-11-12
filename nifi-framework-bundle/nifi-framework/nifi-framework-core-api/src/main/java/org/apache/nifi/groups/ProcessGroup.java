@@ -20,6 +20,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.components.ComponentHierarchyScope;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.FlowFileActivity;
@@ -48,6 +49,7 @@ import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.remote.RemoteGroupPort;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -640,6 +642,67 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @return a Set of all Controller Services contained within this ProcessGroup and any child Process Groups
      */
     Set<ControllerServiceNode> findAllControllerServices();
+
+    /**
+     * Finds the Controller Services that the Processors reference, directly or through other Controller Services. A reference from a property
+     * counts only when the dependencies of that property are satisfied.
+     */
+    Set<ControllerServiceNode> findReferencedControllerServices(ComponentHierarchyScope hierarchyScope);
+
+    /**
+     * Finds the Controller Services that the Processors of this group and its child groups reference, excluding Stateless child groups.
+     */
+    default Set<ControllerServiceNode> findControllerServicesForDrain() {
+        final Set<ControllerServiceNode> services = new HashSet<>(findReferencedControllerServices(ComponentHierarchyScope.IMMEDIATE_GROUP_ONLY));
+        for (final ProcessGroup childGroup : getProcessGroups()) {
+            if (childGroup.resolveExecutionEngine() != ExecutionEngine.STATELESS) {
+                services.addAll(childGroup.findControllerServicesForDrain());
+            }
+        }
+
+        return services;
+    }
+
+    /**
+     * @throws IllegalStateException if the group does not use the Standard execution engine or a drain is active on this group, a parent group,
+     *         or a child group
+     */
+    void verifyCanBeginDrain();
+
+    /**
+     * Begins a drain of this Process Group, replacing any previous drain of this group. The sources are asked to stop before this method returns,
+     * and the rest of the drain is prepared in the background.
+     *
+     * @throws IllegalStateException if a drain cannot begin on this Process Group or a source cannot be stopped
+     */
+    ProcessGroupDrain beginDrain(String drainIdentifier);
+
+    /**
+     * @return the most recent drain of this exact Process Group, whether it is draining, failed, or ended
+     */
+    Optional<ProcessGroupDrain> getDrain();
+
+    /**
+     * @return the active drain of this Process Group or of the closest parent group that has one
+     */
+    default Optional<ProcessGroupDrain> findActiveDrain() {
+        ProcessGroup group = this;
+        while (group != null) {
+            final Optional<ProcessGroupDrain> drain = group.getDrain();
+            if (drain.isPresent() && drain.get().getState() == ProcessGroupDrainState.DRAINING) {
+                return drain;
+            }
+
+            group = group.getParent();
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * Ends the drain of this Process Group, if it has one, without changing the state of the components. The group keeps the ended drain.
+     */
+    Optional<ProcessGroupDrain> endDrain();
 
     /**
      * Adds the given RemoteProcessGroup to this ProcessGroup

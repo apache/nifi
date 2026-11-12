@@ -22,6 +22,7 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.groups.ComponentAdditions;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ProcessGroupDrain;
 import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -30,6 +31,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public interface ProcessGroupDAO {
@@ -234,6 +236,40 @@ public interface ProcessGroupDAO {
      * @return The drop request status
      */
     DropFlowFileStatus deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId);
+
+    /**
+     * Verifies that a drain can begin for the specified process group.
+     *
+     * @param processGroupId The ID of the process group
+     */
+    void verifyBeginDrain(String processGroupId);
+
+    /**
+     * Begins draining the specified process group.
+     *
+     * @param processGroupId The ID of the process group
+     * @param drainRequestId The ID of the drain request
+     * @return The drain
+     */
+    ProcessGroupDrain beginDrain(String processGroupId, String drainRequestId);
+
+    /**
+     * Gets the specified drain of a process group.
+     *
+     * @param processGroupId The ID of the process group
+     * @param drainRequestId The ID of the drain request
+     * @return The drain, or an empty Optional if the process group has no drain with the given ID
+     */
+    Optional<ProcessGroupDrain> getDrain(String processGroupId, String drainRequestId);
+
+    /**
+     * Ends the specified drain of a process group. A request to end an earlier drain does not end the drain that the group has now.
+     *
+     * @param processGroupId The ID of the process group
+     * @param drainRequestId The ID of the drain request
+     * @return The ended drain, or an empty Optional if the process group has no drain with the given ID
+     */
+    Optional<ProcessGroupDrain> endDrain(String processGroupId, String drainRequestId);
 
     /**
      * Deletes the specified process group.

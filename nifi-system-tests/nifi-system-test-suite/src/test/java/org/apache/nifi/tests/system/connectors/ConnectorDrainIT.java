@@ -31,19 +31,24 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ConnectorDrainIT extends NiFiSystemIT {
 
     private static final Logger logger = LoggerFactory.getLogger(ConnectorDrainIT.class);
+    private static final String LIFECYCLE_EVENT_FILE_NAME = "gated-connector-lifecycle-events.txt";
 
     @Test
     @Timeout(60)
     public void testDrainFlowFiles() throws NiFiClientException, IOException, InterruptedException {
+        final File eventFile = new File(getNiFiInstance().getInstanceDirectory(), LIFECYCLE_EVENT_FILE_NAME);
+        Files.deleteIfExists(eventFile.toPath());
         final File gateFile = new File(getNiFiInstance().getInstanceDirectory(), "gate-file.txt");
         gateFile.deleteOnExit();
 
@@ -90,6 +95,7 @@ public class ConnectorDrainIT extends NiFiSystemIT {
 
         logger.info("Waiting for connector to enter DRAINING state");
         getClientUtil().waitForConnectorDraining(connectorId);
+        waitFor(() -> Files.readAllLines(eventFile.toPath()).contains("OnDrainInitiated"));
 
         logger.info("Sleeping for 2 seconds to verify connector remains in DRAINING state");
         Thread.sleep(2000L);
@@ -97,6 +103,7 @@ public class ConnectorDrainIT extends NiFiSystemIT {
         ConnectorEntity drainingConnector = getNifiClient().getConnectorClient().getConnector(connectorId);
         logger.info("Connector state after 2 seconds: {}", drainingConnector.getComponent().getState());
         assertEquals(ConnectorState.DRAINING.name(), drainingConnector.getComponent().getState());
+        assertFalse(Files.readAllLines(eventFile.toPath()).contains("OnDrainCompleted"));
 
         final int queuedWhileDraining = getConnectorQueuedFlowFileCount(connectorId);
         logger.info("Queued FlowFile count while draining (gate file absent): {}", queuedWhileDraining);
@@ -122,12 +129,15 @@ public class ConnectorDrainIT extends NiFiSystemIT {
         final int finalQueuedCount = getConnectorQueuedFlowFileCount(connectorId);
         logger.info("Final queued FlowFile count: {}", finalQueuedCount);
         assertEquals(0, finalQueuedCount);
+        assertTrue(Files.readAllLines(eventFile.toPath()).contains("OnDrainCompleted"));
 
         logger.info("testDrainFlowFiles completed successfully");
     }
 
     @Test
     public void testCancelDrainFlowFiles() throws NiFiClientException, IOException, InterruptedException {
+        final File eventFile = new File(getNiFiInstance().getInstanceDirectory(), LIFECYCLE_EVENT_FILE_NAME);
+        Files.deleteIfExists(eventFile.toPath());
         final File gateFile = new File(getNiFiInstance().getInstanceDirectory(), "gate-file-cancel.txt");
         gateFile.deleteOnExit();
 
@@ -163,6 +173,7 @@ public class ConnectorDrainIT extends NiFiSystemIT {
 
         logger.info("Waiting for connector to enter DRAINING state");
         getClientUtil().waitForConnectorDraining(connectorId);
+        waitFor(() -> Files.readAllLines(eventFile.toPath()).contains("OnDrainInitiated"));
 
         logger.info("Sleeping for 2 seconds to verify connector remains in DRAINING state");
         Thread.sleep(2000L);
@@ -188,6 +199,7 @@ public class ConnectorDrainIT extends NiFiSystemIT {
         final int queuedCountAfterCancel = getConnectorQueuedFlowFileCount(connectorId);
         logger.info("Queued FlowFile count after cancel (should still have data): {}", queuedCountAfterCancel);
         assertTrue(queuedCountAfterCancel > 0);
+        assertTrue(Files.readAllLines(eventFile.toPath()).contains("OnDrainCompleted"));
 
         logger.info("testCancelDrainFlowFiles completed successfully");
     }

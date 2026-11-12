@@ -17,6 +17,8 @@
 package org.apache.nifi.web.api.dto;
 
 import org.apache.nifi.asset.Asset;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
@@ -30,20 +32,27 @@ import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.groups.DrainBlockingComponent;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
+import org.apache.nifi.groups.ProcessGroupDrain;
+import org.apache.nifi.groups.ProcessGroupDrainState;
+import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
@@ -1138,6 +1147,17 @@ public class DtoFactoryTest {
 
         assertEquals("INHERITED", dto.getExecutionEngine());
         assertEquals("STANDARD", dto.getResolvedExecutionEngine());
+        assertNull(dto.getDrainRequestId());
+
+        final ProcessGroupDrain drain = mock(ProcessGroupDrain.class);
+        when(drain.getIdentifier()).thenReturn("drain-1");
+        when(drain.getState()).thenReturn(ProcessGroupDrainState.DRAINING);
+        when(group.getDrain()).thenReturn(Optional.of(drain));
+        assertEquals("drain-1", newDtoFactoryForParameters().createProcessGroupDto(group, false).getDrainRequestId());
+
+        // The group keeps a drain that has failed or ended so that its outcome can be read, but only a drain that is draining is reported on the group
+        when(drain.getState()).thenReturn(ProcessGroupDrainState.FAILED);
+        assertNull(newDtoFactoryForParameters().createProcessGroupDto(group, false).getDrainRequestId());
     }
 
     @Test
@@ -1170,6 +1190,18 @@ public class DtoFactoryTest {
         );
 
         assertEquals("STATELESS", dto.getResolvedExecutionEngine());
+        assertNull(dto.getDrainRequestId());
+
+        final ProcessGroupDrain drain = mock(ProcessGroupDrain.class);
+        when(drain.getIdentifier()).thenReturn("drain-1");
+        when(drain.getState()).thenReturn(ProcessGroupDrainState.DRAINING);
+        when(group.getDrain()).thenReturn(Optional.of(drain));
+        final ProcessGroupFlowDTO drainingDto = newDtoFactoryForParameters().createProcessGroupFlowDto(group, groupStatus, mock(RevisionManager.class), ignored -> Collections.emptyList(), false);
+        assertEquals("drain-1", drainingDto.getDrainRequestId());
+
+        when(drain.getState()).thenReturn(ProcessGroupDrainState.ENDED);
+        final ProcessGroupFlowDTO endedDto = newDtoFactoryForParameters().createProcessGroupFlowDto(group, groupStatus, mock(RevisionManager.class), ignored -> Collections.emptyList(), false);
+        assertNull(endedDto.getDrainRequestId());
     }
 
     @Test
@@ -1178,11 +1210,93 @@ public class DtoFactoryTest {
         original.setContents(new FlowSnippetDTO());
         original.setExecutionEngine("INHERITED");
         original.setResolvedExecutionEngine("STATELESS");
+        original.setDrainRequestId("drain-1");
 
         final ProcessGroupDTO copy = newDtoFactoryForParameters().copy(original, false);
 
         assertEquals("INHERITED", copy.getExecutionEngine());
         assertEquals("STATELESS", copy.getResolvedExecutionEngine());
+        assertEquals("drain-1", copy.getDrainRequestId());
+    }
+
+    @Test
+    void testCreateProcessGroupDrainRequestDto() {
+        final ProcessGroup group = mock(ProcessGroup.class);
+        when(group.getIdentifier()).thenReturn("pg-1");
+
+        final ProcessorNode readableProcessor = mock(ProcessorNode.class);
+        when(readableProcessor.isAuthorized(any(), eq(RequestAction.READ), any())).thenReturn(true);
+        when(group.findProcessor("processor-1")).thenReturn(readableProcessor);
+
+        final Port unreadablePort = mock(Port.class);
+        when(unreadablePort.isAuthorized(any(), eq(RequestAction.READ), any())).thenReturn(false);
+        when(group.findOutputPort("port-1")).thenReturn(unreadablePort);
+
+        // A Remote Process Group Input Port is authorized through its Remote Process Group
+        final RemoteProcessGroup readableRemoteProcessGroup = mock(RemoteProcessGroup.class);
+        when(readableRemoteProcessGroup.isAuthorized(any(), eq(RequestAction.READ), any())).thenReturn(true);
+        when(group.findRemoteProcessGroup("remote-group-1")).thenReturn(readableRemoteProcessGroup);
+
+        final DrainBlockingComponent invalidProcessor = new DrainBlockingComponent("processor-1", "Processor", ConnectableType.PROCESSOR, "pg-1", null,
+                DrainBlockingComponent.Reason.INVALID, List.of("Property is required"), 3);
+        final DrainBlockingComponent disabledPort = new DrainBlockingComponent("port-1", "Port", ConnectableType.OUTPUT_PORT, "pg-2", null,
+                DrainBlockingComponent.Reason.DISABLED, List.of(), 2);
+        final DrainBlockingComponent invalidRemotePort = new DrainBlockingComponent("remote-port-1", "Remote Port", ConnectableType.REMOTE_INPUT_PORT, "pg-1", "remote-group-1",
+                DrainBlockingComponent.Reason.INVALID, List.of("Remote instance indicates that port no longer exists"), 4);
+
+        final ProcessGroupDrain drain = mock(ProcessGroupDrain.class);
+        when(drain.getIdentifier()).thenReturn("drain-1");
+        when(drain.getProcessGroup()).thenReturn(group);
+        when(drain.getState()).thenReturn(ProcessGroupDrainState.DRAINING);
+        when(drain.getFailureReason()).thenReturn(Optional.empty());
+        when(drain.isPrepared()).thenReturn(true);
+        when(drain.getOriginalQueueSize()).thenReturn(new QueueSize(20, 2000L));
+        when(drain.getCurrentQueueSize()).thenReturn(new QueueSize(5, 500L));
+        when(drain.getBlockingComponents()).thenReturn(List.of(invalidProcessor, disabledPort, invalidRemotePort));
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setAuthorizer(mock(Authorizer.class));
+
+        ProcessGroupDrainRequestDTO dto = dtoFactory.createProcessGroupDrainRequestDto(drain);
+        assertEquals("drain-1", dto.getId());
+        assertEquals("pg-1", dto.getProcessGroupId());
+        assertEquals("DRAINING", dto.getState());
+        assertNull(dto.getFailureReason());
+        assertTrue(dto.getPrepared());
+        assertEquals(20, dto.getOriginalCount());
+        assertEquals(2000L, dto.getOriginalSize());
+        assertEquals(5, dto.getCurrentCount());
+        assertEquals(500L, dto.getCurrentSize());
+
+        final List<DrainBlockingComponentDTO> blockingComponents = dto.getBlockingComponents();
+        assertEquals(3, blockingComponents.size());
+
+        final DrainBlockingComponentDTO processorDto = blockingComponents.get(0);
+        assertEquals("processor-1", processorDto.getId());
+        assertEquals("pg-1", processorDto.getGroupId());
+        assertNull(processorDto.getRemoteProcessGroupId());
+        assertEquals("PROCESSOR", processorDto.getType());
+        assertEquals("INVALID", processorDto.getReason());
+        assertEquals(3, processorDto.getQueuedCount());
+        assertEquals("Processor", processorDto.getName());
+        assertEquals(List.of("Property is required"), processorDto.getValidationErrors());
+
+        // The name and validation errors of a component are reported only if the user is allowed to read the component
+        final DrainBlockingComponentDTO portDto = blockingComponents.get(1);
+        assertEquals("port-1", portDto.getId());
+        assertNull(portDto.getName());
+        assertNull(portDto.getValidationErrors());
+
+        final DrainBlockingComponentDTO remotePortDto = blockingComponents.get(2);
+        assertEquals("remote-group-1", remotePortDto.getRemoteProcessGroupId());
+        assertEquals("Remote Port", remotePortDto.getName());
+        assertEquals(List.of("Remote instance indicates that port no longer exists"), remotePortDto.getValidationErrors());
+
+        when(drain.getState()).thenReturn(ProcessGroupDrainState.FAILED);
+        when(drain.getFailureReason()).thenReturn(Optional.of("Failed to stop source"));
+        dto = dtoFactory.createProcessGroupDrainRequestDto(drain);
+        assertEquals("FAILED", dto.getState());
+        assertEquals("Failed to stop source", dto.getFailureReason());
     }
 
     private static ProcessGroup stubProcessGroup(final ExecutionEngine configured, final ExecutionEngine resolved) {

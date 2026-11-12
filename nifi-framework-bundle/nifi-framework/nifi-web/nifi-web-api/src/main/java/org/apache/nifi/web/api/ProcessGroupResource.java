@@ -58,8 +58,14 @@ import org.apache.nifi.authorization.SnippetAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.ReplicationHeader;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedComponent;
@@ -90,6 +96,7 @@ import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.ParameterContextHandlingStrategy;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDrainRequestDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupReplaceRequestDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -118,6 +125,7 @@ import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.PasteRequestEntity;
 import org.apache.nifi.web.api.entity.PasteResponseEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupDrainRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
@@ -131,6 +139,7 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupsEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.util.ParameterContextReplacer;
+import org.apache.nifi.web.util.ProcessGroupDrainMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -145,6 +154,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -168,6 +178,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     private ConnectionResource connectionResource;
     private ControllerServiceResource controllerServiceResource;
     private ParameterContextReplacer parameterContextReplacer;
+    private ProcessGroupDrainMonitor processGroupDrainMonitor;
 
     public RequestManager<String, Void> flowAnalysisAsyncRequestManager =
             new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "On-demand Flow Analysis");
@@ -923,6 +934,230 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         processGroup.getEncapsulatedConnections().stream()
                 .map(ConnectionAuthorizable::getSourceData)
                 .forEach(connectionSourceData -> connectionSourceData.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()));
+    }
+
+    /**
+     * Creates a request to drain the data that is queued in a process group.
+     *
+     * @param processGroupId The id of the process group to drain
+     * @return A processGroupDrainRequestEntity
+     */
+    @POST
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/drain-requests")
+    @Operation(
+            summary = "Begins draining a process group",
+            description = "Stops the components that bring data into the process group and starts every other component so that the queued data is processed. "
+                    + "NiFi ends the drain once those components have stopped and no FlowFiles remain queued, or when the request is deleted. Ending the drain "
+                    + "leaves every component in its current run state. FlowFiles received over HTTP Site-to-Site before the drain began but not yet "
+                    + "confirmed by the sender may still be added after the drain ends.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "202", description = "The request has been accepted. An HTTP response header will contain the URI where the status can be polled.",
+                            content = @Content(schema = @Schema(implementation = ProcessGroupDrainRequestEntity.class))
+                    ),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Write - /process-groups/{uuid} - For this and all encapsulated components"),
+                    @SecurityRequirement(name = "Write - /controller-services/{uuid} - For all encapsulated Controller Services"),
+                    @SecurityRequirement(name = "Write - /controller-services/{uuid} - For all referenced Controller Services that are not enabled, "
+                            + "including the services they require, because the drain enables them"),
+                    @SecurityRequirement(name = "Read - /controller-services/{uuid} - For all other referenced Controller Services")
+            }
+    )
+    public Response createProcessGroupDrainRequest(
+            @Parameter(description = "The process group id.", required = true)
+            @PathParam("id") final String processGroupId
+    ) {
+        if (isReplicateRequest()) {
+            final NodeResponse nodeResponse;
+            try {
+                nodeResponse = replicateNodeResponse(HttpMethod.POST);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Request to drain Process Group " + processGroupId + " was interrupted").type("text/plain").build();
+            }
+
+            if (nodeResponse.getStatus() != Status.ACCEPTED.getStatusCode()) {
+                return nodeResponse.getResponse();
+            }
+
+            final ProcessGroupDrainRequestEntity entity = getResponseEntity(nodeResponse, ProcessGroupDrainRequestEntity.class);
+            final ProcessGroupDrainRequestDTO drainRequest = entity.getDrainRequest();
+            // A request that another node forwarded to the Cluster Coordinator is watched by the node that forwarded it
+            if (httpServletRequest.getHeader(ReplicationHeader.REQUEST_FORWARDED_TO_COORDINATOR.getHeader()) == null) {
+                final URI drainRequestUri = UriBuilder.fromUri(getAbsolutePath()).path(drainRequest.getId()).build();
+                processGroupDrainMonitor.watch(drainRequestUri, processGroupId, drainRequest.getId(), NiFiUserUtils.getNiFiUser());
+            }
+            return Response.status(Status.ACCEPTED).location(URI.create(drainRequest.getUri())).entity(entity).build();
+        }
+
+        final ProcessGroupEntity requestProcessGroupEntity = new ProcessGroupEntity();
+        requestProcessGroupEntity.setId(processGroupId);
+
+        return withWriteLock(
+                serviceFacade,
+                requestProcessGroupEntity,
+                lookup -> {
+                    final ProcessGroupAuthorizable processGroup = lookup.getProcessGroup(processGroupId);
+                    authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.WRITE, true, true, true, false, false);
+
+                    // The drain enables each of these services that is not already enabled, which requires permission to modify the service
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+                    for (final ControllerServiceNode service : processGroup.getProcessGroup().findControllerServicesForDrain()) {
+                        final RequestAction action = service.isActive() ? RequestAction.READ : RequestAction.WRITE;
+                        lookup.getControllerService(service.getIdentifier()).getAuthorizable().authorize(authorizer, action, user);
+                    }
+                },
+                () -> {
+                    serviceFacade.verifyBeginProcessGroupDrain(processGroupId);
+
+                    final ClusterCoordinator clusterCoordinator = getClusterCoordinator();
+                    if (clusterCoordinator != null) {
+                        final Set<NodeIdentifier> disconnectedNodes = clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTING, NodeConnectionState.DISCONNECTED,
+                                NodeConnectionState.DISCONNECTING);
+                        if (!disconnectedNodes.isEmpty()) {
+                            throw new IllegalClusterStateException("Cannot drain Process Group %s because the following %s nodes are not currently connected: %s"
+                                    .formatted(processGroupId, disconnectedNodes.size(), disconnectedNodes));
+                        }
+                    }
+                },
+                processGroupEntity -> {
+                    // ensure the id is the same across the cluster
+                    final String drainRequestId = generateUuid();
+
+                    final ProcessGroupDrainRequestDTO drainRequest = serviceFacade.beginProcessGroupDrain(processGroupEntity.getId(), drainRequestId);
+                    drainRequest.setUri(generateResourceUri("process-groups", processGroupEntity.getId(), "drain-requests", drainRequest.getId()));
+
+                    // A replicated drain is watched by the node that replicated the request
+                    if (httpServletRequest.getHeader(ReplicationHeader.REQUEST_REPLICATED.getHeader()) == null) {
+                        processGroupDrainMonitor.watch(processGroupEntity.getId(), drainRequestId, NiFiUserUtils.getNiFiUser());
+                    }
+
+                    final ProcessGroupDrainRequestEntity entity = new ProcessGroupDrainRequestEntity();
+                    entity.setDrainRequest(drainRequest);
+
+                    final URI location = URI.create(drainRequest.getUri());
+                    return Response.status(Status.ACCEPTED).location(location).entity(entity).build();
+                }
+        );
+    }
+
+    /**
+     * Gets the current status of a request to drain a process group.
+     *
+     * @param processGroupId The id of the process group
+     * @param drainRequestId The id of the drain request
+     * @return A processGroupDrainRequestEntity. The drain request is empty if this node has no drain request with the given id.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/drain-requests/{drain-request-id}")
+    @Operation(
+            summary = "Gets the current status of a request to drain a process group",
+            description = "The response does not contain a drain request if the process group has no drain request with the given id.",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ProcessGroupDrainRequestEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified process group could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /process-groups/{uuid}")
+            }
+    )
+    public Response getProcessGroupDrainRequest(
+            @Parameter(description = "The process group id.", required = true)
+            @PathParam("id") final String processGroupId,
+            @Parameter(description = "The drain request id.", required = true)
+            @PathParam("drain-request-id") final String drainRequestId
+    ) {
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable processGroup = lookup.getProcessGroup(processGroupId).getAuthorizable();
+            processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        final ProcessGroupDrainRequestEntity entity = new ProcessGroupDrainRequestEntity();
+        final Optional<ProcessGroupDrainRequestDTO> drainRequest = serviceFacade.getProcessGroupDrainRequest(processGroupId, drainRequestId);
+        if (drainRequest.isPresent()) {
+            drainRequest.get().setUri(generateResourceUri("process-groups", processGroupId, "drain-requests", drainRequestId));
+            entity.setDrainRequest(drainRequest.get());
+        }
+
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Ends the specified request to drain a process group. The run state of each component is left unchanged.
+     *
+     * @param processGroupId The id of the process group
+     * @param drainRequestId The id of the drain request
+     * @return A processGroupDrainRequestEntity. The drain request is empty if this node has no drain request with the given id.
+     */
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/drain-requests/{drain-request-id}")
+    @Operation(
+            summary = "Ends a request to drain a process group",
+            description = "Ends the drain and leaves every component in its current run state. The response contains the final status of the drain.",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ProcessGroupDrainRequestEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Write - /process-groups/{uuid}")
+            }
+    )
+    public Response removeProcessGroupDrainRequest(
+            @Parameter(description = "The process group id.", required = true)
+            @PathParam("id") final String processGroupId,
+            @Parameter(description = "The drain request id.", required = true)
+            @PathParam("drain-request-id") final String drainRequestId
+    ) {
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        }
+
+        final ProcessGroupEntity requestProcessGroupEntity = new ProcessGroupEntity();
+        requestProcessGroupEntity.setId(processGroupId);
+
+        return withWriteLock(
+                serviceFacade,
+                requestProcessGroupEntity,
+                lookup -> {
+                    final Authorizable processGroup = lookup.getProcessGroup(processGroupId).getAuthorizable();
+                    processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                null,
+                processGroupEntity -> {
+                    final ProcessGroupDrainRequestEntity entity = new ProcessGroupDrainRequestEntity();
+                    final Optional<ProcessGroupDrainRequestDTO> drainRequest = serviceFacade.endProcessGroupDrain(processGroupEntity.getId(), drainRequestId);
+                    if (drainRequest.isPresent()) {
+                        drainRequest.get().setUri(generateResourceUri("process-groups", processGroupEntity.getId(), "drain-requests", drainRequestId));
+                        entity.setDrainRequest(drainRequest.get());
+                    }
+
+                    return generateOkResponse(entity).build();
+                }
+        );
     }
 
     /**
@@ -3576,6 +3811,11 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     @Autowired
     public void setParameterContextReplacer(ParameterContextReplacer parameterContextReplacer) {
         this.parameterContextReplacer = parameterContextReplacer;
+    }
+
+    @Autowired
+    public void setProcessGroupDrainMonitor(final ProcessGroupDrainMonitor processGroupDrainMonitor) {
+        this.processGroupDrainMonitor = processGroupDrainMonitor;
     }
 
     private static class DropEntity extends Entity {

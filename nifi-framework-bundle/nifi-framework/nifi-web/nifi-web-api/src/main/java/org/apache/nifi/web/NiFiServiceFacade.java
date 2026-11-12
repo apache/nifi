@@ -82,6 +82,7 @@ import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDrainRequestDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
@@ -1616,6 +1617,40 @@ public interface NiFiServiceFacade {
      * @return The DropRequest
      */
     DropRequestDTO deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId);
+
+    /**
+     * Verifies that a drain can begin for the specified process group.
+     *
+     * @param processGroupId The ID of the process group
+     */
+    void verifyBeginProcessGroupDrain(String processGroupId);
+
+    /**
+     * Begins draining the specified process group.
+     *
+     * @param processGroupId The ID of the process group
+     * @param drainRequestId The ID of the drain request
+     * @return The drain request
+     */
+    ProcessGroupDrainRequestDTO beginProcessGroupDrain(String processGroupId, String drainRequestId);
+
+    /**
+     * Gets the specified drain request of a process group.
+     *
+     * @param processGroupId The ID of the process group
+     * @param drainRequestId The ID of the drain request
+     * @return The drain request, or an empty Optional if the process group has no drain request with the given ID
+     */
+    Optional<ProcessGroupDrainRequestDTO> getProcessGroupDrainRequest(String processGroupId, String drainRequestId);
+
+    /**
+     * Ends the specified drain request of a process group. The state of each component is left unchanged.
+     *
+     * @param processGroupId The ID of the process group
+     * @param drainRequestId The ID of the drain request
+     * @return The ended drain request, or an empty Optional if the process group has no drain request with the given ID
+     */
+    Optional<ProcessGroupDrainRequestDTO> endProcessGroupDrain(String processGroupId, String drainRequestId);
 
     /**
      * Deletes the specified process group.

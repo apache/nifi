@@ -25,6 +25,7 @@ import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.PasteRequestEntity;
 import org.apache.nifi.web.api.entity.PasteResponseEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupDrainRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
@@ -73,6 +74,12 @@ public interface ProcessGroupClient {
     DropRequestEntity emptyQueues(String processGroupId) throws NiFiClientException, IOException;
 
     DropRequestEntity getEmptyQueuesRequest(String processGroupId, String requestId) throws NiFiClientException, IOException;
+
+    ProcessGroupDrainRequestEntity createDrainRequest(String processGroupId) throws NiFiClientException, IOException;
+
+    ProcessGroupDrainRequestEntity getDrainRequest(String processGroupId, String drainRequestId) throws NiFiClientException, IOException;
+
+    ProcessGroupDrainRequestEntity deleteDrainRequest(String processGroupId, String drainRequestId) throws NiFiClientException, IOException;
 
     CopyResponseEntity copy(String processGroupId, CopyRequestEntity copyRequestEntity) throws NiFiClientException, IOException;
 

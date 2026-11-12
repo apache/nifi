@@ -64,6 +64,7 @@ import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDrainRequestDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
@@ -122,6 +123,7 @@ import org.apache.nifi.web.api.entity.ParameterProvidersEntity;
 import org.apache.nifi.web.api.entity.PasteRequestEntity;
 import org.apache.nifi.web.api.entity.PasteResponseEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupDrainRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
@@ -2326,6 +2328,63 @@ public class NiFiClientUtil {
         final ProcessGroupEntity childGroup = nifiClient.getProcessGroupClient().createProcessGroup(parentGroupId, childGroupEntity);
         logger.info("Created Process Group [id={}, name={}, parentGroupId={}] for Test [{}]", childGroup.getId(), name, parentGroupId, testName);
         return childGroup;
+    }
+
+    public ProcessGroupDrainRequestEntity startProcessGroupDrain(final String processGroupId) throws NiFiClientException, IOException {
+        final ProcessGroupDrainRequestEntity drainRequestEntity = nifiClient.getProcessGroupClient().createDrainRequest(processGroupId);
+        logger.info("Started drain [id={}] of Process Group [{}] for Test [{}]", drainRequestEntity.getDrainRequest().getId(), processGroupId, testName);
+        return drainRequestEntity;
+    }
+
+    /**
+     * Waits until NiFi ends the given drain once the data has left the Process Group.
+     */
+    public void waitForProcessGroupDrainEnded(final String processGroupId, final String drainRequestId) throws NiFiClientException, IOException, InterruptedException {
+        int iteration = 0;
+        while (true) {
+            final ProcessGroupDrainRequestDTO drainRequest = nifiClient.getProcessGroupClient().getDrainRequest(processGroupId, drainRequestId).getDrainRequest();
+            if (drainRequest == null) {
+                throw new IllegalStateException("Process Group " + processGroupId + " has no record of drain request " + drainRequestId);
+            }
+
+            if ("ENDED".equals(drainRequest.getState())) {
+                logger.info("Drain request {} for Process Group {} has ended", drainRequestId, processGroupId);
+                return;
+            }
+
+            if ("FAILED".equals(drainRequest.getState())) {
+                throw new IllegalStateException("Drain request " + drainRequestId + " for Process Group " + processGroupId + " failed: " + drainRequest.getFailureReason());
+            }
+
+            if (iteration++ % 30 == 0) {
+                logger.info("Drain request {} for Process Group {} has {} FlowFiles remaining", drainRequestId, processGroupId, drainRequest.getCurrentCount());
+            }
+
+            Thread.sleep(100L);
+        }
+    }
+
+    public ProcessGroupDrainRequestEntity endProcessGroupDrain(final String processGroupId, final String drainRequestId) throws NiFiClientException, IOException {
+        final ProcessGroupDrainRequestEntity drainRequestEntity = nifiClient.getProcessGroupClient().deleteDrainRequest(processGroupId, drainRequestId);
+        logger.info("Ended drain [id={}] of Process Group [{}] for Test [{}]", drainRequestId, processGroupId, testName);
+        return drainRequestEntity;
+    }
+
+    /**
+     * Ends the drain of every descendant of the given Process Group that has a drain, so that the components of those groups can be stopped.
+     *
+     * @param processGroupId the ID of the Process Group whose descendants should no longer be drained
+     */
+    public void endProcessGroupDrains(final String processGroupId) throws NiFiClientException, IOException {
+        final ProcessGroupFlowEntity flowEntity = nifiClient.getFlowClient().getProcessGroup(processGroupId);
+        for (final ProcessGroupEntity childGroup : flowEntity.getProcessGroupFlow().getFlow().getProcessGroups()) {
+            final String drainRequestId = childGroup.getComponent().getDrainRequestId();
+            if (drainRequestId != null) {
+                endProcessGroupDrain(childGroup.getId(), drainRequestId);
+            }
+
+            endProcessGroupDrains(childGroup.getId());
+        }
     }
 
     public PortEntity createInputPort(final String name, final String groupId) throws NiFiClientException, IOException {
