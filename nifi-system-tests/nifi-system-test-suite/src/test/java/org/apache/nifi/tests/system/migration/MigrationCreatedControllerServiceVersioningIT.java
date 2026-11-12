@@ -25,9 +25,10 @@ import org.apache.nifi.web.api.dto.StateEntryDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
+import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -37,6 +38,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -45,8 +47,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies that startup and import migration create matching Controller Service identities and that
- * flow version changes preserve the service instance, references, and state.
+ * Verifies that Controller Services created by property migration get versioned IDs that match between the flow author
+ * and its consumers, so that flow version changes keep each consumer's service instance, state, and secret, and never
+ * point a processor at another processor's service.
+ *
+ * All flows are set up on the old extensions and checked after a single runtime upgrade.
  */
 class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSwapMigrationIT {
 
@@ -58,98 +63,252 @@ class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSwapMigra
     private static final String VERSION_3 = "3";
     private static final Path FLOW_SNAPSHOT = Path.of("src/test/resources/versioned-flows", TEST_FLOWS_BUCKET, FLOW_ID, VERSION_1, FLOW_DEFINITION_FILENAME);
 
+    private static final String STORE_NAME_PROPERTY = "Store Name";
+    private static final String STORE_PASSWORD_PROPERTY = "Store Password";
     private static final String STORE_SERVICE_PROPERTY = "Store Service";
     private static final String STORE_SERVICE_TYPE = TEST_CS_PACKAGE + ".StateBackedStoreService";
+    private static final String STORE_NAME = "store";
 
     private static final String MIGRATING_PROCESSOR_NAME = "MigrateToControllerService";
     private static final String PROCESSOR_TYPE = TEST_PROCESSORS_PACKAGE + "." + MIGRATING_PROCESSOR_NAME;
     private static final String ADDED_PROCESSOR_NAME = "Added Processor";
+    private static final String RENAMED_PROCESSOR_NAME = "Renamed Migrating Processor";
+    private static final String FIRST_PROCESSOR = "First Processor";
+    private static final String SECOND_PROCESSOR = "Second Processor";
+
+    private static final String SECRETS_CONTEXT = "Store Secrets";
+    private static final String FIRST_SECRET = "first-secret";
+    private static final String SECOND_SECRET = "second-secret";
+    private static final String FIRST_SECRET_REFERENCE = "#{first-password}";
+    private static final String SECOND_SECRET_REFERENCE = "#{second-password}";
 
     private static final String ROOT_PG = "root";
 
     private static final String CREATED_STATE_KEY = "created";
-    private static final String ROW_COUNT_STATE_KEY = "rowCount";
+    private static final String PASSWORD_STATE_KEY = "password";
     private static final long CONDITION_POLL_MILLIS = 100L;
 
     @TempDir
     Path registryDirectory;
 
     @Test
-    void testStartupAndImportMigratedServicesSurviveFlowVersionUpdates() throws NiFiClientException, IOException, InterruptedException {
-        // Import V1 as the author flow before property migration is introduced.
+    void testMigrationCreatedServicesSurviveFlowVersionUpdates() throws NiFiClientException, IOException, InterruptedException {
+        Files.createDirectories(registryDirectory.resolve(TEST_FLOWS_BUCKET));
         final FlowRegistryClientEntity registryClient = registerClient(registryDirectory.toFile());
+        final ParameterContextEntity secrets = createSecretsParameterContext();
+
+        // Before the runtime upgrade, every flow is created on the old extensions, which have no Controller Service yet.
+        // The author and a consumer import a legacy flow; after the upgrade, one consumer migrates at startup and another at import.
+        final MigrationPathFlows migrationPaths = setUpMigrationPathFlows(registryClient);
+
+        // The author's two processors request identical configuration, so they will share one service.
+        final LaggingConsumerFlows laggingWithSharedService = setUpLaggingConsumerFlows(registryClient, secrets, "Shared Service", FIRST_SECRET_REFERENCE, FIRST_SECRET_REFERENCE);
+
+        // The author's two processors use different secrets, so they will get separate services.
+        final LaggingConsumerFlows laggingWithSeparateServices = setUpLaggingConsumerFlows(registryClient, secrets, "Separate Services", FIRST_SECRET_REFERENCE, SECOND_SECRET_REFERENCE);
+
+        // The author's processors share one inline secret, while each consumer processor has its own inline secret.
+        final InlineSecretFlows inlineSecrets = setUpInlineSecretFlows(registryClient);
+
+        upgradeRuntime();
+
+        final MigrationPathConsumers migrationPathConsumers = verifyStartupAndImportMigrationsMatchAuthor(registryClient, migrationPaths);
+        verifyAuthorSharesUnversionedServiceWithInlineSecret(inlineSecrets);
+
+        // Each author saves a version that declares the services created by migration.
+        renameProcessor(migrationPaths.author().processorId(), RENAMED_PROCESSOR_NAME);
+        saveFlowVersion(migrationPaths.author().groupId(), registryClient);
+        saveFlowVersion(laggingWithSharedService.authorGroupId(), registryClient);
+        saveFlowVersion(laggingWithSeparateServices.authorGroupId(), registryClient);
+        saveFlowVersion(inlineSecrets.authorGroupId(), registryClient);
+
+        verifyMigrationPathConsumersAdoptVersionWithService(migrationPathConsumers);
+        verifyLaggingConsumerMatchesSharedService(laggingWithSharedService);
+        verifyLaggingConsumerMatchesSeparateServices(laggingWithSeparateServices);
+        verifyServiceWithInlineSecretIsNotReusedByOtherProcessors(inlineSecrets);
+    }
+
+    /**
+     * The author imports a legacy V1 and saves V2 with an unrelated processor; the startup consumer imports V1.
+     */
+    private MigrationPathFlows setUpMigrationPathFlows(final FlowRegistryClientEntity registryClient) throws NiFiClientException, IOException, InterruptedException {
         final MigratedFlow authorFlow = flowIn(importInitialFlow(registryClient));
         getClientUtil().waitForRunningProcessor(authorFlow.processorId());
 
-        // Publish V2 with an unrelated Processor, without declaring a Controller Service.
         final ProcessorEntity addedProcessor = getClientUtil().createProcessor(MIGRATING_PROCESSOR_NAME, authorFlow.groupId());
         addedProcessor.getComponent().setName(ADDED_PROCESSOR_NAME);
         getNifiClient().getProcessorClient().updateProcessor(addedProcessor);
         saveFlowVersion(authorFlow.groupId(), registryClient);
 
-        // Import consumer V1 before the runtime upgrade to verify startup migration.
-        final MigratedFlow startupConsumerFlow = importFlow(registryClient, FLOW_ID, VERSION_1);
+        final MigratedFlow startupConsumerFlow = importFlow(registryClient, VERSION_1);
         getClientUtil().startProcessGroupComponents(startupConsumerFlow.groupId());
         getClientUtil().waitForRunningProcessor(startupConsumerFlow.processorId());
 
-        upgradeRuntime();
+        return new MigrationPathFlows(authorFlow, startupConsumerFlow);
+    }
 
-        // Startup migration creates an enabled, referenced Controller Service with a versioned ID in the author flow.
-        final MigratedStore authorStore = awaitPopulatedStoreService(authorFlow);
-        final ControllerServiceEntity authorService = waitForSingleStoreService(authorFlow.groupId());
-        final String versionedId = authorService.getComponent().getVersionedComponentId();
+    /**
+     * The author saves V1 with the first processor and V2 with both processors. The consumer imports V1 and stays on it,
+     * so after the upgrade it migrates only the first processor and then skips V2.
+     */
+    private LaggingConsumerFlows setUpLaggingConsumerFlows(final FlowRegistryClientEntity registryClient, final ParameterContextEntity secrets, final String flowName,
+                                                           final String firstPassword, final String secondPassword) throws NiFiClientException, IOException {
+        final ProcessGroupEntity authorGroup = getClientUtil().createProcessGroup(flowName, ROOT_PG);
+        getClientUtil().setParameterContext(authorGroup.getId(), secrets);
+        createMigratingProcessor(authorGroup.getId(), FIRST_PROCESSOR, firstPassword);
+        final String flowId = startVersionControl(authorGroup.getId(), registryClient, flowName);
+
+        createMigratingProcessor(authorGroup.getId(), SECOND_PROCESSOR, secondPassword);
+        saveFlowVersion(authorGroup.getId(), registryClient);
+
+        final ProcessGroupEntity consumerGroup = getClientUtil().importFlowFromRegistry(ROOT_PG, registryClient.getId(), TEST_FLOWS_BUCKET, flowId, VERSION_1);
+        return new LaggingConsumerFlows(authorGroup.getId(), consumerGroup.getId());
+    }
+
+    /**
+     * Both processors have the same inline password on the author, so they will share one service there once migrated.
+     * On the consumer, each processor is given its own inline password, so migration will give them separate services.
+     */
+    private InlineSecretFlows setUpInlineSecretFlows(final FlowRegistryClientEntity registryClient) throws NiFiClientException, IOException {
+        final String flowName = "Inline Secrets";
+        final ProcessGroupEntity authorGroup = getClientUtil().createProcessGroup(flowName, ROOT_PG);
+        createMigratingProcessor(authorGroup.getId(), FIRST_PROCESSOR, "author-secret");
+        createMigratingProcessor(authorGroup.getId(), SECOND_PROCESSOR, "author-secret");
+        final String flowId = startVersionControl(authorGroup.getId(), registryClient, flowName);
+
+        final ProcessGroupEntity consumerGroup = getClientUtil().importFlowFromRegistry(ROOT_PG, registryClient.getId(), TEST_FLOWS_BUCKET, flowId, VERSION_1);
+        setStorePassword(consumerGroup.getId(), FIRST_PROCESSOR, FIRST_SECRET);
+        setStorePassword(consumerGroup.getId(), SECOND_PROCESSOR, SECOND_SECRET);
+        return new InlineSecretFlows(authorGroup.getId(), consumerGroup.getId());
+    }
+
+    /**
+     * Migration at startup and at import produces the author's versioned ID, and a version change to a version that does not declare
+     * the service keeps the consumer's service instance and state. The import consumer imports V2 only after the upgrade.
+     */
+    private MigrationPathConsumers verifyStartupAndImportMigrationsMatchAuthor(final FlowRegistryClientEntity registryClient, final MigrationPathFlows flows)
+            throws NiFiClientException, IOException, InterruptedException {
+        final MigratedFlow authorFlow = flows.author();
+        final MigratedFlow startupConsumerFlow = flows.startupConsumer();
+
+        final Store authorStore = awaitEnabledStore(authorFlow);
+        final String versionedId = authorStore.versionedId();
         assertNotNull(versionedId);
-        assertEquals(authorStore.serviceId(), getStoreServiceId(authorFlow.processorId()));
         getClientUtil().waitForRunningProcessor(authorFlow.processorId());
         assertEquals(ProcessorDTO.VALID, getNifiClient().getProcessorClient().getProcessor(authorFlow.processorId()).getComponent().getValidationStatus());
         getClientUtil().assertFlowUpToDate(authorFlow.groupId());
 
-        // The startup consumer has a distinct Controller Service instance with the same versioned ID as the author's.
-        final MigratedStore startupStore = awaitPopulatedStoreService(startupConsumerFlow);
+        final Store startupStore = awaitEnabledStore(startupConsumerFlow);
         assertNotEquals(authorStore.serviceId(), startupStore.serviceId());
-        assertEquals(startupStore.serviceId(), getStoreServiceId(startupConsumerFlow.processorId()));
-        assertEquals(versionedId, waitForSingleStoreService(startupConsumerFlow.groupId()).getComponent().getVersionedComponentId());
+        assertEquals(versionedId, startupStore.versionedId());
         getClientUtil().assertFlowStaleAndUnmodified(startupConsumerFlow.groupId());
 
-        // Import V2 after the runtime upgrade to verify import migration produces the same Controller Service versioned ID.
-        final MigratedFlow importConsumerFlow = importFlow(registryClient, FLOW_ID, VERSION_2);
+        final MigratedFlow importConsumerFlow = importFlow(registryClient, VERSION_2);
         startMigratedFlow(importConsumerFlow);
-        final MigratedStore importStore = awaitPopulatedStoreService(importConsumerFlow);
+        final Store importStore = awaitEnabledStore(importConsumerFlow);
         assertNotEquals(authorStore.serviceId(), importStore.serviceId());
         assertNotEquals(startupStore.serviceId(), importStore.serviceId());
-        assertEquals(importStore.serviceId(), getStoreServiceId(importConsumerFlow.processorId()));
-        assertEquals(versionedId, waitForSingleStoreService(importConsumerFlow.groupId()).getComponent().getVersionedComponentId());
+        assertEquals(versionedId, importStore.versionedId());
         getClientUtil().assertFlowUpToDate(importConsumerFlow.groupId());
 
-        // Updating to V2 preserves the startup consumer's Controller Service and state, although V2 does not declare the Controller Service.
-        final VersionedFlowUpdateRequestEntity unrelatedUpdate = getClientUtil().changeFlowVersion(startupConsumerFlow.groupId(), VERSION_2, false);
-        assertNull(unrelatedUpdate.getRequest().getFailureReason());
+        // V2 does not declare the service, but the processor still references it, so it is kept.
+        getClientUtil().changeFlowVersion(startupConsumerFlow.groupId(), VERSION_2);
         assertTrue(hasProcessorNamed(startupConsumerFlow.groupId(), ADDED_PROCESSOR_NAME));
-        assertStorePreserved(startupConsumerFlow, startupStore, "unrelated flow update");
-        assertEquals(versionedId, waitForSingleStoreService(startupConsumerFlow.groupId()).getComponent().getVersionedComponentId());
+        assertSameServiceAndState(startupStore, awaitEnabledStore(startupConsumerFlow), "update to a version without the service");
         getClientUtil().assertFlowUpToDate(startupConsumerFlow.groupId());
 
-        // Publish V3 with the migration-created Controller Service and a renamed Processor.
-        final String renamedProcessorName = "Renamed Migrating Processor";
-        renameProcessor(authorFlow.processorId(), renamedProcessorName);
-        saveFlowVersion(authorFlow.groupId(), registryClient);
-        getClientUtil().assertFlowUpToDate(authorFlow.groupId());
+        return new MigrationPathConsumers(startupConsumerFlow, startupStore, importConsumerFlow, importStore);
+    }
 
-        // Updating to V3 adopts the published Controller Service without replacing its instance or state.
-        final VersionedFlowUpdateRequestEntity startupUpdate = getClientUtil().changeFlowVersion(startupConsumerFlow.groupId(), VERSION_3, false);
-        assertNull(startupUpdate.getRequest().getFailureReason());
-        assertStorePreserved(startupConsumerFlow, startupStore, "saved flow update after startup migration");
-        assertEquals(versionedId, waitForSingleStoreService(startupConsumerFlow.groupId()).getComponent().getVersionedComponentId());
-        assertEquals(renamedProcessorName, getNifiClient().getProcessorClient().getProcessor(startupConsumerFlow.processorId()).getComponent().getName());
+    /**
+     * Both consumers adopt the version that declares the service without replacing their service instance or state.
+     */
+    private void verifyMigrationPathConsumersAdoptVersionWithService(final MigrationPathConsumers consumers) throws NiFiClientException, IOException, InterruptedException {
+        final MigratedFlow startupConsumerFlow = consumers.startupConsumer();
+        getClientUtil().changeFlowVersion(startupConsumerFlow.groupId(), VERSION_3);
+        assertSameServiceAndState(consumers.startupStore(), awaitEnabledStore(startupConsumerFlow), "update to a version with the service");
+        assertEquals(RENAMED_PROCESSOR_NAME, getNifiClient().getProcessorClient().getProcessor(startupConsumerFlow.processorId()).getComponent().getName());
         getClientUtil().assertFlowUpToDate(startupConsumerFlow.groupId());
 
-        // The import consumer also adopts V3 while retaining its Controller Service instance and state.
-        final VersionedFlowUpdateRequestEntity importUpdate = getClientUtil().changeFlowVersion(importConsumerFlow.groupId(), VERSION_3, false);
-        assertNull(importUpdate.getRequest().getFailureReason());
-        assertStorePreserved(importConsumerFlow, importStore, "saved flow update after import migration");
-        assertEquals(versionedId, waitForSingleStoreService(importConsumerFlow.groupId()).getComponent().getVersionedComponentId());
-        assertEquals(renamedProcessorName, getNifiClient().getProcessorClient().getProcessor(importConsumerFlow.processorId()).getComponent().getName());
+        final MigratedFlow importConsumerFlow = consumers.importConsumer();
+        getClientUtil().changeFlowVersion(importConsumerFlow.groupId(), VERSION_3);
+        assertSameServiceAndState(consumers.importStore(), awaitEnabledStore(importConsumerFlow), "update to a version with the service");
         getClientUtil().assertFlowUpToDate(importConsumerFlow.groupId());
+    }
+
+    /**
+     * A consumer that skipped the flow version adding the second processor still matches the author's shared service:
+     * it keeps its own service instance, state, and secret.
+     */
+    private void verifyLaggingConsumerMatchesSharedService(final LaggingConsumerFlows flows)
+            throws NiFiClientException, IOException, InterruptedException {
+        final Store authorFirst = readStore(flows.authorGroupId(), FIRST_PROCESSOR);
+        final Store authorSecond = readStore(flows.authorGroupId(), SECOND_PROCESSOR);
+        assertEquals(authorFirst.serviceId(), authorSecond.serviceId(), "the author's processors share one service");
+
+        final Store consumerBefore = readStore(flows.consumerGroupId(), FIRST_PROCESSOR);
+        getClientUtil().changeFlowVersion(flows.consumerGroupId(), VERSION_3);
+
+        final Store consumerAfter = readStore(flows.consumerGroupId(), FIRST_PROCESSOR);
+        assertSameServiceAndState(consumerBefore, consumerAfter, "update after skipping a version");
+        assertNotNull(authorFirst.versionedId());
+        assertEquals(authorFirst.versionedId(), consumerAfter.versionedId());
+        assertEquals(FIRST_SECRET, consumerAfter.password());
+    }
+
+    /**
+     * A consumer that skipped the flow version adding the second processor matches the author's service for the same
+     * processor. Each processor keeps its own service and secret.
+     */
+    private void verifyLaggingConsumerMatchesSeparateServices(final LaggingConsumerFlows flows)
+            throws NiFiClientException, IOException, InterruptedException {
+        final Store authorFirst = readStore(flows.authorGroupId(), FIRST_PROCESSOR);
+        final Store authorSecond = readStore(flows.authorGroupId(), SECOND_PROCESSOR);
+        assertNotNull(authorFirst.versionedId());
+        assertNotNull(authorSecond.versionedId());
+        assertNotEquals(authorFirst.versionedId(), authorSecond.versionedId(), "services with different secrets have different versioned IDs");
+
+        final Store consumerBefore = readStore(flows.consumerGroupId(), FIRST_PROCESSOR);
+        getClientUtil().changeFlowVersion(flows.consumerGroupId(), VERSION_3);
+
+        final Store consumerFirst = readStore(flows.consumerGroupId(), FIRST_PROCESSOR);
+        assertSameServiceAndState(consumerBefore, consumerFirst, "update after skipping a version");
+        assertEquals(authorFirst.versionedId(), consumerFirst.versionedId());
+        assertEquals(FIRST_SECRET, consumerFirst.password());
+
+        // The second processor and its service arrive with V3 and are matched to the author's second service.
+        final Store consumerSecond = readStoreWithoutWaiting(flows.consumerGroupId(), SECOND_PROCESSOR);
+        assertNotEquals(consumerFirst.serviceId(), consumerSecond.serviceId());
+        assertEquals(authorSecond.versionedId(), consumerSecond.versionedId());
+    }
+
+    /**
+     * A service with an inline secret gets no versioned ID, because the secret is not saved to the registry and cannot tell services apart.
+     * Both of the author's processors use the same secret, so they share one service.
+     */
+    private void verifyAuthorSharesUnversionedServiceWithInlineSecret(final InlineSecretFlows flows) throws NiFiClientException, IOException, InterruptedException {
+        final Store authorFirst = readStore(flows.authorGroupId(), FIRST_PROCESSOR);
+        assertEquals(authorFirst.serviceId(), readStore(flows.authorGroupId(), SECOND_PROCESSOR).serviceId(), "the author's processors share one service");
+        assertNull(authorFirst.versionedId(), "a service with an inline secret is left unversioned");
+    }
+
+    /**
+     * Each consumer processor has its own service and secret. After a version change, a consumer processor may lose its secret, as it would
+     * without versioned IDs for services created by migration, but never uses the other processor's secret.
+     */
+    private void verifyServiceWithInlineSecretIsNotReusedByOtherProcessors(final InlineSecretFlows flows)
+            throws NiFiClientException, IOException, InterruptedException {
+        assertEquals(FIRST_SECRET, readStore(flows.consumerGroupId(), FIRST_PROCESSOR).password());
+        assertEquals(SECOND_SECRET, readStore(flows.consumerGroupId(), SECOND_PROCESSOR).password());
+
+        getClientUtil().changeFlowVersion(flows.consumerGroupId(), VERSION_2);
+
+        assertOwnSecretOrNone(readStoreWithoutWaiting(flows.consumerGroupId(), FIRST_PROCESSOR), FIRST_SECRET);
+        assertOwnSecretOrNone(readStoreWithoutWaiting(flows.consumerGroupId(), SECOND_PROCESSOR), SECOND_SECRET);
+    }
+
+    private void assertOwnSecretOrNone(final Store store, final String ownSecret) {
+        assertTrue(store.password() == null || ownSecret.equals(store.password()), "store holds another processor's secret: " + store.password());
     }
 
     private void upgradeRuntime() throws IOException {
@@ -158,19 +317,29 @@ class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSwapMigra
         getNiFiInstance().start(true);
     }
 
-    private MigratedFlow flowIn(final ProcessGroupEntity group) throws NiFiClientException, IOException {
-        return new MigratedFlow(group.getId(), findProcessor(group.getId(), MIGRATING_PROCESSOR_NAME).getId());
+    private ParameterContextEntity createSecretsParameterContext() throws NiFiClientException, IOException {
+        final Set<ParameterEntity> parameters = Set.of(
+                getClientUtil().createParameterEntity("password", null, true, FIRST_SECRET),
+                getClientUtil().createParameterEntity("first-password", null, true, FIRST_SECRET),
+                getClientUtil().createParameterEntity("second-password", null, true, SECOND_SECRET));
+        return getNifiClient().getParamContextClient().createParamContext(getClientUtil().createParameterContextEntity(SECRETS_CONTEXT, null, parameters));
     }
 
-    private MigratedFlow importFlow(final FlowRegistryClientEntity registryClient, final String flowId, final String version)
-            throws NiFiClientException, IOException {
-        return flowIn(getClientUtil().importFlowFromRegistry(ROOT_PG, registryClient.getId(), TEST_FLOWS_BUCKET, flowId, version));
+    private void createMigratingProcessor(final String groupId, final String name, final String password) throws NiFiClientException, IOException {
+        final ProcessorEntity processor = getClientUtil().createProcessor(MIGRATING_PROCESSOR_NAME, groupId);
+        processor.getComponent().setName(name);
+        final ProcessorEntity renamed = getNifiClient().getProcessorClient().updateProcessor(processor);
+        final ProcessorEntity configured = getClientUtil().updateProcessorProperties(renamed, Map.of(STORE_NAME_PROPERTY, STORE_NAME, STORE_PASSWORD_PROPERTY, password));
+        getClientUtil().setAutoTerminatedRelationships(configured, "success");
     }
 
-    private void startMigratedFlow(final MigratedFlow flow) throws NiFiClientException, IOException, InterruptedException {
-        getClientUtil().enableControllerServices(flow.groupId(), true);
-        getClientUtil().startProcessor(getNifiClient().getProcessorClient().getProcessor(flow.processorId()));
-        getClientUtil().waitForRunningProcessor(flow.processorId());
+    private void setStorePassword(final String groupId, final String processorName, final String password) throws NiFiClientException, IOException {
+        getClientUtil().updateProcessorProperties(findProcessor(groupId, processorName), Map.of(STORE_PASSWORD_PROPERTY, password));
+    }
+
+    private String startVersionControl(final String groupId, final FlowRegistryClientEntity registryClient, final String flowName) throws NiFiClientException, IOException {
+        final ProcessGroupEntity group = getNifiClient().getProcessGroupClient().getProcessGroup(groupId);
+        return getClientUtil().startVersionControl(group, registryClient, TEST_FLOWS_BUCKET, flowName).getVersionControlInformation().getFlowId();
     }
 
     private void saveFlowVersion(final String groupId, final FlowRegistryClientEntity registryClient) throws NiFiClientException, IOException {
@@ -178,13 +347,13 @@ class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSwapMigra
                 getNifiClient().getVersionsClient().getVersionControlInfo(groupId));
     }
 
-    private void renameProcessor(final String processorId, final String name) throws NiFiClientException, IOException, InterruptedException {
-        getClientUtil().stopProcessor(getNifiClient().getProcessorClient().getProcessor(processorId));
-        final ProcessorEntity processor = getNifiClient().getProcessorClient().getProcessor(processorId);
-        processor.getComponent().setName(name);
-        getNifiClient().getProcessorClient().updateProcessor(processor);
-        getClientUtil().startProcessor(getNifiClient().getProcessorClient().getProcessor(processorId));
-        getClientUtil().waitForRunningProcessor(processorId);
+    private MigratedFlow flowIn(final ProcessGroupEntity group) throws NiFiClientException, IOException {
+        return new MigratedFlow(group.getId(), findProcessor(group.getId(), MIGRATING_PROCESSOR_NAME).getId());
+    }
+
+    private MigratedFlow importFlow(final FlowRegistryClientEntity registryClient, final String version)
+            throws NiFiClientException, IOException {
+        return flowIn(getClientUtil().importFlowFromRegistry(ROOT_PG, registryClient.getId(), TEST_FLOWS_BUCKET, FLOW_ID, version));
     }
 
     private ProcessGroupEntity importInitialFlow(final FlowRegistryClientEntity registryClient) throws NiFiClientException, IOException, InterruptedException {
@@ -196,44 +365,65 @@ class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSwapMigra
         return group;
     }
 
-    /**
-     * Waits until the migration-created Controller Service is enabled and its store has accumulated at least one row,
-     * so that the flow is known to be working before the operation under test runs, and returns its identifier.
-     */
-    private MigratedStore awaitPopulatedStoreService(final MigratedFlow flow) throws NiFiClientException, IOException, InterruptedException {
-        final ControllerServiceEntity service = waitForSingleStoreService(flow.groupId());
-        final String serviceId = service.getComponent().getId();
-        getClientUtil().waitForControllerServiceRunStatus(serviceId, "ENABLED");
-        waitFor(() -> countRows(serviceId) > 0, CONDITION_POLL_MILLIS, "store row count > 0");
-
-        final String createdTimestamp = readCreatedTimestamp(flow, serviceId);
-        assertNotNull(createdTimestamp);
-        return new MigratedStore(serviceId, createdTimestamp);
+    private void startMigratedFlow(final MigratedFlow flow) throws NiFiClientException, IOException, InterruptedException {
+        getClientUtil().enableControllerServices(flow.groupId(), true);
+        getClientUtil().startProcessor(getNifiClient().getProcessorClient().getProcessor(flow.processorId()));
+        getClientUtil().waitForRunningProcessor(flow.processorId());
     }
 
-    private void assertStorePreserved(final MigratedFlow flow, final MigratedStore store, final String operation)
-            throws NiFiClientException, IOException, InterruptedException {
+    private void renameProcessor(final String processorId, final String name) throws NiFiClientException, IOException, InterruptedException {
+        getClientUtil().stopProcessor(getNifiClient().getProcessorClient().getProcessor(processorId));
+        final ProcessorEntity processor = getNifiClient().getProcessorClient().getProcessor(processorId);
+        processor.getComponent().setName(name);
+        getNifiClient().getProcessorClient().updateProcessor(processor);
+        getClientUtil().startProcessor(getNifiClient().getProcessorClient().getProcessor(processorId));
+        getClientUtil().waitForRunningProcessor(processorId);
+    }
 
-        waitFor(() -> !findStoreServices(flow.groupId()).isEmpty(), CONDITION_POLL_MILLIS, "store Controller Service found");
+    /**
+     * Waits until the flow's only store service is enabled and referenced by the migrated processor, and reads it.
+     */
+    private Store awaitEnabledStore(final MigratedFlow flow) throws NiFiClientException, IOException, InterruptedException {
+        waitFor(() -> findStoreServices(flow.groupId()).size() == 1, CONDITION_POLL_MILLIS, "exactly one store Controller Service");
+        final String serviceId = findStoreServices(flow.groupId()).getFirst().getComponent().getId();
+        getClientUtil().waitForControllerServiceRunStatus(serviceId, "ENABLED");
+        assertEquals(serviceId, getStoreServiceId(flow.processorId()));
+        return readStore(serviceId);
+    }
 
-        final List<ControllerServiceEntity> servicesAfter = findControllerServicesInGroup(flow.groupId());
-        assertEquals(1, servicesAfter.size(), operation);
+    /**
+     * Reads the store service that the named processor references, once that service has been enabled.
+     */
+    private Store readStore(final String groupId, final String processorName) throws NiFiClientException, IOException, InterruptedException {
+        final String serviceId = getStoreServiceId(findProcessor(groupId, processorName).getId());
+        assertNotNull(serviceId, processorName + " references a store service");
+        waitFor(() -> readStoreState(serviceId).containsKey(CREATED_STATE_KEY), CONDITION_POLL_MILLIS, "store service enabled");
+        return readStore(serviceId);
+    }
 
-        final ControllerServiceEntity serviceAfter = servicesAfter.getFirst();
-        final String remainingServiceId = serviceAfter.getComponent().getId();
-        assertEquals(store.serviceId(), remainingServiceId, operation + " replaced the Controller Service");
+    /**
+     * Reads the store service that the named processor references without waiting for it to be enabled. A service that
+     * a version change adds, or one that lacks the consumer's inline secret, may not be enabled.
+     */
+    private Store readStoreWithoutWaiting(final String groupId, final String processorName) throws NiFiClientException, IOException {
+        final String serviceId = getStoreServiceId(findProcessor(groupId, processorName).getId());
+        assertNotNull(serviceId, processorName + " references a store service");
+        return readStore(serviceId);
+    }
 
-        final String referencedServiceId = getStoreServiceId(flow.processorId());
-        assertEquals(store.serviceId(), referencedServiceId);
+    private Store readStore(final String serviceId) throws NiFiClientException, IOException {
+        final ControllerServiceEntity service = getNifiClient().getControllerServicesClient().getControllerService(serviceId);
+        final Map<String, String> state = readStoreState(serviceId);
+        return new Store(serviceId, service.getComponent().getVersionedComponentId(), state.get(CREATED_STATE_KEY), state.get(PASSWORD_STATE_KEY));
+    }
 
-        getClientUtil().waitForControllerServiceRunStatus(store.serviceId(), "ENABLED");
-        getClientUtil().waitForRunningProcessor(flow.processorId());
-
-        final String createdTimestamp = readCreatedTimestamp(flow, store.serviceId());
-        assertEquals(store.created(), createdTimestamp, "store was recreated during " + operation);
-
-        final long rowsAfterOperation = countRows(getStoreServiceId(flow.processorId()));
-        waitFor(() -> countRows(getStoreServiceId(flow.processorId())) > rowsAfterOperation, CONDITION_POLL_MILLIS, "store row count increase");
+    /**
+     * A version change must keep the same service instance and its state. A replaced service has a different identifier
+     * or, if recreated with the same identifier, a later creation timestamp.
+     */
+    private void assertSameServiceAndState(final Store before, final Store after, final String operation) {
+        assertEquals(before.serviceId(), after.serviceId(), operation + " replaced the service");
+        assertEquals(before.created(), after.created(), operation + " recreated the service's state");
     }
 
     private ProcessorEntity findProcessor(final String groupId, final String name) throws NiFiClientException, IOException {
@@ -254,21 +444,11 @@ class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSwapMigra
                 .anyMatch(processor -> name.equals(processor.getComponent().getName()));
     }
 
-    private List<ControllerServiceEntity> findControllerServicesInGroup(final String groupId) throws NiFiClientException, IOException {
+    private List<ControllerServiceEntity> findStoreServices(final String groupId) throws NiFiClientException, IOException {
         return getNifiClient().getFlowClient().getControllerServices(groupId).getControllerServices().stream()
                 .filter(service -> groupId.equals(service.getComponent().getParentGroupId()))
-                .toList();
-    }
-
-    private List<ControllerServiceEntity> findStoreServices(final String groupId) throws NiFiClientException, IOException {
-        return findControllerServicesInGroup(groupId).stream()
                 .filter(service -> STORE_SERVICE_TYPE.equals(service.getComponent().getType()))
                 .toList();
-    }
-
-    private ControllerServiceEntity waitForSingleStoreService(final String groupId) throws NiFiClientException, IOException, InterruptedException {
-        waitFor(() -> findStoreServices(groupId).size() == 1, CONDITION_POLL_MILLIS, "exactly one store Controller Service");
-        return findStoreServices(groupId).getFirst();
     }
 
     private String getStoreServiceId(final String processorId) throws NiFiClientException, IOException {
@@ -295,29 +475,25 @@ class MigrationCreatedControllerServiceVersioningIT extends AbstractNarSwapMigra
         return state;
     }
 
-    /**
-     * Returns the timestamp recorded when the store was established, or null if the service is no longer in the group.
-     * A service that has been removed outright has no state to read, and reporting that as a missing timestamp lets the
-     * caller fail on the comparison rather than on a lookup error.
-     */
-    private String readCreatedTimestamp(final MigratedFlow flow, final String serviceId) throws NiFiClientException, IOException {
-        final boolean stillPresent = findStoreServices(flow.groupId()).stream()
-                .anyMatch(service -> serviceId.equals(service.getComponent().getId()));
-        if (!stillPresent) {
-            return null;
-        }
-
-        return readStoreState(serviceId).get(CREATED_STATE_KEY);
-    }
-
-    private long countRows(final String serviceId) throws NiFiClientException, IOException {
-        final String rowCount = readStoreState(serviceId).get(ROW_COUNT_STATE_KEY);
-        return rowCount == null ? 0 : Long.parseLong(rowCount);
-    }
-
     private record MigratedFlow(String groupId, String processorId) {
     }
 
-    private record MigratedStore(String serviceId, String created) {
+    private record MigrationPathFlows(MigratedFlow author, MigratedFlow startupConsumer) {
+    }
+
+    private record MigrationPathConsumers(MigratedFlow startupConsumer, Store startupStore, MigratedFlow importConsumer, Store importStore) {
+    }
+
+    private record LaggingConsumerFlows(String authorGroupId, String consumerGroupId) {
+    }
+
+    private record InlineSecretFlows(String authorGroupId, String consumerGroupId) {
+    }
+
+    /**
+     * A store service as seen at one point in the test: its instance and versioned IDs, its creation timestamp, and the
+     * password it was last enabled with.
+     */
+    private record Store(String serviceId, String versionedId, String created, String password) {
     }
 }

@@ -30,14 +30,14 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 @CapabilityDescription("""
         Post-upgrade shape of a processor whose property migration creates the store Controller Service that the pre-upgrade shape did not have.
-        Each execution appends a row to the store so that tests can observe whether store contents survive flow and runtime upgrades.
+        The password is passed under an obsolete name that only the service's own migration recognizes, as real migrations do.
         """)
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 public class MigrateToControllerService extends AbstractProcessor {
@@ -53,8 +53,6 @@ public class MigrateToControllerService extends AbstractProcessor {
     private static final List<PropertyDescriptor> PROPERTIES = List.of(STORE_SERVICE);
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
-    private final AtomicLong rowCounter = new AtomicLong(0L);
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
@@ -68,23 +66,24 @@ public class MigrateToControllerService extends AbstractProcessor {
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
         final String storeName = config.getPropertyValue("Store Name").orElse(null);
+        final String storePassword = config.getRawPropertyValue("Store Password").orElse(null);
         config.removeProperty("Store Name");
+        config.removeProperty("Store Password");
 
         if (storeName != null) {
-            final String serviceId = config.createControllerService(StateBackedStoreService.class.getName(), Map.of("Store Name", storeName));
+            final Map<String, String> serviceProperties = new HashMap<>();
+            serviceProperties.put("Store Name", storeName);
+            if (storePassword != null) {
+                serviceProperties.put(StateBackedStoreService.OBSOLETE_STORE_PASSWORD, storePassword);
+            }
+
+            final String serviceId = config.createControllerService(StateBackedStoreService.class.getName(), serviceProperties);
             config.setProperty(STORE_SERVICE, serviceId);
         }
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final StoreService storeService = context.getProperty(STORE_SERVICE).asControllerService(StoreService.class);
-        if (storeService == null) {
-            context.yield();
-            return;
-        }
-
-        storeService.append("row-" + rowCounter.getAndIncrement());
     }
 
 }

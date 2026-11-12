@@ -32,8 +32,8 @@ import java.util.List;
 import java.util.Set;
 
 @CapabilityDescription("""
-        Pre-upgrade shape of a processor that keeps its store location in a plain property.
-        The post-upgrade shape of the same processor, in the alternate-config extensions bundle, migrates that property into a Controller Service.
+        Pre-upgrade shape of a processor that keeps its store name and password in plain properties.
+        The post-upgrade shape of the same processor, in the alternate-config extensions bundle, migrates those properties into a Controller Service.
         """)
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 public class MigrateToControllerService extends AbstractProcessor {
@@ -44,9 +44,16 @@ public class MigrateToControllerService extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor STORE_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Store Password")
+            .required(true)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(STORE_NAME);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(STORE_NAME, STORE_PASSWORD);
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     @Override

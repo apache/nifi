@@ -20,10 +20,7 @@ package org.apache.nifi.cs.tests.system;
 import org.apache.nifi.controller.ControllerService;
 
 /**
- * A store that accumulates rows and whose contents must survive flow and runtime upgrades.
+ * A store whose contents must survive flow and runtime upgrades.
  */
 public interface StoreService extends ControllerService {
-
-    void append(String row);
-
 }

@@ -63,7 +63,8 @@
         "version" : "2.13.0-SNAPSHOT"
       },
       "properties" : {
-        "Store Name" : "store"
+        "Store Name" : "store",
+        "Store Password" : "#{password}"
       },
       "propertyDescriptors" : {
         "Store Name" : {
@@ -71,6 +72,13 @@
           "displayName" : "Store Name",
           "identifiesControllerService" : false,
           "sensitive" : false,
+          "dynamic" : false
+        },
+        "Store Password" : {
+          "name" : "Store Password",
+          "displayName" : "Store Password",
+          "identifiesControllerService" : false,
+          "sensitive" : true,
           "dynamic" : false
         }
       },
@@ -107,13 +115,25 @@
     "maxConcurrentTasks" : 1,
     "statelessFlowTimeout" : "1 min",
     "externalControllerServiceReferences" : { },
+    "parameterContextName" : "Store Secrets",
     "instanceGroupId" : "442550a0-01a1-1000-ce2e-3780e839b63f",
     "flowFileOutboundPolicy" : "STREAM_WHEN_AVAILABLE",
     "flowFileConcurrency" : "UNBOUNDED",
     "componentType" : "PROCESS_GROUP"
   },
   "externalControllerServices" : { },
-  "parameterContexts" : { },
+  "parameterContexts" : {
+    "Store Secrets" : {
+      "name" : "Store Secrets",
+      "parameters" : [ {
+        "name" : "password",
+        "sensitive" : true,
+        "provided" : false
+      } ],
+      "inheritedParameterContexts" : [ ],
+      "componentType" : "PARAMETER_CONTEXT"
+    }
+  },
   "flowEncodingVersion" : "1.0",
   "parameterProviders" : { },
   "latest" : false

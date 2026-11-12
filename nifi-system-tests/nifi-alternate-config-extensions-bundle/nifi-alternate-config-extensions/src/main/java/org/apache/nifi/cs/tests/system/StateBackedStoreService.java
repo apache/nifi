@@ -18,31 +18,35 @@
 package org.apache.nifi.cs.tests.system;
 
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Store whose contents live in the component's local state, so that they are subject to the framework's own state
- * lifecycle. The store records when it was first created and how many rows it holds.
- *
- * Removing a Controller Service clears its state, so a service that was torn down and recreated comes back with a
- * later creation timestamp and no rows. Comparing the creation timestamp across an operation therefore distinguishes
- * a preserved service from one that was replaced, even when the replacement carries the same identifier.
- */
-@Stateful(scopes = Scope.LOCAL, description = "Holds the creation timestamp of the store and the number of rows written to it.")
+@CapabilityDescription("""
+        Store whose contents live in the component's local state, so that they are subject to the framework's own state lifecycle.
+        The store records when it was first created, and on every enable the password it is enabled with.
+        Removing a Controller Service clears its state, so a service that was torn down and recreated comes back with a later creation timestamp.
+        Comparing the creation timestamp therefore distinguishes a preserved service from a replaced one, even when the replacement has the same identifier.
+        """)
+@Stateful(scopes = Scope.LOCAL, description = "Holds the creation timestamp of the store and the password it was last enabled with.")
 public class StateBackedStoreService extends AbstractControllerService implements StoreService {
+
+    /**
+     * Name under which the migrating processor passes the password. Only this service's own migration renames it, as
+     * real services do for the secrets that processor migrations hand to them.
+     */
+    public static final String OBSOLETE_STORE_PASSWORD = "store-password";
 
     static final PropertyDescriptor STORE_NAME = new PropertyDescriptor.Builder()
             .name("Store Name")
@@ -51,47 +55,46 @@ public class StateBackedStoreService extends AbstractControllerService implement
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    static final String CREATED_KEY = "created";
-    static final String ROW_COUNT_KEY = "rowCount";
-    static final String LAST_ROW_KEY = "lastRow";
+    static final PropertyDescriptor STORE_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Store Password")
+            .required(true)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(STORE_NAME);
+    private static final String CREATED_KEY = "created";
+    private static final String PASSWORD_KEY = "password";
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(STORE_NAME, STORE_PASSWORD);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
     }
 
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.renameProperty(OBSOLETE_STORE_PASSWORD, STORE_PASSWORD.getName());
+    }
+
     /**
-     * Establishes the store on first enable and leaves it alone afterwards, so that the creation timestamp survives
+     * Establishes the store on first enable and keeps its creation timestamp afterwards, so that the timestamp survives
      * the disable and re-enable cycle that a version change performs.
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws IOException {
         final StateManager stateManager = getStateManager();
-        final StateMap stateMap = stateManager.getState(Scope.LOCAL);
-        if (stateMap.get(CREATED_KEY) != null) {
-            return;
+        final Map<String, String> state = new HashMap<>(stateManager.getState(Scope.LOCAL).toMap());
+        state.putIfAbsent(CREATED_KEY, String.valueOf(System.currentTimeMillis()));
+
+        final String password = context.getProperty(STORE_PASSWORD).getValue();
+        if (password == null) {
+            state.remove(PASSWORD_KEY);
+        } else {
+            state.put(PASSWORD_KEY, password);
         }
 
-        final Map<String, String> state = new HashMap<>();
-        state.put(CREATED_KEY, String.valueOf(System.currentTimeMillis()));
-        state.put(ROW_COUNT_KEY, "0");
         stateManager.setState(state, Scope.LOCAL);
-    }
-
-    @Override
-    public void append(final String row) {
-        try {
-            final StateManager stateManager = getStateManager();
-            final Map<String, String> state = new HashMap<>(stateManager.getState(Scope.LOCAL).toMap());
-            final long rowCount = Long.parseLong(state.getOrDefault(ROW_COUNT_KEY, "0"));
-            state.put(ROW_COUNT_KEY, String.valueOf(rowCount + 1));
-            state.put(LAST_ROW_KEY, row);
-            stateManager.setState(state, Scope.LOCAL);
-        } catch (final IOException e) {
-            throw new UncheckedIOException(e);
-        }
     }
 
 }
