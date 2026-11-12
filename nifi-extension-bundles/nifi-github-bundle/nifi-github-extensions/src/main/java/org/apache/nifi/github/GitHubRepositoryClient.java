@@ -32,6 +32,7 @@ import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHContentBuilder;
 import org.kohsuke.github.GHContentUpdateResponse;
+import org.kohsuke.github.GHException;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHRef;
@@ -335,6 +336,53 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
             }
             return commits;
         });
+    }
+
+    /**
+     * Gets the SHA of the most recent commit that changed the given path on the given branch with a single request.
+     * The default implementation lists a page of commits and resolves each commit author, which costs an
+     * additional request per commit not already cached, while this value is requested for every versioned
+     * Process Group on every synchronization with the registry.
+     *
+     * @param path the path
+     * @param branch the branch
+     * @return the SHA of the latest commit for the path, or empty when no commit changed the path
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub
+     */
+    @Override
+    public Optional<String> getLatestCommitSha(final String path, final String branch) throws IOException, FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        logger.debug("Getting latest commit for [{}] from branch [{}] in repo [{}]", resolvedPath, branch, repository.getName());
+
+        return execute(() -> {
+            try {
+                return getLatestCommitSha(repository, resolvedPath, branch);
+            } catch (final FileNotFoundException fnf) {
+                throwPathOrBranchNotFound(fnf, resolvedPath, BRANCH_REF_PATTERN.formatted(branch));
+                return null;
+            }
+        });
+    }
+
+    static Optional<String> getLatestCommitSha(final GHRepository repository, final String resolvedPath, final String branch) throws IOException {
+        // The branch name is passed as the starting point of the listing, so no separate request resolves the branch reference
+        final PagedIterator<GHCommit> commits = repository.queryCommits()
+                .path(resolvedPath)
+                .from(branch)
+                .pageSize(1)
+                .list()
+                .iterator();
+        try {
+            return commits.hasNext() ? Optional.of(commits.next().getSHA1()) : Optional.empty();
+        } catch (final GHException e) {
+            // Iterators wrap request failures, such as Not Found for an unknown branch, which callers handle as IOException
+            if (e.getCause() instanceof IOException ioException) {
+                throw ioException;
+            }
+            throw e;
+        }
     }
 
     /**
