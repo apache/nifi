@@ -52,6 +52,8 @@ import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedExternalFlowMetadata;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedPort;
@@ -67,17 +69,22 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ScheduledStateChangeListener;
 import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.migration.ControllerServiceCreationDetails;
+import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
+import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
@@ -91,6 +98,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
 import org.apache.nifi.security.encryption.PropertyEncryptionEncoder;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
@@ -105,6 +113,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -123,6 +132,8 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -139,6 +150,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.atMostOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -341,6 +353,7 @@ public class StandardVersionedComponentSynchronizerTest {
         when(service.getState()).thenReturn(ControllerServiceState.DISABLED);
         when(service.getBulletinLevel()).thenReturn(LogLevel.WARN);
         when(service.getControllerServiceImplementation()).thenReturn(new TestControllerService());
+        setReferences(service);
 
         return service;
     }
@@ -373,6 +386,15 @@ public class StandardVersionedComponentSynchronizerTest {
         when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
         when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.BATCH_OUTPUT);
         when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.STANDARD);
+        when(processGroup.getProcessors()).thenReturn(Collections.emptySet());
+        when(processGroup.getControllerServices(anyBoolean())).thenReturn(Collections.emptySet());
+        when(processGroup.getConnections()).thenReturn(Collections.emptySet());
+        when(processGroup.getInputPorts()).thenReturn(Collections.emptySet());
+        when(processGroup.getOutputPorts()).thenReturn(Collections.emptySet());
+        when(processGroup.getFunnels()).thenReturn(Collections.emptySet());
+        when(processGroup.getLabels()).thenReturn(Collections.emptySet());
+        when(processGroup.getProcessGroups()).thenReturn(Collections.emptySet());
+        when(processGroup.getRemoteProcessGroups()).thenReturn(Collections.emptySet());
 
         return processGroup;
     }
@@ -549,6 +571,514 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(processorNode).migrateConfiguration(propertiesCaptor.capture(), any());
         final Map<String, String> migratedProperties = propertiesCaptor.getValue();
         assertEquals(controllerServiceNode.getIdentifier(), migratedProperties.get("cs"));
+    }
+
+    @Nested
+    class MigrationCreatedControllerService {
+
+        private static final String SNAPSHOT_ROOT_ID = "snapshot-root-id";
+        private static final String LOCAL_CHILD_ID = "local-child";
+        private static final String CHILD_PLACEMENT_ID = "child-placement-id";
+        private static final String PARENT_GROUP_ID = "parent-group-id";
+        private static final String DESTINATION_GROUP_ID = "destination-group-id";
+        private static final String REGISTRY_ID = "registry-id";
+
+        private static final String SERVICE_TYPE = TestControllerService.class.getName();
+        private static final String FIRST_PROCESSOR = "first-processor";
+        private static final String SECOND_PROCESSOR = "second-processor";
+        private static final String THIRD_PROCESSOR = "third-processor";
+        private static final PropertyDescriptor MODE = new PropertyDescriptor.Builder().name("mode").build();
+        private static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder().name("Password").sensitive(true).build();
+        private static final PropertyDescriptor KEY_SERVICE = new PropertyDescriptor.Builder().name("Key Service").identifiesControllerService(ControllerService.class).build();
+
+        private ProcessGroup flowGroup;
+
+        @BeforeEach
+        void createFlowGroup() {
+            flowGroup = createMockProcessGroup();
+        }
+
+        @Test
+        void migrationInSynchronizedGroupUsesIncomingFlowIdAfterVersionControlIsCleared() {
+            final String versionedId = migrateInSynchronizedGroup("incoming-flow-id");
+
+            assertNotNull(versionedId);
+            assertEquals(versionedId, migrateInSynchronizedGroup("incoming-flow-id"));
+            assertNotEquals(versionedId, migrateInSynchronizedGroup("another-flow-id"));
+        }
+
+        @Test
+        void migrationInChildWithoutOwnFlowUsesChildVersionedId() {
+            final String versionedId = migrateInChildWithoutOwnFlow("child-group-id");
+
+            assertNotNull(versionedId);
+            assertEquals(versionedId, migrateInChildWithoutOwnFlow("child-group-id"));
+            assertNotEquals(versionedId, migrateInChildWithoutOwnFlow("another-child-group-id"));
+        }
+
+        @Test
+        void migrationInIndependentlyVersionedChildUsesChildFlowId() {
+            final String versionedId = migrateInIndependentlyVersionedChild("child-flow-id");
+
+            assertNotNull(versionedId);
+            assertEquals(versionedId, migrateInIndependentlyVersionedChild("child-flow-id"));
+            assertNotEquals(versionedId, migrateInIndependentlyVersionedChild("another-child-flow-id"));
+        }
+
+        @Test
+        void pasteIntoVersionControlledGroupUsesDestinationFlowId() {
+            final String versionedId = pasteIntoVersionControlledGroup("destination-flow-id");
+
+            assertNotNull(versionedId);
+            assertEquals(versionedId, pasteIntoVersionControlledGroup("destination-flow-id"));
+            assertNotEquals(versionedId, pasteIntoVersionControlledGroup("another-destination-flow-id"));
+        }
+
+        @Test
+        void servicesGetTheSameIdsInAnyMigrationOrder() {
+            final Map<String, Map<PropertyDescriptor, PropertyConfiguration>> serviceProperties = Map.of(
+                FIRST_PROCESSOR, Map.of(MODE, value("read"), PASSWORD, parameter("#{first-password}")),
+                SECOND_PROCESSOR, Map.of(MODE, value("read"), PASSWORD, parameter("#{second-password}")),
+                THIRD_PROCESSOR, Map.of(MODE, value("read"), PASSWORD, value("inline-secret")));
+
+            final Map<String, Optional<String>> firstOrder = migrateProcessors(List.of(FIRST_PROCESSOR, SECOND_PROCESSOR, THIRD_PROCESSOR), serviceProperties);
+            final Map<String, Optional<String>> secondOrder = migrateProcessors(List.of(THIRD_PROCESSOR, SECOND_PROCESSOR, FIRST_PROCESSOR), serviceProperties);
+
+            assertTrue(firstOrder.get(FIRST_PROCESSOR).isPresent());
+            assertNotEquals(firstOrder.get(FIRST_PROCESSOR), firstOrder.get(SECOND_PROCESSOR));
+            assertEquals(Optional.empty(), firstOrder.get(THIRD_PROCESSOR));
+            assertEquals(firstOrder, secondOrder);
+        }
+
+        @Test
+        void servicesThatWouldGetTheSameIdStayUnversioned() {
+            final Map<PropertyDescriptor, PropertyConfiguration> properties = Map.of(MODE, value("read"));
+
+            final Map<String, Optional<String>> versionedIds = migrateProcessors(List.of(FIRST_PROCESSOR, SECOND_PROCESSOR),
+                Map.of(FIRST_PROCESSOR, properties, SECOND_PROCESSOR, properties));
+
+            assertTrue(versionedIds.get(FIRST_PROCESSOR).isEmpty());
+            assertTrue(versionedIds.get(SECOND_PROCESSOR).isEmpty());
+        }
+
+        @Test
+        void serviceReferencingMissingServiceGetsVersionedIdAndMissingServiceIsKept() {
+            final ControllerServiceNode missingKeyService = createReferencedService(flowGroup, Optional.of("key-service"));
+            when(flowGroup.getControllerServices(false)).thenReturn(Set.of(missingKeyService));
+
+            final ControllerServiceNode service = createMigratedService(flowGroup, "service-" + UUID.randomUUID(), Map.of(KEY_SERVICE, value(missingKeyService.getIdentifier())));
+            setReferences(missingKeyService, service);
+            createProcessorCreating(FIRST_PROCESSOR, flowGroup, List.of(service));
+
+            synchronizer.synchronize(flowGroup, incomingFlow("flow-id", List.of(FIRST_PROCESSOR)), synchronizationOptions);
+
+            verify(controllerServiceProvider, never()).removeControllerService(missingKeyService);
+            assertTrue(assignedVersionedId(service).isPresent());
+        }
+
+        @Test
+        void serviceTakesVersionedIdOfRemovedMissingService() {
+            final Map<String, Map<PropertyDescriptor, PropertyConfiguration>> serviceProperties = Map.of(FIRST_PROCESSOR, Map.of(MODE, value("read")));
+            final String versionedId = migrateProcessors(List.of(FIRST_PROCESSOR), serviceProperties).get(FIRST_PROCESSOR).orElseThrow();
+
+            // The group still holds an earlier service with that versioned ID, which the proposed flow no longer contains
+            final ControllerServiceNode missingService = createReferencedService(flowGroup, Optional.of(versionedId));
+            final Set<ControllerServiceNode> groupServices = new HashSet<>(Set.of(missingService));
+            when(flowGroup.getControllerServices(false)).thenAnswer(invocation -> Set.copyOf(groupServices));
+            when(flowGroup.findAllControllerServices()).thenAnswer(invocation -> Set.copyOf(groupServices));
+            doAnswer(invocation -> groupServices.remove(invocation.getArgument(0))).when(controllerServiceProvider).removeControllerService(any());
+
+            final Map<String, Optional<String>> versionedIds = migrateProcessors(List.of(FIRST_PROCESSOR), serviceProperties);
+
+            verify(controllerServiceProvider).removeControllerService(missingService);
+            assertEquals(Optional.of(versionedId), versionedIds.get(FIRST_PROCESSOR));
+        }
+
+        @Test
+        void serviceStaysUnversionedWhenKeptServiceHasItsId() {
+            final Map<String, Map<PropertyDescriptor, PropertyConfiguration>> serviceProperties = Map.of(FIRST_PROCESSOR, Map.of(MODE, value("read")));
+            final String versionedId = migrateProcessors(List.of(FIRST_PROCESSOR), serviceProperties).get(FIRST_PROCESSOR).orElseThrow();
+
+            // The group still holds an earlier service with that versioned ID, which is kept because a remaining processor references it
+            final ControllerServiceNode keptService = createReferencedService(flowGroup, Optional.of(versionedId));
+            setReferences(keptService, mock(ProcessorNode.class));
+            when(flowGroup.getControllerServices(false)).thenReturn(Set.of(keptService));
+            when(flowGroup.findAllControllerServices()).thenReturn(Set.of(keptService));
+
+            final Map<String, Optional<String>> versionedIds = migrateProcessors(List.of(FIRST_PROCESSOR), serviceProperties);
+
+            verify(controllerServiceProvider, never()).removeControllerService(keptService);
+            assertEquals(Optional.empty(), versionedIds.get(FIRST_PROCESSOR));
+        }
+
+        @Test
+        void referencedServiceIdIsPartOfTheId() {
+            final Map<String, Optional<String>> versionedIds = migrateProcessorsReferencing("first-key-service", "second-key-service");
+            assertTrue(versionedIds.get(FIRST_PROCESSOR).isPresent());
+            assertTrue(versionedIds.get(SECOND_PROCESSOR).isPresent());
+            assertNotEquals(versionedIds.get(FIRST_PROCESSOR), versionedIds.get(SECOND_PROCESSOR));
+
+            // Another flow instance has other referenced service instances, with the same versioned IDs
+            assertEquals(versionedIds, migrateProcessorsReferencing("first-key-service", "second-key-service"));
+
+            // A referenced service created by migration contributes its own ID
+            final Optional<String> referencingCreatedService = migrateServiceReferencingCreatedService("#{first-password}", true);
+            assertTrue(referencingCreatedService.isPresent());
+            assertNotEquals(referencingCreatedService, migrateServiceReferencingCreatedService("#{second-password}", true));
+
+            // A processor's migration creates the referenced service first, while a service's own migration creates it afterwards,
+            // so neither the creation order nor its reverse lists every referenced service before the services that reference it
+            assertEquals(referencingCreatedService, migrateServiceReferencingCreatedService("#{first-password}", false));
+        }
+
+        @Test
+        void serviceReferencingServiceWithoutStableIdStaysUnversioned() {
+            final ControllerServiceNode unversionedService = createReferencedService(flowGroup, Optional.empty());
+            final ProcessGroup outerGroup = createMockProcessGroup();
+            when(outerGroup.getIdentifier()).thenReturn("outer-group");
+            final ControllerServiceNode outerService = createReferencedService(outerGroup, Optional.of("outer-key-service"));
+            final ControllerServiceNode inlineSecretService = createMigratedService(flowGroup, "inline-secret-service", Map.of(PASSWORD, value("inline-secret")));
+
+            final ControllerServiceNode referencingUnversionedService = createMigratedService(flowGroup, "first-service", Map.of(KEY_SERVICE, value(unversionedService.getIdentifier())));
+            final ControllerServiceNode referencingOuterService = createMigratedService(flowGroup, "second-service", Map.of(KEY_SERVICE, value(outerService.getIdentifier())));
+            final ControllerServiceNode referencingInlineSecretService = createMigratedService(flowGroup, "third-service", Map.of(KEY_SERVICE, value(inlineSecretService.getIdentifier())));
+            createProcessorCreating(FIRST_PROCESSOR, flowGroup, List.of(referencingUnversionedService, referencingOuterService, inlineSecretService, referencingInlineSecretService));
+
+            synchronizer.synchronize(flowGroup, incomingFlow("flow-id", List.of(FIRST_PROCESSOR)), synchronizationOptions);
+
+            assertEquals(Optional.empty(), assignedVersionedId(referencingUnversionedService));
+            assertEquals(Optional.empty(), assignedVersionedId(referencingOuterService));
+            assertEquals(Optional.empty(), assignedVersionedId(inlineSecretService));
+            assertEquals(Optional.empty(), assignedVersionedId(referencingInlineSecretService));
+        }
+
+        private Map<String, Optional<String>> migrateProcessorsReferencing(final String firstKeyServiceVersionedId, final String secondKeyServiceVersionedId) {
+            final ControllerServiceNode firstKeyService = createReferencedService(flowGroup, Optional.of(firstKeyServiceVersionedId));
+            final ControllerServiceNode secondKeyService = createReferencedService(flowGroup, Optional.of(secondKeyServiceVersionedId));
+
+            return migrateProcessors(List.of(FIRST_PROCESSOR, SECOND_PROCESSOR), Map.of(
+                FIRST_PROCESSOR, Map.of(MODE, value("read"), KEY_SERVICE, value(firstKeyService.getIdentifier())),
+                SECOND_PROCESSOR, Map.of(MODE, value("read"), KEY_SERVICE, value(secondKeyService.getIdentifier()))));
+        }
+
+        private Optional<String> migrateServiceReferencingCreatedService(final String keyPassword, final boolean keyServiceCreatedFirst) {
+            final ControllerServiceNode keyService = createMigratedService(flowGroup, "key-service-" + UUID.randomUUID(), Map.of(PASSWORD, parameter(keyPassword)));
+            final ControllerServiceNode service = createMigratedService(flowGroup, "service-" + UUID.randomUUID(), Map.of(KEY_SERVICE, value(keyService.getIdentifier())));
+            createProcessorCreating(FIRST_PROCESSOR, flowGroup, keyServiceCreatedFirst ? List.of(keyService, service) : List.of(service, keyService));
+
+            synchronizer.synchronize(flowGroup, incomingFlow("flow-id", List.of(FIRST_PROCESSOR)), synchronizationOptions);
+
+            assertTrue(assignedVersionedId(keyService).isPresent());
+            return assignedVersionedId(service);
+        }
+
+        private String migrateInSynchronizedGroup(final String flowId) {
+            final ProcessGroup targetGroup = createMockProcessGroup();
+            final VersionControlInformation oldVersionControl = mock(VersionControlInformation.class);
+            when(oldVersionControl.getFlowIdentifier()).thenReturn("old-flow-id");
+
+            final AtomicReference<VersionControlInformation> liveVersionControl = new AtomicReference<>(oldVersionControl);
+            when(targetGroup.getVersionControlInformation()).thenAnswer(invocation -> liveVersionControl.get());
+            doAnswer(invocation -> {
+                liveVersionControl.set(null);
+                return null;
+            }).when(targetGroup).disconnectVersionControl();
+
+            final VersionedProcessGroup proposed = new VersionedProcessGroup();
+            proposed.setIdentifier(SNAPSHOT_ROOT_ID);
+            proposed.setProcessors(Set.of(createMinimalVersionedProcessor()));
+            final ControllerServiceNode service = mockMigratingProcessorIn(targetGroup);
+
+            synchronizer.synchronize(targetGroup, externalFlow(proposed, flowId), synchronizationOptions);
+
+            assertNull(targetGroup.getVersionControlInformation());
+            return assignedVersionedId(service).orElse(null);
+        }
+
+        private String migrateInChildWithoutOwnFlow(final String childVersionedId) {
+            final ProcessGroup parentGroup = createMockProcessGroup();
+            final ProcessGroup childGroup = createMockProcessGroup();
+            when(childGroup.getIdentifier()).thenReturn(LOCAL_CHILD_ID);
+            when(childGroup.getParent()).thenReturn(parentGroup);
+            when(childGroup.getVersionedComponentId()).thenReturn(Optional.of(childVersionedId));
+            when(parentGroup.getProcessGroups()).thenReturn(Set.of(childGroup));
+            when(parentGroup.findProcessGroup(LOCAL_CHILD_ID)).thenReturn(childGroup);
+
+            final VersionedProcessGroup proposedChild = new VersionedProcessGroup();
+            proposedChild.setIdentifier(childVersionedId);
+            proposedChild.setProcessors(Set.of(createMinimalVersionedProcessor()));
+            final VersionedProcessGroup proposedParent = new VersionedProcessGroup();
+            proposedParent.setIdentifier(PARENT_GROUP_ID);
+            proposedParent.setProcessGroups(Set.of(proposedChild));
+            final ControllerServiceNode service = mockMigratingProcessorIn(childGroup);
+
+            synchronizer.synchronize(parentGroup, externalFlow(proposedParent, "parent-flow-id"), synchronizationOptions);
+
+            return assignedVersionedId(service).orElse(null);
+        }
+
+        private String migrateInIndependentlyVersionedChild(final String childFlowId) {
+            final ProcessGroup parentGroup = createMockProcessGroup();
+            final ProcessGroup childGroup = createMockProcessGroup();
+            when(childGroup.getIdentifier()).thenReturn(LOCAL_CHILD_ID);
+            when(childGroup.getParent()).thenReturn(parentGroup);
+            when(childGroup.getVersionedComponentId()).thenReturn(Optional.of(CHILD_PLACEMENT_ID));
+            when(parentGroup.getProcessGroups()).thenReturn(Set.of(childGroup));
+            when(parentGroup.findProcessGroup(LOCAL_CHILD_ID)).thenReturn(childGroup);
+
+            final AtomicReference<VersionControlInformation> childVersionControl = new AtomicReference<>();
+            when(childGroup.getVersionControlInformation()).thenAnswer(invocation -> childVersionControl.get());
+            doAnswer(invocation -> {
+                childVersionControl.set(invocation.getArgument(0));
+                return null;
+            }).when(childGroup).setVersionControlInformation(any(), anyMap());
+
+            when(flowManager.getFlowRegistryClient(REGISTRY_ID)).thenReturn(mock(FlowRegistryClientNode.class));
+            final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
+            coordinates.setRegistryId(REGISTRY_ID);
+            coordinates.setBucketId("bucket");
+            coordinates.setFlowId(childFlowId);
+            coordinates.setVersion("1");
+
+            final VersionedProcessGroup proposedChild = new VersionedProcessGroup();
+            proposedChild.setIdentifier(CHILD_PLACEMENT_ID);
+            proposedChild.setVersionedFlowCoordinates(coordinates);
+            proposedChild.setProcessors(Set.of(createMinimalVersionedProcessor()));
+            final VersionedProcessGroup proposedParent = new VersionedProcessGroup();
+            proposedParent.setIdentifier(PARENT_GROUP_ID);
+            proposedParent.setProcessGroups(Set.of(proposedChild));
+            final ControllerServiceNode service = mockMigratingProcessorIn(childGroup);
+
+            synchronizer.synchronize(parentGroup, externalFlow(proposedParent, "parent-flow-id"), synchronizationOptions);
+
+            assertEquals(childFlowId, childGroup.getVersionControlInformation().getFlowIdentifier());
+            return assignedVersionedId(service).orElse(null);
+        }
+
+        private String pasteIntoVersionControlledGroup(final String destinationFlowId) {
+            final ProcessGroup destination = createMockProcessGroup();
+            when(destination.getVersionedComponentId()).thenReturn(Optional.of(DESTINATION_GROUP_ID));
+            final VersionControlInformation versionControl = mock(VersionControlInformation.class);
+            when(versionControl.getFlowIdentifier()).thenReturn(destinationFlowId);
+            when(destination.getVersionControlInformation()).thenReturn(versionControl);
+
+            final VersionedProcessor processor = createMinimalVersionedProcessor();
+            processor.setGroupIdentifier("source-group-not-destination");
+            final VersionedComponentAdditions additions = new VersionedComponentAdditions.Builder().setProcessors(Set.of(processor)).build();
+            final ControllerServiceNode service = mockMigratingProcessorIn(destination);
+
+            synchronizer.addVersionedComponentsToProcessGroup(destination, additions, synchronizationOptions);
+
+            return assignedVersionedId(service).orElse(null);
+        }
+
+        /**
+         * Makes the next added processor create one service in the given group during its property migration, and returns that service.
+         */
+        private ControllerServiceNode mockMigratingProcessorIn(final ProcessGroup owner) {
+            final ControllerServiceNode service = createMigratedService(owner, "service-" + UUID.randomUUID(), Map.of(MODE, value("read")));
+            final ProcessorNode processor = createProcessorCreating(null, owner, List.of(service));
+            when(flowManager.createProcessor(any(), any(), any(), eq(true))).thenReturn(processor);
+            return service;
+        }
+
+        /**
+         * Synchronizes the flow group with a flow that adds the named processors in the given order, where each processor's migration
+         * creates a service with the given properties, and returns the versioned ID assigned to each processor's service.
+         */
+        private Map<String, Optional<String>> migrateProcessors(final List<String> processorOrder, final Map<String, Map<PropertyDescriptor, PropertyConfiguration>> serviceProperties) {
+            final Map<String, ControllerServiceNode> services = new HashMap<>();
+            for (final String processorName : processorOrder) {
+                final ControllerServiceNode service = createMigratedService(flowGroup, processorName + "-service-" + UUID.randomUUID(), serviceProperties.get(processorName));
+                createProcessorCreating(processorName, flowGroup, List.of(service));
+                services.put(processorName, service);
+            }
+
+            synchronizer.synchronize(flowGroup, incomingFlow("flow-id", processorOrder), synchronizationOptions);
+
+            final Map<String, Optional<String>> versionedIds = new HashMap<>();
+            services.forEach((processorName, service) -> versionedIds.put(processorName, assignedVersionedId(service)));
+            return versionedIds;
+        }
+
+        private VersionedExternalFlow incomingFlow(final String flowId, final List<String> processorOrder) {
+            final Set<VersionedProcessor> processors = new LinkedHashSet<>();
+            for (final String processorName : processorOrder) {
+                final VersionedProcessor processor = createMinimalVersionedProcessor();
+                processor.setIdentifier(processorName);
+                processors.add(processor);
+            }
+
+            final VersionedProcessGroup proposed = new VersionedProcessGroup();
+            proposed.setIdentifier(SNAPSHOT_ROOT_ID);
+            proposed.setProcessors(processors);
+            return externalFlow(proposed, flowId);
+        }
+
+        private VersionedExternalFlow externalFlow(final VersionedProcessGroup contents, final String flowId) {
+            final VersionedExternalFlowMetadata metadata = new VersionedExternalFlowMetadata();
+            metadata.setFlowIdentifier(flowId);
+            final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+            externalFlow.setFlowContents(contents);
+            externalFlow.setMetadata(metadata);
+            return externalFlow;
+        }
+
+        /**
+         * Creates a processor, registered under the given versioned ID when it is not null, whose migration creates the given
+         * services in order through the factory it is given.
+         */
+        private ProcessorNode createProcessorCreating(final String versionedId, final ProcessGroup owner, final List<ControllerServiceNode> createdServices) {
+            final ProcessorNode processor = createMockProcessor();
+            when(processor.getParentProcessGroup()).thenReturn(Optional.of(owner));
+            if (versionedId != null) {
+                when(flowManager.createProcessor(any(), eq(versionedId), any(), eq(true))).thenReturn(processor);
+            }
+
+            doAnswer(invocation -> {
+                final ControllerServiceFactory serviceFactory = invocation.getArgument(1);
+                for (final ControllerServiceNode service : createdServices) {
+                    final String serviceId = service.getIdentifier();
+                    final ControllerServiceCreationDetails details = mock(ControllerServiceCreationDetails.class);
+                    when(details.serviceIdentifier()).thenReturn(serviceId);
+                    when(details.type()).thenReturn(SERVICE_TYPE);
+                    when(details.serviceBundleCoordinate()).thenReturn(bundleCoordinate);
+                    when(details.serviceProperties()).thenReturn(Map.of());
+                    serviceFactory.create(details);
+                }
+                return null;
+            }).when(processor).migrateConfiguration(anyMap(), any(ControllerServiceFactory.class));
+
+            return processor;
+        }
+
+        /**
+         * Creates the service that the factory returns for the given identifier, holding the given properties as they are after the service's own migration.
+         */
+        private ControllerServiceNode createMigratedService(final ProcessGroup owner, final String serviceId, final Map<PropertyDescriptor, PropertyConfiguration> properties) {
+            final ControllerServiceNode service = createMockControllerService();
+            when(service.getIdentifier()).thenReturn(serviceId);
+            when(service.getProcessGroup()).thenReturn(owner);
+            when(service.getParentProcessGroup()).thenReturn(Optional.of(owner));
+            when(service.getCanonicalClassName()).thenReturn(SERVICE_TYPE);
+
+            final Map<PropertyDescriptor, String> rawValues = new HashMap<>();
+            properties.forEach((descriptor, configuration) -> rawValues.put(descriptor, configuration.getRawValue()));
+            when(service.getRawPropertyValues()).thenReturn(rawValues);
+            properties.forEach((descriptor, configuration) -> when(service.getProperty(descriptor)).thenReturn(configuration));
+
+            when(flowManager.createControllerService(eq(SERVICE_TYPE), eq(serviceId), any(), anySet(), eq(true), eq(true), eq(null))).thenReturn(service);
+            when(controllerServiceProvider.getControllerServiceNode(serviceId)).thenReturn(service);
+            return service;
+        }
+
+        private ControllerServiceNode createReferencedService(final ProcessGroup owner, final Optional<String> versionedId) {
+            final ControllerServiceNode service = createMockControllerService();
+            final String serviceId = service.getIdentifier();
+            when(service.getProcessGroup()).thenReturn(owner);
+            when(service.getVersionedComponentId()).thenReturn(versionedId);
+            when(controllerServiceProvider.getControllerServiceNode(serviceId)).thenReturn(service);
+            return service;
+        }
+
+        private PropertyConfiguration value(final String value) {
+            return new PropertyConfiguration(value, null, List.of(), null);
+        }
+
+        private PropertyConfiguration parameter(final String reference) {
+            return new PropertyConfiguration(reference, null, List.of(mock(ParameterReference.class)), null);
+        }
+
+        private Optional<String> assignedVersionedId(final ControllerServiceNode service) {
+            final ArgumentCaptor<String> versionedId = ArgumentCaptor.forClass(String.class);
+            verify(service, atMostOnce()).setVersionedComponentId(versionedId.capture());
+            return versionedId.getAllValues().stream().findFirst();
+        }
+    }
+
+    @Nested
+    class MissingControllerServiceRemoval {
+
+        @Test
+        void referenceToVersionedIdResolvesPastMissingService() {
+            final String versionedId = "store-service";
+            final ProcessGroup parentGroup = createMockProcessGroup();
+            final ControllerServiceNode parentService = createMockControllerService();
+            when(parentService.getVersionedComponentId()).thenReturn(Optional.of(versionedId));
+            when(parentGroup.getControllerServices(false)).thenReturn(Set.of(parentService));
+
+            // The service moved to the parent group, so the proposed child no longer contains the child's copy
+            final ProcessGroup childGroup = createMockProcessGroup();
+            when(childGroup.getParent()).thenReturn(parentGroup);
+            final ControllerServiceNode missingService = createMockControllerService();
+            when(missingService.getVersionedComponentId()).thenReturn(Optional.of(versionedId));
+            when(missingService.getProcessGroup()).thenReturn(childGroup);
+            when(childGroup.getControllerServices(false)).thenReturn(Set.of(missingService));
+
+            final ProcessorNode processor = createMockProcessor();
+            when(processor.getProcessGroup()).thenReturn(childGroup);
+            when(flowManager.createProcessor(any(), any(), any(), eq(true))).thenReturn(processor);
+
+            final VersionedPropertyDescriptor serviceDescriptor = new VersionedPropertyDescriptor();
+            serviceDescriptor.setName("store");
+            serviceDescriptor.setIdentifiesControllerService(true);
+            final VersionedProcessor versionedProcessor = createMinimalVersionedProcessor();
+            versionedProcessor.setPropertyDescriptors(Map.of("store", serviceDescriptor));
+            versionedProcessor.setProperties(Map.of("store", versionedId));
+
+            final VersionedProcessGroup proposed = new VersionedProcessGroup();
+            proposed.setIdentifier("child-group-id");
+            proposed.setProcessors(Set.of(versionedProcessor));
+            final VersionedExternalFlow incoming = new VersionedExternalFlow();
+            incoming.setFlowContents(proposed);
+
+            synchronizer.synchronize(childGroup, incoming, synchronizationOptions);
+
+            final ArgumentCaptor<Map<String, String>> properties = ArgumentCaptor.captor();
+            verify(processor, atLeastOnce()).setProperties(properties.capture(), anyBoolean(), any());
+            assertEquals(parentService.getIdentifier(), properties.getValue().get("store"));
+            verify(controllerServiceProvider).removeControllerService(missingService);
+        }
+
+        @Test
+        void synchronizationKeepsMissingServiceReferencedAfterPropertyMigration() {
+            final ProcessGroup targetGroup = createMockProcessGroup();
+            final ControllerServiceNode service = createMockControllerService();
+            final Set<ControllerServiceNode> groupServices = new HashSet<>(Set.of(service));
+            when(targetGroup.getControllerServices(false)).thenAnswer(invocation -> Set.copyOf(groupServices));
+            doAnswer(invocation -> groupServices.add(invocation.getArgument(0))).when(targetGroup).addControllerService(any());
+
+            // The migration references the missing service and also creates a new service that nothing references
+            final ControllerServiceNode createdService = createMockControllerService();
+            final String createdServiceId = createdService.getIdentifier();
+            when(flowManager.createControllerService(any(), eq(createdServiceId), any(), anySet(), eq(true), eq(true), eq(null))).thenReturn(createdService);
+
+            final ProcessorNode processor = createMockProcessor();
+            when(processor.getParentProcessGroup()).thenReturn(Optional.of(targetGroup));
+            when(flowManager.createProcessor(any(), any(), any(), eq(true))).thenReturn(processor);
+            doAnswer(invocation -> {
+                service.getReferences().getReferencingComponents().add(processor);
+
+                final ControllerServiceCreationDetails details = mock(ControllerServiceCreationDetails.class);
+                when(details.serviceIdentifier()).thenReturn(createdServiceId);
+                when(details.type()).thenReturn(TestControllerService.class.getName());
+                when(details.serviceBundleCoordinate()).thenReturn(bundleCoordinate);
+                when(details.serviceProperties()).thenReturn(Map.of());
+                invocation.getArgument(1, ControllerServiceFactory.class).create(details);
+                return null;
+            }).when(processor).migrateConfiguration(anyMap(), any(ControllerServiceFactory.class));
+
+            final VersionedProcessGroup proposed = new VersionedProcessGroup();
+            proposed.setIdentifier("root-group-id");
+            proposed.setProcessors(Set.of(createMinimalVersionedProcessor()));
+            final VersionedExternalFlow incoming = new VersionedExternalFlow();
+            incoming.setFlowContents(proposed);
+
+            synchronizer.synchronize(targetGroup, incoming, synchronizationOptions);
+
+            verify(controllerServiceProvider, never()).removeControllerService(service);
+            verify(controllerServiceProvider, never()).removeControllerService(createdService);
+        }
     }
 
     @Test
@@ -1476,19 +2006,66 @@ public class StandardVersionedComponentSynchronizerTest {
 
     @Test
     public void testControllerServiceRemoved() throws FlowSynchronizationException, InterruptedException, TimeoutException {
-        final ControllerServiceNode service = createMockControllerService();
-        when(service.isActive()).thenReturn(true);
-        when(service.getState()).thenReturn(ControllerServiceState.ENABLED);
-        when(service.getReferences()).thenReturn(mock(ControllerServiceReference.class));
-
-        when(controllerServiceProvider.unscheduleReferencingComponents(service)).thenReturn(Collections.emptyMap());
+        final ControllerServiceNode explicitlyRemovedService = createMockControllerService();
+        when(explicitlyRemovedService.isActive()).thenReturn(true);
+        when(explicitlyRemovedService.getState()).thenReturn(ControllerServiceState.ENABLED);
+        when(explicitlyRemovedService.getReferences()).thenReturn(mock(ControllerServiceReference.class));
+        when(controllerServiceProvider.unscheduleReferencingComponents(explicitlyRemovedService)).thenReturn(Collections.emptyMap());
         when(controllerServiceProvider.disableControllerServicesAsync(anyCollection())).thenReturn(CompletableFuture.completedFuture(null));
 
-        synchronizer.synchronize(service, null, group, synchronizationOptions);
+        synchronizer.synchronize(explicitlyRemovedService, null, group, synchronizationOptions);
 
-        verify(controllerServiceProvider).unscheduleReferencingComponents(service);
-        verify(controllerServiceProvider).disableControllerServicesAsync(Collections.singleton(service));
-        verify(controllerServiceProvider).removeControllerService(service);
+        verify(controllerServiceProvider).unscheduleReferencingComponents(explicitlyRemovedService);
+        verify(controllerServiceProvider).disableControllerServicesAsync(Collections.singleton(explicitlyRemovedService));
+        verify(controllerServiceProvider).removeControllerService(explicitlyRemovedService);
+
+        final ProcessGroup processGroup = createMockProcessGroup();
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name(PARAM_ABC).build();
+        final ControllerServiceNode missingService = createMockControllerService();
+        when(missingService.getName()).thenReturn("name");
+        when(missingService.getCanonicalClassName()).thenReturn("ControllerServiceImpl");
+        when(missingService.getProperties()).thenReturn(Map.of(descriptor, new PropertyConfiguration(VALUE_123, null, null, null)));
+        when(missingService.getRawPropertyValues()).thenReturn(Map.of(descriptor, VALUE_123));
+        when(missingService.getVersionedComponentId()).thenReturn(Optional.empty());
+        when(processGroup.getControllerServices(false)).thenReturn(Set.of(missingService));
+
+        final VersionedProcessGroup proposedGroup = new VersionedProcessGroup();
+        proposedGroup.setIdentifier("pg-v2");
+        proposedGroup.setControllerServices(Collections.emptySet());
+        proposedGroup.setProcessors(Collections.emptySet());
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+        externalFlow.setFlowContents(proposedGroup);
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        verify(controllerServiceProvider).removeControllerService(missingService);
+
+        // A chain of missing services reachable from a remaining processor is kept
+        final ControllerServiceNode directlyReferenced = createMockControllerService();
+        final ControllerServiceNode referencedByDirect = createMockControllerService();
+        final ControllerServiceNode referencedByIndirect = createMockControllerService();
+        setReferences(directlyReferenced, createMockProcessor());
+        setReferences(referencedByDirect, directlyReferenced);
+        setReferences(referencedByIndirect, referencedByDirect);
+        when(processGroup.getControllerServices(false)).thenReturn(Set.of(directlyReferenced, referencedByDirect, referencedByIndirect));
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        verify(controllerServiceProvider, never()).removeControllerService(directlyReferenced);
+        verify(controllerServiceProvider, never()).removeControllerService(referencedByDirect);
+        verify(controllerServiceProvider, never()).removeControllerService(referencedByIndirect);
+
+        // Missing services that only reference each other are removed together
+        final ControllerServiceNode cycleFirst = createMockControllerService();
+        final ControllerServiceNode cycleSecond = createMockControllerService();
+        setReferences(cycleFirst, cycleSecond);
+        setReferences(cycleSecond, cycleFirst);
+        when(processGroup.getControllerServices(false)).thenReturn(Set.of(cycleFirst, cycleSecond));
+
+        synchronizer.synchronize(processGroup, externalFlow, synchronizationOptions);
+
+        verify(controllerServiceProvider).removeControllerService(cycleFirst);
+        verify(controllerServiceProvider).removeControllerService(cycleSecond);
     }
 
     @Test

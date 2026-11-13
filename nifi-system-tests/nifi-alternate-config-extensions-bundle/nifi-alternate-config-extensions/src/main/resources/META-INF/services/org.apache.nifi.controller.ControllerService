@@ -14,3 +14,4 @@
 # limitations under the License.
 
 org.apache.nifi.cs.tests.system.MigrationService
+org.apache.nifi.cs.tests.system.StateBackedStoreService

@@ -33,6 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -57,13 +59,24 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
     private final FlowManager flowManager;
     private final ControllerServiceProvider serviceProvider;
     private final ComponentNode creator;
+    private final Collection<ControllerServiceNode> createdServices;
 
     public StandardControllerServiceFactory(final ExtensionManager extensionManager, final FlowManager flowManager, final ControllerServiceProvider serviceProvider,
                                             final ComponentNode creator) {
+        this(extensionManager, flowManager, serviceProvider, creator, new ArrayList<>());
+    }
+
+    /**
+     * @param createdServices receives every Controller Service this factory creates, including those created by the migration of
+     *                        another created service.
+     */
+    public StandardControllerServiceFactory(final ExtensionManager extensionManager, final FlowManager flowManager, final ControllerServiceProvider serviceProvider,
+                                            final ComponentNode creator, final Collection<ControllerServiceNode> createdServices) {
         this.extensionManager = extensionManager;
         this.flowManager = flowManager;
         this.serviceProvider = serviceProvider;
         this.creator = creator;
+        this.createdServices = createdServices;
     }
 
     @Override
@@ -92,6 +105,7 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
     public ControllerServiceNode create(final ControllerServiceCreationDetails creationDetails) {
         final ControllerServiceNode serviceNode = flowManager.createControllerService(creationDetails.type(), creationDetails.serviceIdentifier(), creationDetails.serviceBundleCoordinate(),
                 Collections.emptySet(), true, true, null);
+        createdServices.add(serviceNode);
 
         final Optional<ProcessGroup> group = creator.getParentProcessGroup();
         if (group.isPresent()) {
@@ -104,7 +118,7 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
 
         serviceNode.setProperties(creationDetails.serviceProperties());
 
-        final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(extensionManager, flowManager, serviceProvider, serviceNode);
+        final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(extensionManager, flowManager, serviceProvider, serviceNode, createdServices);
         serviceNode.migrateConfiguration(creationDetails.serviceProperties(), serviceFactory);
 
         // Mark the service as migration-created so that flow-difference filtering can distinguish it from a

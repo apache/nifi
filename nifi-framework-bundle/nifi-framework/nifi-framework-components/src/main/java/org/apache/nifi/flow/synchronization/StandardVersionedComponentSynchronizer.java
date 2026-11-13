@@ -17,6 +17,7 @@
 
 package org.apache.nifi.flow.synchronization;
 
+import jakarta.annotation.Nullable;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
@@ -66,6 +67,7 @@ import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedExternalFlowMetadata;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedFunnel;
@@ -143,6 +145,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -156,6 +159,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -173,6 +179,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     private final VersionedFlowSynchronizationContext context;
     private final Set<String> updatedVersionedComponentIds = new HashSet<>();
     private final List<CreatedOrModifiedExtension> createdAndModifiedExtensions = new ArrayList<>();
+    private final Set<ControllerServiceNode> missingControllerServices = new HashSet<>();
 
     private FlowSynchronizationOptions syncOptions;
     private final ConnectableAdditionTracker connectableAdditionTracker = new ConnectableAdditionTracker();
@@ -308,19 +315,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         // update ports to final names
         updatePortsToFinalNames(proposedPortFinalNames);
 
-        for (final CreatedOrModifiedExtension createdOrModifiedExtension : createdAndModifiedExtensions) {
-            final ComponentNode extension = createdOrModifiedExtension.extension();
-            final Map<String, String> originalPropertyValues = createdOrModifiedExtension.propertyValues();
-
-            final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(context.getExtensionManager(), context.getFlowManager(),
-                    context.getControllerServiceProvider(), extension);
-
-            if (extension instanceof final ProcessorNode processor) {
-                processor.migrateConfiguration(originalPropertyValues, serviceFactory);
-            } else if (extension instanceof final ControllerServiceNode service) {
-                service.migrateConfiguration(originalPropertyValues, serviceFactory);
-            }
-        }
+        final Set<ControllerServiceNode> createdServices = migrateCreatedAndModifiedExtensions();
+        assignVersionedComponentIds(createdServices, group, determineProcessGroupIdentity(group));
 
         return additionsBuilder.build();
     }
@@ -342,6 +338,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         updatedVersionedComponentIds.clear();
         createdAndModifiedExtensions.clear();
+        missingControllerServices.clear();
         setSynchronizationOptions(options);
 
         validateLocalStateTopology(versionedExternalFlow.getFlowContents());
@@ -418,27 +415,188 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 }
             });
 
-            for (final CreatedOrModifiedExtension createdOrModifiedExtension : createdAndModifiedExtensions) {
-                final ComponentNode extension = createdOrModifiedExtension.extension();
-                final Map<String, String> originalPropertyValues = createdOrModifiedExtension.propertyValues();
+            final Set<ControllerServiceNode> createdServices = migrateCreatedAndModifiedExtensions();
 
-                final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(context.getExtensionManager(), context.getFlowManager(),
-                    context.getControllerServiceProvider(), extension);
+            // Remove missing services before assigning versioned IDs, so that a service about to be removed does not keep a created service from taking its versioned ID.
+            removeUnreferencedMissingControllerServices();
 
-                if (extension instanceof final ProcessorNode processor) {
-                    processor.migrateConfiguration(originalPropertyValues, serviceFactory);
-                } else if (extension instanceof final ControllerServiceNode service) {
-                    service.migrateConfiguration(originalPropertyValues, serviceFactory);
-                } else if (extension instanceof final ReportingTaskNode task) {
-                    task.migrateConfiguration(originalPropertyValues, serviceFactory);
-                }
-            }
+            final VersionedExternalFlowMetadata metadata = versionedExternalFlow.getMetadata();
+            assignVersionedComponentIds(createdServices, group, metadata == null ? null : metadata.getFlowIdentifier());
         } finally {
             // Resume component scheduler, now that properties have been migrated, so that any components that are intended to be scheduled are.
             context.getComponentScheduler().resume();
         }
 
         group.onComponentModified();
+    }
+
+    private Set<ControllerServiceNode> migrateCreatedAndModifiedExtensions() {
+        final Set<ControllerServiceNode> createdServices = new HashSet<>();
+        for (final CreatedOrModifiedExtension createdOrModifiedExtension : createdAndModifiedExtensions) {
+            final ComponentNode extension = createdOrModifiedExtension.extension();
+            final Map<String, String> originalPropertyValues = createdOrModifiedExtension.propertyValues();
+            final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(context.getExtensionManager(), context.getFlowManager(),
+                context.getControllerServiceProvider(), extension, createdServices);
+
+            if (extension instanceof final ProcessorNode processor) {
+                processor.migrateConfiguration(originalPropertyValues, serviceFactory);
+            } else if (extension instanceof final ControllerServiceNode service) {
+                service.migrateConfiguration(originalPropertyValues, serviceFactory);
+            } else if (extension instanceof final ReportingTaskNode task) {
+                task.migrateConfiguration(originalPropertyValues, serviceFactory);
+            }
+        }
+
+        return createdServices;
+    }
+
+    /**
+     * Gives each Controller Service created by property migration a versioned ID that is the same on every instance of the flow: a hash of the
+     * owning group's identity, the service type, and its properties after its own migration, where a service reference contributes the referenced
+     * service's versioned ID. A service without such an ID, or whose ID another service in its group has or would get, is left unversioned.
+     */
+    private void assignVersionedComponentIds(final Set<ControllerServiceNode> createdServices, final ProcessGroup synchronizedGroup,
+                                             final @Nullable String synchronizedGroupIdentity) {
+        if (createdServices.isEmpty()) {
+            return;
+        }
+
+        final Map<ControllerServiceNode, Optional<String>> candidateIds = HashMap.newHashMap(createdServices.size());
+        final Map<ControllerServiceNode, String> presentCandidateIds = HashMap.newHashMap(createdServices.size());
+        for (final ControllerServiceNode service : createdServices) {
+            final Optional<String> candidateId = getCandidateVersionedId(service, createdServices, synchronizedGroup, synchronizedGroupIdentity, candidateIds);
+            candidateId.ifPresent(id -> presentCandidateIds.put(service, id));
+        }
+
+        final Set<GroupServiceId> conflictingCandidateIds = calculateConflictingCandidateVersionedIds(synchronizedGroup, presentCandidateIds);
+
+        presentCandidateIds.forEach((service, candidateId) -> {
+            final GroupServiceId groupServiceId = new GroupServiceId(service.getProcessGroup().getIdentifier(), candidateId);
+
+            if (conflictingCandidateIds.contains(groupServiceId)) {
+                LOG.info("Leaving {} without a versioned ID because another Controller Service in {} has or would get the versioned ID {}",
+                    service, service.getProcessGroup(), candidateId);
+            } else {
+                service.setVersionedComponentId(candidateId);
+            }
+        });
+    }
+
+    private Optional<String> getCandidateVersionedId(final ControllerServiceNode service, final Set<ControllerServiceNode> createdServices, final ProcessGroup synchronizedGroup,
+                                                     final @Nullable String synchronizedGroupIdentity, final Map<ControllerServiceNode, Optional<String>> candidateIds) {
+        if (candidateIds.containsKey(service)) {
+            return candidateIds.get(service);
+        }
+
+        // The service has no ID until it is computed, so services on a reference cycle are left unversioned.
+        candidateIds.put(service, Optional.empty());
+
+        final Optional<String> candidateId = computeCandidateVersionedId(service, createdServices, synchronizedGroup, synchronizedGroupIdentity, candidateIds);
+        candidateIds.put(service, candidateId);
+        return candidateId;
+    }
+
+    private Optional<String> computeCandidateVersionedId(final ControllerServiceNode service, final Set<ControllerServiceNode> createdServices, final ProcessGroup synchronizedGroup,
+                                                         final @Nullable String synchronizedGroupIdentity, final Map<ControllerServiceNode, Optional<String>> candidateIds) {
+        final String owningGroupIdentity = getOwningProcessGroupIdentity(service, synchronizedGroup, synchronizedGroupIdentity);
+        if (owningGroupIdentity == null) {
+            return Optional.empty();
+        }
+
+        final SortedMap<String, String> properties = new TreeMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> rawProperty : service.getRawPropertyValues().entrySet()) {
+            final String value = rawProperty.getValue();
+            if (value == null) {
+                continue;
+            }
+
+            final PropertyDescriptor descriptor = rawProperty.getKey();
+            if (descriptor.getControllerServiceDefinition() != null) {
+                final Optional<String> referencedId = getReferencedVersionedId(value, createdServices, synchronizedGroup, synchronizedGroupIdentity, candidateIds);
+                if (referencedId.isEmpty()) {
+                    // A service referencing a service without a stable versioned ID cannot have one either.
+                    return Optional.empty();
+                }
+                properties.put(descriptor.getName(), referencedId.get());
+            } else if (descriptor.isSensitive() && hasNoParameterReferences(service.getProperty(descriptor))) {
+                // An inline sensitive value is not saved to the registry, so instances hold different values and cannot agree on an ID.
+                return Optional.empty();
+            } else {
+                properties.put(descriptor.getName(), value);
+            }
+        }
+
+        final String serviceDescription = owningGroupIdentity + service.getCanonicalClassName() + properties;
+        return Optional.of(UUID.nameUUIDFromBytes(serviceDescription.getBytes(StandardCharsets.UTF_8)).toString());
+    }
+
+    private Optional<String> getReferencedVersionedId(final String referencedInstanceId, final Set<ControllerServiceNode> createdServices, final ProcessGroup synchronizedGroup,
+                                                      final @Nullable String synchronizedGroupIdentity, final Map<ControllerServiceNode, Optional<String>> candidateIds) {
+        final ControllerServiceNode referencedService = context.getControllerServiceProvider().getControllerServiceNode(referencedInstanceId);
+        if (referencedService == null || !isWithinSynchronizedGroup(referencedService, synchronizedGroup)) {
+            return Optional.empty();
+        }
+
+        if (createdServices.contains(referencedService)) {
+            return getCandidateVersionedId(referencedService, createdServices, synchronizedGroup, synchronizedGroupIdentity, candidateIds);
+        }
+
+        return referencedService.getVersionedComponentId();
+    }
+
+    private boolean hasNoParameterReferences(final @Nullable PropertyConfiguration propertyConfiguration) {
+        // A sensitive property that references a Parameter cannot contain any other text, so any Parameter reference means it holds no inline value.
+        return propertyConfiguration == null || propertyConfiguration.getParameterReferences().isEmpty();
+    }
+
+    private boolean isWithinSynchronizedGroup(final ControllerServiceNode service, final ProcessGroup synchronizedGroup) {
+        final ProcessGroup serviceGroup = service.getProcessGroup();
+        if (serviceGroup == null) {
+            return false;
+        }
+
+        return synchronizedGroup.equals(serviceGroup) || synchronizedGroup.findProcessGroup(serviceGroup.getIdentifier()) != null;
+    }
+
+    private @Nullable String getOwningProcessGroupIdentity(final ComponentNode extension, final ProcessGroup synchronizedGroup, final @Nullable String synchronizedGroupIdentity) {
+        final ProcessGroup extensionGroup = extension.getParentProcessGroup().orElse(null);
+        if (extensionGroup == null) {
+            return null;
+        }
+
+        // The synchronized group's versioned component ID is not a reliable identity across flow instances.
+        // Use the supplied flow identity instead; the group's version control information may have been cleared during synchronization.
+        return extensionGroup.getIdentifier().equals(synchronizedGroup.getIdentifier())
+            ? synchronizedGroupIdentity
+            : determineProcessGroupIdentity(extensionGroup);
+    }
+
+    private @Nullable String determineProcessGroupIdentity(final ProcessGroup group) {
+        // A child group can be independently version-controlled.
+        // Use its own flow ID so migration-created service identities match whether the child flow is imported standalone or nested.
+        final VersionControlInformation versionControl = group.getVersionControlInformation();
+        return versionControl == null ? group.getVersionedComponentId().orElse(null) : versionControl.getFlowIdentifier();
+    }
+
+    private static Set<GroupServiceId> calculateConflictingCandidateVersionedIds(final ProcessGroup synchronizedGroup, final Map<ControllerServiceNode, String> presentCandidateIds) {
+        final Set<ControllerServiceNode> groupServices = synchronizedGroup.findAllControllerServices();
+        final Set<GroupServiceId> seenIds = HashSet.newHashSet(groupServices.size() + presentCandidateIds.size());
+
+        for (final ControllerServiceNode existingService : groupServices) {
+            existingService.getVersionedComponentId().ifPresent(
+                id -> seenIds.add(new GroupServiceId(existingService.getProcessGroup().getIdentifier(), id)));
+        }
+
+        final Set<GroupServiceId> conflictingCandidateIds = new HashSet<>();
+        presentCandidateIds.forEach((service, candidateId) -> {
+            final GroupServiceId groupServiceId = new GroupServiceId(service.getProcessGroup().getIdentifier(), candidateId);
+
+            if (!seenIds.add(groupServiceId)) {
+                conflictingCandidateIds.add(groupServiceId);
+            }
+        });
+
+        return conflictingCandidateIds;
     }
 
     private void synchronize(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,
@@ -555,18 +713,20 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         //
         // The sequence of steps / order of operations are as follows:
         //
-        // 1. Remove any Controller Services that do not exist in the proposed group
-        // 2. Add any Controller Services that are in the proposed group that are not in the current flow
-        // 3. Update Controller Services to match those in the proposed group
-        // 4. Remove any connections that do not exist in the proposed group
-        // 5. For any connection that does exist, if the proposed group has a different destination for the connection, update the destination.
+        // 1. Add any Controller Services that are in the proposed group that are not in the current flow
+        // 2. Update Controller Services to match those in the proposed group
+        // 3. Remove any connections that do not exist in the proposed group
+        // 4. For any connection that does exist, if the proposed group has a different destination for the connection, update the destination.
         //    If the new destination does not yet exist in the flow, set the destination as some temporary component.
-        // 6. Remove any other components that do not exist in the proposed group.
-        // 7. Add any components, other than Connections, that exist in the proposed group but not in the current flow
-        // 8. Update components, other than Connections, to match those in the proposed group
-        // 9. Add connections that exist in the proposed group that are not in the current flow
-        // 10. Update connections to match those in the proposed group
-        // 11. Delete the temporary destination that was created above
+        // 5. Remove any other components that do not exist in the proposed group.
+        // 6. Add any components, other than Connections, that exist in the proposed group but not in the current flow
+        // 7. Update components, other than Connections, to match those in the proposed group
+        // 8. Add connections that exist in the proposed group that are not in the current flow
+        // 9. Update connections to match those in the proposed group
+        // 10. Delete the temporary destination that was created above
+        //
+        // Controller Services that do not exist in the proposed group are recorded here and removed at the end of the synchronization,
+        // after property migration, unless a component that remains in the flow still references them.
 
         // During the flow update, we will use temporary names for process group ports. This is because port names must be
         // unique within a process group, but during an update we might temporarily be in a state where two ports have the same name.
@@ -579,7 +739,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         // Controller Services
         final Map<String, ControllerServiceNode> controllerServicesByVersionedId = componentsById(group, grp -> grp.getControllerServices(false),
             ControllerServiceNode::getIdentifier, ControllerServiceNode::getVersionedComponentId);
-        removeMissingControllerServices(group, proposed, controllerServicesByVersionedId);
+        recordMissingControllerServices(proposed, controllerServicesByVersionedId);
         synchronizeControllerServices(group, proposed, controllerServicesByVersionedId, topLevelGroup);
 
         // Remove any connections that are not in the Proposed Process Group
@@ -806,6 +966,19 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         addedServices.removeAll(toEnable);
         addedServices.forEach(ComponentNode::performValidation);
         context.getComponentScheduler().enableAddedControllerServicesAsync(addedServices);
+    }
+
+    private void recordMissingControllerServices(final VersionedProcessGroup proposed, final Map<String, ControllerServiceNode> servicesByVersionedId) {
+        final Set<String> proposedServiceIds = HashSet.newHashSet(proposed.getControllerServices().size());
+        for (final VersionedControllerService service : proposed.getControllerServices()) {
+            proposedServiceIds.add(service.getIdentifier());
+        }
+
+        servicesByVersionedId.forEach((versionedId, service) -> {
+            if (!proposedServiceIds.contains(versionedId)) {
+                missingControllerServices.add(service);
+            }
+        });
     }
 
     private void removeMissingConnections(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, Connection> connectionsByVersionedId) {
@@ -1172,9 +1345,37 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         removeMissingComponents(group, proposed, rpgsByVersionedId, VersionedProcessGroup::getRemoteProcessGroups, ProcessGroup::removeRemoteProcessGroup);
     }
 
-    private void removeMissingControllerServices(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, ControllerServiceNode> servicesByVersionedId) {
-        final BiConsumer<ProcessGroup, ControllerServiceNode> componentRemoval = (grp, service) -> context.getControllerServiceProvider().removeControllerService(service);
-        removeMissingComponents(group, proposed, servicesByVersionedId, VersionedProcessGroup::getControllerServices, componentRemoval);
+    /**
+     * Removes the Controller Services that the proposed flow does not contain, unless a remaining component still references them, directly or
+     * through other such services. This must run after property migration, so that migration can still reference or reuse them.
+     */
+    private void removeUnreferencedMissingControllerServices() {
+        final Set<ControllerServiceNode> keptServices = new HashSet<>();
+        boolean serviceKept = true;
+        while (serviceKept) {
+            serviceKept = false;
+            for (final ControllerServiceNode service : missingControllerServices) {
+                if (!keptServices.contains(service) && isReferencedByRemainingComponent(service, keptServices)) {
+                    keptServices.add(service);
+                    serviceKept = true;
+                }
+            }
+        }
+
+        for (final ControllerServiceNode service : missingControllerServices) {
+            if (keptServices.contains(service)) {
+                LOG.info("Keeping {} in {} although the proposed flow does not contain it, because it is still referenced by {}",
+                    service, service.getProcessGroup(), service.getReferences().getReferencingComponents());
+            } else {
+                LOG.info("Removing {} from {}", service, service.getProcessGroup());
+                context.getControllerServiceProvider().removeControllerService(service);
+            }
+        }
+    }
+
+    private boolean isReferencedByRemainingComponent(final ControllerServiceNode service, final Set<ControllerServiceNode> keptServices) {
+        return service.getReferences().getReferencingComponents().stream()
+            .anyMatch(component -> !missingControllerServices.contains(component) || keptServices.contains(component));
     }
 
     private void removeMissingChildGroups(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, ProcessGroup> groupsByVersionedId) {
@@ -3207,6 +3408,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private String getServiceInstanceId(final String serviceVersionedComponentId, final ProcessGroup group) {
         for (final ControllerServiceNode serviceNode : group.getControllerServices(false)) {
+            // A service missing from the proposed flow is only removed at the end of the synchronization, so references must not resolve to it
+            if (missingControllerServices.contains(serviceNode)) {
+                continue;
+            }
+
             final String versionedId = serviceNode.getVersionedComponentId().orElse(
                 VersionedComponentFlowMapper.generateVersionedComponentId(serviceNode.getIdentifier()));
             if (versionedId.equals(serviceVersionedComponentId)) {
@@ -4243,4 +4449,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private record ParameterValueAndReferences(String value, List<String> assetIds) { }
+
+    private record GroupServiceId(String groupInstanceId, String serviceVersionedId) {
+    }
 }
