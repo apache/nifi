@@ -95,6 +95,7 @@ public class FlowFileRestorationIT extends NiFiSystemIT {
     @Test
     public void testSwappedFlowFileOrderPreservedAfterRestart() throws NiFiClientException, IOException, InterruptedException {
         final int flowFileCount = 100;
+        final int newerFlowFileCount = 2;
         ProcessorEntity generate = getClientUtil().createProcessor(GENERATE_FLOWFILE);
         generate = getClientUtil().updateProcessorProperties(generate, Map.of("Batch Size", String.valueOf(flowFileCount), "sequence", "${nextInt()}"));
 
@@ -110,20 +111,20 @@ public class FlowFileRestorationIT extends NiFiSystemIT {
         getClientUtil().waitForStoppedProcessor(generate.getId());
         waitForQueueCount(connection.getId(), flowFileCount);
 
-        // The oldest FlowFiles are held in memory and the rest are written to swap files. Process two of the oldest FlowFiles and then queue
-        // two newer FlowFiles, which wait behind the swapped FlowFiles. All FlowFiles held in memory then fit within the swap threshold when
-        // they are restored.
-        for (int i = 0; i < 2; i++) {
+        // The oldest FlowFiles are held in memory and the rest are written to swap files. Process as many of the oldest FlowFiles as the number
+        // of newer FlowFiles and then queue the newer FlowFiles, which wait behind the swapped FlowFiles. All FlowFiles held in memory then fit
+        // within the swap threshold when they are restored.
+        for (int i = 0; i < newerFlowFileCount; i++) {
             verifyOrder = getClientUtil().runProcessorOnce(verifyOrder);
             getClientUtil().waitForStoppedProcessor(verifyOrder.getId());
         }
 
         generate = getNifiClient().getProcessorClient().getProcessor(generate.getId());
-        generate = getClientUtil().updateProcessorProperties(generate, Map.of("Batch Size", "2"));
+        generate = getClientUtil().updateProcessorProperties(generate, Map.of("Batch Size", String.valueOf(newerFlowFileCount)));
         generate = getClientUtil().runProcessorOnce(generate);
         getClientUtil().waitForStoppedProcessor(generate.getId());
         waitForQueueCount(connection.getId(), flowFileCount);
-        assertEquals(SWAP_THRESHOLD - 2, getClientUtil().performQueueListing(connection.getId()).getListingRequest().getFlowFileSummaries().size());
+        assertEquals(SWAP_THRESHOLD - newerFlowFileCount, getClientUtil().performQueueListing(connection.getId()).getListingRequest().getFlowFileSummaries().size());
 
         final NiFiInstance nifiInstance = getNiFiInstance();
         nifiInstance.stop();
@@ -133,7 +134,7 @@ public class FlowFileRestorationIT extends NiFiSystemIT {
         // Process all FlowFiles, including the swapped FlowFiles. Each FlowFile must be processed directly after the FlowFile created before it.
         verifyOrder = getNifiClient().getProcessorClient().getProcessor(verifyOrder.getId());
         getClientUtil().startProcessor(verifyOrder);
-        waitFor(() -> getConnectionQueueSize(sequentialConnection.getId()) + getConnectionQueueSize(failureConnection.getId()) == flowFileCount + 2);
+        waitFor(() -> getConnectionQueueSize(sequentialConnection.getId()) + getConnectionQueueSize(failureConnection.getId()) == flowFileCount + newerFlowFileCount);
         assertEquals(0, getConnectionQueueSize(failureConnection.getId()));
     }
 

@@ -33,16 +33,18 @@ import java.util.List;
 import java.util.Set;
 
 @TriggerSerially
-@CapabilityDescription("Pulls one FlowFile at a time from the incoming queue and routes it to 'sequential' if its Value to Consider is exactly one greater than the "
-    + "Value to Consider of the previous FlowFile that this Processor received. Otherwise, the FlowFile is routed to 'failure'. The first FlowFile that the Processor "
-    + "receives is always routed to 'sequential'.")
+@CapabilityDescription("""
+    Pulls one FlowFile at a time from the incoming queue and routes it to 'sequential' if its Value to Consider is exactly one greater than the
+    Value to Consider of the previous FlowFile that this Processor received. Otherwise, the FlowFile is routed to 'failure'. The first FlowFile
+    that the Processor receives is always routed to 'sequential'.
+    """)
 public class VerifySequentialOrder extends AbstractProcessor {
 
     static final PropertyDescriptor VALUE_TO_CONSIDER = new PropertyDescriptor.Builder()
         .name("Value to Consider")
         .description("The whole number to compare against the Value to Consider of the previous FlowFile")
         .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(StandardValidators.LONG_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
