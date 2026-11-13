@@ -67,6 +67,7 @@ org.apache.nifi.processors.tests.system.VerifyClasspathResource
 org.apache.nifi.processors.tests.system.VerifyContents
 org.apache.nifi.processors.tests.system.VerifyEvenThenOdd
 org.apache.nifi.processors.tests.system.VerifyMethodSignatureResource
+org.apache.nifi.processors.tests.system.VerifySequentialOrder
 org.apache.nifi.processors.tests.system.WriteFlowFileCountToFile
 org.apache.nifi.processors.tests.system.WriteLifecycleEvents
 org.apache.nifi.processors.tests.system.WriteToFile

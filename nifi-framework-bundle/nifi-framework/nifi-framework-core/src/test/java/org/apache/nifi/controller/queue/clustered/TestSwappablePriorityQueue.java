@@ -610,6 +610,46 @@ public class TestSwappablePriorityQueue {
     }
 
     @Test
+    public void testRecoverSwappedFlowFilesPreservesOrder() throws IOException {
+        final FlowFilePrioritizer iAttributePrioritizer = (o1, o2) -> {
+            final int i1 = Integer.parseInt(o1.getAttribute("i"));
+            final int i2 = Integer.parseInt(o2.getAttribute("i"));
+            return Integer.compare(i1, i2);
+        };
+
+        // Before a restart, the active queue held the oldest FlowFiles, a swap file held the next 100, and the in-memory swap queue held the newest 50.
+        // On restart, the active and in-memory swap queue FlowFiles are restored newest first, and then the swap file is recovered.
+        for (final int activeCount : new int[] {40, 80}) {
+            swapManager = new MockSwapManager();
+            queue = new SwappablePriorityQueue(swapManager, 100, eventReporter, flowFileQueue, dropAction, "local");
+            queue.setPriorities(List.of(iAttributePrioritizer));
+
+            final List<FlowFileRecord> swappedFlowFiles = new ArrayList<>();
+            for (int i = activeCount; i < activeCount + 100; i++) {
+                swappedFlowFiles.add(new MockFlowFileRecord(Map.of("i", String.valueOf(i)), 1L));
+            }
+            swapManager.swapOut(swappedFlowFiles, flowFileQueue, "local");
+
+            final int totalCount = activeCount + 150;
+            for (int i = totalCount - 1; i >= 0; i--) {
+                if (i < activeCount || i >= activeCount + 100) {
+                    queue.put(new MockFlowFileRecord(Map.of("i", String.valueOf(i)), 1L));
+                }
+            }
+
+            queue.recoverSwappedFlowFiles();
+            queue.put(new MockFlowFileRecord(Map.of("i", String.valueOf(totalCount)), 1L));
+            assertEquals(totalCount + 1, queue.size().getObjectCount());
+
+            for (int i = 0; i <= totalCount; i++) {
+                assertEquals(String.valueOf(i), queue.poll(Collections.emptySet(), 0L).getAttribute("i"));
+            }
+
+            assertNull(queue.poll(Collections.emptySet(), 0L));
+        }
+    }
+
+    @Test
     public void testQueueCountsUpdatedWhenIncompleteSwapFile() {
         for (int i = 1; i <= 20000; i++) {
             queue.put(new MockFlowFileRecord());

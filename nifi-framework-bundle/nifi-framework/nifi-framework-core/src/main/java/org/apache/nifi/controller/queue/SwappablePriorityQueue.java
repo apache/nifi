@@ -1267,6 +1267,10 @@ public class SwappablePriorityQueue {
 
             incrementSwapQueueSize(swapFlowFileCount, swapByteCount, swapLocations.size());
             this.swapLocations.addAll(swapLocations);
+            if (!swapLocations.isEmpty()) {
+                restoreActiveFlowFilesToSwapQueue(swapLocations.iterator().next());
+            }
+
             updateTopPenaltyExpiration();
         } finally {
             writeLock.unlock("Recover Swap Files");
@@ -1282,6 +1286,62 @@ public class SwappablePriorityQueue {
         // minSwappedQueueDate and totalSwappedQueueDate within this particular StandardSwapSummary are not ultimately used by the FlowController. However,
         // it can't hurt to set them here accurately in case they ever are.
         return new StandardSwapSummary(new QueueSize(swapFlowFileCount, swapByteCount), maxId, resourceClaims, minSwappedQueueDate, totalSwappedQueueDate);
+    }
+
+    /**
+     * On restart, the FlowFiles that were held in memory are restored from the FlowFile Repository before the swap files are recovered, so they
+     * fill the active queue regardless of whether they were queued before or after the swapped FlowFiles. Because swap files are not swapped in
+     * until the active queue is empty, this keeps in the active queue only the FlowFiles that come before the highest priority FlowFile of the
+     * oldest swap file and moves all others to the swap queue, which is processed after the swap files. The queue is placed in swap mode so that
+     * FlowFiles added afterward are also processed after the swap files.
+     *
+     * This method MUST be called with the write lock held.
+     *
+     * @param oldestSwapLocation the location of the oldest recovered swap file
+     */
+    private void restoreActiveFlowFilesToSwapQueue(final String oldestSwapLocation) {
+        swapMode = true;
+
+        final List<FlowFileRecord> swappedFlowFiles;
+        try {
+            swappedFlowFiles = swapManager.peek(oldestSwapLocation, flowFileQueue).getFlowFiles();
+        } catch (final IOException ioe) {
+            logger.warn("Failed to read Swap File {} for {}; FlowFiles restored from the FlowFile Repository may be processed before older swapped FlowFiles",
+                oldestSwapLocation, this, ioe);
+            return;
+        }
+
+        if (swappedFlowFiles.isEmpty()) {
+            return;
+        }
+
+        final QueuePrioritizer prioritizer = new QueuePrioritizer(getPriorities());
+        final FlowFileRecord firstSwappedFlowFile = Collections.min(swappedFlowFiles, prioritizer);
+
+        final List<FlowFileRecord> restoredFlowFiles = new ArrayList<>(activeQueue);
+        restoredFlowFiles.addAll(swapQueue);
+        final int originalActiveCount = activeQueue.size();
+        long originalActiveBytes = 0L;
+        for (final FlowFileRecord flowFile : activeQueue) {
+            originalActiveBytes += flowFile.getSize();
+        }
+
+        activeQueue.clear();
+        swapQueue.clear();
+        long activeBytes = 0L;
+        for (final FlowFileRecord flowFile : restoredFlowFiles) {
+            if (prioritizer.compare(flowFile, firstSwappedFlowFile) < 0) {
+                activeQueue.add(flowFile);
+                activeBytes += flowFile.getSize();
+            } else {
+                swapQueue.add(flowFile);
+            }
+        }
+
+        final int movedToActiveCount = activeQueue.size() - originalActiveCount;
+        final long movedToActiveBytes = activeBytes - originalActiveBytes;
+        incrementActiveQueueSize(movedToActiveCount, movedToActiveBytes);
+        incrementSwapQueueSize(-movedToActiveCount, -movedToActiveBytes, 0);
     }
 
     public long getMinLastQueueDate() {
