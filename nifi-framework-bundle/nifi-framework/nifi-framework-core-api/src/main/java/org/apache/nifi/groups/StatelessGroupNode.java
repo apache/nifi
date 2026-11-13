@@ -35,7 +35,7 @@ public interface StatelessGroupNode extends Connectable {
     @Override
     ProcessGroup getProcessGroup();
 
-    void start(ScheduledExecutorService executorService, SchedulingAgentCallback schedulingAgentCallback, LifecycleState lifecycleState);
+    CompletableFuture<Void> start(ScheduledExecutorService executorService, SchedulingAgentCallback schedulingAgentCallback, LifecycleState lifecycleState);
 
     CompletableFuture<Void> stop(ProcessScheduler processScheduler, ScheduledExecutorService executor, SchedulingAgent schedulingAgent, LifecycleState scheduleState);
 
