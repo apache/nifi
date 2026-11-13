@@ -33,7 +33,9 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -111,6 +113,10 @@ public class ParquetTestUtils {
         final Schema timeMicrosSchema = LogicalTypes.timeMicros().addToSchema(Schema.create(Schema.Type.LONG));
         final Schema timestampMillisSchema = LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
         final Schema timestampMicrosSchema = LogicalTypes.timestampMicros().addToSchema(Schema.create(Schema.Type.LONG));
+        final Schema timestampNanosSchema = LogicalTypes.timestampMicros().addToSchema(Schema.create(Schema.Type.LONG));
+        final Schema localTimestampMillisSchema = LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
+        final Schema localTimestampMicrosSchema = LogicalTypes.timestampMicros().addToSchema(Schema.create(Schema.Type.LONG));
+        final Schema localTimestampNanosSchema = LogicalTypes.timestampMicros().addToSchema(Schema.create(Schema.Type.LONG));
         // Nullable timestamp (union with null) to test union handling
         final Schema nullableTimestampSchema = Schema.createUnion(Schema.create(Schema.Type.NULL), timestampMillisSchema);
 
@@ -122,6 +128,10 @@ public class ParquetTestUtils {
                 new Schema.Field("time_micros_field", timeMicrosSchema),
                 new Schema.Field("timestamp_millis_field", timestampMillisSchema),
                 new Schema.Field("timestamp_micros_field", timestampMicrosSchema),
+                new Schema.Field("timestamp_nanos_field", timestampNanosSchema),
+                new Schema.Field("local_timestamp_millis_field", localTimestampMillisSchema),
+                new Schema.Field("local_timestamp_micros_field", localTimestampMicrosSchema),
+                new Schema.Field("local_timestamp_nanos_field", localTimestampNanosSchema),
                 new Schema.Field("nullable_timestamp_field", nullableTimestampSchema)
         ));
 
@@ -141,6 +151,15 @@ public class ParquetTestUtils {
                 record.put("timestamp_millis_field", Instant.now().toEpochMilli());
                 // timestamp-micros: microseconds since epoch
                 record.put("timestamp_micros_field", Instant.now().toEpochMilli() * 1000L);
+                // timestamp-nanos: nanoseconds since epoch
+                record.put("timestamp_nanos_field", Instant.now().toEpochMilli() * 1000000L);
+                // timestamp-millis: milliseconds since epoch
+                record.put("local_timestamp_millis_field", LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) * 1_000);
+                // timestamp-micros: microseconds since epoch
+                record.put("local_timestamp_micros_field", LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) * 1_000_000L);
+                // timestamp-nanos: nanoseconds since epoch
+                record.put("local_timestamp_nanos_field", LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) * 1_000_000_000L);
+
                 // nullable timestamp: milliseconds since epoch (non-null value)
                 record.put("nullable_timestamp_field", Instant.now().toEpochMilli());
                 writer.write(record);
