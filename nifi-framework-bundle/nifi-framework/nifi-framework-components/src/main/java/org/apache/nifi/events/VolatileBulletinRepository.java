@@ -285,7 +285,13 @@ public class VolatileBulletinRepository implements BulletinRepository {
     private String getBulletinStoreKey(final Bulletin bulletin) {
         return switch (bulletin.getSourceType()) {
             case FLOW_CONTROLLER -> CONTROLLER_BULLETIN_STORE_KEY;
-            case CONTROLLER_SERVICE -> SERVICE_BULLETIN_STORE_KEY;
+            case CONTROLLER_SERVICE -> {
+                if (bulletin.getGroupId() == null) {
+                    yield SERVICE_BULLETIN_STORE_KEY;
+                } else {
+                    yield bulletin.getGroupId();
+                }
+            }
             case REPORTING_TASK -> REPORTING_TASK_BULLETIN_STORE_KEY;
             case FLOW_ANALYSIS_RULE -> FLOW_ANALYSIS_RULE_BULLETIN_STORE_KEY;
             case PARAMETER_PROVIDER -> PARAMETER_PROVIDER_BULLETIN_STORE_KEY;
@@ -297,8 +303,11 @@ public class VolatileBulletinRepository implements BulletinRepository {
 
     private boolean isControllerBulletin(final Bulletin bulletin) {
         return switch (bulletin.getSourceType()) {
-            case FLOW_CONTROLLER, CONTROLLER_SERVICE, REPORTING_TASK, FLOW_ANALYSIS_RULE, PARAMETER_PROVIDER,
+            case FLOW_CONTROLLER, REPORTING_TASK, FLOW_ANALYSIS_RULE, PARAMETER_PROVIDER,
                  FLOW_REGISTRY_CLIENT -> true;
+            case CONTROLLER_SERVICE -> {
+                yield bulletin.getGroupId() == null;
+            }
             default -> false;
         };
     }
