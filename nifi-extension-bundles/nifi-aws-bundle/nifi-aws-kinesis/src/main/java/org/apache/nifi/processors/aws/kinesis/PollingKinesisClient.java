@@ -45,8 +45,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Shared-throughput Kinesis consumer that runs a continuous background fetch loop per shard.
  * Each owned shard gets its own virtual thread that repeatedly calls GetRecords and enqueues
- * results for the processor, mirroring the producer-consumer architecture of the KCL Scheduler.
- * This keeps data flowing between onTrigger invocations rather than fetching on-demand.
+ * results for the processor. This keeps data flowing between onTrigger invocations rather than fetching on-demand.
  *
  * <p>Concurrency is bounded by a semaphore with {@value #MAX_CONCURRENT_FETCHES} permits so
  * that at most that many GetRecords HTTP calls are in flight at any moment, preventing
