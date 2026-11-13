@@ -311,8 +311,10 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         // We are preventing additional nullPtrException here, but the clean solution would be to create the client in the onScheduled method.
         if (mqttClient != null) {
             try {
-                logger.info("Disconnecting client");
-                mqttClient.disconnect();
+                if (mqttClient.isConnected()) {
+                    logger.info("Disconnecting client");
+                    mqttClient.disconnect();
+                }
             } catch (Exception e) {
                 logger.error("Error disconnecting MQTT client", e);
             }

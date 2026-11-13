@@ -196,7 +196,10 @@ public class PublishMQTT extends AbstractMQTTProcessor {
         if (!isConnected()) {
             synchronized (this) {
                 if (!isConnected()) {
-                    initializeClient(context);
+                    if (!initializeClient(context)) {
+                        session.rollback();
+                        return;
+                    }
                 }
             }
         }
@@ -286,16 +289,17 @@ public class PublishMQTT extends AbstractMQTTProcessor {
         mqttClient.publish(topic, mqttMessage);
     }
 
-    private void initializeClient(ProcessContext context) {
-        // NOTE: This method is called when isConnected returns false which can happen when the client is null, or when it is
-        // non-null but not connected, so we need to handle each case and only create a new client when it is null
+    private boolean initializeClient(ProcessContext context) {
         try {
+            stopClient(); // clean up any existing client before creating a new one
             mqttClient = createMqttClient();
             mqttClient.connect();
         } catch (Exception e) {
             logger.error("Connection failed to {}. Yielding processor", clientProperties.getRawBrokerUris(), e);
+            stopClient(); // clean up partially initialized client
             context.yield();
         }
+        return isConnected();
     }
 
     interface ProcessStrategy {

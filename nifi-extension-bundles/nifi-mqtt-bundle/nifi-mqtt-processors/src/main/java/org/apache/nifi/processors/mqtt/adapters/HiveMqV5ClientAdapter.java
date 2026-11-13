@@ -18,12 +18,11 @@ package org.apache.nifi.processors.mqtt.adapters;
 
 import com.hivemq.client.mqtt.MqttGlobalPublishFilter;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
-import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientBuilder;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5Connect;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5ConnectBuilder;
-import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
 import org.apache.nifi.processors.mqtt.common.MqttClientProperties;
@@ -39,7 +38,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
@@ -53,19 +52,19 @@ import static org.apache.nifi.processors.mqtt.common.MqttProtocolScheme.WSS;
 @SuppressWarnings("PMD.UnusedReturnValue")
 public class HiveMqV5ClientAdapter implements MqttClient {
 
-    private final Mqtt5BlockingClient mqtt5BlockingClient;
+    private final Mqtt5AsyncClient mqtt5AsyncClient;
     private final MqttClientProperties clientProperties;
     private final ComponentLog logger;
 
     public HiveMqV5ClientAdapter(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
-        this.mqtt5BlockingClient = createClient(brokerUri, clientProperties, logger);
+        this.mqtt5AsyncClient = createClient(brokerUri, clientProperties, logger);
         this.clientProperties = clientProperties;
         this.logger = logger;
     }
 
     @Override
     public boolean isConnected() {
-        return mqtt5BlockingClient.getState().isConnected();
+        return mqtt5AsyncClient.getState().isConnected();
     }
 
     @Override
@@ -101,14 +100,13 @@ public class HiveMqV5ClientAdapter implements MqttClient {
         }
 
         final Mqtt5Connect mqtt5Connect = connectBuilder.build();
-        mqtt5BlockingClient.connect(mqtt5Connect);
+        awaitWithTimeout(mqtt5AsyncClient.connect(mqtt5Connect));
     }
 
     @Override
     public void disconnect() {
         logger.debug("Disconnecting client");
-        // Currently it is not possible to set timeout for disconnect with HiveMQ Client.
-        mqtt5BlockingClient.disconnect();
+        awaitWithTimeout(mqtt5AsyncClient.disconnect());
     }
 
     @Override
@@ -120,34 +118,27 @@ public class HiveMqV5ClientAdapter implements MqttClient {
     public void publish(String topic, StandardMqttMessage message) {
         logger.debug("Publishing message to {} with QoS: {}", topic, message.getQos());
 
-        mqtt5BlockingClient.publishWith()
+        awaitWithTimeout(mqtt5AsyncClient.publishWith()
                 .topic(topic)
                 .payload(message.getPayload())
                 .retain(message.isRetained())
                 .qos(Objects.requireNonNull(MqttQos.fromCode(message.getQos())))
-                .send();
+                .send());
     }
 
     @Override
     public void subscribe(String topicFilter, int qos) {
         logger.debug("Subscribing to {} with QoS: {}", topicFilter, qos);
 
-        CompletableFuture<Mqtt5SubAck> futureAck = mqtt5BlockingClient.toAsync().subscribeWith()
+        awaitWithTimeout(mqtt5AsyncClient.subscribeWith()
                 .topicFilter(topicFilter)
                 .qos(Objects.requireNonNull(MqttQos.fromCode(qos)))
-                .send();
-
-        try {
-            final Mqtt5SubAck ack = futureAck.get(clientProperties.getConnectionTimeout(), TimeUnit.SECONDS);
-            logger.debug("Received mqtt5 subscribe ack: {}", ack);
-        } catch (Exception e) {
-            throw new MqttException("An error has occurred during sending subscribe message to broker", e);
-        }
+                .send());
     }
 
     @Override
     public void setReceivedMessageHandler(ReceivedMqttMessageHandler handler) {
-        mqtt5BlockingClient.toAsync().publishes(MqttGlobalPublishFilter.ALL, mqtt5Publish -> {
+        mqtt5AsyncClient.publishes(MqttGlobalPublishFilter.ALL, mqtt5Publish -> {
             final ReceivedMqttMessage receivedMessage = new ReceivedMqttMessage(
                     mqtt5Publish.getPayloadAsBytes(),
                     mqtt5Publish.getQos().getCode(),
@@ -157,7 +148,21 @@ public class HiveMqV5ClientAdapter implements MqttClient {
         });
     }
 
-    private static Mqtt5BlockingClient createClient(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
+    private <T> T awaitWithTimeout(Future<T> future) {
+        try {
+            final T response = future.get(clientProperties.getConnectionTimeout(), TimeUnit.SECONDS);
+            logger.debug("Received response: {}", response);
+            return response;
+        } catch (Exception e) {
+            future.cancel(true);
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new MqttException("An error has occurred while communicating with the broker", e);
+        }
+    }
+
+    private static Mqtt5AsyncClient createClient(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
         logger.debug("Creating Mqtt v5 client");
 
         final Mqtt5ClientBuilder mqtt5ClientBuilder = Mqtt5Client.builder()
@@ -199,6 +204,6 @@ public class HiveMqV5ClientAdapter implements MqttClient {
             }
         }
 
-        return mqtt5ClientBuilder.buildBlocking();
+        return mqtt5ClientBuilder.buildAsync();
     }
 }
