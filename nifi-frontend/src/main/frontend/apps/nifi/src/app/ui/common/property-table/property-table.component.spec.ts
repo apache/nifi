@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+import { ElementRef } from '@angular/core';
+import { CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { PropertyTable } from './property-table.component';
@@ -108,6 +110,71 @@ describe('PropertyTable', () => {
             component.goToParameter = vi.fn();
 
             expect(component.canGoToParameter(mockItem)).toBe(true);
+        });
+    });
+
+    describe('openEditor', () => {
+        const mockItem: PropertyItem = {
+            property: 'Service',
+            value: null,
+            descriptor: {
+                name: 'Service',
+                displayName: 'Service',
+                description: '',
+                required: false,
+                sensitive: false,
+                dynamic: false,
+                supportsEl: false,
+                expressionLanguageScope: 'Not Supported',
+                dependencies: []
+            },
+            id: 4,
+            triggerEdit: false,
+            deleted: false,
+            added: false,
+            dirty: false,
+            savedValue: null,
+            type: 'optional'
+        };
+
+        function open(item: PropertyItem, cellWidth: number): void {
+            const cell = document.createElement('td');
+            const content = document.createElement('span');
+            cell.appendChild(content);
+            vi.spyOn(component['changeDetector'], 'detectChanges').mockImplementation(() => undefined);
+            vi.spyOn(cell, 'getBoundingClientRect').mockReturnValue({ width: cellWidth } as DOMRect);
+
+            component.openEditor({ elementRef: new ElementRef(cell) } as CdkOverlayOrigin, item, {
+                target: content
+            } as unknown as MouseEvent);
+        }
+
+        it('should use a minimum width for the combo editor when the value cell is narrow', () => {
+            const comboItem: PropertyItem = {
+                ...mockItem,
+                descriptor: { ...mockItem.descriptor, allowableValues: [] }
+            };
+
+            open(comboItem, 300);
+
+            expect(component.editorWidth).toBe(500);
+        });
+
+        it('should keep the value cell width plus padding for the combo editor when the value cell is wide', () => {
+            const comboItem: PropertyItem = {
+                ...mockItem,
+                descriptor: { ...mockItem.descriptor, allowableValues: [] }
+            };
+
+            open(comboItem, 700);
+
+            expect(component.editorWidth).toBe(750);
+        });
+
+        it('should not apply the combo editor minimum width to other editors', () => {
+            open(mockItem, 300);
+
+            expect(component.editorWidth).toBe(400);
         });
     });
 });
