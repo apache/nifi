@@ -43,6 +43,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -228,5 +229,33 @@ public class TestStandardSnowflakeIngestManagerProviderService {
         final RSAPrivateCrtKey privateKey = (RSAPrivateCrtKey) keyPair.getPrivate();
         final RSAKeyAuthorizationProvider authProvider = new RSAKeyAuthorizationProvider(ACCOUNT, USER, privateKey);
         return new SnowpipeIngestClient(baseUri, PIPE_NAME, authProvider, webClientService);
+    }
+
+    @Test
+    void testMigratePropertiesRetainsWebClientServiceProviderParameterReferenceWithoutValue() {
+        final String webClientServiceProviderName = StandardSnowflakeIngestManagerProviderService.WEB_CLIENT_SERVICE_PROVIDER.getName();
+        final MockPropertyConfiguration configuration = new UnresolvedParameterPropertyConfiguration(Map.of(webClientServiceProviderName, "#{web-client-service}"));
+
+        new StandardSnowflakeIngestManagerProviderService().migrateProperties(configuration);
+
+        assertEquals(Optional.of("#{web-client-service}"), configuration.getRawPropertyValue(webClientServiceProviderName));
+        assertTrue(configuration.toPropertyMigrationResult().getCreatedControllerServices().isEmpty());
+    }
+
+    private static class UnresolvedParameterPropertyConfiguration extends MockPropertyConfiguration {
+
+        private UnresolvedParameterPropertyConfiguration(final Map<String, String> rawProperties) {
+            super(rawProperties);
+        }
+
+        @Override
+        public boolean isPropertySet(final String propertyName) {
+            return getPropertyValue(propertyName).isPresent();
+        }
+
+        @Override
+        public Optional<String> getPropertyValue(final String propertyName) {
+            return getRawPropertyValue(propertyName).filter(value -> !value.startsWith("#{"));
+        }
     }
 }
