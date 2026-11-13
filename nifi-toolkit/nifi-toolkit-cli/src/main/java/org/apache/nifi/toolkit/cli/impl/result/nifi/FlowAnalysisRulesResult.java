@@ -31,7 +31,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Result for FlowAnalysisRulesEntity.
@@ -55,7 +54,7 @@ public class FlowAnalysisRulesResult extends AbstractWritableResult<FlowAnalysis
         final List<FlowAnalysisRuleDTO> ruleDTOS = ruleEntities.stream()
                 .map(FlowAnalysisRuleEntity::getComponent)
                 .sorted(Comparator.comparing(FlowAnalysisRuleDTO::getName))
-                .collect(Collectors.toList());
+                .toList();
 
         final Table table = new Table.Builder()
                 .column("#", 3, 3, false)

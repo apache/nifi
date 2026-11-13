@@ -501,7 +501,7 @@ public class StandardExtensionService implements ExtensionService {
 
         final List<BundleVersionEntity> existingVersions = metadataService.getBundleVersions(existingBundle.getId());
         if (existingVersions != null) {
-            existingVersions.stream().forEach(s -> sortedVersions.add(ExtensionMappings.map(s)));
+            existingVersions.forEach(s -> sortedVersions.add(ExtensionMappings.map(s)));
         }
         return sortedVersions;
     }

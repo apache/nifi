@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 /**
@@ -199,7 +200,7 @@ public class ExtensionMappings {
         entity.setContent(extensionContent);
 
         if (extension.getTags() != null) {
-            entity.setTags(extension.getTags().stream().collect(Collectors.toSet()));
+            entity.setTags(new HashSet<>(extension.getTags()));
         }
 
         if (extension.getProvidedServiceAPIs() != null) {

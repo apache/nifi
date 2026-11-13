@@ -185,7 +185,7 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
 
     @Override
     public void removeRuleViolationsForRule(String ruleId) {
-        subjectIdToRuleViolation.values().stream()
+        subjectIdToRuleViolation.values()
             .forEach(
                 violationMap -> violationMap
                     .entrySet()

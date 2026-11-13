@@ -117,7 +117,7 @@ public class HashiCorpVaultParameterProvider extends AbstractParameterProvider i
         final List<String> allSecretNames = vaultCommunicationService.listKeyValueSecrets(kvPath, kvVersion, secretPathPrefix);
         final List<String> secretNames = allSecretNames.stream()
                 .filter(name -> name.matches(secretIncludeRegex))
-                .collect(Collectors.toList());
+                .toList();
 
         final List<ParameterGroup> parameterGroups = new ArrayList<>();
         for (final String secretName : secretNames) {

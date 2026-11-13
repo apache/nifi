@@ -32,7 +32,6 @@ import java.io.PrintStream;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ImportReportingTasksResult extends AbstractWritableResult<VersionedReportingTaskImportResponseEntity> {
 
@@ -62,12 +61,12 @@ public class ImportReportingTasksResult extends AbstractWritableResult<Versioned
         final List<ReportingTaskDTO> taskDTOS = tasksEntities.stream()
                 .map(ReportingTaskEntity::getComponent)
                 .sorted(Comparator.comparing(ReportingTaskDTO::getName))
-                .collect(Collectors.toList());
+                .toList();
 
         final List<ControllerServiceDTO> serviceDTOS = serviceEntities.stream()
                 .map(ControllerServiceEntity::getComponent)
                 .sorted(Comparator.comparing(ControllerServiceDTO::getName))
-                .collect(Collectors.toList());
+                .toList();
 
         final Table table = new Table.Builder()
                 .column("#", 3, 3, false)

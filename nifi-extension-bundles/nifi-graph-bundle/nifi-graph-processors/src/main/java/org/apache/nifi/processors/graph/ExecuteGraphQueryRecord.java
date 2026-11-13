@@ -178,7 +178,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
 
     private Object getRecordValue(Record record, RecordPath recordPath) {
         final RecordPathResult result = recordPath.evaluate(record);
-        final List<FieldValue> values = result.getSelectedFields().collect(Collectors.toList());
+        final List<FieldValue> values = result.getSelectedFields().toList();
         if (!values.isEmpty()) {
             if (values.size() == 1) {
                 Object raw = values.get(0).getValue();

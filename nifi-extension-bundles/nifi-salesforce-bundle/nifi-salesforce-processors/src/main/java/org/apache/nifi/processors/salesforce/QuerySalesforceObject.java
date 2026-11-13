@@ -416,7 +416,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
         // Add IsDeleted to fields if Include Deleted Records is true
         if (includeDeletedRecords) {
-            List<String> fieldList = Arrays.stream(fields.split("\\s*,\\s*")).collect(Collectors.toList());
+            List<String> fieldList = Arrays.stream(fields.split("\\s*,\\s*")).toList();
             if (fieldList.stream().noneMatch(f -> f.equalsIgnoreCase("IsDeleted"))) {
                 fields = fields + ", IsDeleted";
             }

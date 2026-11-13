@@ -98,7 +98,7 @@ public class PrometheusMetricsUtil {
                 Map<String, Long> counters = processorStatus.getCounters();
 
                 if (counters != null) {
-                    counters.entrySet().stream().forEach(entry -> nifiMetricsRegistry.setDataPoint(entry.getValue(), "PROCESSOR_COUNTERS",
+                    counters.entrySet().forEach(entry -> nifiMetricsRegistry.setDataPoint(entry.getValue(), "PROCESSOR_COUNTERS",
                             processorStatus.getName(), entry.getKey(), processorStatus.getId(), instanceId));
                 }
 

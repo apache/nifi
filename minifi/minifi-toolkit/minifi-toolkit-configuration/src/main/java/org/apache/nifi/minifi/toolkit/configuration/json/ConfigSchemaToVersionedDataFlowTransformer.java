@@ -327,7 +327,7 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         connection.setBackPressureDataSizeThreshold(connectionSchema.getMaxWorkQueueDataSize());
         connection.setBackPressureObjectThreshold(connectionSchema.getMaxWorkQueueSize().longValue());
         connection.setFlowFileExpiration(connectionSchema.getFlowfileExpiration());
-        connection.setPrioritizers(List.of(connectionSchema.getQueuePrioritizerClass()).stream().filter(StringUtils::isNotBlank).collect(toList()));
+        connection.setPrioritizers(Stream.of(connectionSchema.getQueuePrioritizerClass()).filter(StringUtils::isNotBlank).collect(toList()));
         connection.setPosition(DEFAULT_POSITION);
         connection.setLabelIndex(0);
         connection.setzIndex(0L);

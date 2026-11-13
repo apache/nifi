@@ -41,12 +41,11 @@ class PositionScaler {
      * @param factorY      used to scale a {@link Positionable}'s Y-coordinate position
      */
     public static void scale(ProcessGroup processGroup, double factorX, double factorY) {
-        processGroup.findAllPositionables().stream().forEach(p -> scale(p, factorX, factorY));
+        processGroup.findAllPositionables().forEach(p -> scale(p, factorX, factorY));
         Map<Connection, List<Position>> bendPointsByConnection =
                 processGroup.findAllConnections().stream().collect(Collectors.toMap(connection -> connection, Connection::getBendPoints));
-        bendPointsByConnection.entrySet().stream()
-                .forEach(connectionListEntry -> connectionListEntry.getKey().setBendPoints(connectionListEntry.getValue().stream()
-                        .map(p -> scalePosition(p, factorX, factorY)).collect(Collectors.toList())));
+        bendPointsByConnection.forEach((key, value) -> key.setBendPoints(value.stream()
+                .map(p -> scalePosition(p, factorX, factorY)).collect(Collectors.toList())));
 
     }
 
