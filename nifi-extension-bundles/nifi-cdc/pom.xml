@@ -25,6 +25,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>nifi-cdc-api</module>
+        <module>nifi-cdc-mongodb-bundle</module>
         <module>nifi-cdc-mysql-bundle</module>
     </modules>
 </project>
