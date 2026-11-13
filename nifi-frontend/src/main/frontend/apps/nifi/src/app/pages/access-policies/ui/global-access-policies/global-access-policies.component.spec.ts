@@ -313,7 +313,7 @@ describe('GlobalAccessPolicies', () => {
             component.inheritedFromConnectors = templateRef;
             component.inheritedFromConnectorData = templateRef;
             component.inheritedFromConnectorProvenance = templateRef;
-            component.inheritedFromNoRestrictions = {} as TemplateRef<unknown>;
+            component.inheritedFromPolicy = {} as TemplateRef<unknown>;
         });
 
         it('should use connector data template for /data/connectors', () => {

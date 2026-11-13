@@ -261,7 +261,6 @@ describe('ControllerServices', () => {
                     supportsManagedAuthorizer: false,
                     supportsConfigurableAuthorizer: false,
                     supportsConfigurableUsersAndGroups: false,
-                    supportsRestrictedComponents: false,
                     supportsVersioning: false
                 }
             },
@@ -552,7 +551,6 @@ describe('ControllerServices', () => {
                         supportsManagedAuthorizer: false,
                         supportsConfigurableAuthorizer: false,
                         supportsConfigurableUsersAndGroups: false,
-                        supportsRestrictedComponents: false,
                         supportsVersioning: false
                     }
                 },
@@ -646,7 +644,6 @@ describe('ControllerServices', () => {
                         supportsManagedAuthorizer: false,
                         supportsConfigurableAuthorizer: false,
                         supportsConfigurableUsersAndGroups: false,
-                        supportsRestrictedComponents: false,
                         supportsVersioning: false
                     }
                 },

@@ -15,18 +15,12 @@
  * limitations under the License.
  */
 
-import { RequiredPermission } from '../shared';
 import { Permissions } from '@nifi/shared';
 
 export const currentUserFeatureKey = 'currentUser';
 
 export interface LoadCurrentUserResponse {
     user: CurrentUser;
-}
-
-export interface ComponentRestrictionPermission {
-    requiredPermission: RequiredPermission;
-    permissions: Permissions;
 }
 
 export interface CurrentUser {
@@ -42,8 +36,6 @@ export interface CurrentUser {
     systemPermissions: Permissions;
     parameterContextPermissions: Permissions;
     connectorsPermissions: Permissions;
-    restrictedComponentsPermissions: Permissions;
-    componentRestrictionPermissions: ComponentRestrictionPermission[];
 }
 
 export interface CurrentUserState {

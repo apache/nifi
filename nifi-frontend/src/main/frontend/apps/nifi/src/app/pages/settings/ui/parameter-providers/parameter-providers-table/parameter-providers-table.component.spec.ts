@@ -126,11 +126,6 @@ describe('ParameterProvidersTable', () => {
                 canRead: true,
                 canWrite: true
             },
-            restrictedComponentsPermissions: {
-                canRead: true,
-                canWrite: true
-            },
-            componentRestrictionPermissions: [],
             canVersionFlows: true
         } as CurrentUser;
     }
@@ -140,14 +135,11 @@ describe('ParameterProvidersTable', () => {
             supportsManagedAuthorizer,
             supportsConfigurableAuthorizer: true,
             supportsConfigurableUsersAndGroups: true,
-            supportsRestrictedComponents: true,
-            maxTimerDrivenThreadCount: 10,
-            maxEventDrivenThreadCount: 5,
             timeOffset: 0,
             currentTime: '2023-01-01 12:00:00 EST',
             defaultBackPressureObjectThreshold: 10000,
             defaultBackPressureDataSizeThreshold: 1073741824
-        } as FlowConfiguration;
+        };
     }
 
     // Setup function for component configuration
