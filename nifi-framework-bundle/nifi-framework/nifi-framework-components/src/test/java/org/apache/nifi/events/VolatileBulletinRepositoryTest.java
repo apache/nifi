@@ -185,6 +185,39 @@ public class VolatileBulletinRepositoryTest {
         assertEquals(clearedSingle, clearedMultiple);
     }
 
+    @Test
+    public void testProcessGroupBulletinsIncludeControllerServiceBulletins() {
+        final String processGroupId = "processGroupId";
+        final String message = "Test message";
+
+        final Bulletin controllerServiceBulletin = BulletinFactory.createBulletin(processGroupId, "processGroupName", "controllerServiceId",
+                ComponentType.CONTROLLER_SERVICE, "controllerServiceName", "Controller Service", "INFO", message, "/groupPath");
+        repository.addBulletin(controllerServiceBulletin);
+
+        final List<Bulletin> bulletins = repository.findBulletinsForGroupBySource(processGroupId);
+        assertEquals(1, bulletins.size());
+        assertEquals(message, bulletins.getFirst().getMessage());
+    }
+
+    @Test
+    public void testControllerLevelControllerServiceBulletins() {
+        final String message = "Test message";
+
+        final Bulletin controllerServiceBulletin = BulletinFactory.createBulletin(null, null, "controllerServiceId",
+                ComponentType.CONTROLLER_SERVICE, "controllerServiceName", "Controller Service", "INFO", message, null);
+        repository.addBulletin(controllerServiceBulletin);
+
+        assertThrows(NullPointerException.class, () -> {
+            repository.findBulletinsForGroupBySource(null);
+        });
+
+        final BulletinQuery controllerServiceQuery = new BulletinQuery.Builder().sourceType(ComponentType.CONTROLLER_SERVICE).build();
+        final List<Bulletin> bulletins = repository.findBulletins(controllerServiceQuery);
+
+        assertEquals(1, bulletins.size());
+        assertEquals(message, bulletins.getFirst().getMessage());
+    }
+
     private void addBulletin(String sourceId, String message, Date timestamp) {
         TestBulletin bulletin = new TestBulletin(sourceId, message, timestamp);
         repository.addBulletin(bulletin);
@@ -267,19 +300,5 @@ public class VolatileBulletinRepositoryTest {
         BulletinQuery query = new BulletinQuery.Builder().build();
         List<Bulletin> bulletins = repository.findBulletins(query);
         return bulletins.size();
-    }
-
-    @Test
-    public void testProcessGroupBulletinsIncludeControllerServiceBulletins() {
-        final String processGroupId = "processGroupId";
-        final String message = "Test message";
-
-        final Bulletin controllerServiceBulletin = BulletinFactory.createBulletin(processGroupId, "processGroupName", "controllerServiceId",
-                ComponentType.CONTROLLER_SERVICE, "controllerServiceName", "Controller Service", "INFO", message, "/groupPath");
-        repository.addBulletin(controllerServiceBulletin);
-
-        final List<Bulletin> bulletins = repository.findBulletinsForGroupBySource(processGroupId);
-        assertEquals(1, bulletins.size());
-        assertEquals(message, bulletins.getFirst().getMessage());
     }
 }
