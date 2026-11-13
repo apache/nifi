@@ -19,6 +19,7 @@ package org.apache.nifi.controller.repository;
 import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.FileSystemSwapManager;
 import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -41,6 +42,7 @@ import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.swap.StandardSwapContents;
 import org.apache.nifi.controller.swap.StandardSwapSummary;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -67,7 +69,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -91,6 +95,11 @@ public class TestWriteAheadFlowFileRepository {
 
     // A claim length greater than the 1 MB threshold that makes a tail claim a truncation candidate.
     private static final long TRUNCATION_CANDIDATE_LENGTH = 5_000_000L;
+    private static final long FIRST_QUEUE_DATE = 1_000_000L;
+    private static final FlowFilePrioritizer FIFO = (first, second) -> Comparator.comparingLong(FlowFile::getLastQueueDate)
+            .thenComparingLong(FlowFile::getQueueDateIndex)
+            .compare(first, second);
+
     private static NiFiProperties niFiProperties;
 
     @BeforeEach
@@ -890,6 +899,183 @@ public class TestWriteAheadFlowFileRepository {
         }
     }
 
+    /**
+     * Reproduces FIFO order loss after restart of a queue in swap mode. FlowFiles in the in-memory swap queue are persisted
+     * in the write-ahead log like active FlowFiles, so loadFlowFiles() re-puts them (in hash order of their ids) before
+     * recoverSwappedFlowFiles() restores the older swap files. Newer FlowFiles thus land in the active queue ahead of the
+     * older swapped-out ones.
+     */
+    @Test
+    public void testFifoOrderPreservedAcrossRestartWithSwappedFlowFiles() throws IOException {
+        final Path path = Paths.get("target/test-repo");
+        if (Files.exists(path)) {
+            FileUtils.deleteFile(path.toFile(), true);
+        }
+
+        final int swapThreshold = 100;
+        final int activeCount = 100;
+        final int swappedCount = 100;
+        final int swapQueueCount = 50;
+        final int totalCount = activeCount + swappedCount + swapQueueCount;
+        final long firstId = (1L << 20) - 220;
+
+        final MockFlowFileSwapManager swapManager = new MockFlowFileSwapManager();
+        final FlowFileQueue queue = new StandardFlowFileQueue("fifo-restart", null, null, null, swapManager, null, swapThreshold, "0 sec", 0L, "0 B");
+        final TestQueueProvider queueProvider = new TestQueueProvider();
+        queueProvider.addConnection(mockConnection(queue));
+
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
+            repo.initialize(new StandardResourceClaimManager());
+            repo.loadFlowFiles(queueProvider);
+
+            final List<FlowFileRecord> flowFiles = new ArrayList<>();
+            for (int index = 0; index < totalCount; index++) {
+                final FlowFileRecord flowFile = createIndexedFlowFile(firstId + index, index);
+                final StandardRepositoryRecord record = new StandardRepositoryRecord(queue);
+                record.setWorking(flowFile, false);
+                record.setDestination(queue);
+                repo.updateRepository(Collections.singletonList(record));
+                flowFiles.add(flowFile);
+            }
+
+            // Indexes [activeCount, activeCount + swappedCount) go to a swap file; the newest stay in the in-memory swap queue.
+            final List<FlowFileRecord> swappedOut = flowFiles.subList(activeCount, activeCount + swappedCount);
+            final String swapLocation = swapManager.swapOut(swappedOut, queue, null);
+            repo.swapFlowFilesOut(swappedOut, queue, swapLocation);
+        }
+
+        final FlowFileQueue recoveredQueue = new StandardFlowFileQueue("fifo-restart", null, null, null, swapManager, null, swapThreshold, "0 sec", 0L, "0 B");
+        recoveredQueue.setPriorities(List.of(FIFO));
+        final TestQueueProvider recoveredQueueProvider = new TestQueueProvider();
+        recoveredQueueProvider.addConnection(mockConnection(recoveredQueue));
+
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
+            repo.initialize(new StandardResourceClaimManager());
+            repo.loadFlowFiles(recoveredQueueProvider);
+            recoveredQueue.recoverSwappedFlowFiles();
+
+            assertPolledInEnqueueOrder(recoveredQueue, totalCount, activeCount, swappedCount);
+        }
+    }
+
+    /**
+     * Same scenario as {@link #testFifoOrderPreservedAcrossRestartWithSwappedFlowFiles()}, but the queue swaps out on its own through the
+     * real {@link FileSystemSwapManager}, which writes the swap file to disk and records the swap location in the repository.
+     */
+    @Test
+    public void testFifoOrderPreservedAcrossRestartWithFileSystemSwapManager() throws IOException {
+        final Path path = Paths.get("target/test-repo");
+        if (Files.exists(path)) {
+            FileUtils.deleteFile(path.toFile(), true);
+        }
+        final Path swapPath = Paths.get("target/test-fs-swap");
+        if (Files.exists(swapPath)) {
+            FileUtils.deleteFile(swapPath.toFile(), true);
+        }
+
+        final int swapThreshold = 100;
+        final int activeCount = 100;
+        final int swappedCount = 100;
+        final int totalCount = activeCount + swappedCount + 50;
+        final long firstId = (1L << 20) - 220;
+
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
+            final ResourceClaimManager claimManager = new StandardResourceClaimManager();
+            repo.initialize(claimManager);
+            final FlowFileQueue queue = createFileSystemSwappingQueue(swapPath, repo, claimManager, swapThreshold);
+            final TestQueueProvider queueProvider = new TestQueueProvider();
+            queueProvider.addConnection(mockConnection(queue));
+            repo.loadFlowFiles(queueProvider);
+
+            for (int index = 0; index < totalCount; index++) {
+                final FlowFileRecord flowFile = createIndexedFlowFile(firstId + index, index);
+                final StandardRepositoryRecord record = new StandardRepositoryRecord(queue);
+                record.setWorking(flowFile, false);
+                record.setDestination(queue);
+                repo.updateRepository(Collections.singletonList(record));
+                queue.put(flowFile);
+            }
+            assertEquals(1, swapPath.resolve("swap").toFile().list().length, "Expected exactly one swap file on disk");
+        }
+
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
+            final ResourceClaimManager claimManager = new StandardResourceClaimManager();
+            repo.initialize(claimManager);
+            final FlowFileQueue recoveredQueue = createFileSystemSwappingQueue(swapPath, repo, claimManager, swapThreshold);
+            final TestQueueProvider queueProvider = new TestQueueProvider();
+            queueProvider.addConnection(mockConnection(recoveredQueue));
+            repo.loadFlowFiles(queueProvider);
+            recoveredQueue.recoverSwappedFlowFiles();
+
+            assertPolledInEnqueueOrder(recoveredQueue, totalCount, activeCount, swappedCount);
+        }
+    }
+
+    private static FlowFileQueue createFileSystemSwappingQueue(final Path swapPath, final FlowFileRepository repo, final ResourceClaimManager claimManager,
+                                                               final int swapThreshold) {
+        final FileSystemSwapManager swapManager = new FileSystemSwapManager(swapPath);
+        swapManager.initialize(new SwapManagerInitializationContext() {
+            @Override
+            public ResourceClaimManager getResourceClaimManager() {
+                return claimManager;
+            }
+
+            @Override
+            public FlowFileRepository getFlowFileRepository() {
+                return repo;
+            }
+
+            @Override
+            public EventReporter getEventReporter() {
+                return EventReporter.NO_OP;
+            }
+        });
+        final FlowFileQueue queue = new StandardFlowFileQueue("5f1c7a3e-0000-4000-8000-000000000001", null, null, null, swapManager, null, swapThreshold, "0 sec", 0L, "0 B");
+        queue.setPriorities(List.of(FIFO));
+        return queue;
+    }
+
+    private static FlowFileRecord createIndexedFlowFile(final long id, final int index) {
+        return new StandardFlowFileRecord.Builder()
+                .id(id)
+                .addAttribute("uuid", UUID.randomUUID().toString())
+                .addAttribute("index", String.valueOf(index))
+                .lastQueued(FIRST_QUEUE_DATE + index, index)
+                .build();
+    }
+
+    /**
+     * Drains the queue and asserts FlowFiles come out in the order they were enqueued, i.e. ordered by their {@code index} attribute.
+     */
+    private static void assertPolledInEnqueueOrder(final FlowFileQueue queue, final int totalCount, final int activeCount, final int swappedCount) {
+        final List<Integer> polledIndexes = new ArrayList<>();
+        FlowFileRecord polled;
+        while ((polled = queue.poll(new HashSet<>())) != null) {
+            polledIndexes.add(Integer.parseInt(polled.getAttribute("index")));
+        }
+        assertEquals(totalCount, polledIndexes.size());
+        final int firstSwapFilePosition = polledIndexes.indexOf(activeCount);
+        int firstSwapQueuePosition = 0;
+        while (polledIndexes.get(firstSwapQueuePosition) < activeCount + swappedCount) {
+            firstSwapQueuePosition++;
+        }
+        assertTrue(firstSwapFilePosition < firstSwapQueuePosition, "Newer FlowFile index " + polledIndexes.get(firstSwapQueuePosition)
+                + " from the in-memory swap queue was polled at position " + firstSwapQueuePosition + ", before older FlowFile index "
+                + activeCount + " from the swap file at position " + firstSwapFilePosition);
+        for (int position = 0; position < totalCount; position++) {
+            assertEquals(position, polledIndexes.get(position), "FlowFile at poll position " + position);
+        }
+    }
+
+    private static Connection mockConnection(final FlowFileQueue queue) {
+        final String identifier = queue.getIdentifier();
+        final Connection connection = Mockito.mock(Connection.class);
+        when(connection.getIdentifier()).thenReturn(identifier);
+        when(connection.getDestination()).thenReturn(Mockito.mock(Connectable.class));
+        when(connection.getFlowFileQueue()).thenReturn(queue);
+        return connection;
+    }
+
     private static class TestQueueProvider implements QueueProvider {
 
         private final List<Connection> connectionList = new ArrayList<>();
@@ -949,8 +1135,8 @@ public class TestWriteAheadFlowFileRepository {
                 return null;
             }
 
-            final List<FlowFileRecord> flowFiles = swapMap.remove(swapLocation);
             final SwapSummary summary = getSwapSummary(swapLocation);
+            final List<FlowFileRecord> flowFiles = swapMap.remove(swapLocation);
             return new StandardSwapContents(summary, flowFiles);
         }
 
