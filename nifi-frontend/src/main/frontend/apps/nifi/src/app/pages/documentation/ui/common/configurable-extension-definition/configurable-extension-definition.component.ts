@@ -22,8 +22,8 @@ import { PropertiesDefinitionComponent } from '../properties-definition/properti
 import { DynamicPropertiesDefinitionComponent } from '../dynamic-properties-definition/dynamic-properties-definition.component';
 import { RestrictionsDefinitionComponent } from '../restrictions-definition/restrictions-definition.component';
 import { ResourceConsiderationsComponent } from '../resource-considerations/resource-considerations.component';
-import { SeeAlsoComponent } from '../see-also/see-also.component';
 import { AdditionalDetailsComponent } from '../additional-details/additional-details.component';
+import { DeprecationBannerComponent } from '../deprecation-banner/deprecation-banner.component';
 
 @Component({
     selector: 'configurable-extension-definition',
@@ -32,7 +32,7 @@ import { AdditionalDetailsComponent } from '../additional-details/additional-det
         DynamicPropertiesDefinitionComponent,
         RestrictionsDefinitionComponent,
         ResourceConsiderationsComponent,
-        SeeAlsoComponent,
+        DeprecationBannerComponent,
         AdditionalDetailsComponent
     ],
     templateUrl: './configurable-extension-definition.component.html',

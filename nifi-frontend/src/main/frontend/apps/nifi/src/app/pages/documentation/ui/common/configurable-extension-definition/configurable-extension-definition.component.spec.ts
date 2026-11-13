@@ -19,9 +19,29 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ConfigurableExtensionDefinitionComponent } from './configurable-extension-definition.component';
 
+import { ConfigurableExtensionDefinition } from '../../../state';
+
 describe('ConfigurableExtensionDefinitionComponent', () => {
     let component: ConfigurableExtensionDefinitionComponent;
     let fixture: ComponentFixture<ConfigurableExtensionDefinitionComponent>;
+
+    function createDefinition(deprecationReason?: string): ConfigurableExtensionDefinition {
+        return {
+            group: 'org.apache.nifi',
+            artifact: 'nifi-standard-nar',
+            version: '2.12.0',
+            type: 'org.apache.nifi.processors.standard.GenerateFlowFile',
+            typeDescription: 'Generate FlowFile processor',
+            buildInfo: {
+                revision: 'test'
+            },
+            additionalDetails: false,
+            supportsDynamicProperties: false,
+            supportsSensitiveDynamicProperties: false,
+            deprecated: true,
+            ...(deprecationReason ? { deprecationReason } : {})
+        };
+    }
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
@@ -35,5 +55,32 @@ describe('ConfigurableExtensionDefinitionComponent', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should display a deprecation notice when a custom reason is provided', () => {
+        fixture.componentRef.setInput(
+            'configurableExtensionDefinition',
+            createDefinition('This extension has been replaced.')
+        );
+        fixture.detectChanges();
+
+        const notice: HTMLElement | null = fixture.nativeElement.querySelector('.caution-color-background');
+
+        expect(notice).toBeTruthy();
+        expect(notice?.textContent).toContain('Deprecation Notice');
+        expect(notice?.textContent).toContain('This extension has been replaced.');
+    });
+
+    it('should display the default deprecation message when no reason is provided', () => {
+        fixture.componentRef.setInput('configurableExtensionDefinition', createDefinition());
+        fixture.detectChanges();
+
+        const notice: HTMLElement | null = fixture.nativeElement.querySelector('.caution-color-background');
+
+        expect(notice).toBeTruthy();
+        expect(notice?.textContent).toContain('Deprecation Notice');
+        expect(notice?.textContent).toContain(
+            'Please be aware this component is deprecated and may be removed in the near future.'
+        );
     });
 });
