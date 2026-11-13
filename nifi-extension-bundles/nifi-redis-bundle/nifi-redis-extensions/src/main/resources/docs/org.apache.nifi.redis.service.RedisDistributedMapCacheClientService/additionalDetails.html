@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements. See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License. You may obtain a copy of the License at
+  http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html lang="en">
+<head><meta charset="UTF-8"><title>Redis Distributed Map Cache</title></head>
+<body>
+<h2>Redis Enterprise Software and Redis Cloud</h2>
+<p>Configure a RedisConnectionPoolService and select it as the Redis Connection Pool for this service.</p>
+<table>
+    <tr><th>Connection pool property</th><th>Value</th></tr>
+    <tr><td>Redis Mode</td><td>Standalone for a database endpoint that routes commands through the Redis proxy, including sharded databases.
+        Select Cluster only if the endpoint exposes the Redis Cluster API and its advertised nodes are reachable from NiFi.</td></tr>
+    <tr><td>Connection String</td><td>The database endpoint as hostname:port. Use the database endpoint, not a management console or REST API endpoint.
+        Do not include a redis:// or rediss:// scheme.</td></tr>
+    <tr><td>Database Index</td><td>0. Redis Enterprise Software and Redis Cloud identify databases by endpoint.</td></tr>
+    <tr><td>Username</td><td>The database ACL user, or default when using the default user.</td></tr>
+    <tr><td>Password</td><td>The database user's password, supplied through a sensitive parameter.</td></tr>
+    <tr><td>SSL Context Service</td><td>Configure this when the database endpoint requires TLS.
+        Trust the database CA, and supply a client certificate and private key when mutual TLS is required.</td></tr>
+</table>
+<p>Standalone describes the client connection topology. It does not require an unsharded Redis server and does not disable
+    the availability or sharding provided by the Redis database endpoint.</p>
+<h2>Atomic operations and permissions</h2>
+<p>Conditional insert and replace operations act on one key at a time. The get-and-insert and compare-and-set operations use EVAL
+    with a single explicitly declared key, keeping the read, conditional write, and TTL update together on the server.
+    WATCH, MULTI, and EXEC are not required. Scripts and values are binary safe. Existing keys, values, and raw-value revisions
+    retain their format.</p>
+<p>The Redis user needs permission for EVAL and the commands executed by these scripts (GET and SET), as well as commands
+    used by the cache operations the flow calls (including EXISTS, DEL, MSET, and EXPIRE). Configure key permissions for the
+    serialized cache keys. A server configured to prohibit scripting cannot use this atomic cache service.</p>
+<p>TTL is applied when an entry is inserted or successfully replaced. A failed comparison or an insert against an existing key
+    leaves the value and its expiration unchanged. A TTL of 0 secs creates entries without expiration.</p>
+<h2>Deployment considerations</h2>
+<p>Single-key atomicity applies at the endpoint executing the operation. Redis Active-Active replication does not provide a
+    globally serialized compare-and-set across regions. Flows that require global coordination, such as duplicate detection or
+    Wait/Notify, should use one authoritative database rather than independent writable Active-Active regions.</p>
+<p>Bulk putAll retains its existing MSET behavior; it does not promise a transaction across multiple hash slots.
+    Follow the database's multi-key command restrictions and use a common hash tag when a deployment requires keys in one slot.</p>
+</body>
+</html>
