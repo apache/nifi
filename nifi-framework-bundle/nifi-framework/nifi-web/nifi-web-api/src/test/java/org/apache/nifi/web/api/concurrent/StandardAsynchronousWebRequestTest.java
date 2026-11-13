@@ -46,13 +46,49 @@ public class StandardAsynchronousWebRequestTest {
     @Test
     public void testCancelInvokesCancelCallback() {
         final StandardAsynchronousWebRequest<String, String> request = createRequest();
-        final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
-        request.setCancelCallback(() -> callbackInvoked.set(true));
+        final AtomicBoolean firstCallbackInvoked = new AtomicBoolean(false);
+        final AtomicBoolean secondCallbackInvoked = new AtomicBoolean(false);
+        request.setCancelCallback(() -> firstCallbackInvoked.set(true));
+        request.setCancelCallback(() -> secondCallbackInvoked.set(true));
 
         request.cancel();
 
-        assertTrue(callbackInvoked.get());
+        assertFalse(firstCallbackInvoked.get());
+        assertTrue(secondCallbackInvoked.get());
         assertEquals("Request cancelled by user", request.getFailureReason());
+    }
+
+    @Test
+    public void testAppendFailureDetailAfterCancelRetainsCancellationReason() {
+        final StandardAsynchronousWebRequest<String, String> request = createRequest();
+
+        request.cancel();
+        request.appendFailureDetail("restoration failed: component could not be started");
+
+        assertEquals("Request cancelled by user; restoration failed: component could not be started", request.getFailureReason());
+        assertTrue(request.isCancelled());
+        assertTrue(request.isComplete());
+    }
+
+    @Test
+    public void testAppendFailureDetailEstablishesFailureReason() {
+        final StandardAsynchronousWebRequest<String, String> request = createRequest();
+
+        request.appendFailureDetail("component could not be started");
+
+        assertEquals("component could not be started", request.getFailureReason());
+        assertTrue(request.isComplete());
+        assertFalse(request.isCancelled());
+    }
+
+    @Test
+    public void testAppendFailureDetailAppendsToExistingFailureReason() {
+        final StandardAsynchronousWebRequest<String, String> request = createRequest();
+
+        request.fail("operation failed");
+        request.appendFailureDetail("component could not be started");
+
+        assertEquals("operation failed; component could not be started", request.getFailureReason());
     }
 
     @Test
