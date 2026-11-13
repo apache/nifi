@@ -159,6 +159,7 @@ import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.groups.ComponentAdditions;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
+import org.apache.nifi.groups.ProcessGroupDrain;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.history.History;
@@ -304,6 +305,7 @@ import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PreviousValueDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDrainRequestDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupNameDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -2678,6 +2680,32 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public DropRequestDTO deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
         return dtoFactory.createDropRequestDTO(processGroupDAO.deleteDropAllFlowFilesRequest(processGroupId, dropRequestId));
+    }
+
+    @Override
+    public void verifyBeginProcessGroupDrain(final String processGroupId) {
+        processGroupDAO.verifyBeginDrain(processGroupId);
+    }
+
+    @Override
+    public ProcessGroupDrainRequestDTO beginProcessGroupDrain(final String processGroupId, final String drainRequestId) {
+        final ProcessGroupDrain drain = processGroupDAO.beginDrain(processGroupId, drainRequestId);
+
+        // The run states of the sources change right away and those of the other components change once the drain is prepared, so the flow is saved at both times
+        controllerFacade.save();
+        drain.getPreparationFuture().thenRun(controllerFacade::save);
+
+        return dtoFactory.createProcessGroupDrainRequestDto(drain);
+    }
+
+    @Override
+    public Optional<ProcessGroupDrainRequestDTO> getProcessGroupDrainRequest(final String processGroupId, final String drainRequestId) {
+        return processGroupDAO.getDrain(processGroupId, drainRequestId).map(dtoFactory::createProcessGroupDrainRequestDto);
+    }
+
+    @Override
+    public Optional<ProcessGroupDrainRequestDTO> endProcessGroupDrain(final String processGroupId, final String drainRequestId) {
+        return processGroupDAO.endDrain(processGroupId, drainRequestId).map(dtoFactory::createProcessGroupDrainRequestDto);
     }
 
     @Override

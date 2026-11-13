@@ -34,6 +34,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.bin.BinFiles;
+import org.apache.nifi.processor.util.bin.EvictionReason;
 import org.apache.nifi.processor.util.bin.InsertionLocation;
 import org.apache.nifi.processors.standard.merge.AttributeStrategyUtil;
 import org.apache.nifi.util.MockFlowFile;
@@ -1227,6 +1228,37 @@ public class TestMergeContent {
                 }
             }
         }
+    }
+
+    @Test
+    public void testMaxBinAgeWhileDraining() throws InterruptedException {
+        final MergeContent processor = (MergeContent) runner.getProcessor();
+        final ProcessContext context = runner.getProcessContext();
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.BIN_PACK);
+        runner.setProperty(MergeContent.MIN_ENTRIES, "10");
+
+        // While draining, a Bin-Packing bin is completed after at most 1 second, but a Defragment bin keeps the configured age
+        runner.initiateDrain();
+        assertEquals(1, processor.getMaxBinAgeSeconds(context));
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "5 sec");
+        assertEquals(1, processor.getMaxBinAgeSeconds(context));
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.DEFRAGMENT);
+        assertEquals(5, processor.getMaxBinAgeSeconds(context));
+
+        runner.completeDrain();
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MergeStrategy.BIN_PACK);
+        assertEquals(5, processor.getMaxBinAgeSeconds(context));
+        runner.removeProperty(MergeContent.MAX_BIN_AGE);
+        assertEquals(Integer.MAX_VALUE, processor.getMaxBinAgeSeconds(context));
+
+        // Initiating a drain while the Processor is running updates the bin manager, so a bin that already exists is completed once it is older than 1 second
+        runner.enqueue(new byte[0]);
+        runner.run(1, false);
+        runner.initiateDrain();
+        Thread.sleep(1_000L);
+        runner.run(1, true, false);
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).getFirst().assertAttributeEquals(MergeContent.REASON_FOR_MERGING, EvictionReason.TIMEOUT.name());
     }
 
     @Test

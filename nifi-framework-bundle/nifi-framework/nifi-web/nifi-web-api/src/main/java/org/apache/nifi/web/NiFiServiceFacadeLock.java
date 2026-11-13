@@ -115,6 +115,12 @@ public class NiFiServiceFacadeLock {
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
+        + "(execution(* beginProcessGroupDrain(..)) || execution(* endProcessGroupDrain(..)))")
+    public Object processGroupDrainLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        return proceedWithWriteLock(proceedingJoinPoint);
+    }
+
+    @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* get*(..))")
     public Object getLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithReadLock(proceedingJoinPoint);

@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.tests.system;
 
+import org.apache.nifi.annotation.lifecycle.OnDrainCompleted;
+import org.apache.nifi.annotation.lifecycle.OnDrainInitiated;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -76,6 +78,16 @@ public class WriteLifecycleEvents extends AbstractProcessor {
     @OnStopped
     public void onStopped(final ProcessContext context) throws IOException {
         writeEvent(context, "OnStopped");
+    }
+
+    @OnDrainInitiated
+    public void onDrainInitiated(final ProcessContext context) throws IOException {
+        writeEvent(context, "OnDrainInitiated");
+    }
+
+    @OnDrainCompleted
+    public void onDrainCompleted(final ProcessContext context) throws IOException {
+        writeEvent(context, "OnDrainCompleted");
     }
 
     @Override

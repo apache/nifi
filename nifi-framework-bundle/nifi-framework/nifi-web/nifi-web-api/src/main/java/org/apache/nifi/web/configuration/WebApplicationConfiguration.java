@@ -58,6 +58,7 @@ import org.apache.nifi.web.util.ClusterReplicationComponentLifecycle;
 import org.apache.nifi.web.util.LocalComponentLifecycle;
 import org.apache.nifi.web.util.ParameterContextNameCollisionResolver;
 import org.apache.nifi.web.util.ParameterContextReplacer;
+import org.apache.nifi.web.util.ProcessGroupDrainMonitor;
 import org.apache.nifi.web.util.SnippetUtils;
 import org.apache.nifi.web.util.VirtualThreadParallelProcessingService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -218,6 +219,11 @@ public class WebApplicationConfiguration {
         lifecycle.setRequestReplicator(requestReplicator);
         lifecycle.setServiceFacade(serviceFacade);
         return lifecycle;
+    }
+
+    @Bean
+    public ProcessGroupDrainMonitor processGroupDrainMonitor() {
+        return new ProcessGroupDrainMonitor(clusterCoordinator, requestReplicator, serviceFacade);
     }
 
     @Bean

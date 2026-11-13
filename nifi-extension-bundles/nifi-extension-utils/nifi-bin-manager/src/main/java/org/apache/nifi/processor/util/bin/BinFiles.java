@@ -324,11 +324,19 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     public final void onScheduled(final ProcessContext context) throws IOException {
         binManager.setMinimumSize(getMinBytes(context));
         binManager.setMaximumSize(getMaxBytes(context));
-        binManager.setMaxBinAge(getMaxBinAgeSeconds(context));
+        updateMaxBinAge(context);
         binManager.setMinimumEntries(getMinEntries(context));
         binManager.setMaximumEntries(getMaxEntries(context));
 
         this.setUpBinManager(binManager, context);
+    }
+
+    /**
+     * A subclass whose maximum bin age can change while the Processor is running must call this method after the change. Calls are synchronized
+     * so that a value calculated before the change can never overwrite a value calculated after it.
+     */
+    protected final synchronized void updateMaxBinAge(final PropertyContext context) {
+        binManager.setMaxBinAge(getMaxBinAgeSeconds(context));
     }
 
     protected int getMaxBinAgeSeconds(final PropertyContext context) {

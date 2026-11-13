@@ -443,12 +443,14 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                         case RUNNING:
                         case RUN_ONCE:
                             processor.getProcessGroup().verifyCanScheduleComponentsIndividually();
+                            verifyDrainAllowsStart(processor);
                             processor.verifyCanStart();
                             break;
                         case STOPPED:
                             switch (processor.getScheduledState()) {
                                 case RUNNING:
                                     processor.getProcessGroup().verifyCanScheduleComponentsIndividually();
+                                    verifyDrainAllowsStop(processor);
                                     processor.verifyCanStop();
                                     break;
                                 case DISABLED:
@@ -467,6 +469,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                 } else if (purposedScheduledState == ScheduledState.STOPPED && processor.getPhysicalScheduledState() == ScheduledState.STARTING) {
                     // Handle special case: verify stopping a processor that's physically starting
                     processor.getProcessGroup().verifyCanScheduleComponentsIndividually();
+                    verifyDrainAllowsStop(processor);
                     processor.verifyCanStop();
                 }
             } catch (IllegalArgumentException iae) {
@@ -579,11 +582,13 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     // perform the appropriate action
                     switch (purposedScheduledState) {
                         case RUNNING:
+                            endDrainKeepingStopped(processor);
                             parentGroup.startProcessor(processor, true);
                             break;
                         case STOPPED:
                             switch (processor.getScheduledState()) {
                                 case RUNNING:
+                                    endDrainKeepingRunning(processor);
                                     parentGroup.stopProcessor(processor);
                                     break;
                                 case DISABLED:
@@ -595,6 +600,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                             parentGroup.disableProcessor(processor);
                             break;
                         case RUN_ONCE:
+                            endDrainKeepingStopped(processor);
                             parentGroup.runProcessorOnce(processor, () -> parentGroup.stopProcessor(processor));
                             break;
                         case STARTING:
@@ -612,6 +618,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             } else if  (purposedScheduledState == ScheduledState.STOPPED && processor.getPhysicalScheduledState() == ScheduledState.STARTING) {
                 // Handle special case: allow stopping a processor that's physically starting
                 try {
+                    endDrainKeepingRunning(processor);
                     parentGroup.stopProcessor(processor);
                 } catch (Exception e) {
                     throw new NiFiCoreException("Unable to stop starting processor [%s]: %s".formatted(processor, e), e);

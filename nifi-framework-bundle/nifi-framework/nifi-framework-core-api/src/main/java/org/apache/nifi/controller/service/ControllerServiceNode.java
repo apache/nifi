@@ -34,6 +34,7 @@ import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterLookup;
 
+import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -179,6 +180,12 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
     void verifyCanEnable();
 
     void verifyCanDisable();
+
+    /**
+     * Calls the methods of the Controller Service that have the given drain lifecycle annotation, regardless of the state of the Controller Service.
+     * Any Exception thrown by a method is logged and is not rethrown.
+     */
+    void invokeDrainLifecycleMethods(Class<? extends Annotation> lifecycleAnnotation);
 
     /**
      * Verifies that this Controller Service can be disabled if the provided set

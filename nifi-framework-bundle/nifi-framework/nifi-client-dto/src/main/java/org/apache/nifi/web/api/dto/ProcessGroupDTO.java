@@ -64,6 +64,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     private Integer publicOutputPortCount;
 
     private String statelessGroupScheduledState;
+    private String drainRequestId;
 
     private FlowSnippetDTO contents;
 
@@ -407,6 +408,16 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     public void setResolvedExecutionEngine(final String resolvedExecutionEngine) {
         this.resolvedExecutionEngine = resolvedExecutionEngine;
+    }
+
+    @Schema(description = "The identifier of the drain request of this Process Group, if the group is being drained.",
+            accessMode = Schema.AccessMode.READ_ONLY)
+    public String getDrainRequestId() {
+        return drainRequestId;
+    }
+
+    public void setDrainRequestId(final String drainRequestId) {
+        this.drainRequestId = drainRequestId;
     }
 
     @Schema(description = "If the Process Group is configured to run in using the Stateless Engine, represents the current state. Otherwise, will be STOPPED.",

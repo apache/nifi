@@ -76,6 +76,16 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
      * @param dtoMap the responses from all nodes
      */
     static void mergeProcessGroupFlowDto(final ProcessGroupFlowDTO clientDto, final Map<NodeIdentifier, ProcessGroupFlowDTO> dtoMap) {
+        // a node that restarted while the group was being drained has no record of the drain, so use the drain request id from any node that has one
+        if (clientDto.getDrainRequestId() == null) {
+            for (final ProcessGroupFlowDTO dto : dtoMap.values()) {
+                if (dto.getDrainRequestId() != null) {
+                    clientDto.setDrainRequestId(dto.getDrainRequestId());
+                    break;
+                }
+            }
+        }
+
         final FlowDTO flowDto = clientDto.getFlow();
         final Set<ConnectionEntity> clientConnections = flowDto.getConnections();
         final Set<ProcessorEntity> clientProcessors = flowDto.getProcessors();

@@ -39,6 +39,7 @@ public class ProcessGroupFlowDTO {
     private FlowDTO flow;
     private Date lastRefreshed;
     private String resolvedExecutionEngine;
+    private String drainRequestId;
 
     /**
      * @return contents of this process group. This field will be populated if the request is marked verbose
@@ -141,5 +142,15 @@ public class ProcessGroupFlowDTO {
 
     public void setResolvedExecutionEngine(final String resolvedExecutionEngine) {
         this.resolvedExecutionEngine = resolvedExecutionEngine;
+    }
+
+    @Schema(description = "The identifier of the drain request of the Process Group, if the group is being drained.",
+        accessMode = Schema.AccessMode.READ_ONLY)
+    public String getDrainRequestId() {
+        return drainRequestId;
+    }
+
+    public void setDrainRequestId(final String drainRequestId) {
+        this.drainRequestId = drainRequestId;
     }
 }

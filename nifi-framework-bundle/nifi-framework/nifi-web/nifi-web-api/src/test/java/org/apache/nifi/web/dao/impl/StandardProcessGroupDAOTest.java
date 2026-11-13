@@ -21,6 +21,7 @@ import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ProcessGroupDrain;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,11 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -132,5 +138,36 @@ class StandardProcessGroupDAOTest {
         assertThrows(ResourceNotFoundException.class, () ->
             processGroupDAO.getProcessGroup(NON_EXISTENT_ID)
         );
+    }
+
+    @Test
+    void testEndDrainEndsOnlyTheRequestedDrain() {
+        final ProcessGroupDrain drain = mock(ProcessGroupDrain.class);
+        when(drain.getIdentifier()).thenReturn("current-drain");
+        when(drain.getProcessGroup()).thenReturn(rootGroup);
+        when(rootGroup.getDrain()).thenReturn(Optional.of(drain));
+        when(rootGroup.endDrain()).thenReturn(Optional.of(drain));
+
+        // A request to end an earlier drain of the group does not end the drain that the group has now
+        assertEquals(Optional.empty(), processGroupDAO.endDrain(ROOT_GROUP_ID, "earlier-drain"));
+        verify(rootGroup, never()).endDrain();
+
+        assertEquals(Optional.of(drain), processGroupDAO.endDrain(ROOT_GROUP_ID, "current-drain"));
+        verify(rootGroup).endDrain();
+    }
+
+    @Test
+    void testVerifyBeginDrainRejectsConnectorManagedGroup() {
+        when(owningConnector.getCurrentState()).thenReturn(ConnectorState.TROUBLESHOOTING);
+        when(connectorManagedGroup.findOwningConnectorIdentifier()).thenReturn(Optional.of("connector-1"));
+
+        try {
+            processGroupDAO.verifyBeginDrain(CONNECTOR_GROUP_ID);
+            fail("Expected an IllegalStateException");
+        } catch (final IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains("connector-1"), expected.getMessage());
+        }
+
+        verify(connectorManagedGroup, never()).verifyCanBeginDrain();
     }
 }

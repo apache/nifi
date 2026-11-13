@@ -20,16 +20,21 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ProcessGroupDrain;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
 
 public abstract class ComponentDAO {
+    private static final Logger logger = LoggerFactory.getLogger(ComponentDAO.class);
 
     /**
      * Returns whether the specified object is not null.
@@ -57,6 +62,63 @@ public abstract class ComponentDAO {
         }
 
         return false;
+    }
+
+    protected void verifyDrainAllowsStart(final Connectable connectable) {
+        connectable.getProcessGroup().findActiveDrain().ifPresent(drain -> drain.verifyCanStart(connectable));
+    }
+
+    protected void verifyDrainAllowsStop(final Connectable connectable) {
+        connectable.getProcessGroup().findActiveDrain().ifPresent(drain -> drain.verifyCanStop(connectable));
+    }
+
+    protected void verifyDrainAllowsStart(final ProcessGroup statelessGroup) {
+        statelessGroup.findActiveDrain().ifPresent(drain -> drain.verifyCanStart(statelessGroup));
+    }
+
+    protected void verifyDrainAllowsStop(final ProcessGroup statelessGroup) {
+        statelessGroup.findActiveDrain().ifPresent(drain -> drain.verifyCanStop(statelessGroup));
+    }
+
+    /**
+     * Ends the active drain that keeps the given component stopped, if there is one. The drain is verified again because data may have been
+     * queued since {@link #verifyDrainAllowsStart(Connectable)} was called.
+     */
+    protected void endDrainKeepingStopped(final Connectable connectable) {
+        connectable.getProcessGroup().findActiveDrain().filter(drain -> drain.keepsStopped(connectable)).ifPresent(drain -> {
+            drain.verifyCanStart(connectable);
+            endDrain(drain, connectable + " is being started");
+        });
+    }
+
+    /**
+     * Ends the active drain that keeps the given component running, if there is one. The drain is verified again because data may have been
+     * queued since {@link #verifyDrainAllowsStop(Connectable)} was called.
+     */
+    protected void endDrainKeepingRunning(final Connectable connectable) {
+        connectable.getProcessGroup().findActiveDrain().filter(drain -> drain.keepsRunning(connectable)).ifPresent(drain -> {
+            drain.verifyCanStop(connectable);
+            endDrain(drain, connectable + " is being stopped");
+        });
+    }
+
+    protected void endDrainKeepingStopped(final ProcessGroup statelessGroup) {
+        statelessGroup.findActiveDrain().filter(drain -> drain.keepsStopped(statelessGroup)).ifPresent(drain -> {
+            drain.verifyCanStart(statelessGroup);
+            endDrain(drain, statelessGroup + " is being started");
+        });
+    }
+
+    protected void endDrainKeepingRunning(final ProcessGroup statelessGroup) {
+        statelessGroup.findActiveDrain().filter(drain -> drain.keepsRunning(statelessGroup)).ifPresent(drain -> {
+            drain.verifyCanStop(statelessGroup);
+            endDrain(drain, statelessGroup + " is being stopped");
+        });
+    }
+
+    private static void endDrain(final ProcessGroupDrain drain, final String reason) {
+        logger.info("Ending {} because {} and no data is queued in {}", drain, reason, drain.getProcessGroup());
+        drain.getProcessGroup().endDrain();
     }
 
     /**

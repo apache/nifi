@@ -79,6 +79,7 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -935,6 +936,16 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), implementationClass, getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, getControllerServiceImplementation(), nodeState);
+        }
+    }
+
+    @Override
+    public void invokeDrainLifecycleMethods(final Class<? extends Annotation> lifecycleAnnotation) {
+        final ControllerService implementation = getControllerServiceImplementation();
+        final ConfigurationContext configurationContext = new StandardConfigurationContext(this, serviceProvider, null);
+
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), implementation.getClass(), getIdentifier())) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(lifecycleAnnotation, implementation, configurationContext);
         }
     }
 

@@ -31,6 +31,8 @@ import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
+import org.apache.nifi.annotation.lifecycle.OnDrainCompleted;
+import org.apache.nifi.annotation.lifecycle.OnDrainInitiated;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.AllowableValue;
@@ -67,7 +69,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @SideEffectFree
@@ -302,7 +303,10 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             REL_MERGED
     );
 
-    private final AtomicReference<RecordBinManager> binManager = new AtomicReference<>();
+    private static final long DRAINING_MAX_BIN_AGE_NANOS = TimeUnit.SECONDS.toNanos(1);
+
+    private volatile RecordBinManager binManager;
+    private boolean draining = false; // guarded by this
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -316,11 +320,30 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
 
     @OnStopped
     public final void resetState() {
-        final RecordBinManager manager = binManager.get();
+        final RecordBinManager manager = binManager;
         if (manager != null) {
             manager.purge();
         }
-        binManager.set(null);
+        binManager = null;
+    }
+
+    @OnDrainInitiated
+    public void onDrainInitiated(final ProcessContext context) {
+        setDraining(true, context);
+    }
+
+    @OnDrainCompleted
+    public void onDrainCompleted(final ProcessContext context) {
+        setDraining(false, context);
+    }
+
+    private synchronized void setDraining(final boolean draining, final ProcessContext context) {
+        this.draining = draining;
+
+        final RecordBinManager manager = binManager;
+        if (manager != null) {
+            manager.setMaxBinAge(getMaxBinAgeNanos(context), TimeUnit.NANOSECONDS);
+        }
     }
 
     @Override
@@ -370,14 +393,9 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
-        RecordBinManager manager = binManager.get();
-        while (manager == null) {
-            manager = new RecordBinManager(context, sessionFactory, getLogger());
-            manager.setMaxBinAge(context.getProperty(MAX_BIN_AGE).asTimePeriod(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
-            final boolean updated = binManager.compareAndSet(null, manager);
-            if (!updated) {
-                manager = binManager.get();
-            }
+        RecordBinManager manager = binManager;
+        if (manager == null) {
+            manager = createBinManager(context, sessionFactory);
         }
 
         boolean flowFilePolled = false;
@@ -450,6 +468,33 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         }
     }
 
+    private synchronized RecordBinManager createBinManager(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
+        final RecordBinManager existingManager = binManager;
+        if (existingManager != null) {
+            return existingManager;
+        }
+
+        final RecordBinManager manager = new RecordBinManager(context, sessionFactory, getLogger());
+        manager.setMaxBinAge(getMaxBinAgeNanos(context), TimeUnit.NANOSECONDS);
+        binManager = manager;
+        return manager;
+    }
+
+    /**
+     * While the Process Group is being drained, Bin-Packing bins are completed after at most 1 second so that partial bins do not hold up the drain.
+     * Defragment bins keep the configured age, because a timed-out Defragment bin is routed to failure.
+     */
+    synchronized Long getMaxBinAgeNanos(final ProcessContext context) {
+        final Long configuredMaxBinAgeNanos = context.getProperty(MAX_BIN_AGE).asTimePeriod(TimeUnit.NANOSECONDS);
+        final boolean shortenMaxBinAge = draining && MERGE_STRATEGY_BIN_PACK.getValue().equals(context.getProperty(MERGE_STRATEGY).getValue())
+                && (configuredMaxBinAgeNanos == null || configuredMaxBinAgeNanos > DRAINING_MAX_BIN_AGE_NANOS);
+        if (shortenMaxBinAge) {
+            return DRAINING_MAX_BIN_AGE_NANOS;
+        }
+
+        return configuredMaxBinAgeNanos;
+    }
+
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         config.renameProperty("record-reader", RECORD_READER.getName());
@@ -502,7 +547,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
     }
 
     int getBinCount() {
-        return binManager.get().getBinCount();
+        return binManager.getBinCount();
     }
 
 }
