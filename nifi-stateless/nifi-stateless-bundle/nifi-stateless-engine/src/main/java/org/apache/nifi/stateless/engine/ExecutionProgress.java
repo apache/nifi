@@ -70,6 +70,16 @@ public interface ExecutionProgress {
 
     void registerCreatedSession(StatelessProcessSession session);
 
+    /**
+     * Notifies the ExecutionProgress that the given component threw an Exception while it was being triggered. This must be called
+     * before {@link #notifyExecutionFailed(Throwable)} is called for the same Exception so that the failure can be attributed to the component.
+     *
+     * @param connectable the component that was being triggered
+     * @param failure the Exception that was thrown
+     */
+    default void notifyComponentTriggerFailed(Connectable connectable, Throwable failure) {
+    }
+
     enum CompletionAction {
         COMPLETE,
 
