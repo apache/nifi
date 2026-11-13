@@ -19,7 +19,6 @@ package org.apache.nifi.processors.script.engine;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 
@@ -85,7 +84,7 @@ public class ClojureScriptEngineFactory implements ScriptEngineFactory {
         // construct a statement like (.method object arg1 arg2 ...). This works for instance methods as well as statics
         List<String> params = Arrays.asList("(." + method, object);
         params.addAll(Arrays.asList(args));
-        return params.stream().collect(Collectors.joining(" ")).concat(")");
+        return String.join(" ", params).concat(")");
     }
 
     @Override
@@ -98,7 +97,7 @@ public class ClojureScriptEngineFactory implements ScriptEngineFactory {
         if (statements == null) {
             return null;
         }
-        return Arrays.stream(statements).collect(Collectors.joining("\""));
+        return String.join("\"", statements);
     }
 
     @Override

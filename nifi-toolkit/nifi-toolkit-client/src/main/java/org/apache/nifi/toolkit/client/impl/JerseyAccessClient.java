@@ -79,7 +79,7 @@ public class JerseyAccessClient extends AbstractJerseyClient implements AccessCl
 
             final RequestConfig tokenConfig = new BearerTokenRequestConfig(token);
             final Map<String, String> bearerHeaders = tokenConfig.getHeaders();
-            bearerHeaders.entrySet().stream().forEach(e -> requestBuilder.header(e.getKey(), e.getValue()));
+            bearerHeaders.entrySet().forEach(e -> requestBuilder.header(e.getKey(), e.getValue()));
 
             requestBuilder.delete();
             return null;

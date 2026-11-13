@@ -125,7 +125,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
                 .collect(Collectors.toList()));
 
         Set<String> connectableNames = new HashSet<>(processorNames);
-        connectableNames.addAll(remoteProcessingGroups.stream().flatMap(r -> r.getInputPorts().stream()).map(RemotePortSchema::getId).collect(Collectors.toList()));
+        connectableNames.addAll(remoteProcessingGroups.stream().flatMap(r -> r.getInputPorts().stream()).map(RemotePortSchema::getId).toList());
         connections.forEach(c -> {
             String destinationName = c.getDestinationName();
             if (!StringUtil.isNullOrEmpty(destinationName) && !connectableNames.contains(destinationName)) {
@@ -207,7 +207,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
 
         if (!problematicDuplicateNames.isEmpty()) {
             validationIssues.add(CANNOT_LOOK_UP_PROCESSOR_ID_FROM_PROCESSOR_NAME_DUE_TO_DUPLICATE_PROCESSOR_NAMES
-                    + problematicDuplicateNames.stream().collect(Collectors.joining(", ")));
+                    + String.join(", ", problematicDuplicateNames));
         }
         return connectionSchemas;
     }

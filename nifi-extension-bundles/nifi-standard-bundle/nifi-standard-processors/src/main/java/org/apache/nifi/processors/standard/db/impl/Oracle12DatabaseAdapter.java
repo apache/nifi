@@ -134,7 +134,7 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
 
         String newValuesAlias = "n";
 
-        String columns = columnNames.stream().collect(Collectors.joining(", ? "));
+        String columns = String.join(", ? ", columnNames);
 
         columns = "? " + columns;
 
@@ -142,14 +142,14 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
 
         List<String> conflictColumnsClause = getConflictColumnsClause(uniqueKeyColumnNames, columnsAssignment, table,
                 newValuesAlias);
-        String conflictClause = "(" + conflictColumnsClause.stream().collect(Collectors.joining(" AND ")) + ")";
+        String conflictClause = "(" + String.join(" AND ", conflictColumnsClause) + ")";
 
-        String insertStatement = columnNames.stream().collect(Collectors.joining(", "));
+        String insertStatement = String.join(", ", columnNames);
         String insertValues = newValuesAlias + "."
                 + columnNames.stream().collect(Collectors.joining(", " + newValuesAlias + "."));
 
         columnsAssignment.removeAll(conflictColumnsClause);
-        String updateStatement = columnsAssignment.stream().collect(Collectors.joining(", "));
+        String updateStatement = String.join(", ", columnsAssignment);
 
         StringBuilder statementStringBuilder = new StringBuilder("MERGE INTO ").append(table).append(" USING (SELECT ")
                 .append(columns).append(" FROM DUAL) ").append(newValuesAlias).append(" ON ").append(conflictClause)

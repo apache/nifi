@@ -26,7 +26,6 @@ import org.apache.nifi.attribute.expression.language.exception.AttributeExpressi
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class GetUriEvaluator extends StringEvaluator {
 
@@ -40,7 +39,7 @@ public class GetUriEvaluator extends StringEvaluator {
     public QueryResult<String> evaluate(EvaluationContext evaluationContext) {
         List<String> args = uriArgs.stream()
                 .map(uriArg -> uriArg.evaluate(evaluationContext).getValue())
-                .collect(Collectors.toList());
+                .toList();
 
         try {
             if (args.size() == 7) {

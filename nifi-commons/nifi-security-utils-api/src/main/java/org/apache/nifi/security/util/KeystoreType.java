@@ -17,7 +17,6 @@
 package org.apache.nifi.security.util;
 
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 /**
  * Keystore Type enumeration of supported Keystore formats
@@ -52,6 +51,6 @@ public enum KeystoreType {
         if (type == null || type.replaceAll("\\s", "").isEmpty()) {
             return false;
         }
-        return (Arrays.stream(values()).map(kt -> kt.getType().toLowerCase()).collect(Collectors.toList()).contains(type.toLowerCase()));
+        return (Arrays.stream(values()).map(kt -> kt.getType().toLowerCase()).toList().contains(type.toLowerCase()));
     }
 }

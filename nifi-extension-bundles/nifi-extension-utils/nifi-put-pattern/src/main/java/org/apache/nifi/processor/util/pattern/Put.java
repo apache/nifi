@@ -113,7 +113,7 @@ public class Put<FC, C extends AutoCloseable> {
 
                 // Put fetched, but unprocessed FlowFiles back to self.
                 final List<FlowFile> transferredFlowFiles = result.getRoutedFlowFiles().values().stream()
-                        .flatMap(List::stream).collect(Collectors.toList());
+                        .flatMap(List::stream).toList();
                 final List<FlowFile> unprocessedFlowFiles = flowFiles.stream()
                         .filter(flowFile -> !transferredFlowFiles.contains(flowFile)).collect(Collectors.toList());
                 result.routeTo(unprocessedFlowFiles, Relationship.SELF);

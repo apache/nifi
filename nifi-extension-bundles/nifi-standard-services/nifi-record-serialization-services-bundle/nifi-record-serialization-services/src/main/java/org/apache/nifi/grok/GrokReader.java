@@ -196,7 +196,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         try {
             final List<String> grokExpressions = readGrokExpressions(validationContext);
             final List<ValidationResult> grokExpressionResults = grokExpressions.stream()
-                    .map(grokExpression -> validator.validate(expressionSubject, grokExpression, validationContext)).collect(Collectors.toList());
+                    .map(grokExpression -> validator.validate(expressionSubject, grokExpression, validationContext)).toList();
             results.addAll(grokExpressionResults);
         } catch (final IOException e) {
             results.add(new ValidationResult.Builder()

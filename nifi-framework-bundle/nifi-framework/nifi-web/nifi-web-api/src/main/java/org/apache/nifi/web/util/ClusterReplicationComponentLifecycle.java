@@ -261,7 +261,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
         final List<AffectedComponentEntity> affectedStatelessGroups = affectedComponents.values().stream()
             .filter(component -> AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP.equals(component.getReferenceType()))
-            .collect(Collectors.toList());
+            .toList();
 
         if (affectedStatelessGroups.isEmpty()) {
             logger.debug("There are no Stateless Group in the set of affected components so considering all groups to have reached state of {}", desiredState);

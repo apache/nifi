@@ -1533,7 +1533,7 @@ public final class DtoFactory {
         if (parameterContext.getInheritedParameterContexts() != null) {
             parameterContextRefs.addAll(parameterContext.getInheritedParameterContexts().stream()
                     .map(pc -> entityFactory.createParameterReferenceEntity(createParameterContextReference(pc), createPermissionsDto(pc)))
-                    .collect(Collectors.toList()));
+                    .toList());
         }
         dto.setParameterProviderConfiguration(createParameterProviderConfigurationEntity(parameterContext));
         dto.setInheritedParameterContexts(parameterContextRefs);
@@ -1696,7 +1696,7 @@ public final class DtoFactory {
         final List<Bundle> compatibleBundles = extensionManager.getBundles(reportingTaskNode.getCanonicalClassName()).stream().filter(bundle -> {
             final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
             return bundleCoordinate.getGroup().equals(coordinate.getGroup()) && bundleCoordinate.getId().equals(coordinate.getId());
-        }).collect(Collectors.toList());
+        }).toList();
 
         final Class<? extends ReportingTask> reportingTaskClass = reportingTaskNode.getReportingTask().getClass();
 

@@ -31,9 +31,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class MiNiFiCommandSender {
 
@@ -107,7 +105,7 @@ public class MiNiFiCommandSender {
     }
 
     private byte[] getCommand(String cmd, String... args) {
-        String argsString = Arrays.stream(args).collect(Collectors.joining(" "));
+        String argsString = String.join(" ", args);
         String commandWithArgs = cmd + " " + miNiFiParameters.getSecretKey() + (args.length > 0 ? " " : "") + argsString + "\n";
         return commandWithArgs.getBytes(StandardCharsets.UTF_8);
     }

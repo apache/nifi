@@ -43,9 +43,7 @@ public class FlowAnalysisRuleEndpointMerger extends AbstractSingleEntityEndpoint
     @Override
     public boolean canHandle(URI uri, String method) {
         boolean canHandle = SUPPORTED_ENDPOINTS.stream()
-                .filter(supportedEndpoint -> supportedEndpoint.canHandle(uri, method))
-                .findAny()
-                .isPresent();
+                .anyMatch(supportedEndpoint -> supportedEndpoint.canHandle(uri, method));
 
         return canHandle;
     }
@@ -84,7 +82,7 @@ public class FlowAnalysisRuleEndpointMerger extends AbstractSingleEntityEndpoint
 
         public boolean canHandle(URI uri, String method) {
             boolean canHandle =
-                    httpMethods.stream().filter(httpMethod -> httpMethod.equalsIgnoreCase(method)).findAny().isPresent()
+                    httpMethods.stream().anyMatch(httpMethod -> httpMethod.equalsIgnoreCase(method))
                     && (
                             this.uri != null && this.uri.equals(uri.getPath())
                             ||

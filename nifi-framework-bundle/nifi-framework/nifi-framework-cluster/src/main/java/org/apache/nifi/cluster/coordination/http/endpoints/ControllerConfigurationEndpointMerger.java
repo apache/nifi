@@ -37,7 +37,7 @@ public class ControllerConfigurationEndpointMerger extends AbstractSingleEntityE
     @Override
     protected void mergeResponses(ControllerConfigurationEntity clientEntity, Map<NodeIdentifier, ControllerConfigurationEntity> entityMap, Set<NodeResponse> successfulResponses,
                                   Set<NodeResponse> problematicResponses) {
-        entityMap.values().stream().forEach(controllerConfigurationDTO -> PermissionsDtoMerger.mergePermissions(clientEntity.getPermissions(), controllerConfigurationDTO.getPermissions()));
+        entityMap.values().forEach(controllerConfigurationDTO -> PermissionsDtoMerger.mergePermissions(clientEntity.getPermissions(), controllerConfigurationDTO.getPermissions()));
         if (!clientEntity.getPermissions().getCanRead() && clientEntity.getComponent() != null) {
             clientEntity.setComponent(null);
         }

@@ -84,7 +84,7 @@ public class ProcessGroupBox implements Comparable<ProcessGroupBox> {
 
     public ProcessGroupBox findFreeSpace(List<ProcessGroupBox> allCoords) {
         // sort by distance to (0.0)
-        List<ProcessGroupBox> byClosest = allCoords.stream().sorted().collect(Collectors.toList());
+        List<ProcessGroupBox> byClosest = allCoords.stream().sorted().toList();
 
         // search to the right
         List<ProcessGroupBox> freeSpots = byClosest.stream()
@@ -96,19 +96,19 @@ public class ProcessGroupBox implements Comparable<ProcessGroupBox> {
         freeSpots.addAll(byClosest.stream()
                 .filter(other -> byClosest.stream().noneMatch(other.down()::intersects))
                 .map(ProcessGroupBox::down)
-                .collect(Collectors.toList()));
+                .toList());
 
         // search left
         freeSpots.addAll(byClosest.stream()
                 .filter(other -> byClosest.stream().noneMatch(other.left()::intersects))
                 .map(ProcessGroupBox::left)
-                .collect(Collectors.toList()));
+                .toList());
 
         // search above
         freeSpots.addAll(byClosest.stream()
                 .filter(other -> byClosest.stream().noneMatch(other.up()::intersects))
                 .map(ProcessGroupBox::up)
-                .collect(Collectors.toList()));
+                .toList());
 
         // return a free spot closest to (0, 0)
         return freeSpots.stream().sorted().findFirst().orElse(CANVAS_CENTER);

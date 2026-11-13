@@ -157,7 +157,7 @@ final class ValueLookup implements Map<String, String> {
     @Override
     public Set<String> keySet() {
         final Set<String> keySet = new HashSet<>();
-        entrySet().stream().forEach((entry) -> {
+        entrySet().forEach((entry) -> {
             keySet.add(entry.getKey());
         });
         return keySet;
@@ -166,7 +166,7 @@ final class ValueLookup implements Map<String, String> {
     @Override
     public Collection<String> values() {
         final Set<String> values = new HashSet<>();
-        entrySet().stream().forEach((entry) -> {
+        entrySet().forEach((entry) -> {
             values.add(entry.getValue());
         });
         return values;

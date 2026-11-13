@@ -54,8 +54,8 @@ public class ControllerEndpointMerger extends AbstractSingleDTOEndpoint<Controll
             final ControllerDTO nodeController = entry.getValue();
 
             // gather all input and output ports for merging, including the ports from clientDto
-            nodeController.getInputPorts().stream().forEach(inputPort -> inputPortMap.computeIfAbsent(inputPort.getId(), nodeIdToInputPort -> new HashMap<>()).put(nodeId, inputPort));
-            nodeController.getOutputPorts().stream().forEach(outputPort -> outputPortMap.computeIfAbsent(outputPort.getId(), nodeIdToOutputPort -> new HashMap<>()).put(nodeId, outputPort));
+            nodeController.getInputPorts().forEach(inputPort -> inputPortMap.computeIfAbsent(inputPort.getId(), nodeIdToInputPort -> new HashMap<>()).put(nodeId, inputPort));
+            nodeController.getOutputPorts().forEach(outputPort -> outputPortMap.computeIfAbsent(outputPort.getId(), nodeIdToOutputPort -> new HashMap<>()).put(nodeId, outputPort));
         }
 
         /*

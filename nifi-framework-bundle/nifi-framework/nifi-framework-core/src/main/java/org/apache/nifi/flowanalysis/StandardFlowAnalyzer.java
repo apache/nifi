@@ -261,7 +261,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
             displayName = "Funnel";
         } else if (component instanceof final VersionedConnection versionedConnection) {
             VersionedConnection connection = versionedConnection;
-            displayName = connection.getSource().getName() + " > " + connection.getSelectedRelationships().stream().collect(Collectors.joining(","));
+            displayName = connection.getSource().getName() + " > " + String.join(",", connection.getSelectedRelationships());
         } else {
             displayName = component.getName();
         }

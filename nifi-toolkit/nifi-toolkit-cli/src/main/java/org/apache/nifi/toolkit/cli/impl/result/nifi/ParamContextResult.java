@@ -63,7 +63,7 @@ public class ParamContextResult extends AbstractWritableResult<ParameterContextE
                                 param.getParameterContext().getComponent().getId().equals((this.parameterContext.getComponent().getId())))
                         .reversed()
                         .thenComparing(ParameterDTO::getName))
-                .collect(Collectors.toList());
+                .toList();
 
         final Table.Builder tableBuilder = new Table.Builder()
                 .column("#", 3, 3, false)

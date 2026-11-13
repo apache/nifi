@@ -44,7 +44,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import javax.net.ssl.SSLContext;
 
 /**
@@ -324,7 +323,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
                     .map(keyPrefixComponentIdPattern::matcher)
                     .filter(Matcher::matches)
                     .map(matcher -> matcher.group(COMPONENT_ID_GROUP))
-                    .collect(Collectors.toUnmodifiableList());
+                    .toList();
         });
     }
 

@@ -217,7 +217,7 @@ public abstract class BaseSchema implements Schema {
         if (strings != null) {
             CollectionOverlap<String> collectionOverlap = new CollectionOverlap<>(strings);
             if (!collectionOverlap.getDuplicates().isEmpty()) {
-                duplicateMessageConsumer.accept(errorMessagePrefix + collectionOverlap.getDuplicates().stream().collect(Collectors.joining(", ")));
+                duplicateMessageConsumer.accept(errorMessagePrefix + String.join(", ", collectionOverlap.getDuplicates()));
             }
         }
     }

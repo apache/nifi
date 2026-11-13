@@ -26,7 +26,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class InsertRecordFieldsJoinStrategy extends IndexCorrelatedJoinStrategy {
     private static final RecordPathCache recordPathCache = new RecordPathCache(100);
@@ -63,7 +62,7 @@ public class InsertRecordFieldsJoinStrategy extends IndexCorrelatedJoinStrategy 
         }
 
         final RecordPathResult result = recordPath.evaluate(originalRecord);
-        final List<FieldValue> fieldValues = result.getSelectedFields().collect(Collectors.toList());
+        final List<FieldValue> fieldValues = result.getSelectedFields().toList();
         for (final FieldValue fieldValue : fieldValues) {
             final Object value = fieldValue.getValue();
             if (!(value instanceof final Record parentRecord)) {

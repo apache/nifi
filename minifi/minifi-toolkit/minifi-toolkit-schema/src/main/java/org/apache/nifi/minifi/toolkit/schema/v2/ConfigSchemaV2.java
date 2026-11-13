@@ -80,7 +80,7 @@ public class ConfigSchemaV2 extends BaseSchema implements ConvertableSchema<Conf
     }
 
     public ConfigSchemaV2(Map map, List<String> validationIssues) {
-        validationIssues.stream().forEach(this::addValidationIssue);
+        validationIssues.forEach(this::addValidationIssue);
         flowControllerProperties = getMapAsType(map, FLOW_CONTROLLER_PROPS_KEY, FlowControllerSchema.class, TOP_LEVEL_NAME, true);
 
         coreProperties = getMapAsType(map, CORE_PROPS_KEY, CorePropertiesSchemaV2.class, TOP_LEVEL_NAME, false);
@@ -105,14 +105,14 @@ public class ConfigSchemaV2 extends BaseSchema implements ConvertableSchema<Conf
         addIssuesIfNotNull(provenanceRepositorySchema);
 
         List<ProcessGroupSchemaV2> allProcessGroups = getAllProcessGroups(processGroupSchema);
-        List<ConnectionSchema> allConnectionSchemas = allProcessGroups.stream().flatMap(p -> p.getConnections().stream()).collect(Collectors.toList());
-        List<RemoteProcessGroupSchemaV2> allRemoteProcessGroups = allProcessGroups.stream().flatMap(p -> p.getRemoteProcessGroups().stream()).collect(Collectors.toList());
+        List<ConnectionSchema> allConnectionSchemas = allProcessGroups.stream().flatMap(p -> p.getConnections().stream()).toList();
+        List<RemoteProcessGroupSchemaV2> allRemoteProcessGroups = allProcessGroups.stream().flatMap(p -> p.getRemoteProcessGroups().stream()).toList();
 
         List<String> allProcessorIds = allProcessGroups.stream().flatMap(p -> p.getProcessors().stream()).map(ProcessorSchema::getId).collect(Collectors.toList());
         List<String> allFunnelIds = allProcessGroups.stream().flatMap(p -> p.getFunnels().stream()).map(FunnelSchema::getId).collect(Collectors.toList());
         List<String> allConnectionIds = allConnectionSchemas.stream().map(ConnectionSchema::getId).collect(Collectors.toList());
         List<String> allRemoteInputPortIds = allRemoteProcessGroups.stream().filter(r -> r.getInputPorts() != null)
-                .flatMap(r -> r.getInputPorts().stream()).map(RemotePortSchema::getId).collect(Collectors.toList());
+                .flatMap(r -> r.getInputPorts().stream()).map(RemotePortSchema::getId).toList();
         List<String> allInputPortIds = allProcessGroups.stream().flatMap(p -> p.getInputPortSchemas().stream()).map(PortSchema::getId).collect(Collectors.toList());
         List<String> allOutputPortIds = allProcessGroups.stream().flatMap(p -> p.getOutputPortSchemas().stream()).map(PortSchema::getId).collect(Collectors.toList());
 
