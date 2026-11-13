@@ -33,7 +33,7 @@ export interface LoadTenantsSuccess {
 export interface CreateUserRequest {
     revision: Revision;
     userPayload: any;
-    userGroupUpdate?: {
+    userGroupUpdate: {
         requestId: number;
         userGroups: string[];
     };
@@ -41,7 +41,7 @@ export interface CreateUserRequest {
 
 export interface CreateUserResponse {
     user: UserEntity;
-    userGroupUpdate?: {
+    userGroupUpdate: {
         requestId: number;
         userGroups: string[];
     };
@@ -60,7 +60,7 @@ export interface UpdateUserRequest {
     revision: Revision;
     id: string;
     userPayload: any;
-    userGroupUpdate?: {
+    userGroupUpdate: {
         requestId: number;
         userGroupsAdded: string[];
         userGroupsRemoved: string[];
@@ -69,7 +69,7 @@ export interface UpdateUserRequest {
 
 export interface UpdateUserResponse {
     user: UserEntity;
-    userGroupUpdate?: {
+    userGroupUpdate: {
         requestId: number;
         userGroupsAdded: string[];
         userGroupsRemoved: string[];
