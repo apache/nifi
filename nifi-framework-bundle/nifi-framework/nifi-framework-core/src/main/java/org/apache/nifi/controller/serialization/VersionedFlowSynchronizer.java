@@ -966,9 +966,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final boolean provided = providerBacked || versioned.isProvided();
             final String parameterValue;
             final String rawValue = versioned.getValue();
-            if (rawValue == null) {
-                parameterValue = null;
-            } else if (provided) {
+            if (provided) {
                 final Parameter providedParameter = providedParameters.get(name);
                 if (providedParameter == null) {
                     logger.warn("Parameter Context [{}] Provided Parameter [{}] not found", versionedParameterContext.getIdentifier(), name);
@@ -976,6 +974,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 } else {
                     parameterValue = providedParameter.getValue();
                 }
+            } else if (rawValue == null) {
+                parameterValue = null;
             } else if (versioned.isSensitive()) {
                 final SensitivePropertyContext context = SensitivePropertyContextFactory.forParameter(versionedParameterContext.getName(), name);
                 parameterValue = decrypt(rawValue, context, propertyEncryptionProvider);

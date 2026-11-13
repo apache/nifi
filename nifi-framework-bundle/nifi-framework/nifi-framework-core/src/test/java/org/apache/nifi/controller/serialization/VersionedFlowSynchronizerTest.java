@@ -98,6 +98,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class VersionedFlowSynchronizerTest {
+    private static final String PROVIDER_PARAMETER_NAME = "db.host";
+
     private static final String FLOW_CONFIGURATION = "flow.json.gz";
 
     private static final Bundle CORE_BUNDLE = new Bundle("org.apache.nifi", "nifi-framework-core", "2.0.0");
@@ -299,12 +301,50 @@ class VersionedFlowSynchronizerTest {
 
     @Test
     void testSyncReconcilesProviderBackedContextWithNonProvidedParameter() {
+        // The proposed (elected cluster) flow: same provider-backed context, but the parameter is flagged
+        // provided=false with a divergent value. This is the serialized-flow contradiction seen in production.
+        final VersionedParameter versionedParameter = new VersionedParameter();
+        versionedParameter.setName(PROVIDER_PARAMETER_NAME);
+        versionedParameter.setValue("different-host");
+        versionedParameter.setSensitive(false);
+        versionedParameter.setProvided(false);
+
+        // With the fix, the synchronizer recognizes the context is provider-backed and reconciles it as
+        // provider-managed (provided=true, value sourced from the provider) rather than attempting a manual
+        // update, so synchronization succeeds instead of throwing FlowSynchronizationException.
+        final StandardParameterContext existingContext = syncProviderBackedContext(versionedParameter);
+
+        final Optional<Parameter> reconciled = existingContext.getParameter(PROVIDER_PARAMETER_NAME);
+        assertTrue(reconciled.isPresent(), "Parameter should still exist after reconciliation");
+        assertTrue(reconciled.get().isProvided(), "Parameter must be reconciled as provider-supplied (provided=true)");
+        assertEquals("provider-host", reconciled.get().getValue(),
+                "Parameter value must be re-sourced from the Parameter Provider, not the corrupted serialized value or null");
+    }
+
+    @Test
+    void testSyncResolvesProvidedParameterWithoutStoredValueFromProvider() {
+        // The flow was saved after a failed Parameter Provider fetch, so the provided Parameter has no stored value
+        final VersionedParameter versionedParameter = new VersionedParameter();
+        versionedParameter.setName(PROVIDER_PARAMETER_NAME);
+        versionedParameter.setSensitive(false);
+        versionedParameter.setProvided(true);
+
+        final StandardParameterContext existingContext = syncProviderBackedContext(versionedParameter);
+
+        final Optional<Parameter> resolved = existingContext.getParameter(PROVIDER_PARAMETER_NAME);
+        assertTrue(resolved.isPresent(), "Parameter should still exist after synchronization");
+        assertTrue(resolved.get().isProvided(), "Parameter must remain provider-supplied (provided=true)");
+        assertEquals("provider-host", resolved.get().getValue(),
+                "Parameter value must be sourced from the Parameter Provider when the serialized Parameter has no value");
+    }
+
+    private StandardParameterContext syncProviderBackedContext(final VersionedParameter versionedParameter) {
         setRootGroup();
         setFlowController();
 
         final String providerId = "provider-1";
         final String contextName = "openflow-rds-ingest";
-        final String paramName = "db.host";
+        final String paramName = PROVIDER_PARAMETER_NAME;
 
         // Parameter Provider infrastructure
         final ParameterProvider parameterProvider = mock(ParameterProvider.class);
@@ -344,14 +384,6 @@ class VersionedFlowSynchronizerTest {
             return null;
         }).when(flowManager).withParameterContextResolution(any());
 
-        // The proposed (elected cluster) flow: same provider-backed context, but the parameter is flagged
-        // provided=false with a divergent value. This is the serialized-flow contradiction seen in production.
-        final VersionedParameter versionedParameter = new VersionedParameter();
-        versionedParameter.setName(paramName);
-        versionedParameter.setValue("different-host");
-        versionedParameter.setSensitive(false);
-        versionedParameter.setProvided(false);
-
         final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
         versionedParameterContext.setName(contextName);
         versionedParameterContext.setParameterProvider(providerId);
@@ -359,17 +391,10 @@ class VersionedFlowSynchronizerTest {
         versionedParameterContext.setParameters(Collections.singleton(versionedParameter));
         when(versionedDataflow.getParameterContexts()).thenReturn(List.of(versionedParameterContext));
 
-        // With the fix, the synchronizer recognizes the context is provider-backed and reconciles it as
-        // provider-managed (provided=true, value sourced from the provider) rather than attempting a manual
-        // update, so synchronization succeeds instead of throwing FlowSynchronizationException.
         assertDoesNotThrow(() ->
                 versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST));
 
-        final Optional<Parameter> reconciled = existingContext.getParameter(paramName);
-        assertTrue(reconciled.isPresent(), "Parameter should still exist after reconciliation");
-        assertTrue(reconciled.get().isProvided(), "Parameter must be reconciled as provider-supplied (provided=true)");
-        assertEquals("provider-host", reconciled.get().getValue(),
-                "Parameter value must be re-sourced from the Parameter Provider, not the corrupted serialized value or null");
+        return existingContext;
     }
 
     @Test
