@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,6 +40,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FlowFileRestorationIT extends NiFiSystemIT {
+    private static final int SWAP_THRESHOLD = 20;
+
+    @Override
+    protected Map<String, String> getNifiPropertiesOverrides() {
+        return Map.of("nifi.queue.swap.threshold", String.valueOf(SWAP_THRESHOLD));
+    }
 
     @Test
     public void testDataInMissingQueueRestoredWhenQueueRestored() throws NiFiClientException, IOException, InterruptedException {
@@ -83,6 +90,52 @@ public class FlowFileRestorationIT extends NiFiSystemIT {
         final byte[] contentsAfterRestart = getFlowFileContents(connection.getId(), 0);
 
         assertArrayEquals(flowFileContents, contentsAfterRestart);
+    }
+
+    @Test
+    public void testSwappedFlowFileOrderPreservedAfterRestart() throws NiFiClientException, IOException, InterruptedException {
+        final int flowFileCount = 100;
+        final int newerFlowFileCount = 2;
+        ProcessorEntity generate = getClientUtil().createProcessor(GENERATE_FLOWFILE);
+        generate = getClientUtil().updateProcessorProperties(generate, Map.of("Batch Size", String.valueOf(flowFileCount), "sequence", "${nextInt()}"));
+
+        ProcessorEntity verifyOrder = getClientUtil().createProcessor("VerifySequentialOrder");
+        verifyOrder = getClientUtil().updateProcessorProperties(verifyOrder, Map.of("Value to Consider", "${sequence}"));
+        final ConnectionEntity connection = getClientUtil().updateConnectionPrioritizer(getClientUtil().createConnection(generate, verifyOrder, SUCCESS), "FirstInFirstOutPrioritizer");
+
+        final ProcessorEntity terminate = getClientUtil().createProcessor(TERMINATE_FLOWFILE);
+        final ConnectionEntity sequentialConnection = getClientUtil().createConnection(verifyOrder, terminate, "sequential");
+        final ConnectionEntity failureConnection = getClientUtil().createConnection(verifyOrder, terminate, "failure");
+
+        generate = getClientUtil().runProcessorOnce(generate);
+        getClientUtil().waitForStoppedProcessor(generate.getId());
+        waitForQueueCount(connection.getId(), flowFileCount);
+
+        // The oldest FlowFiles are held in memory and the rest are written to swap files. Process as many of the oldest FlowFiles as the number
+        // of newer FlowFiles and then queue the newer FlowFiles, which wait behind the swapped FlowFiles. All FlowFiles held in memory then fit
+        // within the swap threshold when they are restored.
+        for (int i = 0; i < newerFlowFileCount; i++) {
+            verifyOrder = getClientUtil().runProcessorOnce(verifyOrder);
+            getClientUtil().waitForStoppedProcessor(verifyOrder.getId());
+        }
+
+        generate = getNifiClient().getProcessorClient().getProcessor(generate.getId());
+        generate = getClientUtil().updateProcessorProperties(generate, Map.of("Batch Size", String.valueOf(newerFlowFileCount)));
+        generate = getClientUtil().runProcessorOnce(generate);
+        getClientUtil().waitForStoppedProcessor(generate.getId());
+        waitForQueueCount(connection.getId(), flowFileCount);
+        assertEquals(SWAP_THRESHOLD - newerFlowFileCount, getClientUtil().performQueueListing(connection.getId()).getListingRequest().getFlowFileSummaries().size());
+
+        final NiFiInstance nifiInstance = getNiFiInstance();
+        nifiInstance.stop();
+        nifiInstance.start();
+        waitForQueueCount(connection.getId(), flowFileCount);
+
+        // Process all FlowFiles, including the swapped FlowFiles. Each FlowFile must be processed directly after the FlowFile created before it.
+        verifyOrder = getNifiClient().getProcessorClient().getProcessor(verifyOrder.getId());
+        getClientUtil().startProcessor(verifyOrder);
+        waitFor(() -> getConnectionQueueSize(sequentialConnection.getId()) + getConnectionQueueSize(failureConnection.getId()) == flowFileCount + newerFlowFileCount);
+        assertEquals(0, getConnectionQueueSize(failureConnection.getId()));
     }
 
     private byte[] getFlowFileContents(final String connectionId, final int flowFileIndex) throws IOException, NiFiClientException {
