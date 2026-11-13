@@ -47,7 +47,6 @@ import org.apache.nifi.util.timebuffer.TimestampedLong;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -357,6 +356,8 @@ public class ControlRate extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        clearExpiredThrottles(context);
+
         final String strategy = context.getProperty(RATE_EXCEEDED_STRATEGY).getValue();
         if (ROUTE_TO_RATE_EXCEEDED.getValue().equalsIgnoreCase(strategy)) {
             routeFlowFilesExceedingRate(context, session);
@@ -366,8 +367,6 @@ public class ControlRate extends AbstractProcessor {
     }
 
     private void routeFlowFilesExceedingRate(final ProcessContext context, final ProcessSession session) {
-        clearExpiredThrottles(context);
-
         final List<FlowFile> flowFiles = session.get(MAX_FLOW_FILES_PER_BATCH);
         if (flowFiles.isEmpty()) {
             context.yield();
@@ -391,8 +390,6 @@ public class ControlRate extends AbstractProcessor {
     }
 
     private void holdFlowFilesExceedingRate(final ProcessContext context, final ProcessSession session) {
-        clearExpiredThrottles(context);
-
         final List<FlowFile> flowFiles = session.get(new ThrottleFilter(MAX_FLOW_FILES_PER_BATCH, this::getCurrentTimeMillis));
         if (flowFiles.isEmpty()) {
             context.yield();
@@ -418,26 +415,33 @@ public class ControlRate extends AbstractProcessor {
         final long throttleExpirationMillis = getCurrentTimeMillis() - 2 * context.getProperty(TIME_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
         if (lastClearTime < throttleExpirationMillis) {
             if (lastThrottleClearTime.compareAndSet(lastClearTime, getCurrentTimeMillis())) {
-                final Set<Map.Entry<String, Throttle>> throttleSet = new HashSet<>();
                 if (dataThrottleRequired()) {
-                    throttleSet.addAll(dataThrottleMap.entrySet());
+                    filterThrottleMap(dataThrottleMap, lastClearTime);
                 }
                 if (countThrottleRequired()) {
-                    throttleSet.addAll(countThrottleMap.entrySet());
+                    filterThrottleMap(countThrottleMap, lastClearTime);
                 }
-                final Iterator<Map.Entry<String, Throttle>> itr = throttleSet.iterator();
-                while (itr.hasNext()) {
-                    final Map.Entry<String, Throttle> entry = itr.next();
-                    final Throttle throttle = entry.getValue();
-                    if (throttle.tryLock()) {
-                        try {
-                            if (throttle.lastUpdateTime() < lastClearTime) {
-                                itr.remove();
-                            }
-                        } finally {
-                            throttle.unlock();
-                        }
+            }
+        }
+    }
+
+    /**
+     * Loop over the entries in a throttleMap and clear out any that have a lastUpdateTime less than lastClearTime
+     * @param throttleMap the throttleMap to be filtered
+     * @param lastClearTime threshold of lastUpdateTime of the throttle entries in the map
+     */
+    private void filterThrottleMap(final ConcurrentMap<String, Throttle> throttleMap, final long lastClearTime) {
+        final Iterator<Map.Entry<String, Throttle>> itr = throttleMap.entrySet().iterator();
+        while (itr.hasNext()) {
+            final Map.Entry<String, Throttle> entry = itr.next();
+            final Throttle throttle = entry.getValue();
+            if (throttle.tryLock()) {
+                try {
+                    if (throttle.lastUpdateTime() < lastClearTime) {
+                        itr.remove();
                     }
+                } finally {
+                    throttle.unlock();
                 }
             }
         }
