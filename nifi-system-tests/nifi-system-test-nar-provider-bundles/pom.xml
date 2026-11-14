@@ -34,6 +34,10 @@
       <module>nifi-connector-change-version-v1-nar</module>
       <module>nifi-connector-change-version-v2</module>
       <module>nifi-connector-change-version-v2-nar</module>
+      <module>nifi-connector-upgrade-drain-v1</module>
+      <module>nifi-connector-upgrade-drain-v1-nar</module>
+      <module>nifi-connector-upgrade-drain-v2</module>
+      <module>nifi-connector-upgrade-drain-v2-nar</module>
       <module>nifi-nar-provider-assembly</module>
   </modules>
 </project>

@@ -17,19 +17,35 @@
 
 package org.apache.nifi.components.connector;
 
+import org.apache.nifi.asset.Asset;
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.connector.components.FlowContextType;
+import org.apache.nifi.components.connector.components.ParameterContextFacade;
+import org.apache.nifi.components.connector.components.ParameterValue;
 import org.apache.nifi.components.connector.components.ProcessGroupFacade;
 import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedAsset;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.parameter.ParameterContext;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+import java.io.File;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class TestStandardFlowContext {
+public class TestStandardFlowContext {
 
     @Test
     void testReloadReplacesStateAfterCreatingRootGroup() {
@@ -65,5 +81,45 @@ class TestStandardFlowContext {
         assertSame(replacementBundle, flowContext.getBundle());
         assertSame(replacementConfiguration, flowContext.getConfigurationContext());
         assertSame(replacementRootGroup, flowContext.getRootGroup());
+    }
+
+    @Test
+    public void testRestorePersistedFlowResolvesParameterAssets() {
+        final Asset asset = mock(Asset.class);
+        when(asset.getFile()).thenReturn(new File("target/asset.txt"));
+        final AssetManager assetManager = mock(AssetManager.class);
+        when(assetManager.getAsset("asset-1")).thenReturn(Optional.of(asset));
+
+        final ParameterContext managedParameterContext = mock(ParameterContext.class);
+        when(managedParameterContext.getName()).thenReturn("managed-parameters");
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+        when(managedProcessGroup.getParameterContext()).thenReturn(managedParameterContext);
+
+        final ParameterContextFacade parameterContextFacade = mock(ParameterContextFacade.class);
+        final StandardFlowContext flowContext = new StandardFlowContext(managedProcessGroup,
+            mock(MutableConnectorConfigurationContext.class), assetManager, mock(ProcessGroupFacadeFactory.class),
+            group -> parameterContextFacade, mock(ComponentLog.class), FlowContextType.ACTIVE, new Bundle());
+
+        final VersionedAsset versionedAsset = new VersionedAsset();
+        versionedAsset.setIdentifier("asset-1");
+        versionedAsset.setName("asset.txt");
+        final VersionedParameter versionedParameter = new VersionedParameter();
+        versionedParameter.setName("Asset Parameter");
+        versionedParameter.setReferencedAssets(List.of(versionedAsset));
+        final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
+        versionedParameterContext.setIdentifier("parameter-context-1");
+        versionedParameterContext.setName("managed-parameters");
+        versionedParameterContext.setParameters(Set.of(versionedParameter));
+
+        flowContext.restorePersistedFlow(new VersionedProcessGroup(), versionedParameterContext);
+
+        final ArgumentCaptor<List<ParameterValue>> valuesCaptor = ArgumentCaptor.forClass(List.class);
+        verify(parameterContextFacade).updateParameters(valuesCaptor.capture());
+        final List<ParameterValue> restoredParameters = valuesCaptor.getValue();
+        final ParameterValue restoredAssetParameter = restoredParameters.stream()
+            .filter(parameter -> "Asset Parameter".equals(parameter.getName()))
+            .findFirst()
+            .orElseThrow();
+        assertSame(asset, restoredAssetParameter.getAssets().getFirst());
     }
 }

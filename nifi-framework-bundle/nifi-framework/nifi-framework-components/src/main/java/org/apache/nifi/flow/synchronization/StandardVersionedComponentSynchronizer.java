@@ -4112,18 +4112,27 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             final Map<String, VersionedConnection> proposedConnectionsByVersionedId = proposedGroup.getConnections().stream()
                 .collect(Collectors.toMap(VersionedComponent::getIdentifier, Function.identity()));
 
-            // match group's current connections to proposed connections to determine if they've been removed
+            // A missing connection, or one whose source changed, is removed and recreated. Either change drops
+            // queued data, so reject it before synchronization begins. A destination change updates the connection in place.
             for (final Connection connection : processGroup.getConnections()) {
                 final String versionedId = connection.getVersionedComponentId().orElse(
                     VersionedComponentFlowMapper.generateVersionedComponentId(connection.getIdentifier()));
                 final VersionedConnection proposedConnection = proposedConnectionsByVersionedId.get(versionedId);
+                final FlowFileQueue flowFileQueue = connection.getFlowFileQueue();
+                if (flowFileQueue.isEmpty()) {
+                    continue;
+                }
+
                 if (proposedConnection == null) {
-                    // connection doesn't exist in proposed connections, make sure it doesn't have any data in it
-                    final FlowFileQueue flowFileQueue = connection.getFlowFileQueue();
-                    if (!flowFileQueue.isEmpty()) {
-                        throw new IllegalStateException(processGroup + " cannot be updated to the proposed flow because the proposed flow "
-                            + "does not contain a match for " + connection + " and the connection currently has data in the queue.");
-                    }
+                    throw new IllegalStateException(processGroup + " cannot be updated to the proposed flow because the proposed flow "
+                        + "does not contain a match for " + connection + " and the connection currently has data in the queue.");
+                }
+
+                final String existingSourceId = connection.getSource().getVersionedComponentId().orElse(null);
+                final String proposedSourceId = proposedConnection.getSource().getId();
+                if (existingSourceId != null && !Objects.equals(proposedSourceId, existingSourceId)) {
+                    throw new IllegalStateException(processGroup + " cannot be updated to the proposed flow because the proposed flow "
+                        + "changes the source of " + connection + " and the connection currently has data in the queue.");
                 }
             }
         }
