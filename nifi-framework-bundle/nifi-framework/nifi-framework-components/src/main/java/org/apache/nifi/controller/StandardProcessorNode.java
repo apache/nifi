@@ -28,6 +28,8 @@ import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
+import org.apache.nifi.annotation.lifecycle.OnDrainCompleted;
+import org.apache.nifi.annotation.lifecycle.OnDrainInitiated;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -2073,8 +2075,13 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void invokeDrainLifecycleMethods(final Class<? extends Annotation> lifecycleAnnotation, final ProcessContext processContext) {
-        triggerLifecycleMethod(processContext, lifecycleAnnotation);
+    public void initiateDrain(final ProcessContext processContext) {
+        triggerLifecycleMethod(processContext, OnDrainInitiated.class);
+    }
+
+    @Override
+    public void endDrain(final ProcessContext processContext) {
+        triggerLifecycleMethod(processContext, OnDrainCompleted.class);
     }
 
     private void triggerLifecycleMethod(final ProcessContext processContext, final Class<? extends Annotation> lifecycleAnnotation) {

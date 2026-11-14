@@ -1007,6 +1007,11 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
             toRemove.verifyCanDelete();
 
+            toRemove.endDrain();
+            for (final ProcessGroup descendant : toRemove.findAllProcessGroups()) {
+                descendant.endDrain();
+            }
+
             removeComponents(group);
             processGroups.remove(group.getIdentifier());
             onComponentModified();
@@ -2681,17 +2686,27 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public ProcessGroupDrain beginDrain(final String drainIdentifier) {
-        // A single lock across all groups, so that a parent and a child group cannot begin a drain at the same time
+        final StandardProcessGroupDrain previousDrain;
+        final StandardProcessGroupDrain newDrain = new StandardProcessGroupDrain(drainIdentifier, this, controllerServiceProvider, this::createProcessContext, scheduler::submitFrameworkTask);
+
+        // A single lock across all groups, so that a parent and a child group cannot both be verified and begin a drain at the same time. It is held only
+        // to verify and record the drain, so that no component is stopped and no component code is called while holding it.
         synchronized (DRAIN_LOCK) {
             verifyCanBeginDrain();
-
-            // Creating the drain stops the sources. If a source cannot be stopped, the exception is thrown before the drain is recorded.
-            final StandardProcessGroupDrain newDrain = new StandardProcessGroupDrain(drainIdentifier, this, controllerServiceProvider, this::createProcessContext, scheduler::submitFrameworkTask);
+            previousDrain = drain.get();
             drain.set(newDrain);
-            newDrain.start();
-            LOG.info("Began drain {} of {}", drainIdentifier, this);
-            return newDrain;
         }
+
+        // Any previous drain has already ended or failed, and starting the new drain ends a failed drain. If a source cannot be stopped, the previous drain is restored.
+        try {
+            newDrain.start(previousDrain);
+        } catch (final RuntimeException e) {
+            drain.compareAndSet(newDrain, previousDrain);
+            throw e;
+        }
+
+        LOG.info("Began drain {} of {}", drainIdentifier, this);
+        return newDrain;
     }
 
     @Override
@@ -2702,12 +2717,11 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public Optional<ProcessGroupDrain> endDrain() {
         final StandardProcessGroupDrain currentDrain = drain.get();
-        if (currentDrain == null) {
-            return Optional.empty();
+        if (currentDrain != null) {
+            currentDrain.end();
         }
 
-        currentDrain.end();
-        return Optional.of(currentDrain);
+        return Optional.ofNullable(currentDrain);
     }
 
     @Override

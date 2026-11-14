@@ -670,8 +670,8 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void verifyCanBeginDrain();
 
     /**
-     * Begins a drain of this Process Group, replacing any previous drain of this group. The sources are asked to stop before this method returns,
-     * and the rest of the drain is prepared in the background.
+     * Begins a drain of this Process Group, ending and replacing any previous drain of this group. The sources are asked to stop before this method
+     * returns, and the rest of the drain is prepared in the background.
      *
      * @throws IllegalStateException if a drain cannot begin on this Process Group or a source cannot be stopped
      */

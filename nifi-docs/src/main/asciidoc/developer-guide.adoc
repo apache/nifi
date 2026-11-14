@@ -648,10 +648,17 @@ to arrive. For example, `MergeContent` keeps a partial bin until it has enough F
 Max Bin Age. Such a Processor should process the data that it already has rather than wait for more.
 
 Methods with the `@OnDrainInitiated` annotation are called when a drain of the component's Process Group
-begins. The component may be in any lifecycle state when the method is called, and the method may be called
-while other threads are running the `onTrigger` method. The method must therefore be thread-safe and should
-do little more than take note that a drain has begun, for example by setting a `volatile` flag that the
-`onTrigger` method reads.
+begins. The component may be in any lifecycle state when the method is called, and the order in which the
+method is called relative to other lifecycle methods, such as `@OnScheduled`, `@OnUnscheduled`, and `@OnStopped`,
+is not guaranteed. It may be called before the component is scheduled, while it is being scheduled, after it is
+scheduled, or for a component that is not scheduled at all during the drain. It may also be called while other
+threads are running the `onTrigger` method. The method must therefore be thread-safe, must not depend on anything
+created by an `@OnScheduled` method, and should do little more than take note that a drain has begun, for example
+by setting a `volatile` flag that the `onTrigger` method reads.
+
+The method is called at most once for each drain. Because the component may be stopped and started again while
+the drain is in progress, anything noted when the drain began should be cleared only by an `@OnDrainCompleted`
+method, not by an `@OnScheduled` method.
 
 Methods with this annotation are permitted to take either 0 or 1 argument. If an argument is used, it must
 be of type `ProcessContext` if the component is a Processor or of type `ConfigurationContext` if the
@@ -661,12 +668,14 @@ component is a Controller Service.
 
 Methods with the `@OnDrainCompleted` annotation are called when a drain of the component's Process Group ends,
 so that the component can undo whatever note it took when the drain began. A drain may end before all of the
-data in the group has been processed, for example if it is cancelled. The method is not guaranteed to be called
-for every drain that began with <<on-drain-initiated,`@OnDrainInitiated`>>, such as when NiFi is restarted
-during a drain, so the component should not persist anything that depends on a drain being in progress.
+data in the group has been processed, for example if it is cancelled. For a given drain, the method is called at
+most once, and only if the <<on-drain-initiated,`@OnDrainInitiated`>> methods were called for that drain. It is not
+guaranteed to be called for every drain that began with `@OnDrainInitiated`, such as when NiFi is restarted during
+a drain, so the component should not persist anything that depends on a drain being in progress.
 
 The same rules apply as for `@OnDrainInitiated`: the component may be in any lifecycle state when the method is
-called, the method must be thread-safe, and it may take the same arguments.
+called, its order relative to other lifecycle methods is not guaranteed, the method must be thread-safe, and it
+may take the same arguments.
 
 === Component Notification
 

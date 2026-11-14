@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.groups;
 
-import org.apache.nifi.annotation.lifecycle.OnDrainCompleted;
 import org.apache.nifi.annotation.lifecycle.OnDrainInitiated;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -24,6 +23,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -36,18 +36,26 @@ import org.apache.nifi.util.Connectables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 /**
- * Creating the drain asks the sources of the Process Group to stop. {@link #start()} then enables the referenced Controller Services, starts the other
- * components, and calls the {@link OnDrainInitiated} methods in the background. Processors inside Stateless groups receive no drain lifecycle calls.
+ * {@link #start(StandardProcessGroupDrain)} asks the sources of the Process Group to stop, then enables the referenced Controller Services, starts the
+ * other components, and calls the {@link OnDrainInitiated} methods in the background. Processors inside Stateless groups receive no drain lifecycle calls.
+ *
+ * <p>
+ * Each component is notified of the drain on a background task of its own, and no component code is called while synchronizing on this object.
+ * A component whose drain lifecycle method does not return therefore delays only its own later notifications; it cannot prevent the drain from
+ * ending or the other components from being notified.
+ * </p>
  */
 public class StandardProcessGroupDrain implements ProcessGroupDrain {
     private static final Logger logger = LoggerFactory.getLogger(StandardProcessGroupDrain.class);
@@ -57,8 +65,11 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
     private final ControllerServiceProvider controllerServiceProvider;
     private final Function<ProcessorNode, ProcessContext> processContextFactory;
     private final Executor backgroundExecutor;
-    private final CompletableFuture<Void> sourcesStopped;
     private final CompletableFuture<Void> preparation = new CompletableFuture<>();
+    private final CountDownLatch endLatch = new CountDownLatch(1);
+
+    // The task that notifies each component of this drain, keyed by the identifier of the component, so that the next drain can wait for it
+    private final Map<String, CompletableFuture<Void>> notifications = new ConcurrentHashMap<>();
 
     private volatile QueueSize originalQueueSize;
     private volatile ProcessGroupDrainState state = ProcessGroupDrainState.DRAINING;
@@ -66,7 +77,6 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
 
     // Guarded by synchronizing on this object
     private boolean initiated;
-    private boolean ended;
 
     public StandardProcessGroupDrain(final String identifier, final ProcessGroup processGroup, final ControllerServiceProvider controllerServiceProvider,
                                      final Function<ProcessorNode, ProcessContext> processContextFactory, final Executor backgroundExecutor) {
@@ -75,23 +85,32 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
         this.controllerServiceProvider = controllerServiceProvider;
         this.processContextFactory = processContextFactory;
         this.backgroundExecutor = backgroundExecutor;
-
-        final List<CompletableFuture<Void>> stopFutures = stopSources();
-        this.sourcesStopped = CompletableFuture.allOf(stopFutures.toArray(new CompletableFuture<?>[0]))
-            .thenRun(() -> originalQueueSize = processGroup.getQueueSize());
     }
 
     /**
-     * The components are started on a separate background task so that they are never started on a thread that enables a Controller Service.
+     * Ends the previous drain and asks the sources to stop before returning. The rest of the drain is prepared in the background, and the components are
+     * started on a separate background task so that they are never started on a thread that enables a Controller Service.
+     *
+     * @param previousDrain the previous drain of the Process Group, or null if there is none. Each component is notified that this drain began only
+     *                      after the previous drain has finished notifying it.
+     * @throws IllegalStateException if a source cannot be stopped
      */
-    public void start() {
+    public void start(final StandardProcessGroupDrain previousDrain) {
+        if (previousDrain != null) {
+            previousDrain.end();
+        }
+
+        final List<CompletableFuture<Void>> stopFutures = stopSources();
+        final CompletableFuture<Void> sourcesStopped = CompletableFuture.allOf(stopFutures.toArray(new CompletableFuture<?>[0]))
+            .thenRun(() -> originalQueueSize = processGroup.getQueueSize());
+
         final CompletableFuture<List<CompletableFuture<Void>>> serviceEnableFutures = CompletableFuture.supplyAsync(() -> {
             stopRemoteOutputPorts();
             return enableReferencedServices();
         }, backgroundExecutor);
 
         serviceEnableFutures.thenCompose(enableFutures -> CompletableFuture.allOf(enableFutures.toArray(new CompletableFuture<?>[0])))
-            .thenRunAsync(this::startComponentsAndInitiate, backgroundExecutor)
+            .thenRunAsync(() -> startComponentsAndInitiate(previousDrain), backgroundExecutor)
             .thenCompose(ignored -> sourcesStopped)
             .whenComplete((result, failure) -> {
                 if (failure != null) {
@@ -104,35 +123,100 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
     }
 
     /**
-     * A drain that failed remains failed so that its failure can still be reported.
+     * A drain that failed remains failed so that its failure can still be reported. The components are notified that the drain ended by their own
+     * background tasks, so this method does not wait for any component.
      */
     public synchronized void end() {
-        if (ended) {
+        if (isEnded()) {
             return;
         }
 
-        ended = true;
         if (state == ProcessGroupDrainState.DRAINING) {
             state = ProcessGroupDrainState.ENDED;
         }
 
+        endLatch.countDown();
         if (initiated) {
-            invokeLifecycleMethods(OnDrainCompleted.class);
             logger.info("Drain {} of {} ended; {} FlowFiles remain queued", identifier, processGroup, processGroup.getQueueSize().getObjectCount());
         } else {
             logger.info("Drain {} of {} ended before it was initiated", identifier, processGroup);
         }
     }
 
-    private synchronized void startComponentsAndInitiate() {
+    /**
+     * Starting a component only asks the scheduler to start it and calls no component code, so the components are started while synchronizing on this
+     * object. Doing so ensures that no component is started once the drain has ended or failed.
+     */
+    private synchronized void startComponentsAndInitiate(final StandardProcessGroupDrain previousDrain) {
         if (state != ProcessGroupDrainState.DRAINING) {
             return;
         }
 
         startOtherComponents(processGroup);
-        invokeLifecycleMethods(OnDrainInitiated.class);
+
+        for (final ControllerServiceNode service : processGroup.findControllerServicesForDrain()) {
+            submitNotification(service, previousDrain);
+        }
+
+        for (final ProcessGroup group : findStandardGroups()) {
+            for (final ProcessorNode processor : group.getProcessors()) {
+                submitNotification(processor, previousDrain);
+            }
+        }
+
         initiated = true;
         logger.info("Drain {} of {} initiated", identifier, processGroup);
+    }
+
+    /**
+     * Notifies the component of this drain on a background task of its own, once the previous drain has finished notifying the same component.
+     */
+    private void submitNotification(final ComponentNode component, final StandardProcessGroupDrain previousDrain) {
+        final Map<String, CompletableFuture<Void>> previousNotifications = previousDrain == null ? Map.of() : previousDrain.notifications;
+        final CompletableFuture<Void> previousNotification = previousNotifications.getOrDefault(component.getIdentifier(), CompletableFuture.completedFuture(null));
+
+        final CompletableFuture<Void> notification = CompletableFuture.runAsync(() -> notifyComponent(component, previousNotification), backgroundExecutor);
+        notifications.put(component.getIdentifier(), notification);
+    }
+
+    /**
+     * Waits for the previous drain to finish notifying the component, so that a component is always notified in order. Then notifies the component
+     * that this drain began and, once this drain ends, that it ended. A failure is logged rather than thrown, so that it does not prevent the next
+     * drain from notifying the component.
+     */
+    private void notifyComponent(final ComponentNode component, final CompletableFuture<Void> previousNotification) {
+        try {
+            previousNotification.join();
+            if (isEnded()) {
+                return;
+            }
+
+            if (component instanceof final ProcessorNode processor) {
+                processor.initiateDrain(processContextFactory.apply(processor));
+            } else if (component instanceof final ControllerServiceNode service) {
+                service.initiateDrain();
+            }
+
+            endLatch.await();
+
+            if (component instanceof final ProcessorNode processor) {
+                processor.endDrain(processContextFactory.apply(processor));
+            } else if (component instanceof final ControllerServiceNode service) {
+                service.endDrain();
+            }
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn("Interrupted while waiting for drain {} of {} to end; the @OnDrainCompleted methods of {} will not be called", identifier, processGroup, component);
+        } catch (final Exception e) {
+            logger.error("Failed to notify {} of drain {} of {}", component, identifier, processGroup, e);
+        }
+    }
+
+    /**
+     * A drain that failed has not ended until {@link #end()} is called.
+     */
+    private boolean isEnded() {
+        return endLatch.getCount() == 0;
     }
 
     private synchronized void markFailed(final String reason, final Throwable cause) {
@@ -196,10 +280,6 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
                 continue;
             }
 
-            if (service.getValidationStatus() != ValidationStatus.VALID) {
-                service.performValidation();
-            }
-
             final CompletableFuture<Void> enableFuture = controllerServiceProvider.enableControllerServiceAndDependencies(service);
             if (service.getValidationStatus() == ValidationStatus.VALID) {
                 enableFutures.add(enableFuture);
@@ -212,11 +292,6 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
     private void startOtherComponents(final ProcessGroup group) {
         for (final ProcessorNode processor : group.getProcessors()) {
             if (processor.getScheduledState() == ScheduledState.DISABLED || processor.isRunning() || isSource(processor)) {
-                continue;
-            }
-
-            if (processor.performValidation() == ValidationStatus.INVALID) {
-                logger.debug("Not starting {} for drain {} because it is invalid", processor, identifier);
                 continue;
             }
 
@@ -264,26 +339,6 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
                 }
             } else {
                 startOtherComponents(childGroup);
-            }
-        }
-    }
-
-    private void invokeLifecycleMethods(final Class<? extends Annotation> lifecycleAnnotation) {
-        for (final ControllerServiceNode service : processGroup.findControllerServicesForDrain()) {
-            try {
-                service.invokeDrainLifecycleMethods(lifecycleAnnotation);
-            } catch (final Exception e) {
-                logger.error("Failed to call @{} methods of {} for drain {}", lifecycleAnnotation.getSimpleName(), service, identifier, e);
-            }
-        }
-
-        for (final ProcessGroup group : findStandardGroups()) {
-            for (final ProcessorNode processor : group.getProcessors()) {
-                try {
-                    processor.invokeDrainLifecycleMethods(lifecycleAnnotation, processContextFactory.apply(processor));
-                } catch (final Exception e) {
-                    logger.error("Failed to call @{} methods of {} for drain {}", lifecycleAnnotation.getSimpleName(), processor, identifier, e);
-                }
             }
         }
     }

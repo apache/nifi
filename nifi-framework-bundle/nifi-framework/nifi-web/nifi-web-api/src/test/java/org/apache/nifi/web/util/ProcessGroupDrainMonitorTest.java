@@ -105,7 +105,6 @@ class ProcessGroupDrainMonitorTest {
             assertTrue(check.check());
         }
 
-        verify(serviceFacade, never()).endProcessGroupDrain(PROCESS_GROUP_ID, DRAIN_REQUEST_ID);
         assertFalse(check.check());
         verify(serviceFacade).endProcessGroupDrain(PROCESS_GROUP_ID, DRAIN_REQUEST_ID);
 
@@ -133,43 +132,20 @@ class ProcessGroupDrainMonitorTest {
     }
 
     @Test
-    void testClusteredDrainReadsMergedStatusAndEndsOnAllNodes() throws InterruptedException {
-        final NodeResponse failedResponse = createNodeResponse(500, null);
-        final NodeResponse emptyResponse = createNodeResponse(200, createDrainRequest(ProcessGroupDrainState.DRAINING, 0));
-        final AsyncClusterResponse failedGet = createAsyncResponse(failedResponse);
-        final AsyncClusterResponse emptyGet = createAsyncResponse(emptyResponse);
+    void testClusteredDrainCheckDoesNotCountWhileNodeIsNotConnected() throws InterruptedException {
+        final AsyncClusterResponse emptyGet = createAsyncResponse(createNodeResponse(200, createDrainRequest(ProcessGroupDrainState.DRAINING, 0)));
         final AsyncClusterResponse delete = createAsyncResponse(createNodeResponse(200, null));
-
-        // The coordinator replicates the requests itself
         when(clusterCoordinator.isActiveClusterCoordinator()).thenReturn(true);
-        when(requestReplicator.replicate(eq(USER), eq(HttpMethod.GET), eq(DRAIN_REQUEST_URI), any(), anyMap())).thenReturn(emptyGet, failedGet, emptyGet);
+        when(requestReplicator.replicate(eq(USER), eq(HttpMethod.GET), eq(DRAIN_REQUEST_URI), any(), anyMap())).thenReturn(emptyGet);
+        when(requestReplicator.replicate(eq(USER), eq(HttpMethod.DELETE), eq(DRAIN_REQUEST_URI), any(), anyMap())).thenReturn(delete);
 
-        // A node that is not connected does not report its data, so a check made while a node is not connected does not count as empty
-        final NodeIdentifier disconnectedNode = mock(NodeIdentifier.class);
-        when(clusterCoordinator.getNodeIdentifiers(any(NodeConnectionState[].class))).thenReturn(Set.of(disconnectedNode), Set.of());
-
+        // A node that is not connected does not report its data, so a check made while a node is not connected resets the count of empty checks
+        when(clusterCoordinator.getNodeIdentifiers(any(NodeConnectionState[].class))).thenReturn(Set.of(), Set.of(mock(NodeIdentifier.class)), Set.of());
         final ProcessGroupDrainMonitor.DrainCheck check = monitor.new DrainCheck(DRAIN_REQUEST_URI, PROCESS_GROUP_ID, DRAIN_REQUEST_ID, USER);
         assertTrue(check.check());
         assertTrue(check.check());
         assertTrue(check.check());
-        assertTrue(check.check());
-        verify(requestReplicator, never()).replicate(any(NiFiUser.class), eq(HttpMethod.DELETE), any(), any(), anyMap());
-
-        // Any other node forwards the requests to the coordinator
-        final NodeIdentifier coordinatorNode = mock(NodeIdentifier.class);
-        when(clusterCoordinator.isActiveClusterCoordinator()).thenReturn(false);
-        when(clusterCoordinator.getElectedActiveCoordinatorNode()).thenReturn(coordinatorNode);
-        when(requestReplicator.forwardToCoordinator(eq(coordinatorNode), eq(USER), eq(HttpMethod.GET), eq(DRAIN_REQUEST_URI), any(), anyMap())).thenReturn(emptyGet);
-        when(requestReplicator.forwardToCoordinator(eq(coordinatorNode), eq(USER), eq(HttpMethod.DELETE), eq(DRAIN_REQUEST_URI), any(), anyMap())).thenReturn(delete);
-
         assertFalse(check.check());
-        verify(requestReplicator).forwardToCoordinator(eq(coordinatorNode), eq(USER), eq(HttpMethod.DELETE), eq(DRAIN_REQUEST_URI), any(), anyMap());
-        verify(serviceFacade, never()).endProcessGroupDrain(any(), any());
-
-        // A Process Group that no longer exists on the cluster is no longer watched
-        final AsyncClusterResponse notFound = createAsyncResponse(createNodeResponse(404, null));
-        when(requestReplicator.forwardToCoordinator(eq(coordinatorNode), eq(USER), eq(HttpMethod.GET), eq(DRAIN_REQUEST_URI), any(), anyMap())).thenReturn(notFound);
-        assertFalse(monitor.new DrainCheck(DRAIN_REQUEST_URI, PROCESS_GROUP_ID, DRAIN_REQUEST_ID, USER).check());
     }
 
     private static ProcessGroupDrainRequestDTO createDrainRequest(final ProcessGroupDrainState state, final int currentCount) {

@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnDrainCompleted;
+import org.apache.nifi.annotation.lifecycle.OnDrainInitiated;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
@@ -940,7 +942,16 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     }
 
     @Override
-    public void invokeDrainLifecycleMethods(final Class<? extends Annotation> lifecycleAnnotation) {
+    public void initiateDrain() {
+        triggerDrainLifecycleMethods(OnDrainInitiated.class);
+    }
+
+    @Override
+    public void endDrain() {
+        triggerDrainLifecycleMethods(OnDrainCompleted.class);
+    }
+
+    private void triggerDrainLifecycleMethods(final Class<? extends Annotation> lifecycleAnnotation) {
         final ControllerService implementation = getControllerServiceImplementation();
         final ConfigurationContext configurationContext = new StandardConfigurationContext(this, serviceProvider, null);
 

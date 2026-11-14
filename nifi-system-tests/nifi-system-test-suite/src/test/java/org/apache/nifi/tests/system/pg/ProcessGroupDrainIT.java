@@ -157,8 +157,8 @@ public class ProcessGroupDrainIT extends NiFiSystemIT {
 
     /**
      * A stopped Processor that is invalid, and a disabled Processor, each with FlowFiles queued, cannot process their data during a drain.
-     * Both are reported as blocking the drain, and the invalid Processor is not started. Ending the drain leaves the FlowFiles queued and the
-     * components as they are.
+     * Both are reported as blocking the drain. The invalid Processor is started so that it runs once it becomes valid. Ending the drain leaves
+     * the FlowFiles queued and the components as they are.
      */
     @Test
     public void testEndDrainLeavesQueuedDataAndComponentsAsTheyAre() throws NiFiClientException, IOException, InterruptedException {
@@ -188,11 +188,13 @@ public class ProcessGroupDrainIT extends NiFiSystemIT {
             blockingReasons.put(blockingComponent.getId(), blockingComponent.getReason());
         }
         assertEquals(Map.of(validate.getId(), "INVALID", terminate.getId(), "DISABLED"), blockingReasons);
+        waitFor(() -> ScheduledState.STARTING.name().equals(getProcessor(validate.getId()).getComponent().getPhysicalState()));
 
         assertEquals(ENDED, getClientUtil().endProcessGroupDrain(group.getId(), drainRequestId).getDrainRequest().getState());
         assertNull(getDrainRequestId(group.getId()));
 
-        assertProcessorStates(Map.of(generate.getId(), ScheduledState.STOPPED, validate.getId(), ScheduledState.STOPPED, terminate.getId(), ScheduledState.DISABLED));
+        assertProcessorStates(Map.of(generate.getId(), ScheduledState.STOPPED, terminate.getId(), ScheduledState.DISABLED));
+        assertEquals(ScheduledState.STARTING.name(), getProcessor(validate.getId()).getComponent().getPhysicalState());
         assertEquals(3, getConnectionQueueSize(generateToValidate.getId()));
         assertEquals(3, getConnectionQueueSize(generateToTerminate.getId()));
     }

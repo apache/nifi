@@ -42,7 +42,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
-import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -107,10 +106,16 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
     public abstract void setProcessor(LoggableComponent<Processor> processor);
 
     /**
-     * Calls the methods of the Processor that have the given drain lifecycle annotation, regardless of the state of the Processor. Any Exception
-     * thrown by a method is logged and is not rethrown.
+     * Calls the methods of the Processor that are annotated with {@link org.apache.nifi.annotation.lifecycle.OnDrainInitiated OnDrainInitiated},
+     * regardless of the state of the Processor. Any Exception thrown by a method is logged and is not rethrown.
      */
-    public abstract void invokeDrainLifecycleMethods(Class<? extends Annotation> lifecycleAnnotation, ProcessContext processContext);
+    public abstract void initiateDrain(ProcessContext processContext);
+
+    /**
+     * Calls the methods of the Processor that are annotated with {@link org.apache.nifi.annotation.lifecycle.OnDrainCompleted OnDrainCompleted},
+     * regardless of the state of the Processor. Any Exception thrown by a method is logged and is not rethrown.
+     */
+    public abstract void endDrain(ProcessContext processContext);
 
     @Override
     public abstract void yield(long period, TimeUnit timeUnit);

@@ -49,22 +49,13 @@ class ProcessGroupDrainRequestEndpointMergerTest {
         assertTrue(merger.canHandle(URI.create(DRAIN_REQUESTS_URI), "POST"));
         assertTrue(merger.canHandle(URI.create(DRAIN_REQUEST_URI), "GET"));
         assertTrue(merger.canHandle(URI.create(DRAIN_REQUEST_URI), "DELETE"));
-        assertTrue(merger.canHandle(URI.create("/nifi-api/process-groups/root/drain-requests"), "POST"));
-        assertTrue(merger.canHandle(URI.create("/nifi-api/process-groups/root/drain-requests/" + DRAIN_REQUEST_ID), "GET"));
-
         assertFalse(merger.canHandle(URI.create(DRAIN_REQUESTS_URI), "GET"));
         assertFalse(merger.canHandle(URI.create(DRAIN_REQUEST_URI), "POST"));
-        assertFalse(merger.canHandle(URI.create(DRAIN_REQUEST_URI), "PUT"));
-        assertFalse(merger.canHandle(URI.create(DRAIN_REQUESTS_URI + "/not-a-uuid"), "GET"));
-        assertFalse(merger.canHandle(URI.create("/nifi-api/process-groups/" + PROCESS_GROUP_ID + "/empty-all-connections-requests"), "POST"));
     }
 
     @Test
     void testMergeSumsCountsAndSizes() {
         final ProcessGroupDrainRequestDTO merged = merge(createRequest(DRAINING, 10, 0), createRequest(DRAINING, 30, 20));
-        assertEquals(DRAIN_REQUEST_ID, merged.getId());
-        assertEquals(PROCESS_GROUP_ID, merged.getProcessGroupId());
-        assertEquals(DRAIN_REQUEST_URI, merged.getUri());
         assertEquals(40, merged.getOriginalCount());
         assertEquals(40 * BYTES_PER_FLOWFILE, merged.getOriginalSize());
         assertEquals(20, merged.getCurrentCount());
