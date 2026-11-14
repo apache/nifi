@@ -21,6 +21,10 @@ package org.apache.nifi.groups;
  */
 public enum ProcessGroupDrainState {
 
+    /**
+     * The drain is active. This includes the time spent preparing the drain, while the sources are stopped and the components that are not sources are started.
+     * {@link ProcessGroupDrain#isPrepared()} indicates whether the preparation has finished.
+     */
     DRAINING,
 
     /**
@@ -28,5 +32,8 @@ public enum ProcessGroupDrainState {
      */
     FAILED,
 
+    /**
+     * The drain was ended. This does not mean that all data left the Process Group, because a drain may be ended while data is still queued.
+     */
     ENDED
 }

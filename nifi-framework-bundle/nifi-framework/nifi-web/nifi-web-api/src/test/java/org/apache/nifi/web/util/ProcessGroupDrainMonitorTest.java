@@ -31,6 +31,7 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ProcessGroupDrainRequestDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupDrainRequestEntity;
+import org.apache.nifi.web.util.ProcessGroupDrainMonitor.CheckResult;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,9 +47,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
@@ -102,10 +101,10 @@ class ProcessGroupDrainMonitorTest {
         // A check that finds data, that fails, or that finds a drain that is not yet prepared resets the count of empty checks
         final ProcessGroupDrainMonitor.DrainCheck check = monitor.new DrainCheck(null, PROCESS_GROUP_ID, DRAIN_REQUEST_ID, USER);
         for (int i = 0; i < 7; i++) {
-            assertTrue(check.check());
+            assertEquals(CheckResult.CHECK_AGAIN, check.check());
         }
 
-        assertFalse(check.check());
+        assertEquals(CheckResult.STOP_CHECKING, check.check());
         verify(serviceFacade).endProcessGroupDrain(PROCESS_GROUP_ID, DRAIN_REQUEST_ID);
 
         assertEquals(List.of(USER.getIdentity()), checkingUsers);
@@ -122,12 +121,12 @@ class ProcessGroupDrainMonitorTest {
 
         for (int i = 0; i < 3; i++) {
             final ProcessGroupDrainMonitor.DrainCheck check = monitor.new DrainCheck(null, PROCESS_GROUP_ID, DRAIN_REQUEST_ID, USER);
-            assertFalse(check.check());
+            assertEquals(CheckResult.STOP_CHECKING, check.check());
         }
         verify(serviceFacade, never()).endProcessGroupDrain(any(), any());
 
         // A drain that failed is ended, because in a cluster it may still be draining on the nodes where it did not fail
-        assertFalse(monitor.new DrainCheck(null, PROCESS_GROUP_ID, DRAIN_REQUEST_ID, USER).check());
+        assertEquals(CheckResult.STOP_CHECKING, monitor.new DrainCheck(null, PROCESS_GROUP_ID, DRAIN_REQUEST_ID, USER).check());
         verify(serviceFacade).endProcessGroupDrain(PROCESS_GROUP_ID, DRAIN_REQUEST_ID);
     }
 
@@ -142,10 +141,10 @@ class ProcessGroupDrainMonitorTest {
         // A node that is not connected does not report its data, so a check made while a node is not connected resets the count of empty checks
         when(clusterCoordinator.getNodeIdentifiers(any(NodeConnectionState[].class))).thenReturn(Set.of(), Set.of(mock(NodeIdentifier.class)), Set.of());
         final ProcessGroupDrainMonitor.DrainCheck check = monitor.new DrainCheck(DRAIN_REQUEST_URI, PROCESS_GROUP_ID, DRAIN_REQUEST_ID, USER);
-        assertTrue(check.check());
-        assertTrue(check.check());
-        assertTrue(check.check());
-        assertFalse(check.check());
+        assertEquals(CheckResult.CHECK_AGAIN, check.check());
+        assertEquals(CheckResult.CHECK_AGAIN, check.check());
+        assertEquals(CheckResult.CHECK_AGAIN, check.check());
+        assertEquals(CheckResult.STOP_CHECKING, check.check());
     }
 
     private static ProcessGroupDrainRequestDTO createDrainRequest(final ProcessGroupDrainState state, final int currentCount) {

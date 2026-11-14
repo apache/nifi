@@ -100,6 +100,11 @@ public class ProcessGroupDrainMonitor {
         }
     }
 
+    enum CheckResult {
+        CHECK_AGAIN,
+        STOP_CHECKING
+    }
+
     /**
      * Each check is run by the single monitor thread, so the number of empty checks needs no synchronization.
      */
@@ -119,59 +124,56 @@ public class ProcessGroupDrainMonitor {
 
         @Override
         public void run() {
-            if (check()) {
+            if (check() == CheckResult.CHECK_AGAIN) {
                 schedule(this);
             }
         }
 
-        /**
-         * @return true if the drain should be checked again
-         */
-        boolean check() {
+        CheckResult check() {
             SecurityContextHolder.getContext().setAuthentication(new NiFiAuthenticationToken(new NiFiUserDetails(user)));
             try {
                 if (drainRequestUri != null && !clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTING, NodeConnectionState.DISCONNECTING,
                         NodeConnectionState.DISCONNECTED, NodeConnectionState.OFFLOADING).isEmpty()) {
                     logger.debug("Not checking drain {} of Process Group {} because not every node is connected", drainRequestId, processGroupId);
                     emptyCheckCount = 0;
-                    return true;
+                    return CheckResult.CHECK_AGAIN;
                 }
 
                 final Optional<ProcessGroupDrainRequestDTO> drainRequest = getDrainRequest();
                 if (drainRequest.isPresent() && ProcessGroupDrainState.FAILED.name().equals(drainRequest.get().getState())) {
                     logger.info("Ending drain {} of Process Group {} because it failed: {}", drainRequestId, processGroupId, drainRequest.get().getFailureReason());
                     endDrain();
-                    return false;
+                    return CheckResult.STOP_CHECKING;
                 }
 
                 if (drainRequest.isEmpty() || !ProcessGroupDrainState.DRAINING.name().equals(drainRequest.get().getState())) {
                     logger.debug("Stopped watching drain {} of Process Group {} because it is no longer draining", drainRequestId, processGroupId);
-                    return false;
+                    return CheckResult.STOP_CHECKING;
                 }
 
                 if (drainRequest.get().getCurrentCount() > 0 || !Boolean.TRUE.equals(drainRequest.get().getPrepared())) {
                     emptyCheckCount = 0;
-                    return true;
+                    return CheckResult.CHECK_AGAIN;
                 }
 
                 emptyCheckCount++;
                 if (emptyCheckCount < EMPTY_CHECKS_REQUIRED) {
-                    return true;
+                    return CheckResult.CHECK_AGAIN;
                 }
 
                 logger.info("Ending drain {} of Process Group {} because no FlowFiles were queued in the group for {} checks in a row", drainRequestId, processGroupId, emptyCheckCount);
                 endDrain();
-                return false;
+                return CheckResult.STOP_CHECKING;
             } catch (final ResourceNotFoundException e) {
                 logger.info("Stopped watching drain {} because Process Group {} no longer exists", drainRequestId, processGroupId);
-                return false;
+                return CheckResult.STOP_CHECKING;
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
-                return false;
+                return CheckResult.STOP_CHECKING;
             } catch (final Throwable t) {
                 emptyCheckCount = 0;
                 logger.warn("Failed to check drain {} of Process Group {}; will check again in {} seconds", drainRequestId, processGroupId, CHECK_INTERVAL_SECONDS, t);
-                return true;
+                return CheckResult.CHECK_AGAIN;
             } finally {
                 SecurityContextHolder.getContext().setAuthentication(null);
             }

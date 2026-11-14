@@ -46,7 +46,7 @@ public interface ProcessGroupDrain {
     Optional<String> getFailureReason();
 
     /**
-     * @return true once every source has stopped and the other components have been asked to start, or once preparing the drain has failed.
+     * @return true once every source has stopped and the components that are not sources have been asked to start, or once preparing the drain has failed.
      *         A source that is asked to stop may still bring data into the group until it has stopped.
      */
     boolean isPrepared();

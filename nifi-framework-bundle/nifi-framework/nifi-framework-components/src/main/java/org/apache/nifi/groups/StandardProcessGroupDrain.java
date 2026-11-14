@@ -49,7 +49,7 @@ import java.util.function.Function;
 
 /**
  * {@link #start(StandardProcessGroupDrain)} asks the sources of the Process Group to stop, then enables the referenced Controller Services, starts the
- * other components, and calls the {@link OnDrainInitiated} methods in the background. Processors inside Stateless groups receive no drain lifecycle calls.
+ * components that are not sources, and calls the {@link OnDrainInitiated} methods in the background. Processors inside Stateless groups receive no drain lifecycle calls.
  *
  * <p>
  * Each component is notified of the drain on a background task of its own, and no component code is called while synchronizing on this object.
@@ -88,8 +88,7 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
     }
 
     /**
-     * Ends the previous drain and asks the sources to stop before returning. The rest of the drain is prepared in the background, and the components are
-     * started on a separate background task so that they are never started on a thread that enables a Controller Service.
+     * Ends the previous drain and asks the sources to stop before returning. The rest of the drain is prepared on a background task.
      *
      * @param previousDrain the previous drain of the Process Group, or null if there is none. Each component is notified that this drain began only
      *                      after the previous drain has finished notifying it.
@@ -101,25 +100,34 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
         }
 
         final List<CompletableFuture<Void>> stopFutures = stopSources();
-        final CompletableFuture<Void> sourcesStopped = CompletableFuture.allOf(stopFutures.toArray(new CompletableFuture<?>[0]))
-            .thenRun(() -> originalQueueSize = processGroup.getQueueSize());
+        backgroundExecutor.execute(() -> prepare(stopFutures, previousDrain));
+    }
 
-        final CompletableFuture<List<CompletableFuture<Void>>> serviceEnableFutures = CompletableFuture.supplyAsync(() -> {
+    /**
+     * Stops the Remote Process Group Output Ports, enables the referenced Controller Services and waits for them to be enabled, then starts the
+     * components that are not sources. The original queue size is recorded once the sources have stopped. The drain is prepared once this method returns,
+     * whether or not it failed.
+     */
+    private void prepare(final List<CompletableFuture<Void>> stopFutures, final StandardProcessGroupDrain previousDrain) {
+        try {
             stopRemoteOutputPorts();
-            return enableReferencedServices();
-        }, backgroundExecutor);
+            for (final CompletableFuture<Void> enableFuture : enableReferencedServices()) {
+                enableFuture.join();
+            }
 
-        serviceEnableFutures.thenCompose(enableFutures -> CompletableFuture.allOf(enableFutures.toArray(new CompletableFuture<?>[0])))
-            .thenRunAsync(() -> startComponentsAndInitiate(previousDrain), backgroundExecutor)
-            .thenCompose(ignored -> sourcesStopped)
-            .whenComplete((result, failure) -> {
-                if (failure != null) {
-                    final Throwable cause = (failure instanceof CompletionException && failure.getCause() != null) ? failure.getCause() : failure;
-                    markFailed("Failed to prepare the components of the Process Group: " + cause.getMessage(), cause);
-                }
+            startComponentsAndInitiate(previousDrain);
 
-                preparation.complete(null);
-            });
+            for (final CompletableFuture<Void> stopFuture : stopFutures) {
+                stopFuture.join();
+            }
+
+            originalQueueSize = processGroup.getQueueSize();
+        } catch (final Exception e) {
+            final Throwable cause = e instanceof CompletionException && e.getCause() != null ? e.getCause() : e;
+            markFailed("Failed to prepare the components of the Process Group: " + cause.getMessage(), cause);
+        } finally {
+            preparation.complete(null);
+        }
     }
 
     /**
@@ -152,13 +160,13 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
             return;
         }
 
-        startOtherComponents(processGroup);
+        startNonSourceComponents(processGroup);
 
         for (final ControllerServiceNode service : processGroup.findControllerServicesForDrain()) {
             submitNotification(service, previousDrain);
         }
 
-        for (final ProcessGroup group : findStandardGroups()) {
+        for (final ProcessGroup group : findNonStatelessGroups()) {
             for (final ProcessorNode processor : group.getProcessors()) {
                 submitNotification(processor, previousDrain);
             }
@@ -234,7 +242,7 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
      */
     private List<CompletableFuture<Void>> stopSources() {
         final List<CompletableFuture<Void>> stopFutures = new ArrayList<>();
-        for (final ProcessGroup group : findStandardGroups()) {
+        for (final ProcessGroup group : findNonStatelessGroups()) {
             for (final ProcessorNode processor : group.getProcessors()) {
                 if (ProcessGroup.STOP_PROCESSORS_FILTER.test(processor) && isSource(processor)) {
                     stopFutures.add(group.stopProcessor(processor));
@@ -259,7 +267,7 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
     }
 
     private void stopRemoteOutputPorts() {
-        for (final ProcessGroup group : findStandardGroups()) {
+        for (final ProcessGroup group : findNonStatelessGroups()) {
             for (final RemoteProcessGroup remoteProcessGroup : group.getRemoteProcessGroups()) {
                 for (final RemoteGroupPort remoteOutputPort : remoteProcessGroup.getOutputPorts()) {
                     if (remoteOutputPort.isRunning()) {
@@ -289,7 +297,7 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
         return enableFutures;
     }
 
-    private void startOtherComponents(final ProcessGroup group) {
+    private void startNonSourceComponents(final ProcessGroup group) {
         for (final ProcessorNode processor : group.getProcessors()) {
             if (processor.getScheduledState() == ScheduledState.DISABLED || processor.isRunning() || isSource(processor)) {
                 continue;
@@ -338,22 +346,22 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
                     childGroup.startProcessing();
                 }
             } else {
-                startOtherComponents(childGroup);
+                startNonSourceComponents(childGroup);
             }
         }
     }
 
-    private List<ProcessGroup> findStandardGroups() {
+    private List<ProcessGroup> findNonStatelessGroups() {
         final List<ProcessGroup> groups = new ArrayList<>();
-        addStandardGroups(processGroup, groups);
+        addNonStatelessGroups(processGroup, groups);
         return groups;
     }
 
-    private void addStandardGroups(final ProcessGroup group, final List<ProcessGroup> groups) {
+    private void addNonStatelessGroups(final ProcessGroup group, final List<ProcessGroup> groups) {
         groups.add(group);
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
             if (childGroup.resolveExecutionEngine() != ExecutionEngine.STATELESS) {
-                addStandardGroups(childGroup, groups);
+                addNonStatelessGroups(childGroup, groups);
             }
         }
     }
@@ -361,7 +369,7 @@ public class StandardProcessGroupDrain implements ProcessGroupDrain {
     @Override
     public List<DrainBlockingComponent> getBlockingComponents() {
         final List<DrainBlockingComponent> blockingComponents = new ArrayList<>();
-        for (final ProcessGroup group : findStandardGroups()) {
+        for (final ProcessGroup group : findNonStatelessGroups()) {
             for (final ProcessorNode processor : group.getProcessors()) {
                 addBlockingComponent(processor, processor.getValidationStatus() != ValidationStatus.INVALID, null, blockingComponents);
             }
