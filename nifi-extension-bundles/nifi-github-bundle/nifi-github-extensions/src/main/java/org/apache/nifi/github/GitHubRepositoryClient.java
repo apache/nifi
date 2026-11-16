@@ -367,10 +367,11 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     }
 
     static Optional<String> getLatestCommitSha(final GHRepository repository, final String resolvedPath, final String branch) throws IOException {
-        // The branch name is passed as the starting point of the listing, so no separate request resolves the branch reference
+        // The full branch reference is the starting point of the listing: no separate request resolves it, and GitHub does
+        // not fall back to a tag or commit with the same name, so an unknown branch still fails with Not Found
         final PagedIterator<GHCommit> commits = repository.queryCommits()
                 .path(resolvedPath)
-                .from(branch)
+                .from(BRANCH_REF_PATTERN.formatted(branch))
                 .pageSize(1)
                 .list()
                 .iterator();

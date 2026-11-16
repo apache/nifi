@@ -43,6 +43,11 @@ import static org.mockito.Mockito.when;
 
 class GitHubRepositoryClientTest {
 
+    private static final String PATH = "bucket/flow.json";
+    private static final String BRANCH = "main";
+    private static final String BRANCH_REF = "refs/heads/main";
+    private static final String COMMIT_SHA = "0123456789abcdef";
+
     @Test
     void testResolveCommitAuthorReturnsLoginWhenAccountResolvable() throws IOException {
         final GHUser ghUser = mock(GHUser.class);
@@ -97,10 +102,6 @@ class GitHubRepositoryClientTest {
         assertEquals("unknown", author);
     }
 
-    private static final String PATH = "bucket/flow.json";
-    private static final String BRANCH = "main";
-    private static final String COMMIT_SHA = "0123456789abcdef";
-
     @Test
     void testGetLatestCommitShaQueriesOneCommitFromBranchWithoutAuthorLookup() throws IOException {
         final GHCommit ghCommit = mock(GHCommit.class);
@@ -114,7 +115,7 @@ class GitHubRepositoryClientTest {
 
         final GHCommitQueryBuilder queryBuilder = repository.queryCommits();
         verify(queryBuilder).path(PATH);
-        verify(queryBuilder).from(BRANCH);
+        verify(queryBuilder).from(BRANCH_REF);
         verify(queryBuilder).pageSize(1);
         verify(ghCommit).getSHA1();
         verify(repository, never()).getRef(anyString());
