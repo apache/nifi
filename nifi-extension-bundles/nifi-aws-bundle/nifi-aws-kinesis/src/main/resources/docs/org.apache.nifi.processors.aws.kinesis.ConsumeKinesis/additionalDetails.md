@@ -19,19 +19,17 @@
 
 You must add the following permissions to the IAM role or user configured in _AWS Credentials Provider Service_.
 
-Cloudwatch permissions are needed only when _Metrics Publishing_ is set to _CloudWatch_.
+| Service | Actions | Resources (ARNs) | Purpose | When needed |
+|---------|---------|------------------|---------|-------------|
+| Amazon Kinesis Data Streams | ListShards | `arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}` | Lists the shards of the data stream. | All consumer types |
+| Amazon Kinesis Data Streams | GetRecords<br>GetShardIterator | `arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}` | Reads records from a shard. | Shared-throughput consumers only |
+| Amazon Kinesis Data Streams | DescribeStream<br>RegisterStreamConsumer | `arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}` | Resolves the data stream ARN and registers the enhanced fan-out consumer. | Enhanced fan-out consumers only |
+| Amazon Kinesis Data Streams | DescribeStreamConsumer<br>SubscribeToShard<br>DeregisterStreamConsumer | `arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}/consumer/{Application Name}`<br>`arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}/consumer/{Application Name}:*` | Checks whether the enhanced fan-out consumer is registered and active, and subscribes to shards. When the processor is removed, attempts to deregister a consumer. | Enhanced fan-out consumers only |
+| Amazon DynamoDB | CreateTable<br>DescribeTable<br>GetItem<br>UpdateItem<br>Query | `arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}` | Creates the checkpoint table and manages shard leases and checkpoints in it. | All consumer types |
+| Amazon DynamoDB | DescribeTable | `arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}_migration` | Checks for an unfinished checkpoint table migration on startup. | All consumer types |
+| Amazon DynamoDB | CreateTable<br>DeleteTable<br>Scan<br>GetItem<br>PutItem<br>UpdateItem | `arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}`<br>`arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}_migration` | Copies checkpoints into a table with the current schema and removes the old and temporary tables. | Only when migrating a checkpoint table created by an earlier version of `ConsumeKinesis` |
 
-| Service                     | Actions                                                                                               | Resources (ARNs)                                                                                                                                                                                                                                                             | Purpose                                                                                                                                                                                                 |
-|-----------------------------|-------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Amazon Kinesis Data Streams | DescribeStream<br>DescribeStreamSummary<br>RegisterStreamConsumer                                     | Kinesis data stream from which `ConsumeKinesis` will process the data.<br>`arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}`                                                                                                                                          | Before attempting to read records, the consumer checks if the data stream exists, if it's active, and if the shards are contained in the data stream. Registers consumers to a shard.                   |
-| Amazon Kinesis Data Streams | GetRecords<br>GetShardIterator<br>ListShards                                                          | Kinesis data stream from which `ConsumeKinesis` will process the data.<br>`arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}`                                                                                                                                          | Reads records from a shard.                                                                                                                                                                             |
-| Amazon Kinesis Data Streams | SubscribeToShard<br>DescribeStreamConsumer                                                            | Kinesis data stream from which `ConsumeKinesis` will process the data. Add this action only if you use enhanced fan-out (EFO) consumers.<br>`arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}/consumer/*`                                                             | Subscribes to a shard for enhanced fan-out (EFO) consumers.                                                                                                                                             |
-| Amazon DynamoDB             | CreateTable<br>DescribeTable<br>UpdateTable<br>Scan<br>GetItem<br>PutItem<br>UpdateItem<br>DeleteItem | Lease table (metadata table in DynamoDB created by `ConsumeKinesis`.<br>`arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}`                                                                                                                                       | These actions are required for `ConsumeKinesis` to manage the lease table created in DynamoDB.                                                                                                          |
-| Amazon DynamoDB             | CreateTable<br>DescribeTable<br>Scan<br>GetItem<br>PutItem<br>UpdateItem<br>DeleteItem                | Worker metrics and coordinator state table (metadata tables in DynamoDB) created by `ConsumeKinesis`.<br>`arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}-WorkerMetricStats`<br>`arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}-CoordinatorState` | These actions are required for `ConsumeKinesis` to manage the worker metrics and coordinator state metadata tables in DynamoDB.                                                                         |
-| Amazon DynamoDB             | Query                                                                                                 | Global secondary index on the lease table.<br>`arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}/index/*`                                                                                                                                                         | This action is required for `ConsumeKinesis` to read the global secondary index of the lease table created in DynamoDB.                                                                                 |
-| Amazon CloudWatch           | PutMetricData                                                                                         | `*`                                                                                                                                                                                                                                                                          | Upload metrics to CloudWatch that are useful for monitoring the application. The asterisk (*) is used because there is no specific resource in CloudWatch on which the PutMetricData action is invoked. |
-
-The following is an example policy document for `ConsumeKinesis`.
+The following example policy includes permissions for both consumer types. It includes `DescribeTable` on the migration table because the processor checks for unfinished migrations on startup, but excludes the additional permissions needed to perform a checkpoint migration.
 
 ```json
 {
@@ -40,12 +38,11 @@ The following is an example policy document for `ConsumeKinesis`.
         {
             "Effect": "Allow",
             "Action": [
-                "kinesis:DescribeStream",
-                "kinesis:DescribeStreamSummary",
-                "kinesis:RegisterStreamConsumer",
+                "kinesis:ListShards",
                 "kinesis:GetRecords",
                 "kinesis:GetShardIterator",
-                "kinesis:ListShards"
+                "kinesis:DescribeStream",
+                "kinesis:RegisterStreamConsumer"
             ],
             "Resource": [
                 "arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}"
@@ -54,11 +51,13 @@ The following is an example policy document for `ConsumeKinesis`.
         {
             "Effect": "Allow",
             "Action": [
+                "kinesis:DescribeStreamConsumer",
                 "kinesis:SubscribeToShard",
-                "kinesis:DescribeStreamConsumer"
+                "kinesis:DeregisterStreamConsumer"
             ],
             "Resource": [
-                "arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}/consumer/*"
+                "arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}/consumer/{Application Name}",
+                "arn:aws:kinesis:{Region}:{Account}:stream/{Stream Name}/consumer/{Application Name}:*"
             ]
         },
         {
@@ -66,12 +65,9 @@ The following is an example policy document for `ConsumeKinesis`.
             "Action": [
                 "dynamodb:CreateTable",
                 "dynamodb:DescribeTable",
-                "dynamodb:UpdateTable",
                 "dynamodb:GetItem",
                 "dynamodb:UpdateItem",
-                "dynamodb:PutItem",
-                "dynamodb:DeleteItem",
-                "dynamodb:Scan"
+                "dynamodb:Query"
             ],
             "Resource": [
                 "arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}"
@@ -80,34 +76,11 @@ The following is an example policy document for `ConsumeKinesis`.
         {
             "Effect": "Allow",
             "Action": [
-                "dynamodb:CreateTable",
-                "dynamodb:DescribeTable",
-                "dynamodb:GetItem",
-                "dynamodb:UpdateItem",
-                "dynamodb:PutItem",
-                "dynamodb:DeleteItem",
-                "dynamodb:Scan"
+                "dynamodb:DescribeTable"
             ],
             "Resource": [
-                "arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}-WorkerMetricStats",
-                "arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}-CoordinatorState"
+                "arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}_migration"
             ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "dynamodb:Query"
-            ],
-            "Resource": [
-                "arn:aws:dynamodb:{Region}:{Account}:table/{Application Name}/index/*"
-            ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "cloudwatch:PutMetricData"
-            ],
-            "Resource": "*"
         }
     ]
 }
