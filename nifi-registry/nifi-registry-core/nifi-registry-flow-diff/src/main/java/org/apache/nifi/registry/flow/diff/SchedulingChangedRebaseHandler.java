@@ -54,7 +54,7 @@ public class SchedulingChangedRebaseHandler implements RebaseHandler {
                                                         final VersionedProcessGroup targetSnapshot) {
         final VersionedComponent localComponent = localDifference.getComponentB();
         final String componentIdentifier = localComponent.getIdentifier();
-        if (!(localComponent instanceof VersionedProcessor localProcessor)) {
+        if (!(localComponent instanceof final VersionedProcessor localProcessor)) {
             return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.UNSUPPORTED_COMPONENT_TYPE,
                     "Scheduling change is not supported for component %s of type %s".formatted(componentIdentifier, localComponent.getComponentType()));
         }
@@ -84,7 +84,7 @@ public class SchedulingChangedRebaseHandler implements RebaseHandler {
     @Override
     public void apply(final FlowDifference localDifference, final VersionedProcessGroup mergedFlow) {
         final String componentIdentifier = localDifference.getComponentB().getIdentifier();
-        if (!(RebaseHandlerUtils.findComponentById(mergedFlow, componentIdentifier) instanceof VersionedProcessor processor)) {
+        if (!(RebaseHandlerUtils.findComponentById(mergedFlow, componentIdentifier) instanceof final VersionedProcessor processor)) {
             logger.warn("Unable to apply scheduling change: processor [{}] not found in merged flow", componentIdentifier);
             return;
         }

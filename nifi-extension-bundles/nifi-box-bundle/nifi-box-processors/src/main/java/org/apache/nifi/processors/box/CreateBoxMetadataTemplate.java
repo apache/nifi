@@ -274,7 +274,7 @@ public class CreateBoxMetadataTemplate extends AbstractBoxProcessor {
 
         if ("enum".equals(normalizedType) || "multiSelect".equals(normalizedType)) {
             final Object optionsObj = record.getValue("options");
-            if (optionsObj instanceof List<?> optionsList) {
+            if (optionsObj instanceof final List<?> optionsList) {
                 final List<String> options = optionsList.stream()
                         .map(obj -> {
                             if (obj == null) {

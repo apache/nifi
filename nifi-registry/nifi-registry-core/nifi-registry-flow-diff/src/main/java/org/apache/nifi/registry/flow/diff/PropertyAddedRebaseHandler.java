@@ -81,7 +81,7 @@ public class PropertyAddedRebaseHandler implements RebaseHandler {
     }
 
     private boolean isDynamicProperty(final FlowDifference localDifference, final String propertyName) {
-        if (localDifference.getComponentB() instanceof VersionedConfigurableComponent localComponent) {
+        if (localDifference.getComponentB() instanceof final VersionedConfigurableComponent localComponent) {
             final Map<String, VersionedPropertyDescriptor> localDescriptors = localComponent.getPropertyDescriptors();
             if (localDescriptors != null) {
                 final VersionedPropertyDescriptor descriptor = localDescriptors.get(propertyName);

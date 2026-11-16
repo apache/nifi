@@ -80,7 +80,7 @@ public class DefaultValidationError implements ValidationError {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof ValidationError other)) {
+        if (!(obj instanceof final ValidationError other)) {
             return false;
         }
         return getFieldName().equals(other.getFieldName()) && getInputValue().equals(other.getInputValue()) && getExplanation().equals(other.getExplanation());

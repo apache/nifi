@@ -138,9 +138,9 @@ class RecordConverter {
             convertedValue = value;
         } else if (icebergType.isListType()) {
             convertedValue = convertListValue(value, icebergType.asListType());
-        } else if (icebergType.isStructType() && value instanceof Record nestedRecord) {
+        } else if (icebergType.isStructType() && value instanceof final Record nestedRecord) {
             convertedValue = new DelegatedRecord(nestedRecord, icebergType.asStructType());
-        } else if (icebergType.isMapType() && value instanceof Map<?, ?> map) {
+        } else if (icebergType.isMapType() && value instanceof final Map<?, ?> map) {
             convertedValue = convertMap(map, icebergType.asMapType());
         } else {
             convertedValue = convertPrimitiveValue(value, icebergType);

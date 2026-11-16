@@ -131,7 +131,7 @@ final class ProtobufSchemaDefinitionSanitizer {
     }
 
     private static TypeElement removeFromType(final TypeElement type) {
-        if (type instanceof MessageElement message) {
+        if (type instanceof final MessageElement message) {
             return new MessageElement(
                 message.getLocation(),
                 message.getName(),
@@ -147,7 +147,7 @@ final class ProtobufSchemaDefinitionSanitizer {
             );
         }
 
-        if (type instanceof EnumElement enumeration) {
+        if (type instanceof final EnumElement enumeration) {
             return new EnumElement(
                 enumeration.getLocation(),
                 enumeration.getName(),

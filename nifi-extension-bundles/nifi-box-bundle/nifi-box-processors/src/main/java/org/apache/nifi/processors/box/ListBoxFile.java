@@ -257,7 +257,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
                         .build();
                     listing.add(boxFileInfo);
                 }
-            } else if (recursive && itemInfo instanceof BoxFolder.Info info) {
+            } else if (recursive && itemInfo instanceof final BoxFolder.Info info) {
                 listFolder(listing, info.getID(), recursive, createdAtMax);
             }
         }

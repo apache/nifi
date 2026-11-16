@@ -176,7 +176,7 @@ public class ConnectorCrudIT extends NiFiSystemIT {
                 connectorClient.deleteConfigStepVerificationRequest(firstConnector.getId(), stepName, requestId);
             } catch (final NiFiClientException e) {
                 // Cleanup accepts a request that expired while the test was running.
-                if (!(e.getCause() instanceof WebApplicationException cause) || cause.getResponse().getStatus() != Response.Status.NOT_FOUND.getStatusCode()) {
+                if (!(e.getCause() instanceof final WebApplicationException cause) || cause.getResponse().getStatus() != Response.Status.NOT_FOUND.getStatusCode()) {
                     throw e;
                 }
             }

@@ -216,7 +216,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             server = serverProvider.getServer(props);
 
             final Handler serverHandler = server.getHandler();
-            if (serverHandler instanceof Handler.Collection serverHandlerCollection) {
+            if (serverHandler instanceof final Handler.Collection serverHandlerCollection) {
                 final ContextHandlerCollection contextHandlerCollection = new ContextHandlerCollection();
                 final Handler warHandlers = loadInitialWars(bundles);
                 contextHandlerCollection.addHandler(warHandlers);

@@ -128,7 +128,7 @@ public class StandardNettyIoConnector extends NettyIoConnector {
         if (Proxy.Type.SOCKS == proxyType || Proxy.Type.HTTP == proxyType) {
             bootstrap.disableResolver();
 
-            if (address instanceof InetSocketAddress inetSocketAddress) {
+            if (address instanceof final InetSocketAddress inetSocketAddress) {
                 // Create unresolved Socket Address to support resolution at the proxy server
                 remoteAddress = InetSocketAddress.createUnresolved(inetSocketAddress.getHostString(), inetSocketAddress.getPort());
             } else {
