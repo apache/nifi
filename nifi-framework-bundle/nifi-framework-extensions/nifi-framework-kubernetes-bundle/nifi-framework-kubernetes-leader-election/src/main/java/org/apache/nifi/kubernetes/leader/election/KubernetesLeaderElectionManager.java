@@ -224,13 +224,18 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
             logger.debug("Role [{}] not participating in Leader election", roleName);
             leader = false;
         } else {
-            final Optional<String> leaderAddress = getLeader(roleName);
-            final String leaderId = leaderAddress.orElse(null);
-            leader = participantId.equals(leaderId);
-            if (leader) {
-                logger.debug("Role [{}] Participant ID [{}] is Leader", roleName, participantId);
-            } else {
-                logger.debug("Role [{}] Participant ID [{}] not Leader", roleName, leaderId);
+            try {
+                final Optional<String> leaderAddress = getLeader(roleName);
+                final String leaderId = leaderAddress.orElse(null);
+                leader = participantId.equals(leaderId);
+                if (leader) {
+                    logger.debug("Role [{}] Participant ID [{}] is Leader", roleName, participantId);
+                } else {
+                    logger.debug("Role [{}] Participant ID [{}] not Leader, Leader is [{}]", roleName, participantId, leaderId);
+                }
+            } catch (final Exception e) {
+                logger.warn("Failed to determine leader for Role [{}] with Participant ID [{}]", roleName, participantId, e);
+                return false;
             }
         }
         return leader;
