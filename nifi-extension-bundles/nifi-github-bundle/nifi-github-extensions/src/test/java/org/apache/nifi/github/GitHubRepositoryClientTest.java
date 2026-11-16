@@ -31,6 +31,8 @@ import org.kohsuke.github.PagedIterator;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -49,6 +51,9 @@ class GitHubRepositoryClientTest {
     private static final String BRANCH = "main";
     private static final String BRANCH_REF = "refs/heads/main";
     private static final String COMMIT_SHA = "0123456789abcdef";
+    private static final GitHubRepositoryClient.CommitFilesReader NO_COMMIT_FILES = sha -> {
+        throw new AssertionError("Commit [" + sha + "] must not be read");
+    };
 
     @Test
     void testResolveCommitAuthorReturnsLoginWhenAccountResolvable() throws IOException {
@@ -159,43 +164,77 @@ class GitHubRepositoryClientTest {
     }
 
     @Test
-    void testGetChangedPathsRelativeToRepositoryPath() {
-        final GHCompare compare = mockCompare(GHCompare.Status.ahead,
+    void testGetChangedPathsRelativeToRepositoryPath() throws IOException {
+        final GHCompare compare = mockCompare(GHCompare.Status.ahead, 1,
                 mockFile("flows/bucket/changed.json", null),
                 mockFile("flows/bucket/renamed.json", "flows/bucket/original.json"),
                 mockFile("README.md", null));
 
         assertEquals(Optional.of(Set.of("bucket/changed.json", "bucket/renamed.json", "bucket/original.json")),
-                GitHubRepositoryClient.getChangedPaths(compare, "flows"));
+                GitHubRepositoryClient.getChangedPaths(compare, NO_COMMIT_FILES, "flows"));
     }
 
     @Test
-    void testGetChangedPathsWithoutRepositoryPath() {
-        final GHCompare compare = mockCompare(GHCompare.Status.identical);
+    void testGetChangedPathsWithoutRepositoryPath() throws IOException {
+        final GHCompare compare = mockCompare(GHCompare.Status.identical, 0);
 
-        assertEquals(Optional.of(Set.of()), GitHubRepositoryClient.getChangedPaths(compare, null));
+        assertEquals(Optional.of(Set.of()), GitHubRepositoryClient.getChangedPaths(compare, NO_COMMIT_FILES, null));
     }
 
     @Test
-    void testGetChangedPathsUnknownWhenHistoryDiverged() {
-        final GHCompare compare = mockCompare(GHCompare.Status.diverged, mockFile("bucket/changed.json", null));
+    void testGetChangedPathsIncludesFilesRevertedWithinRange() throws IOException {
+        // The comparison lists no file: one commit changed the flow and the next one reverted it
+        final GHCompare compare = mockCompare(GHCompare.Status.ahead, 2);
+        final Map<String, List<GHCommit.File>> commitFiles = Map.of(
+                "commit-0", List.of(mockFile("bucket/reverted.json", null)),
+                "commit-1", List.of(mockFile("bucket/reverted.json", null), mockFile("bucket/other.json", null)));
 
-        assertEquals(Optional.empty(), GitHubRepositoryClient.getChangedPaths(compare, null));
+        assertEquals(Optional.of(Set.of("bucket/reverted.json", "bucket/other.json")),
+                GitHubRepositoryClient.getChangedPaths(compare, commitFiles::get, null));
     }
 
     @Test
-    void testGetChangedPathsUnknownWhenFileListMayBeTruncated() {
+    void testGetChangedPathsUnknownWhenHistoryDiverged() throws IOException {
+        final GHCompare compare = mockCompare(GHCompare.Status.diverged, 1, mockFile("bucket/changed.json", null));
+
+        assertEquals(Optional.empty(), GitHubRepositoryClient.getChangedPaths(compare, NO_COMMIT_FILES, null));
+    }
+
+    @Test
+    void testGetChangedPathsUnknownWhenFileListMayBeTruncated() throws IOException {
         final GHCommit.File[] files = new GHCommit.File[GitHubRepositoryClient.COMPARE_FILES_LIMIT];
         for (int i = 0; i < files.length; i++) {
             files[i] = mockFile("bucket/flow-" + i + ".json", null);
         }
 
-        assertEquals(Optional.empty(), GitHubRepositoryClient.getChangedPaths(mockCompare(GHCompare.Status.ahead, files), null));
+        assertEquals(Optional.empty(), GitHubRepositoryClient.getChangedPaths(mockCompare(GHCompare.Status.ahead, 1, files), NO_COMMIT_FILES, null));
     }
 
-    private static GHCompare mockCompare(final GHCompare.Status status, final GHCommit.File... files) {
+    @Test
+    void testGetChangedPathsUnknownWhenRangeHasTooManyCommits() throws IOException {
+        final GHCompare compare = mockCompare(GHCompare.Status.ahead, GitHubRepositoryClient.COMPARE_COMMITS_LIMIT + 1);
+
+        assertEquals(Optional.empty(), GitHubRepositoryClient.getChangedPaths(compare, NO_COMMIT_FILES, null));
+    }
+
+    @Test
+    void testGetChangedPathsUnknownWhenCommitListIsTruncated() throws IOException {
+        final GHCompare compare = mockCompare(GHCompare.Status.ahead, 2);
+        when(compare.getTotalCommits()).thenReturn(300);
+
+        assertEquals(Optional.empty(), GitHubRepositoryClient.getChangedPaths(compare, NO_COMMIT_FILES, null));
+    }
+
+    private static GHCompare mockCompare(final GHCompare.Status status, final int commitCount, final GHCommit.File... files) {
+        final GHCompare.Commit[] commits = new GHCompare.Commit[commitCount];
+        for (int i = 0; i < commitCount; i++) {
+            commits[i] = mock(GHCompare.Commit.class);
+            when(commits[i].getSHA1()).thenReturn("commit-" + i);
+        }
         final GHCompare compare = mock(GHCompare.class);
         when(compare.getStatus()).thenReturn(status);
+        when(compare.getCommits()).thenReturn(commits);
+        when(compare.getTotalCommits()).thenReturn(commitCount);
         when(compare.getFiles()).thenReturn(files);
         return compare;
     }

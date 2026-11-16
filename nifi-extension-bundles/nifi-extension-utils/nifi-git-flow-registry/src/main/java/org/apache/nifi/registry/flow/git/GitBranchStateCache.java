@@ -17,7 +17,9 @@
 package org.apache.nifi.registry.flow.git;
 
 import org.apache.nifi.registry.flow.FlowRegistryException;
+import org.apache.nifi.registry.flow.FlowRegistryPermissions;
 import org.apache.nifi.registry.flow.RegisteredFlow;
+import org.apache.nifi.registry.flow.RegisteredFlowVersionInfo;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
 
 import java.io.IOException;
@@ -81,12 +83,21 @@ final class GitBranchStateCache {
 
         final BranchState currentState = new BranchState(headSha.get(), now);
         if (state != null) {
-            final Optional<Set<String>> changedPaths = repositoryClient.getChangedPaths(state.headSha, currentState.headSha);
-            changedPaths.ifPresent(paths -> currentState.retainUnchanged(state, paths));
+            getChangedPaths(repositoryClient, state.headSha, currentState.headSha).ifPresent(paths -> currentState.retainUnchanged(state, paths));
         }
         // Values put into the replaced state by requests still running are dropped with it
         branchStates.put(branch, currentState);
         return Optional.of(currentState);
+    }
+
+    // A failed comparison, such as Not Found when the previous head was removed by a force push, leaves the changed
+    // files unknown: the new state starts empty instead of the failure keeping the previous state for every later call
+    private static Optional<Set<String>> getChangedPaths(final GitRepositoryClient repositoryClient, final String fromCommitSha, final String toCommitSha) {
+        try {
+            return repositoryClient.getChangedPaths(fromCommitSha, toCommitSha);
+        } catch (final IOException | FlowRegistryException e) {
+            return Optional.empty();
+        }
     }
 
     /**
@@ -174,9 +185,29 @@ final class GitBranchStateCache {
             copy.setBucketName(flow.getBucketName());
             copy.setCreatedTimestamp(flow.getCreatedTimestamp());
             copy.setLastModifiedTimestamp(flow.getLastModifiedTimestamp());
-            copy.setPermissions(flow.getPermissions());
+            copy.setPermissions(copy(flow.getPermissions()));
             copy.setVersionCount(flow.getVersionCount());
-            copy.setVersionInfo(flow.getVersionInfo());
+            copy.setVersionInfo(copy(flow.getVersionInfo()));
+            return copy;
+        }
+
+        private static FlowRegistryPermissions copy(final FlowRegistryPermissions permissions) {
+            if (permissions == null) {
+                return null;
+            }
+            final FlowRegistryPermissions copy = new FlowRegistryPermissions();
+            copy.setCanRead(permissions.getCanRead());
+            copy.setCanWrite(permissions.getCanWrite());
+            copy.setCanDelete(permissions.getCanDelete());
+            return copy;
+        }
+
+        private static RegisteredFlowVersionInfo copy(final RegisteredFlowVersionInfo versionInfo) {
+            if (versionInfo == null) {
+                return null;
+            }
+            final RegisteredFlowVersionInfo copy = new RegisteredFlowVersionInfo();
+            copy.setVersion(versionInfo.getVersion());
             return copy;
         }
     }

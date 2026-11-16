@@ -16,16 +16,20 @@
  */
 package org.apache.nifi.registry.flow.git;
 
+import org.apache.nifi.registry.flow.FlowRegistryPermissions;
 import org.apache.nifi.registry.flow.RegisteredFlow;
+import org.apache.nifi.registry.flow.RegisteredFlowVersionInfo;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.FileNotFoundException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -104,6 +108,22 @@ class GitBranchStateCacheTest {
     }
 
     @Test
+    void testFailedComparisonDropsEverythingAndMovesToNewHead() throws Exception {
+        cache.getState(repositoryClient, BRANCH).orElseThrow().putLatestVersion(UNCHANGED_PATH, Optional.of("commit-1"));
+
+        when(repositoryClient.getBranchHeadSha(BRANCH)).thenReturn(Optional.of("head-2"));
+        when(repositoryClient.getChangedPaths("head-1", "head-2")).thenThrow(new FileNotFoundException("Not Found"));
+        nanoTime.addAndGet(GitBranchStateCache.HEAD_CHECK_INTERVAL_NANOS);
+
+        final GitBranchStateCache.BranchState state = cache.getState(repositoryClient, BRANCH).orElseThrow();
+        assertTrue(state.getLatestVersion(UNCHANGED_PATH).isEmpty());
+
+        nanoTime.addAndGet(GitBranchStateCache.HEAD_CHECK_INTERVAL_NANOS);
+        assertSame(state, cache.getState(repositoryClient, BRANCH).orElseThrow());
+        verify(repositoryClient, times(1)).getChangedPaths(anyString(), anyString());
+    }
+
+    @Test
     void testUnsupportedBranchHeadDisablesCache() throws Exception {
         when(repositoryClient.getBranchHeadSha(BRANCH)).thenReturn(Optional.empty());
 
@@ -129,6 +149,30 @@ class GitBranchStateCacheTest {
         state.getFlow(CHANGED_PATH).orElseThrow().setName("changed after get");
 
         assertEquals("original", state.getFlow(CHANGED_PATH).orElseThrow().getName());
+    }
+
+    @Test
+    void testFlowPermissionsAndVersionInfoAreCopied() throws Exception {
+        final GitBranchStateCache.BranchState state = cache.getState(repositoryClient, BRANCH).orElseThrow();
+        final RegisteredFlow flow = createFlow("original");
+        final FlowRegistryPermissions permissions = new FlowRegistryPermissions();
+        permissions.setCanRead(true);
+        flow.setPermissions(permissions);
+        final RegisteredFlowVersionInfo versionInfo = new RegisteredFlowVersionInfo();
+        versionInfo.setVersion(1);
+        flow.setVersionInfo(versionInfo);
+        state.putFlow(CHANGED_PATH, flow);
+
+        permissions.setCanRead(false);
+        versionInfo.setVersion(2);
+        final RegisteredFlow returned = state.getFlow(CHANGED_PATH).orElseThrow();
+        returned.getPermissions().setCanWrite(true);
+        returned.getVersionInfo().setVersion(3);
+
+        final RegisteredFlow cached = state.getFlow(CHANGED_PATH).orElseThrow();
+        assertTrue(cached.getPermissions().getCanRead());
+        assertFalse(cached.getPermissions().getCanWrite());
+        assertEquals(1, cached.getVersionInfo().getVersion());
     }
 
     private static RegisteredFlow createFlow(final String name) {

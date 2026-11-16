@@ -82,6 +82,8 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     private static final int COMMIT_PAGE_SIZE = 10;
     // GitHub lists at most 300 files in a comparison
     static final int COMPARE_FILES_LIMIT = 300;
+    // Beyond this many commits between two checks of the branch head, every cached value of the branch is dropped
+    static final int COMPARE_COMMITS_LIMIT = 20;
     private static final String UNKNOWN_AUTHOR = "unknown";
 
     private final String repoOwner;
@@ -414,12 +416,14 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     }
 
     /**
-     * Gets the paths changed from one commit to a later one with a single compare request.
+     * Gets the paths touched by the commits from one commit to a later one. One compare request answers when a single
+     * commit separates them; otherwise each commit in the range is read, because the compared files are only the net
+     * difference and miss a file changed and then reverted within the range.
      *
      * @param fromCommitSha the SHA of the earlier commit
      * @param toCommitSha the SHA of the later commit
-     * @return the changed paths relative to the repository path, or empty when the later commit does not descend from
-     *         the earlier one or the comparison lists as many files as GitHub returns at most
+     * @return the touched paths relative to the repository path, or empty when the later commit does not descend from
+     *         the earlier one, or the range has more commits or files than are read
      *
      * @throws IOException if an I/O error happens calling GitHub
      * @throws FlowRegistryException if a non I/O error happens calling GitHub
@@ -427,28 +431,49 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     @Override
     public Optional<Set<String>> getChangedPaths(final String fromCommitSha, final String toCommitSha) throws IOException, FlowRegistryException {
         logger.debug("Getting paths changed from [{}] to [{}] in repo [{}]", fromCommitSha, toCommitSha, repository.getName());
-        return execute(() -> getChangedPaths(repository.getCompare(fromCommitSha, toCommitSha), repoPath));
+        return execute(() -> getChangedPaths(repository.getCompare(fromCommitSha, toCommitSha), sha -> repository.getCommit(sha).listFiles(), repoPath));
     }
 
-    static Optional<Set<String>> getChangedPaths(final GHCompare compare, final String repoPath) {
+    @FunctionalInterface
+    interface CommitFilesReader {
+        Iterable<GHCommit.File> getFiles(String commitSha) throws IOException;
+    }
+
+    static Optional<Set<String>> getChangedPaths(final GHCompare compare, final CommitFilesReader commitFilesReader, final String repoPath) throws IOException {
         final GHCompare.Status status = compare.getStatus();
         if (status != GHCompare.Status.ahead && status != GHCompare.Status.identical) {
             return Optional.empty();
         }
 
-        final GHCommit.File[] files = compare.getFiles();
-        if (files.length >= COMPARE_FILES_LIMIT) {
+        final GHCompare.Commit[] commits = compare.getCommits();
+        if (commits.length != compare.getTotalCommits() || commits.length > COMPARE_COMMITS_LIMIT) {
             return Optional.empty();
         }
 
         final Set<String> changedPaths = new HashSet<>();
-        for (final GHCommit.File file : files) {
-            getRelativePath(file.getFileName(), repoPath).ifPresent(changedPaths::add);
-            if (file.getPreviousFilename() != null) {
-                getRelativePath(file.getPreviousFilename(), repoPath).ifPresent(changedPaths::add);
+        if (commits.length <= 1) {
+            final GHCommit.File[] files = compare.getFiles();
+            if (files.length >= COMPARE_FILES_LIMIT) {
+                return Optional.empty();
+            }
+            for (final GHCommit.File file : files) {
+                addChangedPaths(file, repoPath, changedPaths);
+            }
+        } else {
+            for (final GHCompare.Commit commit : commits) {
+                for (final GHCommit.File file : commitFilesReader.getFiles(commit.getSHA1())) {
+                    addChangedPaths(file, repoPath, changedPaths);
+                }
             }
         }
         return Optional.of(changedPaths);
+    }
+
+    private static void addChangedPaths(final GHCommit.File file, final String repoPath, final Set<String> changedPaths) {
+        getRelativePath(file.getFileName(), repoPath).ifPresent(changedPaths::add);
+        if (file.getPreviousFilename() != null) {
+            getRelativePath(file.getPreviousFilename(), repoPath).ifPresent(changedPaths::add);
+        }
     }
 
     private static Optional<String> getRelativePath(final String path, final String repoPath) {
