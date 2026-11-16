@@ -21,7 +21,6 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
-import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -204,7 +203,7 @@ class FlowControllerTest {
     }
 
     @Test
-    void testClusterRolesOnStandalone() throws IOException {
+    void testClusterRolesOnStandalone() {
         final FlowController flowController = createStandaloneFlowController();
 
         assertFalse(flowController.isPrimary());
@@ -212,7 +211,7 @@ class FlowControllerTest {
     }
 
     @Test
-    void testClusterRolesPrimary() throws IOException {
+    void testClusterRolesPrimary() {
         final FlowController flowController = createClusteredFlowController();
         when(leaderElectionManager.isLeader(ClusterRoles.PRIMARY_NODE)).thenReturn(true);
         when(leaderElectionManager.isLeader(ClusterRoles.CLUSTER_COORDINATOR)).thenReturn(false);
@@ -222,7 +221,7 @@ class FlowControllerTest {
     }
 
     @Test
-    void testClusterRolesClusterCoordinator() throws IOException {
+    void testClusterRolesClusterCoordinator() {
         final FlowController flowController = createClusteredFlowController();
         when(leaderElectionManager.isLeader(ClusterRoles.PRIMARY_NODE)).thenReturn(false);
         when(leaderElectionManager.isLeader(ClusterRoles.CLUSTER_COORDINATOR)).thenReturn(true);
@@ -232,7 +231,7 @@ class FlowControllerTest {
     }
 
     @Test
-    void testClusterRolesLeaderElectionManagerFailure() throws IOException {
+    void testClusterRolesLeaderElectionManagerFailure() {
         final FlowController flowController = createClusteredFlowController();
         when(leaderElectionManager.isLeader(ClusterRoles.PRIMARY_NODE)).thenThrow(new RuntimeException());
         when(leaderElectionManager.isLeader(ClusterRoles.CLUSTER_COORDINATOR)).thenThrow(new RuntimeException());
