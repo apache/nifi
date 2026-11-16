@@ -95,6 +95,24 @@ class TestStandardParameterValueMapper {
     }
 
     @Test
+    void testGetMappedNotSensitiveProvidedNullValue() {
+        final Parameter parameter = getParameter(false, true);
+
+        final String mapped = mapper.getMapped(CONTEXT_NAME, parameter, null);
+
+        assertEquals(StandardParameterValueMapper.PROVIDED_MAPPING, mapped);
+    }
+
+    @Test
+    void testGetMappedSensitiveProvidedNullValue() {
+        final Parameter parameter = getParameter(true, true);
+
+        final String mapped = mapper.getMapped(CONTEXT_NAME, parameter, null);
+
+        assertEquals(StandardParameterValueMapper.PROVIDED_MAPPING, mapped);
+    }
+
+    @Test
     void testGetMappedSensitiveNotProvidedNullValue() {
         final Parameter parameter = getParameter(true, false);
 
