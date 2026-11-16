@@ -41,7 +41,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -287,7 +289,7 @@ public class ITRedisDistributedMapCacheClientService {
 
     @Test
     public void testConcurrentInsertsHaveOneWinner() throws Exception {
-        try (var executor = Executors.newFixedThreadPool(8)) {
+        try (ExecutorService executor = Executors.newFixedThreadPool(8)) {
             final List<Callable<String>> tasks = new ArrayList<>();
             for (int i = 0; i < 32; i++) {
                 final String value = "value-" + i;
@@ -296,7 +298,7 @@ public class ITRedisDistributedMapCacheClientService {
             }
             int winners = 0;
             final String[] previousValues = new String[tasks.size()];
-            final var results = executor.invokeAll(tasks);
+            final List<Future<String>> results = executor.invokeAll(tasks);
             for (int i = 0; i < results.size(); i++) {
                 previousValues[i] = results.get(i).get();
                 if (previousValues[i] == null) {
@@ -316,7 +318,7 @@ public class ITRedisDistributedMapCacheClientService {
     @Test
     public void testConcurrentReplacementsHaveOneWinner() throws Exception {
         cacheClient.put("concurrent", "initial", STRING_SERIALIZER, STRING_SERIALIZER);
-        try (var executor = Executors.newFixedThreadPool(8)) {
+        try (ExecutorService executor = Executors.newFixedThreadPool(8)) {
             final List<Callable<Boolean>> tasks = new ArrayList<>();
             for (int i = 0; i < 32; i++) {
                 final String value = "value-" + i;
@@ -324,7 +326,7 @@ public class ITRedisDistributedMapCacheClientService {
                         STRING_SERIALIZER, STRING_SERIALIZER));
             }
             int winners = 0;
-            for (var result : executor.invokeAll(tasks)) {
+            for (Future<Boolean> result : executor.invokeAll(tasks)) {
                 if (result.get()) {
                     winners++;
                 }
