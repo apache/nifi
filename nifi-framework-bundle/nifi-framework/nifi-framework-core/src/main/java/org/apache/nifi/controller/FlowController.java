@@ -3288,7 +3288,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         try {
             return isClustered() && leaderElectionManager != null && leaderElectionManager.isLeader(ClusterRoles.PRIMARY_NODE);
         } catch (final Exception e) {
-            LOG.warn("Failed to determine whether this instance is the primary node. Assuming that it is not.", e);
+            LOG.warn("Failed to determine Leader for Role [Primary Node]", e);
             return false;
         }
     }
@@ -3297,7 +3297,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         try {
             return isClustered() && leaderElectionManager != null && leaderElectionManager.isLeader(ClusterRoles.CLUSTER_COORDINATOR);
         } catch (final Exception e) {
-            LOG.warn("Failed to determine whether this instance is the cluster coordinator. Assuming that it is not.", e);
+            LOG.warn("Failed to determine Leader for Role [Cluster Coordinator]", e);
             return false;
         }
     }

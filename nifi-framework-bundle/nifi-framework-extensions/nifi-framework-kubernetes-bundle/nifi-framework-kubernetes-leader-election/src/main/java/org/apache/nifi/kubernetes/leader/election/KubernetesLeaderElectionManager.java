@@ -234,7 +234,7 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
                     logger.debug("Role [{}] Participant ID [{}] not Leader, Leader is [{}]", roleName, participantId, leaderId);
                 }
             } catch (final Exception e) {
-                logger.warn("Failed to determine whether current node is leader for Role [{}] with Participant ID [{}]. Assuming that it is not.", roleName, participantId, e);
+                logger.warn("Failed to determine leader for Role [{}] with Participant ID [{}]", roleName, participantId, e);
                 return false;
             }
         }
