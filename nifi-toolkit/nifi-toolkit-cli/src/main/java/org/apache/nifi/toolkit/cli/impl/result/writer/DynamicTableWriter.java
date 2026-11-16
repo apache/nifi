@@ -22,7 +22,6 @@ import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class DynamicTableWriter implements TableWriter {
 
@@ -47,7 +46,7 @@ public class DynamicTableWriter implements TableWriter {
 
         final int numColumns = columns.size();
         final Integer[] columnLengths = determineColumnLengths(columns, rows);
-        final List<String> columnNames = columns.stream().map(c -> c.getName()).collect(Collectors.toList());
+        final List<String> columnNames = columns.stream().map(c -> c.getName()).toList();
 
         final Object[] columnLengthsObj = Arrays.copyOf(columnLengths, numColumns, Object[].class);
         final Object[] columnNamesObj = columnNames.toArray(new Object[numColumns]);

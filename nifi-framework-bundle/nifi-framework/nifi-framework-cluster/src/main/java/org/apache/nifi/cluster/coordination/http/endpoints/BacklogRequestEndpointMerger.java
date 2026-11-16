@@ -81,7 +81,7 @@ public class BacklogRequestEndpointMerger extends AbstractSingleEntityEndpoint<B
         final BacklogRequestDTO clientDto = clientEntity.getRequest();
         final List<BacklogRequestDTO> nodeDtos = entityMap.values().stream()
                 .map(BacklogRequestEntity::getRequest)
-                .collect(Collectors.toList());
+                .toList();
 
         final List<String> failureReasons = nodeDtos.stream()
                 .map(BacklogRequestDTO::getFailureReason)

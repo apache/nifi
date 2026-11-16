@@ -37,7 +37,7 @@ public final class ErrorMerger {
      */
     public static void mergeErrors(final Map<String, Set<NodeIdentifier>> validationErrorMap, final NodeIdentifier nodeId, final Collection<String> nodeErrors) {
         if (nodeErrors != null) {
-            nodeErrors.stream().forEach(
+            nodeErrors.forEach(
                     err -> validationErrorMap.computeIfAbsent(err, k -> new HashSet<>())
                             .add(nodeId));
         }

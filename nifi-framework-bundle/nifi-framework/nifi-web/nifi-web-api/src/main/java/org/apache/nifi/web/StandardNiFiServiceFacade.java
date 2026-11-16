@@ -5260,7 +5260,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final List<ParameterProviderNode> matchingParameterProviders = availableParameterProviders.stream()
                 .filter(provider -> provider.getName().equals(parameterProviderReferenceName))
                 .filter(provider -> referencedProviderClass.isAssignableFrom(provider.getParameterProvider().getClass()))
-                .collect(Collectors.toList());
+                .toList();
 
         if (matchingParameterProviders.size() != 1) {
             return;

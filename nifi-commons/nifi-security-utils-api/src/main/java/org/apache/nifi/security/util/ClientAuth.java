@@ -17,7 +17,6 @@
 package org.apache.nifi.security.util;
 
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 /**
  * This enum is used to indicate the three possible options for a server requesting a client certificate during TLS handshake negotiation.
@@ -61,6 +60,6 @@ public enum ClientAuth {
         if (type == null || type.replaceAll("\\s", "").isEmpty()) {
             return false;
         }
-        return (Arrays.stream(values()).map(ca -> ca.getType().toLowerCase()).collect(Collectors.toList()).contains(type.toLowerCase()));
+        return (Arrays.stream(values()).map(ca -> ca.getType().toLowerCase()).toList().contains(type.toLowerCase()));
     }
 }

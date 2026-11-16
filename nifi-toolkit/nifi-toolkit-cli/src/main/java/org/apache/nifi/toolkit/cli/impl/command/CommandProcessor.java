@@ -75,11 +75,11 @@ public class CommandProcessor {
         out.println("commands:");
         out.println();
 
-        commandGroups.entrySet().stream().forEach(e -> e.getValue().printUsage(verbose));
+        commandGroups.entrySet().forEach(e -> e.getValue().printUsage(verbose));
         if (verbose) {
             out.println("-------------------------------------------------------------------------------");
         }
-        topLevelCommands.keySet().stream().forEach(k -> out.println("\t" + k));
+        topLevelCommands.keySet().forEach(k -> out.println("\t" + k));
         out.println();
     }
 

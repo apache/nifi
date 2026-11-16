@@ -249,7 +249,7 @@ public class StandardFlowEnrichService implements FlowEnrichService {
     private void deleteUnusedSslControllerServices(VersionedProcessGroup processGroup) {
         Set<VersionedControllerService> controllerServicesWithoutUnusedSslContextServices = processGroup.getControllerServices()
             .stream()
-            .filter(controllerService -> !controllerService.getControllerServiceApis().stream().map(ControllerServiceAPI::getType).anyMatch(SSL_CONTEXT_SERVICE_API::equals)
+            .filter(controllerService -> controllerService.getControllerServiceApis().stream().map(ControllerServiceAPI::getType).noneMatch(SSL_CONTEXT_SERVICE_API::equals)
                 || controllerService.getInstanceIdentifier().equals(PARENT_SSL_CONTEXT_SERVICE_ID))
             .collect(toSet());
         processGroup.setControllerServices(controllerServicesWithoutUnusedSslContextServices);
@@ -299,7 +299,7 @@ public class StandardFlowEnrichService implements FlowEnrichService {
     }
 
     private Map<String, String> provenanceReportingTaskProperties(String sslControllerServiceIdentifier) {
-        return List.of(
+        return Stream.of(
                 entry("Input Port Name", minifiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_INPUT_PORT_NAME.getKey())),
                 entry("s2s-transport-protocol", PROVENANCE_REPORTING_TASK_PROTOCOL),
                 entry("Platform", "nifi"),
@@ -311,7 +311,6 @@ public class StandardFlowEnrichService implements FlowEnrichService {
                 entry("start-position", PROVENANCE_REPORTING_TASK_BEGINNING_OF_STREAM),
                 entry("Instance URL", minifiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_INSTANCE_URL.getKey())),
                 entry("SSL Context Service", sslControllerServiceIdentifier))
-            .stream()
             .filter(entry -> StringUtils.isNotBlank(entry.getValue()))
             .collect(toMap(Entry::getKey, Entry::getValue));
     }

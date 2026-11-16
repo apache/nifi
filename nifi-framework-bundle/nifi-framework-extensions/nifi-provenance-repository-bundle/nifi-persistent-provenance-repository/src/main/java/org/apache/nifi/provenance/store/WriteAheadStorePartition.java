@@ -520,7 +520,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
 
     @Override
     public long purgeOldestEvents() {
-        final List<File> eventFiles = getEventFilesFromDisk().sorted(DirectoryUtils.SMALLEST_ID_FIRST).collect(Collectors.toList());
+        final List<File> eventFiles = getEventFilesFromDisk().sorted(DirectoryUtils.SMALLEST_ID_FIRST).toList();
         if (eventFiles.size() < 2) {
             // If there are no Event Files, there's nothing to do. If there is exactly 1 Event File, it means that the only Event File
             // that exists is the Active Event File, which we are writing to, so we don't want to remove it either.
@@ -583,7 +583,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
     }
 
     void reindexLatestEvents(final EventIndex eventIndex) {
-        final List<File> eventFiles = getEventFilesFromDisk().sorted(DirectoryUtils.SMALLEST_ID_FIRST).collect(Collectors.toList());
+        final List<File> eventFiles = getEventFilesFromDisk().sorted(DirectoryUtils.SMALLEST_ID_FIRST).toList();
         if (eventFiles.isEmpty()) {
             return;
         }

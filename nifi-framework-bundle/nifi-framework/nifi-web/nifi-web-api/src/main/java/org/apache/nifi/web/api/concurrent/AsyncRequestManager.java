@@ -40,7 +40,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class AsyncRequestManager<R, T> implements RequestManager<R, T> {
     private static final Logger logger = LoggerFactory.getLogger(AsyncRequestManager.class);
@@ -89,7 +88,7 @@ public class AsyncRequestManager<R, T> implements RequestManager<R, T> {
             .filter(entry -> entry.getValue().isComplete())
             .filter(entry -> entry.getValue().getLastUpdated().before(oneMinuteAgo))
             .map(Map.Entry::getKey)
-            .collect(Collectors.toList());
+            .toList();
 
         completedRequestIds.forEach(requests::remove);
 

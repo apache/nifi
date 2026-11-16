@@ -61,7 +61,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -217,7 +216,7 @@ class GitFlowMetaData {
                 final List<RemoteConfig> remotes = git.remoteList().call();
                 final boolean isRemoteExist = remotes.stream().anyMatch(remote -> remote.getName().equals(remoteToPush));
                 if (!isRemoteExist) {
-                    final List<String> remoteNames = remotes.stream().map(RemoteConfig::getName).collect(Collectors.toList());
+                    final List<String> remoteNames = remotes.stream().map(RemoteConfig::getName).toList();
                     throw new IllegalArgumentException(
                             format("The configured remote '%s' to push does not exist. Available remotes are %s", remoteToPush, remoteNames));
                 }

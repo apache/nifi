@@ -52,6 +52,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
 
@@ -312,8 +313,7 @@ public class PythonProcess {
 
     String findExecutableDirectory(final String pythonCmd, final File[] virtualEnvDirectories) throws IOException {
         // Check for python command.
-        return List.of(virtualEnvDirectories)
-                .stream()
+        return Stream.of(virtualEnvDirectories)
                 .filter(file -> ArrayUtils.isNotEmpty(file.list((dir, name) -> name.startsWith(pythonCmd))))
                 .findFirst()
                 .orElseThrow(() -> new IOException("Failed to find Python command [%s]".formatted(pythonCmd)))

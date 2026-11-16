@@ -80,7 +80,7 @@ public class FlowAnalysisRuleEntityMerger implements ComponentEntityMerger<FlowA
 
                 // aggregate the property descriptors
                 if (nodeFlowAnalysisRule.getDescriptors() != null) {
-                    nodeFlowAnalysisRule.getDescriptors().values().stream().forEach(propertyDescriptor -> {
+                    nodeFlowAnalysisRule.getDescriptors().values().forEach(propertyDescriptor -> {
                         propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeId, propertyDescriptor);
                     });
                 }

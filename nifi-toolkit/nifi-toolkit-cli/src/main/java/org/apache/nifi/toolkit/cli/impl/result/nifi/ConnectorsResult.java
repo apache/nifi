@@ -31,7 +31,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ConnectorsResult extends AbstractWritableResult<ConnectorsEntity> {
 
@@ -57,7 +56,7 @@ public class ConnectorsResult extends AbstractWritableResult<ConnectorsEntity> {
         final List<ConnectorDTO> connectorDtos = connectorEntities.stream()
                 .map(ConnectorEntity::getComponent)
                 .sorted(Comparator.comparing(ConnectorDTO::getName))
-                .collect(Collectors.toList());
+                .toList();
 
         final Table table = new Table.Builder()
                 .column("#", 3, 3, false)

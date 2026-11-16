@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ParamProvidersResult extends AbstractWritableResult<ParameterProvidersEntity> {
 
@@ -43,7 +42,7 @@ public class ParamProvidersResult extends AbstractWritableResult<ParameterProvid
     protected void writeSimpleResult(final PrintStream output) throws IOException {
         final List<ParameterProviderEntity> parameterProviderEntities = parameterProviders.getParameterProviders().stream()
                 .sorted(Comparator.comparing(entity -> entity.getComponent().getName()))
-                .collect(Collectors.toList());
+                .toList();
         final Table table = new Table.Builder()
                 .column("#", 20, 60, false)
                 .column("Id", 20, 60, false)

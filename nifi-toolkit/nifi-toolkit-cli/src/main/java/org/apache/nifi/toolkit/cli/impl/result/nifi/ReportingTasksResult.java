@@ -31,7 +31,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Result for ReportingTasksEntity.
@@ -55,7 +54,7 @@ public class ReportingTasksResult extends AbstractWritableResult<ReportingTasksE
         final List<ReportingTaskDTO> taskDTOS = tasksEntities.stream()
                 .map(ReportingTaskEntity::getComponent)
                 .sorted(Comparator.comparing(ReportingTaskDTO::getName))
-                .collect(Collectors.toList());
+                .toList();
 
         final Table table = new Table.Builder()
                 .column("#", 3, 3, false)

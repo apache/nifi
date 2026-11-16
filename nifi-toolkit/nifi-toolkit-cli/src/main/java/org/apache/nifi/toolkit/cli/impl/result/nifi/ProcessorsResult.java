@@ -31,7 +31,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ProcessorsResult extends AbstractWritableResult<ProcessorsEntity> {
 
@@ -57,7 +56,7 @@ public class ProcessorsResult extends AbstractWritableResult<ProcessorsEntity> {
         final List<ProcessorDTO> processorDTOS = processorsEntities.stream()
                 .map(ProcessorEntity::getComponent)
                 .sorted(Comparator.comparing(ProcessorDTO::getName))
-                .collect(Collectors.toList());
+                .toList();
 
         final Table table = new Table.Builder()
                 .column("#", 3, 3, false)

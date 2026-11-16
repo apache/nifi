@@ -46,7 +46,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
 
@@ -57,7 +56,6 @@ import static java.nio.ByteBuffer.wrap;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.function.Predicate.not;
-import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -255,7 +253,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
             }
 
             if (useEtag) {
-                lastEtag = Stream.of(DOUBLE_QUOTES, response.header(ETAG_HEADER).trim(), DOUBLE_QUOTES).collect(joining());
+                lastEtag = String.join("", DOUBLE_QUOTES, response.header(ETAG_HEADER).trim(), DOUBLE_QUOTES);
             }
         } catch (Exception e) {
             logger.warn("Hit an exception while trying to pull", e);

@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class GrokRecordReader implements RecordReader {
     private final BufferedReader reader;
@@ -142,7 +141,7 @@ public class GrokRecordReader implements RecordReader {
 
                 final Object normalizedValue;
                 if (rawValue instanceof final List<?> list) {
-                    List<?> nonNullElements = list.stream().filter(Objects::nonNull).collect(Collectors.toList());
+                    List<?> nonNullElements = list.stream().filter(Objects::nonNull).toList();
                     if (nonNullElements.isEmpty()) {
                         normalizedValue = null;
                     } else if (nonNullElements.size() == 1) {

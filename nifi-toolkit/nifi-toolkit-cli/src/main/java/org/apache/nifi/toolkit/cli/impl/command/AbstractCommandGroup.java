@@ -48,7 +48,7 @@ public abstract class AbstractCommandGroup implements CommandGroup {
         Objects.requireNonNull(context);
         this.output = context.getOutput();
         this.commands = Collections.unmodifiableList(createCommands());
-        this.commands.stream().forEach(c -> c.initialize(context));
+        this.commands.forEach(c -> c.initialize(context));
     }
 
     /**
@@ -76,7 +76,7 @@ public abstract class AbstractCommandGroup implements CommandGroup {
             final TextHelpAppendable appendable = new TextHelpAppendable(printWriter);
             appendable.setMaxWidth(80);
 
-            commands.stream().forEach(c -> {
+            commands.forEach(c -> {
                 try {
                     appendable.appendParagraph("-------------------------------------------------------------------------------");
                     appendable.appendParagraph("COMMAND: " + getName() + " " + c.getName());
@@ -93,7 +93,7 @@ public abstract class AbstractCommandGroup implements CommandGroup {
             printWriter.flush();
 
         } else {
-            commands.stream().forEach(c -> output.println("\t" + getName() + " " + c.getName()));
+            commands.forEach(c -> output.println("\t" + getName() + " " + c.getName()));
         }
         output.flush();
     }

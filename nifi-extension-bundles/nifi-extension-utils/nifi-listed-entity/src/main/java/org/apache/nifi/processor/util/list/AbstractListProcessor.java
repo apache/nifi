@@ -767,7 +767,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     latestIdentifiersProcessed.clear();
                 }
                 // Capture latestIdentifierProcessed.
-                latestIdentifiersProcessed.addAll(orderedEntries.lastEntry().getValue().stream().map(T::getIdentifier).collect(Collectors.toList()));
+                latestIdentifiersProcessed.addAll(orderedEntries.lastEntry().getValue().stream().map(T::getIdentifier).toList());
                 lastProcessedLatestEntryTimestampMillis = orderedEntries.lastKey();
             }
 
@@ -824,7 +824,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 List<T> entities = timestampEntities.getValue();
                 if (timestampEntities.getKey().equals(lastProcessedLatestEntryTimestampMillis)) {
                     // Filter out previously processed entities.
-                    entities = entities.stream().filter(entity -> !latestIdentifiersProcessed.contains(entity.getIdentifier())).collect(Collectors.toList());
+                    entities = entities.stream().filter(entity -> !latestIdentifiersProcessed.contains(entity.getIdentifier())).toList();
                 }
 
                 for (final T entity : entities) {
@@ -855,7 +855,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             List<T> entities = timestampEntities.getValue();
             if (timestampEntities.getKey().equals(lastProcessedLatestEntryTimestampMillis)) {
                 // Filter out previously processed entities.
-                entities = entities.stream().filter(entity -> !latestIdentifiersProcessed.contains(entity.getIdentifier())).collect(Collectors.toList());
+                entities = entities.stream().filter(entity -> !latestIdentifiersProcessed.contains(entity.getIdentifier())).toList();
             }
 
             for (final T entity : entities) {

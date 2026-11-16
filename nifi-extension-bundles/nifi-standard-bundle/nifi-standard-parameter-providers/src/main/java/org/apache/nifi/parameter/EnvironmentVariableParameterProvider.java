@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -238,7 +237,7 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
             if (includedNames == null) {
                 throw new IllegalArgumentException("Comma-separated list of included names is required");
             }
-            this.includedNames = new HashSet<>(Arrays.asList(includedNames.split(",")).stream().map(String::trim).collect(Collectors.toList()));
+            this.includedNames = Arrays.stream(includedNames.split(",")).map(String::trim).collect(Collectors.toSet());
         }
         @Override
         public boolean include(final String variableName) {

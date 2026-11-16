@@ -43,7 +43,7 @@ public class CommandFactory {
         commandList.add(new Exit());
 
         final Map<String, Command> commandMap = new TreeMap<>();
-        commandList.stream().forEach(cmd -> {
+        commandList.forEach(cmd -> {
             cmd.initialize(context);
             commandMap.put(cmd.getName(), cmd);
         });
@@ -60,7 +60,7 @@ public class CommandFactory {
         groups.add(new SessionCommandGroup());
 
         final Map<String, CommandGroup> groupMap = new TreeMap<>();
-        groups.stream().forEach(g -> {
+        groups.forEach(g -> {
             g.initialize(context);
             groupMap.put(g.getName(), g);
         });

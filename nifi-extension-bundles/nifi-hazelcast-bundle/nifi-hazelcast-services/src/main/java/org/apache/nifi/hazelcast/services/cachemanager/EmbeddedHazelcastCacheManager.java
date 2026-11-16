@@ -174,8 +174,7 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
     }
 
     private List<String> getHazelcastMemberHosts(final PropertyContext context) {
-        return Arrays.asList(context.getProperty(HAZELCAST_INSTANCES).evaluateAttributeExpressions().getValue().split(ADDRESS_SEPARATOR))
-                .stream().map(i -> i.trim()).collect(Collectors.toList());
+        return Arrays.stream(context.getProperty(HAZELCAST_INSTANCES).evaluateAttributeExpressions().getValue().split(ADDRESS_SEPARATOR)).map(i -> i.trim()).collect(Collectors.toList());
     }
 
     @Override

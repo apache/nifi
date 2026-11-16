@@ -66,6 +66,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -302,7 +303,7 @@ public class RegistryService {
         }
 
         final List<BucketItem> bucketItems = new ArrayList<>();
-        metadataService.getBucketItems(bucket.getId()).stream().forEach(b -> addBucketItem(bucketItems, b));
+        metadataService.getBucketItems(bucket.getId()).forEach(b -> addBucketItem(bucketItems, b));
         return bucketItems;
     }
 
@@ -312,7 +313,7 @@ public class RegistryService {
         }
 
         final List<BucketItem> bucketItems = new ArrayList<>();
-        metadataService.getBucketItems(bucketIdentifiers).stream().forEach(b -> addBucketItem(bucketItems, b));
+        metadataService.getBucketItems(bucketIdentifiers).forEach(b -> addBucketItem(bucketItems, b));
         return bucketItems;
     }
 
@@ -588,7 +589,7 @@ public class RegistryService {
         final SortedSet<VersionedFlowSnapshotMetadata> sortedSnapshots = new TreeSet<>();
         final List<FlowSnapshotEntity> existingFlowSnapshots = metadataService.getSnapshots(existingFlow.getId());
         if (existingFlowSnapshots != null) {
-            existingFlowSnapshots.stream().forEach(s -> sortedSnapshots.add(FlowMappings.map(existingBucket, s)));
+            existingFlowSnapshots.forEach(s -> sortedSnapshots.add(FlowMappings.map(existingBucket, s)));
         }
 
         // if we already have snapshots we need to verify the new one has the correct version
@@ -766,7 +767,7 @@ public class RegistryService {
         final SortedSet<VersionedFlowSnapshotMetadata> sortedSnapshots = new TreeSet<>(Collections.reverseOrder());
         final List<FlowSnapshotEntity> existingFlowSnapshots = metadataService.getSnapshots(existingFlow.getId());
         if (existingFlowSnapshots != null) {
-            existingFlowSnapshots.stream().forEach(s -> sortedSnapshots.add(FlowMappings.map(existingBucket, s)));
+            existingFlowSnapshots.forEach(s -> sortedSnapshots.add(FlowMappings.map(existingBucket, s)));
         }
 
         return sortedSnapshots;
@@ -970,7 +971,7 @@ public class RegistryService {
             }
             group.getDifferences().add(FlowMappings.map(diff));
         }
-        return differenceGroups.values().stream().collect(Collectors.toSet());
+        return new HashSet<>(differenceGroups.values());
     }
 
     // ---------------------- Field methods ---------------------------------------------

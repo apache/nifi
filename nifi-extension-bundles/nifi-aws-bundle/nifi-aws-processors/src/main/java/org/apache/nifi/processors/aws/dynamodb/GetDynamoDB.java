@@ -52,7 +52,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
 import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
@@ -214,7 +213,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
         final BatchGetItemRequest request;
         try {
             request = getBatchGetItemRequest(context, flowFiles.stream()
-                    .map(FlowFile::getAttributes).collect(Collectors.toList()).toArray(new Map[0]));
+                    .map(FlowFile::getAttributes).toList().toArray(new Map[0]));
         } catch (final IllegalArgumentException e) {
             getLogger().error(e.getMessage(), e);
             return;

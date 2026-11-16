@@ -35,7 +35,6 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ClassLoaderUtils {
 
@@ -146,7 +145,7 @@ public class ClassLoaderUtils {
     public static String generateAdditionalUrlsFingerprint(final Set<URL> urls, final String classloaderIsolationKey) {
         final StringBuilder formattedUrls = new StringBuilder();
 
-        final List<String> sortedUrls = urls.stream().map(Object::toString).sorted().collect(Collectors.toList());
+        final List<String> sortedUrls = urls.stream().map(Object::toString).sorted().toList();
         sortedUrls.forEach(url -> formattedUrls.append(url).append("-").append(getLastModified(url)).append(";"));
         formattedUrls.append(classloaderIsolationKey);
         final byte[] formattedUrlsBinary = formattedUrls.toString().getBytes(StandardCharsets.UTF_8);
