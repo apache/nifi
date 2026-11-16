@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDrainSummaryDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.util.NumberUtil;
 
@@ -57,6 +58,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
 
     private String processGroupUpdateStrategy;
     private String resolvedExecutionEngine;
+    private ProcessGroupDrainSummaryDTO drainSummary;
 
     /**
      * The ProcessGroupDTO that is being serialized.
@@ -341,5 +343,15 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
 
     public void setResolvedExecutionEngine(final String resolvedExecutionEngine) {
         this.resolvedExecutionEngine = resolvedExecutionEngine;
+    }
+
+    @Schema(description = "A summary of the drain of this Process Group, if the group is being drained. Available even when the user cannot read the "
+            + "Process Group.", accessMode = Schema.AccessMode.READ_ONLY)
+    public ProcessGroupDrainSummaryDTO getDrainSummary() {
+        return drainSummary;
+    }
+
+    public void setDrainSummary(final ProcessGroupDrainSummaryDTO drainSummary) {
+        this.drainSummary = drainSummary;
     }
 }

@@ -23,6 +23,7 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.DrainBlockingComponentDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDrainRequestDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDrainSummaryDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -230,12 +231,14 @@ public class ProcessGroupDrainIT extends NiFiSystemIT {
     }
 
     /**
-     * Returns the drain request ID of the given group, after verifying that the flow of the group, which the canvas shows when the group is entered,
-     * reports the same drain request ID as the group itself.
+     * Returns the drain request ID in the drain summary of the given group, after verifying that the flow of the group, which the canvas shows when the
+     * group is entered, reports the same drain request ID.
      */
     private String getDrainRequestId(final String groupId) throws NiFiClientException, IOException {
-        final String drainRequestId = getNifiClient().getProcessGroupClient().getProcessGroup(groupId).getComponent().getDrainRequestId();
-        assertEquals(drainRequestId, getNifiClient().getFlowClient().getProcessGroup(groupId).getProcessGroupFlow().getDrainRequestId());
+        final ProcessGroupDrainSummaryDTO groupSummary = getNifiClient().getProcessGroupClient().getProcessGroup(groupId).getDrainSummary();
+        final ProcessGroupDrainSummaryDTO flowSummary = getNifiClient().getFlowClient().getProcessGroup(groupId).getProcessGroupFlow().getDrainSummary();
+        final String drainRequestId = groupSummary == null ? null : groupSummary.getId();
+        assertEquals(drainRequestId, flowSummary == null ? null : flowSummary.getId());
         return drainRequestId;
     }
 

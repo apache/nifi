@@ -65,6 +65,7 @@ import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDrainRequestDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDrainSummaryDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
@@ -2378,9 +2379,9 @@ public class NiFiClientUtil {
     public void endProcessGroupDrains(final String processGroupId) throws NiFiClientException, IOException {
         final ProcessGroupFlowEntity flowEntity = nifiClient.getFlowClient().getProcessGroup(processGroupId);
         for (final ProcessGroupEntity childGroup : flowEntity.getProcessGroupFlow().getFlow().getProcessGroups()) {
-            final String drainRequestId = childGroup.getComponent().getDrainRequestId();
-            if (drainRequestId != null) {
-                endProcessGroupDrain(childGroup.getId(), drainRequestId);
+            final ProcessGroupDrainSummaryDTO drainSummary = childGroup.getDrainSummary();
+            if (drainSummary != null) {
+                endProcessGroupDrain(childGroup.getId(), drainSummary.getId());
             }
 
             endProcessGroupDrains(childGroup.getId());

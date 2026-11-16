@@ -19,6 +19,7 @@ package org.apache.nifi.web.api.dto.flow;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlType;
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import org.apache.nifi.web.api.dto.ProcessGroupDrainSummaryDTO;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
@@ -39,7 +40,7 @@ public class ProcessGroupFlowDTO {
     private FlowDTO flow;
     private Date lastRefreshed;
     private String resolvedExecutionEngine;
-    private String drainRequestId;
+    private ProcessGroupDrainSummaryDTO drainSummary;
 
     /**
      * @return contents of this process group. This field will be populated if the request is marked verbose
@@ -144,13 +145,12 @@ public class ProcessGroupFlowDTO {
         this.resolvedExecutionEngine = resolvedExecutionEngine;
     }
 
-    @Schema(description = "The identifier of the drain request of the Process Group, if the group is being drained.",
-        accessMode = Schema.AccessMode.READ_ONLY)
-    public String getDrainRequestId() {
-        return drainRequestId;
+    @Schema(description = "A summary of the drain of the Process Group, if the group is being drained.", accessMode = Schema.AccessMode.READ_ONLY)
+    public ProcessGroupDrainSummaryDTO getDrainSummary() {
+        return drainSummary;
     }
 
-    public void setDrainRequestId(final String drainRequestId) {
-        this.drainRequestId = drainRequestId;
+    public void setDrainSummary(final ProcessGroupDrainSummaryDTO drainSummary) {
+        this.drainSummary = drainSummary;
     }
 }

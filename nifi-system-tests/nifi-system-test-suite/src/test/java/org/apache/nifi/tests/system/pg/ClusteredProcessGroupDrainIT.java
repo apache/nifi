@@ -24,6 +24,7 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDrainRequestDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDrainSummaryDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -94,6 +96,16 @@ public class ClusteredProcessGroupDrainIT extends NiFiSystemIT {
         assertTrue(node1Request.getCurrentCount() > 0);
 
         assertEquals(DRAINING, getDrainRequestOnNode(2, flow.group().getId(), drainRequestId).getState());
+
+        // The drain summaries of the group and of its flow combine the nodes, so they report all 10 FlowFiles and those still queued on node 1
+        final ProcessGroupDrainSummaryDTO groupSummary = getNifiClient().getProcessGroupClient().getProcessGroup(flow.group().getId()).getDrainSummary();
+        final ProcessGroupDrainSummaryDTO flowSummary = getNifiClient().getFlowClient().getProcessGroup(flow.group().getId()).getProcessGroupFlow().getDrainSummary();
+        for (final ProcessGroupDrainSummaryDTO summary : List.of(groupSummary, flowSummary)) {
+            assertEquals(drainRequestId, summary.getId());
+            assertTrue(summary.getPrepared());
+            assertEquals(10, summary.getOriginalCount());
+            assertEquals(node1Request.getCurrentCount(), summary.getCurrentCount());
+        }
 
         assertTrue(node1GateFile.createNewFile());
         getClientUtil().waitForProcessGroupDrainEnded(flow.group().getId(), drainRequestId);
@@ -190,7 +202,7 @@ public class ClusteredProcessGroupDrainIT extends NiFiSystemIT {
             for (int nodeIndex = 1; nodeIndex <= 2; nodeIndex++) {
                 switchClientToNode(nodeIndex);
                 final ProcessGroupEntity group = getNifiClient().getProcessGroupClient(DO_NOT_REPLICATE).getProcessGroup(groupId);
-                assertNull(group.getComponent().getDrainRequestId(), "Node " + nodeIndex);
+                assertNull(group.getDrainSummary(), "Node " + nodeIndex);
 
                 for (final Map.Entry<String, ScheduledState> entry : expectedProcessorStates.entrySet()) {
                     final ProcessorEntity processor = getNifiClient().getProcessorClient(DO_NOT_REPLICATE).getProcessor(entry.getKey());

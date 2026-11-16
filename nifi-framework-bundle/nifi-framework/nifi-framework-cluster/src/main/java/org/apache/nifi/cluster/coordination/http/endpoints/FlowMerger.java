@@ -22,6 +22,7 @@ import org.apache.nifi.cluster.manager.FunnelsEntityMerger;
 import org.apache.nifi.cluster.manager.LabelsEntityMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.PortsEntityMerger;
+import org.apache.nifi.cluster.manager.ProcessGroupEntityMerger;
 import org.apache.nifi.cluster.manager.ProcessGroupsEntityMerger;
 import org.apache.nifi.cluster.manager.ProcessorsEntityMerger;
 import org.apache.nifi.cluster.manager.RemoteProcessGroupsEntityMerger;
@@ -76,15 +77,7 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
      * @param dtoMap the responses from all nodes
      */
     static void mergeProcessGroupFlowDto(final ProcessGroupFlowDTO clientDto, final Map<NodeIdentifier, ProcessGroupFlowDTO> dtoMap) {
-        // a node that restarted while the group was being drained has no record of the drain, so use the drain request id from any node that has one
-        if (clientDto.getDrainRequestId() == null) {
-            for (final ProcessGroupFlowDTO dto : dtoMap.values()) {
-                if (dto.getDrainRequestId() != null) {
-                    clientDto.setDrainRequestId(dto.getDrainRequestId());
-                    break;
-                }
-            }
-        }
+        clientDto.setDrainSummary(ProcessGroupEntityMerger.mergeDrainSummaries(dtoMap.values().stream().map(ProcessGroupFlowDTO::getDrainSummary).toList()));
 
         final FlowDTO flowDto = clientDto.getFlow();
         final Set<ConnectionEntity> clientConnections = flowDto.getConnections();

@@ -1578,7 +1578,7 @@ public final class DtoFactory {
             final ProcessGroupDTO processGroupDto = createConciseProcessGroupDto(processGroup);
             final RevisionDTO revisionDto = createRevisionDTO(revisionManager.getRevision(processGroup.getIdentifier()));
             final PermissionsDTO permissionsDto = createPermissionsDto(processGroup);
-            final ProcessGroupEntity processGroupEntity = entityFactory.createProcessGroupEntity(processGroupDto, revisionDto, permissionsDto, null, null);
+            final ProcessGroupEntity processGroupEntity = entityFactory.createProcessGroupEntity(processGroupDto, revisionDto, permissionsDto, null, null, null);
             boundGroups.add(processGroupEntity);
         }
         dto.setBoundProcessGroups(boundGroups);
@@ -2631,12 +2631,35 @@ public final class DtoFactory {
         }
 
         dto.setResolvedExecutionEngine(group.resolveExecutionEngine().name());
-        dto.setDrainRequestId(group.getDrain().filter(drain -> drain.getState() == ProcessGroupDrainState.DRAINING).map(ProcessGroupDrain::getIdentifier).orElse(null));
+        dto.setDrainSummary(createProcessGroupDrainSummaryDto(group));
 
         final ParameterContext parameterContext = group.getParameterContext();
         if (parameterContext != null) {
             dto.setParameterContext(entityFactory.createParameterReferenceEntity(createParameterContextReference(parameterContext), createPermissionsDto(parameterContext)));
         }
+        return dto;
+    }
+
+    /**
+     * @return a summary of the drain of the given Process Group, or null if the group is not being drained
+     */
+    public ProcessGroupDrainSummaryDTO createProcessGroupDrainSummaryDto(final ProcessGroup group) {
+        final Optional<ProcessGroupDrain> activeDrain = group.getDrain().filter(drain -> drain.getState() == ProcessGroupDrainState.DRAINING);
+        if (activeDrain.isEmpty()) {
+            return null;
+        }
+
+        final ProcessGroupDrain drain = activeDrain.get();
+        final QueueSize originalQueueSize = drain.getOriginalQueueSize();
+        final QueueSize currentQueueSize = drain.getCurrentQueueSize();
+
+        final ProcessGroupDrainSummaryDTO dto = new ProcessGroupDrainSummaryDTO();
+        dto.setId(drain.getIdentifier());
+        dto.setPrepared(drain.isPrepared());
+        dto.setOriginalCount(originalQueueSize.getObjectCount());
+        dto.setOriginalSize(originalQueueSize.getByteCount());
+        dto.setCurrentCount(currentQueueSize.getObjectCount());
+        dto.setCurrentSize(currentQueueSize.getByteCount());
         return dto;
     }
 
@@ -2736,7 +2759,7 @@ public final class DtoFactory {
             final ProcessGroupStatus childGroupStatus = groupStatuses.get(processGroup.getIdentifier());
             final ProcessGroupStatusDTO statusDto = childGroupStatus == null ? null : createConciseProcessGroupStatusDto(childGroupStatus);
             final List<BulletinEntity> bulletins = getProcessGroupBulletins.apply(processGroup);
-            flow.getProcessGroups().add(entityFactory.createProcessGroupEntity(dto, revision, permissions, statusDto, bulletins));
+            flow.getProcessGroups().add(entityFactory.createProcessGroupEntity(dto, revision, permissions, statusDto, createProcessGroupDrainSummaryDto(processGroup), bulletins));
         }
 
         final Map<String, ProcessorStatus> processorStatuses = groupStatus.getProcessorStatus().stream().collect(Collectors.toMap(ProcessorStatus::getId, status -> status));
@@ -2818,7 +2841,8 @@ public final class DtoFactory {
             final ProcessGroupStatus childGroupStatus = groupStatuses.get(childGroup.getIdentifier());
             final ProcessGroupStatusDTO statusDto = childGroupStatus == null ? null : createConciseProcessGroupStatusDto(childGroupStatus);
             final List<BulletinEntity> bulletins = getProcessGroupBulletins.apply(childGroup);
-            dto.getProcessGroups().add(entityFactory.createProcessGroupEntity(createProcessGroupDto(childGroup), revision, permissions, statusDto, bulletins));
+            final ProcessGroupDrainSummaryDTO drainSummary = createProcessGroupDrainSummaryDto(childGroup);
+            dto.getProcessGroups().add(entityFactory.createProcessGroupEntity(createProcessGroupDto(childGroup), revision, permissions, statusDto, drainSummary, bulletins));
         }
 
         final Map<String, RemoteProcessGroupStatus> rpgStatuses = groupStatus.getRemoteProcessGroupStatus().stream().collect(Collectors.toMap(RemoteProcessGroupStatus::getId, status -> status));
@@ -2900,7 +2924,6 @@ public final class DtoFactory {
         dto.setStatelessGroupScheduledState(group.getStatelessScheduledState().name());
         dto.setExecutionEngine(group.getExecutionEngine().name());
         dto.setResolvedExecutionEngine(group.resolveExecutionEngine().name());
-        dto.setDrainRequestId(group.getDrain().filter(drain -> drain.getState() == ProcessGroupDrainState.DRAINING).map(ProcessGroupDrain::getIdentifier).orElse(null));
         dto.setMaxConcurrentTasks(group.getMaxConcurrentTasks());
         dto.setStatelessFlowTimeout(group.getStatelessFlowTimeout());
         dto.setStatelessFlowFileContentInMemoryMax(group.getStatelessContentMaxHeap());
@@ -4896,7 +4919,6 @@ public final class DtoFactory {
         copy.setLogFileSuffix(original.getLogFileSuffix());
         copy.setExecutionEngine(original.getExecutionEngine());
         copy.setResolvedExecutionEngine(original.getResolvedExecutionEngine());
-        copy.setDrainRequestId(original.getDrainRequestId());
         copy.setMaxConcurrentTasks(original.getMaxConcurrentTasks());
         copy.setStatelessFlowTimeout(original.getStatelessFlowTimeout());
         copy.setStatelessFlowFileContentInMemoryMax(original.getStatelessFlowFileContentInMemoryMax());

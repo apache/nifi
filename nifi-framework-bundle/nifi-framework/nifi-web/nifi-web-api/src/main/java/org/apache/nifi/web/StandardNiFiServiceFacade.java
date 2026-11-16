@@ -306,6 +306,7 @@ import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PreviousValueDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDrainRequestDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDrainSummaryDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupNameDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -2001,7 +2002,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
         final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(processGroupNode.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = getProcessGroupBulletins(processGroupNode);
-        return entityFactory.createProcessGroupEntity(snapshot.getComponent(), updatedRevision, permissions, status, bulletinEntities);
+        return entityFactory.createProcessGroupEntity(snapshot.getComponent(), updatedRevision, permissions, status, dtoFactory.createProcessGroupDrainSummaryDto(processGroupNode), bulletinEntities);
     }
 
     @Override
@@ -2016,7 +2017,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
         final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(processGroupNode.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = getProcessGroupBulletins(processGroupNode);
-        return entityFactory.createProcessGroupEntity(snapshot.getComponent(), updatedRevision, permissions, status, bulletinEntities);
+        return entityFactory.createProcessGroupEntity(snapshot.getComponent(), updatedRevision, permissions, status, dtoFactory.createProcessGroupDrainSummaryDto(processGroupNode), bulletinEntities);
     }
 
     @Override
@@ -2734,7 +2735,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // delete all applicable component policies
         groupResources.forEach(groupResource -> cleanUpPolicies(groupResource));
 
-        return entityFactory.createProcessGroupEntity(snapshot, null, permissions, null, null);
+        return entityFactory.createProcessGroupEntity(snapshot, null, permissions, null, null, null);
     }
 
     @Override
@@ -3093,7 +3094,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(processGroup.getIdentifier()));
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processGroup.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-        return entityFactory.createProcessGroupEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, status, bulletinEntities);
+        final ProcessGroupDrainSummaryDTO drainSummary = dtoFactory.createProcessGroupDrainSummaryDto(processGroup);
+        return entityFactory.createProcessGroupEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, status, drainSummary, bulletinEntities);
     }
 
     @Override
@@ -5866,7 +5868,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(group);
         final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(group.getIdentifier()));
         final List<BulletinEntity> bulletins = getProcessGroupBulletins(group);
-        return entityFactory.createProcessGroupEntity(dtoFactory.createProcessGroupDto(group), revision, permissions, status, bulletins);
+        return entityFactory.createProcessGroupEntity(dtoFactory.createProcessGroupDto(group), revision, permissions, status, dtoFactory.createProcessGroupDrainSummaryDto(group), bulletins);
     }
 
     private List<BulletinEntity> getProcessGroupBulletins(final ProcessGroup group) {
@@ -7919,7 +7921,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(processGroup.getIdentifier()));
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processGroup.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-        return entityFactory.createProcessGroupEntity(revisionUpdate.getComponent(), updatedRevision, permissions, status, bulletinEntities);
+        final ProcessGroupDrainSummaryDTO drainSummary = dtoFactory.createProcessGroupDrainSummaryDto(processGroup);
+        return entityFactory.createProcessGroupEntity(revisionUpdate.getComponent(), updatedRevision, permissions, status, drainSummary, bulletinEntities);
     }
 
     private AuthorizationResult authorizeAction(final Action action) {
