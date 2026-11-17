@@ -20,6 +20,7 @@ import org.apache.nifi.registry.flow.FlowRegistryPermissions;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowVersionInfo;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
+import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -51,7 +52,7 @@ class GitBranchStateCacheTest {
     void setUp() throws Exception {
         repositoryClient = mock(GitRepositoryClient.class);
         when(repositoryClient.getBranchHeadSha(BRANCH)).thenReturn(Optional.of("head-1"));
-        cache = new GitBranchStateCache();
+        cache = new GitBranchStateCache(() -> new MockComponentLog("cache", this));
     }
 
     @Test

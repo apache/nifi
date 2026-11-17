@@ -147,7 +147,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
     private volatile GitRepositoryClient repositoryClient;
     private volatile Pattern directoryExclusionPattern;
     private final AtomicBoolean clientInitialized = new AtomicBoolean(false);
-    private final GitBranchStateCache branchStateCache = new GitBranchStateCache();
+    private final GitBranchStateCache branchStateCache = new GitBranchStateCache(this::getLogger);
 
     private volatile List<PropertyDescriptor> propertyDescriptors;
 

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.flow.git;
 
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistryPermissions;
 import org.apache.nifi.registry.flow.RegisteredFlow;
@@ -28,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 /**
  * Remembers, per branch, what was read for each flow file at the head of the branch.
@@ -44,8 +46,13 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 final class GitBranchStateCache {
 
+    private final Supplier<ComponentLog> loggerSupplier;
     private final Map<String, BranchState> branchStates = new ConcurrentHashMap<>();
     private final AtomicLong headChecks = new AtomicLong();
+
+    GitBranchStateCache(final Supplier<ComponentLog> loggerSupplier) {
+        this.loggerSupplier = loggerSupplier;
+    }
 
     /**
      * Gets the state of the branch at its current head. When the head moved since the state was read, the values for
@@ -79,7 +86,7 @@ final class GitBranchStateCache {
 
         final BranchState currentState = new BranchState(repositoryClient, headSha, headCheck);
         if (previousStateUsable) {
-            getChangedPaths(repositoryClient, state.headSha, headSha).ifPresent(paths -> currentState.retainUnchanged(state, paths));
+            getChangedPaths(repositoryClient, branch, state.headSha, headSha).ifPresent(paths -> currentState.retainUnchanged(state, paths));
         }
         branchStates.put(branch, currentState);
         return currentState;
@@ -87,10 +94,11 @@ final class GitBranchStateCache {
 
     // A failed comparison, such as Not Found when the previous head was removed by a force push, leaves the touched
     // files unknown, so the new state starts empty
-    private static Optional<Set<String>> getChangedPaths(final GitRepositoryClient repositoryClient, final String fromCommitSha, final String toCommitSha) {
+    private Optional<Set<String>> getChangedPaths(final GitRepositoryClient repositoryClient, final String branch, final String fromCommitSha, final String toCommitSha) {
         try {
             return repositoryClient.getChangedPaths(fromCommitSha, toCommitSha);
         } catch (final IOException | FlowRegistryException e) {
+            loggerSupplier.get().debug("Paths changed on branch [{}] from [{}] to [{}] could not be determined, dropping every cached value", branch, fromCommitSha, toCommitSha, e);
             return Optional.empty();
         }
     }
