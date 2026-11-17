@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processors.standard.ControlRate.MAX_FLOW_FILES_PER_BATCH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -480,6 +481,47 @@ public class TestControlRate {
         runner.assertTransferCount(ControlRate.REL_SUCCESS, 8);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueEmpty();
+    }
+
+
+    @Test
+    public void testRemoveExpiredThrottles() {
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.DATA_OR_FLOWFILE_RATE);
+        runner.setProperty(ControlRate.MAX_COUNT_RATE, "3");
+        runner.setProperty(ControlRate.MAX_DATA_RATE, "10 MB");
+
+        long timePeriodMillis = runner.getProcessContext().getProperty(ControlRate.TIME_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
+
+        runner.enqueue("test data 1");
+        runner.enqueue("test data 2");
+        runner.enqueue("test data 3");
+
+        runner.run(1, false);
+
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 3);
+        runner.clearTransferState();
+
+        // One throttle should have been created for the initial batch of 3
+        assertEquals(1, controlRate.getCountThrottleMap().size());
+        assertEquals(1, controlRate.getDataThrottleMap().size());
+
+        // Increment one time period ...
+        incrementCurrentTime(timePeriodMillis);
+
+        runner.run(1, false);
+
+        // ... No throttles should have been cleared
+        assertEquals(1, controlRate.getCountThrottleMap().size());
+        assertEquals(1, controlRate.getDataThrottleMap().size());
+
+        // Advance an additional two time periods ...
+        incrementCurrentTime(timePeriodMillis * 2);
+
+        runner.run(1, false);
+
+        // ... Should now be outside the window so the throttle will have been cleared
+        assertEquals(0, controlRate.getCountThrottleMap().size());
+        assertEquals(0, controlRate.getDataThrottleMap().size());
     }
 
     @Test
