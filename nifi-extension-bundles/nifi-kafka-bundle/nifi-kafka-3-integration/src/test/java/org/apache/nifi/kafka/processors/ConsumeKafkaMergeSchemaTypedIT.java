@@ -175,7 +175,7 @@ class ConsumeKafkaMergeSchemaTypedIT extends AbstractConsumeKafkaIT {
         final Map<String, Object> values = new LinkedHashMap<>();
         for (final Schema.Field field : record.getSchema().getFields()) {
             final Object value = record.get(field.name());
-            values.put(field.name(), value instanceof org.apache.avro.util.Utf8 utf8 ? utf8.toString() : value);
+            values.put(field.name(), value instanceof final org.apache.avro.util.Utf8 utf8 ? utf8.toString() : value);
         }
         return values;
     }

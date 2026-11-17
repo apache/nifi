@@ -932,7 +932,7 @@ public class FlowDifferenceFilters {
      * group get no suppression.
      */
     private static Set<String> computeAncestorControllerServiceIds(final VersionedProcessGroup localGroup, final FlowManager flowManager) {
-        if (flowManager == null || !(localGroup instanceof InstantiatedVersionedProcessGroup instantiatedGroup)) {
+        if (flowManager == null || !(localGroup instanceof final InstantiatedVersionedProcessGroup instantiatedGroup)) {
             return Collections.emptySet();
         }
 

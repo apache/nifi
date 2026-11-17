@@ -153,5 +153,6 @@
         <module name="TypecastParenPad"/>
         <module name="UnusedLocalVariable"/>
         <module name="InnerAssignment"/>
+        <module name="FinalPatternVariable"/>
     </module>
 </module>

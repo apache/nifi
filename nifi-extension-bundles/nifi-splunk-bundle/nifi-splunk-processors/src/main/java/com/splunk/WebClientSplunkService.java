@@ -76,7 +76,7 @@ public class WebClientSplunkService extends Service {
 
         final HttpRequestBodySpec requestSpec = webClientService.method(requestMethod).uri(uri);
         final Object content = request.getContent();
-        if (content instanceof String body) {
+        if (content instanceof final String body) {
             requestSpec.body(body);
         }
 

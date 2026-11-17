@@ -443,7 +443,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
                 final boolean frameworkDefault = !originalProperties.containsKey(propertyName)
                         && !migratedProperties.containsKey(propertyName)
                         && requiredDefaults.containsKey(propertyName)
-                        && propertyValue instanceof StringLiteralValue stringLiteral
+                        && propertyValue instanceof final StringLiteralValue stringLiteral
                         && Objects.equals(requiredDefault, stringLiteral.getValue());
                 if (!frameworkDefault) {
                     comparableProperties.put(propertyName, propertyValue);

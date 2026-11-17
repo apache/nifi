@@ -105,7 +105,7 @@ public class StandardConnectorStepPropertyConfiguration implements ConnectorStep
         if (reference == null) {
             return false;
         }
-        if (reference instanceof StringLiteralValue literal) {
+        if (reference instanceof final StringLiteralValue literal) {
             return literal.getValue() != null;
         }
         return true;
@@ -145,7 +145,7 @@ public class StandardConnectorStepPropertyConfiguration implements ConnectorStep
             return Optional.empty();
         }
         final ConnectorValueReference reference = properties.get(propertyName);
-        if (reference instanceof StringLiteralValue literal) {
+        if (reference instanceof final StringLiteralValue literal) {
             return Optional.ofNullable(literal.getValue());
         }
         return Optional.empty();
@@ -168,7 +168,7 @@ public class StandardConnectorStepPropertyConfiguration implements ConnectorStep
         }
         final Map<String, String> literals = new HashMap<>();
         for (final Map.Entry<String, ConnectorValueReference> entry : properties.entrySet()) {
-            if (entry.getValue() instanceof StringLiteralValue literal) {
+            if (entry.getValue() instanceof final StringLiteralValue literal) {
                 literals.put(entry.getKey(), literal.getValue());
             }
         }

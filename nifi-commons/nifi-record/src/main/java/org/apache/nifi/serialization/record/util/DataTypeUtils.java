@@ -1295,11 +1295,11 @@ public class DataTypeUtils {
             return true;
         }
 
-        if (value instanceof byte[] bytes) {
+        if (value instanceof final byte[] bytes) {
             return bytes.length == 16;
         }
 
-        if (value instanceof Byte[] array) {
+        if (value instanceof final Byte[] array) {
             return array.length == 16;
         }
 

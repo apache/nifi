@@ -37,7 +37,7 @@ public class ComponentAddedRebaseHandler implements RebaseHandler {
     public RebaseAnalysis.ClassifiedDifference classify(final FlowDifference localDifference, final Set<FlowDifference> upstreamDifferences,
                                                         final VersionedProcessGroup targetSnapshot) {
         final VersionedComponent addedComponent = localDifference.getComponentB();
-        if (!(addedComponent instanceof VersionedControllerService controllerService)) {
+        if (!(addedComponent instanceof final VersionedControllerService controllerService)) {
             final String componentType = addedComponent == null ? NULL_COMPONENT_TYPE : addedComponent.getClass().getSimpleName();
             return RebaseAnalysis.ClassifiedDifference.unsupported(localDifference, RebaseConflictCode.UNSUPPORTED_COMPONENT_TYPE,
                     "Local component addition type %s is not supported for rebase".formatted(componentType));

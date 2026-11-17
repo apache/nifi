@@ -211,7 +211,7 @@ public class PutSmbFile extends AbstractProcessor {
 
     @OnStopped
     public void onStopped() {
-        if (clientProvider instanceof SmbjClientProvider smbjClientProvider) {
+        if (clientProvider instanceof final SmbjClientProvider smbjClientProvider) {
             smbjClientProvider.close();
         }
         clientProvider = null;
