@@ -240,6 +240,14 @@ public class ControlRate extends AbstractProcessor {
     private volatile String groupingAttributeName = null;
     private volatile int timePeriodSeconds = 1;
 
+    ConcurrentMap<String, Throttle> getDataThrottleMap() {
+        return dataThrottleMap;
+    }
+
+    ConcurrentMap<String, Throttle> getCountThrottleMap() {
+        return countThrottleMap;
+    }
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -413,31 +421,33 @@ public class ControlRate extends AbstractProcessor {
         // Periodically clear any Throttle that has not been used in more than 2 throttling periods
         final long lastClearTime = lastThrottleClearTime.get();
         final long throttleExpirationMillis = getCurrentTimeMillis() - 2 * context.getProperty(TIME_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
+        // Throttle ourselves to see if we should actually clear old throttles
         if (lastClearTime < throttleExpirationMillis) {
             if (lastThrottleClearTime.compareAndSet(lastClearTime, getCurrentTimeMillis())) {
                 if (dataThrottleRequired()) {
-                    filterThrottleMap(dataThrottleMap, lastClearTime);
+                    removeExpiredThrottles(dataThrottleMap, throttleExpirationMillis);
                 }
                 if (countThrottleRequired()) {
-                    filterThrottleMap(countThrottleMap, lastClearTime);
+                    removeExpiredThrottles(countThrottleMap, throttleExpirationMillis);
                 }
             }
         }
     }
 
     /**
-     * Loop over the entries in a throttleMap and clear out any that have a lastUpdateTime less than lastClearTime
-     * @param throttleMap the throttleMap to be filtered
-     * @param lastClearTime threshold of lastUpdateTime of the throttle entries in the map
+     * Loop over the entries in a throttleMap and clear out any that have a lastUpdateTime less than expirationCutoffTime
+     * @param throttleMap the throttleMap to be cleaned
+     * @param expirationCutoffTime timestamp after which a throttle is considered expired
      */
-    private void filterThrottleMap(final ConcurrentMap<String, Throttle> throttleMap, final long lastClearTime) {
+    private void removeExpiredThrottles(final ConcurrentMap<String, Throttle> throttleMap, final long expirationCutoffTime) {
         final Iterator<Map.Entry<String, Throttle>> itr = throttleMap.entrySet().iterator();
         while (itr.hasNext()) {
             final Map.Entry<String, Throttle> entry = itr.next();
             final Throttle throttle = entry.getValue();
             if (throttle.tryLock()) {
                 try {
-                    if (throttle.lastUpdateTime() < lastClearTime) {
+                    // if a throttle was last updated after the cutoff, remove it
+                    if (throttle.lastUpdateTime() < expirationCutoffTime) {
                         itr.remove();
                     }
                 } finally {
