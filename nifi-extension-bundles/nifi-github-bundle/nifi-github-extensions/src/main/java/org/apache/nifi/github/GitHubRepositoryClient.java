@@ -446,9 +446,9 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
     /**
      * Gets the paths touched from one commit to a later one with a single compare request, when the later commit is
-     * the only commit after the earlier one. Between two checks of the branch head this is the common case; any other
-     * range is not resolved, because the compared files are only the net difference of the range and would miss a file
-     * changed and then reverted within it.
+     * the only commit after the earlier one, as for a direct commit to the branch. Any other range, such as the merge
+     * of a pull request with its own commits, is not resolved, because the compared files are only the net difference
+     * of the range and would miss a file changed and then reverted within it.
      *
      * @param fromCommitSha the SHA of the earlier commit
      * @param toCommitSha the SHA of the later commit
@@ -489,10 +489,12 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     }
 
     private static Optional<String> getRelativePath(final String path, final String repoPath) {
-        if (repoPath == null) {
+        // Compared paths never start with a slash, while the configured repository path may start or end with one
+        final String normalizedRepoPath = repoPath == null ? "" : StringUtils.strip(repoPath, "/");
+        if (normalizedRepoPath.isEmpty()) {
             return Optional.of(path);
         }
-        final String prefix = repoPath + "/";
+        final String prefix = normalizedRepoPath + "/";
         return path.startsWith(prefix) ? Optional.of(path.substring(prefix.length())) : Optional.empty();
     }
 

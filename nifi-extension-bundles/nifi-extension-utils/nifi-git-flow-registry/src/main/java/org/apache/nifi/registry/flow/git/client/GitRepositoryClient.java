@@ -118,6 +118,7 @@ public interface GitRepositoryClient {
      * @return the SHA of the latest commit for the path, or empty when no commit changed the path
      * @throws IOException if an I/O error occurs
      * @throws FlowRegistryException if a non-I/O error occurs
+     * @throws UnsupportedOperationException if the client does not return a branch head from {@link #getBranchHeadSha(String)}
      */
     default Optional<String> getLatestCommitShaAtCommit(String path, String commitSha) throws IOException, FlowRegistryException {
         throw new UnsupportedOperationException("Latest commit from a given commit not supported by " + getClass().getSimpleName());

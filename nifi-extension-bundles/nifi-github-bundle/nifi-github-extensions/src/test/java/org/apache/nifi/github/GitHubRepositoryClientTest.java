@@ -191,6 +191,13 @@ class GitHubRepositoryClientTest {
     }
 
     @Test
+    void testGetChangedPathsWithSlashesAroundRepositoryPath() {
+        final GHCompare compare = mockCompare(GHCompare.Status.ahead, 1, mockFile("flows/bucket/changed.json", null));
+
+        assertEquals(Optional.of(Set.of("bucket/changed.json")), GitHubRepositoryClient.getChangedPaths(compare, "/flows/"));
+    }
+
+    @Test
     void testGetChangedPathsUnknownWhenMoreThanOneCommit() {
         // The compared files are the net difference: a file changed by one commit and reverted by the next is not listed
         final GHCompare compare = mockCompare(GHCompare.Status.ahead, 2, mockFile("bucket/other.json", null));

@@ -17,6 +17,9 @@
 package org.apache.nifi.github;
 
 import org.junit.jupiter.api.Test;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.connector.GitHubConnector;
 import org.kohsuke.github.connector.GitHubConnectorRequest;
 import org.kohsuke.github.connector.GitHubConnectorResponse;
@@ -53,6 +56,14 @@ class ConditionalBranchReferenceConnectorTest {
     private static final String HEAD_2_ENTITY_TAG = "W/\"head-2\"";
     private static final String HEAD_1_BODY = "{\"object\":{\"sha\":\"head-1\"}}";
     private static final String HEAD_2_BODY = "{\"object\":{\"sha\":\"head-2\"}}";
+    private static final String API_URL = "https://api.github.com";
+    private static final String BRANCH_REFERENCE = "refs/heads/main";
+    private static final String REPOSITORY_BODY = """
+            {"name": "repo", "full_name": "owner/repo", "url": "https://api.github.com/repos/owner/repo", "owner": {"login": "owner"}}
+            """;
+    private static final String REFERENCE_BODY = """
+            {"ref": "refs/heads/main", "url": "https://api.github.com/repos/owner/repo/git/refs/heads/main", "object": {"sha": "head-1", "type": "commit"}}
+            """;
 
     private final RecordingConnector recordingConnector = new RecordingConnector();
     private final ConditionalBranchReferenceConnector connector = new ConditionalBranchReferenceConnector(recordingConnector);
@@ -101,6 +112,34 @@ class ConditionalBranchReferenceConnectorTest {
         readBody(connector.send(new TestRequest(GET_METHOD, BRANCH_REFERENCE_URL)));
 
         assertNull(recordingConnector.getRequest(2).header(IF_NONE_MATCH_HEADER));
+    }
+
+    @Test
+    void testRateLimitedReferenceRequestKeepsStoredBody() throws IOException {
+        recordingConnector.respond(HttpURLConnection.HTTP_OK, Map.of(ENTITY_TAG_HEADER, List.of(HEAD_1_ENTITY_TAG)), HEAD_1_BODY);
+        recordingConnector.respond(HttpURLConnection.HTTP_FORBIDDEN, Map.of(), "");
+        recordingConnector.respond(HttpURLConnection.HTTP_NOT_MODIFIED, Map.of(), "");
+
+        readBody(connector.send(new TestRequest(GET_METHOD, BRANCH_REFERENCE_URL)));
+        assertEquals(HttpURLConnection.HTTP_FORBIDDEN, connector.send(new TestRequest(GET_METHOD, BRANCH_REFERENCE_URL)).statusCode());
+        assertEquals(HEAD_1_BODY, readBody(connector.send(new TestRequest(GET_METHOD, BRANCH_REFERENCE_URL))));
+
+        assertEquals(HEAD_1_ENTITY_TAG, recordingConnector.getRequest(2).header(IF_NONE_MATCH_HEADER));
+    }
+
+    @Test
+    void testGitHubReadsBranchHeadFromNotModifiedAnswer() throws IOException {
+        recordingConnector.respond(HttpURLConnection.HTTP_OK, Map.of(), REPOSITORY_BODY);
+        recordingConnector.respond(HttpURLConnection.HTTP_OK, Map.of(ENTITY_TAG_HEADER, List.of(HEAD_1_ENTITY_TAG)), REFERENCE_BODY);
+        recordingConnector.respond(HttpURLConnection.HTTP_NOT_MODIFIED, Map.of(), "");
+        final GitHub gitHub = new GitHubBuilder().withEndpoint(API_URL).withConnector(connector).build();
+        final GHRepository repository = gitHub.getRepository("owner/repo");
+
+        assertEquals("head-1", repository.getRef(BRANCH_REFERENCE).getObject().getSha());
+        assertEquals("head-1", repository.getRef(BRANCH_REFERENCE).getObject().getSha());
+
+        assertEquals(BRANCH_REFERENCE_URL, recordingConnector.getRequest(2).url().toString());
+        assertEquals(HEAD_1_ENTITY_TAG, recordingConnector.getRequest(2).header(IF_NONE_MATCH_HEADER));
     }
 
     @Test

@@ -23,12 +23,14 @@ import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowVersionInfo;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 /**
@@ -48,7 +50,7 @@ final class GitBranchStateCache {
 
     private final Supplier<ComponentLog> loggerSupplier;
     private final Map<String, BranchState> branchStates = new ConcurrentHashMap<>();
-    private final AtomicLong headChecks = new AtomicLong();
+    private final Map<String, Lock> branchLocks = new ConcurrentHashMap<>();
 
     GitBranchStateCache(final Supplier<ComponentLog> loggerSupplier) {
         this.loggerSupplier = loggerSupplier;
@@ -63,7 +65,6 @@ final class GitBranchStateCache {
      * @return the state of the branch, or empty when the repository client cannot report the branch head
      */
     Optional<BranchState> getState(final GitRepositoryClient repositoryClient, final String branch) throws IOException, FlowRegistryException {
-        final long headCheck = headChecks.incrementAndGet();
         final Optional<String> headSha = repositoryClient.getBranchHeadSha(branch);
         if (headSha.isEmpty()) {
             return Optional.empty();
@@ -73,23 +74,31 @@ final class GitBranchStateCache {
         if (state != null && state.isReadWith(repositoryClient) && state.headSha.equals(headSha.get())) {
             return Optional.of(state);
         }
-        return Optional.of(moveState(repositoryClient, branch, headSha.get(), headCheck));
+        return Optional.of(moveState(repositoryClient, branch, headSha.get()));
     }
 
-    private synchronized BranchState moveState(final GitRepositoryClient repositoryClient, final String branch, final String headSha, final long headCheck) {
-        final BranchState state = branchStates.get(branch);
-        final boolean previousStateUsable = state != null && state.isReadWith(repositoryClient);
-        // A call that checked the head later may already have moved the state, possibly past this head
-        if (previousStateUsable && (state.headSha.equals(headSha) || state.headCheck > headCheck)) {
-            return state;
-        }
+    // Each call answers for the head it saw. Concurrent calls that saw different heads may move the state back and forth,
+    // which costs reads but never answers a value for another head. The lock only spares concurrent calls that saw the
+    // same new head from comparing the heads more than once.
+    private BranchState moveState(final GitRepositoryClient repositoryClient, final String branch, final String headSha) {
+        final Lock branchLock = branchLocks.computeIfAbsent(branch, key -> new ReentrantLock());
+        branchLock.lock();
+        try {
+            final BranchState state = branchStates.get(branch);
+            final boolean previousStateUsable = state != null && state.isReadWith(repositoryClient);
+            if (previousStateUsable && state.headSha.equals(headSha)) {
+                return state;
+            }
 
-        final BranchState currentState = new BranchState(repositoryClient, headSha, headCheck);
-        if (previousStateUsable) {
-            getChangedPaths(repositoryClient, branch, state.headSha, headSha).ifPresent(paths -> currentState.retainUnchanged(state, paths));
+            final BranchState currentState = new BranchState(repositoryClient, headSha);
+            if (previousStateUsable) {
+                getChangedPaths(repositoryClient, branch, state.headSha, headSha).ifPresent(paths -> currentState.retainUnchanged(state, paths));
+            }
+            branchStates.put(branch, currentState);
+            return currentState;
+        } finally {
+            branchLock.unlock();
         }
-        branchStates.put(branch, currentState);
-        return currentState;
     }
 
     // A failed comparison, such as Not Found when the previous head was removed by a force push, leaves the touched
@@ -97,8 +106,11 @@ final class GitBranchStateCache {
     private Optional<Set<String>> getChangedPaths(final GitRepositoryClient repositoryClient, final String branch, final String fromCommitSha, final String toCommitSha) {
         try {
             return repositoryClient.getChangedPaths(fromCommitSha, toCommitSha);
+        } catch (final FileNotFoundException e) {
+            loggerSupplier.get().debug("Paths changed on branch [{}] from [{}] to [{}] not found, dropping every cached value", branch, fromCommitSha, toCommitSha, e);
+            return Optional.empty();
         } catch (final IOException | FlowRegistryException e) {
-            loggerSupplier.get().debug("Paths changed on branch [{}] from [{}] to [{}] could not be determined, dropping every cached value", branch, fromCommitSha, toCommitSha, e);
+            loggerSupplier.get().warn("Paths changed on branch [{}] from [{}] to [{}] could not be determined, dropping every cached value", branch, fromCommitSha, toCommitSha, e);
             return Optional.empty();
         }
     }
@@ -122,14 +134,12 @@ final class GitBranchStateCache {
     static final class BranchState {
         private final GitRepositoryClient repositoryClient;
         private final String headSha;
-        private final long headCheck;
         private final Map<String, LatestVersion> latestVersions = new ConcurrentHashMap<>();
         private final Map<String, RegisteredFlow> flows = new ConcurrentHashMap<>();
 
-        private BranchState(final GitRepositoryClient repositoryClient, final String headSha, final long headCheck) {
+        private BranchState(final GitRepositoryClient repositoryClient, final String headSha) {
             this.repositoryClient = repositoryClient;
             this.headSha = headSha;
-            this.headCheck = headCheck;
         }
 
         /**

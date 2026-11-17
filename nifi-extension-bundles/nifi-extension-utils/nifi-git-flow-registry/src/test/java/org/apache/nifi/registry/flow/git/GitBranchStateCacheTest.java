@@ -28,6 +28,7 @@ import java.io.FileNotFoundException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -113,20 +114,29 @@ class GitBranchStateCacheTest {
     }
 
     @Test
-    void testStateFromLaterHeadCheckIsKept() throws Exception {
-        // While this call waits for its head check, which answers head-1, another call checks the head later and
-        // moves the state to head-2: the older answer must not move the state back
+    void testEachCallAnswersForTheHeadItSaw() throws Exception {
+        cache.getState(repositoryClient, BRANCH).orElseThrow().putLatestVersion(UNCHANGED_PATH, Optional.of("commit-1"));
+
+        // While this call waits for its head check, another call sees the head moved to head-2 and moves the state there;
+        // this call's check is answered last, still with the earlier head-1
         final AtomicInteger headChecks = new AtomicInteger();
+        final AtomicReference<GitBranchStateCache.BranchState> laterState = new AtomicReference<>();
         when(repositoryClient.getBranchHeadSha(BRANCH)).thenAnswer(invocation -> {
             if (headChecks.incrementAndGet() > 1) {
                 return Optional.of("head-2");
             }
-            cache.getState(repositoryClient, BRANCH);
+            final GitBranchStateCache.BranchState state = cache.getState(repositoryClient, BRANCH).orElseThrow();
+            state.putLatestVersion(UNCHANGED_PATH, Optional.of("commit-2"));
+            laterState.set(state);
             return Optional.of("head-1");
         });
+        when(repositoryClient.getChangedPaths("head-1", "head-2")).thenReturn(Optional.of(Set.of()));
 
-        assertEquals("head-2", cache.getState(repositoryClient, BRANCH).orElseThrow().getHeadSha());
-        verify(repositoryClient, never()).getChangedPaths(anyString(), anyString());
+        final GitBranchStateCache.BranchState state = cache.getState(repositoryClient, BRANCH).orElseThrow();
+
+        assertEquals("head-2", laterState.get().getHeadSha());
+        assertEquals("head-1", state.getHeadSha());
+        assertTrue(state.getLatestVersion(UNCHANGED_PATH).isEmpty());
     }
 
     @Test

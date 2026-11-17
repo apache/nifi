@@ -74,7 +74,10 @@ final class ConditionalBranchReferenceConnector implements GitHubConnector {
 
         final String entityTag = response.header(ENTITY_TAG_HEADER);
         if (statusCode != HttpURLConnection.HTTP_OK || entityTag == null) {
-            storedResponses.remove(url);
+            // Keep the stored answer through transient failures such as rate limiting, so the next check stays conditional
+            if (statusCode == HttpURLConnection.HTTP_NOT_FOUND || statusCode == HttpURLConnection.HTTP_GONE) {
+                storedResponses.remove(url);
+            }
             return response;
         }
 
