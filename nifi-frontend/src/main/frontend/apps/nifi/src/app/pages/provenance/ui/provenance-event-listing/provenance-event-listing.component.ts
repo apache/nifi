@@ -217,6 +217,7 @@ export class ProvenanceEventListing implements OnInit, OnDestroy {
 
     clearBannerErrors(): void {
         this.store.dispatch(clearBannerErrors({ context: ErrorContextKey.PROVENANCE }));
+        this.store.dispatch(clearBannerErrors({ context: ErrorContextKey.LINEAGE }));
     }
 
     resetLineage(): void {
