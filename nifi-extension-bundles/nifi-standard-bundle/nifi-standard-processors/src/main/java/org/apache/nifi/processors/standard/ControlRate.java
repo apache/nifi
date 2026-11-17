@@ -435,9 +435,9 @@ public class ControlRate extends AbstractProcessor {
     }
 
     /**
-     * Loop over the entries in a throttleMap and clear out any that have a lastUpdateTime less than expirationCutoffTime
+     * Loop over the entries in a throttleMap and remove any that have a lastUpdateTime older than expirationCutoffTime
      * @param throttleMap the throttleMap to be cleaned
-     * @param expirationCutoffTime timestamp after which a throttle is considered expired
+     * @param expirationCutoffTime timestamp to use for determining expiration
      */
     private void removeExpiredThrottles(final ConcurrentMap<String, Throttle> throttleMap, final long expirationCutoffTime) {
         final Iterator<Map.Entry<String, Throttle>> itr = throttleMap.entrySet().iterator();
@@ -446,7 +446,6 @@ public class ControlRate extends AbstractProcessor {
             final Throttle throttle = entry.getValue();
             if (throttle.tryLock()) {
                 try {
-                    // if a throttle was last updated after the cutoff, remove it
                     if (throttle.lastUpdateTime() < expirationCutoffTime) {
                         itr.remove();
                     }
