@@ -178,7 +178,7 @@ public class KerberosUserIT {
         long currentTimeMillis = System.currentTimeMillis();
         long startMilli = kerberosTicket.getStartTime().toInstant().toEpochMilli();
         long endMilli = kerberosTicket.getEndTime().toInstant().toEpochMilli();
-        logger.info("New ticket is valid for {}", TimeUnit.MILLISECONDS.toSeconds(endMilli - startMilli) + " seconds");
+        logger.info("New ticket is valid for {} seconds", TimeUnit.MILLISECONDS.toSeconds(endMilli - startMilli));
         assertTrue(startMilli < currentTimeMillis);
         assertTrue(endMilli > currentTimeMillis);
     }
