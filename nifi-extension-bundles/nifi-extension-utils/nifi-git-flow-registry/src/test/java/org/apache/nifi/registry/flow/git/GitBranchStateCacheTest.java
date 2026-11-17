@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.flow.git;
 
+import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistryPermissions;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowVersionInfo;
@@ -27,12 +28,19 @@ import org.junit.jupiter.api.Test;
 import java.io.FileNotFoundException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -45,6 +53,7 @@ class GitBranchStateCacheTest {
     private static final String BRANCH = "main";
     private static final String CHANGED_PATH = "bucket/changed.json";
     private static final String UNCHANGED_PATH = "bucket/unchanged.json";
+    private static final long WAIT_SECONDS = 5;
 
     private GitRepositoryClient repositoryClient;
     private GitBranchStateCache cache;
@@ -111,6 +120,64 @@ class GitBranchStateCacheTest {
 
         assertSame(state, cache.getState(repositoryClient, BRANCH).orElseThrow());
         verify(repositoryClient, times(1)).getChangedPaths(anyString(), anyString());
+    }
+
+    @Test
+    void testRuntimeFailureOfComparisonDropsEverythingAndMovesToNewHead() throws Exception {
+        cache.getState(repositoryClient, BRANCH).orElseThrow().putLatestVersion(UNCHANGED_PATH, Optional.of("commit-1"));
+
+        when(repositoryClient.getBranchHeadSha(BRANCH)).thenReturn(Optional.of("head-2"));
+        when(repositoryClient.getChangedPaths("head-1", "head-2")).thenThrow(new IllegalStateException("Comparison failed"));
+
+        final GitBranchStateCache.BranchState state = cache.getState(repositoryClient, BRANCH).orElseThrow();
+        assertEquals("head-2", state.getHeadSha());
+        assertTrue(state.getLatestVersion(UNCHANGED_PATH).isEmpty());
+
+        assertSame(state, cache.getState(repositoryClient, BRANCH).orElseThrow());
+        verify(repositoryClient, times(1)).getChangedPaths(anyString(), anyString());
+    }
+
+    @Test
+    void testRuntimeFailureOfHeadCheckIsRegistryFailure() throws Exception {
+        when(repositoryClient.getBranchHeadSha(BRANCH)).thenThrow(new UnsupportedOperationException("Not supported"));
+
+        final FlowRegistryException exception = assertThrows(FlowRegistryException.class, () -> cache.getState(repositoryClient, BRANCH));
+        assertInstanceOf(UnsupportedOperationException.class, exception.getCause());
+    }
+
+    @Test
+    void testComparisonDoesNotHoldOtherCallsForTheBranch() throws Exception {
+        cache.getState(repositoryClient, BRANCH).orElseThrow().putLatestVersion(UNCHANGED_PATH, Optional.of("commit-1"));
+
+        when(repositoryClient.getBranchHeadSha(BRANCH)).thenReturn(Optional.of("head-2"));
+        final CountDownLatch comparisonStarted = new CountDownLatch(1);
+        final CountDownLatch comparisonReleased = new CountDownLatch(1);
+        final AtomicInteger comparisons = new AtomicInteger();
+        when(repositoryClient.getChangedPaths("head-1", "head-2")).thenAnswer(invocation -> {
+            if (comparisons.incrementAndGet() == 1) {
+                comparisonStarted.countDown();
+                comparisonReleased.await(WAIT_SECONDS, TimeUnit.SECONDS);
+            }
+            return Optional.of(Set.of());
+        });
+
+        final ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            final Future<GitBranchStateCache.BranchState> slowCall = executor.submit(() -> cache.getState(repositoryClient, BRANCH).orElseThrow());
+            assertTrue(comparisonStarted.await(WAIT_SECONDS, TimeUnit.SECONDS));
+
+            // Answered while the first comparison is still running
+            final Future<GitBranchStateCache.BranchState> otherCall = executor.submit(() -> cache.getState(repositoryClient, BRANCH).orElseThrow());
+            final GitBranchStateCache.BranchState state = otherCall.get(WAIT_SECONDS, TimeUnit.SECONDS);
+            assertEquals("head-2", state.getHeadSha());
+            assertEquals(Optional.of("commit-1"), state.getLatestVersion(UNCHANGED_PATH).orElseThrow().toOptional());
+
+            comparisonReleased.countDown();
+            assertSame(state, slowCall.get(WAIT_SECONDS, TimeUnit.SECONDS));
+        } finally {
+            comparisonReleased.countDown();
+            executor.shutdownNow();
+        }
     }
 
     @Test

@@ -584,9 +584,20 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
 
         // Read at the head commit of the state, so the remembered version matches the head it is answered for
         final GitBranchStateCache.BranchState state = branchState.get();
-        final Optional<String> latestVersion = repositoryClient.getLatestCommitShaAtCommit(filePath, state.getHeadSha());
+        final Optional<String> latestVersion = getLatestCommitShaAtCommit(repositoryClient, filePath, state.getHeadSha());
         state.putLatestVersion(filePath, latestVersion);
         return latestVersion;
+    }
+
+    // A client that returns a branch head must implement this method, so a runtime failure such as an unsupported operation
+    // is reported as a registry failure
+    private Optional<String> getLatestCommitShaAtCommit(final GitRepositoryClient repositoryClient, final String filePath, final String commitSha)
+            throws IOException, FlowRegistryException {
+        try {
+            return repositoryClient.getLatestCommitShaAtCommit(filePath, commitSha);
+        } catch (final RuntimeException e) {
+            throw new FlowRegistryException("Failed to get the latest commit of [%s] from commit [%s]".formatted(filePath, commitSha), e);
+        }
     }
 
     @Override

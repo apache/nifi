@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 /**
@@ -50,7 +48,6 @@ final class GitBranchStateCache {
 
     private final Supplier<ComponentLog> loggerSupplier;
     private final Map<String, BranchState> branchStates = new ConcurrentHashMap<>();
-    private final Map<String, Lock> branchLocks = new ConcurrentHashMap<>();
 
     GitBranchStateCache(final Supplier<ComponentLog> loggerSupplier) {
         this.loggerSupplier = loggerSupplier;
@@ -65,7 +62,7 @@ final class GitBranchStateCache {
      * @return the state of the branch, or empty when the repository client cannot report the branch head
      */
     Optional<BranchState> getState(final GitRepositoryClient repositoryClient, final String branch) throws IOException, FlowRegistryException {
-        final Optional<String> headSha = repositoryClient.getBranchHeadSha(branch);
+        final Optional<String> headSha = getBranchHeadSha(repositoryClient, branch);
         if (headSha.isEmpty()) {
             return Optional.empty();
         }
@@ -74,31 +71,37 @@ final class GitBranchStateCache {
         if (state != null && state.isReadWith(repositoryClient) && state.headSha.equals(headSha.get())) {
             return Optional.of(state);
         }
-        return Optional.of(moveState(repositoryClient, branch, headSha.get()));
+        return Optional.of(moveState(repositoryClient, branch, state, headSha.get()));
     }
 
-    // Each call answers for the head it saw. Concurrent calls that saw different heads may move the state back and forth,
-    // which costs reads but never answers a value for another head. The lock only spares concurrent calls that saw the
-    // same new head from comparing the heads more than once.
-    private BranchState moveState(final GitRepositoryClient repositoryClient, final String branch, final String headSha) {
-        final Lock branchLock = branchLocks.computeIfAbsent(branch, key -> new ReentrantLock());
-        branchLock.lock();
+    // A client that returns a branch head is expected to answer for it, so a runtime failure is reported as a registry failure
+    private static Optional<String> getBranchHeadSha(final GitRepositoryClient repositoryClient, final String branch) throws IOException, FlowRegistryException {
         try {
-            final BranchState state = branchStates.get(branch);
-            final boolean previousStateUsable = state != null && state.isReadWith(repositoryClient);
-            if (previousStateUsable && state.headSha.equals(headSha)) {
-                return state;
+            return repositoryClient.getBranchHeadSha(branch);
+        } catch (final RuntimeException e) {
+            throw new FlowRegistryException("Failed to get the head commit of branch [%s]".formatted(branch), e);
+        }
+    }
+
+    // Each call answers for the head it saw. The heads are compared before the state is replaced, so no call waits for
+    // another call's comparison: concurrent calls that saw the same new head may each compare the heads, and calls that
+    // saw different heads may move the state back and forth, which costs requests but never answers a value for another head.
+    private BranchState moveState(final GitRepositoryClient repositoryClient, final String branch, final BranchState previousState, final String headSha) {
+        final boolean previousStateUsable = previousState != null && previousState.isReadWith(repositoryClient);
+        final Optional<Set<String>> changedPaths = previousStateUsable
+                ? getChangedPaths(repositoryClient, branch, previousState.headSha, headSha)
+                : Optional.empty();
+
+        return branchStates.compute(branch, (key, currentState) -> {
+            if (currentState != null && currentState.isReadWith(repositoryClient) && currentState.headSha.equals(headSha)) {
+                return currentState;
             }
 
-            final BranchState currentState = new BranchState(repositoryClient, headSha);
-            if (previousStateUsable) {
-                getChangedPaths(repositoryClient, branch, state.headSha, headSha).ifPresent(paths -> currentState.retainUnchanged(state, paths));
-            }
-            branchStates.put(branch, currentState);
-            return currentState;
-        } finally {
-            branchLock.unlock();
-        }
+            // Values of the previous state were read at its head, so those for files not touched since are valid at the new head
+            final BranchState movedState = new BranchState(repositoryClient, headSha);
+            changedPaths.ifPresent(paths -> movedState.retainUnchanged(previousState, paths));
+            return movedState;
+        });
     }
 
     // A failed comparison, such as Not Found when the previous head was removed by a force push, leaves the touched
@@ -109,7 +112,7 @@ final class GitBranchStateCache {
         } catch (final FileNotFoundException e) {
             loggerSupplier.get().debug("Paths changed on branch [{}] from [{}] to [{}] not found, dropping every cached value", branch, fromCommitSha, toCommitSha, e);
             return Optional.empty();
-        } catch (final IOException | FlowRegistryException e) {
+        } catch (final IOException | FlowRegistryException | RuntimeException e) {
             loggerSupplier.get().warn("Paths changed on branch [{}] from [{}] to [{}] could not be determined, dropping every cached value", branch, fromCommitSha, toCommitSha, e);
             return Optional.empty();
         }
