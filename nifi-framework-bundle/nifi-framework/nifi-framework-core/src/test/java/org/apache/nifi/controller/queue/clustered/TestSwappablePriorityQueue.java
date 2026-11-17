@@ -17,8 +17,10 @@
 
 package org.apache.nifi.controller.queue.clustered;
 
+import org.apache.nifi.controller.FileSystemSwapManager;
 import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.MockSwapManager;
+import org.apache.nifi.controller.TestFileSystemSwapManager;
 import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -29,6 +31,9 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.SelectiveDropResult;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.FlowFileRepository;
+import org.apache.nifi.controller.repository.SwapManagerInitializationContext;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
@@ -37,10 +42,12 @@ import org.apache.nifi.util.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -56,6 +63,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -617,22 +625,27 @@ public class TestSwappablePriorityQueue {
             return Integer.compare(i1, i2);
         };
 
-        // Before a restart, the active queue held the oldest FlowFiles, a swap file held the next 100, and the in-memory swap queue held the newest 50.
+        // Before a restart, the active queue held the oldest FlowFiles, a swap file (if any) held the next ones, and the in-memory swap queue held the newest 50.
         // On restart, the active and in-memory swap queue FlowFiles are restored newest first, and then the swap file is recovered.
-        for (final int activeCount : new int[] {40, 80}) {
+        // Without a swap file, more FlowFiles are restored than the active queue can hold, so the newest restored FlowFiles fill the active queue first.
+        for (final int[] counts : new int[][] {{40, 100}, {80, 100}, {80, 0}}) {
+            final int activeCount = counts[0];
+            final int swappedCount = counts[1];
             swapManager = new MockSwapManager();
             queue = new SwappablePriorityQueue(swapManager, 100, eventReporter, flowFileQueue, dropAction, "local");
             queue.setPriorities(List.of(iAttributePrioritizer));
 
-            final List<FlowFileRecord> swappedFlowFiles = new ArrayList<>();
-            for (int i = activeCount; i < activeCount + 100; i++) {
-                swappedFlowFiles.add(new MockFlowFileRecord(Map.of("i", String.valueOf(i)), 1L));
+            if (swappedCount > 0) {
+                final List<FlowFileRecord> swappedFlowFiles = new ArrayList<>();
+                for (int i = activeCount; i < activeCount + swappedCount; i++) {
+                    swappedFlowFiles.add(new MockFlowFileRecord(Map.of("i", String.valueOf(i)), 1L));
+                }
+                swapManager.swapOut(swappedFlowFiles, flowFileQueue, "local");
             }
-            swapManager.swapOut(swappedFlowFiles, flowFileQueue, "local");
 
-            final int totalCount = activeCount + 150;
+            final int totalCount = activeCount + swappedCount + 50;
             for (int i = totalCount - 1; i >= 0; i--) {
-                if (i < activeCount || i >= activeCount + 100) {
+                if (i < activeCount || i >= activeCount + swappedCount) {
                     queue.put(new MockFlowFileRecord(Map.of("i", String.valueOf(i)), 1L));
                 }
             }
@@ -788,19 +801,32 @@ public class TestSwappablePriorityQueue {
     }
 
     @Test
-    public void testSelectiveDropPreservesSwapFileOrdering() throws IOException {
-        queue = new SwappablePriorityQueue(swapManager, 10, eventReporter, flowFileQueue, dropAction, "local");
+    public void testSelectiveDropPreservesSwapFileOrdering(@TempDir final Path flowFileRepositoryDirectory) throws IOException {
+        when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
+        final FlowFileRepository flowFileRepository = mock(FlowFileRepository.class);
+        when(flowFileRepository.isValidSwapLocationSuffix(anyString())).thenReturn(true);
+        final FileSystemSwapManager fileSystemSwapManager = createFileSystemSwapManager(flowFileRepositoryDirectory, flowFileRepository);
+        queue = new SwappablePriorityQueue(fileSystemSwapManager, 10, eventReporter, flowFileQueue, dropAction, "local");
 
         for (int i = 0; i < 30; i++) {
             queue.put(new MockFlowFileRecord(Map.of("index", Integer.toString(i)), 1L));
         }
 
-        assertEquals(2, swapManager.swappedOut.size());
+        assertEquals(2, fileSystemSwapManager.recoverSwapLocations(flowFileQueue, "local").size());
 
         final SelectiveDropResult result = queue.dropFlowFiles(flowFile -> "10".equals(flowFile.getAttribute("index")));
 
         assertEquals(1, result.getDroppedCount());
         assertEquals(1, result.getSwapLocationUpdates().size());
+        for (final String replacedSwapLocation : result.getSwapLocationUpdates().keySet()) {
+            fileSystemSwapManager.deleteSwapFile(replacedSwapLocation);
+        }
+
+        // On restart, the rewritten swap file must be recovered ahead of the swap file that holds FlowFiles 20 through 29
+        final FileSystemSwapManager restartedSwapManager = createFileSystemSwapManager(flowFileRepositoryDirectory, flowFileRepository);
+        final List<String> recoveredSwapLocations = restartedSwapManager.recoverSwapLocations(flowFileQueue, "local");
+        assertEquals(2, recoveredSwapLocations.size());
+        assertEquals(result.getSwapLocationUpdates().values().iterator().next(), recoveredSwapLocations.getFirst());
 
         final Set<FlowFileRecord> expired = new HashSet<>();
         for (int expectedIndex = 0; expectedIndex < 30; expectedIndex++) {
@@ -813,6 +839,29 @@ public class TestSwappablePriorityQueue {
             assertEquals(Integer.toString(expectedIndex), flowFile.getAttribute("index"));
         }
         assertNull(queue.poll(expired, 0L));
+    }
+
+    private FileSystemSwapManager createFileSystemSwapManager(final Path flowFileRepositoryDirectory, final FlowFileRepository flowFileRepository) {
+        final FileSystemSwapManager fileSystemSwapManager = new FileSystemSwapManager(flowFileRepositoryDirectory);
+        final ResourceClaimManager resourceClaimManager = new TestFileSystemSwapManager.NopResourceClaimManager();
+        fileSystemSwapManager.initialize(new SwapManagerInitializationContext() {
+            @Override
+            public ResourceClaimManager getResourceClaimManager() {
+                return resourceClaimManager;
+            }
+
+            @Override
+            public FlowFileRepository getFlowFileRepository() {
+                return flowFileRepository;
+            }
+
+            @Override
+            public EventReporter getEventReporter() {
+                return EventReporter.NO_OP;
+            }
+        });
+
+        return fileSystemSwapManager;
     }
 
     @Test

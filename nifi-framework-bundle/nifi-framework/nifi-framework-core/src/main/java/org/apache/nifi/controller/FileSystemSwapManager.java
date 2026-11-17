@@ -64,6 +64,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -86,6 +87,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
     private final File storageDirectory;
     private final FieldCache fieldCache = new CaffeineFieldCache(10_000_000);
+    private final AtomicLong swapFileCounter = new AtomicLong();
 
     // effectively final
     private FlowFileRepository flowFileRepository;
@@ -133,7 +135,26 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             return null;
         }
 
-        final String swapFileName = getSwapFileName(flowFileQueue.getIdentifier(), partitionName);
+        return writeSwapFile(toSwap, flowFileQueue, partitionName, System.currentTimeMillis(), swapFileCounter.incrementAndGet());
+    }
+
+    @Override
+    public String swapOut(final List<FlowFileRecord> toSwap, final FlowFileQueue flowFileQueue, final String partitionName, final String replacedSwapLocation) throws IOException {
+        if (toSwap == null || toSwap.isEmpty()) {
+            return null;
+        }
+
+        // Swap files are recovered in the order of the timestamp and counter in their names, so the new swap file takes those of the swap file that it replaces
+        final Long replacedTimestamp = getTimestampFromFilename(replacedSwapLocation);
+        if (replacedTimestamp == null) {
+            return swapOut(toSwap, flowFileQueue, partitionName);
+        }
+
+        return writeSwapFile(toSwap, flowFileQueue, partitionName, replacedTimestamp, getCounterFromFilename(replacedSwapLocation));
+    }
+
+    private String writeSwapFile(final List<FlowFileRecord> toSwap, final FlowFileQueue flowFileQueue, final String partitionName, final long timestamp, final long counter) throws IOException {
+        final String swapFileName = getSwapFileName(flowFileQueue.getIdentifier(), partitionName, timestamp, counter);
         final Path storageDirectoryPath = storageDirectory.toPath();
         final Path swapFilePath = storageDirectoryPath.resolve(swapFileName).toAbsolutePath();
 
@@ -293,8 +314,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                 continue;
             }
 
-            // split the filename by dashes. The old filenaming scheme was "<timestamp>-<randomuuid>.swap" but the new naming scheme is
-            // "<timestamp>-<queue identifier>-<random uuid>.[partition name.]swap".
+            // split the filename by dashes. The old filenaming scheme was "<timestamp>-<randomuuid>.swap" but newer naming schemes are
+            // "<timestamp>-<queue identifier>-<random uuid>.[partition name.]swap" and "<timestamp>-<queue identifier>-<counter>-<random uuid>.[partition name.]swap".
             final String ownerQueueId = getOwnerQueueIdentifier(swapFile);
             if (ownerQueueId != null) {
                 if (!ownerQueueId.equals(flowFileQueue.getIdentifier())) {
@@ -425,28 +446,56 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                 return timeComparisonValue;
             }
 
+            final int counterComparisonValue = Long.compare(getCounterFromFilename(o1), getCounterFromFilename(o2));
+            if (counterComparisonValue != 0) {
+                return counterComparisonValue;
+            }
+
             return o1.compareTo(o2);
         }
+    }
 
-        private Long getTimestampFromFilename(final String fullyQualifiedFilename) {
-            if (fullyQualifiedFilename == null) {
-                return null;
-            }
+    private static Long getTimestampFromFilename(final String fullyQualifiedFilename) {
+        if (fullyQualifiedFilename == null) {
+            return null;
+        }
 
-            final File file = new File(fullyQualifiedFilename);
-            final String filename = file.getName();
+        final File file = new File(fullyQualifiedFilename);
+        final String filename = file.getName();
 
-            final int idx = filename.indexOf("-");
-            if (idx < 1) {
-                return null;
-            }
+        final int idx = filename.indexOf("-");
+        if (idx < 1) {
+            return null;
+        }
 
-            final String millisVal = filename.substring(0, idx);
-            try {
-                return Long.parseLong(millisVal);
-            } catch (final NumberFormatException e) {
-                return null;
-            }
+        final String millisVal = filename.substring(0, idx);
+        try {
+            return Long.parseLong(millisVal);
+        } catch (final NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns the counter from a swap file name of the form "&lt;timestamp&gt;-&lt;queue identifier&gt;-&lt;counter&gt;-&lt;random uuid&gt;". The counter orders
+     * swap files that were written within the same millisecond.
+     *
+     * @param fullyQualifiedFilename the swap location
+     * @return the counter from the swap file name, or 0 if the name does not contain a counter
+     */
+    private static long getCounterFromFilename(final String fullyQualifiedFilename) {
+        final String filename = new File(fullyQualifiedFilename).getName();
+        final int dotIndex = filename.indexOf(".");
+        final String baseName = dotIndex < 0 ? filename : filename.substring(0, dotIndex);
+        final String[] splits = baseName.split("-");
+        if (splits.length != 12) {
+            return 0L;
+        }
+
+        try {
+            return Long.parseLong(splits[6]);
+        } catch (final NumberFormatException e) {
+            return 0L;
         }
     }
 
@@ -475,7 +524,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         return newFile.getAbsolutePath();
     }
 
-    private String getSwapFileName(final String flowFileQueueIdentifier, final String partitionName) {
+    private String getSwapFileName(final String flowFileQueueIdentifier, final String partitionName, final long timestamp, final long counter) {
         final UUID identifier;
         final Matcher identifierMatcher = UUID_PATTERN.matcher(flowFileQueueIdentifier);
         if (identifierMatcher.find()) {
@@ -484,7 +533,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             throw new IllegalArgumentException("FlowFile Queue Identifier [%s] not valid".formatted(flowFileQueueIdentifier));
         }
 
-        final String swapFilePrefix = System.currentTimeMillis() + "-" + identifier + "-" + UUID.randomUUID();
+        final String swapFilePrefix = timestamp + "-" + identifier + "-" + counter + "-" + UUID.randomUUID();
         final String swapFileBaseName = partitionName == null ? swapFilePrefix : swapFilePrefix + "." + partitionName;
         return swapFileBaseName + ".swap";
     }
