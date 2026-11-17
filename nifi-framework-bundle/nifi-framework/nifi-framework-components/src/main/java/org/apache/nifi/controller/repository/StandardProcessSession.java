@@ -654,10 +654,18 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 // record.getCurrent() will return null if this record was created in this session --
                 // in this case, we just ignore it, and it will be cleaned up by clearing the records map.
                 if (record.getCurrent() != null) {
-                    Collection<FlowFileRecord> collection = recordMap.get(record.getDestination());
+                    final FlowFileQueue destination = record.getDestination();
+                    // A retry returns the FlowFile to the queue it was polled from. put() would place it on the swap queue when
+                    // that queue is in swap mode, behind FlowFiles that were still in the active queue.
+                    if (destination != null && destination.equals(record.getOriginalQueue())) {
+                        destination.putToActive(record.getCurrent());
+                        continue;
+                    }
+
+                    Collection<FlowFileRecord> collection = recordMap.get(destination);
                     if (collection == null) {
                         collection = new ArrayList<>();
-                        recordMap.put(record.getDestination(), collection);
+                        recordMap.put(destination, collection);
                     }
                     collection.add(record.getCurrent());
                 }

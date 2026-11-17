@@ -1945,6 +1945,33 @@ public class StandardProcessSessionIT {
     }
 
     @Test
+    public void testRetryReturnsFlowFileToFrontOfSwappingQueue() {
+        final Connectable processor = createProcessorConnectable();
+        configureRetry(processor, 1, BackoffMechanism.YIELD_PROCESSOR, "1 ms", 1L);
+        final StandardProcessSession retrySession = createSessionForRetry(processor);
+
+        final int flowFileCount = 10_001;
+        for (int i = 0; i < flowFileCount; i++) {
+            final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+                .id(i)
+                .addAttribute("uuid", String.format("00000000-0000-0000-0000-%012d", i))
+                .entryDate(System.currentTimeMillis())
+                .size(0L)
+                .build();
+            flowFileQueue.put(flowFileRecord);
+        }
+
+        final FlowFile firstFlowFile = retrySession.get();
+        assertEquals(0, firstFlowFile.getId());
+        retrySession.transfer(firstFlowFile, new Relationship.Builder().name("failure").build());
+        retrySession.commit();
+
+        final FlowFile flowFileAfterRetry = retrySession.get();
+        assertEquals(0, flowFileAfterRetry.getId());
+        assertEquals(flowFileCount, flowFileQueue.size().getObjectCount());
+    }
+
+    @Test
     public void testCreateEmitted() throws IOException {
         final FlowFile newFlowFile = session.create();
         session.transfer(newFlowFile, new Relationship.Builder().name("A").build());
