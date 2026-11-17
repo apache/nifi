@@ -4027,12 +4027,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void restoreFlowPreservingIdentifiers(final VersionedExternalFlow proposedSnapshot) {
-        restoreFlowPreservingIdentifiers(proposedSnapshot, autoResumeState);
-    }
-
-    @Override
-    public void restoreFlowPreservingIdentifiers(final VersionedExternalFlow proposedSnapshot, final boolean resumeComponentState) {
+    public void restoreFlowPreservingIdentifiers(final VersionedExternalFlow proposedSnapshot, final ResumeComponentState resumeComponentState) {
         // Use the Instance Identifier captured in the persisted flow as the runtime identifier for every component. This is
         // required so that Connection identifiers (and therefore FlowFile queue identifiers) match what was in use before
         // the flow was persisted. Without this, queued FlowFiles in the FlowFile Repository cannot be re-associated with
@@ -4040,10 +4035,11 @@ public final class StandardProcessGroup implements ProcessGroup {
         final ComponentIdGenerator idGenerator = (proposedId, instanceId, destinationGroupId) -> instanceId;
         final VersionedComponentStateLookup stateLookup = VersionedComponentStateLookup.IDENTITY_LOOKUP;
 
-        // resumeComponentState=false restores the flow structure (so queued FlowFiles can be re-associated with their
-        // Connections) without resuming any component to its previously running or enabled state. When true, restore each
-        // component to the running/enabled state captured in the persisted flow.
-        final ComponentScheduler componentScheduler = resumeComponentState
+        // LEAVE_STOPPED restores the flow structure (so queued FlowFiles can be re-associated with their Connections) without
+        // resuming any component to its previously running or enabled state. RESUME_AS_PERSISTED restores each component
+        // to the running/enabled state captured in the persisted flow, unless auto-resume is disabled.
+        final boolean resumeStates = resumeComponentState == ResumeComponentState.RESUME_AS_PERSISTED && autoResumeState;
+        final ComponentScheduler componentScheduler = resumeStates
             ? new DefaultComponentScheduler(controllerServiceProvider, stateLookup)
             : new NonStartingComponentScheduler(controllerServiceProvider, stateLookup);
 

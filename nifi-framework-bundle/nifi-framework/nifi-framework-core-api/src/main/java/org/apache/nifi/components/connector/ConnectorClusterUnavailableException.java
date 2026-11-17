@@ -17,10 +17,12 @@
 
 package org.apache.nifi.components.connector;
 
+import java.io.IOException;
+
 /**
  * Thrown when a clustered Connector request cannot be completed because no node is connected yet.
  */
-public class ConnectorClusterUnavailableException extends RuntimeException {
+public class ConnectorClusterUnavailableException extends IOException {
     public ConnectorClusterUnavailableException(final String message) {
         super(message);
     }

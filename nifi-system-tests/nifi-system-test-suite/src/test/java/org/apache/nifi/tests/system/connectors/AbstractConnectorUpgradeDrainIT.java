@@ -44,6 +44,8 @@ import java.nio.file.Files;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -102,6 +104,10 @@ public abstract class AbstractConnectorUpgradeDrainIT extends AbstractNarSwapMig
 
         String recordPrefix() {
             return "org.apache.nifi:" + artifact + ":" + (version == null ? "" : version);
+        }
+
+        boolean matches(final Bundle bundle) {
+            return bundle != null && bundle.getArtifact().contains(artifact) && (version == null || version.equals(bundle.getVersion()));
         }
 
         void assertMatches(final Bundle bundle, final String description) {
@@ -228,7 +234,14 @@ public abstract class AbstractConnectorUpgradeDrainIT extends AbstractNarSwapMig
      * Lets the generator run and makes the terminator hold every FlowFile on every node.
      */
     protected void holdFlowFiles() {
-        deleteFromNodeDirectories(GATE_FILE);
+        holdFlowFiles(GATE_FILE);
+    }
+
+    /**
+     * Makes the terminator of every Connector whose Gate File Path is the given file hold every FlowFile on every node.
+     */
+    protected void holdFlowFiles(final String gateFile) {
+        deleteFromNodeDirectories(gateFile);
     }
 
     private void writeToNodeDirectory(final int nodeIndex, final String fileName, final String contents) throws IOException {
@@ -244,19 +257,38 @@ public abstract class AbstractConnectorUpgradeDrainIT extends AbstractNarSwapMig
         }
     }
 
-    protected void stopAndAssertNotPending(final String connectorId) throws IOException {
-        getNiFiInstance().stop();
+    /**
+     * Waits until every node has saved the incoming bundle as the bundle that built the Connector's managed flow.
+     */
+    protected void waitUntilUpgradedFlowSaved(final String connectorId) throws InterruptedException {
+        waitUntilManagedFlowBundleSaved(connectorId, incomingBundle());
+    }
+
+    protected void waitUntilPreUpgradeFlowSaved(final String connectorId) throws InterruptedException {
+        waitUntilManagedFlowBundleSaved(connectorId, outgoingBundle());
+    }
+
+    private void waitUntilManagedFlowBundleSaved(final String connectorId, final ExpectedBundle expected) throws InterruptedException {
         for (int nodeIndex = 1; nodeIndex <= nodeCount(); nodeIndex++) {
-            final VersionedConnector connector = FlowDefinitionFiles.readConnector(nodeInstance(nodeIndex), connectorId);
-            assertManagedFlowBundle(connector, incomingBundle());
+            waitForPersistedConnector(nodeIndex, connectorId, connector -> expected.matches(connector.getManagedFlowBundle()));
         }
     }
 
-    protected void assertPersistedOutgoing(final String connectorId) throws IOException {
-        for (int nodeIndex = 1; nodeIndex <= nodeCount(); nodeIndex++) {
+    /**
+     * Reads the Connector from the node's flow.json.gz while NiFi runs, until the condition holds. Saves are asynchronous, and a read
+     * that overlaps a save fails and is retried.
+     *
+     * @return the first persisted Connector that satisfies the condition
+     */
+    protected VersionedConnector waitForPersistedConnector(final int nodeIndex, final String connectorId, final Predicate<VersionedConnector> condition)
+            throws InterruptedException {
+        final AtomicReference<VersionedConnector> persisted = new AtomicReference<>();
+        waitFor(() -> {
             final VersionedConnector connector = FlowDefinitionFiles.readConnector(nodeInstance(nodeIndex), connectorId);
-            assertManagedFlowBundle(connector, outgoingBundle());
-        }
+            persisted.set(connector);
+            return condition.test(connector);
+        });
+        return persisted.get();
     }
 
     protected int nodeCount() {

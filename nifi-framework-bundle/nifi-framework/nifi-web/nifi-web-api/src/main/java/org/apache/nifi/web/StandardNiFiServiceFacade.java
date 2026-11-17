@@ -3896,13 +3896,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case STOPPED -> connectorDAO.stopConnector(id);
                 default -> throw new IllegalArgumentException("Unsupported scheduled state for Connector: " + state);
             }
-            // Evolution sets the desired state to RUNNING as soon as it is claimed so a joining node starts too.
-            // Persisting that state before the hook succeeds makes a failed evolution auto-start on restart.
-            // The repository saves once the upgraded flow is applied, and a failed evolution puts the desired state back.
-            final ConnectorNode scheduled = connectorDAO.getConnector(id, ConnectorSyncMode.LOCAL_ONLY);
-            if (scheduled.getCurrentState() != ConnectorState.DRAINING || !scheduled.isPendingFlowEvolution()) {
-                controllerFacade.save();
-            }
+            // A start that begins a flow evolution is saved as RUNNING, so a restart while the Connector drains resumes the upgrade.
+            controllerFacade.save();
 
             final ConnectorNode node = connectorDAO.getConnector(id, ConnectorSyncMode.LOCAL_ONLY);
             final ConnectorDTO dto = dtoFactory.createConnectorDto(node);

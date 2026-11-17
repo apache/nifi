@@ -20,7 +20,11 @@ package org.apache.nifi.components.connector;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestStandardConnectorStateTransition {
@@ -34,5 +38,28 @@ class TestStandardConnectorStateTransition {
         stateTransition.addPendingStartFuture(startFuture);
 
         assertTrue(startFuture.isDone());
+    }
+
+    @Test
+    void testPendingStopFutureCompletesOnlyWhenStoppedAndFailsOnOtherStates() {
+        final StandardConnectorStateTransition stateTransition = new StandardConnectorStateTransition("Test Connector");
+        stateTransition.setCurrentState(ConnectorState.STOPPING);
+        final CompletableFuture<Void> stoppedFuture = new CompletableFuture<>();
+        stateTransition.addPendingStopFuture(stoppedFuture);
+
+        stateTransition.setCurrentState(ConnectorState.STOPPING);
+        assertFalse(stoppedFuture.isDone());
+        stateTransition.setCurrentState(ConnectorState.STOPPED);
+        assertTrue(stoppedFuture.isDone());
+        assertFalse(stoppedFuture.isCompletedExceptionally());
+
+        stateTransition.setCurrentState(ConnectorState.PREPARING_FOR_UPDATE);
+        final CompletableFuture<Void> abandonedFuture = new CompletableFuture<>();
+        stateTransition.addPendingStopFuture(abandonedFuture);
+        assertTrue(stateTransition.trySetCurrentState(ConnectorState.PREPARING_FOR_UPDATE, ConnectorState.UPDATE_FAILED));
+
+        final ExecutionException failure = assertThrows(ExecutionException.class, abandonedFuture::get);
+        assertInstanceOf(IllegalStateException.class, failure.getCause());
+        assertTrue(failure.getCause().getMessage().contains("UPDATE_FAILED"), failure.getCause().getMessage());
     }
 }

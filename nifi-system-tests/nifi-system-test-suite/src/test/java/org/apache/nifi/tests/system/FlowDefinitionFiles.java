@@ -27,7 +27,8 @@ import java.io.InputStream;
 import java.util.zip.GZIPInputStream;
 
 /**
- * Reads connector sections of a stopped node's conf/flow.json.gz.
+ * Reads connector sections of a node's conf/flow.json.gz. A read while the node runs may overlap a save and fail, so callers
+ * that read a running node retry.
  */
 public final class FlowDefinitionFiles {
 

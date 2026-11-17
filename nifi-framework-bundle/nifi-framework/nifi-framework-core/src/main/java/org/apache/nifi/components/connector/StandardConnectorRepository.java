@@ -637,8 +637,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
         }
 
         try {
-            connector.prepareFlowEvolution();
+            connector.prepareFlowEvolution(lifecycleExecutor);
         } catch (final Throwable failure) {
+            logger.error("Failed to prepare flow evolution for {}", connector, failure);
             evolutionFuture.completeExceptionally(failure);
             evolveThenStartFuturesByConnectorId.remove(connectorId, evolutionFuture);
             if (failure instanceof final Error error) {
@@ -754,9 +755,6 @@ public class StandardConnectorRepository implements ConnectorRepository {
             try {
                 // While DRAINING this fails the evolution. Once preparation for the upgraded flow has begun it leaves UPDATE_FAILED.
                 connector.abortUpdate(failure);
-                if (connector.getCurrentState() == ConnectorState.STOPPING && connector instanceof final StandardConnectorNode standardConnector) {
-                    standardConnector.retryPreUpgradeStop(lifecycleExecutor);
-                }
             } catch (final Throwable cleanupFailure) {
                 failure.addSuppressed(cleanupFailure);
             }

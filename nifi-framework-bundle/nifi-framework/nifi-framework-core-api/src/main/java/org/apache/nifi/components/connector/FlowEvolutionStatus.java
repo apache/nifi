@@ -22,6 +22,13 @@ import java.util.Collection;
 /**
  * Reports local progress through the evolve-drain phase of a pending Connector flow evolution. Applying the upgraded flow
  * after the evolve-drain phase is tracked through {@link ConnectorState}, as for a configuration update.
+ *
+ * <p>
+ * A node reports {@link #INACTIVE} until an upgrade is pending, and {@link #EVOLVE_DRAIN_PENDING} from then on, even before
+ * the first START. When the local drain finishes, the status becomes {@link #EVOLVE_DRAIN_COMPLETE} and stays there while the
+ * upgraded flow is applied. Once the upgraded flow is applied and its snapshot captured, the status returns to {@link #INACTIVE}.
+ * There is no separate completed value, because {@link #INACTIVE} means that nothing is pending.
+ * </p>
  */
 public enum FlowEvolutionStatus {
     /**
@@ -39,6 +46,10 @@ public enum FlowEvolutionStatus {
      */
     EVOLVE_DRAIN_COMPLETE,
 
+    /**
+     * The current evolution attempt failed or was cancelled on this node. It is reported instead of the drain status until
+     * the next START prepares a new attempt, which then reports the drain status again.
+     */
     FAILED;
 
     /**

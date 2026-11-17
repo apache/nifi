@@ -823,14 +823,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         for (final VersionedConnection proposedConnection : proposed.getConnections()) {
             final Connection existingConnection = connectionsByVersionedId.get(proposedConnection.getIdentifier());
 
-            if (existingConnection != null) {
-                final String proposedSourceId = proposedConnection.getSource().getId();
-                final String existingSourceId = existingConnection.getSource().getVersionedComponentId().orElse(null);
-
-                if (existingSourceId != null && !Objects.equals(proposedSourceId, existingSourceId)) {
-                    connectionsRemovedDueToChangingSourceId.add(proposedConnection.getIdentifier());
-                    connectionsRemoved.add(proposedConnection.getIdentifier());
-                }
+            if (existingConnection != null && isSourceChanged(existingConnection, proposedConnection)) {
+                connectionsRemovedDueToChangingSourceId.add(proposedConnection.getIdentifier());
+                connectionsRemoved.add(proposedConnection.getIdentifier());
             }
         }
 
@@ -843,6 +838,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         for (final String removedVersionedId : connectionsRemovedDueToChangingSourceId) {
             connectionsByVersionedId.remove(removedVersionedId);
         }
+    }
+
+    private static boolean isSourceChanged(final Connection existing, final VersionedConnection proposed) {
+        final String existingSourceId = existing.getSource().getVersionedComponentId().orElse(null);
+        return existingSourceId != null && !Objects.equals(proposed.getSource().getId(), existingSourceId);
     }
 
     private void synchronizeConnections(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, Connection> connectionsByVersionedId) {
@@ -4128,9 +4128,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                         + "does not contain a match for " + connection + " and the connection currently has data in the queue.");
                 }
 
-                final String existingSourceId = connection.getSource().getVersionedComponentId().orElse(null);
-                final String proposedSourceId = proposedConnection.getSource().getId();
-                if (existingSourceId != null && !Objects.equals(proposedSourceId, existingSourceId)) {
+                if (isSourceChanged(connection, proposedConnection)) {
                     throw new IllegalStateException(processGroup + " cannot be updated to the proposed flow because the proposed flow "
                         + "changes the source of " + connection + " and the connection currently has data in the queue.");
                 }

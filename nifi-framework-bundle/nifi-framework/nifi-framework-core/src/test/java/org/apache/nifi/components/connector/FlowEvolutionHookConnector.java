@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Connector that counts its flow evolution hook, update preparation, apply and start calls. The hook can return a future
- * that never completes, and start can fail a given number of times.
+ * that never completes, and apply and start can each fail a given number of times.
  */
 public class FlowEvolutionHookConnector extends AbstractConnector {
 
@@ -42,6 +42,7 @@ public class FlowEvolutionHookConnector extends AbstractConnector {
     volatile int applyCalls;
     volatile boolean leaveFutureIncomplete;
     volatile CompletableFuture<Void> evolutionFuture;
+    volatile int remainingApplyFailures;
     volatile int remainingStartFailures;
     final AtomicInteger startCalls = new AtomicInteger();
     final CountDownLatch hookEntered = new CountDownLatch(1);
@@ -72,6 +73,10 @@ public class FlowEvolutionHookConnector extends AbstractConnector {
     @Override
     public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
         applyCalls++;
+        if (remainingApplyFailures > 0) {
+            remainingApplyFailures--;
+            throw new FlowUpdateException("Intentional apply failure");
+        }
     }
 
     @Override

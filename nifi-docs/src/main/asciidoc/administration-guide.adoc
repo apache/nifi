@@ -3928,7 +3928,7 @@ These properties configure how NiFi manages Connectors. For what flow evolution 
 
 |====
 |*Property*|*Description*
-|`nifi.connector.flow.evolution.timeout`|How long a Connector may spend draining its outgoing flow in `prepareForFlowEvolution`. Waiting for other cluster nodes to finish their drain is not limited by this timeout. Accepts any NiFi time duration value such as `30 mins`. The default value is `30 mins`. A timeout leaves the Connector stopped and still pending.
+|`nifi.connector.flow.evolution.timeout`|How long a Connector may spend draining its outgoing flow in `prepareForFlowEvolution`. Each cluster node applies this timeout to its own drain. A node that finishes first waits for the others, and that wait ends as soon as any node fails, times out, or disconnects. Accepts any NiFi time duration value such as `30 mins`. The default value is `30 mins`. A timeout leaves the Connector stopped and still pending.
 |====
 
 [[secrets_manager_properties]]

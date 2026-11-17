@@ -1153,6 +1153,24 @@ public class StandardVersionedComponentSynchronizerTest {
     }
 
     @Test
+    public void testVerifyCanSynchronizeRejectsSourceChangeWhileQueueHasData() {
+        when(processorA.getVersionedComponentId()).thenReturn(Optional.of("processor-a"));
+        when(connectionAB.getVersionedComponentId()).thenReturn(Optional.of("connection-ab"));
+
+        final VersionedConnection proposedConnection = createMinimalVersionedConnection(processorB, processorB);
+        proposedConnection.setIdentifier("connection-ab");
+        proposedConnection.getSource().setId("processor-b");
+        final VersionedProcessGroup proposedGroup = new VersionedProcessGroup();
+        proposedGroup.setConnections(Set.of(proposedConnection));
+
+        synchronizer.verifyCanSynchronize(group, proposedGroup, true);
+
+        queuesWithData.add(connectionAB.getIdentifier());
+        final IllegalStateException exception = assertThrows(IllegalStateException.class, () -> synchronizer.verifyCanSynchronize(group, proposedGroup, true));
+        assertTrue(exception.getMessage().contains("changes the source of"));
+    }
+
+    @Test
     public void testAddsControllerService() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final VersionedControllerService versionedService = createMinimalVersionedControllerService();
         synchronizer.synchronize(null, versionedService, group, synchronizationOptions);

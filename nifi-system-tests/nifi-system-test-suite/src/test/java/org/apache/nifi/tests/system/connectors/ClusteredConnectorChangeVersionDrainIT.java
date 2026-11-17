@@ -18,7 +18,6 @@ package org.apache.nifi.tests.system.connectors;
 
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.FlowEvolutionStatus;
-import org.apache.nifi.tests.system.FlowDefinitionFiles;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
@@ -173,7 +172,7 @@ public class ClusteredConnectorChangeVersionDrainIT extends AbstractChangeVersio
         // failed evolution treats a new start request as part of that evolution, so wait for every node to fail first.
         waitForNodeConnectorState(1, connectorId, ConnectorState.UPDATE_FAILED);
         waitForNodeConnectorState(2, connectorId, ConnectorState.UPDATE_FAILED);
-        assertManagedFlowBundle(FlowDefinitionFiles.readConnector(nodeInstance(1), connectorId), outgoingBundle());
+        waitForPersistedConnector(1, connectorId, connector -> outgoingBundle().matches(connector.getManagedFlowBundle()));
 
         // Node 2 already applied the upgraded flow, so the retry only applies it on node 1. Flow evolution preparation
         // already completed on both nodes, so the retry does not run it again.
@@ -185,7 +184,7 @@ public class ClusteredConnectorChangeVersionDrainIT extends AbstractChangeVersio
         assertNodeFlowEvolutionStatus(1, connectorId, FlowEvolutionStatus.INACTIVE);
         assertNodeFlowEvolutionStatus(2, connectorId, FlowEvolutionStatus.INACTIVE);
         assertEquals("edited", findProcessor(connectorId, "GenerateFlowFile").getComponent().getConfig().getComments());
-        stopAndAssertNotPending(connectorId);
+        waitUntilUpgradedFlowSaved(connectorId);
     }
 
     private <T> T onNode(final int nodeIndex, final NodeCall<T> call) throws Exception {

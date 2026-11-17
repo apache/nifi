@@ -17,6 +17,8 @@
 
 package org.apache.nifi.components.connector;
 
+import org.apache.nifi.asset.Asset;
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.processors.CreateDummyFlowFile;
@@ -69,7 +71,13 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.flow.VersionedAsset;
+import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ResumeComponentState;
 import org.apache.nifi.mock.MockNodeTypeProvider;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
@@ -80,6 +88,11 @@ import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.python.PythonBridge;
+import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
+import org.apache.nifi.registry.flow.diff.FlowDifference;
+import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
+import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
+import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.security.encryption.InternalPassThroughPropertyEncryptionProvider;
@@ -104,6 +117,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 
@@ -111,7 +125,9 @@ import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -129,9 +145,11 @@ public class StandardConnectorNodeIT {
     private FlowEngine componentLifecycleThreadPool;
     private ConnectorRepository connectorRepository;
     private ControllerServiceProvider controllerServiceProvider;
+    private AssetManager connectorAssetManager;
 
     @BeforeEach
     public void setup() {
+        connectorAssetManager = mock(AssetManager.class);
         connectorRepository = new StandardConnectorRepository();
 
         final SecretsManager secretsManager = new ParameterProviderSecretsManager();
@@ -175,6 +193,10 @@ public class StandardConnectorNodeIT {
         when(flowController.getValidationTrigger()).thenReturn(mock(ValidationTrigger.class));
         when(flowController.getConnectorValidationTrigger()).thenReturn(mock(ConnectorValidationTrigger.class));
         when(flowController.getPropertyEncryptionProvider()).thenReturn(new InternalPassThroughPropertyEncryptionProvider());
+        when(flowController.getConnectorAssetManager()).thenReturn(connectorAssetManager);
+        final AssetManager assetManager = mock(AssetManager.class);
+        when(assetManager.createMissingAsset(nullable(String.class), anyString())).thenAnswer(invocation -> mockAsset(invocation.getArgument(1)));
+        when(flowController.getAssetManager()).thenReturn(assetManager);
 
         doAnswer(invocation -> {
             return createConnection(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2), invocation.getArgument(3), invocation.getArgument(4));
@@ -406,6 +428,105 @@ public class StandardConnectorNodeIT {
         assertNotNull(serviceNodes);
         assertEquals(1, serviceNodes.size());
         assertInstanceOf(CounterService.class, serviceNodes.iterator().next().getControllerServiceImplementation());
+    }
+
+    /**
+     * Captures a managed flow in which a processor references both a managed Controller Service and an asset parameter of the
+     * managed Parameter Context, then rebuilds the flow from a different configuration that removes the service and both
+     * references and changes processor properties and connections, and drops the asset. Restoring the captured flow over the
+     * rebuilt one brings back the service with its original identifier, both references, and the asset, so capturing again
+     * yields the captured flow.
+     */
+    @Test
+    public void testRestoringCapturedFlowOverRebuiltFlowReturnsCapturedFlow() throws FlowUpdateException {
+        final StandardConnectorNode connectorNode = (StandardConnectorNode) initializeDynamicFlowConnector();
+        configure(connectorNode, createConnectorConfiguration("Restored", 2, false, true));
+
+        final Asset asset = mockAsset("asset-1");
+        when(connectorAssetManager.getAsset("asset-1")).thenReturn(Optional.of(asset));
+        final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ParameterContext parameterContext = managedGroup.getParameterContext();
+        parameterContext.setParameters(Map.of("Asset Parameter", new Parameter.Builder().name("Asset Parameter").referencedAssets(List.of(asset)).build()));
+        final String assetParameterReference = "#{Asset Parameter}";
+        findCreateDummyFlowFile(managedGroup).setProperties(Map.of("Text", assetParameterReference));
+
+        connectorNode.captureAuthoritativeSnapshot();
+        final ConnectorFlowSnapshot captured = connectorNode.getAuthoritativeFlowSnapshot();
+        final String counterServiceId = managedGroup.getControllerServices(true).iterator().next().getIdentifier();
+
+        configure(connectorNode, createConnectorConfiguration("Rebuilt", 3, true, false));
+        parameterContext.setParameters(Map.of("Asset Parameter", new Parameter.Builder().name("Asset Parameter").build()));
+        assertTrue(managedGroup.getControllerServices(true).isEmpty());
+        assertNull(getRawPropertyValue(findCreateDummyFlowFile(managedGroup), "Counter Service"));
+        assertNotEquals(assetParameterReference, getRawPropertyValue(findCreateDummyFlowFile(managedGroup), "Text"));
+        connectorNode.captureAuthoritativeSnapshot();
+        assertFalse(compareFlows(captured.flow(), connectorNode.getAuthoritativeFlowSnapshot().flow()).isEmpty());
+
+        connectorNode.restorePersistedFlow(captured.flow(), captured.parameterContext(), captured.parameterSecretReferences(), ResumeComponentState.LEAVE_STOPPED);
+        connectorNode.captureAuthoritativeSnapshot();
+        final ConnectorFlowSnapshot restored = connectorNode.getAuthoritativeFlowSnapshot();
+
+        assertEquals(Set.of(), compareFlows(captured.flow(), restored.flow()));
+
+        final Set<ControllerServiceNode> restoredServices = managedGroup.getControllerServices(true);
+        assertEquals(1, restoredServices.size());
+        assertEquals(counterServiceId, restoredServices.iterator().next().getIdentifier());
+        final ProcessorNode restoredProcessor = findCreateDummyFlowFile(managedGroup);
+        assertEquals(counterServiceId, getRawPropertyValue(restoredProcessor, "Counter Service"));
+        assertEquals(assetParameterReference, getRawPropertyValue(restoredProcessor, "Text"));
+        assertEquals(counterServiceId, findProcessor(restored.flow(), CreateDummyFlowFile.class.getName()).getProperties().get("Counter Service"));
+
+        final VersionedParameter assetParameter = restored.parameterContext().getParameters().stream()
+            .filter(parameter -> "Asset Parameter".equals(parameter.getName()))
+            .findFirst()
+            .orElseThrow();
+        assertEquals(List.of("asset-1"), assetParameter.getReferencedAssets().stream().map(VersionedAsset::getIdentifier).toList());
+        assertEquals(List.of(asset), parameterContext.getParameter("Asset Parameter").orElseThrow().getReferencedAssets());
+    }
+
+    private static Set<FlowDifference> compareFlows(final VersionedProcessGroup expected, final VersionedProcessGroup actual) {
+        final StandardFlowComparator comparator = new StandardFlowComparator(
+            new StandardComparableDataFlow("Expected Flow", expected),
+            new StandardComparableDataFlow("Actual Flow", actual),
+            new StaticDifferenceDescriptor(), Function.identity(), VersionedComponent::getInstanceIdentifier, FlowComparatorVersionedStrategy.DEEP);
+        return comparator.compare().getDifferences();
+    }
+
+    private static ProcessorNode findCreateDummyFlowFile(final ProcessGroup managedGroup) {
+        return managedGroup.findAllProcessors().stream()
+            .filter(candidate -> CreateDummyFlowFile.class.getName().equals(candidate.getCanonicalClassName()))
+            .findFirst()
+            .orElseThrow();
+    }
+
+    private static String getRawPropertyValue(final ProcessorNode processor, final String propertyName) {
+        return processor.getRawPropertyValue(processor.getPropertyDescriptor(propertyName));
+    }
+
+    private static Asset mockAsset(final String identifier) {
+        final Asset asset = mock(Asset.class);
+        when(asset.getIdentifier()).thenReturn(identifier);
+        when(asset.getName()).thenReturn(identifier + ".txt");
+        when(asset.getFile()).thenReturn(new File("target", identifier + ".txt"));
+        when(asset.getDigest()).thenReturn(Optional.empty());
+        return asset;
+    }
+
+    private static VersionedProcessor findProcessor(final VersionedProcessGroup group, final String type) {
+        for (final VersionedProcessor processor : group.getProcessors()) {
+            if (type.equals(processor.getType())) {
+                return processor;
+            }
+        }
+
+        for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
+            final VersionedProcessor processor = findProcessor(childGroup, type);
+            if (processor != null) {
+                return processor;
+            }
+        }
+
+        return null;
     }
 
     @Test

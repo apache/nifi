@@ -24,6 +24,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ResumeComponentState;
 import org.apache.nifi.logging.ComponentLog;
 
 public interface FrameworkFlowContext extends FlowContext {
@@ -47,19 +48,11 @@ public interface FrameworkFlowContext extends FlowContext {
 
     /**
      * Restores a persisted authoritative flow into the managed process group, keeping component identifiers.
-     * Components resume according to the Process Group's auto-resume setting.
      * @param persistedFlow the flow to restore
      * @param parameterContext the parameter context that belonged to that flow, or null
+     * @param resumeComponentState whether components resume the scheduled state captured in the flow
      */
-    void restorePersistedFlow(VersionedProcessGroup persistedFlow, VersionedParameterContext parameterContext);
-
-    /**
-     * Restores a persisted authoritative flow into the managed process group, keeping component identifiers.
-     * @param persistedFlow the flow to restore
-     * @param parameterContext the parameter context that belonged to that flow, or null
-     * @param resumeComponentState whether components should resume the running or enabled state captured in the snapshot
-     */
-    void restorePersistedFlow(VersionedProcessGroup persistedFlow, VersionedParameterContext parameterContext, boolean resumeComponentState);
+    void restorePersistedFlow(VersionedProcessGroup persistedFlow, VersionedParameterContext parameterContext, ResumeComponentState resumeComponentState);
 
     default void reload(final Bundle bundle, final ComponentLog connectorLog) {
         reload(bundle, connectorLog, getConfigurationContext());

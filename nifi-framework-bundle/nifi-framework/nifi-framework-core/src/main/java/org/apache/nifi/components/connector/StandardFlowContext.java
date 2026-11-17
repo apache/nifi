@@ -26,6 +26,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ResumeComponentState;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.ParameterContext;
 
@@ -116,21 +117,10 @@ public class StandardFlowContext implements FrameworkFlowContext {
     /**
      * Restores a persisted flow into the managed process group, keeping component identifiers so queued FlowFiles
      * reattach. When {@code parameterContext} is non-null its values are applied to the managed parameter context.
-     * Components resume according to the Process Group's auto-resume setting.
+     * {@code resumeComponentState} determines whether components resume as persisted or are left stopped.
      */
     @Override
-    public void restorePersistedFlow(final VersionedProcessGroup persistedFlow, final VersionedParameterContext parameterContext) {
-        final VersionedExternalFlow externalFlow = toExternalFlow(persistedFlow, parameterContext);
-        managedProcessGroup.restoreFlowPreservingIdentifiers(externalFlow);
-        finishRestorePersistedFlow(externalFlow, parameterContext);
-    }
-
-    /**
-     * Restores a persisted flow into the managed process group, keeping component identifiers so queued FlowFiles
-     * reattach. When {@code resumeComponentState} is false, components are left stopped.
-     */
-    @Override
-    public void restorePersistedFlow(final VersionedProcessGroup persistedFlow, final VersionedParameterContext parameterContext, final boolean resumeComponentState) {
+    public void restorePersistedFlow(final VersionedProcessGroup persistedFlow, final VersionedParameterContext parameterContext, final ResumeComponentState resumeComponentState) {
         final VersionedExternalFlow externalFlow = toExternalFlow(persistedFlow, parameterContext);
         managedProcessGroup.restoreFlowPreservingIdentifiers(externalFlow, resumeComponentState);
         finishRestorePersistedFlow(externalFlow, parameterContext);

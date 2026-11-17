@@ -32,6 +32,8 @@ import org.apache.nifi.security.encryption.PropertyEncryptionProvider;
 import org.apache.nifi.security.encryption.SensitivePropertyCodec;
 import org.apache.nifi.security.encryption.SensitivePropertyContext;
 import org.apache.nifi.security.encryption.SensitivePropertyContextFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,6 +49,7 @@ import java.util.Set;
  * current value of the secret from the {@link SecretsManager} instead of its persisted value.
  */
 final class ParameterSecretReferences {
+    private static final Logger logger = LoggerFactory.getLogger(ParameterSecretReferences.class);
 
     private ParameterSecretReferences() {
     }
@@ -130,9 +133,7 @@ final class ParameterSecretReferences {
         final VersionedParameterContext resolved = copyContext(parameterContext);
         final Map<String, SecretReference> references = parameterSecretReferences == null ? Map.of() : parameterSecretReferences;
         final Set<SecretReference> distinctReferences = new HashSet<>(references.values());
-        final Map<SecretReference, Secret> secrets = distinctReferences.isEmpty()
-            ? Map.of()
-            : secretsManager.getSecrets(distinctReferences, false);
+        final Map<SecretReference, Secret> secrets = getSecrets(distinctReferences, secretsManager);
         final Map<String, SecretReference> unresolved = new HashMap<>();
         final Set<String> undecryptable = new HashSet<>();
         final List<ParameterValue> resolvedValues = new ArrayList<>();
@@ -176,6 +177,23 @@ final class ParameterSecretReferences {
         }
 
         return new Resolution(resolved, resolvedValues, unresolved, undecryptable);
+    }
+
+    /**
+     * A Secrets Provider that cannot be reached leaves every reference unresolved, so a restore installs the flow with its
+     * components stopped instead of failing.
+     */
+    private static Map<SecretReference, Secret> getSecrets(final Set<SecretReference> references, final SecretsManager secretsManager) {
+        if (references.isEmpty()) {
+            return Map.of();
+        }
+
+        try {
+            return secretsManager.getSecrets(references, false);
+        } catch (final RuntimeException e) {
+            logger.warn("Failed to retrieve {} Secret References from the Secrets Manager; treating them as unresolved", references.size(), e);
+            return Map.of();
+        }
     }
 
     private static VersionedParameterContext copyContext(final VersionedParameterContext source) {

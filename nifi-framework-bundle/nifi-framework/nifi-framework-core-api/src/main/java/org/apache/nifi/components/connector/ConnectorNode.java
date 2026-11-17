@@ -351,9 +351,10 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      * Moves a pending upgrade from STOPPED or UPDATE_FAILED to DRAINING and creates the evolution context. When an earlier
      * attempt failed after every node had drained, this attempt resumes after the hook without running it again.
      *
+     * @param scheduler lifecycle scheduler used to keep stopping the outgoing flow when a failed attempt cannot stop it right away
      * @throws IllegalStateException if no evolution is pending or the Connector is not STOPPED or UPDATE_FAILED
      */
-    void prepareFlowEvolution();
+    void prepareFlowEvolution(FlowEngine scheduler);
 
     /**
      * Runs preflight, the Connector evolution hook, and the local evolve-drain phase on the provided executor. The executor

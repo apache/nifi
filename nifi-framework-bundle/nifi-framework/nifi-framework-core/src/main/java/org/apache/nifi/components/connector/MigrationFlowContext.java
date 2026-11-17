@@ -25,6 +25,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ResumeComponentState;
 
 import java.util.Objects;
 
@@ -105,13 +106,8 @@ final class MigrationFlowContext implements FrameworkFlowContext {
     }
 
     @Override
-    public void restorePersistedFlow(final VersionedProcessGroup persistedFlow, final VersionedParameterContext parameterContext) {
+    public void restorePersistedFlow(final VersionedProcessGroup persistedFlow, final VersionedParameterContext parameterContext, final ResumeComponentState resumeComponentState) {
         throw new IllegalStateException("restorePersistedFlow() cannot be called from MigratableConnector.migrateConfiguration() or migrateState();"
                 + " the migration context exposes a read-only view of the managed flow so that the framework remains the sole owner of installing the managed Process Group.");
-    }
-
-    @Override
-    public void restorePersistedFlow(final VersionedProcessGroup persistedFlow, final VersionedParameterContext parameterContext, final boolean resumeComponentState) {
-        restorePersistedFlow(persistedFlow, parameterContext);
     }
 }

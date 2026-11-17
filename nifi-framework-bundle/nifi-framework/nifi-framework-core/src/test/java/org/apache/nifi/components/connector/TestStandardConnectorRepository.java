@@ -46,6 +46,7 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ResumeComponentState;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.ConnectorPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
@@ -2867,11 +2868,16 @@ public class TestStandardConnectorRepository {
     }
 
     private StandardConnectorNode createRealConnectorNode(final String identifier, final Connector connector, final boolean extensionMissing) throws FlowUpdateException {
-        final ExtensionManager extensionManager = mock(ExtensionManager.class);
-        final AssetManager assetManager = mock(AssetManager.class);
         final SecretsManager secretsManager = mock(SecretsManager.class);
         when(secretsManager.getAllSecrets()).thenReturn(List.of());
         when(secretsManager.getSecrets(anySet())).thenReturn(Collections.emptyMap());
+        return createRealConnectorNode(identifier, connector, extensionMissing, secretsManager);
+    }
+
+    private StandardConnectorNode createRealConnectorNode(final String identifier, final Connector connector, final boolean extensionMissing,
+            final SecretsManager secretsManager) throws FlowUpdateException {
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        final AssetManager assetManager = mock(AssetManager.class);
 
         final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
         when(managedProcessGroup.purge()).thenReturn(CompletableFuture.completedFuture(null));
@@ -3330,6 +3336,47 @@ public class TestStandardConnectorRepository {
         assertEquals(outgoingSnapshotBundle().getVersion(), pendingNode.getAuthoritativeFlowSnapshot().bundle().getVersion());
     }
 
+    /**
+     * A same-bundle restart rebuilds the managed flow from the persisted configuration, giving the Connector the resolved secret
+     * behind its sensitive parameter, and does not restore the persisted managed group over the rebuilt flow.
+     */
+    @Test
+    public void testSameBundleSyncRebuildsFlowWithSecretDerivedParameter() throws Exception {
+        final Secret secret = mock(Secret.class);
+        when(secret.getValue()).thenReturn("resolved-secret");
+        final SecretsManager secretsManager = mock(SecretsManager.class);
+        when(secretsManager.getAllSecrets()).thenReturn(List.of());
+        when(secretsManager.getSecrets(anySet())).thenAnswer(invocation -> {
+            final Set<SecretReference> references = invocation.getArgument(0);
+            return references.stream().collect(Collectors.toMap(Function.identity(), reference -> secret));
+        });
+        final SecretParameterConnector connector = new SecretParameterConnector();
+        final StandardConnectorNode connectorNode = createRealConnectorNode("connector-1", connector, false, secretsManager);
+        final StandardConnectorRepository repository = createRepositoryWithShortTimeout(null);
+        repository.restoreConnector(connectorNode);
+
+        final VersionedConnectorValueReference secretReference = new VersionedConnectorValueReference();
+        secretReference.setValueType(ConnectorValueType.SECRET_REFERENCE.name());
+        secretReference.setProviderId("provider-id");
+        secretReference.setProviderName("Provider");
+        secretReference.setSecretName("password");
+        secretReference.setFullyQualifiedSecretName("Provider.password");
+        final List<VersionedConfigurationStep> persistedConfiguration = List.of(createVersionedStep(SecretParameterConnector.STEP, Map.of(
+            SecretParameterConnector.PASSWORD, secretReference)));
+        final VersionedConnector versioned = versionedConnector(new Bundle("org.apache.nifi", "test-standard-connector-node", "1.0.0"), flowGroup("persisted-flow"));
+        versioned.setType(SecretParameterConnector.class.getName());
+        versioned.setActiveFlowConfiguration(persistedConfiguration);
+        versioned.setWorkingFlowConfiguration(persistedConfiguration);
+
+        final ConnectorSyncResult result = repository.syncConnector(versioned);
+
+        assertEquals(ConnectorSyncResult.Outcome.SYNCED, result.getOutcome());
+        assertEquals("resolved-secret", connector.appliedPassword);
+        verify(connectorNode.getActiveFlowContext().getManagedProcessGroup(), never()).restoreFlowPreservingIdentifiers(any(), any());
+        assertFalse(connectorNode.isPendingFlowEvolution());
+        assertNotEquals("persisted-flow", connectorNode.getAuthoritativeFlowSnapshot().flow().getName());
+    }
+
     @Test
     public void testPersistedComponentBundleResolution() throws Exception {
         final StandardConnectorNode ambiguous = createRealConnectorNode("connector-1", new FlowEvolutionHookConnector());
@@ -3360,7 +3407,7 @@ public class TestStandardConnectorRepository {
         final StandardConnectorRepository repository = createRepositoryWithShortTimeout(null);
         repository.restoreConnector(connectorNode);
         doThrow(new IllegalStateException("Expected restore failure")).when(connectorNode.getActiveFlowContext().getManagedProcessGroup())
-            .restoreFlowPreservingIdentifiers(any(), eq(false));
+            .restoreFlowPreservingIdentifiers(any(), eq(ResumeComponentState.LEAVE_STOPPED));
         final VersionedProcessGroup persisted = flowGroup("ghost-flow");
 
         final ConnectorSyncResult result = repository.syncConnector(
@@ -3494,6 +3541,39 @@ public class TestStandardConnectorRepository {
         group.setProcessors(new HashSet<>(Set.of(processor)));
         group.setControllerServices(new HashSet<>(Set.of(service)));
         return group;
+    }
+
+    /**
+     * Sets a sensitive parameter from its secret-backed Password property when its flow is built.
+     */
+    private static class SecretParameterConnector extends FlowEvolutionHookConnector {
+        private static final String STEP = "settings";
+        private static final String PASSWORD = "Password";
+
+        private volatile String appliedPassword;
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            final ConnectorPropertyDescriptor password = new ConnectorPropertyDescriptor.Builder()
+                .name(PASSWORD)
+                .description(PASSWORD)
+                .type(PropertyType.SECRET)
+                .build();
+            return List.of(new ConfigurationStep.Builder()
+                .name(STEP)
+                .propertyGroups(List.of(ConnectorPropertyGroup.builder()
+                    .name("General")
+                    .description("General")
+                    .properties(List.of(password))
+                    .build()))
+                .build());
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
+            super.applyUpdate(workingContext, activeContext);
+            appliedPassword = workingContext.getConfigurationContext().getProperty(STEP, PASSWORD).getValue();
+        }
     }
 
     private static class MigratingConnector extends TrackingConnector {

@@ -29,6 +29,7 @@ import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ResumeComponentState;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.ParameterContext;
 import org.junit.jupiter.api.Test;
@@ -111,7 +112,7 @@ public class TestStandardFlowContext {
         versionedParameterContext.setName("managed-parameters");
         versionedParameterContext.setParameters(Set.of(versionedParameter));
 
-        flowContext.restorePersistedFlow(new VersionedProcessGroup(), versionedParameterContext);
+        flowContext.restorePersistedFlow(new VersionedProcessGroup(), versionedParameterContext, ResumeComponentState.RESUME_AS_PERSISTED);
 
         final ArgumentCaptor<List<ParameterValue>> valuesCaptor = ArgumentCaptor.forClass(List.class);
         verify(parameterContextFacade).updateParameters(valuesCaptor.capture());
