@@ -18,9 +18,11 @@ package org.apache.nifi.stateless.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import mockwebserver3.Dispatcher;
 import mockwebserver3.MockResponse;
 import mockwebserver3.MockWebServer;
 import mockwebserver3.RecordedRequest;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
@@ -31,6 +33,9 @@ import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,6 +58,18 @@ class RegistryFlowSnapshotProviderTest {
     private static final String FLOW_PATH = "/nifi-registry-api/buckets/testing/flows/primary";
 
     private static final String FLOW_VERSION_PATH = "/nifi-registry-api/buckets/testing/flows/primary/versions/100";
+
+    private static final String CHILD_FLOW_ID = "child";
+
+    private static final String GRANDCHILD_FLOW_ID = "grandchild";
+
+    private static final String NESTED_VERSION = "1";
+
+    private static final String LEAF_GROUP_NAME = "leaf";
+
+    private static final String CHILD_FLOW_VERSION_PATH = "/buckets/testing/flows/child/versions/1";
+
+    private static final String GRANDCHILD_FLOW_VERSION_PATH = "/buckets/testing/flows/grandchild/versions/1";
 
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
 
@@ -99,6 +116,71 @@ class RegistryFlowSnapshotProviderTest {
         assertNotNull(snapshot);
         assertFlowRequestRecorded();
         assertFlowVersionRequestRecorded();
+    }
+
+    @Test
+    void testGetFlowSnapshotFetchesEachNestedFlowOnce() throws Exception {
+        final Map<String, Integer> requestCounts = new ConcurrentHashMap<>();
+        final Map<String, String> responses = Map.of(
+                FLOW_VERSION_PATH, getSnapshotResponseBody(getVersionedGroup(CHILD_FLOW_ID)),
+                CHILD_FLOW_VERSION_PATH, getSnapshotResponseBody(getVersionedGroup(GRANDCHILD_FLOW_ID)),
+                GRANDCHILD_FLOW_VERSION_PATH, getSnapshotResponseBody(getLeafGroup())
+        );
+        mockWebServer.setDispatcher(new Dispatcher() {
+            @Override
+            public MockResponse dispatch(final RecordedRequest request) {
+                final String path = request.getUrl().encodedPath();
+                requestCounts.merge(path, 1, Integer::sum);
+                final String responseBody = responses.get(path);
+                if (responseBody == null) {
+                    return new MockResponse.Builder().code(HttpURLConnection.HTTP_NOT_FOUND).build();
+                }
+                return new MockResponse.Builder()
+                        .code(HttpURLConnection.HTTP_OK)
+                        .setHeader(CONTENT_TYPE_HEADER, APPLICATION_JSON)
+                        .body(responseBody)
+                        .build();
+            }
+        });
+
+        final VersionedFlowSnapshot snapshot = provider.getFlowSnapshot(BUCKET_ID, FLOW_ID, VERSION);
+
+        assertEquals(Map.of(FLOW_VERSION_PATH, 1, CHILD_FLOW_VERSION_PATH, 1, GRANDCHILD_FLOW_VERSION_PATH, 1), requestCounts);
+
+        final VersionedProcessGroup child = snapshot.getFlowContents().getProcessGroups().iterator().next();
+        final VersionedProcessGroup grandchild = child.getProcessGroups().iterator().next();
+        final VersionedProcessGroup leaf = grandchild.getProcessGroups().iterator().next();
+        assertEquals(LEAF_GROUP_NAME, leaf.getName());
+    }
+
+    private VersionedProcessGroup getVersionedGroup(final String flowId) {
+        final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
+        coordinates.setStorageLocation(mockWebServer.url(API_PATH).toString());
+        coordinates.setBucketId(BUCKET_ID);
+        coordinates.setFlowId(flowId);
+        coordinates.setVersion(NESTED_VERSION);
+
+        final VersionedProcessGroup group = new VersionedProcessGroup();
+        group.setIdentifier(flowId);
+        group.setName(flowId);
+        group.setVersionedFlowCoordinates(coordinates);
+        return group;
+    }
+
+    private static VersionedProcessGroup getLeafGroup() {
+        final VersionedProcessGroup group = new VersionedProcessGroup();
+        group.setIdentifier(LEAF_GROUP_NAME);
+        group.setName(LEAF_GROUP_NAME);
+        return group;
+    }
+
+    private static String getSnapshotResponseBody(final VersionedProcessGroup childGroup) throws JsonProcessingException {
+        final VersionedProcessGroup flowContents = new VersionedProcessGroup();
+        flowContents.setProcessGroups(Set.of(childGroup));
+
+        final VersionedFlowSnapshot snapshot = new VersionedFlowSnapshot();
+        snapshot.setFlowContents(flowContents);
+        return objectMapper.writeValueAsString(snapshot);
     }
 
     private void enqueueFlowResponse() throws JsonProcessingException {

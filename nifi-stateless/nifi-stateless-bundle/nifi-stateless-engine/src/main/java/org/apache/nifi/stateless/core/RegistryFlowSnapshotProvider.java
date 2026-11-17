@@ -164,6 +164,9 @@ public class RegistryFlowSnapshotProvider implements FlowSnapshotProvider {
             group.setDefaultBackPressureDataSizeThreshold(contents.getDefaultBackPressureDataSizeThreshold());
             group.setLogFileSuffix(contents.getLogFileSuffix());
             coordinates.setLatest(snapshot.isLatest());
+
+            // The nested provider has already populated the versioned flows nested in this one
+            return;
         }
 
         for (final VersionedProcessGroup child : group.getProcessGroups()) {

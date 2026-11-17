@@ -418,8 +418,8 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         final VersionedFlowCoordinates coordinates = group.getVersionedFlowCoordinates();
 
         if (coordinates != null) {
-            // Fetch only this flow: its own nested versioned flows are fetched once each by the loop over its children below
-            final RegisteredFlowSnapshot snapshot = fetchFlowContents(context, coordinates, false);
+            // Fetch only this flow: the loop over its children below fetches its own nested versioned flows
+            final RegisteredFlowSnapshot snapshot = fetchFlowContents(context, coordinates);
             final VersionedProcessGroup contents = snapshot.getFlowContents();
 
             group.setVersionedFlowCoordinates(coordinates);
@@ -461,8 +461,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         return accumulatedParameterContexts;
     }
 
-    private RegisteredFlowSnapshot fetchFlowContents(final FlowRegistryClientUserContext context, final VersionedFlowCoordinates coordinates,
-                                                     final boolean fetchRemoteFlows) throws FlowRegistryException {
+    private RegisteredFlowSnapshot fetchFlowContents(final FlowRegistryClientUserContext context, final VersionedFlowCoordinates coordinates) throws FlowRegistryException {
 
         final String storageLocation = coordinates.getStorageLocation();
         final String branch = coordinates.getBranch();
@@ -475,7 +474,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         for (final FlowRegistryClientNode clientNode : clientNodes) {
             try {
                 logger.debug("Attempting to fetch flow from Branch [{}] for Bucket [{}] Flow [{}] Version [{}] using {}", branch, bucketId, flowId, version, clientNode);
-                final FlowSnapshotContainer snapshotContainer = clientNode.getFlowContents(context, flowVersionLocation, fetchRemoteFlows);
+                final FlowSnapshotContainer snapshotContainer = clientNode.getFlowContents(context, flowVersionLocation, false);
                 final RegisteredFlowSnapshot snapshot = snapshotContainer.getFlowSnapshot();
                 coordinates.setRegistryId(clientNode.getIdentifier());
 
