@@ -117,26 +117,21 @@
             "undici": "^8.12.3"
         },
         "nx": {
-            "minimatch": "^9.0.9",
             "brace-expansion": "^2.1.4"
         },
         "sockjs": {
             "uuid": "^11.1.1"
         },
         "webpack-dev-server": "^5.2.6",
-        "piscina": "^5.3.2",
         "vite": "^7.3.7",
         "smol-toml": "^1.9.0",
         "axios": "^1.20.0",
         "follow-redirects": "^1.16.2",
-        "@modelcontextprotocol/sdk": "^1.32.0",
-        "node-forge": "^1.4.3",
-        "qs": "^6.16.2",
-        "fast-uri": "^3.1.9",
-        "ip-address": "^10.7.5",
-        "serialize-javascript": "^7.1.4",
-        "@eslint/plugin-kit": "^0.7.3",
-        "zod": "^4.6.6"
+        "glob": "^14.0.2",
+        "minimatch": "^11.0.1",
+        "@eslint/eslintrc": {
+            "minimatch": "3.1.5"
+        }
     },
     "browser": {
         "fs": false,
