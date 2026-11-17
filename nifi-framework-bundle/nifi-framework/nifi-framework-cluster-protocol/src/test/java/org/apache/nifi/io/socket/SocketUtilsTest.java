@@ -23,6 +23,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -52,6 +54,8 @@ class SocketUtilsTest {
     private static final Duration CERTIFICATE_VALIDITY = Duration.ofHours(1);
 
     private static final int TIMEOUT_MILLISECONDS = 5000;
+
+    private static final int CONNECT_TIMEOUT_MILLISECONDS = 500;
 
     private static final String LOCALHOST = "localhost";
 
@@ -87,6 +91,20 @@ class SocketUtilsTest {
         final X509Certificate certificate = buildCertificate(keyPair, NON_MATCHING_HOST);
 
         assertThrows(SSLHandshakeException.class, () -> connectAndHandshake(keyPair, certificate));
+    }
+
+    @Test
+    void testCreateSocketConnected() throws IOException {
+        try (ServerSocket serverSocket = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+            final SocketConfiguration config = new SocketConfiguration();
+            config.setConnectTimeout(CONNECT_TIMEOUT_MILLISECONDS);
+            config.setSocketTimeout(TIMEOUT_MILLISECONDS);
+
+            try (Socket socket = SocketUtils.createSocket(InetSocketAddress.createUnresolved(LOCALHOST, serverSocket.getLocalPort()), config)) {
+                assertTrue(socket.isConnected());
+                assertEquals(TIMEOUT_MILLISECONDS, socket.getSoTimeout());
+            }
+        }
     }
 
     private void connectAndHandshake(final KeyPair serverKeyPair, final X509Certificate serverCertificate) throws Exception {

@@ -57,12 +57,12 @@ public final class SocketUtils {
 
         final SSLContext sslContext = config.getSslContext();
         if (sslContext == null) {
-            socket = new Socket(address.getHostName(), address.getPort());
+            socket = new Socket();
         } else {
             /* This would ideally be refactored to a shared create method but Socket and ServerSocket
              * do not share a common interface; Socket is effectively "client socket" in this context
              */
-            Socket tempSocket = sslContext.getSocketFactory().createSocket(address.getHostName(), address.getPort());
+            Socket tempSocket = sslContext.getSocketFactory().createSocket();
             final SSLSocket sslSocket = (SSLSocket) tempSocket;
             // Set Preferred TLS Protocol Versions
             sslSocket.setEnabledProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
@@ -103,6 +103,17 @@ public final class SocketUtils {
 
         if (config.getTcpNoDelay() != null) {
             socket.setTcpNoDelay(config.getTcpNoDelay());
+        }
+
+        // Connect via a freshly resolved address built from the hostname: the given address may be unresolved,
+        // and TLS endpoint identification checks against the hostname
+        final InetSocketAddress connectAddress = new InetSocketAddress(address.getHostName(), address.getPort());
+        final int connectTimeout = config.getConnectTimeout() == null ? 0 : config.getConnectTimeout();
+        try {
+            socket.connect(connectAddress, connectTimeout);
+        } catch (final IOException e) {
+            closeQuietly(socket);
+            throw e;
         }
 
         return socket;

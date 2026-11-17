@@ -77,6 +77,8 @@ public class FrameworkClusterProtocolConfiguration {
 
         final int timeout = (int) FormatUtils.getPreciseTimeDuration(properties.getClusterNodeReadTimeout(), TimeUnit.MILLISECONDS);
         configuration.setSocketTimeout(timeout);
+        final int connectTimeout = (int) FormatUtils.getPreciseTimeDuration(properties.getClusterNodeConnectionTimeout(), TimeUnit.MILLISECONDS);
+        configuration.setConnectTimeout(connectTimeout);
         configuration.setReuseAddress(true);
         configuration.setSslContext(sslContext);
 
