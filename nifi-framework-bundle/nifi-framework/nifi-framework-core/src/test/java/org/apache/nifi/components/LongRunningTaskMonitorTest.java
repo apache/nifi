@@ -28,6 +28,7 @@ import org.apache.nifi.reporting.Severity;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
+import org.slf4j.helpers.MessageFormatter;
 
 import java.text.NumberFormat;
 import java.util.Arrays;
@@ -85,12 +86,25 @@ public class LongRunningTaskMonitorTest {
 
         longRunningTaskMonitor.run();
 
-        ArgumentCaptor<String> logMessages = ArgumentCaptor.forClass(String.class);
-        verify(longRunningTaskMonitorLogger, times(2)).warn(logMessages.capture());
+        ArgumentCaptor<String> logMessageTemplate = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Object[]> logArguments = ArgumentCaptor.forClass(Object[].class);
+
+        verify(longRunningTaskMonitorLogger, times(2))
+                .warn(logMessageTemplate.capture(), logArguments.capture());
+        final String firstLogMessage = MessageFormatter.arrayFormat(
+                logMessageTemplate.getAllValues().get(0),
+                logArguments.getAllValues().get(0)).getMessage();
+
         assertEquals("Long running task detected on processor [id=Processor-1-ID, name=Processor-1-Name, type=Processor-1-Type]. Task time: 60 seconds. Stack trace:\n" + STACKTRACE,
-                logMessages.getAllValues().get(0));
+                firstLogMessage);
+
+        final String secondLogMessage = MessageFormatter.arrayFormat(
+                logMessageTemplate.getAllValues().get(1),
+                logArguments.getAllValues().get(1)).getMessage();
+
         assertEquals("Long running task detected on processor [id=Processor-2-ID, name=Processor-2-Name, type=Processor-2-Type]. Task time: 1,000 seconds. Stack trace:\n" + STACKTRACE,
-                logMessages.getAllValues().get(1).replace(NumberFormat.getInstance(Locale.getDefault()).format(1000), NumberFormat.getInstance(Locale.US).format(1000)));
+                secondLogMessage.replace(NumberFormat.getInstance(Locale.getDefault()).format(1000), NumberFormat.getInstance(Locale.US).format(1000)));
+
         ArgumentCaptor<String> controllerBulletinMessages = ArgumentCaptor.forClass(String.class);
         verify(eventReporter, times(2)).reportEvent(eq(Severity.WARNING), eq("Long Running Task"), controllerBulletinMessages.capture());
 
