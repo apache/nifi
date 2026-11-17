@@ -379,7 +379,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
             return commits.hasNext() ? Optional.of(commits.next().getSHA1()) : Optional.empty();
         } catch (final GHException e) {
             // Iterators wrap request failures, such as Not Found for an unknown branch, which callers handle as IOException
-            if (e.getCause() instanceof IOException ioException) {
+            if (e.getCause() instanceof final IOException ioException) {
                 throw ioException;
             }
             throw e;
