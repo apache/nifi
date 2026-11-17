@@ -17,6 +17,8 @@
 
 package org.apache.nifi.tests.system.clustering;
 
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
+import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.tests.system.InstanceConfiguration;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
@@ -155,6 +157,48 @@ public class OffloadIT extends NiFiSystemIT {
         // terminate sequence above failed to roll back the stashed Sessions, the unacknowledged FlowFiles
         // on the source queue prevent the count from reaching zero and this wait will not complete before
         // the test timeout.
+        waitForNodeStatus(nodeTwoDto, "OFFLOADED");
+
+        getClientUtil().connectNode(nodeId);
+        waitForAllNodesConnected();
+        destroyFlow();
+    }
+
+    /**
+     * Verifies that a node can be offloaded immediately after reconnecting to the cluster, while it holds FlowFiles in a
+     * load-balanced connection that was added while the node was disconnected. The node creates that connection's queue while
+     * synchronizing the flow during reconnection, so offload depends on the queue having been aligned with the current cluster
+     * topology, and on the node's view of its peer still being connected, in order to transfer every FlowFile to the peer.
+     */
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.MINUTES)
+    public void testOffloadImmediatelyAfterReconnectionWithConnectionAddedWhileDisconnected() throws NiFiClientException, IOException, InterruptedException {
+        final NodeDTO nodeTwoDto = getNodeDtoByApiPort(5672);
+        final String nodeId = nodeTwoDto.getNodeId();
+        disconnectNode(nodeTwoDto);
+        waitForNodeStatus(nodeTwoDto, "DISCONNECTED");
+
+        ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+        final ConnectionEntity connection = getClientUtil().createConnection(generate, terminate, "success");
+        getClientUtil().updateConnectionLoadBalancing(connection, LoadBalanceStrategy.ROUND_ROBIN, LoadBalanceCompression.DO_NOT_COMPRESS, null);
+
+        generate = getClientUtil().updateProcessorProperties(generate, Map.of("File Size", "1 KB"));
+        final ProcessorConfigDTO generateConfig = generate.getComponent().getConfig();
+        generateConfig.setSchedulingPeriod("100 millis");
+        getClientUtil().updateProcessorConfig(generate, generateConfig);
+        getClientUtil().startProcessor(generate);
+
+        getClientUtil().connectNode(nodeId);
+        waitForAllNodesConnected();
+        waitForQueueNotEmpty(connection.getId());
+
+        // Stop generating so that the queue holds a bounded number of FlowFiles that the peer can accept without back pressure
+        getClientUtil().stopProcessor(generate);
+
+        // Offload the node as soon as it has rejoined, while FlowFiles are queued in the load-balanced connection
+        disconnectNode(nodeTwoDto);
+        getClientUtil().offloadNode(nodeId);
         waitForNodeStatus(nodeTwoDto, "OFFLOADED");
 
         getClientUtil().connectNode(nodeId);

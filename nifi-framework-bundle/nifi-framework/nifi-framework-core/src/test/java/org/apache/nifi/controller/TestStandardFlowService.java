@@ -27,6 +27,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.cluster.protocol.impl.NodeProtocolSenderListener;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
+import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -54,6 +55,7 @@ import org.mockito.InOrder;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -76,7 +78,9 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -196,6 +200,65 @@ public class TestStandardFlowService {
         assertEquals(nodeIdentifier, statusCaptor.getValue().getNodeIdentifier());
         assertEquals(NodeConnectionState.CONNECTING, statusCaptor.getValue().getState());
         verify(clusteredController, never()).setClustered(anyBoolean(), any());
+    }
+
+    @Test
+    public void testReconnectionPreservesNodeStatusUpdatedDuringFlowSynchronization() throws Exception {
+        final FlowController clusteredController = mock(FlowController.class);
+        final StateManagerProvider stateManagerProvider = controller.getStateManagerProvider();
+        final ExtensionManager extensionManager = controller.getExtensionManager();
+        when(clusteredController.getStateManagerProvider()).thenReturn(stateManagerProvider);
+        when(clusteredController.getExtensionManager()).thenReturn(extensionManager);
+
+        final StandardFlowService clusteredFlowService = spy(StandardFlowService.createClusteredInstance(clusteredController, nifiProperties,
+                mock(NodeProtocolSenderListener.class), clusterCoordinator, mock(RevisionManager.class), mock(NarManager.class),
+                mock(AssetSynchronizer.class), mock(AssetSynchronizer.class), mock(Authorizer.class)));
+        doNothing().when(clusteredFlowService).loadFromBytes(any(), eq(true), eq(BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST));
+        doNothing().when(clusteredFlowService).saveFlowChanges();
+
+        final NodeIdentifier localNodeId = createNodeIdentifier();
+        final NodeIdentifier peerNodeId = new NodeIdentifier("node-2", "localhost", 8444, "localhost", 9091, "localhost", 6343, 10444, false);
+        final StandardDataFlow dataFlow = new StandardDataFlow(new byte[0], new byte[0], new byte[0], Collections.emptySet());
+        final ComponentRevisionSnapshot revisions = mock(ComponentRevisionSnapshot.class);
+
+        // Establishes the local node identifier required to build the connection response for a reconnection request
+        clusteredFlowService.loadFromConnectionResponse(new ConnectionResponse(localNodeId, dataFlow, "instance-0",
+                List.of(new NodeConnectionStatus(localNodeId, NodeConnectionState.CONNECTING)), revisions));
+        clearInvocations(clusteredController, clusterCoordinator, clusteredFlowService);
+
+        final Map<String, NodeConnectionStatus> trackedStatuses = new HashMap<>();
+        doAnswer(invocation -> {
+            final Map<NodeIdentifier, NodeConnectionStatus> replacements = invocation.getArgument(0);
+            replacements.forEach((nodeIdentifier, status) -> trackedStatuses.put(nodeIdentifier.getId(), status));
+            return null;
+        }).when(clusterCoordinator).resetNodeStatuses(any(Map.class));
+        doAnswer(invocation -> {
+            trackedStatuses.put(peerNodeId.getId(), new NodeConnectionStatus(peerNodeId, NodeConnectionState.CONNECTED));
+            return null;
+        }).when(clusteredFlowService).loadFromBytes(any(), eq(true), eq(BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST));
+
+        final ReconnectionRequestMessage request = new ReconnectionRequestMessage();
+        request.setNodeId(localNodeId);
+        request.setDataFlow(dataFlow);
+        request.setInstanceId("instance-1");
+        request.setComponentRevisions(revisions);
+        request.setNodeConnectionStatuses(List.of(
+                new NodeConnectionStatus(localNodeId, NodeConnectionState.CONNECTING),
+                new NodeConnectionStatus(peerNodeId, NodeConnectionState.CONNECTING)));
+
+        clusteredFlowService.handleReconnectionRequest(request);
+
+        assertEquals(NodeConnectionState.CONNECTED, trackedStatuses.get(peerNodeId.getId()).getState());
+        assertEquals(NodeConnectionState.CONNECTING, trackedStatuses.get(localNodeId.getId()).getState());
+        verify(clusterCoordinator, times(1)).resetNodeStatuses(any(Map.class));
+        verify(clusteredController, never()).setClustered(false, null);
+
+        final InOrder inOrder = inOrder(clusterCoordinator, clusteredController, clusteredFlowService);
+        inOrder.verify(clusterCoordinator).resetNodeStatuses(any(Map.class));
+        inOrder.verify(clusteredFlowService).loadFromBytes(any(), eq(true), eq(BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST));
+        inOrder.verify(clusterCoordinator).notifyNodeStatusListeners();
+        inOrder.verify(clusteredFlowService).saveFlowChanges();
+        inOrder.verify(clusteredController).onClusterConnect();
     }
 
     @Test

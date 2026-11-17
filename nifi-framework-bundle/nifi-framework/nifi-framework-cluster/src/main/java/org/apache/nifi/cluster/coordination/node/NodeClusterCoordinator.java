@@ -312,8 +312,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     public void resetNodeStatuses(final Map<NodeIdentifier, NodeConnectionStatus> statusMap) {
         logger.info("Resetting cluster node statuses from {} to {}", nodeStatuses, statusMap);
 
-        // For each proposed replacement, update the nodeStatuses map if and only if the replacement
-        // has a larger update id than the current value.
+        // Replace each provided status unconditionally: update identifiers are assigned by the elected cluster coordinator
+        // and restart when a different node is elected, so they cannot be compared against the currently held values.
         for (final Map.Entry<NodeIdentifier, NodeConnectionStatus> entry : statusMap.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
             final NodeConnectionStatus proposedStatus = entry.getValue();
@@ -326,6 +326,13 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         }
 
         storeState();
+    }
+
+    @Override
+    public void notifyNodeStatusListeners() {
+        for (final NodeConnectionStatus status : nodeStatuses.values()) {
+            onNodeStateChange(status.getNodeIdentifier(), status.getState());
+        }
     }
 
     private NodeConnectionStatus removeNode(final NodeIdentifier nodeId) {

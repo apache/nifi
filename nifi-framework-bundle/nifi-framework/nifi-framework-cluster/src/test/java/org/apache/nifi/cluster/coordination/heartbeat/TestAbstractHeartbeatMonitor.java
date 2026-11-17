@@ -339,6 +339,10 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
+        public void notifyNodeStatusListeners() {
+        }
+
+        @Override
         public void shutdown() {
         }
 

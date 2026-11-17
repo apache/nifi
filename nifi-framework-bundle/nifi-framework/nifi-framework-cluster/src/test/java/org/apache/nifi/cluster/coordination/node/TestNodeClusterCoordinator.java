@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.cluster.coordination.node;
 
+import org.apache.nifi.cluster.coordination.ClusterTopologyEventListener;
 import org.apache.nifi.cluster.coordination.flow.FlowElection;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
@@ -520,6 +521,34 @@ public class TestNodeClusterCoordinator {
         assertNull(coordinator.getPendingDisconnectionThread(nodeId2));
         disconnectThread.join(5000);
         assertFalse(disconnectThread.isAlive());
+    }
+
+    @Test
+    public void testNotifyNodeStatusListenersReportsCurrentStatesWithoutChangingThem() {
+        final NodeIdentifier connectedNodeId = createNodeId(1);
+        final NodeIdentifier offloadingNodeId = createNodeId(2);
+        coordinator.updateNodeStatus(new NodeConnectionStatus(connectedNodeId, NodeConnectionState.CONNECTED));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(offloadingNodeId, NodeConnectionState.OFFLOADING));
+        final NodeConnectionStatus connectedStatusBefore = coordinator.getConnectionStatus(connectedNodeId);
+        final NodeConnectionStatus offloadingStatusBefore = coordinator.getConnectionStatus(offloadingNodeId);
+
+        final ClusterTopologyEventListener listener = Mockito.mock(ClusterTopologyEventListener.class);
+        coordinator.registerEventListener(listener);
+
+        coordinator.notifyNodeStatusListeners();
+
+        Mockito.verify(listener, Mockito.times(1)).onNodeStateChange(connectedNodeId, NodeConnectionState.CONNECTED);
+        Mockito.verify(listener, Mockito.times(1)).onNodeStateChange(offloadingNodeId, NodeConnectionState.OFFLOADING);
+        Mockito.verify(listener, Mockito.times(2)).onNodeStateChange(any(), any());
+        Mockito.verify(listener, Mockito.never()).onNodeAdded(any());
+        Mockito.verify(listener, Mockito.never()).onNodeRemoved(any());
+
+        final NodeConnectionStatus connectedStatusAfter = coordinator.getConnectionStatus(connectedNodeId);
+        final NodeConnectionStatus offloadingStatusAfter = coordinator.getConnectionStatus(offloadingNodeId);
+        assertEquals(NodeConnectionState.CONNECTED, connectedStatusAfter.getState());
+        assertEquals(connectedStatusBefore.getUpdateIdentifier(), connectedStatusAfter.getUpdateIdentifier());
+        assertEquals(NodeConnectionState.OFFLOADING, offloadingStatusAfter.getState());
+        assertEquals(offloadingStatusBefore.getUpdateIdentifier(), offloadingStatusAfter.getUpdateIdentifier());
     }
 
     private NodeIdentifier createNodeId(final int index) {
