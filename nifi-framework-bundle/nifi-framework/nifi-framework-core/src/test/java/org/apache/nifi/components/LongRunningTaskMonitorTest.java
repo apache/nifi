@@ -86,20 +86,20 @@ public class LongRunningTaskMonitorTest {
 
         longRunningTaskMonitor.run();
 
-        ArgumentCaptor<String> logMessageTemplate = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> logMessageTemplates = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Object[]> logArguments = ArgumentCaptor.forClass(Object[].class);
 
         verify(longRunningTaskMonitorLogger, times(2))
-                .warn(logMessageTemplate.capture(), logArguments.capture());
+                .warn(logMessageTemplates.capture(), logArguments.capture());
         final String firstLogMessage = MessageFormatter.arrayFormat(
-                logMessageTemplate.getAllValues().get(0),
-                logArguments.getAllValues().get(0)).getMessage();
+                logMessageTemplates.getAllValues().getFirst(),
+                logArguments.getAllValues().getFirst()).getMessage();
 
         assertEquals("Long running task detected on processor [id=Processor-1-ID, name=Processor-1-Name, type=Processor-1-Type]. Task time: 60 seconds. Stack trace:\n" + STACKTRACE,
                 firstLogMessage);
 
         final String secondLogMessage = MessageFormatter.arrayFormat(
-                logMessageTemplate.getAllValues().get(1),
+                logMessageTemplates.getAllValues().get(1),
                 logArguments.getAllValues().get(1)).getMessage();
 
         assertEquals("Long running task detected on processor [id=Processor-2-ID, name=Processor-2-Name, type=Processor-2-Type]. Task time: 1,000 seconds. Stack trace:\n" + STACKTRACE,
