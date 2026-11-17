@@ -96,7 +96,10 @@ public interface GitRepositoryClient {
 
     /**
      * Retrieves the SHA of the commit at the head of the given branch. Clients that support it let the registry client
-     * answer repeated questions about unchanged flows without further requests.
+     * answer repeated questions about unchanged flows without further requests. The registry client checks the head
+     * before answering each question from what it remembers, so implementations should make this check cheap while the
+     * head is unchanged. Clients that return a head must also implement {@link #getLatestCommitShaAtCommit(String, String)}
+     * and {@link #getChangedPaths(String, String)}.
      *
      * @param branch the branch name
      * @return the SHA of the head commit, or empty if the client does not support it
@@ -108,11 +111,28 @@ public interface GitRepositoryClient {
     }
 
     /**
-     * Retrieves the paths of the files changed from one commit to a later one, relative to the repository path of the client.
+     * Retrieves the SHA of the most recent commit that changed the given path, among the given commit and its ancestors.
+     *
+     * @param path the path of the file
+     * @param commitSha the SHA of the commit to start from
+     * @return the SHA of the latest commit for the path, or empty when no commit changed the path
+     * @throws IOException if an I/O error occurs
+     * @throws FlowRegistryException if a non-I/O error occurs
+     */
+    default Optional<String> getLatestCommitShaAtCommit(String path, String commitSha) throws IOException, FlowRegistryException {
+        throw new UnsupportedOperationException("Latest commit from a given commit not supported by " + getClass().getSimpleName());
+    }
+
+    /**
+     * Retrieves the paths of the files touched by any commit from one commit, exclusive, to a later one, inclusive,
+     * relative to the repository path of the client. A renamed file contributes both its old and its new path. The
+     * result is not the net difference between the two commits: a file changed and then reverted within the range is
+     * included.
      *
      * @param fromCommitSha the SHA of the earlier commit
      * @param toCommitSha the SHA of the later commit
-     * @return the changed paths, or empty if they cannot be determined, for example when the history diverged
+     * @return the touched paths, or empty if they cannot be determined, for example when the later commit does not
+     *         descend from the earlier one
      * @throws IOException if an I/O error occurs
      * @throws FlowRegistryException if a non-I/O error occurs
      */

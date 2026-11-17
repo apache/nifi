@@ -314,7 +314,6 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
                 .build();
 
         repositoryClient.createContent(request);
-        branchStateCache.invalidate(branch, filePath);
 
         // Re-populate fields before returning
         flow.setBucketName(originalBucketId);
@@ -334,7 +333,6 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String commitMessage = DEREGISTER_FLOW_MESSAGE_FORMAT.formatted(flowLocation.getFlowId());
         final String userIdentity = resolveAuthorIdentity(context);
         try (final InputStream deletedSnapshotContent = repositoryClient.deleteContent(filePath, commitMessage, branch, userIdentity, userIdentity)) {
-            branchStateCache.invalidate(branch, filePath);
             final RegisteredFlowSnapshot deletedSnapshot = getSnapshot(deletedSnapshotContent);
             populateFlowAndSnapshotMetadata(deletedSnapshot, flowLocation);
             updateBucketReferences(repositoryClient, deletedSnapshot, flowLocation.getBucketId());
@@ -356,7 +354,10 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             return cachedFlow.get();
         }
 
-        final RegisteredFlowSnapshot existingSnapshot = getSnapshot(repositoryClient, filePath, branch);
+        // Read at the head commit of the state, so the remembered flow matches the head it is answered for
+        final RegisteredFlowSnapshot existingSnapshot = branchState.isPresent()
+                ? getSnapshot(repositoryClient.getContentFromCommit(filePath, branchState.get().getHeadSha()))
+                : getSnapshot(repositoryClient, filePath, branch);
         populateFlowAndSnapshotMetadata(existingSnapshot, flowLocation);
         updateBucketReferences(repositoryClient, existingSnapshot, flowLocation.getBucketId());
 
@@ -513,7 +514,6 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
                 .build();
 
         final String createContentCommitSha = repositoryClient.createContent(createContentRequest);
-        branchStateCache.invalidate(branch, filePath);
         if (createContentCommitSha == null) {
             throw new FlowRegistryException("Created Content Commit SHA is null");
         } else if (createContentCommitSha.isEmpty() || createContentCommitSha.isBlank()) {
@@ -578,8 +578,14 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             return cachedLatestVersion.get().toOptional();
         }
 
-        final Optional<String> latestVersion = repositoryClient.getLatestCommitSha(filePath, branch);
-        branchState.ifPresent(state -> state.putLatestVersion(filePath, latestVersion));
+        if (branchState.isEmpty()) {
+            return repositoryClient.getLatestCommitSha(filePath, branch);
+        }
+
+        // Read at the head commit of the state, so the remembered version matches the head it is answered for
+        final GitBranchStateCache.BranchState state = branchState.get();
+        final Optional<String> latestVersion = repositoryClient.getLatestCommitShaAtCommit(filePath, state.getHeadSha());
+        state.putLatestVersion(filePath, latestVersion);
         return latestVersion;
     }
 

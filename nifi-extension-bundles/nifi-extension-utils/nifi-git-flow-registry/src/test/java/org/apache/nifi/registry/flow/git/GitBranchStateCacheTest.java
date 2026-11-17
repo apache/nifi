@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.io.FileNotFoundException;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -44,7 +44,6 @@ class GitBranchStateCacheTest {
     private static final String CHANGED_PATH = "bucket/changed.json";
     private static final String UNCHANGED_PATH = "bucket/unchanged.json";
 
-    private final AtomicLong nanoTime = new AtomicLong();
     private GitRepositoryClient repositoryClient;
     private GitBranchStateCache cache;
 
@@ -52,27 +51,18 @@ class GitBranchStateCacheTest {
     void setUp() throws Exception {
         repositoryClient = mock(GitRepositoryClient.class);
         when(repositoryClient.getBranchHeadSha(BRANCH)).thenReturn(Optional.of("head-1"));
-        cache = new GitBranchStateCache(nanoTime::get);
+        cache = new GitBranchStateCache();
     }
 
     @Test
-    void testHeadCheckedOncePerInterval() throws Exception {
+    void testHeadCheckedOnEveryCall() throws Exception {
         final GitBranchStateCache.BranchState firstState = cache.getState(repositoryClient, BRANCH).orElseThrow();
-        nanoTime.addAndGet(GitBranchStateCache.HEAD_CHECK_INTERVAL_NANOS - 1);
+        firstState.putLatestVersion(UNCHANGED_PATH, Optional.of("commit-1"));
         final GitBranchStateCache.BranchState secondState = cache.getState(repositoryClient, BRANCH).orElseThrow();
 
         assertSame(firstState, secondState);
-        verify(repositoryClient, times(1)).getBranchHeadSha(BRANCH);
-    }
-
-    @Test
-    void testUnchangedHeadKeepsValues() throws Exception {
-        cache.getState(repositoryClient, BRANCH).orElseThrow().putLatestVersion(UNCHANGED_PATH, Optional.of("commit-1"));
-
-        nanoTime.addAndGet(GitBranchStateCache.HEAD_CHECK_INTERVAL_NANOS);
-        final GitBranchStateCache.BranchState state = cache.getState(repositoryClient, BRANCH).orElseThrow();
-
-        assertEquals(Optional.of("commit-1"), state.getLatestVersion(UNCHANGED_PATH).orElseThrow().toOptional());
+        assertEquals("head-1", secondState.getHeadSha());
+        assertEquals(Optional.of("commit-1"), secondState.getLatestVersion(UNCHANGED_PATH).orElseThrow().toOptional());
         verify(repositoryClient, times(2)).getBranchHeadSha(BRANCH);
         verify(repositoryClient, never()).getChangedPaths(anyString(), anyString());
     }
@@ -87,9 +77,9 @@ class GitBranchStateCacheTest {
 
         when(repositoryClient.getBranchHeadSha(BRANCH)).thenReturn(Optional.of("head-2"));
         when(repositoryClient.getChangedPaths("head-1", "head-2")).thenReturn(Optional.of(Set.of(CHANGED_PATH)));
-        nanoTime.addAndGet(GitBranchStateCache.HEAD_CHECK_INTERVAL_NANOS);
         final GitBranchStateCache.BranchState state = cache.getState(repositoryClient, BRANCH).orElseThrow();
 
+        assertEquals("head-2", state.getHeadSha());
         assertTrue(state.getLatestVersion(CHANGED_PATH).isEmpty());
         assertTrue(state.getFlow(CHANGED_PATH).isEmpty());
         assertEquals(Optional.of("commit-1"), state.getLatestVersion(UNCHANGED_PATH).orElseThrow().toOptional());
@@ -102,7 +92,6 @@ class GitBranchStateCacheTest {
 
         when(repositoryClient.getBranchHeadSha(BRANCH)).thenReturn(Optional.of("head-2"));
         when(repositoryClient.getChangedPaths("head-1", "head-2")).thenReturn(Optional.empty());
-        nanoTime.addAndGet(GitBranchStateCache.HEAD_CHECK_INTERVAL_NANOS);
 
         assertTrue(cache.getState(repositoryClient, BRANCH).orElseThrow().getLatestVersion(UNCHANGED_PATH).isEmpty());
     }
@@ -113,14 +102,46 @@ class GitBranchStateCacheTest {
 
         when(repositoryClient.getBranchHeadSha(BRANCH)).thenReturn(Optional.of("head-2"));
         when(repositoryClient.getChangedPaths("head-1", "head-2")).thenThrow(new FileNotFoundException("Not Found"));
-        nanoTime.addAndGet(GitBranchStateCache.HEAD_CHECK_INTERVAL_NANOS);
 
         final GitBranchStateCache.BranchState state = cache.getState(repositoryClient, BRANCH).orElseThrow();
+        assertEquals("head-2", state.getHeadSha());
         assertTrue(state.getLatestVersion(UNCHANGED_PATH).isEmpty());
 
-        nanoTime.addAndGet(GitBranchStateCache.HEAD_CHECK_INTERVAL_NANOS);
         assertSame(state, cache.getState(repositoryClient, BRANCH).orElseThrow());
         verify(repositoryClient, times(1)).getChangedPaths(anyString(), anyString());
+    }
+
+    @Test
+    void testStateFromLaterHeadCheckIsKept() throws Exception {
+        // While this call waits for its head check, which answers head-1, another call checks the head later and
+        // moves the state to head-2: the older answer must not move the state back
+        final AtomicInteger headChecks = new AtomicInteger();
+        when(repositoryClient.getBranchHeadSha(BRANCH)).thenAnswer(invocation -> {
+            if (headChecks.incrementAndGet() > 1) {
+                return Optional.of("head-2");
+            }
+            cache.getState(repositoryClient, BRANCH);
+            return Optional.of("head-1");
+        });
+
+        assertEquals("head-2", cache.getState(repositoryClient, BRANCH).orElseThrow().getHeadSha());
+        verify(repositoryClient, never()).getChangedPaths(anyString(), anyString());
+    }
+
+    @Test
+    void testStateIsNotUsedWithOtherRepositoryClient() throws Exception {
+        cache.getState(repositoryClient, BRANCH).orElseThrow().putLatestVersion(UNCHANGED_PATH, Optional.of("commit-1"));
+
+        final GitRepositoryClient reconfiguredClient = mock(GitRepositoryClient.class);
+        when(reconfiguredClient.getBranchHeadSha(BRANCH)).thenReturn(Optional.of("head-1"));
+        final GitBranchStateCache.BranchState state = cache.getState(reconfiguredClient, BRANCH).orElseThrow();
+
+        assertTrue(state.getLatestVersion(UNCHANGED_PATH).isEmpty());
+        verify(reconfiguredClient, never()).getChangedPaths(anyString(), anyString());
+
+        // A call still running with the previous client does not get the new client's state either
+        state.putLatestVersion(UNCHANGED_PATH, Optional.of("commit-2"));
+        assertTrue(cache.getState(repositoryClient, BRANCH).orElseThrow().getLatestVersion(UNCHANGED_PATH).isEmpty());
     }
 
     @Test
@@ -128,16 +149,6 @@ class GitBranchStateCacheTest {
         when(repositoryClient.getBranchHeadSha(BRANCH)).thenReturn(Optional.empty());
 
         assertTrue(cache.getState(repositoryClient, BRANCH).isEmpty());
-    }
-
-    @Test
-    void testInvalidateDropsPath() throws Exception {
-        final GitBranchStateCache.BranchState state = cache.getState(repositoryClient, BRANCH).orElseThrow();
-        state.putLatestVersion(CHANGED_PATH, Optional.empty());
-
-        assertTrue(state.getLatestVersion(CHANGED_PATH).orElseThrow().toOptional().isEmpty());
-        cache.invalidate(BRANCH, CHANGED_PATH);
-        assertTrue(state.getLatestVersion(CHANGED_PATH).isEmpty());
     }
 
     @Test

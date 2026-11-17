@@ -27,71 +27,66 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.function.LongSupplier;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Remembers, per branch, what was read for each flow file while the head of the branch stays the same.
+ * Remembers, per branch, what was read for each flow file at the head of the branch.
  * <p>
  * The framework asks for the flow and its latest version for every versioned Process Group on every
  * registry synchronization. Without this cache each of those questions costs requests to the Git provider,
- * so the cost of a synchronization grows with the number of versioned Process Groups. With it, a
- * synchronization costs one request for the branch head per check interval, plus requests for the files
- * that changed since the previous head.
+ * so the cost of a synchronization grows with the number of versioned Process Groups. With it, each question
+ * costs a check of the branch head, which the repository client makes cheap while the head is unchanged, plus
+ * requests for the files touched since the previous head.
+ * <p>
+ * Each value is read at the head commit of the state that holds it, and a state is used only while the branch head
+ * is still that commit, so a value is never answered for another head. A state is also used only with the repository
+ * client instance it was read with, so values read before a change of configuration are never answered after it.
  */
 final class GitBranchStateCache {
 
-    static final long HEAD_CHECK_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(10);
-
-    private final LongSupplier nanoTimeSupplier;
     private final Map<String, BranchState> branchStates = new ConcurrentHashMap<>();
-
-    GitBranchStateCache() {
-        this(System::nanoTime);
-    }
-
-    GitBranchStateCache(final LongSupplier nanoTimeSupplier) {
-        this.nanoTimeSupplier = nanoTimeSupplier;
-    }
+    private final AtomicLong headChecks = new AtomicLong();
 
     /**
-     * Gets the state of the branch, checking its head when the last check is older than the check interval.
-     * When the head moved, values cached for files changed between the two heads are dropped; when those files
-     * cannot be determined, every value cached for the branch is dropped.
+     * Gets the state of the branch at its current head. When the head moved since the state was read, the values for
+     * files touched between the two heads are dropped; when those files cannot be determined, every value is dropped.
      *
      * @param repositoryClient the repository client
      * @param branch the branch
      * @return the state of the branch, or empty when the repository client cannot report the branch head
      */
     Optional<BranchState> getState(final GitRepositoryClient repositoryClient, final String branch) throws IOException, FlowRegistryException {
-        final long now = nanoTimeSupplier.getAsLong();
-        final BranchState state = branchStates.get(branch);
-        if (state != null && now - state.checkedAt < HEAD_CHECK_INTERVAL_NANOS) {
-            return Optional.of(state);
-        }
-
+        final long headCheck = headChecks.incrementAndGet();
         final Optional<String> headSha = repositoryClient.getBranchHeadSha(branch);
         if (headSha.isEmpty()) {
-            branchStates.remove(branch);
             return Optional.empty();
         }
 
-        if (state != null && state.headSha.equals(headSha.get())) {
-            state.checkedAt = now;
+        final BranchState state = branchStates.get(branch);
+        if (state != null && state.isReadWith(repositoryClient) && state.headSha.equals(headSha.get())) {
             return Optional.of(state);
         }
-
-        final BranchState currentState = new BranchState(headSha.get(), now);
-        if (state != null) {
-            getChangedPaths(repositoryClient, state.headSha, currentState.headSha).ifPresent(paths -> currentState.retainUnchanged(state, paths));
-        }
-        // Values put into the replaced state by requests still running are dropped with it
-        branchStates.put(branch, currentState);
-        return Optional.of(currentState);
+        return Optional.of(moveState(repositoryClient, branch, headSha.get(), headCheck));
     }
 
-    // A failed comparison, such as Not Found when the previous head was removed by a force push, leaves the changed
-    // files unknown: the new state starts empty instead of the failure keeping the previous state for every later call
+    private synchronized BranchState moveState(final GitRepositoryClient repositoryClient, final String branch, final String headSha, final long headCheck) {
+        final BranchState state = branchStates.get(branch);
+        final boolean previousStateUsable = state != null && state.isReadWith(repositoryClient);
+        // A call that checked the head later may already have moved the state, possibly past this head
+        if (previousStateUsable && (state.headSha.equals(headSha) || state.headCheck > headCheck)) {
+            return state;
+        }
+
+        final BranchState currentState = new BranchState(repositoryClient, headSha, headCheck);
+        if (previousStateUsable) {
+            getChangedPaths(repositoryClient, state.headSha, headSha).ifPresent(paths -> currentState.retainUnchanged(state, paths));
+        }
+        branchStates.put(branch, currentState);
+        return currentState;
+    }
+
+    // A failed comparison, such as Not Found when the previous head was removed by a force push, leaves the touched
+    // files unknown, so the new state starts empty
     private static Optional<Set<String>> getChangedPaths(final GitRepositoryClient repositoryClient, final String fromCommitSha, final String toCommitSha) {
         try {
             return repositoryClient.getChangedPaths(fromCommitSha, toCommitSha);
@@ -101,18 +96,8 @@ final class GitBranchStateCache {
     }
 
     /**
-     * Drops the values cached for the given file, after this client changed it.
-     *
-     * @param branch the branch
-     * @param path the path of the file
+     * Drops every state, releasing the repository client they were read with.
      */
-    void invalidate(final String branch, final String path) {
-        final BranchState state = branchStates.get(branch);
-        if (state != null) {
-            state.remove(path);
-        }
-    }
-
     void clear() {
         branchStates.clear();
     }
@@ -127,14 +112,27 @@ final class GitBranchStateCache {
     }
 
     static final class BranchState {
+        private final GitRepositoryClient repositoryClient;
         private final String headSha;
-        private volatile long checkedAt;
+        private final long headCheck;
         private final Map<String, LatestVersion> latestVersions = new ConcurrentHashMap<>();
         private final Map<String, RegisteredFlow> flows = new ConcurrentHashMap<>();
 
-        private BranchState(final String headSha, final long checkedAt) {
+        private BranchState(final GitRepositoryClient repositoryClient, final String headSha, final long headCheck) {
+            this.repositoryClient = repositoryClient;
             this.headSha = headSha;
-            this.checkedAt = checkedAt;
+            this.headCheck = headCheck;
+        }
+
+        /**
+         * @return the SHA of the head commit the values of this state are read at
+         */
+        String getHeadSha() {
+            return headSha;
+        }
+
+        private boolean isReadWith(final GitRepositoryClient client) {
+            return repositoryClient == client;
         }
 
         /**
@@ -154,11 +152,6 @@ final class GitBranchStateCache {
 
         void putFlow(final String path, final RegisteredFlow flow) {
             flows.put(path, copy(flow));
-        }
-
-        private void remove(final String path) {
-            latestVersions.remove(path);
-            flows.remove(path);
         }
 
         private void retainUnchanged(final BranchState previousState, final Set<String> changedPaths) {
