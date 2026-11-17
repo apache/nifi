@@ -2305,12 +2305,13 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             monitoringFuture.cancel(false);
 
             final Processor processor = processorRef.get().getProcessor();
-            LOG.warn("Timed out while waiting for OnScheduled of "
-                + processor + " to finish. An attempt is made to cancel the task via Thread.interrupt(). However it does not "
-                + "guarantee that the task will be canceled since the code inside current OnScheduled operation may "
-                + "have been written to ignore interrupts which may result in a runaway thread. This could lead to more issues, "
-                + "eventually requiring NiFi to be restarted. This is usually a bug in the target Processor '"
-                + processor + "' that needs to be documented, reported and eventually fixed.");
+            LOG.warn("Timed out while waiting for OnScheduled of {} to finish. An attempt is made to cancel the task via Thread.interrupt(). {} {} {} '{}' {}",
+                    processor,
+                    "However it does not guarantee that the task will be canceled since the code inside current OnScheduled operation may",
+                    "have been written to ignore interrupts which may result in a runaway thread. This could lead to more issues,",
+                    "eventually requiring NiFi to be restarted. This is usually a bug in the target Processor",
+                    processor,
+                    "that needs to be documented, reported and eventually fixed.");
         }
     }
 

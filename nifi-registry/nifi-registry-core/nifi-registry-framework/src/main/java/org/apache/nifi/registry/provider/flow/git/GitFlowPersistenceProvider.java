@@ -217,8 +217,8 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
         final Bucket bucket = getBucketOrFail(bucketId);
         final Optional<Flow> flowOpt = bucket.getFlow(flowId);
         if (!flowOpt.isPresent()) {
-            logger.debug(format("Tried deleting all versions, but the Flow ID %s was not found in bucket %s:%s.",
-                    flowId, bucket.getBucketDirName(), bucket.getBucketId()));
+            logger.debug("Tried deleting all versions, but the Flow ID {} was not found in bucket {}:{}.",
+                    flowId, bucket.getBucketDirName(), bucket.getBucketId());
             return;
         }
 

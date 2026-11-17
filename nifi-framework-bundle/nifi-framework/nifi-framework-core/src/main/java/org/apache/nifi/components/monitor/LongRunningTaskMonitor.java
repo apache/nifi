@@ -62,8 +62,8 @@ public class LongRunningTaskMonitor implements Runnable {
 
                     String taskSeconds = String.format("%,d seconds", activeThread.getActiveMillis() / 1000);
 
-                    getLogger().warn(String.format("Long running task detected on processor [id=%s, name=%s, type=%s]. Task time: %s. Stack trace:\n%s",
-                            processorNode.getIdentifier(), processorNode.getName(), processorNode.getComponentType(), taskSeconds, activeThread.getStackTrace()));
+                    getLogger().warn("Long running task detected on processor [id={}, name={}, type={}]. Task time: {}. Stack trace:\n{}",
+                            processorNode.getIdentifier(), processorNode.getName(), processorNode.getComponentType(), taskSeconds, activeThread.getStackTrace());
 
                     eventReporter.reportEvent(Severity.WARNING, "Long Running Task", String.format("Processor with ID %s, Name %s and Type %s has a task that has been running for %s " +
                             "(thread name: %s).", processorNode.getIdentifier(), processorNode.getName(), processorNode.getComponentType(), taskSeconds, activeThread.getThreadName()));

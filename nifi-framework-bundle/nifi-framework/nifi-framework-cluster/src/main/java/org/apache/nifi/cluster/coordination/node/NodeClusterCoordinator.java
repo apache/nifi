@@ -1336,8 +1336,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             try {
                 dataFlow = flowService.createDataFlowFromController();
             } catch (final IOException ioe) {
-                logger.error("Unable to obtain current dataflow from FlowService in order to provide the flow to "
-                    + resolvedNodeIdentifier + ". Will tell node to try again later", ioe);
+                logger.error("Unable to obtain current dataflow from FlowService in order to provide the flow to {}. Will tell node to try again later", resolvedNodeIdentifier, ioe);
             }
         }
 
