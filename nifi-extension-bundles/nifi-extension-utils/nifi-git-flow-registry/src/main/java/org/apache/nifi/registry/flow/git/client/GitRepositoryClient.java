@@ -98,8 +98,9 @@ public interface GitRepositoryClient {
      * Retrieves the SHA of the commit at the head of the given branch. Clients that support it let the registry client
      * answer repeated questions about unchanged flows without further requests. The registry client checks the head
      * before answering each question from what it remembers, so implementations should make this check cheap while the
-     * head is unchanged. Clients that return a head must also implement {@link #getLatestCommitShaAtCommit(String, String)}
-     * and {@link #getChangedPaths(String, String)}.
+     * head is unchanged. Clients that return a head must also implement {@link #getLatestCommitShaAtCommit(String, String)},
+     * and should implement {@link #getChangedPaths(String, String)}, without which every remembered value is dropped
+     * whenever the head moves.
      *
      * @param branch the branch name
      * @return the SHA of the head commit, or empty if the client does not support it
