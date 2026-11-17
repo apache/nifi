@@ -173,7 +173,7 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
 
                         //for validation we want to be able to ensure the spec is syntactically correct and not try to resolve variables since they may not exist yet
                         final String content = readTransform(validationContext.getProperty(JOLT_SPEC));
-                        final Object specJson = JsonUtils.jsonToObject(content.replaceAll("\\$\\{", "\\\\\\\\\\$\\{"), StandardCharsets.UTF_8.toString());
+                        final Object specJson = JsonUtils.jsonToObject(content.replace("${", "\\${"), StandardCharsets.UTF_8.toString());
 
                         if (JoltTransformStrategy.CUSTOMR.getValue().equals(transform)) {
                             if (StringUtils.isEmpty(customTransform)) {
