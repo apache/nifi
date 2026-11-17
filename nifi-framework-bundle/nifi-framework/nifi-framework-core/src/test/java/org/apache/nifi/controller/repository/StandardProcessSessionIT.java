@@ -1969,6 +1969,12 @@ public class StandardProcessSessionIT {
         final FlowFile flowFileAfterRetry = retrySession.get();
         assertEquals(0, flowFileAfterRetry.getId());
         assertEquals(flowFileCount, flowFileQueue.size().getObjectCount());
+
+        retrySession.transfer(flowFileAfterRetry);
+        retrySession.commit();
+
+        final FlowFile flowFileAfterSelfTransfer = retrySession.get();
+        assertEquals(1, flowFileAfterSelfTransfer.getId());
     }
 
     @Test

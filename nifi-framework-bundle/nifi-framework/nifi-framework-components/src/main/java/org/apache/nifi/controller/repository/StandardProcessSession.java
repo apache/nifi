@@ -655,11 +655,18 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 // in this case, we just ignore it, and it will be cleaned up by clearing the records map.
                 if (record.getCurrent() != null) {
                     final FlowFileQueue destination = record.getDestination();
-                    // A retry returns the FlowFile to the queue it was polled from. put() would place it on the swap queue when
-                    // that queue is in swap mode, behind FlowFiles that were still in the active queue.
+                    // A retry rebuilds the FlowFile from the original, so it keeps the original queue time and queue index.
+                    // Transfer onto the same queue (a self-loop or transfer without a relationship) assigns a new queue time
+                    // and must go through putAll so the FlowFile is not placed ahead of swapped FlowFiles.
                     if (destination != null && destination.equals(record.getOriginalQueue())) {
-                        destination.putToActive(record.getCurrent());
-                        continue;
+                        final FlowFileRecord original = record.getOriginal();
+                        final FlowFileRecord current = record.getCurrent();
+                        if (original != null
+                                && Objects.equals(original.getLastQueueDate(), current.getLastQueueDate())
+                                && original.getQueueDateIndex() == current.getQueueDateIndex()) {
+                            destination.putToActive(current);
+                            continue;
+                        }
                     }
 
                     Collection<FlowFileRecord> collection = recordMap.get(destination);
