@@ -504,4 +504,23 @@ public class TestFastCSVRecordReader {
             assertNull(reader.nextRecord());
         }
     }
+
+    @Test
+    public void testFirstLineNotHeader() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final String csvData = "1,John\n2,Jane";
+
+        try (final InputStream bais = new ByteArrayInputStream(csvData.getBytes(StandardCharsets.UTF_8));
+             final FastCSVRecordReader reader = new FastCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, false, false,
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", false)) {
+
+            assertArrayEquals(new Object[]{1, "John"}, reader.nextRecord().getValues());
+            assertArrayEquals(new Object[]{2, "Jane"}, reader.nextRecord().getValues());
+            assertNull(reader.nextRecord());
+        }
+    }
 }
