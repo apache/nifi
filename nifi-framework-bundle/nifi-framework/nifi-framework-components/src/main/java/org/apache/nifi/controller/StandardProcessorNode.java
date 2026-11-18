@@ -148,6 +148,12 @@ import java.util.stream.Stream;
 public class StandardProcessorNode extends ProcessorNode implements Connectable {
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessorNode.class);
+    private static final String TIMEOUT_MSG = "Timed out while waiting for OnScheduled of {} "
+            + "to finish. An attempt is made to cancel the task via Thread.interrupt(). However it does not "
+            + "guarantee that the task will be canceled since the code inside current OnScheduled operation may "
+            + "have been written to ignore interrupts which may result in a runaway thread. This could lead to more issues, "
+            + "eventually requiring NiFi to be restarted. This is usually a bug in the target Processor '{}' "
+            + "that needs to be documented, reported and eventually fixed.";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
@@ -2305,13 +2311,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             monitoringFuture.cancel(false);
 
             final Processor processor = processorRef.get().getProcessor();
-            LOG.warn("Timed out while waiting for OnScheduled of {} to finish. An attempt is made to cancel the task via Thread.interrupt(). {} {} {} '{}' {}",
-                    processor,
-                    "However it does not guarantee that the task will be canceled since the code inside current OnScheduled operation may",
-                    "have been written to ignore interrupts which may result in a runaway thread. This could lead to more issues,",
-                    "eventually requiring NiFi to be restarted. This is usually a bug in the target Processor",
-                    processor,
-                    "that needs to be documented, reported and eventually fixed.");
+            LOG.warn(TIMEOUT_MSG, processor, processor);
         }
     }
 

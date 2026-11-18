@@ -108,6 +108,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     private static final String EVENT_CATEGORY = "Controller";
     private static final String CLUSTER_NODE_CONFIG = "Cluster Node Configuration";
+    private static final String RETRY_MSG = "Received a 'try again' response from Cluster Coordinator when attempting to connect to cluster with explanation '{}'. "
+            + "However, the maximum number of retries have already completed. Will load local flow and connect to the cluster when able.";
 
     // state keys
     private static final String NODE_UUID = "Node UUID";
@@ -973,8 +975,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 // if response indicates we should try later, then coordinator was unable to service our request. Just load local flow and move on.
                 // when the cluster coordinator is able to service requests, this node's heartbeat will trigger the cluster coordinator to reach
                 // out to this node and re-connect to the cluster.
-                logger.info("Received a 'try again' response from Cluster Coordinator when attempting to connect to cluster with explanation '{}'. {}",
-                        response.getRejectionReason(), "However, the maximum number of retries have already completed. Will load local flow and connect to the cluster when able.");
+                logger.info(RETRY_MSG, response.getRejectionReason());
                 return null;
             } else {
                 // cluster manager provided a successful response with a current dataflow

@@ -245,7 +245,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
                 final long legacyLatestEmittedTimestamp = Long.parseLong(legacyLatestEmittedTimestampString);
                 latestTimestamp = legacyLatestListingTimestamp == legacyLatestEmittedTimestamp ? legacyLatestListingTimestamp + 1 : legacyLatestListingTimestamp;
                 latestFiles = new ArrayList<>();
-                getLogger().debug("Transitioned from legacy state to new state. 'legacyLatestListingTimestamp': {}, 'legacyLatestEmittedTimeStamp': {}', 'latestTimestamp': {}",
+                getLogger().debug("Transitioned from legacy state to new state. 'legacyLatestListingTimestamp': {}, 'legacyLatestEmittedTimeStamp': {}, 'latestTimestamp': {}",
                         legacyLatestListingTimestamp, legacyLatestEmittedTimestamp, latestTimestamp);
             } else if (latestTimestampString != null) {
                 latestTimestamp = Long.parseLong(latestTimestampString);
