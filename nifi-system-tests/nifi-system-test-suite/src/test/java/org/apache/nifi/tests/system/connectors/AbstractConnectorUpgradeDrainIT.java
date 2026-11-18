@@ -53,8 +53,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Upgrade-drain scenarios that hold for every way a Connector can move to a new version. Each subclass supplies the
- * trigger: a NAR swap followed by a restart, or a version change while the Connector is stopped.
+ * Upgrade-drain support shared by every way a Connector can move to a new version: a NAR swap followed by a restart, or a
+ * version change while the Connector is stopped. Each subclass supplies the outgoing Connector and the expected bundles.
  */
 public abstract class AbstractConnectorUpgradeDrainIT extends AbstractNarSwapMigrationIT {
 
@@ -123,11 +123,6 @@ public abstract class AbstractConnectorUpgradeDrainIT extends AbstractNarSwapMig
      * Creates the Connector on its outgoing version and applies the given configuration.
      */
     protected abstract String createOutgoingConnector(Map<String, String> properties) throws Exception;
-
-    /**
-     * Moves the stopped Connector to its incoming version, leaving it STOPPED with the upgrade pending.
-     */
-    protected abstract void triggerUpgrade(String connectorId) throws Exception;
 
     protected abstract ExpectedBundle outgoingBundle();
 

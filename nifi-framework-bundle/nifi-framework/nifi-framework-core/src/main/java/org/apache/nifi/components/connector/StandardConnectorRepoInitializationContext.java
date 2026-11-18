@@ -34,7 +34,6 @@ public class StandardConnectorRepoInitializationContext implements ConnectorRepo
     private final ConnectorRequestReplicator requestReplicator;
     private final ConnectorConfigurationProvider connectorConfigurationProvider;
     private final Duration connectorSyncTimeout;
-    private final Duration connectorFlowEvolutionTimeout;
 
     public StandardConnectorRepoInitializationContext(final FlowManager flowManager,
                                                      final ExtensionManager extensionManager,
@@ -43,8 +42,7 @@ public class StandardConnectorRepoInitializationContext implements ConnectorRepo
                                                      final NodeTypeProvider nodeTypeProvider,
                                                      final ConnectorRequestReplicator requestReplicator,
                                                      final ConnectorConfigurationProvider connectorConfigurationProvider,
-                                                     final Duration connectorSyncTimeout,
-                                                     final Duration connectorFlowEvolutionTimeout) {
+                                                     final Duration connectorSyncTimeout) {
         this.flowManager = flowManager;
         this.extensionManager = extensionManager;
         this.secretsManager = secretsManager;
@@ -53,7 +51,6 @@ public class StandardConnectorRepoInitializationContext implements ConnectorRepo
         this.requestReplicator = requestReplicator;
         this.connectorConfigurationProvider = connectorConfigurationProvider;
         this.connectorSyncTimeout = connectorSyncTimeout;
-        this.connectorFlowEvolutionTimeout = connectorFlowEvolutionTimeout;
     }
 
     @Override
@@ -94,10 +91,5 @@ public class StandardConnectorRepoInitializationContext implements ConnectorRepo
     @Override
     public Duration getConnectorSyncTimeout() {
         return connectorSyncTimeout;
-    }
-
-    @Override
-    public Duration getConnectorFlowEvolutionTimeout() {
-        return connectorFlowEvolutionTimeout;
     }
 }

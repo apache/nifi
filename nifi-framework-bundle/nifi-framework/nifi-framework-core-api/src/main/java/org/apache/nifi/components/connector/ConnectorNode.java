@@ -51,6 +51,12 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
     ConnectorState getDesiredState();
 
     /**
+     * @return the desired state recorded when the most recent update began, which the flow saves while that update is in
+     *         progress, or null if no update has begun
+     */
+    ConnectorState getPreUpdateDesiredState();
+
+    /**
      * Verifies that the Connector is in a state that allows it to be deleted. If the Connector is not in a state
      * that allows it to be deleted, this method will throw an IllegalStateException.
      *

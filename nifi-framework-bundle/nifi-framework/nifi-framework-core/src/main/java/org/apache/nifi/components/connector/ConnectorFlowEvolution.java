@@ -297,15 +297,7 @@ final class ConnectorFlowEvolution {
 
         final ParameterSecretReferences.Resolution resolution = connector.resolveParameterSecrets(snapshot.parameterContext(), snapshot.parameterSecretReferences());
         if (!resolution.unresolvedReferences().isEmpty()) {
-            final Map.Entry<String, SecretReference> unresolved = resolution.unresolvedReferences().entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .findFirst()
-                .orElseThrow();
-            final SecretReference reference = unresolved.getValue();
-            final String secretName = reference.getFullyQualifiedName() == null ? reference.getSecretName() : reference.getFullyQualifiedName();
-            final String explanation = "Flow evolution cannot start: secret [%s] used by parameter [%s] could not be resolved. "
-                .formatted(secretName, unresolved.getKey())
-                + "Restore the secret in its provider, then start the Connector to resume the upgrade.";
+            final String explanation = explainUnresolvedSecrets(resolution);
             verifyContext(context);
             connector.setUnresolvedParameterSecretReferences(Map.copyOf(resolution.unresolvedReferences()));
             fail(context, explanation, null);
@@ -317,6 +309,22 @@ final class ConnectorFlowEvolution {
         if (!resolution.parameterValues().isEmpty()) {
             connector.getActiveFlowContext().getParameterContext().updateParameters(resolution.parameterValues());
         }
+    }
+
+    private static String explainUnresolvedSecrets(final ParameterSecretReferences.Resolution resolution) {
+        if (resolution.secretsProviderFailure() != null) {
+            return "Flow evolution cannot start: the secrets provider could not be reached: %s. Restore access to the provider, then start the Connector to resume the upgrade."
+                .formatted(resolution.secretsProviderFailure());
+        }
+
+        final Map.Entry<String, SecretReference> unresolved = resolution.unresolvedReferences().entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .findFirst()
+            .orElseThrow();
+        final SecretReference reference = unresolved.getValue();
+        final String secretName = reference.getFullyQualifiedName() == null ? reference.getSecretName() : reference.getFullyQualifiedName();
+        return "Flow evolution cannot start: secret [%s] used by parameter [%s] could not be resolved. Restore the secret in its provider, then start the Connector to resume the upgrade."
+            .formatted(secretName, unresolved.getKey());
     }
 
     private void completeEvolveDrainPhase(final StandardFlowEvolutionContext context) throws FlowUpdateException {

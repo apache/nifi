@@ -67,7 +67,9 @@ public abstract class AbstractChangeVersionDrainIT extends AbstractConnectorUpgr
         return createDrainConnector(DRAIN_V1, properties);
     }
 
-    @Override
+    /**
+     * Moves the stopped Connector to its incoming version, leaving it STOPPED with the upgrade pending.
+     */
     protected void triggerUpgrade(final String connectorId) throws Exception {
         changeVersion(connectorId, DRAIN_V2);
     }

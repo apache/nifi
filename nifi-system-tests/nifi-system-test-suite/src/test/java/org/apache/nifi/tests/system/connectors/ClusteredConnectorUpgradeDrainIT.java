@@ -45,9 +45,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Verifies clustered startup after a Connector NAR swap, with Connector configuration held by an external provider.
  */
-public class ClusteredConnectorUpgradeDrainIT extends AbstractNarSwapUpgradeDrainIT {
+public class ClusteredConnectorUpgradeDrainIT extends AbstractConnectorUpgradeDrainIT {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String OUTGOING_BUNDLE = "nifi-system-test-extensions-nar";
+    private static final String INCOMING_BUNDLE = "nifi-alternate-config-extensions-nar";
     private static final String UPGRADE_STEP = "Upgrade";
     private static final String COMMENT_PROPERTY = "Comment";
     private static final String LEGACY_NOTE = "Legacy Note";
@@ -72,6 +74,21 @@ public class ClusteredConnectorUpgradeDrainIT extends AbstractNarSwapUpgradeDrai
                 .instanceDirectory("target/node2")
                 .overrideNifiProperties(providerProperties(providerStates.get(1)))
                 .build());
+    }
+
+    @Override
+    protected String createOutgoingConnector(final Map<String, String> properties) throws Exception {
+        return createConnector("UpgradeDrainConnector", properties);
+    }
+
+    @Override
+    protected ExpectedBundle outgoingBundle() {
+        return new ExpectedBundle(OUTGOING_BUNDLE, null);
+    }
+
+    @Override
+    protected ExpectedBundle incomingBundle() {
+        return new ExpectedBundle(INCOMING_BUNDLE, null);
     }
 
     /**

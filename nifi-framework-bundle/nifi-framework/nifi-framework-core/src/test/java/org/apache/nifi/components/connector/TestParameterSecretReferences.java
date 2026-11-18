@@ -101,6 +101,7 @@ class TestParameterSecretReferences {
         assertEquals("plain", getParameter(resolution.parameterContext(), "Plain").getValue());
         assertEquals(Map.of("Missing", missingReference), resolution.unresolvedReferences());
         assertEquals(Set.of("Undecryptable"), resolution.undecryptableParameters());
+        assertNull(resolution.secretsProviderFailure());
         assertEquals(Set.of("Resolved", "Nullable"), resolution.parameterValues().stream().map(ParameterValue::getName).collect(Collectors.toSet()));
         assertEquals(encrypt("Generated", "Bearer generated"), getParameter(persisted, "Generated").getValue());
     }

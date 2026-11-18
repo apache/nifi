@@ -2499,7 +2499,12 @@ public class TestStandardConnectorNode {
     public void testFlowEvolutionWithMissingSecretThenRestoredSecret() throws Exception {
         final SecretReference secretReference = new SecretReference("provider-id", "Provider", "password", "Provider.group.password");
         final AtomicReference<Secret> currentSecret = new AtomicReference<>();
+        final AtomicBoolean providerUnavailable = new AtomicBoolean(true);
         when(secretsManager.getSecrets(anySet(), eq(false))).thenAnswer(invocation -> {
+            if (providerUnavailable.get()) {
+                throw new IllegalStateException("Secrets Provider unavailable");
+            }
+
             final Secret secret = currentSecret.get();
             return secret == null ? Map.of() : Map.of(secretReference, secret);
         });
@@ -2509,6 +2514,14 @@ public class TestStandardConnectorNode {
             persistedParameterContext("Source Database Password"), Map.of("Source Database Password", secretReference),
             outgoingSnapshotBundle());
 
+        connectorNode.prepareFlowEvolution(scheduler);
+        final ExecutionException providerFailure = assertThrows(ExecutionException.class,
+                () -> connectorNode.evolveFlow(flowEvolutionExecutor).get(5, TimeUnit.SECONDS));
+        assertTrue(providerFailure.getCause().getMessage().contains("secrets provider could not be reached: Secrets Provider unavailable"),
+                providerFailure.getCause().getMessage());
+        assertEquals(FlowEvolutionStatus.FAILED, connectorNode.getReportedFlowEvolutionStatus());
+
+        providerUnavailable.set(false);
         connectorNode.prepareFlowEvolution(scheduler);
         final ExecutionException failure = assertThrows(ExecutionException.class,
                 () -> connectorNode.evolveFlow(flowEvolutionExecutor).get(5, TimeUnit.SECONDS));

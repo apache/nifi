@@ -68,7 +68,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
     private static final Duration SYNC_POLL_INTERVAL = Duration.ofSeconds(2);
     private static final List<Duration> FLOW_EVOLUTION_POLL_INTERVALS = List.of(
             Duration.ofSeconds(2), Duration.ofSeconds(5), Duration.ofSeconds(10), Duration.ofSeconds(30));
-    private static final Duration DEFAULT_FLOW_EVOLUTION_DRAIN_TIMEOUT = Duration.ofMinutes(30);
+    private static final Duration FLOW_EVOLUTION_DRAIN_WARNING_INTERVAL = Duration.ofMinutes(10);
 
     /**
      * Soft cardinality limit beyond which a WARN is emitted when a {@link ConnectorConfigurationProvider}
@@ -91,7 +91,6 @@ public class StandardConnectorRepository implements ConnectorRepository {
     private volatile AssetManager assetManager;
     private volatile ConnectorConfigurationProvider configurationProvider;
     private volatile Duration syncTimeout;
-    private volatile Duration flowEvolutionDrainTimeout = DEFAULT_FLOW_EVOLUTION_DRAIN_TIMEOUT;
 
     @Override
     public void initialize(final ConnectorRepositoryInitializationContext context) {
@@ -103,7 +102,6 @@ public class StandardConnectorRepository implements ConnectorRepository {
         this.assetManager = context.getAssetManager();
         this.configurationProvider = context.getConnectorConfigurationProvider();
         this.syncTimeout = context.getConnectorSyncTimeout();
-        this.flowEvolutionDrainTimeout = canonicalFlowEvolutionDrainTimeout(context.getConnectorFlowEvolutionTimeout());
         logger.debug("Successfully initialized ConnectorRepository with configurationProvider={}, syncTimeout={}",
                 configurationProvider != null ? configurationProvider.getClass().getSimpleName() : "null", syncTimeout);
     }
@@ -719,12 +717,19 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     private void awaitFlowEvolutionDrain(final ConnectorNode connector, final Future<Void> future) throws Throwable {
+        final long drainStartNanos = System.nanoTime();
         try {
-            future.get(flowEvolutionDrainTimeout.toNanos(), TimeUnit.NANOSECONDS);
-        } catch (final TimeoutException e) {
-            final FlowUpdateException timedOut = new FlowUpdateException("Flow evolution drain timed out for " + connector, e);
-            connector.abortUpdate(timedOut);
-            throw timedOut;
+            while (true) {
+                try {
+                    future.get(FLOW_EVOLUTION_DRAIN_WARNING_INTERVAL.toNanos(), TimeUnit.NANOSECONDS);
+                    return;
+                } catch (final TimeoutException e) {
+                    final long elapsedMinutes = Duration.ofNanos(System.nanoTime() - drainStartNanos).toMinutes();
+                    final int queuedFlowFiles = connector.getActiveFlowContext().getManagedProcessGroup().getQueueSize().getObjectCount();
+                    logger.warn("Flow evolution drain for {} is still running after {} minutes with {} FlowFiles queued; verify that nothing is blocking the drain",
+                            connector, elapsedMinutes, queuedFlowFiles);
+                }
+            }
         } catch (final InterruptedException e) {
             connector.abortUpdate(e);
             throw e;
@@ -737,14 +742,6 @@ public class StandardConnectorRepository implements ConnectorRepository {
             }
             throw cause;
         }
-    }
-
-    private static Duration canonicalFlowEvolutionDrainTimeout(final Duration timeout) {
-        if (timeout == null || timeout.isZero() || timeout.isNegative()) {
-            return DEFAULT_FLOW_EVOLUTION_DRAIN_TIMEOUT;
-        }
-
-        return timeout;
     }
 
     private void handleFlowEvolutionFailure(final ConnectorNode connector, final CompletableFuture<Void> evolutionFuture,

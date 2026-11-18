@@ -1122,7 +1122,7 @@ public class VersionedComponentFlowMapper {
         final VersionedConnector versionedConnector = new VersionedConnector();
         versionedConnector.setInstanceIdentifier(connectorNode.getIdentifier());
         versionedConnector.setName(connectorNode.getName());
-        versionedConnector.setScheduledState(mapConnectorState(connectorNode.getDesiredState()));
+        versionedConnector.setScheduledState(mapConnectorState(connectorNode));
         versionedConnector.setType(connectorNode.getCanonicalClassName());
 
         final ConnectorFlowSnapshot authoritativeSnapshot = connectorNode.getAuthoritativeFlowSnapshot();
@@ -1224,15 +1224,20 @@ public class VersionedComponentFlowMapper {
         return versionedReference;
     }
 
-    private VersionedConnectorState mapConnectorState(final ConnectorState connectorState) {
-        if (connectorState == null) {
+    private VersionedConnectorState mapConnectorState(final ConnectorNode connectorNode) {
+        final ConnectorState desiredState = connectorNode.getDesiredState();
+        if (desiredState == null) {
             return null;
         }
 
-        return switch (connectorState) {
+        return switch (desiredState) {
             case RUNNING, STARTING -> VersionedConnectorState.RUNNING;
             case TROUBLESHOOTING -> VersionedConnectorState.TROUBLESHOOTING;
-            default -> VersionedConnectorState.ENABLED;
+            // A failed update leaves the Connector stopped until it is corrected and started again
+            case STOPPED, STOPPING, DRAINING, PURGING, UPDATE_FAILED -> VersionedConnectorState.ENABLED;
+            // An update in progress is saved as the state the Connector returns to once the update completes
+            case PREPARING_FOR_UPDATE, UPDATING, UPDATED -> connectorNode.getPreUpdateDesiredState() == ConnectorState.RUNNING
+                    ? VersionedConnectorState.RUNNING : VersionedConnectorState.ENABLED;
         };
     }
 }

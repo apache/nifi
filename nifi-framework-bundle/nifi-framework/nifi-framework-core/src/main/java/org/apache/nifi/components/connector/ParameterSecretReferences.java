@@ -122,18 +122,18 @@ final class ParameterSecretReferences {
      * Resolves the values of a persisted managed Parameter Context without modifying it. A sensitive parameter bound to a
      * Secret Reference takes the current value of that secret, or is left null and reported when the secret cannot be
      * resolved. Any other sensitive parameter takes its persisted value decrypted with the supplied provider, or is left null
-     * and reported when the value cannot be decrypted.
+     * and reported when the value cannot be decrypted. A Secrets Provider that cannot be reached leaves every reference
+     * unresolved, so a restore installs the flow with its components stopped instead of failing, and the failure is reported.
      */
     static Resolution resolve(final VersionedParameterContext parameterContext, final Map<String, SecretReference> parameterSecretReferences,
             final SecretsManager secretsManager, final PropertyEncryptionProvider propertyEncryptionProvider) {
         if (parameterContext == null) {
-            return new Resolution(null, List.of(), Map.of(), Set.of());
+            return new Resolution(null, List.of(), Map.of(), Set.of(), null);
         }
 
         final VersionedParameterContext resolved = copyContext(parameterContext);
         final Map<String, SecretReference> references = parameterSecretReferences == null ? Map.of() : parameterSecretReferences;
-        final Set<SecretReference> distinctReferences = new HashSet<>(references.values());
-        final Map<SecretReference, Secret> secrets = getSecrets(distinctReferences, secretsManager);
+        final SecretsLookup secretsLookup = getSecrets(new HashSet<>(references.values()), secretsManager);
         final Map<String, SecretReference> unresolved = new HashMap<>();
         final Set<String> undecryptable = new HashSet<>();
         final List<ParameterValue> resolvedValues = new ArrayList<>();
@@ -160,7 +160,7 @@ final class ParameterSecretReferences {
                     continue;
                 }
 
-                final Secret secret = secrets.get(reference);
+                final Secret secret = secretsLookup.secrets().get(reference);
                 if (secret == null) {
                     parameter.setValue(null);
                     unresolved.put(parameter.getName(), reference);
@@ -176,23 +176,19 @@ final class ParameterSecretReferences {
             }
         }
 
-        return new Resolution(resolved, resolvedValues, unresolved, undecryptable);
+        return new Resolution(resolved, resolvedValues, unresolved, undecryptable, secretsLookup.failure());
     }
 
-    /**
-     * A Secrets Provider that cannot be reached leaves every reference unresolved, so a restore installs the flow with its
-     * components stopped instead of failing.
-     */
-    private static Map<SecretReference, Secret> getSecrets(final Set<SecretReference> references, final SecretsManager secretsManager) {
+    private static SecretsLookup getSecrets(final Set<SecretReference> references, final SecretsManager secretsManager) {
         if (references.isEmpty()) {
-            return Map.of();
+            return new SecretsLookup(Map.of(), null);
         }
 
         try {
-            return secretsManager.getSecrets(references, false);
+            return new SecretsLookup(secretsManager.getSecrets(references, false), null);
         } catch (final RuntimeException e) {
             logger.warn("Failed to retrieve {} Secret References from the Secrets Manager; treating them as unresolved", references.size(), e);
-            return Map.of();
+            return new SecretsLookup(Map.of(), e.getMessage() == null ? e.getClass().getName() : e.getMessage());
         }
     }
 
@@ -233,11 +229,20 @@ final class ParameterSecretReferences {
      * @param parameterValues the values taken from Secret References
      * @param unresolvedReferences Secret References that could not be resolved, keyed by parameter name
      * @param undecryptableParameters names of parameters whose persisted value could not be decrypted
+     * @param secretsProviderFailure the reason the Secrets Provider could not be reached, or null if it was reached
      */
     record Resolution(
             VersionedParameterContext parameterContext,
             List<ParameterValue> parameterValues,
             Map<String, SecretReference> unresolvedReferences,
-            Set<String> undecryptableParameters) {
+            Set<String> undecryptableParameters,
+            String secretsProviderFailure) {
+    }
+
+    /**
+     * @param secrets the secrets retrieved from the Secrets Manager, keyed by reference
+     * @param failure the reason the Secrets Manager could not be reached, or null if it was reached
+     */
+    private record SecretsLookup(Map<SecretReference, Secret> secrets, String failure) {
     }
 }

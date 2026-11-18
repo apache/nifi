@@ -2733,7 +2733,7 @@ The default implementation of `prepareForFlowEvolution` does nothing and returns
 * If any connection that the upgraded flow removes still holds FlowFiles, the Connector must drain. The hook must finish with every such connection empty, or the upgrade fails.
 * The Connector does not need to drain when every connection that the upgraded flow removes is already empty. A connection that the upgraded flow keeps, with the same identifier, is updated in place and keeps its queue, so it never requires a drain.
 * The framework stops the outgoing processors only after the hook's future completes. The hook can start them so that queues empty, and the processors are stopped afterward.
-* The framework can cancel the future, for example when the Connector is stopped or the evolution timeout is reached. Stop any work promptly when the future is cancelled. The framework does not wait for code that ignores cancellation.
+* The framework can cancel the future, for example when the Connector is stopped or its drain is cancelled. Stop any work promptly when the future is cancelled. The framework does not wait for code that ignores cancellation.
 
 [[connector_applying_upgraded_flow]]
 === Applying the upgraded flow
@@ -2746,7 +2746,7 @@ Each node prepares on its own. Every node has already finished the hook, so the 
 
 === What operators see
 
-In a cluster, each node drains its own Connector. No node applies the upgraded flow until every node that still has the outgoing flow has drained it, so the Connector reports `DRAINING` while the nodes wait for one another. A node that has already applied the upgraded flow has nothing to drain and does not hold back the others. A node that disconnects after applying the upgraded flow does not block the others either: the connected nodes start. `nifi.connector.flow.evolution.timeout` limits only the local drain in `prepareForFlowEvolution`. See <<administration-guide.adoc#connector_properties,Connector Properties>> in the Administration Guide.
+In a cluster, each node drains its own Connector. No node applies the upgraded flow until every node that still has the outgoing flow has drained it, so the Connector reports `DRAINING` while the nodes wait for one another. A node that has already applied the upgraded flow has nothing to drain and does not hold back the others. A node that disconnects after applying the upgraded flow does not block the others either: the connected nodes start. The drain has no time limit. While it runs, NiFi logs a warning every 10 minutes with the number of FlowFiles still queued in the Connector. Stopping the Connector or cancelling the drain abandons the attempt.
 
 If evolution fails before the upgraded flow is applied, including while a node waits for the others to drain, the Connector remains stopped and still pending, and the next START runs the hook again. Stopping the Connector while it drains cancels the attempt. The START that begins an evolution is saved, so a restart while the Connector drains resumes the upgrade. The failure is not saved, because shutting down also interrupts the drain and must not prevent the upgrade from resuming. After a restart the Connector comes back in the state that was last saved.
 

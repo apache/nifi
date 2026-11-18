@@ -22,6 +22,11 @@ import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.connector.ConnectorConfiguration;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
+import org.apache.nifi.components.connector.MutableConnectorConfigurationContext;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -35,6 +40,8 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.flow.VersionedComponentState;
+import org.apache.nifi.flow.VersionedConnector;
+import org.apache.nifi.flow.VersionedConnectorState;
 import org.apache.nifi.flow.VersionedNodeState;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.logging.LogLevel;
@@ -56,6 +63,8 @@ import org.apache.nifi.security.encryption.ProviderSensitiveValueDecryptor;
 import org.apache.nifi.security.encryption.SensitivePropertyContext;
 import org.apache.nifi.security.encryption.SensitivePropertyContextFactory;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
@@ -65,6 +74,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -305,6 +315,54 @@ public class TestVersionedComponentFlowMapper {
         assertEquals(2, localNodeStates.size());
         assertNull(localNodeStates.get(0));
         assertEquals(localState, localNodeStates.get(1).getState());
+    }
+
+    @ParameterizedTest
+    @EnumSource(ConnectorState.class)
+    public void testMapConnectorSavesStateForEveryDesiredState(final ConnectorState desiredState) {
+        final ConnectorNode connectorNode = createConnectorNode(desiredState);
+        when(connectorNode.getPreUpdateDesiredState()).thenReturn(ConnectorState.RUNNING);
+
+        final Map<ConnectorState, VersionedConnectorState> expectedStates = Map.ofEntries(
+            Map.entry(ConnectorState.STARTING, VersionedConnectorState.RUNNING),
+            Map.entry(ConnectorState.RUNNING, VersionedConnectorState.RUNNING),
+            Map.entry(ConnectorState.STOPPING, VersionedConnectorState.ENABLED),
+            Map.entry(ConnectorState.STOPPED, VersionedConnectorState.ENABLED),
+            Map.entry(ConnectorState.DRAINING, VersionedConnectorState.ENABLED),
+            Map.entry(ConnectorState.PURGING, VersionedConnectorState.ENABLED),
+            Map.entry(ConnectorState.PREPARING_FOR_UPDATE, VersionedConnectorState.RUNNING),
+            Map.entry(ConnectorState.UPDATING, VersionedConnectorState.RUNNING),
+            Map.entry(ConnectorState.UPDATE_FAILED, VersionedConnectorState.ENABLED),
+            Map.entry(ConnectorState.UPDATED, VersionedConnectorState.RUNNING),
+            Map.entry(ConnectorState.TROUBLESHOOTING, VersionedConnectorState.TROUBLESHOOTING));
+
+        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(mock(ExtensionManager.class), FlowMappingOptions.DEFAULT_OPTIONS);
+        final VersionedConnector versionedConnector = mapper.mapConnector(connectorNode, null);
+        assertEquals(expectedStates.get(desiredState), versionedConnector.getScheduledState());
+    }
+
+    @Test
+    public void testMapConnectorSavesEnabledWhenPreUpdateDesiredStateIsUnknown() {
+        final ConnectorNode connectorNode = createConnectorNode(ConnectorState.UPDATING);
+
+        final VersionedComponentFlowMapper mapper = new VersionedComponentFlowMapper(mock(ExtensionManager.class), FlowMappingOptions.DEFAULT_OPTIONS);
+        final VersionedConnector versionedConnector = mapper.mapConnector(connectorNode, null);
+        assertEquals(VersionedConnectorState.ENABLED, versionedConnector.getScheduledState());
+    }
+
+    private ConnectorNode createConnectorNode(final ConnectorState desiredState) {
+        final MutableConnectorConfigurationContext configurationContext = mock(MutableConnectorConfigurationContext.class);
+        when(configurationContext.toConnectorConfiguration()).thenReturn(new ConnectorConfiguration(Set.of()));
+        final FrameworkFlowContext activeFlowContext = mock(FrameworkFlowContext.class);
+        when(activeFlowContext.getConfigurationContext()).thenReturn(configurationContext);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        when(connectorNode.getIdentifier()).thenReturn("connector-id");
+        when(connectorNode.getBundleCoordinate()).thenReturn(new BundleCoordinate("org.apache.nifi", "connector-nar", "1.0.0"));
+        when(connectorNode.getActiveFlowContext()).thenReturn(activeFlowContext);
+        when(connectorNode.getCurrentState()).thenReturn(ConnectorState.STOPPED);
+        when(connectorNode.getDesiredState()).thenReturn(desiredState);
+        return connectorNode;
     }
 
     private FlowMappingOptions buildComponentStateMappingOptions(final ProcessorNode procNode, final Map<String, String> localState,

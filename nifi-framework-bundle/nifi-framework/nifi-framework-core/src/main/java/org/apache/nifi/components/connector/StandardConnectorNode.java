@@ -130,6 +130,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     private final AtomicReference<CompletableFuture<Void>> drainFutureRef = new AtomicReference<>();
     private volatile ValidationResult unresolvedBundleValidationResult = null;
     private volatile Map<String, SecretReference> unresolvedParameterSecretReferences = Map.of();
+    private volatile ConnectorState preUpdateDesiredState;
 
     private final Object workingFlowContextLock = new Object();
     private volatile WorkingFlowContextState workingFlowContextState = new WorkingFlowContextState(null);
@@ -297,6 +298,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             return;
         }
 
+        preUpdateDesiredState = getDesiredState();
         stateTransition.setDesiredState(ConnectorState.UPDATING);
         stateTransition.setCurrentState(ConnectorState.PREPARING_FOR_UPDATE);
     }
@@ -971,6 +973,11 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     @Override
     public ConnectorState getDesiredState() {
         return stateTransition.getDesiredState();
+    }
+
+    @Override
+    public ConnectorState getPreUpdateDesiredState() {
+        return preUpdateDesiredState;
     }
 
     @Override
