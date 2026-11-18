@@ -147,6 +147,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
     private volatile GitRepositoryClient repositoryClient;
     private volatile Pattern directoryExclusionPattern;
     private final AtomicBoolean clientInitialized = new AtomicBoolean(false);
+    private final GitBranchStateCache branchStateCache = new GitBranchStateCache(this::getLogger);
 
     private volatile List<PropertyDescriptor> propertyDescriptors;
 
@@ -347,12 +348,22 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String branch = flowLocation.getBranch();
         final String filePath = getSnapshotFilePath(flowLocation);
 
-        final RegisteredFlowSnapshot existingSnapshot = getSnapshot(repositoryClient, filePath, branch);
+        final Optional<GitBranchStateCache.BranchState> branchState = branchStateCache.getState(repositoryClient, branch);
+        final Optional<RegisteredFlow> cachedFlow = branchState.flatMap(state -> state.getFlow(filePath));
+        if (cachedFlow.isPresent()) {
+            return cachedFlow.get();
+        }
+
+        // Read at the head commit of the state, so the remembered flow matches the head it is answered for
+        final RegisteredFlowSnapshot existingSnapshot = branchState.isPresent()
+                ? getSnapshot(repositoryClient.getContentFromCommit(filePath, branchState.get().getHeadSha()))
+                : getSnapshot(repositoryClient, filePath, branch);
         populateFlowAndSnapshotMetadata(existingSnapshot, flowLocation);
         updateBucketReferences(repositoryClient, existingSnapshot, flowLocation.getBucketId());
 
         final RegisteredFlow registeredFlow = existingSnapshot.getFlow();
         registeredFlow.setBranch(branch);
+        branchState.ifPresent(state -> state.putFlow(filePath, registeredFlow));
         return registeredFlow;
     }
 
@@ -561,7 +572,32 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String branch = flowLocation.getBranch();
         final String filePath = getSnapshotFilePath(flowLocation);
 
-        return repositoryClient.getLatestCommitSha(filePath, branch);
+        final Optional<GitBranchStateCache.BranchState> branchState = branchStateCache.getState(repositoryClient, branch);
+        final Optional<GitBranchStateCache.LatestVersion> cachedLatestVersion = branchState.flatMap(state -> state.getLatestVersion(filePath));
+        if (cachedLatestVersion.isPresent()) {
+            return cachedLatestVersion.get().toOptional();
+        }
+
+        if (branchState.isEmpty()) {
+            return repositoryClient.getLatestCommitSha(filePath, branch);
+        }
+
+        // Read at the head commit of the state, so the remembered version matches the head it is answered for
+        final GitBranchStateCache.BranchState state = branchState.get();
+        final Optional<String> latestVersion = getLatestCommitShaAtCommit(repositoryClient, filePath, state.getHeadSha());
+        state.putLatestVersion(filePath, latestVersion);
+        return latestVersion;
+    }
+
+    // A client that returns a branch head must implement this method, so a runtime failure such as an unsupported operation
+    // is reported as a registry failure
+    private Optional<String> getLatestCommitShaAtCommit(final GitRepositoryClient repositoryClient, final String filePath, final String commitSha)
+            throws IOException, FlowRegistryException {
+        try {
+            return repositoryClient.getLatestCommitShaAtCommit(filePath, commitSha);
+        } catch (final RuntimeException e) {
+            throw new FlowRegistryException("Failed to get the latest commit of [%s] from commit [%s]".formatted(filePath, commitSha), e);
+        }
     }
 
     @Override
@@ -739,6 +775,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
 
     protected void invalidateClient() {
         clientInitialized.set(false);
+        branchStateCache.clear();
         if (repositoryClient != null) {
             try {
                 repositoryClient.close();

@@ -20,11 +20,17 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowRegistryClientConfigurationContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientInitializationContext;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.FlowVersionLocation;
+import org.apache.nifi.registry.flow.RegisterAction;
+import org.apache.nifi.registry.flow.RegisteredFlow;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
@@ -32,8 +38,10 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -43,10 +51,20 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLContext;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class AbstractGitFlowRegistryClientTest {
+    private static final String FLOW_PATH = "bucket-a/flow-1.json";
+    private static final FlowLocation FLOW_LOCATION = new FlowLocation("main", "bucket-a", "flow-1");
 
     @Test
     void verifySuccessful() {
@@ -161,10 +179,116 @@ class AbstractGitFlowRegistryClientTest {
         assertTrue(repositoryClient.getCreatedBranchCommit().isEmpty());
     }
 
+    @Test
+    void repeatedQuestionsForUnchangedBranchAreAnsweredFromCache() throws Exception {
+        final GitRepositoryClient repositoryClient = mockRepositoryClient(new AtomicReference<>("head-1"));
+        when(repositoryClient.getLatestCommitShaAtCommit(FLOW_PATH, "head-1")).thenReturn(Optional.of("commit-1"));
+        when(repositoryClient.getContentFromCommit(FLOW_PATH, "head-1")).thenAnswer(invocation -> getFlowContent("Flow 1"));
+
+        final TestGitFlowRegistryClient flowRegistryClient = createFlowRegistryClient(repositoryClient);
+        final FlowRegistryClientConfigurationContext context = createContext("main", "[.].*");
+
+        for (int i = 0; i < 3; i++) {
+            assertEquals(Optional.of("commit-1"), flowRegistryClient.getLatestVersion(context, FLOW_LOCATION));
+            final RegisteredFlow flow = flowRegistryClient.getFlow(context, FLOW_LOCATION);
+            assertEquals("Flow 1", flow.getName());
+            assertEquals("bucket-a", flow.getBucketIdentifier());
+            assertEquals("main", flow.getBranch());
+        }
+
+        verify(repositoryClient, times(6)).getBranchHeadSha("main");
+        verify(repositoryClient, times(1)).getLatestCommitShaAtCommit(FLOW_PATH, "head-1");
+        verify(repositoryClient, times(1)).getContentFromCommit(FLOW_PATH, "head-1");
+        verify(repositoryClient, never()).getLatestCommitSha(anyString(), anyString());
+        verify(repositoryClient, never()).getContentFromBranch(anyString(), anyString());
+    }
+
+    @Test
+    void commitIsVisibleOnNextRead() throws Exception {
+        final AtomicReference<String> head = new AtomicReference<>("head-1");
+        final GitRepositoryClient repositoryClient = mockRepositoryClient(head);
+        when(repositoryClient.getLatestCommitShaAtCommit(FLOW_PATH, "head-1")).thenReturn(Optional.of("head-1"));
+        when(repositoryClient.getContentFromCommit(FLOW_PATH, "head-1")).thenAnswer(invocation -> getFlowContent("Flow 1"));
+
+        final TestGitFlowRegistryClient flowRegistryClient = createFlowRegistryClient(repositoryClient);
+        final FlowRegistryClientConfigurationContext context = createContext("main", "[.].*");
+        assertEquals(Optional.of("head-1"), flowRegistryClient.getLatestVersion(context, FLOW_LOCATION));
+        assertEquals("Flow 1", flowRegistryClient.getFlow(context, FLOW_LOCATION).getName());
+
+        when(repositoryClient.hasWritePermission()).thenReturn(true);
+        when(repositoryClient.getLatestCommitSha(FLOW_PATH, "main")).thenReturn(Optional.of("head-1"));
+        when(repositoryClient.getContentShaAtCommit(FLOW_PATH, "head-1")).thenReturn(Optional.of("blob-1"));
+        when(repositoryClient.getContentFromBranch(FLOW_PATH, "main")).thenAnswer(invocation -> getFlowContent("Flow 1"));
+        when(repositoryClient.createContent(any())).thenAnswer(invocation -> {
+            head.set("head-2");
+            return "head-2";
+        });
+        flowRegistryClient.registerFlowSnapshot(context, createFlowSnapshot("head-1"), RegisterAction.COMMIT);
+
+        when(repositoryClient.getChangedPaths("head-1", "head-2")).thenReturn(Optional.of(Set.of(FLOW_PATH)));
+        when(repositoryClient.getLatestCommitShaAtCommit(FLOW_PATH, "head-2")).thenReturn(Optional.of("head-2"));
+        when(repositoryClient.getContentFromCommit(FLOW_PATH, "head-2")).thenAnswer(invocation -> getFlowContent("Flow 2"));
+
+        assertEquals(Optional.of("head-2"), flowRegistryClient.getLatestVersion(context, FLOW_LOCATION));
+        assertEquals("Flow 2", flowRegistryClient.getFlow(context, FLOW_LOCATION).getName());
+        verify(repositoryClient, times(1)).getContentFromCommit(FLOW_PATH, "head-1");
+        verify(repositoryClient, times(1)).getContentFromCommit(FLOW_PATH, "head-2");
+    }
+
+    @Test
+    void runtimeFailureOfLatestCommitAtCommitIsRegistryFailure() throws Exception {
+        final GitRepositoryClient repositoryClient = mockRepositoryClient(new AtomicReference<>("head-1"));
+        when(repositoryClient.getLatestCommitShaAtCommit(FLOW_PATH, "head-1")).thenThrow(new UnsupportedOperationException("Not supported"));
+
+        final TestGitFlowRegistryClient flowRegistryClient = createFlowRegistryClient(repositoryClient);
+        final FlowRegistryClientConfigurationContext context = createContext("main", "[.].*");
+
+        final FlowRegistryException exception = assertThrows(FlowRegistryException.class, () -> flowRegistryClient.getLatestVersion(context, FLOW_LOCATION));
+        assertInstanceOf(UnsupportedOperationException.class, exception.getCause());
+    }
+
+    private GitRepositoryClient mockRepositoryClient(final AtomicReference<String> head) throws Exception {
+        final GitRepositoryClient repositoryClient = mock(GitRepositoryClient.class);
+        when(repositoryClient.hasReadPermission()).thenReturn(true);
+        when(repositoryClient.getBranchHeadSha("main")).thenAnswer(invocation -> Optional.of(head.get()));
+        when(repositoryClient.getTopLevelDirectoryNames("main")).thenReturn(Set.of("bucket-a"));
+        return repositoryClient;
+    }
+
+    private TestGitFlowRegistryClient createFlowRegistryClient(final GitRepositoryClient repositoryClient) {
+        final TestGitFlowRegistryClient flowRegistryClient = new TestGitFlowRegistryClient(() -> repositoryClient, "git@example.git");
+        flowRegistryClient.initialize(createInitializationContext());
+        return flowRegistryClient;
+    }
+
+    private static RegisteredFlowSnapshot createFlowSnapshot(final String version) {
+        final RegisteredFlowSnapshotMetadata snapshotMetadata = new RegisteredFlowSnapshotMetadata();
+        snapshotMetadata.setBranch("main");
+        snapshotMetadata.setBucketIdentifier("bucket-a");
+        snapshotMetadata.setFlowIdentifier("flow-1");
+        snapshotMetadata.setVersion(version);
+
+        final VersionedProcessGroup flowContents = new VersionedProcessGroup();
+        flowContents.setIdentifier("contents");
+
+        final RegisteredFlowSnapshot flowSnapshot = new RegisteredFlowSnapshot();
+        flowSnapshot.setSnapshotMetadata(snapshotMetadata);
+        flowSnapshot.setFlowContents(flowContents);
+        return flowSnapshot;
+    }
+
+    private static InputStream getFlowContent(final String name) {
+        return new ByteArrayInputStream("""
+                {"flow": {"identifier": "flow-1", "name": "%s"}, "flowContents": {"identifier": "contents"}}
+                """.formatted(name).getBytes(StandardCharsets.UTF_8));
+    }
+
     private FlowRegistryClientConfigurationContext createContext(final String branch, final String exclusionPattern) {
         final Map<PropertyDescriptor, PropertyValue> properties = Map.of(
                 AbstractGitFlowRegistryClient.REPOSITORY_BRANCH, new MockPropertyValue(branch),
-                AbstractGitFlowRegistryClient.DIRECTORY_FILTER_EXCLUDE, new MockPropertyValue(exclusionPattern)
+                AbstractGitFlowRegistryClient.DIRECTORY_FILTER_EXCLUDE, new MockPropertyValue(exclusionPattern),
+                AbstractGitFlowRegistryClient.COMMIT_AUTHOR_SOURCE, new MockPropertyValue(AbstractGitFlowRegistryClient.CommitAuthorSource.SERVICE_USER.getValue()),
+                AbstractGitFlowRegistryClient.PARAMETER_CONTEXT_VALUES, new MockPropertyValue(AbstractGitFlowRegistryClient.ParameterContextValuesStrategy.RETAIN.getValue())
         );
 
         return new FlowRegistryClientConfigurationContext() {

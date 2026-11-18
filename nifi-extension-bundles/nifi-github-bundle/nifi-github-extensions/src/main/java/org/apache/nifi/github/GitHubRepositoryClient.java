@@ -29,6 +29,7 @@ import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.kohsuke.github.GHCommit;
+import org.kohsuke.github.GHCompare;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHContentBuilder;
 import org.kohsuke.github.GHContentUpdateResponse;
@@ -46,6 +47,7 @@ import org.kohsuke.github.PagedIterable;
 import org.kohsuke.github.PagedIterator;
 import org.kohsuke.github.authorization.AppInstallationAuthorizationProvider;
 import org.kohsuke.github.authorization.AuthorizationProvider;
+import org.kohsuke.github.connector.GitHubConnector;
 import org.kohsuke.github.connector.GitHubConnectorResponse;
 import org.kohsuke.github.extras.HttpClientGitHubConnector;
 import org.kohsuke.github.extras.authorization.JWTTokenProvider;
@@ -56,6 +58,7 @@ import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.security.PrivateKey;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +81,8 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
     private static final String BRANCH_REF_PATTERN = "refs/heads/%s";
     private static final int COMMIT_PAGE_SIZE = 10;
+    // GitHub lists at most 300 files in a comparison
+    static final int COMPARE_FILES_LIMIT = 300;
     private static final String UNKNOWN_AUTHOR = "unknown";
 
     private final String repoOwner;
@@ -127,12 +132,16 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         });
 
         // Configure HttpClient connector with SSL context if provided
+        final GitHubConnector connector;
         if (builder.sslContextProvider != null) {
             final HttpClient httpClient = HttpClient.newBuilder()
                     .sslContext(builder.sslContextProvider.createContext())
                     .build();
-            gitHubBuilder.withConnector(new HttpClientGitHubConnector(httpClient));
+            connector = new HttpClientGitHubConnector(httpClient);
+        } else {
+            connector = GitHubConnector.DEFAULT;
         }
+        gitHubBuilder.withConnector(new ConditionalBranchReferenceConnector(connector));
 
         gitHub = gitHubBuilder.build();
 
@@ -358,7 +367,9 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
         return execute(() -> {
             try {
-                return getLatestCommitSha(repository, resolvedPath, branch);
+                // The full branch reference is the starting point of the listing: no separate request resolves it, and GitHub
+                // does not fall back to a tag or commit with the same name, so an unknown branch still fails with Not Found
+                return getLatestCommitSha(repository, resolvedPath, BRANCH_REF_PATTERN.formatted(branch));
             } catch (final FileNotFoundException fnf) {
                 throwPathOrBranchNotFound(fnf, resolvedPath, BRANCH_REF_PATTERN.formatted(branch));
                 return null;
@@ -366,12 +377,35 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         });
     }
 
-    static Optional<String> getLatestCommitSha(final GHRepository repository, final String resolvedPath, final String branch) throws IOException {
-        // The full branch reference is the starting point of the listing: no separate request resolves it, and GitHub does
-        // not fall back to a tag or commit with the same name, so an unknown branch still fails with Not Found
+    /**
+     * Gets the SHA of the most recent commit that changed the given path, among the given commit and its ancestors, with
+     * a single request.
+     *
+     * @param path the path
+     * @param commitSha the SHA of the commit to start from
+     * @return the SHA of the latest commit for the path, or empty when no commit changed the path
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub, or the commit does not exist
+     */
+    @Override
+    public Optional<String> getLatestCommitShaAtCommit(final String path, final String commitSha) throws IOException, FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        logger.debug("Getting latest commit for [{}] from commit [{}] in repo [{}]", resolvedPath, commitSha, repository.getName());
+
+        return execute(() -> {
+            try {
+                return getLatestCommitSha(repository, resolvedPath, commitSha);
+            } catch (final FileNotFoundException fnf) {
+                throw new FlowRegistryException("Path [" + resolvedPath + "] or Commit [" + commitSha + "] not found", fnf);
+            }
+        });
+    }
+
+    static Optional<String> getLatestCommitSha(final GHRepository repository, final String resolvedPath, final String startingPoint) throws IOException {
         final PagedIterator<GHCommit> commits = repository.queryCommits()
                 .path(resolvedPath)
-                .from(BRANCH_REF_PATTERN.formatted(branch))
+                .from(startingPoint)
                 .pageSize(1)
                 .list()
                 .iterator();
@@ -384,6 +418,84 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
             }
             throw e;
         }
+    }
+
+    /**
+     * Gets the SHA of the commit at the head of the given branch with a single request. The request is conditional:
+     * while the head is unchanged GitHub answers Not Modified, which does not count against the rate limit.
+     *
+     * @param branch the branch
+     * @return the SHA of the head commit
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub, or the branch does not exist
+     */
+    @Override
+    public Optional<String> getBranchHeadSha(final String branch) throws IOException, FlowRegistryException {
+        final String branchRef = BRANCH_REF_PATTERN.formatted(branch);
+        logger.debug("Getting head commit of branch [{}] in repo [{}]", branch, repository.getName());
+
+        return execute(() -> {
+            try {
+                return Optional.of(repository.getRef(branchRef).getObject().getSha());
+            } catch (final FileNotFoundException fnf) {
+                throw new FlowRegistryException("Branch [" + branchRef + "] not found", fnf);
+            }
+        });
+    }
+
+    /**
+     * Gets the paths touched from one commit to a later one with a single compare request, when the later commit is
+     * the only commit after the earlier one, as for a direct commit to the branch. Any other range, such as the merge
+     * of a pull request with its own commits, is not resolved, because the compared files are only the net difference
+     * of the range and would miss a file changed and then reverted within it.
+     *
+     * @param fromCommitSha the SHA of the earlier commit
+     * @param toCommitSha the SHA of the later commit
+     * @return the touched paths relative to the repository path, or empty when the later commit is not the only commit
+     *         after the earlier one, or the comparison lists as many files as GitHub returns at most
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub
+     */
+    @Override
+    public Optional<Set<String>> getChangedPaths(final String fromCommitSha, final String toCommitSha) throws IOException, FlowRegistryException {
+        logger.debug("Getting paths changed from [{}] to [{}] in repo [{}]", fromCommitSha, toCommitSha, repository.getName());
+        return execute(() -> getChangedPaths(repository.getCompare(fromCommitSha, toCommitSha), repoPath));
+    }
+
+    static Optional<Set<String>> getChangedPaths(final GHCompare compare, final String repoPath) {
+        if (compare.getStatus() != GHCompare.Status.ahead || compare.getAheadBy() != 1) {
+            return Optional.empty();
+        }
+
+        final GHCommit.File[] files = compare.getFiles();
+        if (files.length >= COMPARE_FILES_LIMIT) {
+            return Optional.empty();
+        }
+
+        final Set<String> changedPaths = new HashSet<>();
+        for (final GHCommit.File file : files) {
+            addChangedPaths(file, repoPath, changedPaths);
+        }
+        return Optional.of(changedPaths);
+    }
+
+    private static void addChangedPaths(final GHCommit.File file, final String repoPath, final Set<String> changedPaths) {
+        getRelativePath(file.getFileName(), repoPath).ifPresent(changedPaths::add);
+        if (file.getPreviousFilename() != null) {
+            getRelativePath(file.getPreviousFilename(), repoPath).ifPresent(changedPaths::add);
+        }
+    }
+
+    private static Optional<String> getRelativePath(final String path, final String repoPath) {
+        // Compared paths never start with a slash, while the configured repository path may start or end with one
+        final String normalizedRepoPath = repoPath == null ? "" : StringUtils.strip(repoPath, "/");
+        if (normalizedRepoPath.isEmpty()) {
+            return Optional.of(path);
+        }
+        final String prefix = normalizedRepoPath + "/";
+        return path.startsWith(prefix) ? Optional.of(path.substring(prefix.length())) : Optional.empty();
     }
 
     /**
