@@ -157,7 +157,7 @@ public enum CommandOption {
     // NiFi - NARs
     NAR_ID("nid", "narId", "", true),
     NAR_FILE("nar", "narFile", "A NAR file to upload, must contain full path and filename", true, true),
-    NAR_UPLOAD_TIMEOUT("npt", "narProcessing", "Number of seconds after which a parameter context update will timeout (default: 60, maximum: 600)", true),
+    NAR_UPLOAD_TIMEOUT("npt", "narProcessing", "Number of seconds to wait for the NAR install to complete (default: 60, maximum: 600)", true),
 
     // NiFi - Assets
     ASSET_FILE("af", "assetFile", "A file containing the asset content, must contain full path and filename", true, true),
