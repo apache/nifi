@@ -99,8 +99,8 @@ public class UploadNar extends AbstractNiFiCommand<NarUploadResult> {
 
     protected int getProcessingTimeout(final Properties properties) {
         try {
-            final Integer updateTimeoutSeconds = getIntArg(properties, CommandOption.UPDATE_TIMEOUT);
-            return updateTimeoutSeconds == null ? DEFAULT_TIMEOUT_SECONDS : updateTimeoutSeconds;
+            final Integer narUploadTimeoutSeconds = getIntArg(properties, CommandOption.NAR_UPLOAD_TIMEOUT);
+            return narUploadTimeoutSeconds == null ? DEFAULT_TIMEOUT_SECONDS : narUploadTimeoutSeconds;
         } catch (final MissingOptionException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
