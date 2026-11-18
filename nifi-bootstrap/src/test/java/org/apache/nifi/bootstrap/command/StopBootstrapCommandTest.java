@@ -84,4 +84,19 @@ class StopBootstrapCommandTest {
 
         assertEquals(CommandStatus.ERROR, commandStatus);
     }
+
+    @Test
+    void testRunDestroyForciblyCompleted() {
+        when(processHandleProvider.findApplicationProcessHandle()).thenReturn(Optional.of(applicationProcessHandle));
+        when(applicationProcessHandle.destroy()).thenReturn(true);
+        when(applicationProcessHandle.destroyForcibly()).thenReturn(true);
+        when(applicationProcessHandle.onExit())
+                .thenReturn(CompletableFuture.failedFuture(new RuntimeException()))
+                .thenReturn(CompletableFuture.completedFuture(applicationProcessHandle));
+
+        command.run();
+        final CommandStatus commandStatus = command.getCommandStatus();
+
+        assertEquals(CommandStatus.SUCCESS, commandStatus);
+    }
 }
