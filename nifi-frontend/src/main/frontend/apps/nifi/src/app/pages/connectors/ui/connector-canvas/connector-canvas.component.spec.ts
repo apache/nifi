@@ -251,6 +251,7 @@ class MockConnectorGraphControls {
     operationBreadcrumb = input<unknown>(null);
     operationCanvasPermissions = input<unknown>(null);
     operationCurrentProcessGroupId = input<string | null>(null);
+    operationCurrentProcessGroupDrainSummary = input<unknown>(null);
     operationProcessGroupRevision = input<unknown>(null);
     viewportChange = output<{ x: number; y: number }>();
     birdseyeDragStart = output<void>();
@@ -365,6 +366,10 @@ function buildMockSelectors(options: SetupOptions = {}) {
         {
             selector: ConnectorCanvasSelectors.selectConnectorCanvasPermissions,
             value: options.canvasPermissions ?? null
+        },
+        {
+            selector: ConnectorCanvasSelectors.selectConnectorCanvasCurrentProcessGroupDrainSummary,
+            value: null
         },
         { selector: ConnectorCanvasSelectors.selectConnectorCanvasDragging, value: false },
         { selector: ConnectorCanvasSelectors.selectLoadingStatus, value: loadingStatus },
@@ -2496,6 +2501,7 @@ describe('ConnectorCanvasComponent', () => {
                     parentProcessGroupId: null,
                     breadcrumb: null,
                     permissions: null,
+                    currentProcessGroupDrainSummary: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],

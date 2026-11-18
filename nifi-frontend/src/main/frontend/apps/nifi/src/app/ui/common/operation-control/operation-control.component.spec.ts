@@ -16,10 +16,12 @@
  */
 
 import { TestBed } from '@angular/core/testing';
-import { ComponentType, Storage } from '@nifi/shared';
+import { ComponentType, NiFiCommon, Storage } from '@nifi/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SelectionTarget } from '../canvas/utils/selection.utils';
+import { isProcessGroupTarget, SelectionTarget } from '../canvas/utils/selection.utils';
 import { CanvasOperationControl } from './operation-control.component';
+import { getDrainingTooltip } from '../drain/drain-summary.utils';
+import { createProcessGroupDrainSummary } from '../../../testing/process-group-drain-fixture';
 
 const mockStorage = {
     getItem: vi.fn(),
@@ -173,5 +175,99 @@ describe('CanvasOperationControl', () => {
         expect(component.contextType()).toBeNull();
         expect(component.contextId()).toBe('');
         expect(fixture.nativeElement.querySelector('component-context .context-id')).toBeNull();
+    });
+
+    describe('draining badge', () => {
+        function processGroup(draining = false, canRead = true): SelectionTarget {
+            return {
+                entity: {
+                    id: 'child-pg',
+                    permissions: { canRead, canWrite: true },
+                    revision: { version: 1 },
+                    component: { name: 'Child' },
+                    drainSummary: draining
+                        ? {
+                              id: 'drain-1',
+                              prepared: true,
+                              originalCount: 1,
+                              originalSize: 1,
+                              currentCount: 1,
+                              currentSize: 1
+                          }
+                        : undefined
+                },
+                ui: { componentType: ComponentType.ProcessGroup }
+            } as SelectionTarget;
+        }
+
+        function getBadge(fixture: { nativeElement: HTMLElement }): HTMLElement | null {
+            return fixture.nativeElement.querySelector('[data-qa="draining-status-badge"]');
+        }
+
+        it('shows the badge when the current process group is draining and nothing is selected', async () => {
+            const { fixture, component } = await setup([], 'pg-1');
+            fixture.componentRef.setInput('canvasPermissions', { canRead: true, canWrite: true });
+            fixture.componentRef.setInput('currentProcessGroupDrainSummary', createProcessGroupDrainSummary());
+            fixture.detectChanges();
+
+            expect(component.isDraining()).toBe(true);
+            expect(getBadge(fixture)?.textContent).toContain('Draining');
+        });
+
+        it('shows the current process group badge when the group is not readable', async () => {
+            const { fixture, component } = await setup([], 'pg-1');
+            fixture.componentRef.setInput('canvasPermissions', { canRead: false, canWrite: false });
+            fixture.componentRef.setInput('currentProcessGroupDrainSummary', createProcessGroupDrainSummary());
+            fixture.detectChanges();
+
+            expect(component.isDraining()).toBe(true);
+            expect(getBadge(fixture)?.textContent).toContain('Draining');
+        });
+
+        it('shows the badge for a selected draining process group', async () => {
+            const { fixture, component } = await setup([processGroup(true)]);
+
+            expect(component.isDraining()).toBe(true);
+            expect(getBadge(fixture)).not.toBeNull();
+        });
+
+        it('hides the badge for a selected process group that is not draining', async () => {
+            const { fixture, component } = await setup([processGroup()]);
+
+            expect(component.isDraining()).toBe(false);
+            expect(getBadge(fixture)).toBeNull();
+        });
+
+        it('shows the badge for an unreadable selected process group that is draining', async () => {
+            const { component } = await setup([processGroup(true, false)]);
+
+            expect(component.isDraining()).toBe(true);
+        });
+
+        it('hides the badge for selections other than a single process group', async () => {
+            const { component } = await setup([processGroup(true), processor()]);
+
+            expect(component.isDraining()).toBe(false);
+        });
+
+        it('sets the badge tooltip from the current process group drain summary', async () => {
+            const drainSummary = createProcessGroupDrainSummary();
+            const { fixture, component } = await setup([], 'pg-1');
+            fixture.componentRef.setInput('currentProcessGroupDrainSummary', drainSummary);
+            fixture.detectChanges();
+
+            expect(component.drainingTooltip()).toBe(getDrainingTooltip(drainSummary, TestBed.inject(NiFiCommon)));
+            expect(getBadge(fixture)?.querySelector('.fa-info-circle')).not.toBeNull();
+        });
+
+        it('sets the badge tooltip from a selected process group drain summary', async () => {
+            const { fixture, component } = await setup([processGroup(true)]);
+            const selected = component.selection()[0];
+            const drainSummary = isProcessGroupTarget(selected) ? (selected.entity.drainSummary ?? null) : null;
+
+            expect(drainSummary).not.toBeNull();
+            expect(component.drainingTooltip()).toBe(getDrainingTooltip(drainSummary, TestBed.inject(NiFiCommon)));
+            expect(getBadge(fixture)?.querySelector('.fa-info-circle')).not.toBeNull();
+        });
     });
 });

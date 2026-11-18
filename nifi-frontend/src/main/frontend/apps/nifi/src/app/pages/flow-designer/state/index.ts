@@ -30,6 +30,8 @@ import { parameterFeatureKey, ParameterState } from './parameter';
 import { parameterReducer } from './parameter/parameter.reducer';
 import { FlowAnalysisState, flowAnalysisFeatureKey } from './flow-analysis';
 import { flowAnalysisReducer } from './flow-analysis/flow-analysis.reducer';
+import { DrainProcessGroupState, processGroupDrainFeatureKey } from './process-group-drain';
+import { processGroupDrainReducer } from './process-group-drain/process-group-drain.reducer';
 
 export const canvasFeatureKey = 'canvas';
 
@@ -39,6 +41,7 @@ export interface CanvasState {
     [controllerServicesFeatureKey]: ControllerServicesState;
     [parameterFeatureKey]: ParameterState;
     [flowAnalysisFeatureKey]: FlowAnalysisState;
+    [processGroupDrainFeatureKey]: DrainProcessGroupState;
 }
 
 export function reducers(state: CanvasState | undefined, action: Action) {
@@ -47,7 +50,8 @@ export function reducers(state: CanvasState | undefined, action: Action) {
         [transformFeatureKey]: transformReducer,
         [controllerServicesFeatureKey]: controllerServicesReducer,
         [parameterFeatureKey]: parameterReducer,
-        [flowAnalysisFeatureKey]: flowAnalysisReducer
+        [flowAnalysisFeatureKey]: flowAnalysisReducer,
+        [processGroupDrainFeatureKey]: processGroupDrainReducer
     })(state, action);
 }
 

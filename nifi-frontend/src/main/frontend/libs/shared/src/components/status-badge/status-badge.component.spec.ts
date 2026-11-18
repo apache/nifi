@@ -35,4 +35,12 @@ describe('StatusBadge', () => {
     it('should create', () => {
         expect(component).toBeTruthy();
     });
+
+    it('shows the tooltip icon when a message is set', () => {
+        fixture.componentRef.setInput('label', 'Draining');
+        fixture.componentRef.setInput('message', 'This Process Group is being drained.');
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.querySelector('.fa-info-circle')).not.toBeNull();
+    });
 });

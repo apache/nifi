@@ -97,7 +97,8 @@ export const connectorCanvasReducer = createReducer(
                   pendingAuthoritativeSnapshot: false,
                   hasLoadedFlow: false,
                   parameterContext: null,
-                  processGroupRevision: null
+                  processGroupRevision: null,
+                  currentProcessGroupDrainSummary: null
               }
             : {})
     })),
@@ -117,6 +118,7 @@ export const connectorCanvasReducer = createReducer(
                 parentProcessGroupId,
                 breadcrumb,
                 permissions,
+                currentProcessGroupDrainSummary,
                 labels,
                 funnels,
                 inputPorts,
@@ -165,6 +167,7 @@ export const connectorCanvasReducer = createReducer(
                 parentProcessGroupId,
                 breadcrumb,
                 permissions,
+                currentProcessGroupDrainSummary,
                 labels: processComponentCollection(
                     labels,
                     state.labels,

@@ -28,6 +28,7 @@ import {
     Parameter,
     ParameterContextReferenceEntity,
     Permissions,
+    ProcessGroupDrainSummary,
     ResolvedExecutionEngine,
     Revision,
     RevisionRequest,
@@ -294,6 +295,7 @@ export interface ProcessGroupFlowDTO {
     breadcrumb: BreadcrumbEntity;
     flow: FlowDTO;
     resolvedExecutionEngine: ResolvedExecutionEngine;
+    drainSummary?: ProcessGroupDrainSummary;
 }
 
 /**

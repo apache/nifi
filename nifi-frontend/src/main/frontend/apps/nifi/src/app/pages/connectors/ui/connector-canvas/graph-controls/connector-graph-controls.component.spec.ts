@@ -23,6 +23,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ConnectorGraphControls } from './connector-graph-controls.component';
 import { ConnectorInfoControl } from './connector-info-control/connector-info-control.component';
 import { ProvenancePreview } from '../../../../../ui/common/provenance-preview/provenance-preview.component';
+import { CanvasOperationControl } from '../../../../../ui/common/operation-control/operation-control.component';
 import { ConnectorEntity } from '@nifi/shared';
 import { BirdseyeComponentData, BirdseyeTransform } from '../../../../../ui/common/birdseye/birdseye.types';
 import { Dimension } from '../../../../../ui/common/canvas/canvas.types';
@@ -37,6 +38,27 @@ import { ProvenanceEvent } from '../../../../../state/shared';
 class MockConnectorInfoControl {
     connectorEntity = input<ConnectorEntity | null>(null);
     entitySaving = input<boolean>(false);
+}
+
+@Component({
+    selector: 'canvas-operation-control',
+    standalone: true,
+    imports: [CommonModule],
+    template: ''
+})
+class MockCanvasOperationControl {
+    storageKey = input<string>('operation-control');
+    selection = input<unknown[]>([]);
+    breadcrumbEntity = input<unknown>(null);
+    canvasPermissions = input<unknown>(null);
+    currentProcessGroupId = input<string | null>(null);
+    currentProcessGroupDrainSummary = input<unknown>(null);
+    processGroupRevision = input<unknown>(null);
+    enable = output<unknown[]>();
+    disable = output<unknown[]>();
+    startComponents = output<unknown[]>();
+    stop = output<unknown[]>();
+    runOnce = output<unknown[]>();
 }
 
 @Component({
@@ -79,8 +101,8 @@ async function setup(inputs: SetupInputs = {}) {
         imports: [ConnectorGraphControls, NoopAnimationsModule]
     })
         .overrideComponent(ConnectorGraphControls, {
-            remove: { imports: [ConnectorInfoControl, ProvenancePreview] },
-            add: { imports: [MockConnectorInfoControl, MockProvenancePreview] }
+            remove: { imports: [ConnectorInfoControl, ProvenancePreview, CanvasOperationControl] },
+            add: { imports: [MockConnectorInfoControl, MockProvenancePreview, MockCanvasOperationControl] }
         })
         .compileComponents();
 
@@ -114,6 +136,26 @@ describe('ConnectorGraphControls', () => {
         const { fixture } = await setup();
         const infoControl = fixture.nativeElement.querySelector('connector-info-control');
         expect(infoControl).toBeTruthy();
+    });
+
+    it('should pass the current process group drain request id to the operation control', async () => {
+        const { fixture } = await setup();
+        fixture.componentRef.setInput('inTroubleshooting', true);
+        const drainSummary = {
+            id: 'drain-1',
+            prepared: true,
+            originalCount: 1,
+            originalSize: 1,
+            currentCount: 1,
+            currentSize: 1
+        };
+        fixture.componentRef.setInput('operationCurrentProcessGroupDrainSummary', drainSummary);
+        fixture.detectChanges();
+
+        const operationEl = fixture.debugElement.query((el) => el.name === 'canvas-operation-control');
+        const operation = operationEl.componentInstance as MockCanvasOperationControl;
+
+        expect(operation.currentProcessGroupDrainSummary()).toEqual(drainSummary);
     });
 
     describe('provenance preview gating', () => {

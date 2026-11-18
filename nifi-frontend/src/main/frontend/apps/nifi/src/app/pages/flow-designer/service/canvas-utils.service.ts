@@ -26,6 +26,7 @@ import {
     selectCanvasPermissions,
     selectConnections,
     selectCurrentParameterContext,
+    selectCurrentProcessGroupDrainSummary,
     selectCurrentProcessGroupId,
     selectParentProcessGroupId,
     selectResolvedExecutionEngine
@@ -40,7 +41,8 @@ import {
     NiFiCommon,
     ParameterContextReferenceEntity,
     Permissions,
-    Position
+    Position,
+    ProcessGroupDrainSummary
 } from '@nifi/shared';
 import { CurrentUser } from '../../../state/current-user';
 import { initialState as initialUserState } from '../../../state/current-user/current-user.reducer';
@@ -50,8 +52,12 @@ import { initialState as initialFlowConfigurationState } from '../../../state/fl
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 import { CopiedSnippet } from '../state/flow';
 import { VersionControlInformation } from '../../../ui/common/tooltips/version-control-tip/version-control-tip.component';
-import { Overlay, OverlayRef, PositionStrategy } from '@angular/cdk/overlay';
-import { ComponentPortal } from '@angular/cdk/portal';
+import { Overlay } from '@angular/cdk/overlay';
+import {
+    bindCanvasTooltip,
+    CanvasTooltipSessionMap,
+    unbindCanvasTooltip
+} from '../../../ui/common/canvas/utils/canvas-tooltip-overlay';
 import { initialState as initialTransformState } from '../state/transform/transform.reducer';
 import { selectScale } from '../state/transform/transform.selectors';
 import { ConnectionManager } from './manager/connection-manager.service';
@@ -81,6 +87,7 @@ export class CanvasUtils {
     private store = inject<Store<CanvasState>>(Store);
     private nifiCommon = inject(NiFiCommon);
     private overlay = inject(Overlay);
+    private readonly canvasTooltipSessions: CanvasTooltipSessionMap = new WeakMap();
 
     private static readonly TWO_PI: number = 2 * Math.PI;
 
@@ -92,6 +99,8 @@ export class CanvasUtils {
     private currentResolvedExecutionEngine: ResolvedExecutionEngine =
         initialFlowState.flow.processGroupFlow.resolvedExecutionEngine;
     private canvasPermissions: Permissions = initialFlowState.flow.permissions;
+    private currentDrainSummary: ProcessGroupDrainSummary | null =
+        initialFlowState.flow.processGroupFlow.drainSummary ?? null;
     private currentUser: CurrentUser = initialUserState.user;
     private currentParameterContext: ParameterContextReferenceEntity | null =
         initialFlowState.flow.processGroupFlow.parameterContext;
@@ -133,6 +142,13 @@ export class CanvasUtils {
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((canvasPermissions) => {
                 this.canvasPermissions = canvasPermissions;
+            });
+
+        this.store
+            .select(selectCurrentProcessGroupDrainSummary)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((drainSummary) => {
+                this.currentDrainSummary = drainSummary;
             });
 
         this.store
@@ -473,6 +489,34 @@ export class CanvasUtils {
         }
 
         return false;
+    }
+
+    /**
+     * Returns whether the user can read the current process group.
+     */
+    public canReadCurrentProcessGroup(): boolean {
+        return this.canvasPermissions.canRead;
+    }
+
+    /**
+     * Returns whether the user can read and write the current process group.
+     */
+    public canModifyCurrentProcessGroup(): boolean {
+        return this.canvasPermissions.canRead && this.canvasPermissions.canWrite;
+    }
+
+    /**
+     * Returns the ID of the drain of the current process group, or null if the current process group is not being drained.
+     */
+    public getCurrentProcessGroupDrainRequestId(): string | null {
+        return this.currentDrainSummary?.id ?? null;
+    }
+
+    /**
+     * Returns the drain summary of the current process group, or null if the current process group is not being drained.
+     */
+    public getCurrentProcessGroupDrainSummary(): ProcessGroupDrainSummary | null {
+        return this.currentDrainSummary;
     }
 
     /**
@@ -1192,77 +1236,7 @@ export class CanvasUtils {
      * @param tooltipData
      */
     public canvasTooltip<C>(type: Type<C>, selection: any, tooltipData: any): void {
-        let closeTimer = -1;
-        let openTimer = -1;
-        const overlay = this.overlay;
-        let overlayRef: OverlayRef | null = null;
-        let positionStrategy: PositionStrategy | null = null;
-
-        selection
-            .on('mouseenter', function (this: any) {
-                if (overlayRef?.hasAttached()) {
-                    return;
-                }
-
-                if (!overlayRef) {
-                    openTimer = window.setTimeout(() => {
-                        positionStrategy = overlay
-                            .position()
-                            .flexibleConnectedTo(d3.select(this).node())
-                            .withPositions([
-                                {
-                                    originX: 'end',
-                                    originY: 'bottom',
-                                    overlayX: 'start',
-                                    overlayY: 'top',
-                                    offsetX: 8,
-                                    offsetY: 8
-                                }
-                            ])
-                            .withPush(true);
-
-                        overlayRef = overlay.create({ positionStrategy });
-                        const tooltipReference = overlayRef.attach(new ComponentPortal(type));
-                        tooltipReference.setInput('data', tooltipData);
-
-                        // register mouse events
-                        tooltipReference.location.nativeElement.addEventListener('mouseenter', () => {
-                            if (closeTimer > 0) {
-                                window.clearTimeout(closeTimer);
-                                closeTimer = -1;
-                            }
-                        });
-                        tooltipReference.location.nativeElement.addEventListener('mouseleave', () => {
-                            overlayRef?.detach();
-                            overlayRef?.dispose();
-                            overlayRef = null;
-
-                            if (positionStrategy?.detach) {
-                                positionStrategy.detach();
-                            }
-                            positionStrategy?.dispose();
-                            positionStrategy = null;
-                        });
-                    }, NiFiCommon.TOOLTIP_DELAY_OPEN_MILLIS);
-                }
-            })
-            .on('mouseleave', function () {
-                if (openTimer > 0) {
-                    window.clearTimeout(openTimer);
-                    openTimer = -1;
-                }
-                closeTimer = window.setTimeout(() => {
-                    overlayRef?.detach();
-                    overlayRef?.dispose();
-                    overlayRef = null;
-
-                    if (positionStrategy?.detach) {
-                        positionStrategy.detach();
-                    }
-                    positionStrategy?.dispose();
-                    positionStrategy = null;
-                }, NiFiCommon.TOOLTIP_DELAY_OPEN_MILLIS);
-            });
+        bindCanvasTooltip(this.overlay, this.canvasTooltipSessions, type, selection, tooltipData);
     }
 
     /**
@@ -1271,9 +1245,7 @@ export class CanvasUtils {
      * @param selection
      */
     public resetCanvasTooltip(selection: any): void {
-        // while tooltips are created dynamically, we need to provide the ability to remove the mouse
-        // listener to prevent new tooltips from being created on subsequent mouse enter/leave
-        selection.on('mouseenter', null).on('mouseleave', null);
+        unbindCanvasTooltip(this.canvasTooltipSessions, selection);
     }
 
     private resetBulletin(selection: any) {

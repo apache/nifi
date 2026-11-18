@@ -30,6 +30,8 @@ export * from './funnel-entity';
 export * from './label-entity';
 export * from './port-entity';
 export * from './processing-performance-status-dto';
+export * from './process-group-drain-request-entity';
+export * from './process-group-drain-summary';
 export * from './process-group-entity';
 export * from './processor-entity';
 export * from './property-descriptor-dto';

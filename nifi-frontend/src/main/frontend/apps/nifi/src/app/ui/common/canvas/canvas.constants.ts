@@ -70,6 +70,7 @@ export class CanvasConstants {
     static readonly PROCESS_GROUP_STATS_ROW_HEIGHT = 19;
     static readonly PROCESS_GROUP_CONTENTS_SPACER = 10;
     static readonly PROCESS_GROUP_CONTENTS_VALUE_SPACER = 5;
+    static readonly PROCESS_GROUP_DRAINING_BADGE_HEIGHT = 13;
 
     static readonly REMOTE_PROCESS_GROUP_BANNER_HEIGHT = 32;
     static readonly REMOTE_PROCESS_GROUP_DETAILS_BANNER_HEIGHT = 24;

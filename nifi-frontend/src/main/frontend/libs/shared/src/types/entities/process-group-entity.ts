@@ -23,6 +23,7 @@ import { FunnelDTO } from './funnel-entity';
 import { LabelDTO } from './label-entity';
 import { PortDTO, PortStatusSnapshotEntity } from './port-entity';
 import { ProcessingPerformanceStatusDTO } from './processing-performance-status-dto';
+import { ProcessGroupDrainSummary } from './process-group-drain-summary';
 import { ProcessorDTO, ProcessorStatusSnapshotEntity } from './processor-entity';
 import { RegisteredFlowSnapshot } from './registered-flow-snapshot';
 import { RemoteProcessGroupDTO, RemoteProcessGroupStatusSnapshotEntity } from './remote-process-group-entity';
@@ -54,6 +55,7 @@ export interface ProcessGroupEntity extends PositionableComponentEntityBase<Proc
     inputPortCount: number;
     outputPortCount: number;
     resolvedExecutionEngine: ResolvedExecutionEngine;
+    drainSummary?: ProcessGroupDrainSummary;
     versionedFlowState?: string;
     parameterContext?: ParameterContextReferenceEntity;
     versionedFlowSnapshot?: RegisteredFlowSnapshot;

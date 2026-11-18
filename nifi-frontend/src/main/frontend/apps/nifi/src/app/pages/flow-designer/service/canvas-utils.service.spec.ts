@@ -24,9 +24,17 @@ import * as fromFlow from '../state/flow/flow.reducer';
 import { transformFeatureKey } from '../state/transform';
 import * as fromTransform from '../state/transform/transform.reducer';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
-import { selectConnections, selectCurrentProcessGroupId, selectFlowState } from '../state/flow/flow.selectors';
+import {
+    selectCanvasPermissions,
+    selectConnections,
+    selectCurrentProcessGroupDrainSummary,
+    selectCurrentProcessGroupId,
+    selectFlowState
+} from '../state/flow/flow.selectors';
 import { controllerServicesFeatureKey } from '../state/controller-services';
 import * as fromControllerServices from '../state/controller-services/controller-services.reducer';
+import { processGroupDrainFeatureKey } from '../state/process-group-drain';
+import * as fromProcessGroupDrain from '../state/process-group-drain/process-group-drain.reducer';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
 import * as fromUser from '../../../state/current-user/current-user.reducer';
 import { parameterFeatureKey } from '../state/parameter';
@@ -35,11 +43,13 @@ import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-
 import * as fromFlowConfiguration from '../../../state/flow-configuration/flow-configuration.reducer';
 import { flowAnalysisFeatureKey } from '../state/flow-analysis';
 import * as fromFlowAnalysis from '../state/flow-analysis/flow-analysis.reducer';
-import { ComponentType, BulletinEntity } from '@nifi/shared';
+import { BulletinEntity, ComponentType } from '@nifi/shared';
+import { createProcessGroupDrainSummary } from '../../../testing/process-group-drain-fixture';
 import * as d3 from 'd3';
 
 describe('CanvasUtils', () => {
     let service: CanvasUtils;
+    let store: MockStore;
 
     beforeEach(() => {
         const canvasInitialState: CanvasState = {
@@ -47,7 +57,8 @@ describe('CanvasUtils', () => {
             [transformFeatureKey]: fromTransform.initialState,
             [controllerServicesFeatureKey]: fromControllerServices.initialState,
             [parameterFeatureKey]: fromParameter.initialState,
-            [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState
+            [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState,
+            [processGroupDrainFeatureKey]: fromProcessGroupDrain.initialState
         };
 
         TestBed.configureTestingModule({
@@ -74,10 +85,34 @@ describe('CanvasUtils', () => {
             ]
         });
         service = TestBed.inject(CanvasUtils);
+        store = TestBed.inject(MockStore);
     });
 
     it('should be created', () => {
         expect(service).toBeTruthy();
+    });
+
+    it('requires read and write to modify the current process group', () => {
+        store.overrideSelector(selectCanvasPermissions, { canRead: true, canWrite: true });
+        store.refreshState();
+        expect(service.canModifyCurrentProcessGroup()).toBe(true);
+        expect(service.canReadCurrentProcessGroup()).toBe(true);
+
+        store.overrideSelector(selectCanvasPermissions, { canRead: true, canWrite: false });
+        store.refreshState();
+        expect(service.canModifyCurrentProcessGroup()).toBe(false);
+        expect(service.canReadCurrentProcessGroup()).toBe(true);
+    });
+
+    it('exposes the current process group drain summary', () => {
+        expect(service.getCurrentProcessGroupDrainRequestId()).toBeNull();
+        expect(service.getCurrentProcessGroupDrainSummary()).toBeNull();
+
+        const drainSummary = createProcessGroupDrainSummary();
+        store.overrideSelector(selectCurrentProcessGroupDrainSummary, drainSummary);
+        store.refreshState();
+        expect(service.getCurrentProcessGroupDrainRequestId()).toBe(drainSummary.id);
+        expect(service.getCurrentProcessGroupDrainSummary()).toEqual(drainSummary);
     });
 
     describe('supportsStopFlowVersioning', () => {
