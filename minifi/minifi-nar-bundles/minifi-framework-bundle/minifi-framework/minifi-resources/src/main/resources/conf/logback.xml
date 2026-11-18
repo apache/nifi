@@ -44,21 +44,23 @@
         </encoder>
     </appender>
 
+    <!--
+        Per Process Group logging (disabled by default).
+        Component log messages of Process Groups that define a Log File Suffix are also written to a
+        dedicated file named ${org.apache.nifi.minifi.bootstrap.config.log.app.file.name}-<suffix>.log,
+        with a rolling policy independent from APP_FILE (maxFileSize, maxHistory and totalSizeCap can be
+        tuned separately, e.g. to retain the messages of a single Process Group for a longer period).
+        To enable it, uncomment the appender below and the DEDICATED_LOGGING appender-ref in the root logger.
     <appender name="DEDICATED_LOGGING" class="ch.qos.logback.classic.sift.SiftingAppender">
-        <!-- Routes component log messages of Process Groups that define a Log File Suffix to a dedicated file -->
         <discriminator class="org.apache.nifi.logging.NifiDiscriminator"/>
         <sift>
             <appender name="APP-${logFileSuffix}_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
                 <file>${org.apache.nifi.minifi.bootstrap.config.log.dir}/${org.apache.nifi.minifi.bootstrap.config.log.app.file.name}-${logFileSuffix}.${org.apache.nifi.minifi.bootstrap.config.log.app.file.extension}</file>
                 <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
                     <fileNamePattern>${org.apache.nifi.minifi.bootstrap.config.log.dir}/${org.apache.nifi.minifi.bootstrap.config.log.app.file.name}-${logFileSuffix}_%d{yyyy-MM-dd_HH}.%i.${org.apache.nifi.minifi.bootstrap.config.log.app.file.extension}.gz</fileNamePattern>
-                    <!-- Control the maximum size of each log file before rolling over -->
                     <maxFileSize>10MB</maxFileSize>
-                    <!-- Control the maximum number of log archive files kept and asynchronously delete older files -->
                     <maxHistory>10</maxHistory>
-                    <!-- Control the total size of all log archive files for this appender -->
                     <totalSizeCap>100MB</totalSizeCap>
-                    <!-- Log files exceeding maximum settings will be rolled on startup -->
                     <cleanHistoryOnStart>true</cleanHistoryOnStart>
                 </rollingPolicy>
                 <immediateFlush>true</immediateFlush>
@@ -68,6 +70,7 @@
             </appender>
         </sift>
     </appender>
+    -->
 
     <appender name="BOOTSTRAP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${org.apache.nifi.minifi.bootstrap.config.log.dir}/${org.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.name}.${org.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.extension}</file>
@@ -143,7 +146,7 @@
 
     <root level="INFO">
         <appender-ref ref="APP_FILE"/>
-        <appender-ref ref="DEDICATED_LOGGING"/>
+        <!-- <appender-ref ref="DEDICATED_LOGGING"/> -->
     </root>
     
 </configuration>
