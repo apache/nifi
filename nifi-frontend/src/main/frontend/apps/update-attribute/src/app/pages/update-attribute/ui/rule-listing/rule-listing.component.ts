@@ -112,9 +112,9 @@ export class RuleListing {
         'attribute takes precedence as it overwrites previous rule actions.';
     readonly reorderTooltip =
         'Drag and drop rules to change the order in which they are evaluated. Reordering can only be enabled ' +
-        'when the Processor is editable, no rules have unsaved changes, no new rule is being created, and no ' +
-        'search criteria is applied. Rules cannot be edited, created, cloned, or deleted and searching is disabled ' +
-        'while reordering.';
+        'when the Processor is editable, no rules have unsaved changes, no new rule is being created, and the ' +
+        'search criteria has not excluded any rules. Rules cannot be edited, created, cloned, or deleted and ' +
+        'searching is disabled while reordering.';
 
     flowFilePolicyForm: FormGroup;
     flowFilePolicy = 'USE_ORIGINAL';
