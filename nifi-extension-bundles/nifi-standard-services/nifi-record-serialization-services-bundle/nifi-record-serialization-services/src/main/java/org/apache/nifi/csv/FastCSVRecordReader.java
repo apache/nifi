@@ -158,22 +158,24 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
                     + "have the same number of fields, as this is not conformant to RFC-4180");
         }
 
-        if (!csvRecordIterator.hasNext()) {
-            return Collections.emptyList();
-        }
+        if (hasHeader) {
+            if (!csvRecordIterator.hasNext()) {
+                return Collections.emptyList();
+            }
 
-        // read header row
-        CsvRecord headerRecord = csvRecordIterator.next();
-        headerMap = new HashMap<>();
-        for (int i = 0; i < headerRecord.getFieldCount(); i++) {
-            String rawValue = headerRecord.getField(i);
-            if (csvFormat.getTrim()) {
-                rawValue = rawValue.trim();
+            // read header row
+            CsvRecord headerRecord = csvRecordIterator.next();
+            headerMap = new HashMap<>();
+            for (int i = 0; i < headerRecord.getFieldCount(); i++) {
+                String rawValue = headerRecord.getField(i);
+                if (csvFormat.getTrim()) {
+                    rawValue = rawValue.trim();
+                }
+                if (trimDoubleQuote) {
+                    rawValue = trim(rawValue);
+                }
+                headerMap.put(rawValue, i);
             }
-            if (trimDoubleQuote) {
-                rawValue = trim(rawValue);
-            }
-            headerMap.put(rawValue, i);
         }
 
         SortedMap<Integer, String> sortedMap = new TreeMap<>();
