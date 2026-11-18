@@ -221,7 +221,7 @@ public class WebApplicationConfiguration {
         return lifecycle;
     }
 
-    @Bean
+    @Bean(destroyMethod = "shutdown")
     public ProcessGroupDrainMonitor processGroupDrainMonitor() {
         return new ProcessGroupDrainMonitor(clusterCoordinator, requestReplicator, serviceFacade);
     }

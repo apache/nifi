@@ -60,6 +60,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -178,6 +179,16 @@ public class TestProcessGroupResource {
             assertEquals(200, response.getStatus());
             assertNull(((ProcessGroupDrainRequestEntity) response.getEntity()).getDrainRequest());
         }
+
+        // Ending a drain requires WRITE on each encapsulated component, as beginning one does
+        verify(serviceFacade, times(3)).authorizeAccess(authorizeCaptor.capture());
+        final AuthorizeAccess authorizeEndDrain = authorizeCaptor.getValue();
+        final Authorizable processorAuthorizable = mock(Authorizable.class);
+        doThrow(AccessDeniedException.class).when(processorAuthorizable).authorize(any(), eq(RequestAction.WRITE), any());
+        final ComponentAuthorizable processor = mock(ComponentAuthorizable.class);
+        when(processor.getAuthorizable()).thenReturn(processorAuthorizable);
+        when(groupAuthorizable.getEncapsulatedProcessors()).thenReturn(Set.of(processor));
+        assertThrows(AccessDeniedException.class, () -> authorizeEndDrain.authorize(lookup));
     }
 
     private static ControllerServiceNode createService(final String id, final boolean active, final Authorizable authorizable, final AuthorizableLookup lookup) {

@@ -1123,7 +1123,9 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Write - /process-groups/{uuid}")
+                    @SecurityRequirement(name = "Write - /process-groups/{uuid} - For this and all encapsulated components"),
+                    @SecurityRequirement(name = "Write - /controller-services/{uuid} - For all encapsulated Controller Services"),
+                    @SecurityRequirement(name = "Read - /controller-services/{uuid} - For all referenced Controller Services")
             }
     )
     public Response removeProcessGroupDrainRequest(
@@ -1142,10 +1144,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         return withWriteLock(
                 serviceFacade,
                 requestProcessGroupEntity,
-                lookup -> {
-                    final Authorizable processGroup = lookup.getProcessGroup(processGroupId).getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                },
+                lookup -> authorizeProcessGroup(lookup.getProcessGroup(processGroupId), authorizer, lookup, RequestAction.WRITE, true, true, true, false, false),
                 null,
                 processGroupEntity -> {
                     final ProcessGroupDrainRequestEntity entity = new ProcessGroupDrainRequestEntity();
