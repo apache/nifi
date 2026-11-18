@@ -275,7 +275,7 @@ public class AttributesToCSV extends AbstractProcessor {
 
         //escape attribute values
         int index = 0;
-        final int atrListSize = atrList.values().size() - 1;
+        final int atrListSize = atrList.size() - 1;
         final StringBuilder sbValues = new StringBuilder();
         for (final Map.Entry<String, String> attr : atrList.entrySet()) {
             sbValues.append(StringEscapeUtils.escapeCsv(attr.getValue()));

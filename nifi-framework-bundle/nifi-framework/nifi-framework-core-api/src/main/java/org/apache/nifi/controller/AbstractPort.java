@@ -238,9 +238,7 @@ public abstract class AbstractPort implements Port {
 
             // don't add the connection twice. This may occur if we have a self-loop because we will be told
             // to add the connection once because we are the source and again because we are the destination.
-            if (!outgoingConnections.contains(connection)) {
-                outgoingConnections.add(connection);
-            }
+            outgoingConnections.add(connection);
         } finally {
             writeLock.unlock();
         }

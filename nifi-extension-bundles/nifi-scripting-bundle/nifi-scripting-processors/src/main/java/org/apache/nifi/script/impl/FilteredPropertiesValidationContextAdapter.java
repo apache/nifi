@@ -63,7 +63,7 @@ public class FilteredPropertiesValidationContextAdapter extends ValidationContex
 
     @Override
     public PropertyValue getProperty(PropertyDescriptor descriptor) {
-        if (properties.keySet().contains(descriptor)) {
+        if (properties.containsKey(descriptor)) {
             return super.getProperty(descriptor);
         }
         return null;

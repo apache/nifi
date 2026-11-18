@@ -53,7 +53,7 @@ public class CronSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
     @Override
     public void doSchedule(final ReportingTaskNode taskNode, final LifecycleState scheduleState) {
         final Map<Integer, ScheduledFuture<?>> componentFuturesMap = scheduledFutures.computeIfAbsent(taskNode, k -> new HashMap<>());
-        if (!componentFuturesMap.values().isEmpty()) {
+        if (!componentFuturesMap.isEmpty()) {
             throw new IllegalStateException("Cannot schedule " + taskNode.getReportingTask().getIdentifier() + " because it is already scheduled to run");
         }
 
@@ -99,7 +99,7 @@ public class CronSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
     @Override
     public synchronized void doSchedule(final Connectable connectable, final LifecycleState scheduleState) {
         final Map<Integer, ScheduledFuture<?>> componentFuturesMap = scheduledFutures.computeIfAbsent(connectable, k -> new HashMap<>());
-        if (!componentFuturesMap.values().isEmpty()) {
+        if (!componentFuturesMap.isEmpty()) {
             throw new IllegalStateException("Cannot schedule " + connectable + " because it is already scheduled to run");
         }
 
