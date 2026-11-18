@@ -52,6 +52,8 @@ import java.util.stream.Collectors;
 
 public class StandardPythonBridge implements PythonBridge {
     private static final Logger logger = LoggerFactory.getLogger(StandardPythonBridge.class);
+    private static final String EXISTING_PROCESS_MSG = "Using existing process {} to create Processor of type {} because configuration indicates that no more than {} processes "
+            + "should be created for any Processor Type. This may result in slower performance for Processors of this type";
 
     private volatile boolean running = false;
 
@@ -298,9 +300,7 @@ public class StandardPythonBridge implements PythonBridge {
             }
         } else {
             final PythonProcess pythonProcess = processesForType.get(processIndex);
-            logger.warn("Using existing process {} to create Processor of type {} because configuration indicates that no more than {} processes " +
-                "should be created for any Processor Type. This may result in slower performance for Processors of this type",
-                pythonProcess, extensionId.type(), processConfig.getMaxPythonProcessesPerType());
+            logger.warn(EXISTING_PROCESS_MSG, pythonProcess, extensionId.type(), processConfig.getMaxPythonProcessesPerType());
 
             return pythonProcess;
         }

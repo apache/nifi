@@ -66,6 +66,10 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .build();
 
+    static final String COULD_NOT_RESOLVE_IP_MSG = "Could not resolve the IP for value '{}', contained within the attribute " +
+            "'" + IP_ADDRESS_ATTRIBUTE.getDisplayName() + "' in FlowFile '{}'. This is usually caused by issue resolving the appropriate DNS record or " +
+            "providing the processor with an invalid IP address ";
+
     private static final Pattern LOG_LEVEL_PATTERN = Pattern.compile("^(?:INFO|DEBUG|WARN|ERROR)$");
     private static final Validator LOG_LEVEL_VALIDATOR = (subject, input, context) -> {
         final boolean matches = LOG_LEVEL_PATTERN.matcher(input).matches();

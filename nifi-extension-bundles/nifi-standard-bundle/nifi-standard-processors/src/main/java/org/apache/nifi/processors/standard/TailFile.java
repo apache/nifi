@@ -301,6 +301,9 @@ public class TailFile extends AbstractProcessor {
         REL_SUCCESS
     );
 
+    private static final String ROLLED_OVER_DO_NOTHING_MSG = "Rolled over file {} (size={}, lastModified={}) was modified {} millis ago, "
+            + "which isn't long enough to consume file fully without taking line endings into account. Will do nothing for now.";
+
     private volatile Map<String, TailFileObject> states = new HashMap<>();
     private final AtomicLong lastLookup = new AtomicLong(0L);
     private final AtomicBoolean isMultiChanging = new AtomicBoolean(false);
@@ -1344,8 +1347,7 @@ public class TailFile extends AbstractProcessor {
                 // consume the rest of the data, including the last line, even if it doesn't have a line ending.
                 final long millisSinceModified = getCurrentTimeMs() - newestFile.lastModified();
                 if (millisSinceModified < postRolloverTailMillis) {
-                    getLogger().debug("Rolled over file {} (size={}, lastModified={}) was modified {} millis ago, which isn't long enough to consume file fully without taking line endings into " +
-                        "account. Will do nothing for now.", newestFile, newestFile.length(), newestFile.lastModified(), millisSinceModified);
+                    getLogger().debug(ROLLED_OVER_DO_NOTHING_MSG, newestFile, newestFile.length(), newestFile.lastModified(), millisSinceModified);
                     return true;
                 }
 
