@@ -107,9 +107,9 @@ class StopBootstrapCommand implements BootstrapCommand {
     private void destroyForcibly(final ProcessHandle applicationProcessHandle) {
         final boolean destroyForciblyRequested = applicationProcessHandle.destroyForcibly();
         if (destroyForciblyRequested) {
-            logger.warn("Application Process [{}] force termination failed", applicationProcessHandle.pid());
-        } else {
             onDestroyForciblyCompleted(applicationProcessHandle);
+        } else {
+            logger.warn("Application Process [{}] force termination failed", applicationProcessHandle.pid());
         }
     }
 
