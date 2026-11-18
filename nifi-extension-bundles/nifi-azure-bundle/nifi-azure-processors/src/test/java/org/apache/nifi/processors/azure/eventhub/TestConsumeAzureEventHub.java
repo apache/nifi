@@ -21,6 +21,7 @@ import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventProcessorClient;
 import com.azure.messaging.eventhubs.models.Checkpoint;
 import com.azure.messaging.eventhubs.models.EventBatchContext;
+import com.azure.messaging.eventhubs.models.LastEnqueuedEventProperties;
 import com.azure.messaging.eventhubs.models.PartitionContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
@@ -68,6 +69,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Proxy;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -104,8 +107,25 @@ public class TestConsumeAzureEventHub {
     private static final String SECOND_CONTENT = "CONTENT-2";
     private static final String THIRD_CONTENT = "CONTENT-3";
     private static final String FOURTH_CONTENT = "CONTENT-4";
+    private static final String PROPERTY_ATTRIBUTE_NAME_FORMAT = "eventhub.property.%s";
     private static final String APPLICATION_PROPERTY = "application";
-    private static final String APPLICATION_ATTRIBUTE_NAME = String.format("eventhub.property.%s", APPLICATION_PROPERTY);
+    private static final String APPLICATION_ATTRIBUTE_NAME = String.format(PROPERTY_ATTRIBUTE_NAME_FORMAT, APPLICATION_PROPERTY);
+    private static final String FAILED_EVENT_PROPERTY = "failed";
+    private static final String FAILED_EVENT_ATTRIBUTE_NAME = String.format(PROPERTY_ATTRIBUTE_NAME_FORMAT, FAILED_EVENT_PROPERTY);
+    private static final String ENQUEUED_TIMESTAMP_ATTRIBUTE = "eventhub.enqueued.timestamp";
+    private static final String OFFSET_ATTRIBUTE = "eventhub.offset";
+    private static final String SEQUENCE_ATTRIBUTE = "eventhub.sequence";
+    private static final String END_ENQUEUED_TIMESTAMP_ATTRIBUTE = "eventhub.event.end.enqueued.timestamp";
+    private static final String END_OFFSET_ATTRIBUTE = "eventhub.event.end.offset";
+    private static final String END_SEQUENCE_ATTRIBUTE = "eventhub.event.end.sequence";
+    private static final long FIRST_SEQUENCE_NUMBER = 1;
+    private static final long OFFSET_INCREMENT = 256;
+    private static final Instant ENQUEUED_TIME_BASE = Instant.parse("2026-11-18T12:00:00Z");
+    private static final long LAST_ENQUEUED_SEQUENCE_NUMBER = 128;
+    private static final String LAST_ENQUEUED_OFFSET = "32768";
+    private static final Instant LAST_ENQUEUED_TIME = Instant.parse("2026-11-18T13:00:00Z");
+    private static final LastEnqueuedEventProperties LAST_ENQUEUED_EVENT_PROPERTIES =
+            new LastEnqueuedEventProperties(LAST_ENQUEUED_SEQUENCE_NUMBER, LAST_ENQUEUED_OFFSET, LAST_ENQUEUED_TIME, LAST_ENQUEUED_TIME);
     private static final String EVENT_HUB_OAUTH_SERVICE_ID = "eventHubOauth";
     private static final String EVENT_HUB_IDENTITY_SERVICE_ID = "eventHubIdentity";
     private static final String BLOB_OAUTH_SERVICE_ID = "blobOauth";
@@ -324,14 +344,14 @@ public class TestConsumeAzureEventHub {
         testRunner.run(1, false);
         final List<EventData> events = getEvents(FIRST_CONTENT);
 
-        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
+        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, LAST_ENQUEUED_EVENT_PROPERTIES);
         processor.eventBatchProcessor.accept(eventBatchContext);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
         final MockFlowFile flowFile = flowFiles.getFirst();
         flowFile.assertContentEquals(FIRST_CONTENT);
-        assertEventHubAttributesFound(flowFile);
+        assertEventHubAttributesFound(flowFile, events.getFirst());
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
@@ -346,15 +366,17 @@ public class TestConsumeAzureEventHub {
         testRunner.run(1, false);
         final List<EventData> events = getEvents(FIRST_CONTENT, SECOND_CONTENT);
 
-        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
+        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, LAST_ENQUEUED_EVENT_PROPERTIES);
         processor.eventBatchProcessor.accept(eventBatchContext);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(2, flowFiles.size());
-        final MockFlowFile msg1 = flowFiles.get(0);
+        final MockFlowFile msg1 = flowFiles.getFirst();
         msg1.assertContentEquals(FIRST_CONTENT);
+        assertEventHubAttributesFound(msg1, events.getFirst());
         final MockFlowFile msg2 = flowFiles.get(1);
         msg2.assertContentEquals(SECOND_CONTENT);
+        assertEventHubAttributesFound(msg2, events.get(1));
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(2, provenanceEvents.size());
@@ -370,14 +392,14 @@ public class TestConsumeAzureEventHub {
 
         testRunner.run(1, false);
 
-        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
+        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, LAST_ENQUEUED_EVENT_PROPERTIES);
         processor.eventBatchProcessor.accept(eventBatchContext);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
         final MockFlowFile ff1 = flowFiles.getFirst();
         ff1.assertContentEquals(FIRST_CONTENT + SECOND_CONTENT);
-        assertEventHubAttributesFound(ff1);
+        assertEventHubAttributesFound(ff1, events.getLast());
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
@@ -396,20 +418,20 @@ public class TestConsumeAzureEventHub {
 
         testRunner.run(1, false);
 
-        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
+        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, LAST_ENQUEUED_EVENT_PROPERTIES);
         processor.eventBatchProcessor.accept(eventBatchContext);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
         final MockFlowFile ff1 = flowFiles.getFirst();
         ff1.assertContentEquals(FIRST_CONTENT + SECOND_CONTENT + FOURTH_CONTENT);
-        assertEventHubAttributesFound(ff1);
+        assertEventHubAttributesFound(ff1, events.getLast());
 
         final List<MockFlowFile> failedFFs = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
         assertEquals(1, failedFFs.size());
         final MockFlowFile failed1 = failedFFs.getFirst();
         failed1.assertContentEquals(THIRD_CONTENT);
-        assertEventHubAttributesFound(failed1);
+        assertEventHubAttributesFound(failed1, events.get(2));
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(2, provenanceEvents.size());
@@ -433,7 +455,7 @@ public class TestConsumeAzureEventHub {
 
         testRunner.run(1, false);
 
-        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
+        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, LAST_ENQUEUED_EVENT_PROPERTIES);
         processor.eventBatchProcessor.accept(eventBatchContext);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
@@ -443,7 +465,7 @@ public class TestConsumeAzureEventHub {
         assertEquals(1, failedFFs.size());
         final MockFlowFile failed1 = failedFFs.getFirst();
         failed1.assertContentEquals(FIRST_CONTENT);
-        assertEventHubAttributesFound(failed1);
+        assertEventHubAttributesFound(failed1, events.getFirst());
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
@@ -463,20 +485,20 @@ public class TestConsumeAzureEventHub {
 
         testRunner.run(1, false);
 
-        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
+        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, LAST_ENQUEUED_EVENT_PROPERTIES);
         processor.eventBatchProcessor.accept(eventBatchContext);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
         final MockFlowFile ff1 = flowFiles.getFirst();
         ff1.assertContentEquals(FIRST_CONTENT + THIRD_CONTENT + FOURTH_CONTENT);
-        assertEventHubAttributesFound(ff1);
+        assertEventHubAttributesFound(ff1, events.getLast());
 
         final List<MockFlowFile> failedFFs = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
         assertEquals(1, failedFFs.size());
         final MockFlowFile failed1 = failedFFs.getFirst();
         failed1.assertContentEquals(SECOND_CONTENT);
-        assertEventHubAttributesFound(failed1);
+        assertEventHubAttributesFound(failed1, events.get(1));
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(2, provenanceEvents.size());
@@ -488,6 +510,36 @@ public class TestConsumeAzureEventHub {
         final ProvenanceEventRecord provenanceEvent2 = provenanceEvents.get(1);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
         assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent2.getTransitUri());
+    }
+
+    @Test
+    public void testReceiveRecordWriterFailureLastEvent() throws Exception {
+        setProperties();
+
+        final List<EventData> events = getEvents(FIRST_CONTENT, SECOND_CONTENT);
+        final EventData failedEvent = events.getLast();
+        failedEvent.getProperties().put(FAILED_EVENT_PROPERTY, SECOND_CONTENT);
+        setupRecordReader(events, -1, SECOND_CONTENT);
+        setupRecordWriter(SECOND_CONTENT);
+
+        testRunner.run(1, false);
+
+        final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, LAST_ENQUEUED_EVENT_PROPERTIES);
+        processor.eventBatchProcessor.accept(eventBatchContext);
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+        final MockFlowFile flowFile = flowFiles.getFirst();
+        flowFile.assertContentEquals(FIRST_CONTENT);
+        assertEventHubAttributesFound(flowFile, events.getFirst());
+        flowFile.assertAttributeNotExists(FAILED_EVENT_ATTRIBUTE_NAME);
+
+        final List<MockFlowFile> failedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
+        assertEquals(1, failedFlowFiles.size());
+        final MockFlowFile failedFlowFile = failedFlowFiles.getFirst();
+        failedFlowFile.assertContentEquals(SECOND_CONTENT);
+        assertEventHubAttributesFound(failedFlowFile, failedEvent);
+        failedFlowFile.assertAttributeEquals(FAILED_EVENT_ATTRIBUTE_NAME, SECOND_CONTENT);
     }
 
     @Test
@@ -664,20 +716,29 @@ public class TestConsumeAzureEventHub {
         }
     }
 
-    private void assertEventHubAttributesFound(final MockFlowFile flowFile) {
+    private void assertEventHubAttributesFound(final MockFlowFile flowFile, final EventData endEvent) {
         flowFile.assertAttributeEquals("eventhub.name", EVENT_HUB_NAME);
         flowFile.assertAttributeEquals("eventhub.partition", PARTITION_ID);
         flowFile.assertAttributeEquals(APPLICATION_ATTRIBUTE_NAME, MockConsumeAzureEventHub.class.getSimpleName());
+
+        flowFile.assertAttributeEquals(ENQUEUED_TIMESTAMP_ATTRIBUTE, LAST_ENQUEUED_TIME.toString());
+        flowFile.assertAttributeEquals(OFFSET_ATTRIBUTE, LAST_ENQUEUED_OFFSET);
+        flowFile.assertAttributeEquals(SEQUENCE_ATTRIBUTE, Long.toString(LAST_ENQUEUED_SEQUENCE_NUMBER));
+
+        flowFile.assertAttributeEquals(END_ENQUEUED_TIMESTAMP_ATTRIBUTE, endEvent.getEnqueuedTime().toString());
+        flowFile.assertAttributeEquals(END_OFFSET_ATTRIBUTE, endEvent.getOffsetString());
+        flowFile.assertAttributeEquals(END_SEQUENCE_ATTRIBUTE, endEvent.getSequenceNumber().toString());
     }
 
     private List<EventData> getEvents(final String... contents) {
-        return Arrays.stream(contents)
-                .map(content -> {
-                    final EventData eventData = new EventData(content);
-                    eventData.getProperties().put(APPLICATION_PROPERTY, MockConsumeAzureEventHub.class.getSimpleName());
-                    return eventData;
-                })
-                .collect(Collectors.toList());
+        final List<EventData> events = new ArrayList<>();
+        for (int i = 0; i < contents.length; i++) {
+            final EventData eventData = new MockEventData(contents[i], FIRST_SEQUENCE_NUMBER + i);
+            eventData.getProperties().put(APPLICATION_PROPERTY, MockConsumeAzureEventHub.class.getSimpleName());
+            events.add(eventData);
+        }
+
+        return events;
     }
 
     private void configureProxyControllerService() throws InitializationException {
@@ -729,6 +790,30 @@ public class TestConsumeAzureEventHub {
         @Override
         protected String getTransitUri(final PartitionContext partitionContext) {
             return EXPECTED_TRANSIT_URI;
+        }
+    }
+
+    private static class MockEventData extends EventData {
+        private final long sequenceNumber;
+
+        private MockEventData(final String content, final long sequenceNumber) {
+            super(content);
+            this.sequenceNumber = sequenceNumber;
+        }
+
+        @Override
+        public Long getSequenceNumber() {
+            return sequenceNumber;
+        }
+
+        @Override
+        public String getOffsetString() {
+            return Long.toString(sequenceNumber * OFFSET_INCREMENT);
+        }
+
+        @Override
+        public Instant getEnqueuedTime() {
+            return ENQUEUED_TIME_BASE.plusSeconds(sequenceNumber);
         }
     }
 
