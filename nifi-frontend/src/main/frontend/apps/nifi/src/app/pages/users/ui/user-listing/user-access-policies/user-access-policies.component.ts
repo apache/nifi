@@ -133,6 +133,9 @@ export class UserAccessPolicies extends CloseOnEscapeDialog {
         if (resource === '/provenance-data/connectors') {
             return 'Global policy to view provenance for connectors';
         }
+        if (resource.startsWith('/restricted-components')) {
+            return 'Legacy restricted components policy';
+        }
         return null;
     }
 

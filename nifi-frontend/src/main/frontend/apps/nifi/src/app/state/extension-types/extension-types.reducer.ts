@@ -43,23 +43,18 @@ export const initialExtensionsTypesState: ExtensionTypesState = {
 
 export const extensionTypesReducer = createReducer(
     initialExtensionsTypesState,
-    on(
-        loadExtensionTypesForCanvas,
-        loadExtensionTypesForSettings,
-        loadExtensionTypesForDocumentation,
-        (state) => ({
-            ...state,
-            processorTypes: [],
-            controllerServiceTypes: [],
-            prioritizerTypes: [],
-            reportingTaskTypes: [],
-            registryClientTypes: [],
-            parameterProviderTypes: [],
-            flowAnalysisRuleTypes: [],
-            connectorTypes: [],
-            status: 'loading' as const
-        })
-    ),
+    on(loadExtensionTypesForCanvas, loadExtensionTypesForSettings, loadExtensionTypesForDocumentation, (state) => ({
+        ...state,
+        processorTypes: [],
+        controllerServiceTypes: [],
+        prioritizerTypes: [],
+        reportingTaskTypes: [],
+        registryClientTypes: [],
+        parameterProviderTypes: [],
+        flowAnalysisRuleTypes: [],
+        connectorTypes: [],
+        status: 'loading' as const
+    })),
     on(loadExtensionTypesForCanvasSuccess, (state, { response }) => ({
         ...state,
         processorTypes: response.processorTypes,
