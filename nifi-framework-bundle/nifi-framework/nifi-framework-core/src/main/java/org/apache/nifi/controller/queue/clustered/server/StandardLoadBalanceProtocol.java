@@ -91,7 +91,8 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
     private static final int SOCKET_CLOSED = -1;
     private static final int NO_DATA_AVAILABLE = 0;
-
+    private static final String DROPPED_MSG = "Updated Provenance Repository to note that {} FlowFiles were dropped from the system because the data received "
+            + "from the other node could not be transferred to the FlowFile Queue";
     private final FlowFileRepository flowFileRepository;
     private final ContentRepository contentRepository;
     private final ProvenanceRepository provenanceRepository;
@@ -382,8 +383,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             events.add(provenanceEvent);
         }
 
-        logger.debug("Updated Provenance Repository to note that {} FlowFiles were dropped from the system because the data received from the other node could not be transferred to the FlowFile " +
-            "Queue", events.size());
+        logger.debug(DROPPED_MSG, events.size());
         provenanceRepository.registerEvents(events);
     }
 

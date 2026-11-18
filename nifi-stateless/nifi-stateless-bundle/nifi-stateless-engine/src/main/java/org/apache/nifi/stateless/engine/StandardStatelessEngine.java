@@ -103,6 +103,9 @@ import static java.util.Objects.requireNonNull;
 public class StandardStatelessEngine implements StatelessEngine {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessEngine.class);
     private static final int CONCURRENT_EXTENSION_DOWNLOADS = 8;
+    private static final String PARAMETER_NAME_NOT_FOUND_MSG = "Configuration contains a Parameter with name <{}> for Parameter Context <{}> "
+            + "but the Parameter Context does not have a Parameter with that name. This Parameter will be ignored.";
+
     public static final Duration DEFAULT_STATUS_TASK_PERIOD = Duration.of(1, ChronoUnit.MINUTES);
     private final EnvironmentVariables environmentSystemRegistry = EnvironmentVariables.ENVIRONMENT_VARIABLES;
 
@@ -577,8 +580,7 @@ public class StandardStatelessEngine implements StatelessEngine {
 
                 final Optional<Parameter> optionalParameter = existingContext.getParameter(parameterName);
                 if (!optionalParameter.isPresent()) {
-                    logger.warn("Configuration contains a Parameter with name <{}> for Parameter Context <{}> but the Parameter Context does not have a Parameter with that name. This Parameter will" +
-                        " be ignored.", parameterName, contextName);
+                    logger.warn(PARAMETER_NAME_NOT_FOUND_MSG, parameterName, contextName);
                     continue;
                 }
 
