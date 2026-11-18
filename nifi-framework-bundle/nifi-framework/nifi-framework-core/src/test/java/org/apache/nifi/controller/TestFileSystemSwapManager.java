@@ -108,6 +108,24 @@ public class TestFileSystemSwapManager {
     }
 
     @Test
+    public void testRecoverSwapLocationsInOrderWritten() throws IOException {
+        final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
+        when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
+        final FlowFileRepository flowFileRepo = mock(FlowFileRepository.class);
+        when(flowFileRepo.isValidSwapLocationSuffix(anyString())).thenReturn(true);
+        final FileSystemSwapManager swapManager = createSwapManager(flowFileRepo);
+
+        // Writing many small swap files in a row results in several swap files being written within the same millisecond
+        final List<String> swapLocations = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            swapLocations.add(swapManager.swapOut(List.of(new MockFlowFileRecord(i)), flowFileQueue, "partition-1"));
+        }
+
+        final FileSystemSwapManager restartedSwapManager = createSwapManager(flowFileRepo);
+        assertEquals(swapLocations, restartedSwapManager.recoverSwapLocations(flowFileQueue, "partition-1"));
+    }
+
+    @Test
     public void testSwapFileUnknownToRepoNotSwappedIn() throws IOException {
         final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
         when(flowFileQueue.getIdentifier()).thenReturn("");

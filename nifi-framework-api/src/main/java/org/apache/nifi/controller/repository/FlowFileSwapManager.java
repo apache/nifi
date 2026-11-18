@@ -53,6 +53,23 @@ public interface FlowFileSwapManager {
     String swapOut(List<FlowFileRecord> flowFiles, FlowFileQueue flowFileQueue, final String partitionName) throws IOException;
 
     /**
+     * Swaps out the given FlowFiles to a new swap file that takes the place of an existing swap file, such as when some FlowFiles are removed
+     * from the existing swap file. When swap files are recovered, the new swap file is placed where the existing swap file would have been placed,
+     * rather than after all other swap files. The existing swap file is neither modified nor deleted.
+     *
+     * @param flowFiles the FlowFiles to swap out to external storage
+     * @param flowFileQueue the queue that the FlowFiles belong to
+     * @param partitionName the name of the partition within the queue, or <code>null</code> if the queue is not partitioned
+     * @param replacedSwapLocation the location of the existing swap file whose place the new swap file takes
+     * @return the location of the externally stored swap file
+     *
+     * @throws IOException if unable to swap the FlowFiles out
+     */
+    default String swapOut(final List<FlowFileRecord> flowFiles, final FlowFileQueue flowFileQueue, final String partitionName, final String replacedSwapLocation) throws IOException {
+        return swapOut(flowFiles, flowFileQueue, partitionName);
+    }
+
+    /**
      * Recovers the FlowFiles from the swap file that lives at the given location. This action
      * provides a view of the FlowFiles but does not actively swap them in, meaning that the swap file
      * at the given location remains in that location and the FlowFile Repository is not updated.
