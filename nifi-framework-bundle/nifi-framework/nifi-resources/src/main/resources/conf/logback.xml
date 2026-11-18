@@ -123,6 +123,8 @@
     </appender>
 
     <appender name="DEDICATED_LOGGING" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <!-- Denies events without a Log File Suffix before they reach the discriminator -->
+        <filter class="org.apache.nifi.logging.LogFileSuffixFilter"/>
         <discriminator class="org.apache.nifi.logging.NifiDiscriminator"/>
         <sift>
             <appender name="APP-${logFileSuffix}_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
