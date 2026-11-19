@@ -122,12 +122,54 @@ import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointSto
         "Cluster state is used to store partition ownership and checkpoint information when component state is configured as the checkpointing strategy.")
 @TriggerSerially
 @WritesAttributes({
-        @WritesAttribute(attribute = "eventhub.enqueued.timestamp", description = "The time (in milliseconds since epoch, UTC) at which the message was enqueued in the event hub"),
-        @WritesAttribute(attribute = "eventhub.offset", description = "The offset into the partition at which the message was stored"),
-        @WritesAttribute(attribute = "eventhub.sequence", description = "The sequence number associated with the message"),
-        @WritesAttribute(attribute = "eventhub.name", description = "The name of the event hub from which the message was pulled"),
-        @WritesAttribute(attribute = "eventhub.partition", description = "The name of the partition from which the message was pulled"),
-        @WritesAttribute(attribute = "eventhub.property.*", description = "The application properties of this message. IE: 'application' would be 'eventhub.property.application'")
+        @WritesAttribute(
+                attribute = "eventhub.enqueued.timestamp",
+                description = "ISO-8601 Instant string of the Enqueued Timestamp for the last event in the partition when the events were received"
+        ),
+        @WritesAttribute(
+                attribute = "eventhub.offset",
+                description = "Offset of the last event in the partition when the events were received"
+        ),
+        @WritesAttribute(
+                attribute = "eventhub.sequence",
+                description = "Sequence Number of the last event in the partition when the events were received"
+        ),
+        @WritesAttribute(
+                attribute = "eventhub.event.start.enqueued.timestamp",
+                description = "ISO-8601 Instant string of the Enqueued Timestamp for the first event included in the FlowFile"
+        ),
+        @WritesAttribute(
+                attribute = "eventhub.event.start.offset",
+                description = "Offset of the first event included in the FlowFile"
+        ),
+        @WritesAttribute(
+                attribute = "eventhub.event.start.sequence",
+                description = "Sequence Number of the first event included in the FlowFile"
+        ),
+        @WritesAttribute(
+                attribute = "eventhub.event.end.enqueued.timestamp",
+                description = "ISO-8601 Instant string of the Enqueued Timestamp for the last event included in the FlowFile"
+        ),
+        @WritesAttribute(
+                attribute = "eventhub.event.end.offset",
+                description = "Offset of the last event included in the FlowFile"
+        ),
+        @WritesAttribute(
+                attribute = "eventhub.event.end.sequence",
+                description = "Sequence Number of the last event included in the FlowFile"
+        ),
+        @WritesAttribute(
+                attribute = "eventhub.name",
+                description = "Name of the Event Hub from which the message was received"
+        ),
+        @WritesAttribute(
+                attribute = "eventhub.partition",
+                description = "Partition Identifier of the Event Hub from which the message was received"
+        ),
+        @WritesAttribute(
+                attribute = "eventhub.property.*",
+                description = "Application property on the Event received"
+        )
 })
 public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implements AzureEventHubComponent {
 
@@ -757,7 +799,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     private void putEventHubAttributes(
             final Map<String, String> attributes,
             final PartitionContext partitionContext,
-            final EventData eventData,
+            final EventData firstEventData,
+            final EventData lastEventData,
             final LastEnqueuedEventProperties lastEnqueuedEventProperties
     ) {
         if (lastEnqueuedEventProperties != null) {
@@ -766,7 +809,15 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             attributes.put("eventhub.sequence", String.valueOf(lastEnqueuedEventProperties.getSequenceNumber()));
         }
 
-        final Map<String, String> applicationProperties = AzureEventHubUtils.getApplicationProperties(eventData.getProperties());
+        attributes.put("eventhub.event.start.enqueued.timestamp", String.valueOf(firstEventData.getEnqueuedTime()));
+        attributes.put("eventhub.event.start.offset", firstEventData.getOffsetString());
+        attributes.put("eventhub.event.start.sequence", String.valueOf(firstEventData.getSequenceNumber()));
+
+        attributes.put("eventhub.event.end.enqueued.timestamp", String.valueOf(lastEventData.getEnqueuedTime()));
+        attributes.put("eventhub.event.end.offset", lastEventData.getOffsetString());
+        attributes.put("eventhub.event.end.sequence", String.valueOf(lastEventData.getSequenceNumber()));
+
+        final Map<String, String> applicationProperties = AzureEventHubUtils.getApplicationProperties(lastEventData.getProperties());
         attributes.putAll(applicationProperties);
 
         attributes.put("eventhub.name", partitionContext.getEventHubName());
@@ -782,7 +833,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         final List<EventData> events = eventBatchContext.getEvents();
         events.forEach(eventData -> {
             final Map<String, String> attributes = new HashMap<>();
-            putEventHubAttributes(attributes, partitionContext, eventData, eventBatchContext.getLastEnqueuedEventProperties());
+            putEventHubAttributes(attributes, partitionContext, eventData, eventData, eventBatchContext.getLastEnqueuedEventProperties());
 
             FlowFile flowFile = session.create();
             flowFile = session.putAllAttributes(flowFile, attributes);
@@ -815,6 +866,13 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         final LastEnqueuedEventProperties lastEnqueuedEventProperties = eventBatchContext.getLastEnqueuedEventProperties();
         final List<EventData> events = eventBatchContext.getEvents();
 
+        final EventData firstEventData;
+        if (events.isEmpty()) {
+            firstEventData = null;
+        } else {
+            firstEventData = events.getFirst();
+        }
+
         try (final OutputStream out = session.write(flowFile)) {
             for (final EventData eventData : events) {
                 final byte[] eventDataBytes = eventData.getBody();
@@ -843,14 +901,15 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                     logger.error("Failed to parse message from Azure Event Hub using configured Record Reader and Writer", e);
                     FlowFile failed = session.create();
                     session.write(failed, o -> o.write(eventData.getBody()));
-                    putEventHubAttributes(attributes, partitionContext, eventData, lastEnqueuedEventProperties);
-                    failed = session.putAllAttributes(failed, attributes);
+                    final Map<String, String> failureAttributes = new HashMap<>();
+                    putEventHubAttributes(failureAttributes, partitionContext, firstEventData, eventData, lastEnqueuedEventProperties);
+                    failed = session.putAllAttributes(failed, failureAttributes);
                     transferTo(REL_PARSE_FAILURE, session, stopWatch, partitionContext, failed);
                 }
             }
 
             if (lastEventData != null) {
-                putEventHubAttributes(attributes, partitionContext, lastEventData, lastEnqueuedEventProperties);
+                putEventHubAttributes(attributes, partitionContext, firstEventData, lastEventData, lastEnqueuedEventProperties);
 
                 attributes.put("record.count", String.valueOf(recordCount));
                 if (writer != null) {
