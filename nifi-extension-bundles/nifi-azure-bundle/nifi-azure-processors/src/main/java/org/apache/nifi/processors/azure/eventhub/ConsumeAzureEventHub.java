@@ -94,7 +94,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -136,16 +135,28 @@ import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointSto
                 description = "Sequence Number of the last event in the partition when the events were received"
         ),
         @WritesAttribute(
+                attribute = "eventhub.event.start.enqueued.timestamp",
+                description = "ISO-8601 Instant string of the Enqueued Timestamp for the first event included in the FlowFile"
+        ),
+        @WritesAttribute(
+                attribute = "eventhub.event.start.offset",
+                description = "Offset of the first event included in the FlowFile"
+        ),
+        @WritesAttribute(
+                attribute = "eventhub.event.start.sequence",
+                description = "Sequence Number of the first event included in the FlowFile"
+        ),
+        @WritesAttribute(
                 attribute = "eventhub.event.end.enqueued.timestamp",
-                description = "ISO-8601 Instant string of the Enqueued Timestamp for the last event received"
+                description = "ISO-8601 Instant string of the Enqueued Timestamp for the last event included in the FlowFile"
         ),
         @WritesAttribute(
                 attribute = "eventhub.event.end.offset",
-                description = "Offset of the last event received"
+                description = "Offset of the last event included in the FlowFile"
         ),
         @WritesAttribute(
                 attribute = "eventhub.event.end.sequence",
-                description = "Sequence Number of the last event received"
+                description = "Sequence Number of the last event included in the FlowFile"
         ),
         @WritesAttribute(
                 attribute = "eventhub.name",
@@ -788,7 +799,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     private void putEventHubAttributes(
             final Map<String, String> attributes,
             final PartitionContext partitionContext,
-            final EventData eventData,
+            final EventData firstEventData,
+            final EventData lastEventData,
             final LastEnqueuedEventProperties lastEnqueuedEventProperties
     ) {
         if (lastEnqueuedEventProperties != null) {
@@ -797,14 +809,15 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             attributes.put("eventhub.sequence", String.valueOf(lastEnqueuedEventProperties.getSequenceNumber()));
         }
 
-        final Instant enqueuedTime = eventData.getEnqueuedTime();
-        attributes.put("eventhub.event.end.enqueued.timestamp", String.valueOf(enqueuedTime));
-        final String offset = eventData.getOffsetString();
-        attributes.put("eventhub.event.end.offset", offset);
-        final Long sequenceNumber = eventData.getSequenceNumber();
-        attributes.put("eventhub.event.end.sequence", String.valueOf(sequenceNumber));
+        attributes.put("eventhub.event.start.enqueued.timestamp", String.valueOf(firstEventData.getEnqueuedTime()));
+        attributes.put("eventhub.event.start.offset", firstEventData.getOffsetString());
+        attributes.put("eventhub.event.start.sequence", String.valueOf(firstEventData.getSequenceNumber()));
 
-        final Map<String, String> applicationProperties = AzureEventHubUtils.getApplicationProperties(eventData.getProperties());
+        attributes.put("eventhub.event.end.enqueued.timestamp", String.valueOf(lastEventData.getEnqueuedTime()));
+        attributes.put("eventhub.event.end.offset", lastEventData.getOffsetString());
+        attributes.put("eventhub.event.end.sequence", String.valueOf(lastEventData.getSequenceNumber()));
+
+        final Map<String, String> applicationProperties = AzureEventHubUtils.getApplicationProperties(lastEventData.getProperties());
         attributes.putAll(applicationProperties);
 
         attributes.put("eventhub.name", partitionContext.getEventHubName());
@@ -820,7 +833,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         final List<EventData> events = eventBatchContext.getEvents();
         events.forEach(eventData -> {
             final Map<String, String> attributes = new HashMap<>();
-            putEventHubAttributes(attributes, partitionContext, eventData, eventBatchContext.getLastEnqueuedEventProperties());
+            putEventHubAttributes(attributes, partitionContext, eventData, eventData, eventBatchContext.getLastEnqueuedEventProperties());
 
             FlowFile flowFile = session.create();
             flowFile = session.putAllAttributes(flowFile, attributes);
@@ -853,6 +866,13 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         final LastEnqueuedEventProperties lastEnqueuedEventProperties = eventBatchContext.getLastEnqueuedEventProperties();
         final List<EventData> events = eventBatchContext.getEvents();
 
+        final EventData firstEventData;
+        if (events.isEmpty()) {
+            firstEventData = null;
+        } else {
+            firstEventData = events.getFirst();
+        }
+
         try (final OutputStream out = session.write(flowFile)) {
             for (final EventData eventData : events) {
                 final byte[] eventDataBytes = eventData.getBody();
@@ -882,14 +902,14 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                     FlowFile failed = session.create();
                     session.write(failed, o -> o.write(eventData.getBody()));
                     final Map<String, String> failureAttributes = new HashMap<>();
-                    putEventHubAttributes(failureAttributes, partitionContext, eventData, lastEnqueuedEventProperties);
+                    putEventHubAttributes(failureAttributes, partitionContext, firstEventData, eventData, lastEnqueuedEventProperties);
                     failed = session.putAllAttributes(failed, failureAttributes);
                     transferTo(REL_PARSE_FAILURE, session, stopWatch, partitionContext, failed);
                 }
             }
 
             if (lastEventData != null) {
-                putEventHubAttributes(attributes, partitionContext, lastEventData, lastEnqueuedEventProperties);
+                putEventHubAttributes(attributes, partitionContext, firstEventData, lastEventData, lastEnqueuedEventProperties);
 
                 attributes.put("record.count", String.valueOf(recordCount));
                 if (writer != null) {

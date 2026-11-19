@@ -115,9 +115,14 @@ public class TestConsumeAzureEventHub {
     private static final String ENQUEUED_TIMESTAMP_ATTRIBUTE = "eventhub.enqueued.timestamp";
     private static final String OFFSET_ATTRIBUTE = "eventhub.offset";
     private static final String SEQUENCE_ATTRIBUTE = "eventhub.sequence";
+
+    private static final String START_ENQUEUED_TIMESTAMP_ATTRIBUTE = "eventhub.event.start.enqueued.timestamp";
+    private static final String START_OFFSET_ATTRIBUTE = "eventhub.event.start.offset";
+    private static final String START_SEQUENCE_ATTRIBUTE = "eventhub.event.start.sequence";
     private static final String END_ENQUEUED_TIMESTAMP_ATTRIBUTE = "eventhub.event.end.enqueued.timestamp";
     private static final String END_OFFSET_ATTRIBUTE = "eventhub.event.end.offset";
     private static final String END_SEQUENCE_ATTRIBUTE = "eventhub.event.end.sequence";
+
     private static final long FIRST_SEQUENCE_NUMBER = 1;
     private static final long OFFSET_INCREMENT = 256;
     private static final Instant ENQUEUED_TIME_BASE = Instant.parse("2026-11-18T12:00:00Z");
@@ -351,7 +356,7 @@ public class TestConsumeAzureEventHub {
         assertEquals(1, flowFiles.size());
         final MockFlowFile flowFile = flowFiles.getFirst();
         flowFile.assertContentEquals(FIRST_CONTENT);
-        assertEventHubAttributesFound(flowFile, events.getFirst());
+        assertEventHubAttributesFound(flowFile, events.getFirst(), events.getFirst());
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
@@ -373,10 +378,10 @@ public class TestConsumeAzureEventHub {
         assertEquals(2, flowFiles.size());
         final MockFlowFile msg1 = flowFiles.getFirst();
         msg1.assertContentEquals(FIRST_CONTENT);
-        assertEventHubAttributesFound(msg1, events.getFirst());
+        assertEventHubAttributesFound(msg1, events.getFirst(), events.getFirst());
         final MockFlowFile msg2 = flowFiles.get(1);
         msg2.assertContentEquals(SECOND_CONTENT);
-        assertEventHubAttributesFound(msg2, events.get(1));
+        assertEventHubAttributesFound(msg2, events.get(1), events.get(1));
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(2, provenanceEvents.size());
@@ -399,7 +404,7 @@ public class TestConsumeAzureEventHub {
         assertEquals(1, flowFiles.size());
         final MockFlowFile ff1 = flowFiles.getFirst();
         ff1.assertContentEquals(FIRST_CONTENT + SECOND_CONTENT);
-        assertEventHubAttributesFound(ff1, events.getLast());
+        assertEventHubAttributesFound(ff1, events.getFirst(), events.getLast());
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
@@ -425,13 +430,13 @@ public class TestConsumeAzureEventHub {
         assertEquals(1, flowFiles.size());
         final MockFlowFile ff1 = flowFiles.getFirst();
         ff1.assertContentEquals(FIRST_CONTENT + SECOND_CONTENT + FOURTH_CONTENT);
-        assertEventHubAttributesFound(ff1, events.getLast());
+        assertEventHubAttributesFound(ff1, events.getFirst(), events.getLast());
 
         final List<MockFlowFile> failedFFs = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
         assertEquals(1, failedFFs.size());
         final MockFlowFile failed1 = failedFFs.getFirst();
         failed1.assertContentEquals(THIRD_CONTENT);
-        assertEventHubAttributesFound(failed1, events.get(2));
+        assertEventHubAttributesFound(failed1, events.getFirst(), events.get(2));
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(2, provenanceEvents.size());
@@ -465,7 +470,7 @@ public class TestConsumeAzureEventHub {
         assertEquals(1, failedFFs.size());
         final MockFlowFile failed1 = failedFFs.getFirst();
         failed1.assertContentEquals(FIRST_CONTENT);
-        assertEventHubAttributesFound(failed1, events.getFirst());
+        assertEventHubAttributesFound(failed1, events.getFirst(), events.getFirst());
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
@@ -492,13 +497,13 @@ public class TestConsumeAzureEventHub {
         assertEquals(1, flowFiles.size());
         final MockFlowFile ff1 = flowFiles.getFirst();
         ff1.assertContentEquals(FIRST_CONTENT + THIRD_CONTENT + FOURTH_CONTENT);
-        assertEventHubAttributesFound(ff1, events.getLast());
+        assertEventHubAttributesFound(ff1, events.getFirst(), events.getLast());
 
         final List<MockFlowFile> failedFFs = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
         assertEquals(1, failedFFs.size());
         final MockFlowFile failed1 = failedFFs.getFirst();
         failed1.assertContentEquals(SECOND_CONTENT);
-        assertEventHubAttributesFound(failed1, events.get(1));
+        assertEventHubAttributesFound(failed1, events.getFirst(), events.get(1));
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(2, provenanceEvents.size());
@@ -531,14 +536,14 @@ public class TestConsumeAzureEventHub {
         assertEquals(1, flowFiles.size());
         final MockFlowFile flowFile = flowFiles.getFirst();
         flowFile.assertContentEquals(FIRST_CONTENT);
-        assertEventHubAttributesFound(flowFile, events.getFirst());
+        assertEventHubAttributesFound(flowFile, events.getFirst(), events.getFirst());
         flowFile.assertAttributeNotExists(FAILED_EVENT_ATTRIBUTE_NAME);
 
         final List<MockFlowFile> failedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
         assertEquals(1, failedFlowFiles.size());
         final MockFlowFile failedFlowFile = failedFlowFiles.getFirst();
         failedFlowFile.assertContentEquals(SECOND_CONTENT);
-        assertEventHubAttributesFound(failedFlowFile, failedEvent);
+        assertEventHubAttributesFound(failedFlowFile, events.getFirst(), failedEvent);
         failedFlowFile.assertAttributeEquals(FAILED_EVENT_ATTRIBUTE_NAME, SECOND_CONTENT);
     }
 
@@ -716,7 +721,7 @@ public class TestConsumeAzureEventHub {
         }
     }
 
-    private void assertEventHubAttributesFound(final MockFlowFile flowFile, final EventData endEvent) {
+    private void assertEventHubAttributesFound(final MockFlowFile flowFile, final EventData startEvent, final EventData endEvent) {
         flowFile.assertAttributeEquals("eventhub.name", EVENT_HUB_NAME);
         flowFile.assertAttributeEquals("eventhub.partition", PARTITION_ID);
         flowFile.assertAttributeEquals(APPLICATION_ATTRIBUTE_NAME, MockConsumeAzureEventHub.class.getSimpleName());
@@ -724,6 +729,10 @@ public class TestConsumeAzureEventHub {
         flowFile.assertAttributeEquals(ENQUEUED_TIMESTAMP_ATTRIBUTE, LAST_ENQUEUED_TIME.toString());
         flowFile.assertAttributeEquals(OFFSET_ATTRIBUTE, LAST_ENQUEUED_OFFSET);
         flowFile.assertAttributeEquals(SEQUENCE_ATTRIBUTE, Long.toString(LAST_ENQUEUED_SEQUENCE_NUMBER));
+
+        flowFile.assertAttributeEquals(START_ENQUEUED_TIMESTAMP_ATTRIBUTE, startEvent.getEnqueuedTime().toString());
+        flowFile.assertAttributeEquals(START_OFFSET_ATTRIBUTE, startEvent.getOffsetString());
+        flowFile.assertAttributeEquals(START_SEQUENCE_ATTRIBUTE, startEvent.getSequenceNumber().toString());
 
         flowFile.assertAttributeEquals(END_ENQUEUED_TIMESTAMP_ATTRIBUTE, endEvent.getEnqueuedTime().toString());
         flowFile.assertAttributeEquals(END_OFFSET_ATTRIBUTE, endEvent.getOffsetString());
