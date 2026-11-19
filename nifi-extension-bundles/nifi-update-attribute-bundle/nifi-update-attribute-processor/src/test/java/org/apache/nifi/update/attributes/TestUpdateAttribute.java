@@ -104,6 +104,19 @@ public class TestUpdateAttribute {
     }
 
     @Test
+    public void testDynamicPropertyWithSetParameter() {
+        runner.setParameterContextValue("test-param", "resolved-value");
+        runner.setProperty("param_based_attr", "#{test-param}");
+        runner.assertValid();
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).getFirst()
+                .assertAttributeEquals("param_based_attr", "resolved-value");
+    }
+
+    @Test
     public void testDynamicPropertyWithUnsetParameter() {
         runner.setProperty("attribute.with.param", "#{missing.parameter}");
         runner.assertNotValid();

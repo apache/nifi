@@ -55,7 +55,7 @@ public class MockValidationContext extends MockControllerServiceLookup implement
     }
 
     public MockValidationContext(final MockProcessContext processContext, final StateManager stateManager) {
-        this(processContext, stateManager, ParameterLookup.EMPTY);
+        this(processContext, stateManager, processContext.getParameterLookup());
     }
 
     public MockValidationContext(final MockProcessContext processContext, final StateManager stateManager, final ParameterLookup parameterLookup) {
