@@ -42,6 +42,7 @@ This documentation is for MiNiFi ${project.version}.
     + [Instance](#instance)
     + [System Diagnostics](#system-diagnostics)
     + [Example Query](#example-query)
+- [Per Process Group Logging](#per-process-group-logging)
 - [Config File](#config-file)
   * [Versioning](#versioning)
     + [Version 1 -> Version 2 Changes](#version-1-version-2-changes)
@@ -388,6 +389,59 @@ MiNiFi home: /Users/user/projects/nifi-minifi/minifi-assembly/target/minifi-0.0.
 Bootstrap Config File: /Users/user/projects/nifi-minifi/minifi-assembly/target/minifi-0.0.1-SNAPSHOT-bin/minifi-0.0.1-SNAPSHOT/conf/bootstrap.conf
 
 {"controllerServiceStatusList":null,"processorStatusList":[{"name":"Connection Diagnostics","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null},{"name":"UpdateAttribute","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null},{"name":"Processor Diagnostics","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null},{"name":"System Diagnostics","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null},{"name":"GenerateFlowFile","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null}],"connectionStatusList":null,"remoteProcessGroupStatusList":null,"instanceStatus":null,"systemDiagnosticsStatus":null,"reportingTaskStatusList":null,"errorsGeneratingReport":[]}
+```
+
+# <a id="per-process-group-logging" href="#per-process-group-logging">Per Process Group Logging</a>
+
+MiNiFi includes the `nifi-per-process-group-logging` library, which allows the log messages of the components in a Process Group to be written to a dedicated log file in addition to *minifi-app.log*. The dedicated file has its own rolling policy, so the messages of a single Process Group can be retained for a longer period without changing the retention of the main application log.
+
+This feature is disabled by default. Enabling it requires two steps:
+
+1. Set the `logFileSuffix` property of the Process Group in the flow definition. The log messages of all components in that Process Group, including nested Process Groups that do not define their own suffix, are written to *minifi-app-&lt;suffix&gt;.log*.
+2. Add a `SiftingAppender` using the `org.apache.nifi.logging.NifiDiscriminator` to *logback.xml* and reference it from the root logger. The `org.apache.nifi.logging.LogFileSuffixFilter` denies events without a Log File Suffix, so that only the log messages of Process Groups with a configured suffix are written to dedicated files.
+
+Example Process Group definition in *flow.json.raw*:
+
+```
+"processGroups": [
+  {
+    "identifier": "...",
+    "name": "Ingest",
+    "logFileSuffix": "ingest",
+    ...
+  }
+]
+```
+
+Example `logback.xml` configuration, writing to *logs/minifi-app-ingest.log* for the Process Group above:
+
+```
+<appender name="DEDICATED_LOGGING" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <!-- Denies events without a Log File Suffix before they reach the discriminator -->
+    <filter class="org.apache.nifi.logging.LogFileSuffixFilter"/>
+    <discriminator class="org.apache.nifi.logging.NifiDiscriminator"/>
+    <sift>
+        <appender name="APP-${logFileSuffix}_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${org.apache.nifi.minifi.bootstrap.config.log.dir}/${org.apache.nifi.minifi.bootstrap.config.log.app.file.name}-${logFileSuffix}.${org.apache.nifi.minifi.bootstrap.config.log.app.file.extension}</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${org.apache.nifi.minifi.bootstrap.config.log.dir}/${org.apache.nifi.minifi.bootstrap.config.log.app.file.name}-${logFileSuffix}_%d{yyyy-MM-dd_HH}.%i.${org.apache.nifi.minifi.bootstrap.config.log.app.file.extension}.gz</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>10</maxHistory>
+                <totalSizeCap>100MB</totalSizeCap>
+                <cleanHistoryOnStart>true</cleanHistoryOnStart>
+            </rollingPolicy>
+            <immediateFlush>true</immediateFlush>
+            <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+                <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
+            </encoder>
+        </appender>
+    </sift>
+</appender>
+
+<root level="INFO">
+    <appender-ref ref="APP_FILE"/>
+    <appender-ref ref="DEDICATED_LOGGING"/>
+</root>
 ```
 
 # <a id="config-file" href="#config-file">Config File</a>
