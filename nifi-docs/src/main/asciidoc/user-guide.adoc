@@ -120,13 +120,13 @@ UI may become unavailable.
 	as well as the message of the Bulletin.
 	Bulletins from all components can also be viewed and filtered in the Bulletin Board Page, available in the Global Menu.
 
-*flow.xml.gz*: Everything the DFM puts onto the NiFi User Interface canvas is written, in real time, to one file called the _flow.xml.gz_. This file is located in the `nifi/conf` directory by default.
+*flow.json.gz*: Everything the DFM puts onto the NiFi User Interface canvas is written, in real time, to one file called the _flow.json.gz_. This file is located in the `nifi/conf` directory by default.
 	Any change made on the canvas is automatically saved to this file, without the user needing to click a "Save" button.
 	In addition, NiFi automatically creates a backup copy of this file in the archive directory when it is updated.
-	You can use these archived files to rollback flow configuration. To do so, stop NiFi, replace _flow.xml.gz_ with a desired backup copy, then restart NiFi.
-	In a clustered environment, stop the entire NiFi cluster, replace the _flow.xml.gz_ of one of nodes, and restart the node. Remove _flow.xml.gz_ from other nodes.
+	You can use these archived files to rollback flow configuration. To do so, stop NiFi, replace _flow.json.gz_ with a desired backup copy, then restart NiFi.
+	In a clustered environment, stop the entire NiFi cluster, replace the _flow.json.gz_ of one of nodes, and restart the node. Remove _flow.json.gz_ from other nodes.
 	Once you confirmed the node starts up as a one-node cluster, start the other nodes. The replaced flow configuration will be synchronized across the cluster.
-	The name and location of _flow.xml.gz_, and auto archive behavior are configurable. See the <<administration-guide.adoc#core_properties,System Administrator’s Guide>> for further details.
+	The name and location of _flow.json.gz_, and auto archive behavior are configurable. See the <<administration-guide.adoc#core_properties,System Administrator’s Guide>> for further details.
 
 
 
