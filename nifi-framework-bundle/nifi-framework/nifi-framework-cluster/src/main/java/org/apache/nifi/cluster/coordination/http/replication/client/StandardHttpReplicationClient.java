@@ -262,11 +262,11 @@ public class StandardHttpReplicationClient implements HttpReplicationClient {
                 final String[] parameterNameValue = parameter.split(QUERY_NAME_VALUE_SEPARATOR);
                 if (parameterNameValue.length == 1) {
                     final String parameterName = URLDecoder.decode(parameterNameValue[0], StandardCharsets.UTF_8);
-                    httpUriBuilder.addQueryParameter(parameterName, null);
+                    httpUriBuilder.addUnencodedQueryParameter(parameterName, null);
                 } else if (parameterNameValue.length == 2) {
                     final String parameterName = URLDecoder.decode(parameterNameValue[0], StandardCharsets.UTF_8);
                     final String parameterValue = URLDecoder.decode(parameterNameValue[1], StandardCharsets.UTF_8);
-                    httpUriBuilder.addQueryParameter(parameterName, parameterValue);
+                    httpUriBuilder.addUnencodedQueryParameter(parameterName, parameterValue);
                 }
             }
         }

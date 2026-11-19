@@ -78,7 +78,7 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
         final String resolvedQuery = getResolvedQuery();
 
         try {
-            // Query excluded from java.net.URI construction to avoid encoding the percent character of encoded parameters
+            // Query excluded from java.net.URI construction to avoid quoting the percent character of resolved query parameters
             final URI uri = new URI(scheme, null, host, port, resolvedPath, null, null);
             if (resolvedQuery == null) {
                 return uri;
@@ -132,9 +132,37 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
     @Override
     public HttpUriBuilder addQueryParameter(final String name, final String value) {
         Objects.requireNonNull(name, "Parameter name required");
+        final String quotedValue = value == null ? null : getQuotedQueryComponent(value);
+        addResolvedQueryParameter(getQuotedQueryComponent(name), quotedValue);
+        return this;
+    }
+
+    @Override
+    public HttpUriBuilder addUnencodedQueryParameter(final String name, final String value) {
+        Objects.requireNonNull(name, "Parameter name required");
+        final String encodedValue = value == null ? null : getEncodedQueryComponent(value);
+        addResolvedQueryParameter(getEncodedQueryComponent(name), encodedValue);
+        return this;
+    }
+
+    private void addResolvedQueryParameter(final String name, final String value) {
         final List<String> parameters = queryParameters.computeIfAbsent(name, parameterName -> new ArrayList<>());
         parameters.add(value);
-        return this;
+    }
+
+    private String getQuotedQueryComponent(final String component) {
+        try {
+            // Quote characters not legal in a URI query, preserving reserved characters as provided
+            return new URI(null, null, null, UNKNOWN_PORT, null, component, null).getRawQuery();
+        } catch (final URISyntaxException e) {
+            throw new IllegalArgumentException("Query parameter component [%s] not valid".formatted(component), e);
+        }
+    }
+
+    private String getEncodedQueryComponent(final String component) {
+        final String formEncoded = URLEncoder.encode(component, StandardCharsets.UTF_8);
+        // Percent encoding of spaces avoids ambiguous handling of plus characters in query components
+        return formEncoded.replace(FORM_ENCODED_SPACE, PERCENT_ENCODED_SPACE);
     }
 
     private String getResolvedPath() {
@@ -177,7 +205,7 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
         while (parameters.hasNext()) {
             final Map.Entry<String, List<String>> parameter = parameters.next();
 
-            final String name = getEncodedQueryComponent(parameter.getKey());
+            final String name = parameter.getKey();
             queryBuilder.append(name);
 
             final Iterator<String> values = parameter.getValue().iterator();
@@ -185,7 +213,7 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
                 final String value = values.next();
                 if (value != null) {
                     queryBuilder.append(QUERY_PARAMETER_VALUE_SEPARATOR);
-                    queryBuilder.append(getEncodedQueryComponent(value));
+                    queryBuilder.append(value);
                 }
 
                 if (values.hasNext()) {
@@ -206,11 +234,5 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
             query = queryBuilder.toString();
         }
         return query;
-    }
-
-    private String getEncodedQueryComponent(final String component) {
-        final String formEncoded = URLEncoder.encode(component, StandardCharsets.UTF_8);
-        // Percent encoding of spaces avoids ambiguous handling of plus characters in query components
-        return formEncoded.replace(FORM_ENCODED_SPACE, PERCENT_ENCODED_SPACE);
     }
 }

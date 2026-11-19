@@ -65,6 +65,8 @@ class StandardHttpUriBuilderTest {
 
     private static final String RESERVED_PARAMETER_VALUE_ENCODED = "feature%26a%2Bb%3Dc%20d";
 
+    private static final String RESERVED_PARAMETER_VALUE_PRESERVED = "feature&a+b=c%20d";
+
     private static final String NON_ASCII_PARAMETER_VALUE = "caf\u00e9";
 
     private static final String NON_ASCII_PARAMETER_VALUE_ENCODED = "caf%C3%A9";
@@ -324,12 +326,12 @@ class StandardHttpUriBuilderTest {
     }
 
     @Test
-    void testBuildSchemeHostPathSegmentQueryParameterReservedCharactersEncoded() {
+    void testBuildSchemeHostPathSegmentUnencodedQueryParameterReservedCharactersEncoded() {
         final HttpUriBuilder builder = new StandardHttpUriBuilder()
                 .scheme(HTTP_SCHEME)
                 .host(LOCALHOST)
                 .addPathSegment(RESOURCES_PATH_SEGMENT)
-                .addQueryParameter(RESERVED_PARAMETER_NAME, RESERVED_PARAMETER_VALUE);
+                .addUnencodedQueryParameter(RESERVED_PARAMETER_NAME, RESERVED_PARAMETER_VALUE);
 
         final URI uri = builder.build();
 
@@ -338,15 +340,45 @@ class StandardHttpUriBuilderTest {
     }
 
     @Test
-    void testBuildSchemeHostPathSegmentQueryParameterNonAsciiEncoded() {
+    void testBuildSchemeHostPathSegmentUnencodedQueryParameterNonAsciiEncoded() {
         final HttpUriBuilder builder = new StandardHttpUriBuilder()
                 .scheme(HTTP_SCHEME)
                 .host(LOCALHOST)
                 .addPathSegment(RESOURCES_PATH_SEGMENT)
-                .addQueryParameter(PARAMETER_NAME, NON_ASCII_PARAMETER_VALUE);
+                .addUnencodedQueryParameter(PARAMETER_NAME, NON_ASCII_PARAMETER_VALUE);
 
         final URI uri = builder.build();
 
         assertEquals(HTTP_LOCALHOST_QUERY_NON_ASCII_URI, uri);
+    }
+
+    @Test
+    void testBuildSchemeHostPathSegmentQueryParameterReservedCharactersPreserved() {
+        final HttpUriBuilder builder = new StandardHttpUriBuilder()
+                .scheme(HTTP_SCHEME)
+                .host(LOCALHOST)
+                .addPathSegment(RESOURCES_PATH_SEGMENT)
+                .addQueryParameter(RESERVED_PARAMETER_NAME, RESERVED_PARAMETER_VALUE);
+
+        final URI uri = builder.build();
+
+        final URI expected = URI.create(String.format("%s?%s=%s", HTTP_LOCALHOST_RESOURCES_URI, RESERVED_PARAMETER_NAME, RESERVED_PARAMETER_VALUE_PRESERVED));
+        assertEquals(expected, uri);
+    }
+
+    @Test
+    void testBuildSchemeHostPathSegmentQueryParameterUnencodedQueryParameter() {
+        final HttpUriBuilder builder = new StandardHttpUriBuilder()
+                .scheme(HTTP_SCHEME)
+                .host(LOCALHOST)
+                .addPathSegment(RESOURCES_PATH_SEGMENT)
+                .addQueryParameter(SECOND_PARAMETER_NAME, SECOND_PARAMETER_VALUE)
+                .addUnencodedQueryParameter(RESERVED_PARAMETER_NAME, RESERVED_PARAMETER_VALUE);
+
+        final URI uri = builder.build();
+
+        final URI expected = URI.create(String.format("%s?%s=%s&%s=%s", HTTP_LOCALHOST_RESOURCES_URI,
+                SECOND_PARAMETER_NAME, SECOND_PARAMETER_VALUE_ENCODED, RESERVED_PARAMETER_NAME_ENCODED, RESERVED_PARAMETER_VALUE_ENCODED));
+        assertEquals(expected, uri);
     }
 }
