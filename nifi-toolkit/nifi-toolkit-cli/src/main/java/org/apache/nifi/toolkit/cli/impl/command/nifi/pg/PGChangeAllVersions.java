@@ -140,9 +140,7 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
                 changeVersionResults.put(pgDTO.getId(), new ChangeVersionResult(previousVersion, newVersion, "SUCCESS"));
             } catch (Exception e) {
                 changeVersionResults.put(pgDTO.getId(), new ChangeVersionResult(previousVersion, null, e.getMessage()));
-                if (forceOperation) {
-                    continue;
-                } else {
+                if (!forceOperation) {
                     e.printStackTrace();
                     break;
                 }

@@ -545,7 +545,6 @@ public class WriteAheadStorePartition implements EventStorePartition {
                 return fileSize;
             } else {
                 logger.warn("{} Failed to delete oldest event file {}. This file should be cleaned up manually.", this, eventFile);
-                continue;
             }
         }
 

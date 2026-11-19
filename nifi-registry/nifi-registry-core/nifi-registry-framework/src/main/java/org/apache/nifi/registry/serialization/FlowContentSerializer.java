@@ -108,7 +108,6 @@ public class FlowContentSerializer {
                 if (logger.isDebugEnabled()) {
                     logger.error("Unable to read the data model version due to: {}", e.getMessage());
                 }
-                continue;
             } finally {
                 // Reset the stream position.
                 try {

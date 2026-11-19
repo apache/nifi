@@ -98,9 +98,7 @@ public class ReplaceByPatternEvaluator extends StringEvaluator {
 
             try {
                 result.add(new PatternMapping(Pattern.compile(streamPattern), mappedTo));
-            } catch (Exception e) {
-                // ignore
-                continue;
+            } catch (Exception ignored) {
             }
         }
 
