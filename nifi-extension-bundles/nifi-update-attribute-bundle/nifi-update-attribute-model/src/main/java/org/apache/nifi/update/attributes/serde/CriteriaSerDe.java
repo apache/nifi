@@ -120,7 +120,7 @@ public class CriteriaSerDe {
     public static Criteria deserialize(final String string) {
         Criteria criteria = null;
 
-        if (string != null && !string.trim().equals("")) {
+        if (string != null && !string.isBlank()) {
             try {
                 // deserialize the binding
                 final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();

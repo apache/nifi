@@ -809,7 +809,7 @@ public class JdbcCommon {
                 case DATE:
                     java.sql.Date date;
 
-                    if (valueFormat.equals("")) {
+                    if (valueFormat.isEmpty()) {
                         if (LONG_PATTERN.matcher(parameterValue).matches()) {
                             date = new java.sql.Date(Long.parseLong(parameterValue));
                         } else {
@@ -827,7 +827,7 @@ public class JdbcCommon {
                 case TIME:
                     Time time;
 
-                    if (valueFormat.equals("")) {
+                    if (valueFormat.isEmpty()) {
                         if (LONG_PATTERN.matcher(parameterValue).matches()) {
                             time = new Time(Long.parseLong(parameterValue));
                         } else {
@@ -848,7 +848,7 @@ public class JdbcCommon {
                     Timestamp ts;
 
                     // Backwards compatibility note: Format was unsupported for a timestamp field.
-                    if (valueFormat.equals("")) {
+                    if (valueFormat.isEmpty()) {
                         long lTimestamp = 0L;
                         if (LONG_PATTERN.matcher(parameterValue).matches()) {
                             lTimestamp = Long.parseLong(parameterValue);
