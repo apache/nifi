@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.controller;
 
-import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -25,9 +24,12 @@ import org.apache.nifi.components.resource.StandardResourceContext;
 import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.search.SearchContext;
 
 import java.util.Map;
+import java.util.Optional;
 
 /**
  *
@@ -56,10 +58,10 @@ public class StandardSearchContext implements SearchContext {
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
-        final String effectiveValue = processorNode.getEffectivePropertyValues().get(property);
-        final String value = effectiveValue == null ? property.getDefaultValue() : effectiveValue;
+        final String configuredValue = processorNode.getRawPropertyValue(property);
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), property);
-        return new StandardPropertyValue(resourceContext, value, controllerServiceLookup, processorNode.getParameterLookup(), Query.prepareWithParametersPreEvaluated(value));
+        final ParameterLookup parameterLookup = new SensitivityMatchingParameterLookup(processorNode.getParameterLookup(), property.isSensitive());
+        return new StandardPropertyValue(resourceContext, configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceLookup, parameterLookup);
     }
 
     @Override
@@ -67,4 +69,32 @@ public class StandardSearchContext implements SearchContext {
         return processorNode.getRawPropertyValues();
     }
 
+    /**
+     * Resolves only Parameters whose sensitivity matches the sensitivity of the Property, consistent with Parameter resolution at runtime
+     */
+    private static class SensitivityMatchingParameterLookup implements ParameterLookup {
+        private final ParameterLookup parameterLookup;
+        private final boolean sensitive;
+
+        private SensitivityMatchingParameterLookup(final ParameterLookup parameterLookup, final boolean sensitive) {
+            this.parameterLookup = parameterLookup == null ? EMPTY : parameterLookup;
+            this.sensitive = sensitive;
+        }
+
+        @Override
+        public Optional<Parameter> getParameter(final String parameterName) {
+            return parameterLookup.getParameter(parameterName)
+                    .filter(parameter -> parameter.getDescriptor().isSensitive() == sensitive);
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return parameterLookup.isEmpty();
+        }
+
+        @Override
+        public long getVersion() {
+            return parameterLookup.getVersion();
+        }
+    }
 }

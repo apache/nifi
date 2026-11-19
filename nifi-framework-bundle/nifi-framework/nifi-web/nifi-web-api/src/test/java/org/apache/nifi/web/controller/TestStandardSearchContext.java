@@ -23,18 +23,29 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterLookup;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TestStandardSearchContext {
+
+    private static final String SCRIPTS_DIR_PARAMETER = "scripts.dir";
+
+    private static final String SECRET_PARAMETER = "secret";
+
+    private static final String SECRET_VALUE = "s3cr3t";
 
     private static final PropertyDescriptor SCRIPT_FILE = new PropertyDescriptor.Builder()
             .name("Script File")
@@ -44,27 +55,78 @@ class TestStandardSearchContext {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    private static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
+            .name("Password")
+            .required(false)
+            .sensitive(true)
+            .addValidator(Validator.VALID)
+            .build();
+
     @Mock
     private ProcessorNode processorNode;
 
     @Mock
     private ControllerServiceLookup controllerServiceLookup;
 
-    @Test
-    void getPropertyUsesEffectiveValueWithParametersResolved() {
-        when(processorNode.getEffectivePropertyValues()).thenReturn(Map.of(SCRIPT_FILE, "/opt/scripts/file.groovy"));
+    private StandardSearchContext context;
 
-        final StandardSearchContext context = new StandardSearchContext("search-me", processorNode, controllerServiceLookup);
+    @BeforeEach
+    void setContext() {
+        final Map<String, Parameter> parameters = Map.of(
+                SCRIPTS_DIR_PARAMETER, new Parameter.Builder().name(SCRIPTS_DIR_PARAMETER).value("/opt/scripts").sensitive(false).build(),
+                SECRET_PARAMETER, new Parameter.Builder().name(SECRET_PARAMETER).value(SECRET_VALUE).sensitive(true).build()
+        );
+        when(processorNode.getParameterLookup()).thenReturn(new MapParameterLookup(parameters));
+
+        context = new StandardSearchContext("search-me", processorNode, controllerServiceLookup);
+    }
+
+    @Test
+    void getPropertyEvaluatedResolvesParameter() {
+        when(processorNode.getRawPropertyValue(SCRIPT_FILE)).thenReturn("#{scripts.dir}/file.groovy");
 
         assertEquals("/opt/scripts/file.groovy", context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue());
     }
 
     @Test
-    void getPropertyKeepsUnresolvedParameterReferenceLiteral() {
-        when(processorNode.getEffectivePropertyValues()).thenReturn(Map.of(SCRIPT_FILE, "#{scripts.dir}/file.groovy"));
+    void getPropertyValueRemainsRaw() {
+        when(processorNode.getRawPropertyValue(SCRIPT_FILE)).thenReturn("#{scripts.dir}/file.groovy");
 
-        final StandardSearchContext context = new StandardSearchContext("search-me", processorNode, controllerServiceLookup);
+        assertEquals("#{scripts.dir}/file.groovy", context.getProperty(SCRIPT_FILE).getValue());
+    }
 
-        assertEquals("#{scripts.dir}/file.groovy", context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue());
+    @Test
+    void getPropertyEvaluatedExcludesSensitiveParameterForNonSensitiveProperty() {
+        when(processorNode.getRawPropertyValue(SCRIPT_FILE)).thenReturn("#{secret}");
+
+        final String evaluated = context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue();
+
+        assertFalse(evaluated != null && evaluated.contains(SECRET_VALUE));
+    }
+
+    @Test
+    void getPropertyEvaluatedExcludesNonSensitiveParameterForSensitiveProperty() {
+        when(processorNode.getRawPropertyValue(PASSWORD)).thenReturn("#{scripts.dir}");
+
+        final String evaluated = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+
+        assertFalse(evaluated != null && evaluated.contains("/opt/scripts"));
+    }
+
+    private record MapParameterLookup(Map<String, Parameter> parameters) implements ParameterLookup {
+        @Override
+        public Optional<Parameter> getParameter(final String parameterName) {
+            return Optional.ofNullable(parameters.get(parameterName));
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return parameters.isEmpty();
+        }
+
+        @Override
+        public long getVersion() {
+            return 0;
+        }
     }
 }
