@@ -297,7 +297,7 @@ to name each of the Processors that are available, but we will highlight some of
 categorizing them by their functions.
 
 === Data Transformation
-- *CompressContent*: Compress or Decompress Content
+- *ModifyCompression*: Compress or Decompress Content
 - *ConvertCharacterSet*: Convert the character set used to encode the content from one character set to another
 - *EncryptContentAge* / *EncryptContentPGP*: Encrypt or Decrypt Content
 - *ReplaceText*: Use Regular Expressions to modify textual Content

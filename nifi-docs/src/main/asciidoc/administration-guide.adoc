@@ -37,8 +37,6 @@ Apache NiFi can run on something as simple as a laptop, but it can also be clust
 ** Google Chrome:  Current & (Current - 1)
 ** Safari:  Current & (Current - 1)
 
-NOTE: Under sustained and extremely high throughput the CodeCache settings may need to be tuned to avoid sudden performance loss.  See the <<bootstrap_properties>> section for more information.
-
 == How to install and start NiFi
 
 * Linux/Unix/macOS
@@ -3211,38 +3209,6 @@ will be destroyed as well.
 	are not fully utilized, this feature can result in far faster Provenance queries. The default value for this property is blank (i.e. disabled).
 |====
 
-=== Persistent Provenance Repository Properties
-
-|====
-|*Property*|*Description*
-|`nifi.provenance.repository.directory.default`*|The location of the Provenance Repository. The default value is `./provenance_repository`. +
-+
-*NOTE*: Multiple provenance repositories can be specified by using the `nifi.provenance.repository.directory.` prefix with unique suffixes and separate paths as values. +
-+
-For example, to provide two additional locations to act as part of the provenance repository, a user could also specify additional properties with keys of: +
-+
-`nifi.provenance.repository.directory.provenance1=/repos/provenance1` +
-`nifi.provenance.repository.directory.provenance2=/repos/provenance2` +
-+
-Providing three total locations, including `nifi.provenance.repository.directory.default`.
-|`nifi.provenance.repository.max.storage.time`|The maximum amount of time to keep data provenance information. The default value is `30 days`.
-|`nifi.provenance.repository.max.storage.size`|The maximum amount of data provenance information to store at a time. The default value is `10 GB`.
-|`nifi.provenance.repository.rollover.time`|The amount of time to wait before rolling over the latest data provenance information so that it is available in the User Interface. The default value is `10 mins`.
-|`nifi.provenance.repository.rollover.size`|The amount of information to roll over at a time. The default value is `100 MB`.
-|`nifi.provenance.repository.query.threads`|The number of threads to use for Provenance Repository queries. The default value is `2`.
-|`nifi.provenance.repository.index.threads`|The number of threads to use for indexing Provenance events so that they are searchable. The default value is `2`.
-For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this is the case, a bulletin will appear, indicating that
-"The rate of the dataflow is exceeding the provenance recording rate. Slowing down flow to accommodate." If this happens, increasing the value of this property
-may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
-|`nifi.provenance.repository.compress.on.rollover`|Indicates whether to compress the provenance information when rolling it over. The default value is `true`.
-|`nifi.provenance.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
-|`nifi.provenance.repository.journal.count`|The number of journal files that should be used to serialize Provenance Event data. Increasing this value will allow more tasks to simultaneously update the repository but will result in more expensive merging of the journal files later. This value should ideally be equal to the number of threads that are expected to update the repository simultaneously, but 16 tends to work well in must environments. The default value is `16`.
-|`nifi.provenance.repository.indexed.fields`|This is a comma-separated list of the fields that should be indexed and made searchable. Fields that are not indexed will not be searchable. Valid fields are: `EventType`, `FlowFileUUID`, `Filename`, `TransitURI`, `ProcessorID`, `AlternateIdentifierURI`, `Relationship`, `Details`. The default value is: `EventType, FlowFileUUID, Filename, ProcessorID`.
-|`nifi.provenance.repository.indexed.attributes`|This is a comma-separated list of FlowFile Attributes that should be indexed and made searchable. It is blank by default. But some good examples to consider are `filename`, `uuid`, and `mime.type` as well as any custom attributes you might use which are valuable for your use case.
-|`nifi.provenance.repository.index.shard.size`|Large values for the shard size will result in more Java heap usage when searching the Provenance Repository but should provide better performance. The default value is `500 MB`.
-|`nifi.provenance.repository.max.attribute.length`|Indicates the maximum length that a FlowFile attribute can be when retrieving a Provenance Event from the repository. If the length of any attribute exceeds this value, it will be truncated when the event is retrieved. The default value is `65536`.
-|====
-
 === Volatile Provenance Repository Properties
 
 |====
@@ -4025,7 +3991,7 @@ Reconnect the disconnected nodes and re-submit the request.
 [[upgrading_nifi]]
 == Upgrading NiFi
 
-The instructions below are general steps to follow when upgrading from a 1.x.0 release to another.
+The instructions below are general steps to follow when upgrading from a 2.x release to another.
 
 Prior to upgrade you should review the link:https://cwiki.apache.org/confluence/display/NIFI/Release+Notes[Release Notes^] carefully to ensure that you understand the changes made in the new version and the impact they may have on your existing dataflows and/or environment. Additionally, check the link:https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance[Migration Guidance^] page for items that you should be aware of when moving between specific NiFi versions.
 
