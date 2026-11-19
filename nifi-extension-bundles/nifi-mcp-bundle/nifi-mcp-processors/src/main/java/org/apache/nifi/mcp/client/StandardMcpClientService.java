@@ -364,7 +364,7 @@ public class StandardMcpClientService extends AbstractControllerService
                 .jsonMapper(jsonMapper)
                 .connectTimeout(s.connectTimeout())
                 .customizeClient(b -> applySsl(b, s))
-                .httpRequestCustomizer(headers)
+                .addHttpRequestCustomizer(headers)
                 .build();
     }
 
@@ -431,13 +431,13 @@ public class StandardMcpClientService extends AbstractControllerService
     }
 
     private static String textOf(final Object content) {
-        if (content instanceof McpSchema.TextContent text) {
+        if (content instanceof final McpSchema.TextContent text) {
             return text.text();
         }
-        if (content instanceof McpSchema.EmbeddedResource embedded) {
+        if (content instanceof final McpSchema.EmbeddedResource embedded) {
             return textOf(embedded.resource());
         }
-        if (content instanceof McpSchema.TextResourceContents resource) {
+        if (content instanceof final McpSchema.TextResourceContents resource) {
             return resource.text();
         }
         return null; // images, audio, blobs: only available in the full JSON result
