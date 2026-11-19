@@ -99,7 +99,7 @@ public class C2OperationManager implements Runnable {
             try {
                 operationAck = operationHandler.handle(operation);
             } catch (Exception e) {
-                LOGGER.error("Failed to process operation " + operation, e);
+                LOGGER.error("Failed to process operation {}", operation, e);
                 continue;
             }
 

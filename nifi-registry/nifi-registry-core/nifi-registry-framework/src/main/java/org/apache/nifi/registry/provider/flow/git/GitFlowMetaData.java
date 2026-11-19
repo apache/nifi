@@ -301,7 +301,7 @@ class GitFlowMetaData {
                     logger.debug(pushResult.getMessages());
                 }
             } catch (GitAPIException e) {
-                logger.error(format("Failed to push commits to %s due to %s", remoteToPush, e), e);
+                logger.error("Failed to push commits to {}", remoteToPush, e);
             }
 
         }, 10, 10, TimeUnit.SECONDS);

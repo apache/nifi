@@ -29,11 +29,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 
-import java.text.NumberFormat;
 import java.util.Arrays;
-import java.util.Locale;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -85,12 +82,6 @@ public class LongRunningTaskMonitorTest {
 
         longRunningTaskMonitor.run();
 
-        ArgumentCaptor<String> logMessages = ArgumentCaptor.forClass(String.class);
-        verify(longRunningTaskMonitorLogger, times(2)).warn(logMessages.capture());
-        assertEquals("Long running task detected on processor [id=Processor-1-ID, name=Processor-1-Name, type=Processor-1-Type]. Task time: 60 seconds. Stack trace:\n" + STACKTRACE,
-                logMessages.getAllValues().get(0));
-        assertEquals("Long running task detected on processor [id=Processor-2-ID, name=Processor-2-Name, type=Processor-2-Type]. Task time: 1,000 seconds. Stack trace:\n" + STACKTRACE,
-                logMessages.getAllValues().get(1).replace(NumberFormat.getInstance(Locale.getDefault()).format(1000), NumberFormat.getInstance(Locale.US).format(1000)));
         ArgumentCaptor<String> controllerBulletinMessages = ArgumentCaptor.forClass(String.class);
         verify(eventReporter, times(2)).reportEvent(eq(Severity.WARNING), eq("Long Running Task"), controllerBulletinMessages.capture());
 

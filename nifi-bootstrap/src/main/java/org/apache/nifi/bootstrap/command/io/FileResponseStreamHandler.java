@@ -43,7 +43,7 @@ public class FileResponseStreamHandler implements ResponseStreamHandler {
         try (OutputStream outputStream = Files.newOutputStream(outputPath)) {
             responseStream.transferTo(outputStream);
         } catch (final IOException e) {
-            logger.warn("Write response stream failed for [%s]".formatted(outputPath), e);
+            logger.warn("Write response stream failed for {}", outputPath, e);
         }
     }
 }

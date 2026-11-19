@@ -139,8 +139,7 @@ public class DocsReader {
                     }
                 }
             } catch (final Exception e) {
-                logger.warn("Failed to read Provenance Events. The event file '"
-                    + provenanceEventFile.getAbsolutePath() + "' may be missing or corrupt.", e);
+                logger.warn("Failed to read Provenance Events. The event file '{}' may be missing or corrupt.", provenanceEventFile.getAbsolutePath(), e);
             }
         }
 
