@@ -135,7 +135,7 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
             List<WriteModel<Document>> updateModels = new ArrayList<>();
             for (Object item : updateItems) {
                 final BsonDocument updateItem = (BsonDocument) item;
-                if (updateItem.keySet().size() != 1) {
+                if (updateItem.size() != 1) {
                     getLogger().error("Invalid bulk-update in {}: more than one type given {}", flowFile, String.join(", ", updateItem.keySet()));
                     session.transfer(flowFile, REL_FAILURE);
                     context.yield();

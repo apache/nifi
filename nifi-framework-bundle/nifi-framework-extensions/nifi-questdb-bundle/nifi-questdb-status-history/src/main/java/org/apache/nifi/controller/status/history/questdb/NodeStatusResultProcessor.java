@@ -48,7 +48,7 @@ final class NodeStatusResultProcessor implements QueryResultProcessor<List<Stand
     public void processRow(final QueryRowContext context) {
         final long createdAt = TimeUnit.MICROSECONDS.toMillis(context.getTimestamp(0));
         final Map<StandardMetricDescriptor<NodeStatus>, Long> storageMetrics = storageMetricsByTime.get(createdAt);
-        final Set<MetricDescriptor<?>> snapshotMetrics = new HashSet<>(metricDescriptors.size() + storageMetrics.keySet().size());
+        final Set<MetricDescriptor<?>> snapshotMetrics = new HashSet<>(metricDescriptors.size() + storageMetrics.size());
         snapshotMetrics.addAll(metricDescriptors.values());
         snapshotMetrics.addAll(storageMetrics.keySet());
         final StandardStatusSnapshot snapshot = new StandardStatusSnapshot(snapshotMetrics);

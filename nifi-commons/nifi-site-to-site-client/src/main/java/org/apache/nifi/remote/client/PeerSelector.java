@@ -433,7 +433,7 @@ public class PeerSelector {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         final double totalWeights = sumMapValues(unpenalizedPeers);
-        logger.debug("Determining next available peer ({} peers with total weight {})", unpenalizedPeers.keySet().size(), totalWeights);
+        logger.debug("Determining next available peer ({} peers with total weight {})", unpenalizedPeers.size(), totalWeights);
 
         final double random = Math.random() * Math.min(100, totalWeights);
         logger.debug("Generated random value {}", random);

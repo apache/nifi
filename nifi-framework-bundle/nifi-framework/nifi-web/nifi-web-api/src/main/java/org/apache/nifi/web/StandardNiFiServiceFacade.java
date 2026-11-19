@@ -6532,7 +6532,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     final VersionedControllerService versionedControllerService =
                             mapper.mapControllerService(controllerServiceNode, controllerFacade.getControllerServiceProvider(), getAllSubGroups(processGroup), externalControllerServiceReferences);
 
-                    if (externalControllerServiceReferences.keySet().contains(versionedControllerService.getIdentifier())) {
+                    if (externalControllerServiceReferences.containsKey(versionedControllerService.getIdentifier())) {
                         versionedControllerService.setGroupIdentifier(processGroupId);
                         versionedControllerService.setComponentState(null);
                         externalServices.add(versionedControllerService);

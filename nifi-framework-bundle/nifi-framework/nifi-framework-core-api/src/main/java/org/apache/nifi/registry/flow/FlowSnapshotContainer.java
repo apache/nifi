@@ -113,9 +113,7 @@ public class FlowSnapshotContainer {
                 }
                 final Set<VersionedParameter> childParameters = childContext.getParameters() == null ? Collections.emptySet() : childContext.getParameters();
                 for (final VersionedParameter childParameter : childParameters) {
-                    if (!matchingContext.getParameters().contains(childParameter)) {
-                        matchingContext.getParameters().add(childParameter);
-                    }
+                    matchingContext.getParameters().add(childParameter);
                 }
             }
         }
