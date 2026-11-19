@@ -1332,7 +1332,6 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                 final char next = field.charAt(i + 1);
                 if (next == '/' || next == '\\') {
                     i++; // skip the escaped character
-                    continue;
                 }
             } else if (c == '/') {
                 return true;

@@ -81,9 +81,7 @@ public class SequentialRecordReaderEventIterator implements EventIterator {
             }
 
             if (event == null) {
-                if (rotateReader()) {
-                    continue;
-                } else {
+                if (!rotateReader()) {
                     return Optional.empty();
                 }
             } else {
@@ -111,7 +109,6 @@ public class SequentialRecordReaderEventIterator implements EventIterator {
             } catch (final FileNotFoundException | EOFException e) {
                 multipleReadersOpened = true;
                 // File may have aged off or was not fully written. Move to next file
-                continue;
             }
         }
 
