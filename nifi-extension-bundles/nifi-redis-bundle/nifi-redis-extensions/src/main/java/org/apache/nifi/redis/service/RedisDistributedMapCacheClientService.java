@@ -18,49 +18,73 @@ package org.apache.nifi.redis.service;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.redis.RedisConnectionPool;
-import org.apache.nifi.redis.RedisType;
+import org.apache.nifi.util.Tuple;
+import org.springframework.data.redis.connection.ReturnType;
+import org.springframework.data.redis.connection.SetCondition;
+import org.springframework.data.redis.core.types.Expiration;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-
-import static org.apache.nifi.redis.util.RedisUtils.REDIS_CONNECTION_POOL;
+import java.nio.charset.StandardCharsets;
 
 @Tags({ "redis", "distributed", "cache", "map" })
-@CapabilityDescription("An implementation of DistributedMapCacheClient that uses Redis as the backing cache. This service relies on " +
-        "the WATCH, MULTI, and EXEC commands in Redis, which are not fully supported when Redis is clustered. As a result, this service " +
-        "can only be used with a Redis Connection Pool that is configured for standalone or sentinel mode. Sentinel mode can be used to " +
-        "provide high-availability configurations.")
+@CapabilityDescription("An implementation of AtomicDistributedMapCacheClient that uses Redis as the backing cache, including " +
+        "Redis Enterprise Software and Redis Cloud. Atomic operations use single-key Lua scripts and require permission to execute EVAL. " +
+        "Use standalone mode for a Redis Enterprise or Redis Cloud database endpoint, or cluster mode for an endpoint with the Redis Cluster API enabled. " +
+        "Atomicity applies to the Redis endpoint and does not provide coordination across Active-Active regions.")
 public class RedisDistributedMapCacheClientService extends SimpleRedisDistributedMapCacheClientService implements AtomicDistributedMapCacheClient<byte[]> {
 
+    private static final byte[] GET_AND_PUT_IF_ABSENT_SCRIPT = """
+            local current = redis.call('GET', KEYS[1])
+            if current then
+                return current
+            end
+            if tonumber(ARGV[2]) > 0 then
+                redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2])
+            else
+                redis.call('SET', KEYS[1], ARGV[1])
+            end
+            return false
+            """.getBytes(StandardCharsets.UTF_8);
+
+    private static final byte[] REPLACE_SCRIPT = """
+            local current = redis.call('GET', KEYS[1])
+            if ARGV[1] == '0' then
+                if current then
+                    return 0
+                end
+            elseif current ~= ARGV[2] then
+                return 0
+            end
+            if tonumber(ARGV[4]) > 0 then
+                redis.call('SET', KEYS[1], ARGV[3], 'EX', ARGV[4])
+            else
+                redis.call('SET', KEYS[1], ARGV[3])
+            end
+            return 1
+            """.getBytes(StandardCharsets.UTF_8);
+
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>();
+    public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+        return withConnection(redisConnection -> {
+            final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
+            return Boolean.TRUE.equals(redisConnection.stringCommands().set(kv.getKey(), kv.getValue(),
+                    SetCondition.ifAbsent(), Expiration.seconds(getTtl())));
+        });
+    }
 
-        final RedisConnectionPool redisConnectionPool = validationContext.getProperty(REDIS_CONNECTION_POOL).asControllerService(RedisConnectionPool.class);
-        if (redisConnectionPool != null) {
-            final RedisType redisType = redisConnectionPool.getRedisType();
-            if (redisType != null && redisType == RedisType.CLUSTER) {
-                results.add(new ValidationResult.Builder()
-                        .subject(REDIS_CONNECTION_POOL.getDisplayName())
-                        .valid(false)
-                        .explanation(REDIS_CONNECTION_POOL.getDisplayName()
-                                + " is configured in clustered mode, and this service requires a non-clustered Redis")
-                        .build());
-            }
-        }
-
-        return results;
+    @Override
+    public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer,
+                                     final Serializer<V> valueSerializer, final Deserializer<V> valueDeserializer) throws IOException {
+        return withConnection(redisConnection -> {
+            final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
+            final byte[] previous = redisConnection.scriptingCommands().eval(GET_AND_PUT_IF_ABSENT_SCRIPT, ReturnType.VALUE, 1,
+                    kv.getKey(), kv.getValue(), getTtl().toString().getBytes(StandardCharsets.UTF_8));
+            return previous == null ? null : valueDeserializer.deserialize(previous);
+        });
     }
 
     @Override
@@ -81,50 +105,13 @@ public class RedisDistributedMapCacheClientService extends SimpleRedisDistribute
     @Override
     public <K, V> boolean replace(final AtomicCacheEntry<K, V, byte[]> entry, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         return withConnection(redisConnection -> {
-            final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-            keySerializer.serialize(entry.getKey(), out);
-            final byte[] k = out.toByteArray();
-            out.reset();
-
-            valueSerializer.serialize(entry.getValue(), out);
-            final byte[] newVal = out.toByteArray();
-
-            // the revision of the cache entry holds the value of the key from a previous fetch
-            final byte[] prevVal = entry.getRevision().orElse(null);
-
-            boolean replaced = false;
-
-            // start a watch on the key and retrieve the current value
-            redisConnection.watch(k);
-            final byte[] currValue = redisConnection.stringCommands().get(k);
-
-            // start a transaction
-            redisConnection.multi();
-
-            // compare-and-set
-            if (Arrays.equals(prevVal, currValue)) {
-                // if we use set(k, newVal) then the results list will always have size == 0 b/c when convertPipelineAndTxResults is set to true,
-                // status responses like "OK" are skipped over, so by using getSet we can rely on the results list to know if the transaction succeeded
-                redisConnection.stringCommands().getSet(k, newVal);
-
-                // set the TTL if specified
-                final long ttl = getTtl();
-                if (ttl != -1L) {
-                    redisConnection.keyCommands().expire(k, ttl);
-                }
-            }
-
-            // execute the transaction
-            final List<Object> results = redisConnection.exec();
-
-            // if we have a result then the replace succeeded
-            if (results != null && !results.isEmpty()) {
-                replaced = true;
-            }
-
-            return replaced;
+            final Tuple<byte[], byte[]> kv = serialize(entry.getKey(), entry.getValue(), keySerializer, valueSerializer);
+            // Keep the existing raw-value revision format, including the distinction between an absent key and an empty value.
+            final byte[] previous = entry.getRevision().orElse(null);
+            final Long result = redisConnection.scriptingCommands().eval(REPLACE_SCRIPT, ReturnType.INTEGER, 1,
+                    kv.getKey(), (previous == null ? "0" : "1").getBytes(StandardCharsets.UTF_8),
+                    previous == null ? new byte[0] : previous, kv.getValue(), getTtl().toString().getBytes(StandardCharsets.UTF_8));
+            return Long.valueOf(1).equals(result);
         });
     }
-
 }
