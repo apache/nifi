@@ -207,6 +207,15 @@ public interface NiFiServiceFacade {
 
     ConnectorEntity getConnector(String id, boolean clusterNodeRequest);
 
+    /**
+     * Returns the bundle of the Connector loaded on this node, without synchronizing with the configuration provider and
+     * without filtering by the user's permissions. For use in replicated requests only, never in a client response.
+     *
+     * @param id the Connector id
+     * @return the loaded bundle
+     */
+    BundleDTO getConnectorBundle(String id);
+
     void verifyUpdateConnector(ConnectorDTO connectorDTO);
 
     ConnectorEntity updateConnector(Revision revision, ConnectorDTO connectorDTO);

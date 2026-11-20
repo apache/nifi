@@ -730,15 +730,12 @@ public class ConnectorResource extends ApplicationResource {
 
     /**
      * Fills the coordinator's loaded bundle onto the run-status request so each node can reject a START in the
-     * validation phase when its own loaded bundle differs. Avoids an extra replicated GET.
+     * validation phase when its own loaded bundle differs. Avoids an extra replicated GET. The bundle is read from the
+     * in-memory Connector without a provider sync or a permission filter, so every START carries it and every node
+     * compares the same in-memory state.
      */
     private void populateExpectedBundle(final String connectorId, final ConnectorRunStatusEntity requestRunStatus) {
-        final ConnectorEntity localConnector = serviceFacade.getConnector(connectorId);
-        if (localConnector == null || localConnector.getComponent() == null || localConnector.getComponent().getBundle() == null) {
-            return;
-        }
-
-        requestRunStatus.setExpectedBundle(localConnector.getComponent().getBundle());
+        requestRunStatus.setExpectedBundle(serviceFacade.getConnectorBundle(connectorId));
     }
 
     /**

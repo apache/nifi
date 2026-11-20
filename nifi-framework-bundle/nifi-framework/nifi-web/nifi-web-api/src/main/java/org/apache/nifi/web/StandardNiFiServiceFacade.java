@@ -3770,6 +3770,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public BundleDTO getConnectorBundle(final String id) {
+        final ConnectorNode connector = connectorDAO.getConnector(id, ConnectorSyncMode.LOCAL_ONLY);
+        return dtoFactory.createBundleDto(connector.getBundleCoordinate());
+    }
+
+    @Override
     public void verifyUpdateConnector(final ConnectorDTO connectorDTO) {
         // Run-status verification shares this method. Loading the provider here would apply an external edit that
         // the caller has not synchronized, so start and stop must see only the in-memory configuration.
