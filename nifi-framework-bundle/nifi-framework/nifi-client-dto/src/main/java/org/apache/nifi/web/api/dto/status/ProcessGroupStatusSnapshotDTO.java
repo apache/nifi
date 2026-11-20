@@ -306,7 +306,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The queued stats
      */
-    @Schema(description = "The count/size that is queued in the the process group.")
+    @Schema(description = "The count/size that is queued in the process group.")
     public String getQueued() {
         return queued;
     }

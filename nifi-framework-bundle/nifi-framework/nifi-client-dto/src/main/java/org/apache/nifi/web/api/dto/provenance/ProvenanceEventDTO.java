@@ -598,7 +598,7 @@ public class ProvenanceEventDTO {
     /**
      * @return the number of bytes of the input content claim
      */
-    @Schema(description = "The file size of the intput content claim in bytes."
+    @Schema(description = "The file size of the input content claim in bytes."
     )
     public Long getInputContentClaimFileSizeBytes() {
         return inputContentClaimFileSizeBytes;

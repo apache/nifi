@@ -41,7 +41,7 @@ public class JmxMetricsResultDTO {
         return attributeName;
     }
 
-    @Schema(description = "The attribute value of the the metrics bean's attribute")
+    @Schema(description = "The attribute value of the metrics bean's attribute")
     public Object getAttributeValue() {
         return attributeValue;
     }

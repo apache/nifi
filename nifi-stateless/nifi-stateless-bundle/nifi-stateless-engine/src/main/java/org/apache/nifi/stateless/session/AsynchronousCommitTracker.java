@@ -197,7 +197,7 @@ public class AsynchronousCommitTracker {
             try {
                 triggerSuccessCallback(callbacks);
             } catch (final Throwable t) {
-                logger.error("Failed to trigger onSuccess Aysnchronous Commit Callback on {}", callbacks.getConnectable(), t);
+                logger.error("Failed to trigger onSuccess Asynchronous Commit Callback on {}", callbacks.getConnectable(), t);
                 failure = t;
             }
         }

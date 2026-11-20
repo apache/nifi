@@ -665,7 +665,7 @@ public class ReportingTaskResource extends ApplicationResource {
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Write - /reporting-tasks/{uuid} or  or /operation/reporting-tasks/{uuid}")
+                    @SecurityRequirement(name = "Write - /reporting-tasks/{uuid} or /operation/reporting-tasks/{uuid}")
             }
     )
     public Response updateRunStatus(

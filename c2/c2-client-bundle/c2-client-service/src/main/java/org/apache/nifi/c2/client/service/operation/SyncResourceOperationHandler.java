@@ -112,7 +112,7 @@ public class SyncResourceOperationHandler implements C2OperationHandler {
             operationState,
             switch (operationState) {
                 case NOT_APPLIED -> "No resource items were retrieved, please check the log for errors";
-                case PARTIALLY_APPLIED -> "Resource repository is partially synced, retrieving some items failed. Pleas check log for errors";
+                case PARTIALLY_APPLIED -> "Resource repository is partially synced, retrieving some items failed. Please check log for errors";
                 case FULLY_APPLIED -> "Agent Resource repository is in sync with the C2 server";
                 default -> "Unexpected status, please check the log for errors";
             }

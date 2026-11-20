@@ -304,7 +304,7 @@ public class StartRunner implements CommandRunner {
                 }
             })
             .orElse(0);
-        CMD_LOGGER.info("Boostrap listen port {}", parsedBootstrapListenPort);
+        CMD_LOGGER.info("Bootstrap listen port {}", parsedBootstrapListenPort);
         return parsedBootstrapListenPort;
     }
 

@@ -46,7 +46,7 @@ public class MultiProcessorUseCase implements Serializable {
         this.notes = notes;
     }
 
-    @Schema(description = "Keywords that pertain to the use csae")
+    @Schema(description = "Keywords that pertain to the use case")
     public List<String> getKeywords() {
         return keywords;
     }

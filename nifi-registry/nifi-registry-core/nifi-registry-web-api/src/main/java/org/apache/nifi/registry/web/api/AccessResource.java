@@ -518,7 +518,7 @@ public class AccessResource extends ApplicationResource {
     @Path("/token/identity-provider/test")
     @Operation(
             summary = "Test identity provider",
-            description = "Tests the format of the credentials against this identity provider without preforming authentication on the credentials to validate them. " +
+            description = "Tests the format of the credentials against this identity provider without performing authentication on the credentials to validate them. " +
                     "The user credentials should be passed in a format understood by the custom identity provider as defined by 'GET /access/token/identity-provider/usage'.",
             responses = {
                     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = String.class))),
