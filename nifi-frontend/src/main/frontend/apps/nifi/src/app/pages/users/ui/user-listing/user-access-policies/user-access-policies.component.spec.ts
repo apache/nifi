@@ -170,6 +170,19 @@ describe('UserAccessPolicies', () => {
 
             expect(label).toBe('Global policy to access connectors');
         });
+
+        it('should label legacy restricted components policies', () => {
+            const label = component.formatPolicy({
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    resource: '/restricted-components/write-filesystem',
+                    action: 'write',
+                    configurable: true
+                }
+            } as any);
+
+            expect(label).toBe('Legacy restricted components policy');
+        });
     });
 
     describe('getPolicyTargetLink', () => {

@@ -99,11 +99,8 @@ export class UserAccessPolicies extends CloseOnEscapeDialog {
     }
 
     formatPolicy(policy: AccessPolicySummaryEntity): string {
-        if (policy.component.resource.startsWith('/restricted-components')) {
-            // restricted components policy
-            return this.restrictedComponentResourceParser(policy);
-        } else if (policy.component.componentReference) {
-            // not restricted/global policy... check if user has access to the component reference
+        if (policy.component.componentReference) {
+            // check if user has access to the component reference
             return this.componentResourceParser(policy);
         } else {
             const globalLabel = this.parseGlobalPolicyResource(policy.component.resource, policy.component.action);
@@ -136,24 +133,10 @@ export class UserAccessPolicies extends CloseOnEscapeDialog {
         if (resource === '/provenance-data/connectors') {
             return 'Global policy to view provenance for connectors';
         }
-        return null;
-    }
-
-    /**
-     * Generates a human-readable restricted component policy string.
-     *
-     * @returns {string}
-     * @param policy
-     */
-    private restrictedComponentResourceParser(policy: AccessPolicySummaryEntity): string {
-        const resource: string = policy.component.resource;
-
-        if (resource === '/restricted-components') {
-            return 'Restricted components regardless of restrictions';
+        if (resource.startsWith('/restricted-components')) {
+            return 'Legacy restricted components policy';
         }
-
-        const subResource = this.nifiCommon.substringAfterFirst(resource, '/restricted-components/');
-        return `Restricted components requiring '${subResource}'`;
+        return null;
     }
 
     /**

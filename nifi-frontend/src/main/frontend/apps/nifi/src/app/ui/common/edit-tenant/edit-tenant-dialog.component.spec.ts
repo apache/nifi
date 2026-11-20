@@ -354,22 +354,6 @@ describe('EditTenantDialog', () => {
                             revision: {
                                 version: 0
                             },
-                            id: 'b8775bd4-704a-34c6-987b-84f2daf7a515',
-                            permissions: {
-                                canRead: true,
-                                canWrite: true
-                            },
-                            component: {
-                                id: 'b8775bd4-704a-34c6-987b-84f2daf7a515',
-                                resource: '/restricted-components',
-                                action: 'write',
-                                configurable: true
-                            }
-                        },
-                        {
-                            revision: {
-                                version: 0
-                            },
                             id: '92db2c23-018c-1000-8885-b650a16dcb32',
                             permissions: {
                                 canRead: true,

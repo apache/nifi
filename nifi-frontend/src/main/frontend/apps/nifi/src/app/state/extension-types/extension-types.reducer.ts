@@ -25,8 +25,6 @@ import {
     loadExtensionTypesForConnectorsSuccess,
     loadExtensionTypesForDocumentation,
     loadExtensionTypesForDocumentationSuccess,
-    loadExtensionTypesForPolicies,
-    loadExtensionTypesForPoliciesSuccess,
     loadExtensionTypesForSettings,
     loadExtensionTypesForSettingsSuccess
 } from './extension-types.actions';
@@ -45,24 +43,18 @@ export const initialExtensionsTypesState: ExtensionTypesState = {
 
 export const extensionTypesReducer = createReducer(
     initialExtensionsTypesState,
-    on(
-        loadExtensionTypesForCanvas,
-        loadExtensionTypesForSettings,
-        loadExtensionTypesForPolicies,
-        loadExtensionTypesForDocumentation,
-        (state) => ({
-            ...state,
-            processorTypes: [],
-            controllerServiceTypes: [],
-            prioritizerTypes: [],
-            reportingTaskTypes: [],
-            registryClientTypes: [],
-            parameterProviderTypes: [],
-            flowAnalysisRuleTypes: [],
-            connectorTypes: [],
-            status: 'loading' as const
-        })
-    ),
+    on(loadExtensionTypesForCanvas, loadExtensionTypesForSettings, loadExtensionTypesForDocumentation, (state) => ({
+        ...state,
+        processorTypes: [],
+        controllerServiceTypes: [],
+        prioritizerTypes: [],
+        reportingTaskTypes: [],
+        registryClientTypes: [],
+        parameterProviderTypes: [],
+        flowAnalysisRuleTypes: [],
+        connectorTypes: [],
+        status: 'loading' as const
+    })),
     on(loadExtensionTypesForCanvasSuccess, (state, { response }) => ({
         ...state,
         processorTypes: response.processorTypes,
@@ -75,15 +67,6 @@ export const extensionTypesReducer = createReducer(
         controllerServiceTypes: response.controllerServiceTypes,
         reportingTaskTypes: response.reportingTaskTypes,
         registryClientTypes: response.registryClientTypes,
-        parameterProviderTypes: response.parameterProviderTypes,
-        flowAnalysisRuleTypes: response.flowAnalysisRuleTypes,
-        status: 'success' as const
-    })),
-    on(loadExtensionTypesForPoliciesSuccess, (state, { response }) => ({
-        ...state,
-        processorTypes: response.processorTypes,
-        controllerServiceTypes: response.controllerServiceTypes,
-        reportingTaskTypes: response.reportingTaskTypes,
         parameterProviderTypes: response.parameterProviderTypes,
         flowAnalysisRuleTypes: response.flowAnalysisRuleTypes,
         status: 'success' as const
