@@ -120,7 +120,6 @@ public class AuthorizingConnectorInvocationHandler<T> implements InvocationHandl
                 }
             } catch (final NoSuchMethodException ignored) {
                 // Method not found on this interface; continue searching other interfaces
-                continue;
             }
         }
 
