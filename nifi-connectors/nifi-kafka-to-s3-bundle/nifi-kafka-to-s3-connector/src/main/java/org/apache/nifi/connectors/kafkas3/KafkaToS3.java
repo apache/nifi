@@ -35,6 +35,7 @@ import org.apache.nifi.components.connector.components.ControllerServiceFacade;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.ProcessGroupFacade;
 import org.apache.nifi.components.connector.components.ProcessorFacade;
+import org.apache.nifi.components.connector.util.ProcessGroupFacadeUtils;
 import org.apache.nifi.components.connector.util.VersionedFlowUtils;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -161,7 +162,7 @@ public class KafkaToS3 extends AbstractConnector implements BacklogReportingConn
     }
 
     private Optional<ProcessorFacade> findConsumeKafkaProcessor(final FlowContext flowContext) {
-        return findProcessors(flowContext.getRootGroup(), processor -> processor.getDefinition().getType().endsWith("ConsumeKafka")).stream().findFirst();
+        return ProcessGroupFacadeUtils.findProcessor(flowContext.getRootGroup(), ProcessGroupFacadeUtils.processorTypeEndsWith("ConsumeKafka"));
     }
 
     private List<ConfigVerificationResult> verifyKafkaParsability(final FlowContext workingFlowContext, final VersionedExternalFlow flow) {
@@ -299,17 +300,15 @@ public class KafkaToS3 extends AbstractConnector implements BacklogReportingConn
     }
 
     private ControllerServiceFacade getKafkaConnectionService(final FlowContext flowContext) {
-        return flowContext.getRootGroup().getControllerServices().stream()
-            .filter(service -> service.getDefinition().getType().endsWith("Kafka3ConnectionService"))
-            .findFirst()
+        return ProcessGroupFacadeUtils.findControllerService(flowContext.getRootGroup(),
+            ProcessGroupFacadeUtils.controllerServiceTypeEndsWith("Kafka3ConnectionService"))
             .orElseThrow();
     }
 
     @SuppressWarnings("unchecked")
     private List<String> getPossibleS3Regions(final FlowContext flowContext) {
-        final ProcessorFacade processorFacade = flowContext.getRootGroup().getProcessors().stream()
-            .filter(proc -> proc.getDefinition().getType().endsWith("PutS3Object"))
-            .findFirst()
+        final ProcessorFacade processorFacade = ProcessGroupFacadeUtils.findProcessor(flowContext.getRootGroup(),
+            ProcessGroupFacadeUtils.processorTypeEndsWith("PutS3Object"))
             .orElseThrow();
 
         try {
