@@ -33,6 +33,7 @@ import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.PasteRequestEntity;
 import org.apache.nifi.web.api.entity.PasteResponseEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupDrainRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
@@ -330,6 +331,61 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
                     .resolveTemplate("drop-request-id", requestId);
 
             return getRequestBuilder(target).get(DropRequestEntity.class);
+        });
+    }
+
+    @Override
+    public ProcessGroupDrainRequestEntity createDrainRequest(final String processGroupId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        return executeAction("Error creating drain request for Process Group", () -> {
+            final WebTarget target = processGroupsTarget
+                    .path("{id}/drain-requests")
+                    .resolveTemplate("id", processGroupId);
+
+            return getRequestBuilder(target).post(null, ProcessGroupDrainRequestEntity.class);
+        });
+    }
+
+    @Override
+    public ProcessGroupDrainRequestEntity getDrainRequest(final String processGroupId, final String drainRequestId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        if (StringUtils.isBlank(drainRequestId)) {
+            throw new IllegalArgumentException("Drain request id cannot be null or blank");
+        }
+
+        return executeAction("Error getting drain request for Process Group", () -> {
+            final WebTarget target = processGroupsTarget
+                    .path("{id}/drain-requests/{drain-request-id}")
+                    .resolveTemplate("id", processGroupId)
+                    .resolveTemplate("drain-request-id", drainRequestId);
+
+            return getRequestBuilder(target).get(ProcessGroupDrainRequestEntity.class);
+        });
+    }
+
+    @Override
+    public ProcessGroupDrainRequestEntity deleteDrainRequest(final String processGroupId, final String drainRequestId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        if (StringUtils.isBlank(drainRequestId)) {
+            throw new IllegalArgumentException("Drain request id cannot be null or blank");
+        }
+
+        return executeAction("Error deleting drain request for Process Group", () -> {
+            final WebTarget target = processGroupsTarget
+                    .path("{id}/drain-requests/{drain-request-id}")
+                    .resolveTemplate("id", processGroupId)
+                    .resolveTemplate("drain-request-id", drainRequestId);
+
+            return getRequestBuilder(target).delete(ProcessGroupDrainRequestEntity.class);
         });
     }
 

@@ -36,6 +36,7 @@ import org.apache.nifi.groups.ComponentAdditions;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.ProcessGroupDrain;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.parameter.ParameterContext;
@@ -63,6 +64,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -229,6 +231,13 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             }
 
             group.verifyCanStart();
+
+            if (ScheduledState.RUNNING.equals(state)) {
+                verifyDrainAllowsStart(group);
+            } else {
+                verifyDrainAllowsStop(group);
+            }
+
             return;
         }
 
@@ -238,6 +247,12 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         for (final String componentId : componentIds) {
             final Connectable connectable = findConnectable(componentId, groupId, validGroups);
+
+            if (ScheduledState.RUNNING.equals(state)) {
+                verifyDrainAllowsStart(connectable);
+            } else {
+                verifyDrainAllowsStop(connectable);
+            }
 
             if (connectable instanceof final RemoteGroupPort remotePort) {
 
@@ -322,9 +337,11 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         if (group.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
             if (ScheduledState.RUNNING.equals(state)) {
+                endDrainKeepingStopped(group);
                 group.startProcessing();
                 return;
             } else if (ScheduledState.STOPPED.equals(state)) {
+                endDrainKeepingRunning(group);
                 group.stopProcessing();
                 return;
             }
@@ -334,6 +351,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             final Connectable connectable = findConnectable(componentId, groupId, validGroups);
 
             if (ScheduledState.RUNNING.equals(state)) {
+                endDrainKeepingStopped(connectable);
                 switch (connectable.getConnectableType()) {
                     case PROCESSOR:
                         connectable.getProcessGroup().startProcessor((ProcessorNode) connectable, true);
@@ -354,6 +372,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
                         break;
                 }
             } else if (ScheduledState.STOPPED.equals(state)) {
+                endDrainKeepingRunning(connectable);
                 switch (connectable.getConnectableType()) {
                     case PROCESSOR:
                         connectable.getProcessGroup().stopProcessor((ProcessorNode) connectable);
@@ -653,6 +672,32 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId, true);
 
         return processGroup.cancelDropAllFlowFiles(dropRequestId);
+    }
+
+    @Override
+    public void verifyBeginDrain(final String processGroupId) {
+        final ProcessGroup group = locateProcessGroup(flowController, processGroupId);
+        final Optional<String> connectorIdentifier = group.findOwningConnectorIdentifier();
+        if (connectorIdentifier.isPresent()) {
+            throw new IllegalStateException("Cannot drain " + group + " because it is managed by Connector " + connectorIdentifier.get());
+        }
+
+        group.verifyCanBeginDrain();
+    }
+
+    @Override
+    public ProcessGroupDrain beginDrain(final String processGroupId, final String drainRequestId) {
+        return locateProcessGroup(flowController, processGroupId).beginDrain(drainRequestId);
+    }
+
+    @Override
+    public Optional<ProcessGroupDrain> getDrain(final String processGroupId, final String drainRequestId) {
+        return locateProcessGroup(flowController, processGroupId).getDrain().filter(drain -> drain.getIdentifier().equals(drainRequestId));
+    }
+
+    @Override
+    public Optional<ProcessGroupDrain> endDrain(final String processGroupId, final String drainRequestId) {
+        return getDrain(processGroupId, drainRequestId).flatMap(drain -> drain.getProcessGroup().endDrain());
     }
 
     @Override

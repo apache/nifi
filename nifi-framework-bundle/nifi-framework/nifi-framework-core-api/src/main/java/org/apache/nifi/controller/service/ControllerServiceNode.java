@@ -181,6 +181,18 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
     void verifyCanDisable();
 
     /**
+     * Calls the methods of the Controller Service that are annotated with {@link org.apache.nifi.annotation.lifecycle.OnDrainInitiated OnDrainInitiated},
+     * regardless of the state of the Controller Service. Any Exception thrown by a method is logged and is not rethrown.
+     */
+    void initiateDrain();
+
+    /**
+     * Calls the methods of the Controller Service that are annotated with {@link org.apache.nifi.annotation.lifecycle.OnDrainCompleted OnDrainCompleted},
+     * regardless of the state of the Controller Service. Any Exception thrown by a method is logged and is not rethrown.
+     */
+    void endDrain();
+
+    /**
      * Verifies that this Controller Service can be disabled if the provided set
      * of services are also disabled. This is introduced because we can have an
      * instance where A references B, which references C, which references A and

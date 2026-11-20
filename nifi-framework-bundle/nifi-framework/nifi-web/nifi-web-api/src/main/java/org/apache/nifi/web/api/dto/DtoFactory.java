@@ -142,8 +142,11 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.groups.DrainBlockingComponent;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
+import org.apache.nifi.groups.ProcessGroupDrain;
+import org.apache.nifi.groups.ProcessGroupDrainState;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupCounts;
 import org.apache.nifi.history.History;
@@ -623,6 +626,64 @@ public final class DtoFactory {
         }
 
         return dto;
+    }
+
+    /**
+     * Creates a ProcessGroupDrainRequestDTO from the specified drain. The name and validation errors of a blocking component
+     * are included only if the current user is allowed to read that component.
+     *
+     * @param drain the drain of a Process Group
+     * @return dto
+     */
+    public ProcessGroupDrainRequestDTO createProcessGroupDrainRequestDto(final ProcessGroupDrain drain) {
+        final ProcessGroupDrainRequestDTO dto = new ProcessGroupDrainRequestDTO();
+        dto.setId(drain.getIdentifier());
+        dto.setProcessGroupId(drain.getProcessGroup().getIdentifier());
+        dto.setState(drain.getState().name());
+        dto.setFailureReason(drain.getFailureReason().orElse(null));
+        dto.setPrepared(drain.isPrepared());
+
+        final QueueSize original = drain.getOriginalQueueSize();
+        dto.setOriginalCount(original.getObjectCount());
+        dto.setOriginalSize(original.getByteCount());
+
+        final QueueSize current = drain.getCurrentQueueSize();
+        dto.setCurrentCount(current.getObjectCount());
+        dto.setCurrentSize(current.getByteCount());
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final List<DrainBlockingComponentDTO> blockingComponentDtos = new ArrayList<>();
+        for (final DrainBlockingComponent blockingComponent : drain.getBlockingComponents()) {
+            final DrainBlockingComponentDTO blockingComponentDto = new DrainBlockingComponentDTO();
+            blockingComponentDto.setId(blockingComponent.componentId());
+            blockingComponentDto.setGroupId(blockingComponent.groupId());
+            blockingComponentDto.setRemoteProcessGroupId(blockingComponent.remoteProcessGroupId());
+            blockingComponentDto.setType(blockingComponent.componentType().name());
+            blockingComponentDto.setReason(blockingComponent.reason().name());
+            blockingComponentDto.setQueuedCount(blockingComponent.queuedCount());
+
+            final Authorizable authorizable = findDrainBlockingComponent(drain.getProcessGroup(), blockingComponent);
+            if (authorizable != null && authorizable.isAuthorized(authorizer, RequestAction.READ, user)) {
+                blockingComponentDto.setName(blockingComponent.name());
+                blockingComponentDto.setValidationErrors(blockingComponent.validationErrors());
+            }
+
+            blockingComponentDtos.add(blockingComponentDto);
+        }
+
+        dto.setBlockingComponents(blockingComponentDtos);
+
+        return dto;
+    }
+
+    private Authorizable findDrainBlockingComponent(final ProcessGroup drainedGroup, final DrainBlockingComponent blockingComponent) {
+        return switch (blockingComponent.componentType()) {
+            case PROCESSOR -> drainedGroup.findProcessor(blockingComponent.componentId());
+            case INPUT_PORT -> drainedGroup.findInputPort(blockingComponent.componentId());
+            case OUTPUT_PORT -> drainedGroup.findOutputPort(blockingComponent.componentId());
+            case REMOTE_INPUT_PORT -> drainedGroup.findRemoteProcessGroup(blockingComponent.remoteProcessGroupId());
+            default -> null;
+        };
     }
 
     private boolean isListingRequestComplete(final ListFlowFileState state) {
@@ -1517,7 +1578,7 @@ public final class DtoFactory {
             final ProcessGroupDTO processGroupDto = createConciseProcessGroupDto(processGroup);
             final RevisionDTO revisionDto = createRevisionDTO(revisionManager.getRevision(processGroup.getIdentifier()));
             final PermissionsDTO permissionsDto = createPermissionsDto(processGroup);
-            final ProcessGroupEntity processGroupEntity = entityFactory.createProcessGroupEntity(processGroupDto, revisionDto, permissionsDto, null, null);
+            final ProcessGroupEntity processGroupEntity = entityFactory.createProcessGroupEntity(processGroupDto, revisionDto, permissionsDto, null, null, null);
             boundGroups.add(processGroupEntity);
         }
         dto.setBoundProcessGroups(boundGroups);
@@ -2570,11 +2631,35 @@ public final class DtoFactory {
         }
 
         dto.setResolvedExecutionEngine(group.resolveExecutionEngine().name());
+        dto.setDrainSummary(createProcessGroupDrainSummaryDto(group));
 
         final ParameterContext parameterContext = group.getParameterContext();
         if (parameterContext != null) {
             dto.setParameterContext(entityFactory.createParameterReferenceEntity(createParameterContextReference(parameterContext), createPermissionsDto(parameterContext)));
         }
+        return dto;
+    }
+
+    /**
+     * @return a summary of the drain of the given Process Group, or null if the group is not being drained
+     */
+    public ProcessGroupDrainSummaryDTO createProcessGroupDrainSummaryDto(final ProcessGroup group) {
+        final Optional<ProcessGroupDrain> activeDrain = group.getDrain().filter(drain -> drain.getState() == ProcessGroupDrainState.DRAINING);
+        if (activeDrain.isEmpty()) {
+            return null;
+        }
+
+        final ProcessGroupDrain drain = activeDrain.get();
+        final QueueSize originalQueueSize = drain.getOriginalQueueSize();
+        final QueueSize currentQueueSize = drain.getCurrentQueueSize();
+
+        final ProcessGroupDrainSummaryDTO dto = new ProcessGroupDrainSummaryDTO();
+        dto.setId(drain.getIdentifier());
+        dto.setPrepared(drain.isPrepared());
+        dto.setOriginalCount(originalQueueSize.getObjectCount());
+        dto.setOriginalSize(originalQueueSize.getByteCount());
+        dto.setCurrentCount(currentQueueSize.getObjectCount());
+        dto.setCurrentSize(currentQueueSize.getByteCount());
         return dto;
     }
 
@@ -2674,7 +2759,7 @@ public final class DtoFactory {
             final ProcessGroupStatus childGroupStatus = groupStatuses.get(processGroup.getIdentifier());
             final ProcessGroupStatusDTO statusDto = childGroupStatus == null ? null : createConciseProcessGroupStatusDto(childGroupStatus);
             final List<BulletinEntity> bulletins = getProcessGroupBulletins.apply(processGroup);
-            flow.getProcessGroups().add(entityFactory.createProcessGroupEntity(dto, revision, permissions, statusDto, bulletins));
+            flow.getProcessGroups().add(entityFactory.createProcessGroupEntity(dto, revision, permissions, statusDto, createProcessGroupDrainSummaryDto(processGroup), bulletins));
         }
 
         final Map<String, ProcessorStatus> processorStatuses = groupStatus.getProcessorStatus().stream().collect(Collectors.toMap(ProcessorStatus::getId, status -> status));
@@ -2756,7 +2841,8 @@ public final class DtoFactory {
             final ProcessGroupStatus childGroupStatus = groupStatuses.get(childGroup.getIdentifier());
             final ProcessGroupStatusDTO statusDto = childGroupStatus == null ? null : createConciseProcessGroupStatusDto(childGroupStatus);
             final List<BulletinEntity> bulletins = getProcessGroupBulletins.apply(childGroup);
-            dto.getProcessGroups().add(entityFactory.createProcessGroupEntity(createProcessGroupDto(childGroup), revision, permissions, statusDto, bulletins));
+            final ProcessGroupDrainSummaryDTO drainSummary = createProcessGroupDrainSummaryDto(childGroup);
+            dto.getProcessGroups().add(entityFactory.createProcessGroupEntity(createProcessGroupDto(childGroup), revision, permissions, statusDto, drainSummary, bulletins));
         }
 
         final Map<String, RemoteProcessGroupStatus> rpgStatuses = groupStatus.getRemoteProcessGroupStatus().stream().collect(Collectors.toMap(RemoteProcessGroupStatus::getId, status -> status));

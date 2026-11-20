@@ -105,6 +105,18 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
 
     public abstract void setProcessor(LoggableComponent<Processor> processor);
 
+    /**
+     * Calls the methods of the Processor that are annotated with {@link org.apache.nifi.annotation.lifecycle.OnDrainInitiated OnDrainInitiated},
+     * regardless of the state of the Processor. Any Exception thrown by a method is logged and is not rethrown.
+     */
+    public abstract void initiateDrain(ProcessContext processContext);
+
+    /**
+     * Calls the methods of the Processor that are annotated with {@link org.apache.nifi.annotation.lifecycle.OnDrainCompleted OnDrainCompleted},
+     * regardless of the state of the Processor. Any Exception thrown by a method is logged and is not rethrown.
+     */
+    public abstract void endDrain(ProcessContext processContext);
+
     @Override
     public abstract void yield(long period, TimeUnit timeUnit);
 

@@ -28,7 +28,9 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.components.ComponentHierarchyScope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -139,6 +141,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -214,6 +217,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final ClusterTopologyProvider clusterTopologyProvider;
     private final AssetManager assetManager;
     private final StatelessGroupNode statelessGroupNode;
+    private final AtomicReference<StandardProcessGroupDrain> drain = new AtomicReference<>();
     private volatile ExecutionEngine executionEngine = ExecutionEngine.INHERITED;
     private volatile int maxConcurrentTasks = 1;
     private volatile String statelessFlowTimeout = "1 min";
@@ -237,6 +241,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final Lock writeLock = rwLock.writeLock();
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessGroup.class);
+    private static final Object DRAIN_LOCK = new Object();
     private static final String DEFAULT_FLOWFILE_EXPIRATION = "0 sec";
     private static final long DEFAULT_BACKPRESSURE_OBJECT = 10_000L;
     private static final String DEFAULT_BACKPRESSURE_DATA_SIZE = "1 GB";
@@ -1001,6 +1006,11 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException(group.getIdentifier() + " is not a member of this Process Group");
             }
             toRemove.verifyCanDelete();
+
+            toRemove.endDrain();
+            for (final ProcessGroup descendant : toRemove.findAllProcessGroups()) {
+                descendant.endDrain();
+            }
 
             removeComponents(group);
             processGroups.remove(group.getIdentifier());
@@ -2599,6 +2609,119 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         return services;
+    }
+
+    @Override
+    public Set<ControllerServiceNode> findReferencedControllerServices(final ComponentHierarchyScope hierarchyScope) {
+        final Set<ControllerServiceNode> referencedServices = new HashSet<>();
+        final Collection<ProcessorNode> processorsToSearch = hierarchyScope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS ? findAllProcessors() : getProcessors();
+        for (final ProcessorNode processor : processorsToSearch) {
+            final ValidationContext validationContext = createValidationContext(processor);
+
+            for (final PropertyDescriptor descriptor : processor.getPropertyDescriptors()) {
+                if (descriptor.getControllerServiceDefinition() == null) {
+                    continue;
+                }
+
+                final String serviceId = processor.getEffectivePropertyValue(descriptor);
+                if (serviceId == null) {
+                    continue;
+                }
+
+                // Skip properties whose dependencies are not satisfied, as the property is not relevant to the component's functionality
+                if (!validationContext.isDependencySatisfied(descriptor, processor::getPropertyDescriptor)) {
+                    LOG.debug("Not including Controller Service {} because it is referenced by {} property of {} whose dependencies are not satisfied",
+                        serviceId, descriptor.getName(), processor);
+                    continue;
+                }
+
+                final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(serviceId);
+                if (serviceNode != null) {
+                    referencedServices.add(serviceNode);
+                }
+            }
+        }
+
+        // ControllerServiceNode.getRequiredControllerServices() already filters based on satisfied property dependencies.
+        final List<ControllerServiceNode> servicesToSearch = new ArrayList<>(referencedServices);
+        while (!servicesToSearch.isEmpty()) {
+            final ControllerServiceNode service = servicesToSearch.removeLast();
+            for (final ControllerServiceNode requiredService : service.getRequiredControllerServices()) {
+                if (referencedServices.add(requiredService)) {
+                    servicesToSearch.add(requiredService);
+                }
+            }
+        }
+
+        return referencedServices;
+    }
+
+    private ValidationContext createValidationContext(final ComponentNode component) {
+        final Map<String, String> effectivePropertyValues = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : component.getEffectivePropertyValues().entrySet()) {
+            effectivePropertyValues.put(entry.getKey().getName(), entry.getValue());
+        }
+
+        return component.createValidationContext(effectivePropertyValues, component.getAnnotationData(), component.getParameterLookup(), false);
+    }
+
+    @Override
+    public void verifyCanBeginDrain() {
+        if (resolveExecutionEngine() != ExecutionEngine.STANDARD) {
+            throw new IllegalStateException("Cannot drain " + this + " because it uses the Stateless Execution Engine");
+        }
+
+        final Optional<ProcessGroupDrain> activeDrain = findActiveDrain();
+        if (activeDrain.isPresent()) {
+            throw new IllegalStateException("Cannot drain " + this + " because " + activeDrain.get().getProcessGroup() + " is already being drained");
+        }
+
+        for (final ProcessGroup childGroup : findAllProcessGroups()) {
+            final Optional<ProcessGroupDrain> childDrain = childGroup.getDrain();
+            if (childDrain.isPresent() && childDrain.get().getState() == ProcessGroupDrainState.DRAINING) {
+                throw new IllegalStateException("Cannot drain " + this + " because its child group " + childGroup + " is being drained");
+            }
+        }
+    }
+
+    @Override
+    public ProcessGroupDrain beginDrain(final String drainIdentifier) {
+        final StandardProcessGroupDrain previousDrain;
+        final StandardProcessGroupDrain newDrain = new StandardProcessGroupDrain(drainIdentifier, this, controllerServiceProvider, this::createProcessContext, scheduler::submitFrameworkTask);
+
+        // A single lock across all groups, so that a parent and a child group cannot both be verified and begin a drain at the same time. It is held only
+        // to verify and record the drain, so that no component is stopped and no component code is called while holding it.
+        synchronized (DRAIN_LOCK) {
+            verifyCanBeginDrain();
+            previousDrain = drain.get();
+            drain.set(newDrain);
+        }
+
+        // Any previous drain has already ended or failed, and starting the new drain ends a failed drain. If a source cannot be stopped, the previous drain is restored.
+        try {
+            newDrain.start(previousDrain);
+        } catch (final RuntimeException e) {
+            drain.compareAndSet(newDrain, previousDrain);
+            throw e;
+        }
+
+        LOG.info("Began drain {} of {}", drainIdentifier, this);
+        return newDrain;
+    }
+
+    @Override
+    public Optional<ProcessGroupDrain> getDrain() {
+        return Optional.ofNullable(drain.get());
+    }
+
+    @Override
+    public Optional<ProcessGroupDrain> endDrain() {
+        final StandardProcessGroupDrain currentDrain = drain.get();
+        if (currentDrain != null) {
+            currentDrain.end();
+        }
+
+        return Optional.ofNullable(currentDrain);
     }
 
     @Override

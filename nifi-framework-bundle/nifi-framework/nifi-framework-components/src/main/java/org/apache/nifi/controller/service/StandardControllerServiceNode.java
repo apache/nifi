@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnDrainCompleted;
+import org.apache.nifi.annotation.lifecycle.OnDrainInitiated;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
@@ -79,6 +81,7 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -935,6 +938,25 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), implementationClass, getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, getControllerServiceImplementation(), nodeState);
+        }
+    }
+
+    @Override
+    public void initiateDrain() {
+        triggerDrainLifecycleMethods(OnDrainInitiated.class);
+    }
+
+    @Override
+    public void endDrain() {
+        triggerDrainLifecycleMethods(OnDrainCompleted.class);
+    }
+
+    private void triggerDrainLifecycleMethods(final Class<? extends Annotation> lifecycleAnnotation) {
+        final ControllerService implementation = getControllerServiceImplementation();
+        final ConfigurationContext configurationContext = new StandardConfigurationContext(this, serviceProvider, null);
+
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), implementation.getClass(), getIdentifier())) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(lifecycleAnnotation, implementation, configurationContext);
         }
     }
 

@@ -235,7 +235,7 @@ public class StandaloneProcessGroupFacade implements ProcessGroupFacade {
             collectControllerServiceFacades(this, facades, facade -> true, recursive);
             return facades;
         } else {
-            final Set<ControllerServiceNode> serviceNodes = lifecycle.findReferencedServices(recursive);
+            final Set<ControllerServiceNode> serviceNodes = processGroup.findReferencedControllerServices(hierarchyScope);
             final Set<String> versionedComponentIds = serviceNodes.stream()
                 .map(ControllerServiceNode::getVersionedComponentId)
                 .filter(Optional::isPresent)

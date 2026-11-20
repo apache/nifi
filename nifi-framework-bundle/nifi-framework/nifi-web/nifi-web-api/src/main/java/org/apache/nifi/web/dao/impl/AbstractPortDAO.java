@@ -67,12 +67,14 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
                 switch (purposedScheduledState) {
                     case RUNNING:
                         port.getProcessGroup().verifyCanScheduleComponentsIndividually();
+                        verifyDrainAllowsStart(port);
                         port.verifyCanStart();
                         break;
                     case STOPPED:
                         switch (port.getScheduledState()) {
                             case RUNNING:
                                 port.getProcessGroup().verifyCanScheduleComponentsIndividually();
+                                verifyDrainAllowsStop(port);
                                 port.verifyCanStop();
                                 break;
                             case DISABLED:
@@ -161,6 +163,12 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
 
             // only attempt an action if it is changing
             if (!proposedScheduledState.equals(port.getScheduledState())) {
+                if (proposedScheduledState == ScheduledState.RUNNING) {
+                    endDrainKeepingStopped(port);
+                } else if (proposedScheduledState == ScheduledState.STOPPED && port.getScheduledState() == ScheduledState.RUNNING) {
+                    endDrainKeepingRunning(port);
+                }
+
                 try {
                     handleStateTransition(port, proposedScheduledState);
                 } catch (IllegalStateException ise) {

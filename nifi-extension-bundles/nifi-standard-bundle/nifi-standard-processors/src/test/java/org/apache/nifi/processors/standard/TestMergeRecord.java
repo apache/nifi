@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.CommaSeparatedRecordReader;
@@ -37,8 +38,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestMergeRecord {
     private TestRunner runner;
@@ -474,6 +477,39 @@ public class TestMergeRecord {
 
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 100);
+    }
+
+    @Test
+    public void testMaxBinAgeWhileDraining() throws InterruptedException {
+        final MergeRecord processor = (MergeRecord) runner.getProcessor();
+        final ProcessContext context = runner.getProcessContext();
+        runner.setProperty(MergeRecord.MIN_RECORDS, "5");
+
+        // While draining, a Bin-Packing bin is completed after at most 1 second, but a shorter configured age and the age of a Defragment bin are kept
+        runner.initiateDrain();
+        assertEquals(TimeUnit.SECONDS.toNanos(1), processor.getMaxBinAgeNanos(context));
+        runner.setProperty(MergeRecord.MAX_BIN_AGE, "5 sec");
+        assertEquals(TimeUnit.SECONDS.toNanos(1), processor.getMaxBinAgeNanos(context));
+        runner.setProperty(MergeRecord.MAX_BIN_AGE, "200 millis");
+        assertEquals(TimeUnit.MILLISECONDS.toNanos(200), processor.getMaxBinAgeNanos(context));
+        runner.setProperty(MergeRecord.MAX_BIN_AGE, "5 sec");
+        runner.setProperty(MergeRecord.MERGE_STRATEGY, MergeRecord.MERGE_STRATEGY_DEFRAGMENT);
+        assertEquals(TimeUnit.SECONDS.toNanos(5), processor.getMaxBinAgeNanos(context));
+
+        runner.completeDrain();
+        runner.setProperty(MergeRecord.MERGE_STRATEGY, MergeRecord.MERGE_STRATEGY_BIN_PACK);
+        assertEquals(TimeUnit.SECONDS.toNanos(5), processor.getMaxBinAgeNanos(context));
+        runner.removeProperty(MergeRecord.MAX_BIN_AGE);
+        assertNull(processor.getMaxBinAgeNanos(context));
+
+        // Initiating a drain while the Processor is running updates the bin manager, so a bin that already exists is completed once it is older than 1 second
+        runner.enqueue("Name, Age\nJohn, 35");
+        runner.run(1, false);
+        runner.initiateDrain();
+        Thread.sleep(1_000L);
+        runner.run(1, true, false);
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
+        runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).getFirst().assertAttributeEquals(MergeRecord.MERGE_COMPLETION_REASON, "Bin has reached Max Bin Age");
     }
 
     @Test

@@ -19,6 +19,7 @@ package org.apache.nifi.controller.service.mock;
 
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.components.connector.components.ComponentHierarchyScope;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.FlowFileActivity;
@@ -46,6 +47,7 @@ import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.NoOpBatchCounts;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
+import org.apache.nifi.groups.ProcessGroupDrain;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StatelessGroupNode;
 import org.apache.nifi.groups.StatelessGroupScheduledState;
@@ -464,6 +466,31 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public Set<ControllerServiceNode> findAllControllerServices() {
         return new HashSet<>(serviceMap.values());
+    }
+
+    @Override
+    public Set<ControllerServiceNode> findReferencedControllerServices(final ComponentHierarchyScope hierarchyScope) {
+        return Collections.emptySet();
+    }
+
+    @Override
+    public void verifyCanBeginDrain() {
+        throw new UnsupportedOperationException("MockProcessGroup does not support drains");
+    }
+
+    @Override
+    public ProcessGroupDrain beginDrain(final String drainIdentifier) {
+        throw new UnsupportedOperationException("MockProcessGroup does not support drains");
+    }
+
+    @Override
+    public Optional<ProcessGroupDrain> getDrain() {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<ProcessGroupDrain> endDrain() {
+        return Optional.empty();
     }
 
     @Override
