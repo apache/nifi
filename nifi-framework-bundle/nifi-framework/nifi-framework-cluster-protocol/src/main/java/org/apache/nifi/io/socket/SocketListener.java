@@ -113,7 +113,7 @@ public abstract class SocketListener {
                         SocketUtils.closeQuietly(socket);
                         continue;
                     } catch (final SocketException se) {
-                        logger.warn("Failed to communicate with {}", (socket == null ? "Unknown Host" : socket.getInetAddress().getHostName()), se);
+                        logger.warn("Failed to communicate with {}", (socket == null ? "Unknown Host" : SocketUtils.getRemoteHostString(socket)), se);
                         SocketUtils.closeQuietly(socket);
                         continue;
                     } catch (final Throwable t12) {

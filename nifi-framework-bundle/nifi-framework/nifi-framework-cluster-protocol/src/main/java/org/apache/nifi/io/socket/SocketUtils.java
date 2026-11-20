@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.security.cert.CertificateException;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
@@ -197,6 +198,21 @@ public final class SocketUtils {
         } catch (final Exception ex) {
             logger.debug("Failed to close server socket", ex);
         }
+    }
+
+    /**
+     * Returns the remote host of the given socket for logging without performing a reverse DNS lookup.
+     * Unlike {@link java.net.InetAddress#getHostName()}, this returns the IP address literal when no hostname is known.
+     *
+     * @param socket the connected socket
+     * @return the remote hostname if already known, otherwise the IP address literal
+     */
+    public static String getRemoteHostString(final Socket socket) {
+        final SocketAddress remoteAddress = socket.getRemoteSocketAddress();
+        if (remoteAddress instanceof final InetSocketAddress inetSocketAddress) {
+            return inetSocketAddress.getHostString();
+        }
+        return String.valueOf(remoteAddress);
     }
 
     /**
