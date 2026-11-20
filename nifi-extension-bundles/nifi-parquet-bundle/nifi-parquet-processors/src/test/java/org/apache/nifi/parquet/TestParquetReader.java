@@ -246,6 +246,11 @@ public class TestParquetReader {
             assertNotNull(record.getValue("time_micros_field"), "Time-micros value should not be null for record " + i);
             assertNotNull(record.getValue("timestamp_millis_field"), "Timestamp-millis value should not be null for record " + i);
             assertNotNull(record.getValue("timestamp_micros_field"), "Timestamp-micros value should not be null for record " + i);
+            assertNotNull(record.getValue("timestamp_nanos_field"), "Timestamp-nanos value should not be null for record " + i);
+            assertNotNull(record.getValue("local_timestamp_millis_field"), "Local Timestamp-millis value should not be null for record " + i);
+            assertNotNull(record.getValue("local_timestamp_micros_field"), "Local Timestamp-micros value should not be null for record " + i);
+            assertNotNull(record.getValue("local_timestamp_nanos_field"), "Local Timestamp-nanos value should not be null for record " + i);
+
             assertNotNull(record.getValue("nullable_timestamp_field"), "Nullable timestamp value should not be null for record " + i);
         }
     }

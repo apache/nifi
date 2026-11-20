@@ -69,6 +69,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -94,10 +95,15 @@ public class AvroTypeUtil {
     private static final String LOGICAL_TYPE_TIME_MICROS = "time-micros";
     private static final String LOGICAL_TYPE_TIMESTAMP_MILLIS = "timestamp-millis";
     private static final String LOGICAL_TYPE_TIMESTAMP_MICROS = "timestamp-micros";
+    private static final String LOGICAL_TYPE_TIMESTAMP_NANOS = "timestamp-nanos";
+    private static final String LOGICAL_TYPE_LOCAL_TIMESTAMP_MILLIS = "local-timestamp-millis";
+    private static final String LOGICAL_TYPE_LOCAL_TIMESTAMP_MICROS = "local-timestamp-micros";
+    private static final String LOGICAL_TYPE_LOCAL_TIMESTAMP_NANOS = "local-timestamp-nanos";
     private static final String LOGICAL_TYPE_DECIMAL = "decimal";
     private static final String LOGICAL_TYPE_UUID = "uuid";
 
     private static final long ONE_THOUSAND_MILLISECONDS = 1000;
+    private static final long ONE_MILLION_MILLISECONDS = 1000000;
 
     public static Schema extractAvroSchema(final RecordSchema recordSchema) {
         if (recordSchema == null) {
@@ -368,6 +374,10 @@ public class AvroTypeUtil {
                     return RecordFieldType.TIME.getDataType();
                 case LOGICAL_TYPE_TIMESTAMP_MILLIS:
                 case LOGICAL_TYPE_TIMESTAMP_MICROS:
+                case LOGICAL_TYPE_TIMESTAMP_NANOS:
+                case LOGICAL_TYPE_LOCAL_TIMESTAMP_MILLIS:
+                case LOGICAL_TYPE_LOCAL_TIMESTAMP_MICROS:
+                case LOGICAL_TYPE_LOCAL_TIMESTAMP_NANOS:
                     return RecordFieldType.TIMESTAMP.getDataType();
                 case LOGICAL_TYPE_DECIMAL:
                     final LogicalTypes.Decimal decimal = (LogicalTypes.Decimal) logicalType;
@@ -739,10 +749,15 @@ public class AvroTypeUtil {
                     final ZonedDateTime midnight = zonedDateTime.truncatedTo(ChronoUnit.DAYS);
                     final Duration duration = Duration.between(midnight, zonedDateTime);
                     return duration.toMillis() * ONE_THOUSAND_MILLISECONDS;
-                } else if (LOGICAL_TYPE_TIMESTAMP_MILLIS.equals(logicalType.getName())) {
+                } else if (LOGICAL_TYPE_TIMESTAMP_MILLIS.equals(logicalType.getName())
+                        || LOGICAL_TYPE_LOCAL_TIMESTAMP_MILLIS.equals(logicalType.getName())) {
                     return getLongFromTimestamp(rawValue, fieldSchema, fieldName);
-                } else if (LOGICAL_TYPE_TIMESTAMP_MICROS.equals(logicalType.getName())) {
+                } else if (LOGICAL_TYPE_TIMESTAMP_MICROS.equals(logicalType.getName())
+                        || LOGICAL_TYPE_LOCAL_TIMESTAMP_MICROS.equals(logicalType.getName())) {
                     return getLongFromTimestamp(rawValue, fieldSchema, fieldName) * ONE_THOUSAND_MILLISECONDS;
+                } else if (LOGICAL_TYPE_TIMESTAMP_NANOS.equals(logicalType.getName())
+                        || LOGICAL_TYPE_LOCAL_TIMESTAMP_NANOS.equals(logicalType.getName())) {
+                    return getLongFromTimestamp(rawValue, fieldSchema, fieldName) * ONE_MILLION_MILLISECONDS;
                 }
 
                 return DataTypeUtils.toLong(rawValue, fieldName);
@@ -1200,6 +1215,30 @@ public class AvroTypeUtil {
                         return Timestamp.from(instant);
                     }
                     return new Timestamp(TimeUnit.MICROSECONDS.toMillis((long) value));
+                } else if (LOGICAL_TYPE_TIMESTAMP_NANOS.equals(logicalName)) {
+                    // Handle both Long (legacy) and Instant (newer Avro libraries)
+                    if (value instanceof final Instant instant) {
+                        return Timestamp.from(instant);
+                    }
+                    return new Timestamp(TimeUnit.NANOSECONDS.toMillis((long) value));
+                } else if (LOGICAL_TYPE_LOCAL_TIMESTAMP_MILLIS.equals(logicalName)) {
+                    // Handle both Long (legacy) and LocalDateTime (newer Avro libraries)
+                    if (value instanceof final LocalDateTime localDateTime) {
+                        return Timestamp.valueOf(localDateTime);
+                    }
+                    return new Timestamp((long) value);
+                } else if (LOGICAL_TYPE_LOCAL_TIMESTAMP_MICROS.equals(logicalName)) {
+                    // Handle both Long (legacy) and LocalDateTime (newer Avro libraries)
+                    if (value instanceof final LocalDateTime localDateTime) {
+                        return Timestamp.valueOf(localDateTime);
+                    }
+                    return new Timestamp(TimeUnit.MICROSECONDS.toMillis((long) value));
+                } else if (LOGICAL_TYPE_LOCAL_TIMESTAMP_NANOS.equals(logicalName)) {
+                    // Handle both Long (legacy) and LocalDateTime (newer Avro libraries)
+                    if (value instanceof final LocalDateTime localDateTime) {
+                        return Timestamp.valueOf(localDateTime);
+                    }
+                    return new Timestamp(TimeUnit.NANOSECONDS.toMillis((long) value));
                 }
                 break;
             }
