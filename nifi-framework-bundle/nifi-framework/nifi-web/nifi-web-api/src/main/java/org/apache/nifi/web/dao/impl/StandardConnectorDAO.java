@@ -190,9 +190,9 @@ public class StandardConnectorDAO implements ConnectorDAO {
     }
 
     @Override
-    public void startConnector(final String id) {
+    public void startConnector(final String id, final ConnectorUpdateContext persistenceContext) {
         final ConnectorNode connector = requireConnector(id, ConnectorSyncMode.LOCAL_ONLY);
-        getConnectorRepository().startConnector(connector);
+        getConnectorRepository().startConnector(connector, persistenceContext);
     }
 
     @Override

@@ -44,6 +44,7 @@ import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ConnectorActionDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -657,6 +658,24 @@ public class NiFiClientUtil {
 
             Thread.sleep(100L);
         }
+    }
+
+    /**
+     * Returns the reason the given action is not allowed for the Connector, or null if the action is allowed or not listed.
+     */
+    public String getConnectorActionReasonNotAllowed(final String connectorId, final String actionName) throws NiFiClientException, IOException {
+        final List<ConnectorActionDTO> actions = getConnectorClient().getConnector(connectorId).getComponent().getAvailableActions();
+        if (actions == null) {
+            return null;
+        }
+
+        for (final ConnectorActionDTO action : actions) {
+            if (actionName.equals(action.getName()) && !Boolean.TRUE.equals(action.getAllowed())) {
+                return action.getReasonNotAllowed();
+            }
+        }
+
+        return null;
     }
 
     public void waitForAssetRemoved(final String connectorId, final String assetId)

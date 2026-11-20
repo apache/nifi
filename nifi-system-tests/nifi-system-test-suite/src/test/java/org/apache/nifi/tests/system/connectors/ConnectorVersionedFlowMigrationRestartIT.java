@@ -28,12 +28,15 @@ import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.MigrationRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -142,8 +145,16 @@ public class ConnectorVersionedFlowMigrationRestartIT extends AbstractConnectorV
         final ConnectorEntity connector = getClientUtil().createConnector("MigrationTargetConnector");
         final String connectorId = connector.getId();
 
+        // Restarting before the migration gives the Connector an authoritative flow snapshot, so later flow saves write the Connector from that snapshot
+        getNiFiInstance().stop();
+        getNiFiInstance().start();
+        setupClient();
+
         final MigrationRequestEntity requestEntity = getClientUtil().startMigrationFromLocalSource(connectorId, sourceFixture.processGroup().getId());
         getClientUtil().waitForMigrationSuccess(connectorId, requestEntity.getRequest().getRequestId());
+
+        final String managedGroupId = getNifiClient().getConnectorClient().getConnector(connectorId).getComponent().getManagedProcessGroupId();
+        final String migratedCountProcessorId = getProcessorId(connectorId, managedGroupId, "StatefulCountProcessor");
 
         getNiFiInstance().stop();
         getNiFiInstance().start();
@@ -151,8 +162,22 @@ public class ConnectorVersionedFlowMigrationRestartIT extends AbstractConnectorV
 
         // After restart the framework rebuilds the Connector from its persisted configuration. MigrationTargetConnector
         // records the migrated flow's configuration as its own configuration properties and rebuilds the managed
-        // Process Group from those properties inside applyUpdate(...); the initial-flow check must therefore still
-        // report the Connector as modified and MIGRATE must remain disallowed.
+        // Process Group from those properties inside applyUpdate(...); the migrated processor must still be present,
+        // the initial-flow check must still report the Connector as modified, and MIGRATE must remain disallowed.
+        final String managedGroupIdAfterRestart = getNifiClient().getConnectorClient().getConnector(connectorId).getComponent().getManagedProcessGroupId();
+        final Set<ProcessorEntity> processorsAfterRestart = getNifiClient().getConnectorClient().getFlow(connectorId, managedGroupIdAfterRestart).getProcessGroupFlow().getFlow().getProcessors();
+        final List<String> processorTypesAfterRestart = new ArrayList<>();
+        if (processorsAfterRestart != null) {
+            for (final ProcessorEntity processor : processorsAfterRestart) {
+                processorTypesAfterRestart.add(processor.getComponent().getType());
+            }
+        }
+
+        assertTrue(processorTypesAfterRestart.stream().anyMatch(type -> type.endsWith("StatefulCountProcessor")),
+                "Managed flow after restart lacks the migrated StatefulCountProcessor, so it was rebuilt from the pre-migration configuration and the migration was lost; processor types: %s"
+                        .formatted(processorTypesAfterRestart));
+        assertEquals(migratedCountProcessorId, getProcessorId(connectorId, managedGroupIdAfterRestart, "StatefulCountProcessor"));
+
         final ConnectorActionDTO migrateAfterRestart = findMigrateAction(getNifiClient().getConnectorClient().getConnector(connectorId));
         assertNotNull(migrateAfterRestart, "MIGRATE action must remain present after a restart");
         assertEquals(Boolean.FALSE, migrateAfterRestart.getAllowed(),

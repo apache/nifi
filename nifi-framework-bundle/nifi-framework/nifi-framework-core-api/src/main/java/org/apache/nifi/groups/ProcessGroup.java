@@ -973,8 +973,9 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * in the FlowFile Repository can be re-associated with their Connections after a restart).
      *
      * @param proposedSnapshot the proposed flow whose Instance Identifiers should be used as runtime identifiers
+     * @param resumeComponentState whether components resume the scheduled state captured in the snapshot
      */
-    void restoreFlowPreservingIdentifiers(VersionedExternalFlow proposedSnapshot);
+    void restoreFlowPreservingIdentifiers(VersionedExternalFlow proposedSnapshot, ResumeComponentState resumeComponentState);
 
     /**
      * Updates the Process Group to match the proposed flow

@@ -31,6 +31,7 @@ import org.apache.nifi.connectable.FlowFileTransferCounts;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConfigurationStep;
+import org.apache.nifi.flow.VersionedConnector;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.time.Duration;
@@ -38,6 +39,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent {
@@ -47,6 +49,12 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
     ConnectorState getCurrentState();
 
     ConnectorState getDesiredState();
+
+    /**
+     * @return the desired state recorded when the most recent update began, which the flow saves while that update is in
+     *         progress, or null if no update has begun
+     */
+    ConnectorState getPreUpdateDesiredState();
 
     /**
      * Verifies that the Connector is in a state that allows it to be deleted. If the Connector is not in a state
@@ -192,6 +200,27 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
 
     FrameworkFlowContext getWorkingFlowContext();
 
+    /**
+     * @return true when an upgrade is still open. That is when the Connector is not ghosted, an authoritative snapshot
+     *         is held, and its bundle differs from {@link #getBundleCoordinate()}, or when the evolution hook has finished
+     *         in an attempt that is still open. While true, Apply is rejected and START runs the upgrade.
+     */
+    boolean isPendingFlowEvolution();
+
+    /**
+     * @return the status this node reports to the cluster for the pending flow evolution; {@link FlowEvolutionStatus#FAILED} once
+     *         the evolution has failed, and {@link FlowEvolutionStatus#EVOLVE_DRAIN_PENDING} while this node still has an outgoing
+     *         flow to drain, even before an evolution attempt begins
+     */
+    default FlowEvolutionStatus getReportedFlowEvolutionStatus() {
+        return FlowEvolutionStatus.INACTIVE;
+    }
+
+    /**
+     * @return authoritative persistence snapshot, or null when none is held
+     */
+    ConnectorFlowSnapshot getAuthoritativeFlowSnapshot();
+
     void discardWorkingConfiguration();
 
     // -------------------
@@ -325,6 +354,60 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
     void prepareForUpdate() throws FlowUpdateException;
 
     /**
+     * Moves a pending upgrade from STOPPED or UPDATE_FAILED to DRAINING and creates the evolution context. When an earlier
+     * attempt failed after every node had drained, this attempt resumes after the hook without running it again.
+     *
+     * @param scheduler lifecycle scheduler used to keep stopping the outgoing flow when a failed attempt cannot stop it right away
+     * @throws IllegalStateException if no evolution is pending or the Connector is not STOPPED or UPDATE_FAILED
+     */
+    void prepareFlowEvolution(FlowEngine scheduler);
+
+    /**
+     * Runs preflight, the Connector evolution hook, and the local evolve-drain phase on the provided executor. The executor
+     * must tolerate a task blocked for the duration of the hook. A resumed evolution runs preflight without invoking the
+     * hook. abortUpdate cancels the returned Future and the hook.
+     *
+     * @param executor executor used to run the local evolve-drain phase
+     * @return the future for the local evolve-drain phase of the prepared evolution
+     * @throws FlowUpdateException if the prepared evolution is no longer active
+     */
+    Future<Void> evolveFlow(ExecutorService executor) throws FlowUpdateException;
+
+    /**
+     * Moves an evolution whose evolve-drain phase is complete from DRAINING to PREPARING_FOR_UPDATE so the upgraded flow
+     * can be applied like a configuration update. The caller then calls {@link #prepareForUpdate()} and {@link #applyUpdate()}.
+     *
+     * @throws FlowUpdateException if the evolution is no longer active, the evolve-drain phase is not complete, or the upgraded flow
+     *         removes a connection that still holds FlowFiles
+     */
+    void beginEvolvedFlowUpdate() throws FlowUpdateException;
+
+    /**
+     * @return true when the persisted flow belongs to a different bundle and configuration must not be inherited
+     */
+    boolean restorePendingFlowEvolution(VersionedConnector persisted, List<VersionedConfigurationStep> activeConfiguration,
+            List<VersionedConfigurationStep> workingConfiguration) throws FlowUpdateException;
+
+    /**
+     * Installs the persisted managed flow, with components stopped, for a Connector whose extension is missing, so that
+     * queues exist before the FlowFile Repository recovers. Must only be called when {@link #isExtensionMissing()} is true.
+     */
+    void restorePersistedManagedFlow(VersionedConnector persisted);
+
+    /**
+     * Records the live managed flow as this Connector's authoritative snapshot when none is held. Does nothing when a snapshot
+     * is already held or the Connector's extension is missing.
+     */
+    void ensureAuthoritativeFlowSnapshot();
+
+    /**
+     * Installs the persisted managed flow while restoring Troubleshooting.
+     *
+     * @throws FlowUpdateException if the persisted flow cannot be restored
+     */
+    void restoreTroubleshootingManagedFlow(VersionedConnector persisted) throws FlowUpdateException;
+
+    /**
      * Aborts the update preparation process. This method should only be invoked via the ConnectorRepository.
      * @param cause the reason for aborting the update preparation
      */
@@ -382,15 +465,16 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
 
     /**
      * Commits the merged configuration returned by {@link #applyMigratedConfiguration} onto this Connector's active
-     * configuration so the migration outcome is persisted to {@code flow.json.gz}. Each step in {@code mergedConfiguration}
-     * is written via {@code replaceProperties} so the resulting active configuration matches the merged configuration
-     * exactly, including property removals.
+     * configuration so the migration outcome is persisted to {@code flow.json.gz}. The active configuration is replaced
+     * so that it matches the merged configuration exactly, including property removals, and the authoritative flow
+     * snapshot is then captured again so that flow saves write the migrated configuration and managed flow.
      *
      * <p>
      * The framework calls this method only after the state-migration phase and all staged component-state writes have
      * succeeded. Until this commit runs, the active configuration still holds the pre-migration values, so a failure
      * in either migration phase can be rolled back by restoring the initial flow without having to revert active
-     * configuration mutations.
+     * configuration mutations. If the snapshot cannot be captured, the pre-migration active configuration is restored
+     * before the exception is thrown.
      * </p>
      *
      * @param mergedConfiguration the configuration produced by {@link #applyMigratedConfiguration} during this migration

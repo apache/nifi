@@ -47,6 +47,7 @@ import org.apache.nifi.groups.NoOpBatchCounts;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.ResumeComponentState;
 import org.apache.nifi.groups.StatelessGroupNode;
 import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.groups.VersionedComponentAdditions;
@@ -735,7 +736,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void restoreFlowPreservingIdentifiers(final VersionedExternalFlow proposedFlow) {
+    public void restoreFlowPreservingIdentifiers(final VersionedExternalFlow proposedFlow, final ResumeComponentState resumeComponentState) {
     }
 
     @Override

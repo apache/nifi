@@ -44,6 +44,12 @@
             <artifactId>nifi-system-test-extensions</artifactId>
             <version>2.13.0-SNAPSHOT</version>
         </dependency>
+        <!-- NAR-swap tests load this connector from this NAR. The class lives in the version 1 jar. -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-connector-upgrade-drain-v1</artifactId>
+            <version>2.13.0-SNAPSHOT</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-system-test-extensions-services-api-nar</artifactId>

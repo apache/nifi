@@ -57,6 +57,7 @@ public class StandardConnectorStateTransition implements ConnectorStateTransitio
     @Override
     public boolean trySetCurrentState(final ConnectorState expectedState, final ConnectorState newState) {
         final List<CompletableFuture<Void>> futuresToComplete;
+        final List<CompletableFuture<Void>> abandonedStopFutures;
         synchronized (this) {
             final boolean changed = currentState.compareAndSet(expectedState, newState);
             if (!changed) {
@@ -64,10 +65,12 @@ public class StandardConnectorStateTransition implements ConnectorStateTransitio
             }
 
             futuresToComplete = removePendingFutures(newState);
+            abandonedStopFutures = removeAbandonedStopFutures(newState);
         }
 
         logger.info("Transitioned current state for {} from {} to {}", componentDescription, expectedState, newState);
         completeFutures(futuresToComplete, newState);
+        failStopFutures(abandonedStopFutures, newState);
         return true;
     }
 
@@ -75,13 +78,16 @@ public class StandardConnectorStateTransition implements ConnectorStateTransitio
     public void setCurrentState(final ConnectorState newState) {
         final ConnectorState oldState;
         final List<CompletableFuture<Void>> futuresToComplete;
+        final List<CompletableFuture<Void>> abandonedStopFutures;
         synchronized (this) {
             oldState = currentState.getAndSet(newState);
             futuresToComplete = removePendingFutures(newState);
+            abandonedStopFutures = removeAbandonedStopFutures(newState);
         }
 
         logger.info("Transitioned current state for {} from {} to {}", componentDescription, oldState, newState);
         completeFutures(futuresToComplete, newState);
+        failStopFutures(abandonedStopFutures, newState);
     }
 
     @Override
@@ -118,6 +124,33 @@ public class StandardConnectorStateTransition implements ConnectorStateTransitio
         }
 
         return List.of();
+    }
+
+    /**
+     * A stop is pending only while the Connector is stopping or is about to stop. Any other state, such as
+     * UPDATE_FAILED after a failed update, means the stop that registered the future will never complete it.
+     */
+    private List<CompletableFuture<Void>> removeAbandonedStopFutures(final ConnectorState newState) {
+        if (newState == ConnectorState.STOPPING || newState == ConnectorState.STOPPED || pendingStopFutures.isEmpty()) {
+            return List.of();
+        }
+
+        final List<CompletableFuture<Void>> abandonedFutures = new ArrayList<>(pendingStopFutures);
+        pendingStopFutures.clear();
+        return abandonedFutures;
+    }
+
+    private void failStopFutures(final List<CompletableFuture<Void>> futures, final ConnectorState newState) {
+        if (futures.isEmpty()) {
+            return;
+        }
+
+        final IllegalStateException failure = new IllegalStateException("Stop of " + componentDescription + " did not complete because its state changed to " + newState);
+        for (final CompletableFuture<Void> future : futures) {
+            future.completeExceptionally(failure);
+        }
+
+        logger.info("Failed {} pending stop futures for {} on transition to {}", futures.size(), componentDescription, newState);
     }
 
     private void completeFutures(final List<CompletableFuture<Void>> futures, final ConnectorState newState) {
