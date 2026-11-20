@@ -60,6 +60,7 @@ import javax.net.ssl.SSLContext;
 public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     private static final Logger logger = LoggerFactory.getLogger(NioAsyncLoadBalanceClient.class);
     private static final long PENALIZATION_MILLIS = TimeUnit.SECONDS.toMillis(1L);
+    private static final int CONNECT_TIMEOUT_MILLISECONDS = (int) TimeUnit.SECONDS.toMillis(5L);
 
     private final NodeIdentifier nodeIdentifier;
     private final int timeoutMillis;
@@ -486,7 +487,9 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             final Socket socket = socketChannel.socket();
             socket.setSoTimeout(timeoutMillis);
 
-            socket.connect(new InetSocketAddress(nodeIdentifier.getLoadBalanceAddress(), nodeIdentifier.getLoadBalancePort()));
+            // Bound the connect: without a timeout, connecting to a peer that silently drops packets (e.g. the old address of a
+            // restarted node) blocks for the OS TCP connect timeout, stalling every other Client served by the same task thread
+            socket.connect(new InetSocketAddress(nodeIdentifier.getLoadBalanceAddress(), nodeIdentifier.getLoadBalancePort()), CONNECT_TIMEOUT_MILLISECONDS);
             socket.setSoTimeout(timeoutMillis);
 
             return socketChannel;
