@@ -31,6 +31,7 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 
 public final class SocketUtils {
 
@@ -53,25 +54,7 @@ public final class SocketUtils {
             throw new IllegalArgumentException("Configuration may not be null.");
         }
 
-        final Socket socket;
-
-        final SSLContext sslContext = config.getSslContext();
-        if (sslContext == null) {
-            socket = new Socket();
-        } else {
-            /* This would ideally be refactored to a shared create method but Socket and ServerSocket
-             * do not share a common interface; Socket is effectively "client socket" in this context
-             */
-            Socket tempSocket = sslContext.getSocketFactory().createSocket();
-            final SSLSocket sslSocket = (SSLSocket) tempSocket;
-            // Set Preferred TLS Protocol Versions
-            sslSocket.setEnabledProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
-            final SSLParameters sslParameters = sslSocket.getSSLParameters();
-            sslParameters.setEndpointIdentificationAlgorithm(TLS_ENDPOINT_IDENTIFICATION_ALGORITHM);
-            sslSocket.setSSLParameters(sslParameters);
-
-            socket = sslSocket;
-        }
+        final Socket socket = new Socket();
 
         if (config.getSocketTimeout() != null) {
             socket.setSoTimeout(config.getSocketTimeout());
@@ -116,7 +99,25 @@ public final class SocketUtils {
             throw e;
         }
 
-        return socket;
+        final Socket connectedSocket;
+
+        final SSLContext sslContext = config.getSslContext();
+        if (sslContext == null) {
+            connectedSocket = socket;
+        } else {
+            // Create SSLSocket after successful connection to support hostname verification
+            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+            final SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket, address.getHostName(), address.getPort(), true);
+
+            sslSocket.setEnabledProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
+            final SSLParameters sslParameters = sslSocket.getSSLParameters();
+            sslParameters.setEndpointIdentificationAlgorithm(TLS_ENDPOINT_IDENTIFICATION_ALGORITHM);
+            sslSocket.setSSLParameters(sslParameters);
+
+            connectedSocket = sslSocket;
+        }
+
+        return connectedSocket;
     }
 
     /**
