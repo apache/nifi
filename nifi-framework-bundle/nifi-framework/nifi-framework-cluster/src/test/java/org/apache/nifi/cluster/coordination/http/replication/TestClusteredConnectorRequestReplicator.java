@@ -24,6 +24,7 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
 import org.apache.nifi.components.connector.ConnectorClusterUnavailableException;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.FlowEvolutionStatus;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -48,7 +49,7 @@ class TestClusteredConnectorRequestReplicator {
     private static final String CONNECTOR_ID = "connector-1";
 
     @Test
-    void testFlowEvolutionStatusWaitsForMembershipToSettle() {
+    void testOnlyFlowEvolutionStatusWaitsForMembershipToSettle() throws Exception {
         final RequestReplicator requestReplicator = mock(RequestReplicator.class);
         final ClusterCoordinator clusterCoordinator = mock(ClusterCoordinator.class);
         final NodeConnectionStatus connectionStatus = mock(NodeConnectionStatus.class);
@@ -68,6 +69,15 @@ class TestClusteredConnectorRequestReplicator {
         assertThrows(ConnectorClusterUnavailableException.class, () -> replicator.getFlowEvolutionStatus(CONNECTOR_ID));
 
         verify(requestReplicator, never()).replicate(isNull(), eq("GET"), any(), anyMap(), anyMap());
+
+        // A node that never returns after a cluster restart stays NOT_YET_CONNECTED, so Connector state is read from the connected nodes.
+        final AsyncClusterResponse asyncResponse = mock(AsyncClusterResponse.class);
+        final NodeResponse nodeResponse = mock(NodeResponse.class);
+        when(requestReplicator.replicate(isNull(), eq("GET"), any(), anyMap(), anyMap())).thenReturn(asyncResponse);
+        when(asyncResponse.awaitMergedResponse()).thenReturn(nodeResponse);
+        when(nodeResponse.getUpdatedEntity()).thenReturn(connectorEntity(ConnectorState.UPDATED));
+
+        assertEquals(ConnectorState.UPDATED, replicator.getState(CONNECTOR_ID));
     }
 
     @Test
@@ -126,6 +136,16 @@ class TestClusteredConnectorRequestReplicator {
     private static ConnectorEntity connectorEntity(final FlowEvolutionStatus status) {
         final ConnectorDTO connector = new ConnectorDTO();
         connector.setFlowEvolutionStatus(status.name());
+        return connectorEntity(connector);
+    }
+
+    private static ConnectorEntity connectorEntity(final ConnectorState state) {
+        final ConnectorDTO connector = new ConnectorDTO();
+        connector.setState(state.name());
+        return connectorEntity(connector);
+    }
+
+    private static ConnectorEntity connectorEntity(final ConnectorDTO connector) {
         final ConnectorEntity entity = new ConnectorEntity();
         entity.setComponent(connector);
         return entity;

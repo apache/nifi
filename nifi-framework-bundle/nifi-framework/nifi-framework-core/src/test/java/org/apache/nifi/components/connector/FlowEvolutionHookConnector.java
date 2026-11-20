@@ -21,6 +21,7 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 
 import java.util.List;
@@ -31,7 +32,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Connector that counts its flow evolution hook, update preparation, apply and start calls. The hook can return a future
- * that never completes, and apply and start can each fail a given number of times.
+ * that never completes, and apply and start can each fail a given number of times. The active flow can carry a parameter
+ * context or fail.
  */
 public class FlowEvolutionHookConnector extends AbstractConnector {
 
@@ -44,6 +46,9 @@ public class FlowEvolutionHookConnector extends AbstractConnector {
     volatile CompletableFuture<Void> evolutionFuture;
     volatile int remainingApplyFailures;
     volatile int remainingStartFailures;
+    volatile boolean failStepConfigured;
+    volatile VersionedParameterContext activeFlowParameterContext;
+    volatile boolean failActiveFlow;
     final AtomicInteger startCalls = new AtomicInteger();
     final CountDownLatch hookEntered = new CountDownLatch(1);
     final CountDownLatch evolutionFuturePublished = new CountDownLatch(1);
@@ -55,8 +60,15 @@ public class FlowEvolutionHookConnector extends AbstractConnector {
 
     @Override
     public VersionedExternalFlow getActiveFlow(final FlowContext flowContext) {
+        if (failActiveFlow) {
+            throw new IllegalStateException("Intentional active flow failure");
+        }
+
         final VersionedExternalFlow flow = new VersionedExternalFlow();
         flow.setFlowContents(new VersionedProcessGroup());
+        if (activeFlowParameterContext != null) {
+            flow.setParameterContexts(Map.of(activeFlowParameterContext.getName(), activeFlowParameterContext));
+        }
         return flow;
     }
 
@@ -89,7 +101,10 @@ public class FlowEvolutionHookConnector extends AbstractConnector {
     }
 
     @Override
-    protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+    protected void onStepConfigured(final String stepName, final FlowContext workingContext) throws FlowUpdateException {
+        if (failStepConfigured) {
+            throw new FlowUpdateException("Intentional step configuration failure");
+        }
     }
 
     @Override

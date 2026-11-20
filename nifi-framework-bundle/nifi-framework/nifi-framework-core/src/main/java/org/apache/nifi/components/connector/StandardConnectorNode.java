@@ -387,19 +387,42 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
         }
         Objects.requireNonNull(mergedConfiguration, "Merged configuration is required");
 
-        // Write the merged configuration onto the active configuration so the migration outcome is persisted to
-        // flow.json.gz. Each step is written via replaceProperties so the resulting active configuration matches the
-        // merged configuration exactly, including any properties the connector removed during migration. This is the
-        // durability boundary of the two-phase migration: once this commit runs the migration is part of the persisted
-        // flow and will be restored on every restart via inheritConfiguration(...).
-        for (final NamedStepConfiguration stepConfig : mergedConfiguration.getNamedStepConfigurations()) {
-            activeFlowContext.getConfigurationContext().replaceProperties(stepConfig.stepName(), stepConfig.configuration());
+        // Replace the active configuration with the merged configuration, including any properties the connector removed
+        // during migration, then capture a fresh authoritative snapshot. Flow saves write the active configuration and the
+        // managed flow from that snapshot, so this is the durability boundary of the two-phase migration: once this commit
+        // runs the migration is part of the persisted flow and will be restored on every restart via inheritConfiguration(...).
+        // The migration manager rolls back the managed flow if commit fails, so a failed capture restores the pre-migration
+        // active configuration to match it.
+        final ConnectorConfiguration preMigrationConfiguration = activeFlowContext.getConfigurationContext().toConnectorConfiguration();
+        replaceActiveConfiguration(mergedConfiguration);
+        try {
+            captureAuthoritativeSnapshot();
+        } catch (final RuntimeException e) {
+            try {
+                replaceActiveConfiguration(preMigrationConfiguration);
+            } catch (final RuntimeException restoreFailure) {
+                e.addSuppressed(restoreFailure);
+            }
+
+            throw e;
         }
 
         resetValidationState();
         recreateWorkingFlowContext();
 
         logger.info("Committed migrated configuration onto active configuration for {}", this);
+    }
+
+    /**
+     * Replaces the complete active configuration, so a step that the given configuration does not contain is removed.
+     */
+    private void replaceActiveConfiguration(final ConnectorConfiguration configuration) {
+        final Map<String, StepConfiguration> stepConfigurations = new LinkedHashMap<>();
+        for (final NamedStepConfiguration stepConfig : configuration.getNamedStepConfigurations()) {
+            stepConfigurations.put(stepConfig.stepName(), stepConfig.configuration());
+        }
+
+        activeFlowContext.getConfigurationContext().replaceConfiguration(stepConfigurations);
     }
 
     @Override
@@ -749,12 +772,7 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
             // Update the active flow context based on the properties of the provided context, as the connector has now been updated.
             // The supplied context is the complete configuration, so a step it does not contain has been removed.
-            final ConnectorConfiguration workingConfig = contextToInherit.getConfigurationContext().toConnectorConfiguration();
-            final Map<String, StepConfiguration> inheritedConfiguration = new LinkedHashMap<>();
-            for (final NamedStepConfiguration stepConfig : workingConfig.getNamedStepConfigurations()) {
-                inheritedConfiguration.put(stepConfig.stepName(), stepConfig.configuration());
-            }
-            activeFlowContext.getConfigurationContext().replaceConfiguration(inheritedConfiguration);
+            replaceActiveConfiguration(contextToInherit.getConfigurationContext().toConnectorConfiguration());
 
             getComponentLog().info("Working Context has been applied to Active Context");
             captureAuthoritativeSnapshot();
@@ -1814,8 +1832,9 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
         if (!extensionMissing && !sameManagedBundle(managedFlowBundle) && persistedManagedGroup != null) {
             // Skip inheritConfiguration. Its applyUpdate would replace the pre-upgrade group with the new bundle's
-            // flow. The restored group keeps the previous bundle, so the next start evolves it. A failed restore still loads
-            // the configuration and adopts the persisted snapshot, so the next flow save keeps the pre-upgrade flow.
+            // flow. The restored group keeps the previous bundle, so the next start evolves it. A failed restore or a failed
+            // configuration load still adopts the persisted snapshot, so the next flow save keeps the pre-upgrade flow. The
+            // snapshot is adopted after the load because flow saves write the active configuration from the snapshot.
             try {
                 restorePersistedFlow(persistedManagedGroup, persisted.getManagedParameterContext(), parameterSecretReferences, ResumeComponentState.RESUME_AS_PERSISTED);
             } catch (final Exception e) {
@@ -1823,12 +1842,46 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
                 markManagedFlowRestoreFailed();
             }
 
-            loadConfigurationsWithoutRebuildingFlow(activeConfiguration, workingConfiguration);
-            adoptAuthoritativeSnapshot(persistedManagedGroup, persisted.getManagedParameterContext(), parameterSecretReferences, managedFlowBundle);
+            ConnectorFlowSnapshot filledParameters = null;
+            try {
+                loadConfigurationsWithoutRebuildingFlow(activeConfiguration, workingConfiguration);
+
+                // A group saved without its parameter context (Troubleshooting under NiFi 2.12 or earlier) has no values to restore,
+                // and its components must run to empty the queues before Troubleshooting can end while the upgrade is pending.
+                if (persisted.getManagedParameterContext() == null) {
+                    filledParameters = fillParametersFromActiveFlow(managedFlowBundle);
+                }
+            } finally {
+                final VersionedParameterContext parameterContext = filledParameters == null ? persisted.getManagedParameterContext() : filledParameters.parameterContext();
+                final Map<String, SecretReference> secretReferences = filledParameters == null ? parameterSecretReferences : filledParameters.parameterSecretReferences();
+                adoptAuthoritativeSnapshot(persistedManagedGroup, parameterContext, secretReferences, managedFlowBundle);
+            }
+
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * Applies the parameter values of the Connector's authoritative flow to the managed Parameter Context without changing the
+     * managed flow, and captures the resulting parameter context and secret references.
+     *
+     * @return the captured snapshot, or {@code null} if the parameter values could not be applied
+     */
+    private ConnectorFlowSnapshot fillParametersFromActiveFlow(final Bundle managedFlowBundle) {
+        try {
+            final VersionedExternalFlow activeFlow = resolveAuthoritativeFlow();
+            if (activeFlow.getParameterContexts() != null) {
+                final ConnectorParameterLookup parameterLookup = new ConnectorParameterLookup(activeFlow.getParameterContexts().values(), initializationContext.getAssetManager());
+                activeFlowContext.getParameterContext().updateParameters(parameterLookup.getParameterValues());
+            }
+
+            return snapshotMapper.capture(activeFlowContext, managedFlowBundle, initializationContext.getSecretsManager());
+        } catch (final Exception e) {
+            logger.warn("{} failed to fill the managed Parameter Context from its authoritative flow; components that reference parameters may be invalid", this, e);
+            return null;
+        }
     }
 
     @Override

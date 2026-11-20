@@ -465,15 +465,16 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
 
     /**
      * Commits the merged configuration returned by {@link #applyMigratedConfiguration} onto this Connector's active
-     * configuration so the migration outcome is persisted to {@code flow.json.gz}. Each step in {@code mergedConfiguration}
-     * is written via {@code replaceProperties} so the resulting active configuration matches the merged configuration
-     * exactly, including property removals.
+     * configuration so the migration outcome is persisted to {@code flow.json.gz}. The active configuration is replaced
+     * so that it matches the merged configuration exactly, including property removals, and the authoritative flow
+     * snapshot is then captured again so that flow saves write the migrated configuration and managed flow.
      *
      * <p>
      * The framework calls this method only after the state-migration phase and all staged component-state writes have
      * succeeded. Until this commit runs, the active configuration still holds the pre-migration values, so a failure
      * in either migration phase can be rolled back by restoring the initial flow without having to revert active
-     * configuration mutations.
+     * configuration mutations. If the snapshot cannot be captured, the pre-migration active configuration is restored
+     * before the exception is thrown.
      * </p>
      *
      * @param mergedConfiguration the configuration produced by {@link #applyMigratedConfiguration} during this migration

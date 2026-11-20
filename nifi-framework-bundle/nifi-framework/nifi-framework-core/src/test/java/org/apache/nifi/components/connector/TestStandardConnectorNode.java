@@ -112,6 +112,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -1345,6 +1346,10 @@ public class TestStandardConnectorNode {
         assertEquals(Map.of("propA", new StringLiteralValue("after-migration")), activeStepProperties(connectorNode, "stepA"));
         // replaceProperties removed propB and introduced propB-renamed.
         assertEquals(Map.of("propB-renamed", new StringLiteralValue("after-migration")), activeStepProperties(connectorNode, "stepB"));
+
+        // Flow saves write the active configuration from the authoritative snapshot, so it must hold the migrated configuration.
+        final ConnectorConfiguration snapshotConfiguration = connectorNode.getAuthoritativeFlowSnapshot().activeConfiguration();
+        assertEquals(Map.of("propA", new StringLiteralValue("after-migration")), snapshotConfiguration.getNamedStepConfiguration("stepA").configuration().getPropertyValues());
     }
 
     @Test
@@ -2608,7 +2613,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testRestorePendingFlowEvolutionAdoptsSnapshotWhenRestoreFails() throws Exception {
+    public void testRestorePendingFlowEvolutionAdoptsSnapshotWhenRestoreOrConfigurationFails() throws Exception {
         final StandardConnectorNode connectorNode = createConnectorNode(new FlowEvolutionHookConnector());
         doThrow(new IllegalStateException("Restore failed")).when(managedProcessGroup)
             .restoreFlowPreservingIdentifiers(any(VersionedExternalFlow.class), eq(ResumeComponentState.RESUME_AS_PERSISTED));
@@ -2635,6 +2640,21 @@ public class TestStandardConnectorNode {
         assertEquals(outgoingSnapshotBundle(), snapshot.bundle());
         final ConnectorValueReference activeGreeting = snapshot.activeConfiguration().getNamedStepConfiguration("settings").configuration().getPropertyValue("Greeting");
         assertEquals(new StringLiteralValue("Welcome"), activeGreeting);
+
+        // The upgraded Connector rejects the persisted working configuration after the pre-upgrade flow was restored
+        final FlowEvolutionHookConnector rejectingConnector = new FlowEvolutionHookConnector();
+        rejectingConnector.failStepConfigured = true;
+        final StandardConnectorNode rejectingNode = createConnectorNode(rejectingConnector);
+        doNothing().when(managedProcessGroup).restoreFlowPreservingIdentifiers(any(VersionedExternalFlow.class), eq(ResumeComponentState.RESUME_AS_PERSISTED));
+
+        assertThrows(FlowUpdateException.class, () -> rejectingNode.restorePendingFlowEvolution(persisted, List.of(activeStep), List.of(activeStep)));
+
+        assertTrue(rejectingNode.isPendingFlowEvolution());
+        final ConnectorFlowSnapshot rejectedSnapshot = rejectingNode.getAuthoritativeFlowSnapshot();
+        assertSame(persistedGroup, rejectedSnapshot.flow());
+        assertEquals(outgoingSnapshotBundle(), rejectedSnapshot.bundle());
+        final ConnectorValueReference rejectedGreeting = rejectedSnapshot.activeConfiguration().getNamedStepConfiguration("settings").configuration().getPropertyValue("Greeting");
+        assertEquals(new StringLiteralValue("Welcome"), rejectedGreeting);
     }
 
     private static VersionedConnectorValueReference versionedSecretReference(final SecretReference secretReference) {
@@ -2667,6 +2687,51 @@ public class TestStandardConnectorNode {
         verify(parameterContextFacade).updateParameters(valuesCaptor.capture());
         assertEquals(connectionUrl, valuesCaptor.getValue().iterator().next().getValue());
         assertTrue(connectorNode.isPendingFlowEvolution());
+    }
+
+    @Test
+    public void testRestorePendingFlowEvolutionFillsParametersMissingFromLegacySave() throws Exception {
+        // A Troubleshooting group saved before the managed Parameter Context was persisted is attributed to the stored Connector bundle
+        final VersionedProcessGroup persistedGroup = flowGroup("pre-upgrade");
+        final VersionedConnector persisted = new VersionedConnector();
+        persisted.setManagedProcessGroup(persistedGroup);
+        persisted.setBundle(outgoingSnapshotBundle());
+
+        final VersionedParameter greeting = new VersionedParameter();
+        greeting.setName("Greeting");
+        greeting.setValue("Welcome");
+        greeting.setSensitive(false);
+        final VersionedParameterContext activeFlowParameters = new VersionedParameterContext();
+        activeFlowParameters.setName("Active Flow Parameters");
+        activeFlowParameters.setParameters(Set.of(greeting));
+        final FlowEvolutionHookConnector connector = new FlowEvolutionHookConnector();
+        connector.activeFlowParameterContext = activeFlowParameters;
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+        clearInvocations(parameterContextFacade);
+
+        assertTrue(connectorNode.restorePendingFlowEvolution(persisted, List.of(), List.of()));
+
+        final ArgumentCaptor<Collection<ParameterValue>> valuesCaptor = ArgumentCaptor.forClass(Collection.class);
+        verify(parameterContextFacade).updateParameters(valuesCaptor.capture());
+        final ParameterValue filledValue = valuesCaptor.getValue().iterator().next();
+        assertEquals("Greeting", filledValue.getName());
+        assertEquals("Welcome", filledValue.getValue());
+        assertTrue(connectorNode.isPendingFlowEvolution());
+        final ConnectorFlowSnapshot snapshot = connectorNode.getAuthoritativeFlowSnapshot();
+        assertSame(persistedGroup, snapshot.flow());
+        assertEquals(outgoingSnapshotBundle(), snapshot.bundle());
+
+        // An active flow that cannot be built leaves the parameters unfilled and the restored upgrade pending
+        final FlowEvolutionHookConnector failingConnector = new FlowEvolutionHookConnector();
+        failingConnector.failActiveFlow = true;
+        final StandardConnectorNode failingNode = createConnectorNode(failingConnector);
+        clearInvocations(parameterContextFacade);
+
+        assertTrue(failingNode.restorePendingFlowEvolution(persisted, List.of(), List.of()));
+
+        verify(parameterContextFacade, never()).updateParameters(any());
+        assertTrue(failingNode.isPendingFlowEvolution());
+        assertSame(persistedGroup, failingNode.getAuthoritativeFlowSnapshot().flow());
     }
 
     private static VersionedProcessGroup flowGroup(final String name) {

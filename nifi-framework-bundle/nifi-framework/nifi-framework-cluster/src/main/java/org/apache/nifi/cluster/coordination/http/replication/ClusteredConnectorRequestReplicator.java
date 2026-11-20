@@ -88,7 +88,9 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
 
     private ConnectorEntity getConnectorEntity(final String connectorId, final boolean requireAllConnected) throws IOException {
         final RequestReplicator requestReplicator = getRequestReplicator();
-        verifyClusterMembership(connectorId, requireAllConnected);
+        if (requireAllConnected) {
+            verifyClusterMembership(connectorId);
+        }
 
         final URI uri = URI.create(replicationScheme + "://localhost/nifi-api/connectors/" + connectorId);
 
@@ -155,7 +157,7 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
         }
     }
 
-    private void verifyClusterMembership(final String connectorId, final boolean requireAllConnected) throws IOException {
+    private void verifyClusterMembership(final String connectorId) throws IOException {
         final ClusterCoordinator clusterCoordinator = clusterCoordinatorSupplier.get();
         if (clusterCoordinator == null || !clusterCoordinator.isConnected()) {
             throw new ConnectorClusterUnavailableException("No connected nodes while retrieving Connector %s".formatted(connectorId));
@@ -168,7 +170,7 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
                 throw new ConnectorClusterUnavailableException("Cannot retrieve Connector %s because node %s is still joining the cluster"
                         .formatted(connectorId, connectionStatus.getNodeIdentifier()));
             }
-            if (requireAllConnected && state != NodeConnectionState.CONNECTED && state != NodeConnectionState.REMOVED) {
+            if (state != NodeConnectionState.CONNECTED && state != NodeConnectionState.REMOVED) {
                 throw new IOException("Cannot retrieve flow evolution status for Connector %s because node %s is %s"
                         .formatted(connectorId, connectionStatus.getNodeIdentifier(), state));
             }

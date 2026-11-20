@@ -896,22 +896,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
         int iterations = 0;
         final long startNanos = System.nanoTime();
         while (true) {
-            final ConnectorState clusterState;
-            try {
-                clusterState = requestReplicator == null ? connector.getCurrentState() : requestReplicator.getState(connector.getIdentifier());
-            } catch (final ConnectorClusterUnavailableException e) {
-                // A connector that resumes during startup reaches this barrier before every node has joined.
-                // Replication then fails, or reports only the nodes that are already connected. Wait and retry.
-
-                final long elapsedSeconds = Duration.ofNanos(System.nanoTime() - startNanos).toSeconds();
-                if (++iterations % 10 == 0) {
-                    logger.info("Waiting for {} to join the cluster before checking connector state; elapsed time = {} secs", connector, elapsedSeconds);
-                }
-
-                Thread.sleep(Duration.ofSeconds(1));
-                continue;
-            }
-
+            final ConnectorState clusterState = requestReplicator == null ? connector.getCurrentState() : requestReplicator.getState(connector.getIdentifier());
             if (desiredStates.contains(clusterState)) {
                 logger.info("State for {} is now {}", connector, clusterState);
                 break;
