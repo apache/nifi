@@ -279,7 +279,7 @@ public class ITRedisDistributedMapCacheClientService {
             for (String key : List.of("put", "get", "replace")) {
                 assertEquals(-1L, connection.keyCommands().ttl(key.getBytes(StandardCharsets.UTF_8)));
             }
-            // A replacement without TTL must remove an existing expiration, as SET did before this change.
+            // A successful replacement with TTL disabled removes any existing expiration.
             connection.keyCommands().expire("replace".getBytes(StandardCharsets.UTF_8), 20);
             assertTrue(cacheClient.replace(new AtomicCacheEntry<>("replace", "v2", "v1".getBytes(StandardCharsets.UTF_8)),
                     STRING_SERIALIZER, STRING_SERIALIZER));

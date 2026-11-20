@@ -19,6 +19,8 @@ package org.apache.nifi.redis.service;
 /**
  * Runs the atomic cache contract against the Redis Cluster API, with all hash slots assigned to one node.
  * This exercises cluster command routing without requiring fixed Docker host ports or a multi-node network.
+ * Because one node owns every slot, the client never receives MOVED or ASK redirects, so this test does not cover
+ * redirect handling or slot migration between nodes.
  */
 public class ITRedisClusterDistributedMapCacheClientService extends ITRedisDistributedMapCacheClientService {
 
