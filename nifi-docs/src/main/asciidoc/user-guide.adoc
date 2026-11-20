@@ -2016,7 +2016,7 @@ There are times when the DFM may want to either enable or disable transmission f
 
 image::remote-group-ports-dialog.png["Remote Process Group Ports"]
 
-The left-hand side lists all of the Input and Ouput Ports that the remote instance of NiFi allows data to be sent to (Input) and from which to be pulled (Output). If the remote instance is using secure communications (the URL of the NiFi instance begins with `https://`, rather than `http://`), any ports that the remote instance has not made available to this instance will not be shown.
+The left-hand side lists all of the Input and Output Ports that the remote instance of NiFi allows data to be sent to (Input) and from which to be pulled (Output). If the remote instance is using secure communications (the URL of the NiFi instance begins with `https://`, rather than `http://`), any ports that the remote instance has not made available to this instance will not be shown.
 
 NOTE: If a port that is expected to be shown is not shown in this dialog, ensure that the instance has proper permissions and that the Remote Process Group's flow is current. This can be checked by closing the Remote Process Group Ports dialog and looking at the bottom-left corner of the Remote Process Group. The date and time when the flow was last refreshed is displayed. If the flow appears to be outdated, it can be updated by right-clicking on the Remote Process Group and selecting "Refresh remote". (See <<remote_group_anatomy>> for more information).
 

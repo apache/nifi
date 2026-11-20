@@ -148,7 +148,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         this.flowFilesIn = flowFilesIn;
     }
 
-    @Schema(description = "The size of hte FlowFiles that have been accepted in the last 5 minutes.")
+    @Schema(description = "The size of the FlowFiles that have been accepted in the last 5 minutes.")
     public Long getBytesIn() {
         return bytesIn;
     }

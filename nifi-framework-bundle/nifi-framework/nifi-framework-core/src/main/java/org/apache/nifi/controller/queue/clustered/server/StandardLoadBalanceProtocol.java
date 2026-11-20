@@ -154,7 +154,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             }
 
             if (requestedVersion < 0) {
-                logger.debug("Encountered End-of-File when receiving the the recommended Protocol Version. Returning -1 for the protocol version");
+                logger.debug("Encountered End-of-File when receiving the recommended Protocol Version. Returning -1 for the protocol version");
                 return -1;
             }
 

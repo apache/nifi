@@ -51,7 +51,7 @@ public class ConfigResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
-            summary = "Get configration",
+            summary = "Get configuration",
             description = "Gets the NiFi Registry configurations.",
             responses = {
                     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = RegistryConfiguration.class))),

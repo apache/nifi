@@ -240,7 +240,7 @@ public enum ProcessorStatusDescriptor {
     SESSION_COMMIT_PERCENTAGE(
             "sessionCommitPercentage",
             "Session Commit Percentage (5 mins)",
-            "Of the time that the Processor was running in the past 5 minutes, the percentage of that time that the Processor was waiting for hte framework to commit its ProcessSession. " +
+            "Of the time that the Processor was running in the past 5 minutes, the percentage of that time that the Processor was waiting for the framework to commit its ProcessSession. " +
             "Note, this metric may be unavailable, depending on configuration of the `nifi.performance.tracking.percentage` property.",
             Formatter.COUNT,
                 status -> nanosValue(status, ProcessingPerformanceStatus::getSessionCommitDuration) * 100 / Math.max(1, status.getProcessingNanos()),

@@ -897,7 +897,7 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Write - /flow-analysis-rules/{uuid} or  or /operation/flow-analysis-rules/{uuid}")
+                    @SecurityRequirement(name = "Write - /flow-analysis-rules/{uuid} or /operation/flow-analysis-rules/{uuid}")
             }
     )
     public Response updateRunStatus(

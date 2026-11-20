@@ -774,7 +774,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             },
             security = {
-                    @SecurityRequirement(name = "Write - /parameter-providers/{uuid} or  or /operation/parameter-providers/{uuid}")
+                    @SecurityRequirement(name = "Write - /parameter-providers/{uuid} or /operation/parameter-providers/{uuid}")
             }
     )
     public Response fetchParameters(
