@@ -17,12 +17,19 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.flow.AbstractFlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class RegistryFlowSynchronizationTaskTest {
@@ -65,5 +72,33 @@ class RegistryFlowSynchronizationTaskTest {
 
         when(flowManager.getFlowRegistryClient("missing")).thenReturn(null);
         assertEquals(DEFAULT_INTERVAL_SECONDS, task.getEffectiveIntervalSeconds("missing"));
+    }
+
+    @Test
+    void testPostInitializationSynchronizationDoesNotDelayFirstPeriodicSynchronization() {
+        final FlowManager flowManager = mock(FlowManager.class);
+        final ProcessGroup rootGroup = mock(ProcessGroup.class);
+        final ProcessGroup childGroup = mock(ProcessGroup.class);
+        final VersionControlInformation rootVersionControlInformation = versionControlInformation("root-registry");
+        final VersionControlInformation childVersionControlInformation = versionControlInformation("child-registry");
+
+        when(flowManager.getRootGroup()).thenReturn(rootGroup);
+        when(rootGroup.findAllProcessGroups()).thenAnswer(invocation -> new ArrayList<>(List.of(childGroup)));
+        when(rootGroup.getVersionControlInformation()).thenReturn(rootVersionControlInformation);
+        when(childGroup.getVersionControlInformation()).thenReturn(childVersionControlInformation);
+
+        final RegistryFlowSynchronizationTask task = new RegistryFlowSynchronizationTask(flowManager, DEFAULT_INTERVAL_SECONDS);
+
+        task.synchronizeAllProcessGroups();
+        task.run();
+
+        verify(rootGroup, times(2)).synchronizeWithFlowRegistry(flowManager);
+        verify(childGroup, times(2)).synchronizeWithFlowRegistry(flowManager);
+    }
+
+    private VersionControlInformation versionControlInformation(final String registryIdentifier) {
+        final VersionControlInformation versionControlInformation = mock(VersionControlInformation.class);
+        when(versionControlInformation.getRegistryIdentifier()).thenReturn(registryIdentifier);
+        return versionControlInformation;
     }
 }
