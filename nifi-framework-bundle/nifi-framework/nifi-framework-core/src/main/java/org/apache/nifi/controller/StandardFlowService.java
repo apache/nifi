@@ -612,7 +612,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         return connectionGeneration.get();
     }
 
-    private void handleReconnectionRequest(final ReconnectionRequestMessage request) {
+    // Visible for testing
+    void handleReconnectionRequest(final ReconnectionRequestMessage request) {
         try {
             logger.info("Processing reconnection request from cluster coordinator.");
 
@@ -643,8 +644,9 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             loadFromConnectionResponse(connectionResponse);
 
-            clusterCoordinator.resetNodeStatuses(connectionResponse.getNodeConnectionStatuses().stream()
-                    .collect(Collectors.toMap(NodeConnectionStatus::getNodeIdentifier, status -> status)));
+            // Node statuses received while the flow was loading are current; listeners are notified of them so that
+            // components created while loading the flow align with the cluster topology
+            clusterCoordinator.notifyNodeStatusListeners();
             // reconnected, this node needs to explicitly write the inherited flow to disk, and resume heartbeats
             saveFlowChanges();
             controller.onClusterConnect();
