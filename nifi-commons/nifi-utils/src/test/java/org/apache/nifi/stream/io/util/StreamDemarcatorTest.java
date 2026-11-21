@@ -321,4 +321,24 @@ public class StreamDemarcatorTest {
         assertArrayEquals(new byte[] {'7', '8', '9'}, third);
     }
 
+    @Test
+    public void testMultiByteDelimiterAfterPartialMatch() throws IOException {
+        assertTokensFound("msg1\r\r\nmsg2", "\r\n", "msg1\r", "msg2");
+        assertTokensFound("x---END--y", "--END--", "x-", "y");
+        assertTokensFound("helloaaab", "aab", "helloa");
+        assertTokensFound("1abaabab2ababab3", "abab", "1aba", "2", "ab3");
+    }
+
+    private void assertTokensFound(final String data, final String delimiter, final String... expectedTokens) throws IOException {
+        final int[] initialBufferSizes = new int[] {1, 2, 3, 5, 8, 1000};
+        for (final int initialBufferSize : initialBufferSizes) {
+            try (final InputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
+                    final StreamDemarcator demarcator = new StreamDemarcator(is, delimiter.getBytes(StandardCharsets.UTF_8), 1000, initialBufferSize)) {
+                for (final String expectedToken : expectedTokens) {
+                    assertEquals(expectedToken, new String(demarcator.nextToken(), StandardCharsets.UTF_8));
+                }
+                assertNull(demarcator.nextToken());
+            }
+        }
+    }
 }
