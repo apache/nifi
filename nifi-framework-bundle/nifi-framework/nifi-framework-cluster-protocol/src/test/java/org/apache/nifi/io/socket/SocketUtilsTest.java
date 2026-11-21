@@ -41,11 +41,19 @@ import java.util.concurrent.Future;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.x500.X500Principal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class SocketUtilsTest {
 
@@ -104,6 +112,30 @@ class SocketUtilsTest {
                 assertTrue(socket.isConnected());
                 assertEquals(TIMEOUT_MILLISECONDS, socket.getSoTimeout());
             }
+        }
+    }
+
+    @Test
+    void testCreateSocketConnectedException() throws IOException {
+        try (ServerSocket serverSocket = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+            final SocketConfiguration config = new SocketConfiguration();
+            config.setConnectTimeout(CONNECT_TIMEOUT_MILLISECONDS);
+            config.setSocketTimeout(TIMEOUT_MILLISECONDS);
+
+            final SSLContext sslContext = mock(SSLContext.class);
+            final SSLSocketFactory sslSocketFactory = mock(SSLSocketFactory.class);
+            when(sslContext.getSocketFactory()).thenReturn(sslSocketFactory);
+
+            final IOException expectedException = new IOException("createSocket failed");
+            when(sslSocketFactory.createSocket(any(Socket.class), anyString(), anyInt(), anyBoolean())).thenThrow(expectedException);
+            config.setSslContext(sslContext);
+
+            final IOException exception = assertThrows(IOException.class, () -> {
+                try (Socket socket = SocketUtils.createSocket(InetSocketAddress.createUnresolved(LOCALHOST, serverSocket.getLocalPort()), config)) {
+                    assertFalse(socket.isClosed(), "Socket not closed");
+                }
+            });
+            assertEquals(expectedException, exception, "createSocket Exception not matched");
         }
     }
 
