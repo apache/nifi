@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { afterNextRender, Component, ElementRef, Input, inject } from '@angular/core';
+import { afterNextRender, Component, ElementRef, Input, inject, QueryList, ViewChildren } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { UpdateAttributeState } from '../../state';
@@ -26,7 +26,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatExpansionModule } from '@angular/material/expansion';
+import { MatAccordion, MatExpansionModule } from '@angular/material/expansion';
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Action, Condition, NewRule, Rule } from '../../state/rules';
 import { EvaluationContext } from '../../state/evaluation-context';
@@ -72,6 +72,8 @@ export class RuleListing {
     private store = inject<Store<UpdateAttributeState>>(Store);
     private formBuilder = inject(FormBuilder);
     private ruleListing = inject(ElementRef);
+
+    @ViewChildren(MatAccordion) accordions!: QueryList<MatAccordion>;
 
     @Input() set evaluationContext(evaluationContext: EvaluationContext) {
         this.ruleOrder = evaluationContext.ruleOrder;
@@ -241,6 +243,15 @@ export class RuleListing {
 
     panelClosed(): void {
         this.openRuleCount--;
+    }
+
+    expandAll(): void {
+        this.accordions?.forEach((accordion) => accordion.openAll());
+    }
+
+    collapseAll(): void {
+        // panels with unsaved changes are disabled and will remain expanded
+        this.accordions?.forEach((accordion) => accordion.closeAll());
     }
 
     getExistingRuleNames(): string[] {
