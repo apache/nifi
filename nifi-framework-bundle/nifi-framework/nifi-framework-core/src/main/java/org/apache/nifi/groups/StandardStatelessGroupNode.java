@@ -78,6 +78,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
@@ -93,6 +94,7 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
     private final Lock writeLock = rwLock.writeLock();
     private volatile ScheduledState currentState = ScheduledState.STOPPED;
     private volatile ScheduledState desiredState = ScheduledState.STOPPED;
+    private volatile CompletableFuture<Void> activeStartFuture;
     private volatile int maxConcurrentTasks = 1;
     private final AtomicLong yieldExpiration = new AtomicLong(0L);
 
@@ -147,17 +149,32 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
     }
 
     @Override
-    public void start(final ScheduledExecutorService executor, final SchedulingAgentCallback schedulingAgentCallback, final LifecycleState lifecycleState) {
+    public CompletableFuture<Void> start(final ScheduledExecutorService executor, final SchedulingAgentCallback schedulingAgentCallback, final LifecycleState lifecycleState) {
+        final CompletableFuture<Void> future;
         writeLock.lock();
         try {
+            if (currentState == ScheduledState.RUNNING) {
+                logger.debug("Not starting {} because it is already running", this);
+                return CompletableFuture.completedFuture(null);
+            }
+
+            if (currentState == ScheduledState.STARTING) {
+                logger.debug("Not starting {} because it is already starting", this);
+                return activeStartFuture == null
+                    ? CompletableFuture.failedFuture(new IllegalStateException("Cannot start %s because its current state is STARTING".formatted(this)))
+                    : activeStartFuture;
+            }
+
             if (currentState != ScheduledState.STOPPED) {
                 logger.warn("Cannot start {} because it is not currently stopped; its current state is {}", this, currentState);
-                return;
+                return CompletableFuture.failedFuture(new IllegalStateException("Cannot start %s because its current state is %s".formatted(this, currentState)));
             }
 
             flowFileActivity.reset();
             currentState = ScheduledState.STARTING;
             logger.info("Starting {}", this);
+            future = new CompletableFuture<>();
+            activeStartFuture = future;
         } finally {
             writeLock.unlock();
         }
@@ -166,16 +183,27 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
         getProcessGroup().findAllOutputPorts().forEach(Port::onSchedulingStart);
 
         executor.submit(() -> initialize(executor, schedulingAgentCallback, lifecycleState));
+        return future;
     }
 
     private void initialize(final ScheduledExecutorService executor, final SchedulingAgentCallback schedulingAgentCallback, final LifecycleState lifecycleState) {
         if (getDesiredState() != ScheduledState.RUNNING) {
+            failActiveStart(new CancellationException("Cannot start %s because its desired state is %s".formatted(this, getDesiredState())));
             shutdown();
             return;
         }
 
         if (!lifecycleState.isScheduled()) {
             logger.debug("Triggered to initialize {} but Lifecycle State indicates that the component is not scheduled. Will not initialize", this);
+            failActiveStart(new CancellationException("Cannot start %s because it is no longer scheduled".formatted(this)));
+            writeLock.lock();
+            try {
+                if (currentState == ScheduledState.STARTING) {
+                    currentState = ScheduledState.STOPPED;
+                }
+            } finally {
+                writeLock.unlock();
+            }
             return;
         }
 
@@ -259,12 +287,15 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
             // Ensure that group is still scheduled to run; if so, start scheduling tasks to run. Otherwise, note the fact by setting teardown = true;
             // we do not perform teardown within the write lock because it can be expensive.
             boolean shutdown = false;
+            CompletableFuture<Void> futureToComplete = null;
             writeLock.lock();
             try {
                 if (desiredState == ScheduledState.RUNNING) {
                     logger.info("{} has been started", this);
                     currentState = ScheduledState.RUNNING;
                     schedulingAgentCallback.trigger();
+                    futureToComplete = activeStartFuture;
+                    activeStartFuture = null;
                 } else {
                     logger.info("{} completed setup but is no longer scheduled to run; desired state is now {}; will shutdown", this, desiredState);
                     shutdown = true;
@@ -273,8 +304,13 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
                 writeLock.unlock();
             }
 
+            if (futureToComplete != null) {
+                futureToComplete.complete(null);
+            }
+
             // If there is a need to perform teardown, do so now.
             if (shutdown) {
+                failActiveStart(new CancellationException("Cannot start %s because its desired state is %s".formatted(this, desiredState)));
                 shutdown();
             }
         } finally {
@@ -402,11 +438,28 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
         return true;
     }
 
+    private void failActiveStart(final Throwable failure) {
+        final CompletableFuture<Void> future;
+        writeLock.lock();
+        try {
+            future = activeStartFuture;
+            activeStartFuture = null;
+        } finally {
+            writeLock.unlock();
+        }
+
+        if (future != null) {
+            future.completeExceptionally(failure);
+        }
+    }
+
     @Override
     public CompletableFuture<Void> stop(final ProcessScheduler processScheduler, final ScheduledExecutorService executor, final SchedulingAgent schedulingAgent, final LifecycleState lifecycleState) {
         logger.info("Stopping {}", this);
         lifecycleState.incrementActiveThreadCount(null);
 
+        final CompletableFuture<Void> abandonedStart;
+        final CompletableFuture<Void> future;
         writeLock.lock();
         try {
             schedulingAgent.unschedule(this, lifecycleState);
@@ -425,8 +478,10 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
 
             desiredState = ScheduledState.STOPPED;
             currentState = ScheduledState.STOPPING;
+            abandonedStart = activeStartFuture;
+            activeStartFuture = null;
 
-            final CompletableFuture<Void> future = new CompletableFuture<>();
+            future = new CompletableFuture<>();
             processScheduler.submitFrameworkTask(() -> {
                 shutdownFlows();
                 stopPorts();
@@ -439,11 +494,15 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
 
                 future.complete(null);
             });
-
-            return future;
         } finally {
             writeLock.unlock();
         }
+
+        if (abandonedStart != null) {
+            abandonedStart.completeExceptionally(new CancellationException("Stateless Group start cancelled by stop request"));
+        }
+
+        return future;
     }
 
     /**
