@@ -447,8 +447,9 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                             + " because it requires Secure Site-to-Site communications, but this instance is not configured for secure communications");
                 }
 
-                final Socket socket = sslContext.getSocketFactory().createSocket(hostname, port);
-                socket.setSoTimeout(commsTimeout);
+                // Create an unconnected socket so that the connect is bounded by the communications timeout instead of
+                // blocking for the OS TCP connect timeout against a peer that silently drops packets
+                final Socket socket = connectSocket(sslContext.getSocketFactory().createSocket(), hostname, port);
                 commsSession = new SocketCommunicationsSession(socket);
 
                 final Optional<String> peerIdentity = socketPeerIdentityProvider.getPeerIdentity(socket);
@@ -459,11 +460,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                     throw new IOException(String.format("Site-to-Site Peer [%s] Identity not found", socket.getRemoteSocketAddress()));
                 }
             } else {
-
-                final Socket socket = new Socket();
-                socket.connect(new InetSocketAddress(hostname, port), commsTimeout);
-                socket.setSoTimeout(commsTimeout);
-
+                final Socket socket = connectSocket(new Socket(), hostname, port);
                 commsSession = new SocketCommunicationsSession(socket);
             }
 
@@ -477,6 +474,17 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         }
 
         return commsSession;
+    }
+
+    private Socket connectSocket(final Socket socket, final String hostname, final int port) throws IOException {
+        try {
+            socket.connect(new InetSocketAddress(hostname, port), commsTimeout);
+            socket.setSoTimeout(commsTimeout);
+        } catch (final IOException e) {
+            socket.close();
+            throw e;
+        }
+        return socket;
     }
 
     private void cleanupExpiredSockets() {
