@@ -112,10 +112,7 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             inetAddress = InetAddress.getByName(ipAttributeValue);
         } catch (final IOException ioe) {
             session.transfer(flowFile, REL_NOT_FOUND);
-            getLogger().warn("Could not resolve the IP for value '{}', contained within the attribute '{}' in " +
-                            "FlowFile '{}'. This is usually caused by issue resolving the appropriate DNS record or " +
-                            "providing the processor with an invalid IP address ",
-                            ipAttributeValue, IP_ADDRESS_ATTRIBUTE.getDisplayName(), flowFile, ioe);
+            getLogger().warn(COULD_NOT_RESOLVE_IP_MSG, ipAttributeValue, flowFile, ioe);
             return;
         }
 

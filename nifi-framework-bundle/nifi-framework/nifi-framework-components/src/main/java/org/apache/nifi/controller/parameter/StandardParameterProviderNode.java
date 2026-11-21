@@ -86,7 +86,8 @@ import java.util.stream.Collectors;
 public class StandardParameterProviderNode extends AbstractComponentNode implements ParameterProviderNode {
 
     private static final Pattern PARAMETER_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9-_. ]+$");
-
+    private static final String INVALID_CHARACTERS_MSG = "Skipping parameter [{}], whose name has invalid characters. " +
+            "Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens (-), underscores (_), periods (.), and spaces ( ) are accepted for parameter names in NiFi.";
     private final AtomicReference<ParameterProviderDetails> parameterProviderRef;
     private final ControllerServiceLookup serviceLookup;
 
@@ -340,8 +341,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                         validParameters.add(parameter);
                         parameterNames.add(parameter.getDescriptor().getName());
                     } else {
-                        getLogger().warn("Skipping parameter [{}], whose name has invalid characters. Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens (-), underscores (_), " +
-                                "periods (.), and spaces ( ) are accepted for parameter names in NiFi.", parameterName);
+                        getLogger().warn(INVALID_CHARACTERS_MSG, parameterName);
                     }
                 }
                 this.fetchedParameterGroups.add(new ParameterGroup(groupName, toProvidedParameters(validParameters)));
