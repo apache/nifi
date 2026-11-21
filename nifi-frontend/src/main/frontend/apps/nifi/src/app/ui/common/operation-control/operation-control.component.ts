@@ -19,9 +19,19 @@ import { Component, computed, inject, input, OnInit, output } from '@angular/cor
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ComponentContext, ComponentType, Permissions, Revision, Storage } from '@nifi/shared';
+import {
+    ComponentContext,
+    ComponentType,
+    NiFiCommon,
+    Permissions,
+    ProcessGroupDrainSummary,
+    Revision,
+    StatusBadge,
+    Storage
+} from '@nifi/shared';
 import { BreadcrumbEntity } from '../../../state/shared';
-import { isNamedComponentTarget, SelectionTarget } from '../canvas/utils/selection.utils';
+import { isNamedComponentTarget, isProcessGroupTarget, SelectionTarget } from '../canvas/utils/selection.utils';
+import { getDrainingTooltip, getOperationDrainSummary } from '../drain/drain-summary.utils';
 import {
     areAllDisableable,
     areAllEnableable,
@@ -34,18 +44,20 @@ import {
     selector: 'canvas-operation-control',
     templateUrl: './operation-control.component.html',
     styleUrl: './operation-control.component.scss',
-    imports: [MatButtonModule, MatExpansionModule, MatTooltipModule, ComponentContext]
+    imports: [MatButtonModule, MatExpansionModule, MatTooltipModule, ComponentContext, StatusBadge]
 })
 export class CanvasOperationControl implements OnInit {
     private static readonly CONTROL_VISIBILITY_KEY = 'graph-control-visibility';
 
     private storage = inject(Storage);
+    private nifiCommon = inject(NiFiCommon);
 
     selection = input<SelectionTarget[]>([]);
     breadcrumbEntity = input<BreadcrumbEntity | null>(null);
     canvasPermissions = input<Permissions | null>(null);
     currentProcessGroupId = input<string | null>(null);
     processGroupRevision = input<Revision | null>(null);
+    currentProcessGroupDrainSummary = input<ProcessGroupDrainSummary | null>(null);
     storageKey = input<string>('operation-control');
 
     enable = output<SelectionTarget[]>();
@@ -152,6 +164,20 @@ export class CanvasOperationControl implements OnInit {
         }
         return selection[0].entity.id;
     });
+
+    private drainSummary = computed(() => {
+        const selection = this.selection();
+        const selected = selection.length === 1 ? selection[0] : null;
+        return getOperationDrainSummary(
+            selection.length,
+            this.currentProcessGroupDrainSummary(),
+            selected && isProcessGroupTarget(selected) ? selected.entity.drainSummary : null
+        );
+    });
+
+    isDraining = computed(() => !!this.drainSummary());
+
+    drainingTooltip = computed(() => getDrainingTooltip(this.drainSummary(), this.nifiCommon));
 
     ngOnInit(): void {
         this.restoreCollapsedState();

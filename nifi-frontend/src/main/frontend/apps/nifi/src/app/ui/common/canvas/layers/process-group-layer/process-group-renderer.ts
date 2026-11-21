@@ -20,8 +20,10 @@ import { CanvasProcessGroup, CanvasSelection } from '../../canvas.types';
 import { ProcessGroupRenderContext } from '../render-context.types';
 import { DragUtils } from '../../utils/drag.utils';
 import { VersionControlTip } from '../../../tooltips/version-control-tip/version-control-tip.component';
+import { DrainSummaryTip } from '../../../tooltips/drain-summary-tip/drain-summary-tip.component';
 import { CanvasConstants } from '../../canvas.constants';
 import { isInViewport } from '../../utils/visibility.utils';
+import { appendDrainingBadge, updateDrainingBadge } from '../../utils/draining-badge.utils';
 
 /**
  * ProcessGroupRenderer
@@ -483,10 +485,12 @@ export class ProcessGroupRenderer {
         // In info (5 min)
         details
             .append('text')
-            .attr('class', 'stats-info')
+            .attr('class', 'stats-info in-info')
             .attr('x', width - 45)
             .attr('y', statsTextY + CanvasConstants.PROCESS_GROUP_STATS_ROW_HEIGHT)
             .text('5 min');
+
+        appendDrainingBadge(details, statsStartY);
 
         // Read/write label (combined)
         details
@@ -741,6 +745,21 @@ export class ProcessGroupRenderer {
 
                 // Update details
                 if (!details.empty()) {
+                    const drainSummary = d.entity.drainSummary;
+                    // The Draining label ends where the In "5 min" text ends
+                    const inInfoText = details.select<SVGTextElement>('text.in-info');
+                    const drainingBadge = updateDrainingBadge(
+                        details,
+                        !!drainSummary,
+                        () =>
+                            Number(inInfoText.attr('x')) + (inInfoText.node() as SVGTextElement).getComputedTextLength()
+                    );
+                    if (drainSummary) {
+                        context.componentUtils.canvasTooltip(DrainSummaryTip, drainingBadge, drainSummary);
+                    } else {
+                        context.componentUtils.resetCanvasTooltip(drainingBadge);
+                    }
+
                     // Update statistics - data is in entity.status.aggregateSnapshot
                     // Note: Statistics are shown even for unauthorized process groups
                     const stats = d.entity.status?.aggregateSnapshot;

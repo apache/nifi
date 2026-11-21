@@ -32,9 +32,22 @@ import {
 import { CanvasUtils } from '../canvas-utils.service';
 import { enterProcessGroup } from '../../state/flow/flow.actions';
 import { VersionControlTip } from '../../../../ui/common/tooltips/version-control-tip/version-control-tip.component';
+import { DrainSummaryTip } from '../../../../ui/common/tooltips/drain-summary-tip/drain-summary-tip.component';
 import { Dimension } from '../../state/shared';
 import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 import { ComponentType, NiFiCommon, TextTip } from '@nifi/shared';
+import { appendDrainingBadge, updateDrainingBadge } from '../../../../ui/common/canvas/utils/draining-badge.utils';
+
+/**
+ * Horizontal offset of the stats info column (the "5 min" text) inside a process group's details.
+ */
+const STATS_INFO_OFFSET_X = 335;
+
+/**
+ * Y position of the Queued row background (`rect.process-group-queued-stats`), which hosts the
+ * Draining badge, inside a process group's details.
+ */
+const QUEUED_ROW_Y = 66;
 
 @Injectable({
     providedIn: 'root'
@@ -449,7 +462,7 @@ export class ProcessGroupManager implements OnDestroy {
                         })
                         .attr('height', 19)
                         .attr('x', 0)
-                        .attr('y', 66);
+                        .attr('y', QUEUED_ROW_Y);
 
                     // border
                     details
@@ -634,7 +647,9 @@ export class ProcessGroupManager implements OnDestroy {
                     outText.append('tspan').attr('class', 'size');
 
                     // stats value container
-                    const processGroupStatsInfo = details.append('g').attr('transform', 'translate(335, 75)');
+                    const processGroupStatsInfo = details
+                        .append('g')
+                        .attr('transform', `translate(${STATS_INFO_OFFSET_X}, 75)`);
 
                     // in info
                     processGroupStatsInfo
@@ -643,7 +658,7 @@ export class ProcessGroupManager implements OnDestroy {
                         .attr('height', 10)
                         .attr('x', 4)
                         .attr('y', 24)
-                        .attr('class', 'stats-info')
+                        .attr('class', 'stats-info in-info')
                         .text('5 min');
 
                     // read/write info
@@ -665,6 +680,8 @@ export class ProcessGroupManager implements OnDestroy {
                         .attr('y', 60)
                         .attr('class', 'stats-info')
                         .text('5 min');
+
+                    appendDrainingBadge(details, QUEUED_ROW_Y);
 
                     // --------
                     // comments
@@ -1175,6 +1192,23 @@ export class ProcessGroupManager implements OnDestroy {
 
                     // clear the process group name
                     processGroup.select('text.process-group-name').attr('x', 10).attr('width', 316).text(null);
+                }
+
+                const drainSummary = processGroupData.drainSummary;
+                // The Draining label ends where the In "5 min" text ends
+                const inInfoText = details.select('text.in-info');
+                const drainingBadge = updateDrainingBadge(
+                    details,
+                    !!drainSummary,
+                    () =>
+                        STATS_INFO_OFFSET_X +
+                        Number(inInfoText.attr('x')) +
+                        (inInfoText.node() as SVGTextElement).getComputedTextLength()
+                );
+                if (drainSummary) {
+                    this.canvasUtils.canvasTooltip(DrainSummaryTip, drainingBadge, drainSummary);
+                } else {
+                    this.canvasUtils.resetCanvasTooltip(drainingBadge);
                 }
 
                 // populate the stats

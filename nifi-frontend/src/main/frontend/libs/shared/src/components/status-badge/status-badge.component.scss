@@ -19,6 +19,7 @@
 
 .status-badge {
     .fa {
+        font-size: var(--mat-sys-body-small-size);
         &.neutral {
             color: var(--mat-sys-on-surface);
         }

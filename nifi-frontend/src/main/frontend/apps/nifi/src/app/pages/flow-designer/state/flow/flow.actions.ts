@@ -66,7 +66,6 @@ import {
     StopComponentResponse,
     StopComponentsRequest,
     StopProcessGroupResponse,
-    StopSourcesRequest,
     StopVersionControlResponse,
     UpdatePositionsRequest,
     ViewComponentConnectionsRequest
@@ -763,13 +762,6 @@ export const stopProcessGroupSuccess = createAction(
 export const startCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Start Current Process Group`);
 
 export const stopCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Stop Current Process Group`);
-
-export const stopSources = createAction(`${CANVAS_PREFIX} Stop Sources`, props<{ request: StopSourcesRequest }>());
-
-export const stopSourcesSuccess = createAction(
-    `${CANVAS_PREFIX} Stop Sources Success`,
-    props<{ response: StopProcessGroupResponse }>()
-);
 
 export const enableControllerServicesInCurrentProcessGroup = createAction(
     `${CANVAS_PREFIX} Enable Controller Services In Current Process Group`

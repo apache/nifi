@@ -96,6 +96,11 @@
         font-size: 12px;
     }
 
+    text.process-group-draining-badge-label {
+        font-size: 10px;
+        font-weight: bold;
+    }
+
     text.bulletin-icon {
         font-size: 13px;
         font-family: FontAwesome;
@@ -485,6 +490,15 @@
 
     text.stats-info {
         fill: var(--mat-sys-primary);
+    }
+
+    rect.process-group-draining-badge-background {
+        fill: var(--nf-success-variant);
+    }
+
+    text.process-group-draining-badge-label {
+        fill: var(--nf-success-contrast);
+        font-family: var(--mat-sys-body-medium-font);
     }
 
     text.bulletin-icon {

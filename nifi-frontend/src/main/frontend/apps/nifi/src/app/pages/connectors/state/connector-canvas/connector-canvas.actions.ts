@@ -23,6 +23,7 @@ import {
     LabelEntity,
     Permissions,
     PortEntity,
+    ProcessGroupDrainSummary,
     ProcessGroupEntity,
     ProcessorEntity,
     RemoteProcessGroupEntity,
@@ -103,6 +104,7 @@ export const loadConnectorFlowSuccess = createAction(
         parentProcessGroupId: string | null;
         breadcrumb: BreadcrumbEntity | null;
         permissions: Permissions | null;
+        currentProcessGroupDrainSummary: ProcessGroupDrainSummary | null;
         labels: LabelEntity[];
         funnels: FunnelEntity[];
         inputPorts: PortEntity[];

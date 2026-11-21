@@ -853,6 +853,7 @@ describe('ConnectorCanvasEffects', () => {
                     parentProcessGroupId: 'parent-456',
                     breadcrumb: null,
                     permissions: { canRead: true, canWrite: true },
+                    currentProcessGroupDrainSummary: null,
                     labels: [label],
                     funnels: [],
                     inputPorts: [],
@@ -868,6 +869,51 @@ describe('ConnectorCanvasEffects', () => {
             expect(dispatch).toHaveBeenCalledWith(markAuthoritativeSnapshotPending());
             expect(dispatch).toHaveBeenCalledWith(resetConnectedStateChanged());
             expect(dispatch).toHaveBeenCalledTimes(2);
+        });
+
+        it('should map processGroupFlow.drainSummary.id onto the success action', async () => {
+            const { effects, actions$, mockConnectorService } = await setup();
+            const flowResponse = {
+                permissions: { canRead: true, canWrite: true },
+                processGroupFlow: {
+                    id: 'pg-123',
+                    parentGroupId: null,
+                    breadcrumb: null,
+                    drainSummary: {
+                        id: 'drain-9',
+                        prepared: true,
+                        originalCount: 1,
+                        originalSize: 1,
+                        currentCount: 1,
+                        currentSize: 1
+                    },
+                    flow: {
+                        labels: [],
+                        funnels: [],
+                        inputPorts: [],
+                        outputPorts: [],
+                        remoteProcessGroups: [],
+                        processGroups: [],
+                        processors: [],
+                        connections: []
+                    }
+                }
+            };
+            (mockConnectorService.getConnectorFlow as Mock).mockReturnValue(of(flowResponse));
+            actions$(of(loadConnectorFlow({ connectorId: 'conn-a', processGroupId: 'pg-in' })));
+
+            const action = expectActionOfType(
+                await firstValueFrom(effects.loadConnectorFlow$),
+                loadConnectorFlowSuccess
+            );
+            expect(action.currentProcessGroupDrainSummary).toEqual({
+                id: 'drain-9',
+                prepared: true,
+                originalCount: 1,
+                originalSize: 1,
+                currentCount: 1,
+                currentSize: 1
+            });
         });
 
         it('should default flow collections when processGroupFlow.flow is missing', async () => {
@@ -898,6 +944,7 @@ describe('ConnectorCanvasEffects', () => {
                     parentProcessGroupId: null,
                     breadcrumb: null,
                     permissions: null,
+                    currentProcessGroupDrainSummary: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -1049,6 +1096,7 @@ describe('ConnectorCanvasEffects', () => {
                         parentProcessGroupId: null,
                         breadcrumb: null,
                         permissions: null,
+                        currentProcessGroupDrainSummary: null,
                         labels: [],
                         funnels: [],
                         inputPorts: [],
@@ -2043,6 +2091,7 @@ describe('ConnectorCanvasEffects', () => {
                 parentProcessGroupId: null,
                 breadcrumb: null,
                 permissions: null,
+                currentProcessGroupDrainSummary: null,
                 labels: [],
                 funnels: [],
                 inputPorts: [],

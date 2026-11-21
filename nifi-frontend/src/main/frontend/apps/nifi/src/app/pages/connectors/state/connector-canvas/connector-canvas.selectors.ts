@@ -111,6 +111,11 @@ export const selectConnectorCanvasPermissions = createSelector(
     (state) => state.permissions
 );
 
+export const selectConnectorCanvasCurrentProcessGroupDrainSummary = createSelector(
+    selectConnectorCanvasState,
+    (state) => state.currentProcessGroupDrainSummary
+);
+
 /** True while the user is dragging a palette chip toward the canvas. */
 export const selectConnectorCanvasDragging = createSelector(selectConnectorCanvasState, (state) => state.dragging);
 

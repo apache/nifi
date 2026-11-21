@@ -37,6 +37,15 @@
                     [type]="getContextType(selection)"
                     [name]="getContextName(selection)"
                     [id]="getContextId(selection)"></component-context>
+                @if (isDraining(selection)) {
+                    <div>
+                        <status-badge
+                            label="Draining"
+                            variant="info"
+                            [message]="getDrainingTooltip(selection)"
+                            data-qa="draining-status-badge"></status-badge>
+                    </div>
+                }
                 <div class="flex flex-col gap-y-1">
                     <div class="flex gap-x-1">
                         <button

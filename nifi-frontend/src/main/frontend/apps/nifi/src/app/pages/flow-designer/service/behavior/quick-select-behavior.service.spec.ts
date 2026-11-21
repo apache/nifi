@@ -35,6 +35,8 @@ import { selectFlowConfiguration } from '../../../../state/flow-configuration/fl
 import * as fromFlowConfiguration from '../../../../state/flow-configuration/flow-configuration.reducer';
 import { flowAnalysisFeatureKey } from '../../state/flow-analysis';
 import * as fromFlowAnalysis from '../../state/flow-analysis/flow-analysis.reducer';
+import { processGroupDrainFeatureKey } from '../../state/process-group-drain';
+import * as fromProcessGroupDrain from '../../state/process-group-drain/process-group-drain.reducer';
 
 describe('QuickSelectBehavior', () => {
     let service: QuickSelectBehavior;
@@ -45,7 +47,8 @@ describe('QuickSelectBehavior', () => {
             [transformFeatureKey]: fromTransform.initialState,
             [controllerServicesFeatureKey]: fromControllerServices.initialState,
             [parameterFeatureKey]: fromParameter.initialState,
-            [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState
+            [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState,
+            [processGroupDrainFeatureKey]: fromProcessGroupDrain.initialState
         };
 
         TestBed.configureTestingModule({

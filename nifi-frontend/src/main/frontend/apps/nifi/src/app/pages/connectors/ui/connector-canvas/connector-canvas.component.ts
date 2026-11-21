@@ -155,6 +155,9 @@ export class ConnectorCanvasComponent implements OnInit, OnDestroy {
     dragging = this.store.selectSignal(ConnectorCanvasSelectors.selectConnectorCanvasDragging);
     operationBreadcrumb = this.store.selectSignal(ConnectorCanvasSelectors.selectBreadcrumbs);
     operationProcessGroupRevision = this.store.selectSignal(ConnectorCanvasSelectors.selectProcessGroupRevision);
+    operationCurrentProcessGroupDrainSummary = this.store.selectSignal(
+        ConnectorCanvasSelectors.selectConnectorCanvasCurrentProcessGroupDrainSummary
+    );
     operationSelection = this.store.selectSignal(ConnectorCanvasSelectors.selectConnectorCanvasSelectedComponents);
     private readonly connectorConnectablePolicy = new ConnectorConnectablePolicy(
         () => this.canvasComponent().canvasRootResolver(),

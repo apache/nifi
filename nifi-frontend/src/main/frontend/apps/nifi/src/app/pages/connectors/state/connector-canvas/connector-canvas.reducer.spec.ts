@@ -163,6 +163,7 @@ describe('connectorCanvasReducer', () => {
                     parentProcessGroupId: null,
                     breadcrumb: null,
                     permissions: null,
+                    currentProcessGroupDrainSummary: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -193,6 +194,7 @@ describe('connectorCanvasReducer', () => {
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     permissions: null,
+                    currentProcessGroupDrainSummary: null,
                     labels,
                     funnels: [],
                     inputPorts: [],
@@ -229,6 +231,7 @@ describe('connectorCanvasReducer', () => {
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     permissions: null,
+                    currentProcessGroupDrainSummary: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -260,6 +263,7 @@ describe('connectorCanvasReducer', () => {
                 parentProcessGroupId: 'pg-parent',
                 breadcrumb: null,
                 permissions: null,
+                currentProcessGroupDrainSummary: null,
                 labels: [],
                 funnels: [],
                 inputPorts: [],
@@ -301,6 +305,7 @@ describe('connectorCanvasReducer', () => {
                 parentProcessGroupId: 'pg-parent',
                 breadcrumb: null,
                 permissions: null,
+                currentProcessGroupDrainSummary: null,
                 labels: [],
                 funnels: [],
                 inputPorts: [],
@@ -349,6 +354,7 @@ describe('connectorCanvasReducer', () => {
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     permissions: null,
+                    currentProcessGroupDrainSummary: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -379,6 +385,7 @@ describe('connectorCanvasReducer', () => {
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     permissions: null,
+                    currentProcessGroupDrainSummary: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -418,6 +425,7 @@ describe('connectorCanvasReducer', () => {
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     permissions: null,
+                    currentProcessGroupDrainSummary: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -463,6 +471,7 @@ describe('connectorCanvasReducer', () => {
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     permissions: null,
+                    currentProcessGroupDrainSummary: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -863,6 +872,7 @@ describe('connectorCanvasReducer', () => {
                 parentProcessGroupId: 'pg-parent',
                 breadcrumb: null,
                 permissions: null,
+                currentProcessGroupDrainSummary: null,
                 labels: [],
                 funnels: [],
                 inputPorts: [],
@@ -928,6 +938,7 @@ describe('connectorCanvasReducer', () => {
                     parentProcessGroupId: 'pg-parent',
                     breadcrumb: null,
                     permissions: null,
+                    currentProcessGroupDrainSummary: null,
                     labels: [],
                     funnels: [],
                     inputPorts: [],
@@ -1009,6 +1020,7 @@ describe('connectorCanvasReducer', () => {
                 parentProcessGroupId: 'pg-parent',
                 breadcrumb: null,
                 permissions: null,
+                currentProcessGroupDrainSummary: null,
                 labels: [],
                 funnels: [],
                 inputPorts: [],
@@ -1029,6 +1041,23 @@ describe('connectorCanvasReducer', () => {
             const result = connectorCanvasReducer(initialConnectorCanvasState, loadSnapshot({ permissions }));
 
             expect(result.permissions).toEqual(permissions);
+        });
+
+        it('stores the current process group drain summary from the loaded flow', () => {
+            const drainSummary = {
+                id: 'drain-1',
+                prepared: true,
+                originalCount: 1,
+                originalSize: 1,
+                currentCount: 1,
+                currentSize: 1
+            };
+            const result = connectorCanvasReducer(
+                initialConnectorCanvasState,
+                loadSnapshot({ currentProcessGroupDrainSummary: drainSummary })
+            );
+
+            expect(result.currentProcessGroupDrainSummary).toEqual(drainSummary);
         });
 
         it('clears saving when a delete fails', () => {

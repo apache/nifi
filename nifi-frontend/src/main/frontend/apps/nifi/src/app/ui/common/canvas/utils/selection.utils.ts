@@ -92,6 +92,10 @@ export function isProcessorTarget(target: SelectionTarget): target is ProcessorS
     return target.ui.componentType === ComponentType.Processor;
 }
 
+export function isProcessGroupTarget(target: SelectionTarget): target is ProcessGroupSelectionTarget {
+    return target.ui.componentType === ComponentType.ProcessGroup;
+}
+
 export function isNamedComponentTarget(target: SelectionTarget): target is NamedComponentSelectionTarget {
     switch (target.ui.componentType) {
         case ComponentType.Processor:

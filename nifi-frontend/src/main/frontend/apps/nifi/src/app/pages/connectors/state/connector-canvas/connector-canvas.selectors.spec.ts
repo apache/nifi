@@ -16,7 +16,11 @@
  */
 
 import { ComponentType, ProcessorEntity } from '@nifi/shared';
-import { selectConnectorCanvasSelectedComponents, selectMaxLabelZIndex } from './connector-canvas.selectors';
+import {
+    selectConnectorCanvasCurrentProcessGroupDrainSummary,
+    selectConnectorCanvasSelectedComponents,
+    selectMaxLabelZIndex
+} from './connector-canvas.selectors';
 import { initialConnectorCanvasState } from './index';
 import { makeLabel } from '../../testing/connector-canvas-entity-fixtures';
 
@@ -76,5 +80,25 @@ describe('selectMaxLabelZIndex', () => {
         const labels = [makeLabel('label-1', { zIndex: 3 }), makeLabel('label-2', { zIndex: 7 }), makeLabel('label-3')];
 
         expect(selectMaxLabelZIndex.projector({ ...initialConnectorCanvasState, labels })).toBe(7);
+    });
+});
+
+describe('selectConnectorCanvasCurrentProcessGroupDrainSummary', () => {
+    it('returns the current process group drain summary', () => {
+        const drainSummary = {
+            id: 'drain-1',
+            prepared: true,
+            originalCount: 1,
+            originalSize: 1,
+            currentCount: 1,
+            currentSize: 1
+        };
+
+        expect(
+            selectConnectorCanvasCurrentProcessGroupDrainSummary.projector({
+                ...initialConnectorCanvasState,
+                currentProcessGroupDrainSummary: drainSummary
+            })
+        ).toEqual(drainSummary);
     });
 });
