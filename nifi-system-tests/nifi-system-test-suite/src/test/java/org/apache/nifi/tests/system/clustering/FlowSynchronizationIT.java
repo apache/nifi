@@ -686,7 +686,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testUnnecessaryProcessorsAndConnectionsRemoved() throws NiFiClientException, IOException, InterruptedException {
+    public void testUnnecessaryProcessorsConnectionsAndControllerServicesRemoved() throws NiFiClientException, IOException, InterruptedException {
         // We make assertions about the number of components in the flow so make sure that we start with an empty flow.
         destroyFlow();
 
@@ -697,20 +697,27 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         disconnectNode(2);
         switchClientToNode(2);
 
-        // Create a TerminateFlowFile processor, connect Generate to it, and start them both.
+        // Create a CountFlowFiles processor that references an enabled Controller Service, connect Generate to it, and start them both.
         getNifiClient().getProcessorClient().acknowledgeDisconnectedNode();
         getNifiClient().getConnectionClient().acknowledgeDisconnectedNode();
 
-        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
-        final ConnectionEntity connection = getClientUtil().createConnection(generate, terminate, "success");
+        final ControllerServiceEntity countService = getClientUtil().createControllerService("StandardCountService");
+        getClientUtil().enableControllerService(countService);
+        getClientUtil().waitForControllerServicesEnabled("root", List.of(countService.getId()));
+
+        ProcessorEntity countFlowFiles = getClientUtil().createProcessor("CountFlowFiles");
+        getClientUtil().setAutoTerminatedRelationships(countFlowFiles, "success");
+        countFlowFiles = getClientUtil().updateProcessorProperties(countFlowFiles, Collections.singletonMap("Count Service", countService.getId()));
+
+        final ConnectionEntity connection = getClientUtil().createConnection(generate, countFlowFiles, "success");
         getClientUtil().startProcessor(generate);
         waitForMinQueueCount(connection.getId(), 1);
-        getClientUtil().startProcessor(terminate);
+        getClientUtil().startProcessor(countFlowFiles);
 
         waitForQueueCount(connection.getId(), 0);
 
         getClientUtil().stopProcessor(generate);
-        getClientUtil().stopProcessor(terminate);
+        getClientUtil().stopProcessor(countFlowFiles);
 
         // Reconnect the node to the cluster
         switchClientToNode(1);
@@ -726,8 +733,10 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
 
             final int processorCount = flowDto.getProcessors().size();
             final int connectionCount = flowDto.getConnections().size();
-            if (processorCount != 1 || connectionCount != 0) {
-                logger.info("Waiting for Node 2 to have 1 processor and 0 connections but found {} processors and {} connections", processorCount, connectionCount);
+            final int serviceCount = getNifiClient().getFlowClient(DO_NOT_REPLICATE).getControllerServices("root").getControllerServices().size();
+            if (processorCount != 1 || connectionCount != 0 || serviceCount != 0) {
+                logger.info("Waiting for Node 2 to have 1 processor, 0 connections and 0 Controller Services but found {} processors, {} connections and {} Controller Services",
+                    processorCount, connectionCount, serviceCount);
                 return false;
             }
 
