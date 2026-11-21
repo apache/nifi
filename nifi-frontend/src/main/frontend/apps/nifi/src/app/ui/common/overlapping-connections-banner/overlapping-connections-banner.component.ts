@@ -15,19 +15,35 @@
  * limitations under the License.
  */
 
-import { Component, input, output } from '@angular/core';
+import { Component, computed, input, output, signal } from '@angular/core';
+import { MatIconButton } from '@angular/material/button';
 import { OverlappingConnectionGroup } from '../overlap-detection.utils';
 
 @Component({
     selector: 'overlapping-connections-banner',
     standalone: true,
-    imports: [],
+    imports: [MatIconButton],
     templateUrl: './overlapping-connections-banner.component.html',
     styleUrls: ['./overlapping-connections-banner.component.scss']
 })
 export class OverlappingConnectionsBannerComponent {
     overlappingGroups = input<OverlappingConnectionGroup[]>([]);
     navigateToGroup = output<OverlappingConnectionGroup>();
+
+    private dismissedKey = signal<string | null>(null);
+
+    // the banner is shown again when the set of overlapping connections changes
+    private currentKey = computed(() =>
+        this.overlappingGroups()
+            .flatMap((group) => group.connectionIds)
+            .join(',')
+    );
+
+    visible = computed(() => this.overlappingGroups().length > 0 && this.currentKey() !== this.dismissedKey());
+
+    dismiss(): void {
+        this.dismissedKey.set(this.currentKey());
+    }
 
     showOverlap(overlap: OverlappingConnectionGroup): void {
         this.navigateToGroup.emit(overlap);
