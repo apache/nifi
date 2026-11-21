@@ -77,7 +77,7 @@ page of results until either there are no more results or the paginated query ex
 
 ## Resetting Queries / Clearing Processor State
 
-Local State is used to track the progress of a paginated query within this processor. If there is need to restart the
+Cluster State is used to track the progress of a paginated query within this processor. If there is need to restart the
 query completely or change the processor configuration after a paginated query has already been started, be sure to 
 "Clear State" of the processor once it has been stopped and before restarting.
 
