@@ -42,7 +42,7 @@ public class ReportingSchema extends BaseSchemaWithIdAndName {
 
     public ReportingSchema(Map map) {
         super(map, "Reporting(id: {id}, name: {name})");
-        if (this.getId().equals("")) {
+        if (this.getId().isEmpty()) {
             // MiNiFi will throw an error if it can not find `id` of BaseSchemaWithIdAndName for YML config version 3
             this.setId(UUID.randomUUID().toString());
         }

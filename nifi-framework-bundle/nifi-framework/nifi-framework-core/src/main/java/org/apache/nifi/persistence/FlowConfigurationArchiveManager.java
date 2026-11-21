@@ -79,7 +79,7 @@ public class FlowConfigurationArchiveManager {
         final Path archiveDirectory;
         if (archiveDirVal == null || archiveDirVal.isBlank()) {
             File persistenceFile = properties.getFlowConfigurationFile();
-            archiveDirectory = (archiveDirVal == null || archiveDirVal.equals(""))
+            archiveDirectory = (archiveDirVal == null || archiveDirVal.isEmpty())
                 ? persistenceFile.toPath().getParent().resolve("archive") : new File(archiveDirVal).toPath();
         } else {
             archiveDirectory = Paths.get(archiveDirVal);

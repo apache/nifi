@@ -88,7 +88,7 @@ public interface DropboxTrait {
     default String getParentPath(String fullPath) {
         final int idx = fullPath.lastIndexOf("/");
         final String parentPath = fullPath.substring(0, idx);
-        return "".equals(parentPath) ? "/" : parentPath;
+        return parentPath.isEmpty() ? "/" : parentPath;
     }
 
     default Map<String, String> createAttributeMap(FileMetadata fileMetadata) {

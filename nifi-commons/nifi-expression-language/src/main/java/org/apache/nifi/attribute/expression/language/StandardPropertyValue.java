@@ -185,7 +185,7 @@ public class StandardPropertyValue implements PropertyValue {
 
     @Override
     public ControllerService asControllerService() {
-        if (rawValue == null || rawValue.equals("") || serviceLookup == null) {
+        if (rawValue == null || rawValue.isEmpty() || serviceLookup == null) {
             return null;
         }
 
@@ -197,7 +197,7 @@ public class StandardPropertyValue implements PropertyValue {
         if (!serviceType.isInterface()) {
             throw new IllegalArgumentException("ControllerServices may be referenced only via their interfaces; " + serviceType + " is not an interface");
         }
-        if (rawValue == null || rawValue.equals("") || serviceLookup == null) {
+        if (rawValue == null || rawValue.isEmpty() || serviceLookup == null) {
             return null;
         }
 

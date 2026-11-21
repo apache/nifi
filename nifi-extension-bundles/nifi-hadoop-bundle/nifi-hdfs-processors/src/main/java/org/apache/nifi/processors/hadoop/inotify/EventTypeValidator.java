@@ -38,7 +38,7 @@ class EventTypeValidator implements Validator {
     }
 
     private String isValidEventType(String input) {
-        if (input != null && !"".equals(input.trim())) {
+        if (input != null && !input.isBlank()) {
             final String[] events = input.split(",");
             final List<String> invalid = new ArrayList<>();
             for (String event : events) {

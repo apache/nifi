@@ -172,7 +172,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
             StateMap state = session.getState(Scope.CLUSTER);
             String txIdAsString = state.get(LAST_TX_ID);
 
-            if (txIdAsString != null && !"".equals(txIdAsString)) {
+            if (txIdAsString != null && !txIdAsString.isEmpty()) {
                 lastTxId = Long.parseLong(txIdAsString);
             }
         } catch (IOException e) {

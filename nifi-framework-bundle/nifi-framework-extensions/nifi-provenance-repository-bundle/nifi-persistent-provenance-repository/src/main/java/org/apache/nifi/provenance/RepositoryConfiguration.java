@@ -448,13 +448,13 @@ public class RepositoryConfiguration {
         config.setMaxAttributeChars(maxAttrChars);
         config.setConcurrentMergeThreads(concurrentMergeThreads);
 
-        if (warmCacheFrequency != null && !warmCacheFrequency.trim().equals("")) {
+        if (warmCacheFrequency != null && !warmCacheFrequency.isBlank()) {
             config.setWarmCacheFrequencyMinutes((int) FormatUtils.getTimeDuration(warmCacheFrequency, TimeUnit.MINUTES));
         }
         if (shardSize != null) {
             config.setDesiredIndexSize(DataUnit.parseDataSize(shardSize, DataUnit.B).longValue());
         }
-        if (maintenanceFrequency != null && !maintenanceFrequency.trim().equals("")) {
+        if (maintenanceFrequency != null && !maintenanceFrequency.isBlank()) {
             final long millis = FormatUtils.getTimeDuration(maintenanceFrequency.trim(), TimeUnit.MILLISECONDS);
             config.setMaintenanceFrequency(millis, TimeUnit.MILLISECONDS);
         }

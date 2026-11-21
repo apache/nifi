@@ -107,7 +107,7 @@ public abstract class HadoopFileStatusWriter {
 
     String getAbsolutePath(final Path path) {
         final Path parent = path.getParent();
-        final String prefix = (parent == null || parent.getName().equals("")) ? "" : getAbsolutePath(parent);
+        final String prefix = (parent == null || parent.getName().isEmpty()) ? "" : getAbsolutePath(parent);
         return prefix + "/" + path.getName();
     }
 

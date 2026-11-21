@@ -165,6 +165,6 @@ public class AwsSecretsManagerParameterValueProvider extends AbstractSecretBased
     }
 
     private static boolean isNotBlank(final String value) {
-        return value != null && !value.trim().equals("");
+        return value != null && !value.isBlank();
     }
 }
