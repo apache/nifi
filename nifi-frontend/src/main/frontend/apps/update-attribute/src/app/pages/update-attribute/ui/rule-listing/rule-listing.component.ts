@@ -106,12 +106,23 @@ export class RuleListing {
     filteredRulesList: Rule[] = [];
     searchForm: FormGroup;
 
+    readonly useOriginalFlowFileTooltip =
+        'If disabled, rules will be executed using a clone of the original FlowFile. ' +
+        'The order of rules is relevant only when using the original FlowFile; the final rule to update a given ' +
+        'attribute takes precedence as it overwrites previous rule actions.';
+    readonly reorderTooltip =
+        'Drag and drop rules to change the order in which they are evaluated. Reordering can only be enabled ' +
+        'when the Processor is editable, no rules have unsaved changes, no new rule is being created, and the ' +
+        'search criteria has not excluded any rules. Rules cannot be edited, created, cloned, or deleted and ' +
+        'searching is disabled while reordering.';
+
     flowFilePolicyForm: FormGroup;
     flowFilePolicy = 'USE_ORIGINAL';
 
     scrollToNewRule = false;
 
-    private openRuleCount = 0;
+    // ids of the rules whose panels are expanded, retained across toggling rule reordering
+    private expandedRules: Set<string> = new Set<string>();
 
     constructor() {
         this.searchForm = this.formBuilder.group({ searchRules: '' });
@@ -188,16 +199,11 @@ export class RuleListing {
     }
 
     reorderDisabled(): boolean {
-        return this.filterApplied() || this.areAnyExpanded() || this.newRule !== undefined || !this.isEditable;
+        return this.filterApplied() || this.areAnyDirty() || this.newRule !== undefined || !this.isEditable;
     }
 
-    areAnyExpanded(): boolean {
-        // override the expansion panel check when allowing rule reordering
-        if (this.allowRuleReordering) {
-            return false;
-        }
-
-        return this.openRuleCount > 0;
+    areAnyDirty(): boolean {
+        return this.dirtyRules.size > 0;
     }
 
     filterApplied(): boolean {
@@ -233,14 +239,29 @@ export class RuleListing {
 
     setAllowRuleReordering(event: MatSlideToggleChange): void {
         this.allowRuleReordering = event.checked;
+
+        // the drag and drop indices must correspond to the full rule list, so searching is cleared and
+        // disabled while reordering
+        const searchRules = this.searchForm.get('searchRules');
+        if (event.checked) {
+            searchRules?.setValue('', { emitEvent: false });
+            searchRules?.disable({ emitEvent: false });
+            this.filterRules();
+        } else {
+            searchRules?.enable({ emitEvent: false });
+        }
     }
 
-    panelOpened(): void {
-        this.openRuleCount++;
+    panelOpened(id: string): void {
+        this.expandedRules.add(id);
     }
 
-    panelClosed(): void {
-        this.openRuleCount--;
+    panelClosed(id: string): void {
+        this.expandedRules.delete(id);
+    }
+
+    isExpanded(id: string): boolean {
+        return this.expandedRules.has(id);
     }
 
     getExistingRuleNames(): string[] {
