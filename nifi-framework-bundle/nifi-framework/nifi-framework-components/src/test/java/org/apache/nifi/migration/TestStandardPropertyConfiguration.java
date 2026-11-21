@@ -32,7 +32,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestStandardPropertyConfiguration {
 
+    private static final String COMPONENT_NAME = "Test Component";
+    private static final String SERVICE_PROPERTY = "service";
+    private static final String SERVICE_PARAMETER_REFERENCE = "#{service-parameter}";
+    private static final String PROPERTY_NAME = "a";
+    private static final String PROPERTY_VALUE = "A";
+
     private Map<String, String> originalProperties;
+    private ControllerServiceFactory controllerServiceFactory;
     private StandardPropertyConfiguration config;
 
     @BeforeEach
@@ -42,7 +49,7 @@ public class TestStandardPropertyConfiguration {
         originalProperties.put("b", "B");
         originalProperties.put("c", null);
 
-        final ControllerServiceFactory controllerServiceFactory = new ControllerServiceFactory() {
+        controllerServiceFactory = new ControllerServiceFactory() {
             @Override
             public ControllerServiceCreationDetails getCreationDetails(final String implementationClassName, final Map<String, String> propertyValues) {
                 return new ControllerServiceCreationDetails("id", implementationClassName, null, propertyValues, ControllerServiceCreationDetails.CreationState.SERVICE_TO_BE_CREATED);
@@ -54,10 +61,31 @@ public class TestStandardPropertyConfiguration {
             }
         };
 
-        config = new StandardPropertyConfiguration(originalProperties, originalProperties, raw -> raw, "Test Component", controllerServiceFactory);
+        config = new StandardPropertyConfiguration(originalProperties, originalProperties, raw -> raw, COMPONENT_NAME, controllerServiceFactory);
     }
 
-    // TODO: Test Raw vs. Effective values
+    @Test
+    public void testParameterReferenceWithoutValueIsRawValueOnly() {
+        final Map<String, String> rawProperties = new HashMap<>();
+        rawProperties.put(SERVICE_PROPERTY, SERVICE_PARAMETER_REFERENCE);
+        rawProperties.put(PROPERTY_NAME, PROPERTY_VALUE);
+
+        final Map<String, String> effectiveProperties = new HashMap<>();
+        effectiveProperties.put(SERVICE_PROPERTY, null);
+        effectiveProperties.put(PROPERTY_NAME, PROPERTY_VALUE);
+
+        final StandardPropertyConfiguration parameterConfig = new StandardPropertyConfiguration(
+                effectiveProperties, rawProperties, raw -> SERVICE_PARAMETER_REFERENCE.equals(raw) ? null : raw, COMPONENT_NAME, controllerServiceFactory);
+
+        assertTrue(parameterConfig.hasProperty(SERVICE_PROPERTY));
+        assertFalse(parameterConfig.isPropertySet(SERVICE_PROPERTY));
+        assertEquals(Optional.empty(), parameterConfig.getPropertyValue(SERVICE_PROPERTY));
+        assertEquals(Optional.of(SERVICE_PARAMETER_REFERENCE), parameterConfig.getRawPropertyValue(SERVICE_PROPERTY));
+
+        assertTrue(parameterConfig.isPropertySet(PROPERTY_NAME));
+        assertEquals(Optional.of(PROPERTY_VALUE), parameterConfig.getPropertyValue(PROPERTY_NAME));
+        assertEquals(Optional.of(PROPERTY_VALUE), parameterConfig.getRawPropertyValue(PROPERTY_NAME));
+    }
 
     @Test
     public void testGetOperations() {
