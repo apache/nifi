@@ -21,6 +21,7 @@ import org.apache.nifi.web.client.api.HttpUriBuilder;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -49,6 +50,12 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
 
     private static final String QUERY_PARAMETER_VALUE_SEPARATOR = "=";
 
+    private static final String QUERY_SEPARATOR = "?";
+
+    private static final String FORM_ENCODED_SPACE = "+";
+
+    private static final String PERCENT_ENCODED_SPACE = "%20";
+
     private String scheme = HTTP_SCHEME;
 
     private String host;
@@ -71,7 +78,12 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
         final String resolvedQuery = getResolvedQuery();
 
         try {
-            return new URI(scheme, null, host, port, resolvedPath, resolvedQuery, null);
+            // Query excluded from java.net.URI construction to avoid quoting the percent character of resolved query parameters
+            final URI uri = new URI(scheme, null, host, port, resolvedPath, null, null);
+            if (resolvedQuery == null) {
+                return uri;
+            }
+            return new URI(uri + QUERY_SEPARATOR + resolvedQuery);
         } catch (final URISyntaxException e) {
             throw new IllegalArgumentException("URI construction failed", e);
         }
@@ -120,9 +132,37 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
     @Override
     public HttpUriBuilder addQueryParameter(final String name, final String value) {
         Objects.requireNonNull(name, "Parameter name required");
+        final String quotedValue = value == null ? null : getQuotedQueryComponent(value);
+        addResolvedQueryParameter(getQuotedQueryComponent(name), quotedValue);
+        return this;
+    }
+
+    @Override
+    public HttpUriBuilder addUnencodedQueryParameter(final String name, final String value) {
+        Objects.requireNonNull(name, "Parameter name required");
+        final String encodedValue = value == null ? null : getEncodedQueryComponent(value);
+        addResolvedQueryParameter(getEncodedQueryComponent(name), encodedValue);
+        return this;
+    }
+
+    private void addResolvedQueryParameter(final String name, final String value) {
         final List<String> parameters = queryParameters.computeIfAbsent(name, parameterName -> new ArrayList<>());
         parameters.add(value);
-        return this;
+    }
+
+    private String getQuotedQueryComponent(final String component) {
+        try {
+            // Quote characters not legal in a URI query, preserving reserved characters as provided
+            return new URI(null, null, null, UNKNOWN_PORT, null, component, null).getRawQuery();
+        } catch (final URISyntaxException e) {
+            throw new IllegalArgumentException("Query parameter component [%s] not valid".formatted(component), e);
+        }
+    }
+
+    private String getEncodedQueryComponent(final String component) {
+        final String formEncoded = URLEncoder.encode(component, StandardCharsets.UTF_8);
+        // Percent encoding of spaces avoids ambiguous handling of plus characters in query components
+        return formEncoded.replace(FORM_ENCODED_SPACE, PERCENT_ENCODED_SPACE);
     }
 
     private String getResolvedPath() {
