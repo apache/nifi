@@ -105,16 +105,21 @@ public final class SocketUtils {
         if (sslContext == null) {
             connectedSocket = socket;
         } else {
-            // Create SSLSocket after successful connection to support hostname verification
-            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-            final SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket, address.getHostName(), address.getPort(), true);
+            try {
+                // Create SSLSocket after successful connection to support hostname verification
+                final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+                final SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket, address.getHostName(), address.getPort(), true);
 
-            sslSocket.setEnabledProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
-            final SSLParameters sslParameters = sslSocket.getSSLParameters();
-            sslParameters.setEndpointIdentificationAlgorithm(TLS_ENDPOINT_IDENTIFICATION_ALGORITHM);
-            sslSocket.setSSLParameters(sslParameters);
+                sslSocket.setEnabledProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
+                final SSLParameters sslParameters = sslSocket.getSSLParameters();
+                sslParameters.setEndpointIdentificationAlgorithm(TLS_ENDPOINT_IDENTIFICATION_ALGORITHM);
+                sslSocket.setSSLParameters(sslParameters);
 
-            connectedSocket = sslSocket;
+                connectedSocket = sslSocket;
+            } catch (final Exception e) {
+                closeQuietly(socket);
+                throw e;
+            }
         }
 
         return connectedSocket;
