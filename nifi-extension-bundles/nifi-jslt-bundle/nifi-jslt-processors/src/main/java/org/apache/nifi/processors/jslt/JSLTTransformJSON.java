@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.processors.jslt;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.schibsted.spt.data.jslt.Expression;
@@ -58,6 +50,13 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.core.exc.StreamReadException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectWriter;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -224,7 +223,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
             REL_FAILURE
     );
 
-    private static final ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper JSON_OBJECT_MAPPER = JsonMapper.builder().build();
 
     private Cache<String, Expression> transformCache;
 
@@ -336,15 +335,13 @@ public class JSLTTransformJSON extends AbstractProcessor {
     private FlowFile transformFlowFile(final Expression jsltExpression, final FlowFile original, final ProcessContext context, final ProcessSession session) {
         final TransformationStrategy transformationStrategy = TransformationStrategy.valueOf(context.getProperty(TRANSFORMATION_STRATEGY).getValue());
         final boolean prettyPrint = context.getProperty(PRETTY_PRINT).asBoolean();
-        final JsonFactory jsonFactory = new JsonFactory();
 
         FlowFile transformed = session.write(original, (inputStream, outputStream) -> {
             boolean topLevelArray = false;
             JsonParser jsonParser;
             JsonNode firstJsonNode;
             if (TransformationStrategy.EACH_OBJECT.equals(transformationStrategy)) {
-                jsonParser = jsonFactory.createParser(inputStream);
-                jsonParser.setCodec(JSON_OBJECT_MAPPER);
+                jsonParser = JSON_OBJECT_MAPPER.createParser(inputStream);
 
                 JsonToken token = jsonParser.nextToken();
                 if (token == JsonToken.START_ARRAY) {
@@ -380,7 +377,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
                     outputObject = transformedJson;
                 }
                 if (outputObject != null) {
-                    jsonGenerator.writeObject(outputObject);
+                    jsonGenerator.writePOJO(outputObject);
                 }
             } while ((nextNode = getNextJsonNode(transformationStrategy, jsonParser)) != null);
             if (topLevelArray) {
@@ -413,7 +410,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
     private JsonNode readJson(final InputStream in) throws IOException {
         try {
             return JSON_OBJECT_MAPPER.readTree(in);
-        } catch (final JsonParseException e) {
+        } catch (final StreamReadException e) {
             throw new IOException("Could not parse data as JSON", e);
         }
     }
@@ -488,7 +485,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
                     if (transformedJson == null || transformedJson.isNull()) {
                         getLogger().debug("JSLT Transform resulted in no data on line {}", lines);
                     } else {
-                        jsonGenerator.writeObject(transformedJson);
+                        jsonGenerator.writePOJO(transformedJson);
                     }
                 }
             }

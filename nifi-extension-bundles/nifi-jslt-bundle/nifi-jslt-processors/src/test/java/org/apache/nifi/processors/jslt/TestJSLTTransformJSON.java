@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.jslt;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -28,6 +26,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opentest4j.AssertionFailedError;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -49,7 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestJSLTTransformJSON {
 
     private static final Path RESOURCE_DIR = Paths.get("src/test/resources");
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper OBJECT_MAPPER = JsonMapper.builder().build();
 
     @TempDir
     private static Path tempDir;
@@ -344,13 +344,9 @@ public class TestJSLTTransformJSON {
     }
 
     private void assertContentEquals(final MockFlowFile flowFile, final String expectedJson) {
-        try {
-            final JsonNode flowFileNode = OBJECT_MAPPER.readTree(flowFile.getContent());
-            final JsonNode expectedNode = OBJECT_MAPPER.readTree(expectedJson);
-            assertEquals(expectedNode, flowFileNode);
-        } catch (final IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        final JsonNode flowFileNode = OBJECT_MAPPER.readTree(flowFile.getContent());
+        final JsonNode expectedNode = OBJECT_MAPPER.readTree(expectedJson);
+        assertEquals(expectedNode, flowFileNode);
     }
 
     private void setTransformEnqueueJson(final String transformFileName, final String jsonFileName) {
