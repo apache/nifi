@@ -84,7 +84,8 @@ public class RedisUtils {
 
     public static final PropertyDescriptor REDIS_MODE = new PropertyDescriptor.Builder()
             .name("Redis Mode")
-            .description("The type of Redis being communicated with - standalone, sentinel, or clustered.")
+            .description("The Redis connection topology: standalone, sentinel, or clustered. Use standalone for a Redis Enterprise Software or Redis Cloud database endpoint. " +
+                    "Use clustered only when the endpoint exposes the Redis Cluster API.")
             .allowableValues(REDIS_MODE_STANDALONE, REDIS_MODE_SENTINEL, REDIS_MODE_CLUSTER)
             .defaultValue(REDIS_MODE_STANDALONE.getValue())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -136,14 +137,14 @@ public class RedisUtils {
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("Username")
-            .description("The username used to authenticate to the Redis server.")
+            .description("The Redis ACL username used to authenticate to the Redis server, including Redis Enterprise Software and Redis Cloud.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
-            .description("The password used to authenticate to the Redis server. See the 'requirepass' property in redis.conf.")
+            .description("The database password used to authenticate to the Redis server, including Redis Enterprise Software and Redis Cloud.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .sensitive(true)
