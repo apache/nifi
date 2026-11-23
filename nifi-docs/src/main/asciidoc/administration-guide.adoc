@@ -545,8 +545,6 @@ The `kerberos-provider` has the following properties:
 |`Authentication Expiration`| The duration of how long the user authentication is valid for. If the user never logs out, they will be required to log back in following this duration.
 |==================================================================================================================================================
 
-See also <<kerberos_service>> to allow single sign-on access via client Kerberos tickets.
-
 NOTE: For changes to _nifi.properties_ and _login-identity-providers.xml_ to take effect, NiFi needs to be restarted. If NiFi is clustered, configuration files must be the same on all nodes.
 
 [[openid_connect]]
@@ -1385,6 +1383,7 @@ After you have edited and saved the _authorizers.xml_ file, restart NiFi. Users 
 
 The following tables summarize the global and component policies assigned to each legacy role if the NiFi instance has an existing _flow.json.gz_:
 
+[[legacy-global-access-policies]]
 ===== Global Access Policies
 [cols=">s,^s,^s,^s,^s,^s,^s", options="header"]
 |==========================
@@ -4059,7 +4058,7 @@ Configuration best practices recommend creating a separate location outside of t
 |_bootstrap.conf_                            | Use the existing NiFi _bootstrap.conf_ file to update properties in the new NiFi.
 |_flow.json.gz_                               | If you retained the default location for storing flows (`<installation-directory>/conf/`), copy _flow.json.gz_ from the existing to the new NiFi base install `conf` directory. If you stored flows to an external location via _nifi.properties_, update the property `nifi.flow.configuration.file` to point there.
 
-If you are encrypting sensitive component properties in your dataflow via the sensitive properties key in _nifi.properties_, make sure the same key is used when copying over your _flow.json.gz_.  If you need to change the key, see the <<sensitive_flow_migration>> section below.
+If you are encrypting sensitive component properties in your dataflow via the sensitive properties key in _nifi.properties_, make sure the same key is used when copying over your _flow.json.gz_.
 
 .8+|_nifi.properties_
 |Use the existing _nifi.properties_ to populate the same properties in the new NiFi file.
@@ -4115,7 +4114,7 @@ Your existing NiFi may have multiple content repos defined. Make sure the exact 
 
 *Note:* You may not be able to query old events if provenance repos are not moved correctly or properties are not updated correctly.
 
-.4+| _state-management.xml_ |For the `local-provider` state provider, verify the location of the local directory.
+.3+| _state-management.xml_ |For the `local-provider` state provider, verify the location of the local directory.
 
 If you have retained the default location (`./state/local`), copy the complete directory tree to the new NiFi. The existing NiFi should be stopped if you are copying this directory because it may be constantly writing to this directory while running.
 
@@ -4123,7 +4122,6 @@ Configuration best practices recommend that you move the state to an external di
 | For a NiFi cluster, the `cluster-provider`
 ZooKeeper “Connect String" property should be set to the same external ZooKeeper as the existing NiFi installation.
 | For a NiFi cluster, make sure the `cluster-provider` ZooKeeper "Root Node" property matches exactly the value used in the existing NiFi.
-| If you are also setting up a new external ZooKeeper, see the <<zookeeper_migrator>> section for instructions on how to move ZooKeeper information from one cluster to another and migrate ZooKeeper node ownership.
 
 |===
 
