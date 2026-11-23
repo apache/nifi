@@ -100,7 +100,9 @@ public class HiveMqV5ClientAdapter implements MqttClient {
         }
 
         final Mqtt5Connect mqtt5Connect = connectBuilder.build();
-        awaitWithTimeout(mqtt5AsyncClient.connect(mqtt5Connect));
+
+        // connection timeout is handled by client, adding extra 10 seconds here to allow the client to complete its connection process
+        awaitWithTimeout(mqtt5AsyncClient.connect(mqtt5Connect), clientProperties.getConnectionTimeout() + 10);
     }
 
     @Override
@@ -149,8 +151,12 @@ public class HiveMqV5ClientAdapter implements MqttClient {
     }
 
     private <T> T awaitWithTimeout(Future<T> future) {
+        return awaitWithTimeout(future, clientProperties.getConnectionTimeout());
+    }
+
+    private <T> T awaitWithTimeout(Future<T> future, int timeoutInSeconds) {
         try {
-            final T response = future.get(clientProperties.getConnectionTimeout(), TimeUnit.SECONDS);
+            final T response = future.get(timeoutInSeconds, TimeUnit.SECONDS);
             logger.debug("Received response: {}", response);
             return response;
         } catch (Exception e) {
@@ -203,6 +209,10 @@ public class HiveMqV5ClientAdapter implements MqttClient {
                         .applySslConfig();
             }
         }
+
+        mqtt5ClientBuilder.transportConfig()
+                .mqttConnectTimeout(clientProperties.getConnectionTimeout(), TimeUnit.SECONDS)
+                .applyTransportConfig();
 
         return mqtt5ClientBuilder.buildAsync();
     }
