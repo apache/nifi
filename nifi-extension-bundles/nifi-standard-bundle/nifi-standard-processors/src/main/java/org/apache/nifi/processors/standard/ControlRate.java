@@ -414,7 +414,6 @@ public class ControlRate extends AbstractProcessor {
                 rateControlAttribute,
                 groupingAttributeName,
                 timePeriodSeconds,
-                TimeUnit.MILLISECONDS.convert(timePeriodSeconds, TimeUnit.SECONDS),
                 rateExceededEnabled,
                 countAccrual
         );
@@ -484,7 +483,7 @@ public class ControlRate extends AbstractProcessor {
                 if (configuration.dataThrottleRequired) {
                     removeExpiredThrottles(dataThrottleMap, throttleExpirationMillis);
                 }
-                if (configuration.dataThrottleRequired) {
+                if (configuration.countThrottleRequired) {
                     removeExpiredThrottles(countThrottleMap, throttleExpirationMillis);
                 }
             }
@@ -543,7 +542,6 @@ public class ControlRate extends AbstractProcessor {
         String rateControlAttribute,
         String groupingAttributeName,
         int timePeriodSeconds,
-        long timePeriodMillis,
         boolean rateExceededEnabled,
         ToLongFunction<FlowFile> countAccrual
     ) { }
