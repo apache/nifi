@@ -52,6 +52,8 @@ import static org.apache.nifi.processors.mqtt.common.MqttProtocolScheme.WSS;
 @SuppressWarnings("PMD.UnusedReturnValue")
 public class HiveMqV5ClientAdapter implements MqttClient {
 
+    private static final int CONNECT_TIMEOUT_MARGIN_SECONDS = 10;
+
     private final Mqtt5AsyncClient mqtt5AsyncClient;
     private final MqttClientProperties clientProperties;
     private final ComponentLog logger;
@@ -101,8 +103,8 @@ public class HiveMqV5ClientAdapter implements MqttClient {
 
         final Mqtt5Connect mqtt5Connect = connectBuilder.build();
 
-        // connection timeout is handled by client, adding extra 10 seconds here to allow the client to complete its connection process
-        awaitWithTimeout(mqtt5AsyncClient.connect(mqtt5Connect), clientProperties.getConnectionTimeout() + 10);
+        // connection timeout is handled by client, adding extra margin here to allow the client to complete its connection process
+        awaitWithTimeout(mqtt5AsyncClient.connect(mqtt5Connect), clientProperties.getConnectionTimeout() + CONNECT_TIMEOUT_MARGIN_SECONDS);
     }
 
     @Override
