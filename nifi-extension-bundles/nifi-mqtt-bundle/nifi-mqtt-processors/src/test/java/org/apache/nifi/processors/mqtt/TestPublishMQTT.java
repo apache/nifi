@@ -55,7 +55,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 public class TestPublishMQTT {
@@ -476,6 +479,28 @@ public class TestPublishMQTT {
                 publishFailedIndexAttributeName + " is expected to be removed after all remaining records have been published successfully.");
     }
 
+    @Test
+    public void testRollbackWhenConnectionFailed() {
+        MqttClient mqttClient = mock(MqttClient.class);
+        doThrow(new RuntimeException("Connection failed.")).when(mqttClient).connect();
+
+        testRunner = initializeTestRunner(mqttClient);
+        testRunner.setProperty(PublishMQTT.PROP_QOS, "1");
+        testRunner.assertValid();
+
+        final String testMessage = "testMessage";
+        testRunner.enqueue(testMessage.getBytes());
+
+        testRunner.run();
+
+        testRunner.assertQueueNotEmpty();
+        testRunner.assertTransferCount(REL_SUCCESS, 0);
+        testRunner.assertTransferCount(REL_FAILURE, 0);
+
+        testRunner.assertPenalizeCount(0);
+        assertTrue(testRunner.isYieldCalled());
+    }
+
     private void verifyPublishedMessage(byte[] payload, int qos, boolean retain) {
         final Pair<String, StandardMqttMessage> lastPublished = mqttTestClient.getLastPublished();
         final String lastPublishedTopic = lastPublished.getLeft();
@@ -529,7 +554,7 @@ public class TestPublishMQTT {
         return asList("message1", "message2", "message3");
     }
 
-    private TestRunner initializeTestRunner(MqttTestClient mqttTestClient) {
+    private TestRunner initializeTestRunner(MqttClient mqttTestClient) {
         final TestRunner testRunner = TestRunners.newTestRunner(new PublishMQTT() {
             @Override
             protected MqttClient createMqttClient() {
