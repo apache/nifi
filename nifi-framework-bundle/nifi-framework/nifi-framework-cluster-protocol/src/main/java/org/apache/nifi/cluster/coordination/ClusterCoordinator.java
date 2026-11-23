@@ -249,6 +249,12 @@ public interface ClusterCoordinator {
     void resetNodeStatuses(Map<NodeIdentifier, NodeConnectionStatus> statusMap);
 
     /**
+     * Notifies all registered event listeners of the current connection state of every known node, without changing any
+     * node status. This allows components created since the last status change to align with the current cluster topology.
+     */
+    void notifyNodeStatusListeners();
+
+    /**
      * Resets the status of the node to be in accordance with the given NodeConnectionStatus if and only if the
      * currently held status for this node has an Update ID equal to the given <code>qualifyingUpdateId</code>
      *

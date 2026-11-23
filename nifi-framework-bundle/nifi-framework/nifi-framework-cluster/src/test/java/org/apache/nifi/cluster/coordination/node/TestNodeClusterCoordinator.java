@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.cluster.coordination.node;
 
+import org.apache.nifi.cluster.coordination.ClusterTopologyEventListener;
 import org.apache.nifi.cluster.coordination.flow.FlowElection;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
@@ -42,7 +43,6 @@ import org.apache.nifi.web.revision.RevisionSnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -64,6 +64,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestNodeClusterCoordinator {
@@ -82,16 +87,16 @@ public class TestNodeClusterCoordinator {
     public void setup() throws IOException {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
 
-        senderListener = Mockito.mock(ClusterCoordinationProtocolSenderListener.class);
+        senderListener = mock(ClusterCoordinationProtocolSenderListener.class);
         nodeStatuses = Collections.synchronizedList(new ArrayList<>());
-        stateManagerProvider = Mockito.mock(StateManagerProvider.class);
+        stateManagerProvider = mock(StateManagerProvider.class);
 
-        final StateManager stateManager = Mockito.mock(StateManager.class);
+        final StateManager stateManager = mock(StateManager.class);
         when(stateManager.getState(any(Scope.class))).thenReturn(new MockStateMap(Collections.emptyMap(), 1));
         when(stateManagerProvider.getStateManager(anyString())).thenReturn(stateManager);
 
-        final EventReporter eventReporter = Mockito.mock(EventReporter.class);
-        final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
+        final EventReporter eventReporter = mock(EventReporter.class);
+        final RevisionManager revisionManager = mock(RevisionManager.class);
         when(revisionManager.getAllRevisions()).thenReturn(emptyRevisionSnapshot);
 
         coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(), null, revisionManager, createProperties(), null, stateManagerProvider) {
@@ -101,7 +106,7 @@ public class TestNodeClusterCoordinator {
             }
         };
 
-        final FlowService flowService = Mockito.mock(FlowService.class);
+        final FlowService flowService = mock(FlowService.class);
         final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50], new HashSet<>());
         when(flowService.createDataFlow()).thenReturn(dataFlow);
         coordinator.setFlowService(flowService);
@@ -144,9 +149,9 @@ public class TestNodeClusterCoordinator {
 
     @Test
     public void testTryAgainIfNoFlowServiceSet() throws IOException {
-        final ClusterCoordinationProtocolSenderListener senderListener = Mockito.mock(ClusterCoordinationProtocolSenderListener.class);
-        final EventReporter eventReporter = Mockito.mock(EventReporter.class);
-        final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
+        final ClusterCoordinationProtocolSenderListener senderListener = mock(ClusterCoordinationProtocolSenderListener.class);
+        final EventReporter eventReporter = mock(EventReporter.class);
+        final RevisionManager revisionManager = mock(RevisionManager.class);
         when(revisionManager.getAllRevisions()).thenReturn(emptyRevisionSnapshot);
 
         final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(),
@@ -175,7 +180,7 @@ public class TestNodeClusterCoordinator {
     @Test
     @Timeout(value = 5)
     public void testUnknownNodeAskedToConnectOnAttemptedConnectionComplete() throws IOException, InterruptedException {
-        final ClusterCoordinationProtocolSenderListener senderListener = Mockito.mock(ClusterCoordinationProtocolSenderListener.class);
+        final ClusterCoordinationProtocolSenderListener senderListener = mock(ClusterCoordinationProtocolSenderListener.class);
         final AtomicReference<ReconnectionRequestMessage> requestRef = new AtomicReference<>();
 
         when(senderListener.requestReconnection(any(ReconnectionRequestMessage.class))).thenAnswer(invocation -> {
@@ -184,8 +189,8 @@ public class TestNodeClusterCoordinator {
             return null;
         });
 
-        final EventReporter eventReporter = Mockito.mock(EventReporter.class);
-        final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
+        final EventReporter eventReporter = mock(EventReporter.class);
+        final RevisionManager revisionManager = mock(RevisionManager.class);
         when(revisionManager.getAllRevisions()).thenReturn(emptyRevisionSnapshot);
 
         final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(),
@@ -195,7 +200,7 @@ public class TestNodeClusterCoordinator {
             }
         };
 
-        final FlowService flowService = Mockito.mock(FlowService.class);
+        final FlowService flowService = mock(FlowService.class);
         final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50], new HashSet<>());
         when(flowService.createDataFlowFromController()).thenReturn(dataFlow);
         coordinator.setFlowService(flowService);
@@ -244,7 +249,7 @@ public class TestNodeClusterCoordinator {
     @Test
     @Timeout(value = 5)
     public void testStatusChangesReplicated() throws InterruptedException {
-        final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
+        final RevisionManager revisionManager = mock(RevisionManager.class);
         when(revisionManager.getAllRevisions()).thenReturn(emptyRevisionSnapshot);
 
         // Create a connection request message and send to the coordinator
@@ -508,7 +513,7 @@ public class TestNodeClusterCoordinator {
         }
         nodeStatuses.clear();
 
-        Mockito.doThrow(new ProtocolException("Simulated")).when(senderListener).disconnect(any());
+        doThrow(new ProtocolException("Simulated")).when(senderListener).disconnect(any());
         coordinator.requestNodeDisconnect(nodeId2, DisconnectionCode.USER_DISCONNECTED, "Unit Test");
 
         final Thread disconnectThread = coordinator.getPendingDisconnectionThread(nodeId2);
@@ -520,6 +525,34 @@ public class TestNodeClusterCoordinator {
         assertNull(coordinator.getPendingDisconnectionThread(nodeId2));
         disconnectThread.join(5000);
         assertFalse(disconnectThread.isAlive());
+    }
+
+    @Test
+    public void testNotifyNodeStatusListenersReportsCurrentStatesWithoutChangingThem() {
+        final NodeIdentifier connectedNodeId = createNodeId(1);
+        final NodeIdentifier offloadingNodeId = createNodeId(2);
+        coordinator.updateNodeStatus(new NodeConnectionStatus(connectedNodeId, NodeConnectionState.CONNECTED));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(offloadingNodeId, NodeConnectionState.OFFLOADING));
+        final NodeConnectionStatus connectedStatusBefore = coordinator.getConnectionStatus(connectedNodeId);
+        final NodeConnectionStatus offloadingStatusBefore = coordinator.getConnectionStatus(offloadingNodeId);
+
+        final ClusterTopologyEventListener listener = mock(ClusterTopologyEventListener.class);
+        coordinator.registerEventListener(listener);
+
+        coordinator.notifyNodeStatusListeners();
+
+        verify(listener, times(1)).onNodeStateChange(connectedNodeId, NodeConnectionState.CONNECTED);
+        verify(listener, times(1)).onNodeStateChange(offloadingNodeId, NodeConnectionState.OFFLOADING);
+        verify(listener, times(2)).onNodeStateChange(any(), any());
+        verify(listener, never()).onNodeAdded(any());
+        verify(listener, never()).onNodeRemoved(any());
+
+        final NodeConnectionStatus connectedStatusAfter = coordinator.getConnectionStatus(connectedNodeId);
+        final NodeConnectionStatus offloadingStatusAfter = coordinator.getConnectionStatus(offloadingNodeId);
+        assertEquals(NodeConnectionState.CONNECTED, connectedStatusAfter.getState());
+        assertEquals(connectedStatusBefore.getUpdateIdentifier(), connectedStatusAfter.getUpdateIdentifier());
+        assertEquals(NodeConnectionState.OFFLOADING, offloadingStatusAfter.getState());
+        assertEquals(offloadingStatusBefore.getUpdateIdentifier(), offloadingStatusAfter.getUpdateIdentifier());
     }
 
     private NodeIdentifier createNodeId(final int index) {
