@@ -502,8 +502,8 @@ public class TestControlRate {
         runner.clearTransferState();
 
         // One throttle should have been created for the initial batch of 3
-        assertEquals(1, controlRate.getCountThrottleMap().size());
         assertEquals(1, controlRate.getDataThrottleMap().size());
+        assertEquals(1, controlRate.getCountThrottleMap().size());
 
         // Increment one time period ...
         incrementCurrentTime(timePeriodMillis);
@@ -511,8 +511,8 @@ public class TestControlRate {
         runner.run(1, false);
 
         // ... No throttles should have been cleared
-        assertEquals(1, controlRate.getCountThrottleMap().size());
         assertEquals(1, controlRate.getDataThrottleMap().size());
+        assertEquals(1, controlRate.getCountThrottleMap().size());
 
         // Advance an additional two time periods ...
         incrementCurrentTime(timePeriodMillis * 2);
@@ -520,9 +520,146 @@ public class TestControlRate {
         runner.run(1, false);
 
         // ... Should now be outside the window so the throttle will have been cleared
-        assertEquals(0, controlRate.getCountThrottleMap().size());
         assertEquals(0, controlRate.getDataThrottleMap().size());
+        assertEquals(0, controlRate.getCountThrottleMap().size());
     }
+
+    @Test
+    public void testDataThrottleClear() {
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.DATA_RATE);
+        runner.setProperty(ControlRate.MAX_RATE, "10 MB");
+
+        long timePeriodMillis = runner.getProcessContext().getProperty(ControlRate.TIME_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
+
+        runner.enqueue("test data 1");
+        runner.enqueue("test data 2");
+        runner.enqueue("test data 3");
+
+        runner.run(1, false);
+
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 3);
+        runner.clearTransferState();
+
+        // One throttle should have been created for the initial batch of 3
+        assertEquals(1, controlRate.getDataThrottleMap().size());
+        // But not for count, it's not enabled
+        assertEquals(0, controlRate.getCountThrottleMap().size());
+
+        // Increment one time period ...
+        incrementCurrentTime(timePeriodMillis);
+
+        runner.run(1, false);
+
+        // ... No throttles should have been cleared
+        assertEquals(1, controlRate.getDataThrottleMap().size());
+        // No count throttle though, not enabled
+        assertEquals(0, controlRate.getCountThrottleMap().size());
+
+        // Advance an additional two time periods ...
+        incrementCurrentTime(timePeriodMillis * 2);
+
+        runner.run(1, false);
+
+        // ... Should now be outside the window so the throttle will have been cleared
+        assertEquals(0, controlRate.getDataThrottleMap().size());
+        assertEquals(0, controlRate.getCountThrottleMap().size());
+    }
+
+    @Test
+    public void testCountThrottleClear() {
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.MAX_RATE, "3");
+
+        long timePeriodMillis = runner.getProcessContext().getProperty(ControlRate.TIME_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
+
+        runner.enqueue("test data 1");
+        runner.enqueue("test data 2");
+        runner.enqueue("test data 3");
+
+        runner.run(1, false);
+
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 3);
+        runner.clearTransferState();
+
+        // One throttle should have been created for the initial batch of 3
+        assertEquals(0, controlRate.getDataThrottleMap().size());
+        // But only for count throttles
+        assertEquals(1, controlRate.getCountThrottleMap().size());
+
+        // Increment one time period ...
+        incrementCurrentTime(timePeriodMillis);
+
+        runner.run(1, false);
+
+        // ... No throttles should have been cleared
+        assertEquals(0, controlRate.getDataThrottleMap().size());
+        assertEquals(1, controlRate.getCountThrottleMap().size());
+
+        // Advance an additional two time periods ...
+        incrementCurrentTime(timePeriodMillis * 2);
+
+        runner.run(1, false);
+
+        // ... Should now be outside the window so the throttle will have been cleared
+        assertEquals(0, controlRate.getDataThrottleMap().size());
+        assertEquals(0, controlRate.getCountThrottleMap().size());
+    }
+
+    @Test
+    public void testAttributeRateThrottles() {
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_ATTRIBUTE_NAME, ControlRate.RateControlCriteria.ATTRIBUTE_RATE);
+        runner.setProperty(ControlRate.GROUPING_ATTRIBUTE_NAME, "group");
+        runner.setProperty(ControlRate.MAX_RATE, "3");
+
+        long timePeriodMillis = runner.getProcessContext().getProperty(ControlRate.TIME_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
+
+        for (int i = 0; i < 3; i++) {
+            createFlowFileWithGroup(runner, Integer.toString(i));
+        }
+
+        runner.run(1, false);
+
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 3);
+
+        assertEquals(0, controlRate.getDataThrottleMap().size());
+        // Should create 3 throttles because we are using groups now
+        assertEquals(3, controlRate.getCountThrottleMap().size());
+
+        // Increment one time period ...
+        incrementCurrentTime(timePeriodMillis);
+
+        runner.run(1, false);
+
+        // ... No throttles should have been cleared
+        assertEquals(0, controlRate.getDataThrottleMap().size());
+        assertEquals(3, controlRate.getCountThrottleMap().size());
+
+        // Run an additional file through to keep around one throttle
+
+        createFlowFileWithGroup(runner, Integer.toString(2));
+
+        // Advance an additional two time periods ...
+        incrementCurrentTime(timePeriodMillis * 2);
+
+        runner.run(1, false);
+        // Verify all -- original 3 + one additional -- flowFiles were transferred
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 4);
+
+        // Only non-refreshed throttles should be present
+        assertEquals(0, controlRate.getDataThrottleMap().size());
+        assertEquals(1, controlRate.getCountThrottleMap().size());
+
+        // Advance outside all windows
+        incrementCurrentTime(timePeriodMillis * 3);
+
+        runner.run(1, false);
+
+        // ... Now outside all windows so the throttles will have been cleared
+        assertEquals(0, controlRate.getDataThrottleMap().size());
+        assertEquals(0, controlRate.getCountThrottleMap().size());
+    }
+
 
     @Test
     public void testValidate() {

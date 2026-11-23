@@ -692,7 +692,6 @@ public class ControlRate extends AbstractProcessor {
                     if (dataThrottle.tryAdd(flowFile.getSize())) {
                         flowFilesInBatch++;
                         if (flowFilesInBatch >= flowFilesPerBatch) {
-                            flowFilesInBatch = 0;
                             return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
                         } else {
                             // only accept flowfile if additional count throttle does not need to run
@@ -718,7 +717,6 @@ public class ControlRate extends AbstractProcessor {
                     if (countThrottle.tryAdd(configuration.countAccrual().applyAsLong(flowFile))) {
                         flowFilesInBatch++;
                         if (flowFilesInBatch >= flowFilesPerBatch) {
-                            flowFilesInBatch = 0;
                             return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
                         } else {
                             return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
