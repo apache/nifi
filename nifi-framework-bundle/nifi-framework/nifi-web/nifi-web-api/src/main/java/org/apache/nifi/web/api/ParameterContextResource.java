@@ -531,7 +531,7 @@ public class ParameterContextResource extends AbstractParameterResource {
         // authorize access
         authorizeReadParameterContext(parameterContextId);
 
-        if (isReplicateRequest()) {
+        if (!isReplicatedRequestFromClusterNode() && isReplicateRequest()) {
             return replicate(HttpMethod.GET);
         }
 

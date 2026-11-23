@@ -33,6 +33,8 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.cluster.coordination.http.ReplicationHeader;
+import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.components.BacklogReportingException;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -381,8 +383,9 @@ public class TestConnectorResource {
     @Test
     public void testGetAssetsClusterNodeRequestBypassesAuth() {
         final ConnectorResource spyResource = spy(connectorResource);
-        doReturn(false).when(spyResource).isReplicateRequest();
+        lenient().doThrow(new IllegalClusterStateException("The Flow Controller is initializing the Data Flow.")).when(spyResource).isReplicateRequest();
         doReturn(true).when(spyResource).isRequestFromClusterNode();
+        when(httpServletRequest.getHeader(ReplicationHeader.REQUEST_REPLICATED.getHeader())).thenReturn(Boolean.TRUE.toString());
 
         when(serviceFacade.getConnectorAssets(CONNECTOR_ID)).thenReturn(List.of());
 

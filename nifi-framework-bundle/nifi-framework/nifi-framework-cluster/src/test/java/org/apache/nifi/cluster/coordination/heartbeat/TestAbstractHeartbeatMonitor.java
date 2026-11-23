@@ -400,6 +400,11 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
+        public Set<NodeIdentifier> getElectedFlowNodeIdentifiers() {
+            return Set.of();
+        }
+
+        @Override
         public Map<NodeIdentifier, NodeWorkload> getClusterWorkload() {
             return null;
         }

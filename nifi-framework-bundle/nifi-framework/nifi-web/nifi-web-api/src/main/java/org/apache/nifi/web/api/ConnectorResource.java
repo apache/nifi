@@ -3026,7 +3026,7 @@ public class ConnectorResource extends ApplicationResource {
     ) {
         authorizeReadConnector(connectorId);
 
-        if (isReplicateRequest()) {
+        if (!isReplicatedRequestFromClusterNode() && isReplicateRequest()) {
             return replicate(HttpMethod.GET);
         }
 
