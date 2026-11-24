@@ -19,6 +19,7 @@ package org.apache.nifi.web.util;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response.Status;
+import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -46,6 +47,7 @@ import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
  * Ends a drain of a Process Group once the data has left the group, so that the drain ends even if no client is watching it. Only the node that
@@ -113,6 +115,7 @@ public class ProcessGroupDrainMonitor {
         private final String processGroupId;
         private final String drainRequestId;
         private final NiFiUser user;
+        private final NiFiAuthenticationToken authenticationToken;
         private int emptyCheckCount = 0;
 
         DrainCheck(final URI drainRequestUri, final String processGroupId, final String drainRequestId, final NiFiUser user) {
@@ -120,6 +123,7 @@ public class ProcessGroupDrainMonitor {
             this.processGroupId = processGroupId;
             this.drainRequestId = drainRequestId;
             this.user = user;
+            this.authenticationToken = new NiFiAuthenticationToken(new NiFiUserDetails(user));
         }
 
         @Override
@@ -130,7 +134,6 @@ public class ProcessGroupDrainMonitor {
         }
 
         CheckResult check() {
-            SecurityContextHolder.getContext().setAuthentication(new NiFiAuthenticationToken(new NiFiUserDetails(user)));
             try {
                 if (drainRequestUri != null && !clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTING, NodeConnectionState.DISCONNECTING,
                         NodeConnectionState.DISCONNECTED, NodeConnectionState.OFFLOADING).isEmpty()) {
@@ -167,6 +170,10 @@ public class ProcessGroupDrainMonitor {
             } catch (final ResourceNotFoundException e) {
                 logger.info("Stopped watching drain {} because Process Group {} no longer exists", drainRequestId, processGroupId);
                 return CheckResult.STOP_CHECKING;
+            } catch (final AccessDeniedException e) {
+                logger.warn("Stopped watching drain {} of Process Group {} because {} is no longer allowed to check or end it; another user must end the drain",
+                        drainRequestId, processGroupId, user.getIdentity());
+                return CheckResult.STOP_CHECKING;
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return CheckResult.STOP_CHECKING;
@@ -174,14 +181,12 @@ public class ProcessGroupDrainMonitor {
                 emptyCheckCount = 0;
                 logger.warn("Failed to check drain {} of Process Group {}; will check again in {} seconds", drainRequestId, processGroupId, CHECK_INTERVAL_SECONDS, t);
                 return CheckResult.CHECK_AGAIN;
-            } finally {
-                SecurityContextHolder.getContext().setAuthentication(null);
             }
         }
 
         private Optional<ProcessGroupDrainRequestDTO> getDrainRequest() throws IOException, InterruptedException {
             if (drainRequestUri == null) {
-                return serviceFacade.getProcessGroupDrainRequest(processGroupId, drainRequestId);
+                return callAsUser(() -> serviceFacade.getProcessGroupDrainRequest(processGroupId, drainRequestId));
             }
 
             final NodeResponse response = replicate(HttpMethod.GET);
@@ -199,11 +204,24 @@ public class ProcessGroupDrainMonitor {
 
         private void endDrain() throws IOException, InterruptedException {
             if (drainRequestUri == null) {
-                serviceFacade.endProcessGroupDrain(processGroupId, drainRequestId);
+                callAsUser(() -> serviceFacade.endProcessGroupDrain(processGroupId, drainRequestId));
                 return;
             }
 
             replicate(HttpMethod.DELETE);
+        }
+
+        /**
+         * The drain request that the Service Facade creates includes the details of a component only if the current user can read the component, so
+         * the Service Facade is called as the user who began the drain. A replicated request does not need this because it is given the user directly.
+         */
+        private <T> T callAsUser(final Supplier<T> call) {
+            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+            try {
+                return call.get();
+            } finally {
+                SecurityContextHolder.getContext().setAuthentication(null);
+            }
         }
 
         private NodeResponse replicate(final String method) throws IOException, InterruptedException {
@@ -223,6 +241,9 @@ public class ProcessGroupDrainMonitor {
             }
 
             final int status = response.getStatus();
+            if (status == Status.FORBIDDEN.getStatusCode()) {
+                throw new AccessDeniedException("Request to " + method + " " + drainRequestUri + " was not allowed for " + user.getIdentity());
+            }
             if (status != Status.OK.getStatusCode() && status != Status.NOT_FOUND.getStatusCode()) {
                 throw new IOException("Request to " + method + " " + drainRequestUri + " returned status " + status);
             }

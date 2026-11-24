@@ -102,8 +102,8 @@ public class GenerateFlowFile extends AbstractProcessor {
         .addValidator(NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(NONE)
         .build();
-    static final PropertyDescriptor GATE_FILE = new Builder()
-        .name("Gate File")
+    static final PropertyDescriptor WAIT_FOR_FILE = new Builder()
+        .name("Wait For File")
         .description("An optional file path. If specified, each invocation waits until this file exists before generating FlowFiles, even if the Processor "
             + "is stopped while it waits. This simulates a source that is still waiting for data from an external system when it is asked to stop.")
         .required(false)
@@ -120,7 +120,7 @@ public class GenerateFlowFile extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Arrays.asList(FILE_SIZE, BATCH_SIZE, MAX_FLOWFILES, CUSTOM_TEXT, STATE_SCOPE, FILE_TO_WRITE_ON_COMMIT_FAILURE, GATE_FILE);
+        return Arrays.asList(FILE_SIZE, BATCH_SIZE, MAX_FLOWFILES, CUSTOM_TEXT, STATE_SCOPE, FILE_TO_WRITE_ON_COMMIT_FAILURE, WAIT_FOR_FILE);
     }
 
     @Override
@@ -153,10 +153,10 @@ public class GenerateFlowFile extends AbstractProcessor {
             return;
         }
 
-        final String gateFilePath = context.getProperty(GATE_FILE).getValue();
-        if (gateFilePath != null) {
-            final File gateFile = new File(gateFilePath);
-            while (!gateFile.exists()) {
+        final String waitForFilePath = context.getProperty(WAIT_FOR_FILE).getValue();
+        if (waitForFilePath != null) {
+            final File waitForFile = new File(waitForFilePath);
+            while (!waitForFile.exists()) {
                 try {
                     Thread.sleep(10L);
                 } catch (final InterruptedException e) {

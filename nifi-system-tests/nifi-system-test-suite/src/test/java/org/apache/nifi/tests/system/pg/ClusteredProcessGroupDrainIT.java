@@ -48,6 +48,8 @@ public class ClusteredProcessGroupDrainIT extends NiFiSystemIT {
     private static final String DRAINING = "DRAINING";
     private static final String ENDED = "ENDED";
     private static final String FAILED = "FAILED";
+    private static final String BATCH_SIZE_PROPERTY = "Batch Size";
+    private static final String GATE_FILE_PROPERTY = "Gate File";
     private static final String GATE_FILE_NAME = "drain-gate.txt";
 
     // Each node runs in its own instance directory, so this relative path points to a different gate file on each node
@@ -156,8 +158,8 @@ public class ClusteredProcessGroupDrainIT extends NiFiSystemIT {
         final ProcessorEntity terminate = getClientUtil().createProcessor(TERMINATE_FLOWFILE, group.getId());
         final ConnectionEntity connection = getClientUtil().createConnection(generate, terminate, SUCCESS, group.getId());
         getClientUtil().updateConnectionLoadBalancing(connection, LoadBalanceStrategy.ROUND_ROBIN, LoadBalanceCompression.DO_NOT_COMPRESS, null);
-        getClientUtil().updateProcessorProperties(generate, Map.of("Batch Size", "5"));
-        getClientUtil().updateProcessorProperties(terminate, Map.of("Gate File", GATE_FILE_PATH));
+        getClientUtil().updateProcessorProperties(generate, Map.of(BATCH_SIZE_PROPERTY, "5"));
+        getClientUtil().updateProcessorProperties(terminate, Map.of(GATE_FILE_PROPERTY, GATE_FILE_PATH));
 
         getClientUtil().runProcessorOnce(getNifiClient().getProcessorClient().getProcessor(generate.getId()));
         waitForQueueCount(connection.getId(), 10);

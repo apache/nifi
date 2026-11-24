@@ -145,6 +145,11 @@ class ProcessGroupDrainMonitorTest {
         assertEquals(CheckResult.CHECK_AGAIN, check.check());
         assertEquals(CheckResult.CHECK_AGAIN, check.check());
         assertEquals(CheckResult.STOP_CHECKING, check.check());
+
+        // A user who is no longer allowed to check the drain will not become allowed by checking again
+        final AsyncClusterResponse forbiddenGet = createAsyncResponse(createNodeResponse(403, null));
+        when(requestReplicator.replicate(eq(USER), eq(HttpMethod.GET), eq(DRAIN_REQUEST_URI), any(), anyMap())).thenReturn(forbiddenGet);
+        assertEquals(CheckResult.STOP_CHECKING, monitor.new DrainCheck(DRAIN_REQUEST_URI, PROCESS_GROUP_ID, DRAIN_REQUEST_ID, USER).check());
     }
 
     private static ProcessGroupDrainRequestDTO createDrainRequest(final ProcessGroupDrainState state, final int currentCount) {

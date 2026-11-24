@@ -47,6 +47,10 @@ public class ProcessGroupDrainIT extends NiFiSystemIT {
     private static final String WRITE_LIFECYCLE_EVENTS = "WriteLifecycleEvents";
     private static final String DRAINING = "DRAINING";
     private static final String ENDED = "ENDED";
+    private static final String BATCH_SIZE_PROPERTY = "Batch Size";
+    private static final String EVENT_FILE_PROPERTY = "Event File";
+    private static final String GATE_FILE_PROPERTY = "Gate File";
+    private static final String WAIT_FOR_FILE_PROPERTY = "Wait For File";
 
     @Override
     protected void destroyFlow() throws NiFiClientException, IOException, InterruptedException {
@@ -84,8 +88,8 @@ public class ProcessGroupDrainIT extends NiFiSystemIT {
         final ProcessorEntity terminate = getClientUtil().createProcessor(TERMINATE_FLOWFILE, group.getId());
         final ConnectionEntity connection = getClientUtil().createConnection(generate, writeLifecycleEvents, SUCCESS, group.getId());
         final ConnectionEntity gatedConnection = getClientUtil().createConnection(writeLifecycleEvents, terminate, SUCCESS, group.getId());
-        getClientUtil().updateProcessorProperties(writeLifecycleEvents, Map.of("Event File", eventFile.getAbsolutePath()));
-        getClientUtil().updateProcessorProperties(terminate, Map.of("Gate File", gateFile.getAbsolutePath()));
+        getClientUtil().updateProcessorProperties(writeLifecycleEvents, Map.of(EVENT_FILE_PROPERTY, eventFile.getAbsolutePath()));
+        getClientUtil().updateProcessorProperties(terminate, Map.of(GATE_FILE_PROPERTY, gateFile.getAbsolutePath()));
 
         final ProcessGroupEntity childGroup = getClientUtil().createProcessGroup("Child", group.getId());
         final ProcessorEntity childGenerate = getClientUtil().createProcessor(GENERATE_FLOWFILE, childGroup.getId());
@@ -95,8 +99,8 @@ public class ProcessGroupDrainIT extends NiFiSystemIT {
 
         // Each source generates its FlowFiles when it starts and then stays running until its next scheduled run, 10 minutes later.
         // The source in the child group waits for its gate file before it generates anything.
-        getClientUtil().startProcessor(getClientUtil().updateProcessorProperties(generate, Map.of("Batch Size", "3")));
-        getClientUtil().startProcessor(getClientUtil().updateProcessorProperties(childGenerate, Map.of("Batch Size", "1", "Gate File", sourceGateFile.getAbsolutePath())));
+        getClientUtil().startProcessor(getClientUtil().updateProcessorProperties(generate, Map.of(BATCH_SIZE_PROPERTY, "3")));
+        getClientUtil().startProcessor(getClientUtil().updateProcessorProperties(childGenerate, Map.of(BATCH_SIZE_PROPERTY, "1", WAIT_FOR_FILE_PROPERTY, sourceGateFile.getAbsolutePath())));
         waitForQueueCount(connection.getId(), 3);
         waitFor(() -> getProcessor(childGenerate.getId()).getStatus().getAggregateSnapshot().getActiveThreadCount() == 1);
 
@@ -169,7 +173,7 @@ public class ProcessGroupDrainIT extends NiFiSystemIT {
         final ProcessorEntity terminate = getClientUtil().createProcessor(TERMINATE_FLOWFILE, group.getId());
         final ConnectionEntity generateToValidate = getClientUtil().createConnection(generate, validate, SUCCESS, group.getId());
         final ConnectionEntity generateToTerminate = getClientUtil().createConnection(generate, terminate, SUCCESS, group.getId());
-        getClientUtil().updateProcessorProperties(generate, Map.of("Batch Size", "3"));
+        getClientUtil().updateProcessorProperties(generate, Map.of(BATCH_SIZE_PROPERTY, "3"));
 
         getClientUtil().runProcessorOnce(getProcessor(generate.getId()));
         waitForQueueCount(generateToValidate.getId(), 3);

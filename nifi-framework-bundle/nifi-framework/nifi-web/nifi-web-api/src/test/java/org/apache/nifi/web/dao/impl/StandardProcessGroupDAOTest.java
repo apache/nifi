@@ -67,6 +67,8 @@ class StandardProcessGroupDAOTest {
     private static final String ROOT_GROUP_ID = "root-group-id";
     private static final String CONNECTOR_GROUP_ID = "connector-group-id";
     private static final String NON_EXISTENT_ID = "non-existent-id";
+    private static final String CURRENT_DRAIN_ID = "current-drain";
+    private static final String CONNECTOR_ID = "connector-1";
 
     @BeforeEach
     void setUp() {
@@ -143,7 +145,7 @@ class StandardProcessGroupDAOTest {
     @Test
     void testEndDrainEndsOnlyTheRequestedDrain() {
         final ProcessGroupDrain drain = mock(ProcessGroupDrain.class);
-        when(drain.getIdentifier()).thenReturn("current-drain");
+        when(drain.getIdentifier()).thenReturn(CURRENT_DRAIN_ID);
         when(drain.getProcessGroup()).thenReturn(rootGroup);
         when(rootGroup.getDrain()).thenReturn(Optional.of(drain));
         when(rootGroup.endDrain()).thenReturn(Optional.of(drain));
@@ -152,20 +154,20 @@ class StandardProcessGroupDAOTest {
         assertEquals(Optional.empty(), processGroupDAO.endDrain(ROOT_GROUP_ID, "earlier-drain"));
         verify(rootGroup, never()).endDrain();
 
-        assertEquals(Optional.of(drain), processGroupDAO.endDrain(ROOT_GROUP_ID, "current-drain"));
+        assertEquals(Optional.of(drain), processGroupDAO.endDrain(ROOT_GROUP_ID, CURRENT_DRAIN_ID));
         verify(rootGroup).endDrain();
     }
 
     @Test
     void testVerifyBeginDrainRejectsConnectorManagedGroup() {
         when(owningConnector.getCurrentState()).thenReturn(ConnectorState.TROUBLESHOOTING);
-        when(connectorManagedGroup.findOwningConnectorIdentifier()).thenReturn(Optional.of("connector-1"));
+        when(connectorManagedGroup.findOwningConnectorIdentifier()).thenReturn(Optional.of(CONNECTOR_ID));
 
         try {
             processGroupDAO.verifyBeginDrain(CONNECTOR_GROUP_ID);
             fail("Expected an IllegalStateException");
         } catch (final IllegalStateException expected) {
-            assertTrue(expected.getMessage().contains("connector-1"), expected.getMessage());
+            assertTrue(expected.getMessage().contains(CONNECTOR_ID), expected.getMessage());
         }
 
         verify(connectorManagedGroup, never()).verifyCanBeginDrain();
