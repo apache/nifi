@@ -208,8 +208,8 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     public static final PropertyDescriptor PROP_CONN_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Connection Timeout")
             .description("Maximum time interval (in seconds), the client will wait for the network connection to the MQTT server " +
-                    "to be established. The default timeout is 30 seconds. " +
-                    "A value of 0 disables timeout processing meaning the client will wait until the network connection is made successfully or fails.")
+                    "to be established. With MQTT 5, the client also uses this timeout for other operations that require a response from the server, " +
+                    "such as publishing and subscribing.")
             .required(false)
             .defaultValue("30")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -311,8 +311,10 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         // We are preventing additional nullPtrException here, but the clean solution would be to create the client in the onScheduled method.
         if (mqttClient != null) {
             try {
-                logger.info("Disconnecting client");
-                mqttClient.disconnect();
+                if (mqttClient.isConnected()) {
+                    logger.info("Disconnecting client");
+                    mqttClient.disconnect();
+                }
             } catch (Exception e) {
                 logger.error("Error disconnecting MQTT client", e);
             }
