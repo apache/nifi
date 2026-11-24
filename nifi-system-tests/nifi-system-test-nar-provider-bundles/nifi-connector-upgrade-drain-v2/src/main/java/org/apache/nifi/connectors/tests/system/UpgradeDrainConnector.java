@@ -44,6 +44,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -149,6 +150,7 @@ public class UpgradeDrainConnector extends AbstractConnector {
     private static final String RELAY_TYPE = "org.apache.nifi.processors.tests.system.UpgradeDrainRelay";
     private static final String TERMINATE_TYPE = "org.apache.nifi.processors.tests.system.UpgradeDrainTerminate";
     private static final String SWAPPED_PROCESSOR_ID = "upgrade-drain-swapped-processor";
+    private static final String VERSION_ONE = "1.0.0";
 
     @Override
     protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
@@ -234,30 +236,57 @@ public class UpgradeDrainConnector extends AbstractConnector {
         return CompletableFuture.completedFuture(null);
     }
 
-    private VersionedExternalFlow buildFlow(final FlowContext flowContext) {
-        final VersionedProcessGroup rootGroup = VersionedFlowUtils.createProcessGroup(ROOT_GROUP_ID, "Upgrade Drain");
-        final VersionedProcessor generate = VersionedFlowUtils.addProcessor(rootGroup, GENERATE_TYPE, GATE_BUNDLE, "GenerateFlowFile", new Position(0, 0));
-        generate.getProperties().put("File Size", "1 B");
-        generate.setSchedulingPeriod("100 millis");
-        final String gateFile = property(flowContext, GATE_FILE_PATH);
-        if (gateFile != null) {
-            generate.getProperties().put("Gate File", gateFile);
+    /**
+     * Version 1.0.0 always connects the generator to the terminator, so a Connector it saved may have FlowFiles queued on the
+     * connection that this version removes.
+     */
+    @Override
+    public Optional<VersionedExternalFlow> getPreUpgradeFlow(final FlowContext preUpgradeFlowContext) {
+        if (!VERSION_ONE.equals(preUpgradeFlowContext.getBundle().getVersion())) {
+            return Optional.empty();
         }
 
-        final String comment = property(flowContext, COMMENT);
-        if (comment != null && !comment.isBlank()) {
-            generate.setComments(comment);
+        return Optional.of(buildVersionOneFlow(preUpgradeFlowContext));
+    }
+
+    /**
+     * Builds the flow that version 1.0.0 installs. Identifiers are assigned by how many components of a type already exist, so
+     * components are added in the order that version 1.0.0 adds them.
+     */
+    private VersionedExternalFlow buildVersionOneFlow(final FlowContext flowContext) {
+        final VersionedProcessGroup rootGroup = VersionedFlowUtils.createProcessGroup(ROOT_GROUP_ID, "Upgrade Drain");
+        final VersionedProcessor generate = addGenerate(rootGroup, flowContext);
+        final boolean removedProcessorChain = Boolean.parseBoolean(property(flowContext, REMOVED_PROCESSOR_CHAIN));
+        final Position terminatePosition = removedProcessorChain ? new Position(1200, 0) : new Position(400, 0);
+        final VersionedProcessor terminate = addTerminate(rootGroup, flowContext, terminatePosition);
+
+        if (removedProcessorChain) {
+            final VersionedProcessor relay = VersionedFlowUtils.addProcessor(rootGroup, RELAY_TYPE, GATE_BUNDLE, "RelayFlowFile", new Position(400, 0));
+            final VersionedProcessor removed = VersionedFlowUtils.addProcessor(rootGroup, RELAY_TYPE, GATE_BUNDLE, "RemovedFlowFile", new Position(800, 0));
+            VersionedFlowUtils.addConnection(rootGroup, VersionedFlowUtils.createConnectableComponent(generate),
+                VersionedFlowUtils.createConnectableComponent(relay), Set.of("success")).setName("Relay Input Connection");
+            VersionedFlowUtils.addConnection(rootGroup, VersionedFlowUtils.createConnectableComponent(relay),
+                VersionedFlowUtils.createConnectableComponent(removed), Set.of("success")).setName("Removed Input Connection");
+            VersionedFlowUtils.addConnection(rootGroup, VersionedFlowUtils.createConnectableComponent(removed),
+                VersionedFlowUtils.createConnectableComponent(terminate), Set.of("success")).setName("Removed Connection");
+        } else {
+            VersionedFlowUtils.addConnection(rootGroup, VersionedFlowUtils.createConnectableComponent(generate),
+                VersionedFlowUtils.createConnectableComponent(terminate), Set.of("success")).setName("Removed Connection");
         }
+
+        return createExternalFlow(rootGroup, generate, flowContext);
+    }
+
+    private VersionedExternalFlow buildFlow(final FlowContext flowContext) {
+        final VersionedProcessGroup rootGroup = VersionedFlowUtils.createProcessGroup(ROOT_GROUP_ID, "Upgrade Drain");
+        final VersionedProcessor generate = addGenerate(rootGroup, flowContext);
 
         final boolean removedProcessorChain = Boolean.parseBoolean(property(flowContext, REMOVED_PROCESSOR_CHAIN));
         if (removedProcessorChain) {
             // Terminate is added before the swapped processor so it keeps the pre-upgrade identifier. The swapped
             // processor would otherwise receive the relay's count-based identifier and the relay would be renamed
             // instead of replaced. Only two connections are created, so the queued pre-upgrade connection is deleted.
-            final VersionedProcessor terminate = VersionedFlowUtils.addProcessor(rootGroup, TERMINATE_TYPE, GATE_BUNDLE, "TerminateFlowFile", new Position(800, 0));
-            if (gateFile != null) {
-                terminate.getProperties().put("Gate File", gateFile);
-            }
+            final VersionedProcessor terminate = addTerminate(rootGroup, flowContext, new Position(800, 0));
 
             final VersionedProcessor swapped = VersionedFlowUtils.addProcessor(rootGroup, RELAY_TYPE, GATE_BUNDLE, "SwappedFlowFile", new Position(400, 0));
             swapped.setIdentifier(SWAPPED_PROCESSOR_ID);
@@ -272,10 +301,7 @@ public class UpgradeDrainConnector extends AbstractConnector {
             if (removeConnection) {
                 generate.setAutoTerminatedRelationships(Set.of("success"));
             } else {
-                final VersionedProcessor terminate = VersionedFlowUtils.addProcessor(rootGroup, TERMINATE_TYPE, GATE_BUNDLE, "TerminateFlowFile", new Position(400, 0));
-                if (gateFile != null) {
-                    terminate.getProperties().put("Gate File", gateFile);
-                }
+                final VersionedProcessor terminate = addTerminate(rootGroup, flowContext, new Position(400, 0));
 
                 final String rewiredEndpoint = property(flowContext, REWIRED_ENDPOINT);
                 final VersionedConnection connection;
@@ -303,6 +329,37 @@ public class UpgradeDrainConnector extends AbstractConnector {
             }
         }
 
+        return createExternalFlow(rootGroup, generate, flowContext);
+    }
+
+    private VersionedProcessor addGenerate(final VersionedProcessGroup rootGroup, final FlowContext flowContext) {
+        final VersionedProcessor generate = VersionedFlowUtils.addProcessor(rootGroup, GENERATE_TYPE, GATE_BUNDLE, "GenerateFlowFile", new Position(0, 0));
+        generate.getProperties().put("File Size", "1 B");
+        generate.setSchedulingPeriod("100 millis");
+        final String gateFile = property(flowContext, GATE_FILE_PATH);
+        if (gateFile != null) {
+            generate.getProperties().put("Gate File", gateFile);
+        }
+
+        final String comment = property(flowContext, COMMENT);
+        if (comment != null && !comment.isBlank()) {
+            generate.setComments(comment);
+        }
+
+        return generate;
+    }
+
+    private VersionedProcessor addTerminate(final VersionedProcessGroup rootGroup, final FlowContext flowContext, final Position position) {
+        final VersionedProcessor terminate = VersionedFlowUtils.addProcessor(rootGroup, TERMINATE_TYPE, GATE_BUNDLE, "TerminateFlowFile", position);
+        final String gateFile = property(flowContext, GATE_FILE_PATH);
+        if (gateFile != null) {
+            terminate.getProperties().put("Gate File", gateFile);
+        }
+
+        return terminate;
+    }
+
+    private VersionedExternalFlow createExternalFlow(final VersionedProcessGroup rootGroup, final VersionedProcessor generate, final FlowContext flowContext) {
         final VersionedExternalFlow flow = new VersionedExternalFlow();
         flow.setFlowContents(rootGroup);
         final String upgradeSecret = property(flowContext, UPGRADE_SECRET);

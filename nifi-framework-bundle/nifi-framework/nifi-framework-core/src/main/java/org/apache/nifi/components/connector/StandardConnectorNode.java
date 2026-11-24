@@ -467,16 +467,22 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
     }
 
     /**
-     * Loads migrated active and working configuration without calling {@code applyUpdate}, so a restored pre-upgrade
-     * flow is not replaced by the upgraded connector's flow.
+     * Loads migrated active configuration without calling {@code applyUpdate}, so a restored pre-upgrade flow is not
+     * replaced by the upgraded connector's flow.
      */
-    private void loadConfigurationsWithoutRebuildingFlow(final List<VersionedConfigurationStep> activeConfig, final List<VersionedConfigurationStep> workingConfig)
-            throws FlowUpdateException {
+    private void loadActiveConfigurationWithoutRebuildingFlow(final List<VersionedConfigurationStep> activeConfig) {
         final Map<String, StepConfiguration> migratedActiveProperties = migrateProperties(activeConfig);
-        final Map<String, StepConfiguration> migratedWorkingProperties = migrateProperties(workingConfig);
         for (final Map.Entry<String, StepConfiguration> step : migratedActiveProperties.entrySet()) {
             activeFlowContext.getConfigurationContext().replaceProperties(step.getKey(), step.getValue());
         }
+    }
+
+    /**
+     * Loads migrated working configuration into a new working context copied from the Active flow, without calling
+     * {@code applyUpdate}.
+     */
+    private void loadWorkingConfigurationWithoutRebuildingFlow(final List<VersionedConfigurationStep> workingConfig) throws FlowUpdateException {
+        final Map<String, StepConfiguration> migratedWorkingProperties = migrateProperties(workingConfig);
         final MutableConnectorConfigurationContext workingConfigContext = createConfigurationContext(migratedWorkingProperties);
         final WorkingFlowContextState independentWorkingContextState = installReplacementWorkingFlowContext(workingConfigContext, loadedBundle(), true);
         try {
@@ -1844,7 +1850,8 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
 
             ConnectorFlowSnapshot filledParameters = null;
             try {
-                loadConfigurationsWithoutRebuildingFlow(activeConfiguration, workingConfiguration);
+                loadActiveConfigurationWithoutRebuildingFlow(activeConfiguration);
+                loadWorkingConfigurationWithoutRebuildingFlow(workingConfiguration);
 
                 // A group saved without its parameter context (Troubleshooting under NiFi 2.12 or earlier) has no values to restore,
                 // and its components must run to empty the queues before Troubleshooting can end while the upgrade is pending.
@@ -1860,7 +1867,62 @@ public class StandardConnectorNode implements ConnectorNode, GroupedComponent {
             return true;
         }
 
+        // A runtime that predates managed flow persistence saved only the Connector bundle. A managed flow bundle without a group
+        // remains from an earlier restart that could not install the pre-upgrade flow.
+        final Bundle savedBundle = managedFlowBundle == null ? persisted.getBundle() : managedFlowBundle;
+        final ConnectorFlowSnapshot currentSnapshot = flowEvolution.getSnapshot();
+        final boolean authoritativeFlowMissing = currentSnapshot == null || currentSnapshot.flow() == null;
+        final boolean savedByOtherVersion = savedBundle != null && bundleCoordinate != null
+                && Objects.equals(savedBundle.getGroup(), bundleCoordinate.getGroup())
+                && Objects.equals(savedBundle.getArtifact(), bundleCoordinate.getId())
+                && !sameBundle(savedBundle, bundleCoordinate);
+        if (!extensionMissing && persistedManagedGroup == null && authoritativeFlowMissing && savedByOtherVersion) {
+            return restorePreUpgradeFlow(savedBundle, activeConfiguration, workingConfiguration);
+        }
+
         return false;
+    }
+
+    /**
+     * Installs the flow that the Connector supplies for the version that saved its configuration, so that FlowFiles queued by that
+     * version rejoin their connections and are drained before the current flow replaces it. When the flow cannot be installed, the
+     * Connector cannot start, and the saved bundle is kept in the snapshot so that the next restart tries again.
+     *
+     * @return false when the Connector supplies no pre-upgrade flow, true otherwise
+     */
+    private boolean restorePreUpgradeFlow(final Bundle savedBundle, final List<VersionedConfigurationStep> activeConfiguration,
+            final List<VersionedConfigurationStep> workingConfiguration) throws FlowUpdateException {
+
+        loadActiveConfigurationWithoutRebuildingFlow(activeConfiguration);
+
+        ConnectorFlowSnapshot snapshot;
+        try {
+            final Optional<VersionedExternalFlow> preUpgradeFlow;
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+                preUpgradeFlow = getConnector().getPreUpgradeFlow(new PreUpgradeFlowContext(activeFlowContext, savedBundle));
+            }
+
+            if (preUpgradeFlow == null || preUpgradeFlow.isEmpty()) {
+                return false;
+            }
+
+            logger.info("{} has no persisted managed flow and was saved by version {}; installing the pre-upgrade flow supplied by the Connector", this, savedBundle.getVersion());
+            initializationContext.updateFlow(activeFlowContext, preUpgradeFlow.get(), BundleCompatibility.RESOLVE_BUNDLE);
+            snapshot = snapshotMapper.capture(activeFlowContext, savedBundle, initializationContext.getSecretsManager());
+        } catch (final Exception e) {
+            logger.error("{} failed to install the pre-upgrade flow for saved version {}; the Connector cannot start until NiFi is restarted and the flow is installed",
+                    this, savedBundle.getVersion(), e);
+            markManagedFlowRestoreFailed();
+            snapshot = new ConnectorFlowSnapshot(null, null, Map.of(), savedBundle, activeFlowContext.getConfigurationContext().toConnectorConfiguration());
+        }
+
+        try {
+            loadWorkingConfigurationWithoutRebuildingFlow(workingConfiguration);
+        } finally {
+            flowEvolution.installSnapshot(snapshot);
+        }
+
+        return true;
     }
 
     /**

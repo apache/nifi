@@ -153,7 +153,7 @@ public abstract class AbstractNarSwapMigrationIT extends NiFiSystemIT {
         return directories;
     }
 
-    private void deleteRecursively(final File file) throws IOException {
+    protected void deleteRecursively(final File file) throws IOException {
         Files.walkFileTree(file.toPath(), new FileVisitor<>() {
             @Override
             public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) {
@@ -188,7 +188,7 @@ public abstract class AbstractNarSwapMigrationIT extends NiFiSystemIT {
         return files[0];
     }
 
-    private void moveNars(final File source, final String regex, final File target) {
+    protected void moveNars(final File source, final String regex, final File target) {
         final File libNar = findFile(source, regex);
         assertNotNull(libNar);
         final File libNarTarget = new File(target, libNar.getName());
