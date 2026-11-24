@@ -133,7 +133,6 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
         String hostname = null;
         try {
             final StopWatch stopWatch = new StopWatch(true);
-            // Avoid getHostName(): it performs a reverse DNS lookup that can block for the resolver timeout before the request is read
             hostname = SocketUtils.getRemoteHostString(socket);
             final String requestId = UUID.randomUUID().toString();
             logger.debug("Received request {} from {}", requestId, hostname);
