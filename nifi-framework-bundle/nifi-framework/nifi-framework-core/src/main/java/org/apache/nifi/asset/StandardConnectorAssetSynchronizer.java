@@ -26,6 +26,7 @@ import org.apache.nifi.components.connector.ConnectorAssetReferences;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.util.NiFiProperties;
@@ -107,7 +108,7 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
 
             logger.info("Current node is the cluster coordinator but did not provide the elected flow: synchronizing missing connector assets from nodes {}", sourceNodeIds);
             final Set<ConnectorNode> connectorsWithSynchronizedAssets = synchronizeFromElectedFlowNodes(sourceNodeIds);
-            restartConnectorsWithSynchronizedAssets(connectorsWithSynchronizedAssets);
+            refreshConnectorsWithSynchronizedAssets(connectorsWithSynchronizedAssets);
             return;
         }
 
@@ -131,7 +132,7 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
             }
         }
 
-        restartConnectorsWithSynchronizedAssets(connectorsWithSynchronizedAssets);
+        refreshConnectorsWithSynchronizedAssets(connectorsWithSynchronizedAssets);
     }
 
     private Set<ConnectorNode> synchronizeFromElectedFlowNodes(final List<NodeIdentifier> sourceNodeIds) {
@@ -231,7 +232,7 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
         return assetSynchronized;
     }
 
-    private void restartConnectorsWithSynchronizedAssets(final Set<ConnectorNode> connectorsWithSynchronizedAssets) {
+    private void refreshConnectorsWithSynchronizedAssets(final Set<ConnectorNode> connectorsWithSynchronizedAssets) {
         for (final ConnectorNode connector : connectorsWithSynchronizedAssets) {
             final ConnectorState currentState = connector.getDesiredState();
             if (currentState == ConnectorState.RUNNING) {
@@ -247,7 +248,17 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
                     logger.error("Failed to restart connector [{}] after asset synchronization", connector.getIdentifier(), e.getCause());
                 }
             } else {
-                logger.info("Connector [{}] is not running (state={}): skipping restart after asset synchronization", connector.getIdentifier(), currentState);
+                logger.info("Connector [{}] is not running (state={}): refreshing asset references without restart", connector.getIdentifier(), currentState);
+                try {
+                    final FrameworkFlowContext activeFlowContext = connector.getActiveFlowContext();
+                    if (activeFlowContext != null) {
+                        activeFlowContext.getConfigurationContext().resolvePropertyValues();
+                    }
+
+                    connector.resetValidationState();
+                } catch (final Exception e) {
+                    logger.error("Failed to refresh asset references for connector [{}] after asset synchronization", connector.getIdentifier(), e);
+                }
             }
         }
     }
