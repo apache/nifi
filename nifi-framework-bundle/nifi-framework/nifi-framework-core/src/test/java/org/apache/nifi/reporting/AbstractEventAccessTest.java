@@ -20,14 +20,17 @@ import org.apache.nifi.action.Action;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
 import org.apache.nifi.controller.repository.StandardRepositoryStatusReport;
+import org.apache.nifi.controller.repository.metrics.ProcessSessionEventBuilder;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -69,6 +72,18 @@ class AbstractEventAccessTest {
 
     private static final String CONNECTION_ID = UUID.randomUUID().toString();
 
+    private static final String OUTPUT_PORT_NAME = "Output Port";
+
+    private static final String OUTPUT_PORT_ID = UUID.randomUUID().toString();
+
+    private static final int PROCESSOR_FLOW_FILES_SENT = 5;
+
+    private static final long PROCESSOR_BYTES_SENT = 1024L;
+
+    private static final int OUTPUT_PORT_FLOW_FILES_SENT = 2;
+
+    private static final long OUTPUT_PORT_BYTES_SENT = 256L;
+
     private static final int ZERO_DEPTH = 0;
 
     private static final int SINGLE_DEPTH = 1;
@@ -102,6 +117,9 @@ class AbstractEventAccessTest {
 
     @Mock
     private FlowFileQueue flowFileQueue;
+
+    @Mock
+    private Port outputPort;
 
     private AbstractEventAccess eventAccess;
 
@@ -160,10 +178,26 @@ class AbstractEventAccessTest {
         final RepositoryStatusReport repositoryStatusReport = new StandardRepositoryStatusReport();
         final Predicate<Authorizable> checkAuthorization = authorizables::add;
 
+        final ComponentMetricContext processorContext = new ComponentMetricContext(PROCESSOR_ID, PROCESSOR_NAME, "Processor", Map.of());
+        repositoryStatusReport.addReportEntry(ProcessSessionEventBuilder.forComponent(processorContext)
+                .flowFilesSent(PROCESSOR_FLOW_FILES_SENT)
+                .bytesSent(PROCESSOR_BYTES_SENT)
+                .build());
+
+        final ComponentMetricContext outputPortContext = new ComponentMetricContext(OUTPUT_PORT_ID, OUTPUT_PORT_NAME, "OutputPort", Map.of());
+        repositoryStatusReport.addReportEntry(ProcessSessionEventBuilder.forComponent(outputPortContext)
+                .flowFilesSent(OUTPUT_PORT_FLOW_FILES_SENT)
+                .bytesSent(OUTPUT_PORT_BYTES_SENT)
+                .build());
+
         when(processorNode.getName()).thenReturn(PROCESSOR_NAME);
         when(processorNode.getIdentifier()).thenReturn(PROCESSOR_ID);
         when(processorNode.getProcessGroup()).thenReturn(processGroup);
+        when(outputPort.getName()).thenReturn(OUTPUT_PORT_NAME);
+        when(outputPort.getIdentifier()).thenReturn(OUTPUT_PORT_ID);
+        when(outputPort.getProcessGroup()).thenReturn(processGroup);
         when(processGroup.getProcessors()).thenReturn(List.of(processorNode));
+        when(processGroup.getOutputPorts()).thenReturn(Set.of(outputPort));
         when(processGroup.getName()).thenReturn(PROCESS_GROUP_NAME);
         when(processGroup.getIdentifier()).thenReturn(PROCESS_GROUP_ID);
 
@@ -172,14 +206,17 @@ class AbstractEventAccessTest {
         assertNotNull(groupStatus);
         assertEquals(PROCESS_GROUP_NAME, groupStatus.getName());
         assertEquals(PROCESS_GROUP_ID, groupStatus.getId());
+        assertEquals(PROCESSOR_FLOW_FILES_SENT + OUTPUT_PORT_FLOW_FILES_SENT, groupStatus.getFlowFilesSent());
+        assertEquals(PROCESSOR_BYTES_SENT + OUTPUT_PORT_BYTES_SENT, groupStatus.getBytesSent());
 
         final Optional<ProcessorStatus> processorStatusFound = groupStatus.getProcessorStatus().stream().findFirst();
         assertTrue(processorStatusFound.isPresent());
         final ProcessorStatus processorStatus = processorStatusFound.get();
         assertEquals(PROCESSOR_NAME, processorStatus.getName());
         assertEquals(PROCESSOR_ID, processorStatus.getId());
+        assertEquals(PROCESSOR_FLOW_FILES_SENT, processorStatus.getFlowFilesSent());
 
-        assertEquals(2, authorizables.size());
+        assertEquals(3, authorizables.size());
     }
 
     @Test
