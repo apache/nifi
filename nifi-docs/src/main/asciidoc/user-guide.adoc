@@ -1189,8 +1189,8 @@ Use the following steps to add a Controller Service:
 
 1. Right-click on the Process Group and select Controller Settings from the Process Group context menu.
 2. From the Controller Services page, click the `+` button to display the Add Controller Service dialog.
-4. Select the Controller Service desired, and click Add.
-5. Perform any necessary Controller Service configuration tasks by right-clicking the three, vertically aligned dots at the right, and select the Edit icon (image:iconConfigure.png["Configure"])
+3. Select the Controller Service desired, and click Add.
+4. Perform any necessary Controller Service configuration tasks by right-clicking the three, vertically aligned dots at the right, and select the Edit icon (image:iconConfigure.png["Configure"])
 
 [[Enabling_Disabling_Controller_Services]]
 ==== Enabling/Disabling Controller Services
