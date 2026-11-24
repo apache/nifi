@@ -497,7 +497,7 @@ public abstract class AbstractEventAccess implements EventAccess {
                 flowFilesOut += port instanceof PublicPort ? entry.getFlowFilesSent() : entry.getFlowFilesOut();
                 bytesOut += port instanceof PublicPort ? entry.getBytesSent() : entry.getContentSizeOut();
 
-                flowFilesSent = entry.getFlowFilesSent();
+                flowFilesSent += entry.getFlowFilesSent();
                 bytesSent += entry.getBytesSent();
             }
 
