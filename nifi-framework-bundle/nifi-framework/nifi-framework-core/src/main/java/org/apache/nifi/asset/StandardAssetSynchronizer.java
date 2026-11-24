@@ -18,6 +18,7 @@
 package org.apache.nifi.asset;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.nifi.client.NiFiRestApiResponseException;
 import org.apache.nifi.client.NiFiRestApiRetryableException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -30,6 +31,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AssetDTO;
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.AssetsEntity;
+import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -144,7 +146,14 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
                     continue;
                 }
 
-                final AssetsEntity sourceAssetsEntity = listAssetsWithRetry(assetsRestApiClient, parameterContext.getIdentifier(), true);
+                final AssetsEntity sourceAssetsEntity;
+                try {
+                    sourceAssetsEntity = listAssetsWithRetry(assetsRestApiClient, parameterContext.getIdentifier(), true);
+                } catch (final IllegalStateException e) {
+                    logger.error("Failed to list assets from node [{}] for parameter context [{}]", sourceNodeId, parameterContext.getIdentifier(), e);
+                    continue;
+                }
+
                 if (sourceAssetsEntity == null) {
                     logger.error("Timeout listing assets from node [{}] for parameter context [{}]: skipping node", sourceNodeId, parameterContext.getIdentifier());
                     break;
@@ -313,10 +322,10 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
         }
     }
 
-    private AssetsEntity listAssetsWithRetry(final AssetsRestApiClient assetsRestApiClient, final String parameterContextId, final boolean retryRejectedRequests) {
+    private AssetsEntity listAssetsWithRetry(final AssetsRestApiClient assetsRestApiClient, final String parameterContextId, final boolean retryNotFound) {
         final Instant expirationTime = Instant.ofEpochMilli(System.currentTimeMillis() + LIST_ASSETS_RETRY_DURATION.toMillis());
         while (System.currentTimeMillis() < expirationTime.toEpochMilli()) {
-            final AssetsEntity assetsEntity = listAssets(assetsRestApiClient, parameterContextId, retryRejectedRequests);
+            final AssetsEntity assetsEntity = listAssets(assetsRestApiClient, parameterContextId, retryNotFound);
             if (assetsEntity != null) {
                 return assetsEntity;
             }
@@ -326,15 +335,15 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
         return null;
     }
 
-    private AssetsEntity listAssets(final AssetsRestApiClient assetsRestApiClient, final String parameterContextId, final boolean retryRejectedRequests) {
+    private AssetsEntity listAssets(final AssetsRestApiClient assetsRestApiClient, final String parameterContextId, final boolean retryNotFound) {
         try {
             return assetsRestApiClient.getParameterContextAssets(parameterContextId);
         } catch (final NiFiRestApiRetryableException e) {
             final Throwable rootCause = ExceptionUtils.getRootCause(e);
             logger.warn("{}, root cause [{}]: retrying", e.getMessage(), rootCause.getMessage());
             return null;
-        } catch (final IllegalStateException e) {
-            if (!retryRejectedRequests) {
+        } catch (final NiFiRestApiResponseException e) {
+            if (!retryNotFound || e.getStatusCode() != HttpResponseStatus.NOT_FOUND.getCode()) {
                 throw e;
             }
 

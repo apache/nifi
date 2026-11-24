@@ -18,9 +18,11 @@
 package org.apache.nifi.asset;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.nifi.client.NiFiRestApiResponseException;
 import org.apache.nifi.client.NiFiRestApiRetryableException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.connector.ConnectorAssetReferences;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorState;
@@ -30,6 +32,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AssetDTO;
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.AssetsEntity;
+import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,15 +142,27 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
             final AssetsRestApiClient assetsRestApiClient = new AssetsRestApiClient(webClientService, sourceNodeId.getApiAddress(), sourceNodeId.getApiPort(), properties.isHTTPSConfigured());
 
             for (final ConnectorNode connector : connectors) {
+                final Set<String> missingAssetIds = getMissingAssetIds(connector);
+                if (missingAssetIds.isEmpty()) {
+                    continue;
+                }
+
                 final String connectorId = connector.getIdentifier();
-                final AssetsEntity sourceAssetsEntity = listConnectorAssetsWithRetry(assetsRestApiClient, connectorId, true);
+                final AssetsEntity sourceAssetsEntity;
+                try {
+                    sourceAssetsEntity = listConnectorAssetsWithRetry(assetsRestApiClient, connectorId, true);
+                } catch (final IllegalStateException e) {
+                    logger.error("Failed to list assets from node [{}] for connector [{}]", sourceNodeId, connectorId, e);
+                    continue;
+                }
+
                 if (sourceAssetsEntity == null) {
                     logger.error("Timeout listing assets from node [{}] for connector [{}]: skipping node", sourceNodeId, connectorId);
                     break;
                 }
 
                 try {
-                    if (synchronizeMissingAssets(assetsRestApiClient, sourceNodeId, connector, sourceAssetsEntity)) {
+                    if (synchronizeMissingAssets(assetsRestApiClient, sourceNodeId, connectorId, missingAssetIds, sourceAssetsEntity)) {
                         connectorsWithSynchronizedAssets.add(connector);
                     }
                 } catch (final Exception e) {
@@ -156,22 +171,44 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
             }
         }
 
+        for (final ConnectorNode connector : connectors) {
+            final Set<String> missingAssetIds = getMissingAssetIds(connector);
+            if (!missingAssetIds.isEmpty()) {
+                logger.warn("Connector [{}] still has {} assets without content after synchronizing from nodes {}: {}",
+                        connector.getIdentifier(), missingAssetIds.size(), sourceNodeIds, missingAssetIds);
+            }
+        }
+
         return connectorsWithSynchronizedAssets;
     }
 
-    private boolean synchronizeMissingAssets(final AssetsRestApiClient assetsRestApiClient, final NodeIdentifier sourceNodeId, final ConnectorNode connector,
-                                             final AssetsEntity sourceAssetsEntity) {
+    private Set<String> getMissingAssetIds(final ConnectorNode connector) {
+        final Set<String> missingAssetIds = new HashSet<>();
+        for (final String assetId : ConnectorAssetReferences.getReferencedAssetIds(connector)) {
+            if (!hasAssetContent(assetId)) {
+                missingAssetIds.add(assetId);
+            }
+        }
+
+        return missingAssetIds;
+    }
+
+    private boolean hasAssetContent(final String assetId) {
+        return assetManager.getAsset(assetId).map(Asset::getFile).filter(File::exists).isPresent();
+    }
+
+    private boolean synchronizeMissingAssets(final AssetsRestApiClient assetsRestApiClient, final NodeIdentifier sourceNodeId, final String connectorId,
+                                             final Set<String> missingAssetIds, final AssetsEntity sourceAssetsEntity) {
         final Collection<AssetEntity> sourceAssets = sourceAssetsEntity.getAssets();
         if (sourceAssets == null) {
             return false;
         }
 
-        final String connectorId = connector.getIdentifier();
         boolean assetSynchronized = false;
         for (final AssetEntity sourceAssetEntity : sourceAssets) {
             final AssetDTO sourceAsset = sourceAssetEntity.getAsset();
             final String assetId = sourceAsset.getId();
-            if (assetManager.getAsset(assetId).map(Asset::getFile).filter(File::exists).isPresent()) {
+            if (!missingAssetIds.contains(assetId)) {
                 continue;
             }
 
@@ -182,7 +219,7 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
 
             try {
                 synchronizeConnectorAssetWithRetry(assetsRestApiClient, connectorId, sourceAsset);
-                if (assetManager.getAsset(assetId).map(Asset::getFile).filter(File::exists).isPresent()) {
+                if (hasAssetContent(assetId)) {
                     logger.info("Successfully synchronized asset [id={},name={}] for connector [{}]", assetId, sourceAsset.getName(), connectorId);
                     assetSynchronized = true;
                 }
@@ -278,10 +315,10 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
         }
     }
 
-    private AssetsEntity listConnectorAssetsWithRetry(final AssetsRestApiClient assetsRestApiClient, final String connectorId, final boolean retryRejectedRequests) {
+    private AssetsEntity listConnectorAssetsWithRetry(final AssetsRestApiClient assetsRestApiClient, final String connectorId, final boolean retryNotFound) {
         final Instant expirationTime = Instant.ofEpochMilli(System.currentTimeMillis() + LIST_ASSETS_RETRY_DURATION.toMillis());
         while (System.currentTimeMillis() < expirationTime.toEpochMilli()) {
-            final AssetsEntity assetsEntity = listConnectorAssets(assetsRestApiClient, connectorId, retryRejectedRequests);
+            final AssetsEntity assetsEntity = listConnectorAssets(assetsRestApiClient, connectorId, retryNotFound);
             if (assetsEntity != null) {
                 return assetsEntity;
             }
@@ -291,15 +328,15 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
         return null;
     }
 
-    private AssetsEntity listConnectorAssets(final AssetsRestApiClient assetsRestApiClient, final String connectorId, final boolean retryRejectedRequests) {
+    private AssetsEntity listConnectorAssets(final AssetsRestApiClient assetsRestApiClient, final String connectorId, final boolean retryNotFound) {
         try {
             return assetsRestApiClient.getConnectorAssets(connectorId);
         } catch (final NiFiRestApiRetryableException e) {
             final Throwable rootCause = ExceptionUtils.getRootCause(e);
             logger.warn("{}, root cause [{}]: retrying", e.getMessage(), rootCause.getMessage());
             return null;
-        } catch (final IllegalStateException e) {
-            if (!retryRejectedRequests) {
+        } catch (final NiFiRestApiResponseException e) {
+            if (!retryNotFound || e.getStatusCode() != HttpResponseStatus.NOT_FOUND.getCode()) {
                 throw e;
             }
 
