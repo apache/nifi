@@ -57,6 +57,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
+import java.util.function.ToLongFunction;
 import java.util.regex.Pattern;
 
 @SideEffectFree
@@ -233,12 +234,12 @@ public class ControlRate extends AbstractProcessor {
     private final ConcurrentMap<String, Throttle> dataThrottleMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Throttle> countThrottleMap = new ConcurrentHashMap<>();
     private final AtomicLong lastThrottleClearTime = new AtomicLong(getCurrentTimeMillis());
-    private volatile RateControlCriteria rateControlCriteria = null;
-    private volatile String rateControlAttribute = null;
-    private volatile String maximumRateStr = null;
-    private volatile String maximumCountRateStr = null;
-    private volatile String groupingAttributeName = null;
-    private volatile int timePeriodSeconds = 1;
+
+    private ComponentLog logger;
+
+    private final ThrottleFilter throttleFilter = new ThrottleFilter(MAX_FLOW_FILES_PER_BATCH, this::getCurrentTimeMillis);
+
+    private volatile ThrottleConfiguration configuration;
 
     ConcurrentMap<String, Throttle> getDataThrottleMap() {
         return dataThrottleMap;
@@ -299,9 +300,7 @@ public class ControlRate extends AbstractProcessor {
             } else {
                 this.relationships = DEFAULT_RELATIONSHIPS;
             }
-        }
-
-        if (descriptor.equals(RATE_CONTROL_CRITERIA)
+        } else if (descriptor.equals(RATE_CONTROL_CRITERIA)
                 || descriptor.equals(RATE_CONTROL_ATTRIBUTE_NAME)
                 || descriptor.equals(GROUPING_ATTRIBUTE_NAME)
                 || descriptor.equals(TIME_PERIOD)) {
@@ -317,12 +316,12 @@ public class ControlRate extends AbstractProcessor {
                 } else {
                     newRate = Long.parseLong(newValue);
                 }
-                if (dataThrottleRequired()) {
+                if (configuration != null && configuration.dataThrottleRequired) {
                     for (final Throttle throttle : dataThrottleMap.values()) {
                         throttle.setMaxRate(newRate);
                     }
                 }
-                if (countThrottleRequired()) {
+                if (configuration != null && configuration.countThrottleRequired) {
                     for (final Throttle throttle : countThrottleMap.values()) {
                         throttle.setMaxRate(newRate);
                     }
@@ -342,32 +341,91 @@ public class ControlRate extends AbstractProcessor {
         }
     }
 
+    /*
+     * Precompute as many values as possible and store them in an immutable container for usage later.
+     */
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        rateControlCriteria = context.getProperty(RATE_CONTROL_CRITERIA).asAllowableValue(RateControlCriteria.class);
-        rateControlAttribute = rateControlCriteria == RateControlCriteria.ATTRIBUTE_RATE
+        this.logger = getLogger();
+        RateControlCriteria rateControlCriteria = context.getProperty(RATE_CONTROL_CRITERIA).asAllowableValue(RateControlCriteria.class);
+        String rateControlAttribute = rateControlCriteria == RateControlCriteria.ATTRIBUTE_RATE
                 ? context.getProperty(RATE_CONTROL_ATTRIBUTE_NAME).getValue() : null;
 
-        if (dataThrottleRequired()) {
+        final boolean dataThrottleRequired = switch (rateControlCriteria) {
+            case DATA_RATE, DATA_OR_FLOWFILE_RATE -> true;
+            default -> false;
+        };
+
+        final boolean countThrottleRequired = switch (rateControlCriteria) {
+            case FLOWFILE_RATE, DATA_OR_FLOWFILE_RATE, ATTRIBUTE_RATE -> true;
+            default -> false;
+        };
+
+        final long maximumDataRate;
+        if (dataThrottleRequired) {
             // Use MAX_DATA_RATE only for DATA_OR_FLOWFILE_RATE criteria
-            maximumRateStr = rateControlCriteria == RateControlCriteria.DATA_OR_FLOWFILE_RATE
-                    ? context.getProperty(MAX_DATA_RATE).getValue().toUpperCase() : context.getProperty(MAX_RATE).getValue().toUpperCase();
+            final String value = rateControlCriteria == RateControlCriteria.DATA_OR_FLOWFILE_RATE
+                    ? context.getProperty(MAX_DATA_RATE).getValue()
+                    : context.getProperty(MAX_RATE).getValue();
+            maximumDataRate = DataUnit.parseDataSize(value, DataUnit.B).longValue();
+        } else {
+            maximumDataRate = DEFAULT_ACCRUAL_COUNT;
         }
-        if (countThrottleRequired()) {
+
+        final long maximumCountRate;
+        if (countThrottleRequired) {
             // Use MAX_COUNT_RATE only for DATA_OR_FLOWFILE_RATE criteria
-            maximumCountRateStr = rateControlCriteria == RateControlCriteria.DATA_OR_FLOWFILE_RATE
-                    ? context.getProperty(MAX_COUNT_RATE).getValue() : context.getProperty(MAX_RATE).getValue();
+            final String value = rateControlCriteria == RateControlCriteria.DATA_OR_FLOWFILE_RATE
+                    ? context.getProperty(MAX_COUNT_RATE).getValue()
+                    : context.getProperty(MAX_RATE).getValue();
+            maximumCountRate = Long.parseLong(value);
+        } else {
+            maximumCountRate = DEFAULT_ACCRUAL_COUNT;
         }
-        groupingAttributeName = context.getProperty(GROUPING_ATTRIBUTE_NAME).getValue();
-        timePeriodSeconds = context.getProperty(TIME_PERIOD).asTimePeriod(TimeUnit.SECONDS).intValue();
+
+        final String groupingAttributeName = context.getProperty(GROUPING_ATTRIBUTE_NAME).getValue();
+        final int timePeriodSeconds = context.getProperty(TIME_PERIOD).asTimePeriod(TimeUnit.SECONDS).intValue();
+        final boolean rateExceededEnabled = ROUTE_TO_RATE_EXCEEDED.getValue().equalsIgnoreCase(context.getProperty(RATE_EXCEEDED_STRATEGY).getValue());
+
+        /*
+         * Determine the amount a given FlowFile will incur against the maximum allowed rate.
+         * This is applicable to counting accruals, FlowFiles or attributes.
+         * Precompute and set the function that will be used. Selection depends on
+         *   configuration rather than the flowfile itself
+         */
+        final ToLongFunction<FlowFile> countAccrual = switch (rateControlCriteria) {
+            case DATA_RATE -> flowFile -> DEFAULT_ACCRUAL_COUNT;
+            case FLOWFILE_RATE, DATA_OR_FLOWFILE_RATE -> flowFile -> 1L;
+            case ATTRIBUTE_RATE -> flowFile -> {
+                final String value = flowFile.getAttribute(rateControlAttribute);
+                if (value == null || !POSITIVE_LONG_PATTERN.matcher(value).matches()) {
+                    return DEFAULT_ACCRUAL_COUNT;
+                }
+                return Long.parseLong(value);
+            };
+        };
+
+        configuration = new ThrottleConfiguration(
+                rateControlCriteria,
+                dataThrottleRequired,
+                countThrottleRequired,
+                maximumDataRate,
+                maximumCountRate,
+                rateControlAttribute,
+                groupingAttributeName,
+                timePeriodSeconds,
+                rateExceededEnabled,
+                countAccrual
+        );
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         clearExpiredThrottles(context);
 
-        final String strategy = context.getProperty(RATE_EXCEEDED_STRATEGY).getValue();
-        if (ROUTE_TO_RATE_EXCEEDED.getValue().equalsIgnoreCase(strategy)) {
+        // Reset the batch first so that a thrown exception doesn't put us in a weird state
+        throttleFilter.resetBatch();
+        if (configuration.rateExceededEnabled) {
             routeFlowFilesExceedingRate(context, session);
         } else {
             holdFlowFilesExceedingRate(context, session);
@@ -381,18 +439,17 @@ public class ControlRate extends AbstractProcessor {
             return;
         }
 
-        final ThrottleFilter filter = new ThrottleFilter(MAX_FLOW_FILES_PER_BATCH, this::getCurrentTimeMillis);
         for (final FlowFile flowFile : flowFiles) {
             final Relationship relationship;
-            if (!isRateAttributeValid(flowFile)) {
-                relationship = REL_FAILURE;
-            } else {
-                final FlowFileFilterResult result = filter.filter(flowFile);
+            if (isRateAttributeValid(flowFile)) {
+                final FlowFileFilterResult result = throttleFilter.filter(flowFile);
                 relationship = result.isAccept() ? REL_SUCCESS : REL_RATE_EXCEEDED;
+            } else {
+                relationship = REL_FAILURE;
             }
 
             session.transfer(flowFile, relationship);
-            getLogger().info("Routing {} to {}", flowFile, relationship.getName());
+            logger.info("Routing {} to {}", flowFile, relationship.getName());
             session.getProvenanceReporter().route(flowFile, relationship);
         }
     }
@@ -404,7 +461,6 @@ public class ControlRate extends AbstractProcessor {
             return;
         }
 
-        final ComponentLog logger = getLogger();
         for (FlowFile flowFile : flowFiles) {
             // call this to capture potential error
             if (isRateAttributeValid(flowFile)) {
@@ -424,10 +480,10 @@ public class ControlRate extends AbstractProcessor {
         // Throttle ourselves to see if we should actually clear old throttles
         if (lastClearTime < throttleExpirationMillis) {
             if (lastThrottleClearTime.compareAndSet(lastClearTime, getCurrentTimeMillis())) {
-                if (dataThrottleRequired()) {
+                if (configuration.dataThrottleRequired) {
                     removeExpiredThrottles(dataThrottleMap, throttleExpirationMillis);
                 }
-                if (countThrottleRequired()) {
+                if (configuration.countThrottleRequired) {
                     removeExpiredThrottles(countThrottleMap, throttleExpirationMillis);
                 }
             }
@@ -470,56 +526,25 @@ public class ControlRate extends AbstractProcessor {
      * flowfile attribute, the specified attribute must be present and must be a long integer.
      */
     private boolean isRateAttributeValid(FlowFile flowFile) {
-        if (rateControlCriteria == RateControlCriteria.ATTRIBUTE_RATE) {
-            final String attributeValue = flowFile.getAttribute(rateControlAttribute);
+        if (configuration.rateControlCriteria == RateControlCriteria.ATTRIBUTE_RATE) {
+            final String attributeValue = flowFile.getAttribute(configuration.rateControlAttribute);
             return attributeValue != null && POSITIVE_LONG_PATTERN.matcher(attributeValue).matches();
         }
         return true;
     }
 
-    /*
-     * Determine the amount this FlowFile will incur against the maximum allowed rate.
-     * This is applicable to data size accrual only
-     */
-    private long getDataSizeAccrual(FlowFile flowFile) {
-        return flowFile.getSize();
-    }
-
-    /*
-     * Determine the amount this FlowFile will incur against the maximum allowed rate.
-     * This is applicable to counting accruals, FlowFiles or attributes
-     */
-    private long getCountAccrual(FlowFile flowFile) {
-        return switch (rateControlCriteria) {
-            case DATA_RATE -> DEFAULT_ACCRUAL_COUNT;
-            case FLOWFILE_RATE, DATA_OR_FLOWFILE_RATE -> 1;
-            case ATTRIBUTE_RATE -> {
-                final String attributeValue = flowFile.getAttribute(rateControlAttribute);
-                if (attributeValue == null) {
-                    yield DEFAULT_ACCRUAL_COUNT;
-                }
-
-                if (!POSITIVE_LONG_PATTERN.matcher(attributeValue).matches()) {
-                    yield DEFAULT_ACCRUAL_COUNT;
-                }
-                yield Long.parseLong(attributeValue);
-            }
-        };
-    }
-
-    private boolean dataThrottleRequired() {
-        return rateControlCriteria != null && switch (rateControlCriteria) {
-            case DATA_RATE, DATA_OR_FLOWFILE_RATE -> true;
-            default -> false;
-        };
-    }
-
-    private boolean countThrottleRequired() {
-        return rateControlCriteria != null && switch (rateControlCriteria) {
-            case FLOWFILE_RATE, DATA_OR_FLOWFILE_RATE, ATTRIBUTE_RATE -> true;
-            default -> false;
-        };
-    }
+    private record ThrottleConfiguration(
+        RateControlCriteria rateControlCriteria,
+        boolean dataThrottleRequired,
+        boolean countThrottleRequired,
+        long maximumDataRate,
+        long maximumCountRate,
+        String rateControlAttribute,
+        String groupingAttributeName,
+        int timePeriodSeconds,
+        boolean rateExceededEnabled,
+        ToLongFunction<FlowFile> countAccrual
+    ) { }
 
     enum RateControlCriteria implements DescribedValue {
         DATA_RATE("data rate", "Rate is controlled by counting bytes transferred per time duration."),
@@ -553,7 +578,7 @@ public class ControlRate extends AbstractProcessor {
 
     private static class Throttle extends ReentrantLock {
 
-        private final AtomicLong maxRate = new AtomicLong(1L);
+        private final AtomicLong maxRate;
         private final long timePeriodMillis;
         private final TimedBuffer<TimestampedLong> timedBuffer;
         private final ComponentLog logger;
@@ -563,11 +588,12 @@ public class ControlRate extends AbstractProcessor {
         private volatile long penalizationExpired = 0;
         private volatile long lastUpdateTime;
 
-        private Throttle(final int timePeriod, final TimeUnit unit, final ComponentLog logger, final LongSupplier currentTimeSupplier) {
+        private Throttle(final int timePeriod, final TimeUnit unit, final ComponentLog logger, final LongSupplier currentTimeSupplier, long maxRate) {
             this.timePeriodMillis = TimeUnit.MILLISECONDS.convert(timePeriod, unit);
             this.timedBuffer = new TimedBuffer<>(unit, timePeriod, new LongEntityAccess(currentTimeSupplier), currentTimeSupplier);
             this.logger = logger;
             this.currentTimeSupplier = currentTimeSupplier;
+            this.maxRate = new AtomicLong(maxRate);
         }
 
         public void setMaxRate(final long maxRate) {
@@ -648,7 +674,7 @@ public class ControlRate extends AbstractProcessor {
                 return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
             }
 
-            String groupName = (groupingAttributeName == null) ? DEFAULT_GROUP_ATTRIBUTE : flowFile.getAttribute(groupingAttributeName);
+            String groupName = (configuration.groupingAttributeName == null) ? DEFAULT_GROUP_ATTRIBUTE : flowFile.getAttribute(configuration.groupingAttributeName);
 
             // the FlowFile may not have the required attribute: in this case it is considered part
             // of the DEFAULT_GROUP_ATTRIBUTE
@@ -656,27 +682,20 @@ public class ControlRate extends AbstractProcessor {
                 groupName = DEFAULT_GROUP_ATTRIBUTE;
             }
 
-            Throttle dataThrottle = dataThrottleMap.get(groupName);
-            Throttle countThrottle = countThrottleMap.get(groupName);
-
             boolean dataThrottlingActive = false;
-            if (dataThrottleRequired()) {
-                if (dataThrottle == null) {
-                    dataThrottle = new Throttle(timePeriodSeconds, TimeUnit.SECONDS, getLogger(), currentTimeSupplier);
-                    dataThrottle.setMaxRate(DataUnit.parseDataSize(maximumRateStr, DataUnit.B).longValue());
-                    dataThrottleMap.put(groupName, dataThrottle);
-                }
-
+            if (configuration.dataThrottleRequired) {
+                Throttle dataThrottle = dataThrottleMap.computeIfAbsent(groupName, key ->
+                    new Throttle(configuration.timePeriodSeconds, TimeUnit.SECONDS, logger, currentTimeSupplier, configuration.maximumDataRate)
+                );
                 dataThrottle.lock();
                 try {
-                    if (dataThrottle.tryAdd(getDataSizeAccrual(flowFile))) {
+                    if (dataThrottle.tryAdd(flowFile.getSize())) {
                         flowFilesInBatch++;
                         if (flowFilesInBatch >= flowFilesPerBatch) {
-                            flowFilesInBatch = 0;
                             return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
                         } else {
                             // only accept flowfile if additional count throttle does not need to run
-                            if (!countThrottleRequired()) {
+                            if (!configuration.countThrottleRequired) {
                                 return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
                             }
                         }
@@ -689,18 +708,15 @@ public class ControlRate extends AbstractProcessor {
             }
 
             // continue processing count throttle only if required and if data throttle is not already limiting FlowFiles
-            if (countThrottleRequired() && !dataThrottlingActive) {
-                if (countThrottle == null) {
-                    countThrottle = new Throttle(timePeriodSeconds, TimeUnit.SECONDS, getLogger(), currentTimeSupplier);
-                    countThrottle.setMaxRate(Long.parseLong(maximumCountRateStr));
-                    countThrottleMap.put(groupName, countThrottle);
-                }
+            if (configuration.countThrottleRequired && !dataThrottlingActive) {
+                Throttle countThrottle = countThrottleMap.computeIfAbsent(groupName, key ->
+                    new Throttle(configuration.timePeriodSeconds, TimeUnit.SECONDS, logger, currentTimeSupplier, configuration.maximumCountRate)
+                );
                 countThrottle.lock();
                 try {
-                    if (countThrottle.tryAdd(getCountAccrual(flowFile))) {
+                    if (countThrottle.tryAdd(configuration.countAccrual().applyAsLong(flowFile))) {
                         flowFilesInBatch++;
                         if (flowFilesInBatch >= flowFilesPerBatch) {
-                            flowFilesInBatch = 0;
                             return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
                         } else {
                             return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
@@ -715,11 +731,15 @@ public class ControlRate extends AbstractProcessor {
             // just TERMINATE the iteration over FlowFiles.
             // However, if we are using a grouping attribute, then another FlowFile in the queue may be able to proceed,
             // so we want to continue our iteration.
-            if (groupingAttributeName == null) {
+            if (configuration.groupingAttributeName == null) {
                 return FlowFileFilterResult.REJECT_AND_TERMINATE;
             }
 
             return FlowFileFilterResult.REJECT_AND_CONTINUE;
+        }
+
+        public void resetBatch() {
+            this.flowFilesInBatch = 0;
         }
     }
 }
