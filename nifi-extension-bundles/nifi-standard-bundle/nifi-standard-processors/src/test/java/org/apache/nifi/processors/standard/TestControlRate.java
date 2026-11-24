@@ -606,9 +606,8 @@ public class TestControlRate {
     }
 
     @Test
-    public void testAttributeRateThrottles() {
+    public void testGroupedThrottlesClear() {
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.RateControlCriteria.FLOWFILE_RATE);
-        runner.setProperty(ControlRate.RATE_CONTROL_ATTRIBUTE_NAME, ControlRate.RateControlCriteria.ATTRIBUTE_RATE);
         runner.setProperty(ControlRate.GROUPING_ATTRIBUTE_NAME, "group");
         runner.setProperty(ControlRate.MAX_RATE, "3");
 
@@ -646,7 +645,7 @@ public class TestControlRate {
         // Verify all -- original 3 + one additional -- flowFiles were transferred
         runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 4);
 
-        // Only non-refreshed throttles should be present
+        // Only refreshed throttles should be present
         assertEquals(0, controlRate.getDataThrottleMap().size());
         assertEquals(1, controlRate.getCountThrottleMap().size());
 
