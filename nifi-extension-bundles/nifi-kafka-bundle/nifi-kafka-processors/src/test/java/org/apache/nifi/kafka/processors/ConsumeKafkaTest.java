@@ -65,6 +65,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -320,6 +321,28 @@ class ConsumeKafkaTest {
         // not clear lastCaughtUpTimestamp.
         assertEquals(Optional.of(rememberedFirst), afterStop.get().getLastCaughtUp());
         assertEquals(OptionalLong.of(5L), afterStop.get().getRecordCount());
+    }
+
+    @Test
+    public void testOnTriggerConsumesRecordsAfterConsumerCreationFailure() throws InitializationException, IOException {
+        setConnectionService();
+        configureProcessor();
+        when(kafkaConnectionService.getConsumerService(any()))
+                .thenThrow(new RuntimeException("Failed to construct kafka consumer"))
+                .thenReturn(kafkaConsumerService);
+        final ByteRecord record = new ByteRecord(TEST_TOPIC_NAME, FIRST_PARTITION, 0, 0L, List.of(), null, FIRST_RECORD_VALUE, 1, false);
+        when(kafkaConsumerService.poll(any())).thenReturn(List.of(record)).thenReturn(List.of());
+
+        processor.onScheduled(runner.getProcessContext());
+
+        processor.onTrigger(runner.getProcessContext(), runner.getProcessSessionFactory().createSession());
+        runner.assertTransferCount(ConsumeKafka.SUCCESS, 0);
+
+        processor.onTrigger(runner.getProcessContext(), runner.getProcessSessionFactory().createSession());
+
+        verify(kafkaConnectionService, times(2)).getConsumerService(any());
+        runner.assertTransferCount(ConsumeKafka.SUCCESS, 1);
+        runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).getFirst().assertContentEquals(FIRST_RECORD_VALUE);
     }
 
     @Test

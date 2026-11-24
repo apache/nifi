@@ -878,7 +878,15 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
         getLogger().info("No Kafka Consumer Service available; creating a new one. Active count: {}", activeCount);
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
-        final KafkaConsumerService newService = connectionService.getConsumerService(pollingContext);
+        final KafkaConsumerService newService;
+        try {
+            newService = connectionService.getConsumerService(pollingContext);
+        } catch (final RuntimeException e) {
+            getLogger().error("Failed to create Kafka Consumer Service", e);
+            activeConsumerCount.decrementAndGet();
+            return null;
+        }
+
         newService.setRebalanceCallback(createRebalanceCallback());
         return newService;
     }
