@@ -145,6 +145,8 @@ public class TestNodeClusterCoordinator {
         assertEquals(NodeConnectionState.CONNECTED, statusMap.get(createNodeId(4)).getState());
         assertEquals(NodeConnectionState.CONNECTED, statusMap.get(createNodeId(5)).getState());
         assertEquals(NodeConnectionState.CONNECTING, statusMap.get(createNodeId(6)).getState());
+
+        assertEquals(Set.of(requestedNodeId), coordinator.getElectedFlowNodeIdentifiers());
     }
 
     @Test
@@ -588,6 +590,11 @@ public class TestNodeClusterCoordinator {
         @Override
         public DataFlow getElectedDataFlow() {
             return dataFlow;
+        }
+
+        @Override
+        public Set<NodeIdentifier> getElectedFlowNodeIdentifiers() {
+            return voter == null ? Set.of() : Set.of(voter);
         }
 
         @Override

@@ -406,6 +406,21 @@ public abstract class ApplicationResource {
     }
 
     /**
+     * Indicates whether the request was sent directly by another node in the cluster and is marked as already replicated. Such a request is
+     * serviced locally and is never replicated, so it can be answered before the local flow has been initialized, for example while this node
+     * and the requesting node are both still connecting to the cluster.
+     *
+     * @return <code>true</code> if the request carries the replicated header and comes directly from a cluster node, <code>false</code> otherwise
+     */
+    protected boolean isReplicatedRequestFromClusterNode() {
+        if (httpServletRequest.getHeader(ReplicationHeader.REQUEST_REPLICATED.getHeader()) == null) {
+            return false;
+        }
+
+        return isRequestFromClusterNode();
+    }
+
+    /**
      * Converts a Revision DTO and an associated Component ID into a Revision object
      *
      * @param revisionDto the Revision DTO

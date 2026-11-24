@@ -18,6 +18,7 @@
 package org.apache.nifi.asset;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.nifi.client.NiFiRestApiResponseException;
 import org.apache.nifi.client.NiFiRestApiRetryableException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -30,6 +31,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AssetDTO;
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.AssetsEntity;
+import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +42,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +50,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Synchronizes assets from the cluster coordinator using the NiFi REST API.
+ * Synchronizes assets from the cluster coordinator using the NiFi REST API. When the local node is the cluster coordinator but did not provide the
+ * elected flow, missing assets are synchronized from the nodes that did.
  */
 public class StandardAssetSynchronizer implements AssetSynchronizer {
 
@@ -57,6 +61,7 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
     private static final Duration LIST_ASSETS_RETRY_DURATION = Duration.ofMinutes(5);
     private static final Duration SYNC_ASSET_RETRY_DURATION = Duration.ofSeconds(30);
 
+    private final FlowController flowController;
     private final AssetManager assetManager;
     private final AssetComponentManager assetComponentManager;
     private final FlowManager flowManager;
@@ -69,6 +74,7 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
                                      final WebClientService webClientService,
                                      final NiFiProperties properties,
                                      final AssetComponentManager assetComponentManager) {
+        this.flowController = flowController;
         this.assetManager = flowController.getAssetManager();
         this.assetComponentManager = assetComponentManager;
         this.flowManager = flowController.getFlowManager();
@@ -94,7 +100,15 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
         }
 
         if (clusterCoordinator.isActiveClusterCoordinator()) {
-            logger.info("Current node is the cluster coordinator: Asset synchronization disabled");
+            final List<NodeIdentifier> sourceNodeIds = AssetSynchronizationSources.getCoordinatorSourceNodes(clusterCoordinator, flowController.getNodeId());
+            if (sourceNodeIds.isEmpty()) {
+                logger.info("Current node is the cluster coordinator: Asset synchronization disabled");
+                return;
+            }
+
+            logger.info("Current node is the cluster coordinator but did not provide the elected flow: synchronizing missing assets from nodes {}", sourceNodeIds);
+            final List<Asset> syncedAssets = synchronizeFromElectedFlowNodes(sourceNodeIds);
+            restartReferencingComponents(syncedAssets);
             return;
         }
 
@@ -117,15 +131,121 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
             }
         }
 
-        // Restart components that reference the synchronized assets
-        if (!allSyncedAssets.isEmpty()) {
+        restartReferencingComponents(allSyncedAssets);
+    }
+
+    private List<Asset> synchronizeFromElectedFlowNodes(final List<NodeIdentifier> sourceNodeIds) {
+        final List<Asset> syncedAssets = new ArrayList<>();
+        final Set<ParameterContext> parameterContexts = flowManager.getParameterContextManager().getParameterContexts();
+
+        for (final NodeIdentifier sourceNodeId : sourceNodeIds) {
+            final AssetsRestApiClient assetsRestApiClient = new AssetsRestApiClient(webClientService, sourceNodeId.getApiAddress(), sourceNodeId.getApiPort(), properties.isHTTPSConfigured());
+
+            for (final ParameterContext parameterContext : parameterContexts) {
+                if (getAssetsMissingContent(parameterContext).isEmpty()) {
+                    continue;
+                }
+
+                final AssetsEntity sourceAssetsEntity;
+                try {
+                    sourceAssetsEntity = listAssetsWithRetry(assetsRestApiClient, parameterContext.getIdentifier(), true);
+                } catch (final IllegalStateException e) {
+                    logger.error("Failed to list assets from node [{}] for parameter context [{}]", sourceNodeId, parameterContext.getIdentifier(), e);
+                    continue;
+                }
+
+                if (sourceAssetsEntity == null) {
+                    logger.error("Timeout listing assets from node [{}] for parameter context [{}]: skipping node", sourceNodeId, parameterContext.getIdentifier());
+                    break;
+                }
+
+                try {
+                    syncedAssets.addAll(synchronizeMissingAssets(assetsRestApiClient, sourceNodeId, parameterContext, sourceAssetsEntity));
+                } catch (final Exception e) {
+                    logger.error("Failed to synchronize missing assets for parameter context [{}] from node [{}]", parameterContext.getIdentifier(), sourceNodeId, e);
+                }
+            }
+        }
+
+        for (final ParameterContext parameterContext : parameterContexts) {
+            final List<Asset> assetsMissingContent = getAssetsMissingContent(parameterContext);
+            if (assetsMissingContent.isEmpty()) {
+                continue;
+            }
+
+            final List<String> missingAssetNames = new ArrayList<>();
+            for (final Asset asset : assetsMissingContent) {
+                missingAssetNames.add(asset.getName());
+            }
+
+            logger.warn("Parameter context [{}] still has {} assets without content after synchronizing from nodes {}: {}",
+                    parameterContext.getIdentifier(), assetsMissingContent.size(), sourceNodeIds, missingAssetNames);
+        }
+
+        return syncedAssets;
+    }
+
+    private void restartReferencingComponents(final List<Asset> syncedAssets) {
+        if (!syncedAssets.isEmpty()) {
             try {
-                logger.info("Restarting components referencing {} synchronized assets", allSyncedAssets.size());
-                assetComponentManager.restartReferencingComponents(allSyncedAssets);
+                logger.info("Restarting components referencing {} synchronized assets", syncedAssets.size());
+                assetComponentManager.restartReferencingComponents(syncedAssets);
             } catch (final Exception e) {
                 logger.error("Failed to restart components referencing synchronized assets", e);
             }
         }
+    }
+
+    private List<Asset> getAssetsMissingContent(final ParameterContext parameterContext) {
+        final Map<String, Asset> assetsMissingContent = new LinkedHashMap<>();
+        for (final Parameter parameter : parameterContext.getParameters().values()) {
+            for (final Asset asset : parameter.getReferencedAssets()) {
+                if (!asset.getFile().exists()) {
+                    assetsMissingContent.putIfAbsent(asset.getIdentifier(), asset);
+                }
+            }
+        }
+
+        return new ArrayList<>(assetsMissingContent.values());
+    }
+
+    private List<Asset> synchronizeMissingAssets(final AssetsRestApiClient assetsRestApiClient, final NodeIdentifier sourceNodeId, final ParameterContext parameterContext,
+                                                 final AssetsEntity sourceAssetsEntity) {
+        final List<Asset> syncedAssets = new ArrayList<>();
+        final Collection<AssetEntity> sourceAssets = sourceAssetsEntity.getAssets();
+        if (sourceAssets == null) {
+            return syncedAssets;
+        }
+
+        final String paramContextId = parameterContext.getIdentifier();
+        final Map<String, Asset> assetsMissingContent = new LinkedHashMap<>();
+        for (final Asset asset : getAssetsMissingContent(parameterContext)) {
+            assetsMissingContent.put(asset.getIdentifier(), asset);
+        }
+
+        for (final AssetEntity sourceAssetEntity : sourceAssets) {
+            final AssetDTO sourceAsset = sourceAssetEntity.getAsset();
+            if (!assetsMissingContent.containsKey(sourceAsset.getId())) {
+                continue;
+            }
+
+            if (Boolean.TRUE.equals(sourceAsset.getMissingContent())) {
+                logger.info("Node [{}] is also missing content for asset [id={},name={}] in parameter context [{}]", sourceNodeId, sourceAsset.getId(), sourceAsset.getName(), paramContextId);
+                continue;
+            }
+
+            try {
+                final Asset syncedAsset = synchronizeAssetWithRetry(assetsRestApiClient, paramContextId, sourceAsset);
+                if (syncedAsset != null) {
+                    logger.info("Successfully synchronized asset [id={},name={}] for parameter context [{}]", syncedAsset.getIdentifier(), syncedAsset.getName(), paramContextId);
+                    syncedAssets.add(syncedAsset);
+                }
+            } catch (final Exception e) {
+                logger.error("Failed to synchronize asset [id={},name={}] for parameter context [{}] from node [{}]", sourceAsset.getId(), sourceAsset.getName(), paramContextId, sourceNodeId, e);
+            }
+        }
+
+        return syncedAssets;
     }
 
     private List<Asset> synchronize(final AssetsRestApiClient assetsRestApiClient, final ParameterContext parameterContext) {
@@ -143,7 +263,7 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
 
         logger.info("Parameter context [{}] has {} assets on the current node", parameterContext.getIdentifier(), existingAssets.size());
 
-        final AssetsEntity coordinatorAssetsEntity = listAssetsWithRetry(assetsRestApiClient, parameterContext.getIdentifier());
+        final AssetsEntity coordinatorAssetsEntity = listAssetsWithRetry(assetsRestApiClient, parameterContext.getIdentifier(), false);
         if (coordinatorAssetsEntity == null) {
             logger.error("Timeout listing assets from cluster coordinator for parameter context [{}]", parameterContext.getIdentifier());
             return syncedAssets;
@@ -184,6 +304,11 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
             logger.info("Synchronizing missing asset [id={},name={}] for parameter context [{}]", assetId, assetName, paramContextId);
             return synchronizeAssetWithRetry(assetsRestApiClient, paramContextId, coordinatorAsset);
         } else {
+            if (Boolean.TRUE.equals(coordinatorAsset.getMissingContent())) {
+                logger.warn("Cluster coordinator is missing content for asset [id={},name={}] in parameter context [{}]: keeping local asset file", assetId, assetName, paramContextId);
+                return null;
+            }
+
             final String coordinatorAssetDigest = coordinatorAsset.getDigest();
             final String matchingAssetDigest = matchingAsset.getDigest().orElse(null);
             if (!coordinatorAssetDigest.equals(matchingAssetDigest)) {
@@ -197,25 +322,32 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
         }
     }
 
-    private AssetsEntity listAssetsWithRetry(final AssetsRestApiClient assetsRestApiClient, final String parameterContextId) {
+    private AssetsEntity listAssetsWithRetry(final AssetsRestApiClient assetsRestApiClient, final String parameterContextId, final boolean retryNotFound) {
         final Instant expirationTime = Instant.ofEpochMilli(System.currentTimeMillis() + LIST_ASSETS_RETRY_DURATION.toMillis());
         while (System.currentTimeMillis() < expirationTime.toEpochMilli()) {
-            final AssetsEntity assetsEntity = listAssets(assetsRestApiClient, parameterContextId);
+            final AssetsEntity assetsEntity = listAssets(assetsRestApiClient, parameterContextId, retryNotFound);
             if (assetsEntity != null) {
                 return assetsEntity;
             }
-            logger.info("Unable to list assets from cluster coordinator for parameter context [{}]: retrying until [{}]", parameterContextId, expirationTime);
+            logger.info("Unable to list assets for parameter context [{}]: retrying until [{}]", parameterContextId, expirationTime);
             sleep(Duration.ofSeconds(5));
         }
         return null;
     }
 
-    private AssetsEntity listAssets(final AssetsRestApiClient assetsRestApiClient, final String parameterContextId) {
+    private AssetsEntity listAssets(final AssetsRestApiClient assetsRestApiClient, final String parameterContextId, final boolean retryNotFound) {
         try {
             return assetsRestApiClient.getParameterContextAssets(parameterContextId);
         } catch (final NiFiRestApiRetryableException e) {
             final Throwable rootCause = ExceptionUtils.getRootCause(e);
             logger.warn("{}, root cause [{}]: retrying", e.getMessage(), rootCause.getMessage());
+            return null;
+        } catch (final NiFiRestApiResponseException e) {
+            if (!retryNotFound || e.getStatusCode() != HttpResponseStatus.NOT_FOUND.getCode()) {
+                throw e;
+            }
+
+            logger.warn("{}: retrying", e.getMessage());
             return null;
         }
     }

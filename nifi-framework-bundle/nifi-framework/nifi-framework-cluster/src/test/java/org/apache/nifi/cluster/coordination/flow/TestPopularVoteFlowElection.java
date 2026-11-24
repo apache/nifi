@@ -25,7 +25,10 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -42,21 +45,26 @@ public class TestPopularVoteFlowElection {
         final PopularVoteFlowElection election = new PopularVoteFlowElection(1, TimeUnit.MINUTES, 3);
         final byte[] flow = Files.readAllBytes(Paths.get("src/test/resources/conf/empty-flow.json"));
 
-        assertFalse(election.isElectionComplete());
-        assertNull(election.getElectedDataFlow());
-        assertNull(election.castVote(createDataFlow(flow), createNodeId(1)));
+        final NodeIdentifier nodeId1 = createNodeId(1);
+        final NodeIdentifier nodeId2 = createNodeId(2);
+        final NodeIdentifier nodeId3 = createNodeId(3);
 
         assertFalse(election.isElectionComplete());
         assertNull(election.getElectedDataFlow());
-        assertNull(election.castVote(createDataFlow(flow), createNodeId(2)));
+        assertNull(election.castVote(createDataFlow(flow), nodeId1));
+
+        assertFalse(election.isElectionComplete());
+        assertNull(election.getElectedDataFlow());
+        assertNull(election.castVote(createDataFlow(flow), nodeId2));
 
         assertFalse(election.isElectionComplete());
         assertNull(election.getElectedDataFlow());
 
-        final DataFlow electedDataFlow = election.castVote(createDataFlow(flow), createNodeId(3));
+        final DataFlow electedDataFlow = election.castVote(createDataFlow(flow), nodeId3);
         assertNotNull(electedDataFlow);
 
         assertEquals(new String(flow), new String(electedDataFlow.getFlow()));
+        assertEquals(Set.of(nodeId1, nodeId2, nodeId3), election.getElectedFlowNodeIdentifiers());
     }
 
     @Test
@@ -89,9 +97,11 @@ public class TestPopularVoteFlowElection {
         final byte[] emptyFlow = Files.readAllBytes(Paths.get("src/test/resources/conf/empty-flow.json"));
         final byte[] nonEmptyFlow = Files.readAllBytes(Paths.get("src/test/resources/conf/non-empty-flow.json"));
 
+        final List<NodeIdentifier> nodeIds = new ArrayList<>();
         for (int i = 0; i < 8; i++) {
             assertFalse(election.isElectionComplete());
             assertNull(election.getElectedDataFlow());
+            assertTrue(election.getElectedFlowNodeIdentifiers().isEmpty());
 
             final DataFlow dataFlow;
             if (i % 4 == 0) {
@@ -100,7 +110,10 @@ public class TestPopularVoteFlowElection {
                 dataFlow = createDataFlow(emptyFlow);
             }
 
-            final DataFlow electedDataFlow = election.castVote(dataFlow, createNodeId(i));
+            final NodeIdentifier nodeId = createNodeId(i);
+            nodeIds.add(nodeId);
+
+            final DataFlow electedDataFlow = election.castVote(dataFlow, nodeId);
             if (i == 7) {
                 assertNotNull(electedDataFlow);
                 assertEquals(new String(nonEmptyFlow), new String(electedDataFlow.getFlow()));
@@ -108,6 +121,8 @@ public class TestPopularVoteFlowElection {
                 assertNull(electedDataFlow);
             }
         }
+
+        assertEquals(Set.of(nodeIds.get(0), nodeIds.get(4)), election.getElectedFlowNodeIdentifiers());
     }
 
     @Test

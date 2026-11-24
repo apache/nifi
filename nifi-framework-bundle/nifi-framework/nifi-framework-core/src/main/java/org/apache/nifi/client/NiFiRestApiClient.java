@@ -92,7 +92,7 @@ public abstract class NiFiRestApiClient {
      * @param response the response
      * @return the input stream of the response body
      * @throws NiFiRestApiRetryableException if a retryable response or exception happens
-     * @throws IllegalStateException if a non-retryable response happens
+     * @throws NiFiRestApiResponseException if a non-retryable response happens
      */
     protected InputStream getResponseBody(final URI requestUri, final HttpResponseEntity response) {
         final int statusCode = response.statusCode();
@@ -108,7 +108,7 @@ public abstract class NiFiRestApiClient {
             if (statusCode == HttpResponseStatus.CONFLICT.getCode()) {
                 throw new NiFiRestApiRetryableException("Error calling %s - %s - %s".formatted(requestUri, statusCode, responseMessage));
             } else {
-                throw new IllegalStateException("Error calling %s - %s - %s".formatted(requestUri, statusCode, responseMessage));
+                throw new NiFiRestApiResponseException("Error calling %s - %s - %s".formatted(requestUri, statusCode, responseMessage), statusCode);
             }
         }
     }

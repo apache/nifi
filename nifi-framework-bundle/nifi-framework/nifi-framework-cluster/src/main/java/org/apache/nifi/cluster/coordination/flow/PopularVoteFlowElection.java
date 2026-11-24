@@ -55,6 +55,7 @@ public class PopularVoteFlowElection implements FlowElection {
 
     private volatile Long startNanos = null;
     private volatile DataFlow electedDataFlow = null;
+    private volatile Set<NodeIdentifier> electedFlowNodeIdentifiers = Set.of();
 
     private final Map<String, FlowCandidate> candidateByFingerprint = new HashMap<>();
 
@@ -149,6 +150,11 @@ public class PopularVoteFlowElection implements FlowElection {
         return electedDataFlow;
     }
 
+    @Override
+    public Set<NodeIdentifier> getElectedFlowNodeIdentifiers() {
+        return electedFlowNodeIdentifiers;
+    }
+
     private FlowCandidate performElection() {
         if (candidateByFingerprint.isEmpty()) {
             return null;
@@ -162,6 +168,7 @@ public class PopularVoteFlowElection implements FlowElection {
             // All flow candidates are empty flows. Just use one of them.
             final FlowCandidate electedCandidate = candidateByFingerprint.values().iterator().next();
             this.electedDataFlow = electedCandidate.getDataFlow();
+            this.electedFlowNodeIdentifiers = Set.copyOf(electedCandidate.getNodes());
             return electedCandidate;
         }
 
@@ -177,6 +184,7 @@ public class PopularVoteFlowElection implements FlowElection {
         }
 
         this.electedDataFlow = elected.getDataFlow();
+        this.electedFlowNodeIdentifiers = Set.copyOf(elected.getNodes());
         return elected;
     }
 

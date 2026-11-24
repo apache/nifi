@@ -297,6 +297,14 @@ public interface ClusterCoordinator {
     String getFlowElectionStatus();
 
     /**
+     * Returns the identifiers of the nodes that voted for the flow elected by this node's Flow Election. This is only
+     * populated on the node that ran the election as Cluster Coordinator, and is empty if no election has completed on this node.
+     *
+     * @return the identifiers of the nodes that voted for the elected flow
+     */
+    Set<NodeIdentifier> getElectedFlowNodeIdentifiers();
+
+    /**
      * @return the current cluster workload retrieved from the cluster coordinator.
      * @throws IOException thrown when it failed to communicate with the cluster coordinator.
      */

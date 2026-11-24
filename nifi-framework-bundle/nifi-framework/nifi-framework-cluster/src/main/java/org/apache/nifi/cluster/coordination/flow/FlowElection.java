@@ -20,6 +20,8 @@ package org.apache.nifi.cluster.coordination.flow;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
+import java.util.Set;
+
 /**
  * <p>
  * A FlowElection is responsible for examining multiple versions of a dataflow and determining which of
@@ -65,6 +67,14 @@ public interface FlowElection {
      *         if the election has not yet completed.
      */
     DataFlow getElectedDataFlow();
+
+    /**
+     * Returns the identifiers of the nodes that voted for the elected DataFlow. The returned Set is empty
+     * if the election has not yet completed.
+     *
+     * @return the identifiers of the nodes that voted for the elected DataFlow
+     */
+    Set<NodeIdentifier> getElectedFlowNodeIdentifiers();
 
     /**
      * Returns a human-readable description of the status of the election

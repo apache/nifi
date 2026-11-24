@@ -1241,6 +1241,11 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         return !requireElection || flowElection.isElectionComplete();
     }
 
+    @Override
+    public Set<NodeIdentifier> getElectedFlowNodeIdentifiers() {
+        return flowElection.getElectedFlowNodeIdentifiers();
+    }
+
     private void registerNodeId(final NodeIdentifier nodeIdentifier) {
         final NodeConnectionStatus proposedConnectionStatus = new NodeConnectionStatus(nodeIdentifier, DisconnectionCode.NOT_YET_CONNECTED);
         final NodeConnectionStatus existingStatus = nodeStatuses.putIfAbsent(nodeIdentifier.getId(), proposedConnectionStatus);
