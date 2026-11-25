@@ -22,12 +22,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
-import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestClient;
 
+import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -36,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,7 +60,13 @@ class StandardTokenRevocationResponseClientTest {
     private static final String TOKEN_TYPE_HINT = "refresh_token";
 
     @Mock
-    RestOperations restOperations;
+    RestClient restClient;
+
+    @Mock
+    RestClient.RequestBodyUriSpec requestBodyUriSpec;
+
+    @Mock
+    RestClient.ResponseSpec responseSpec;
 
     @Mock
     ClientRegistrationRepository clientRegistrationRepository;
@@ -66,7 +75,7 @@ class StandardTokenRevocationResponseClientTest {
 
     @BeforeEach
     void setClient() {
-        client = new StandardTokenRevocationResponseClient(restOperations, clientRegistrationRepository);
+        client = new StandardTokenRevocationResponseClient(restClient, clientRegistrationRepository);
     }
 
     @Test
@@ -89,7 +98,8 @@ class StandardTokenRevocationResponseClientTest {
         final ClientRegistration clientRegistration = getClientRegistration(REVOCATION_ENDPOINT_URI);
         when(clientRegistrationRepository.findByRegistrationId(eq(OidcRegistrationProperty.REGISTRATION_ID.getProperty()))).thenReturn(clientRegistration);
 
-        when(restOperations.exchange(any(), eq(String.class))).thenThrow(new RuntimeException());
+        setRequest();
+        when(responseSpec.toEntity(eq(String.class))).thenThrow(new RuntimeException());
 
         final TokenRevocationResponse revocationResponse = client.getRevocationResponse(revocationRequest);
 
@@ -105,12 +115,22 @@ class StandardTokenRevocationResponseClientTest {
         when(clientRegistrationRepository.findByRegistrationId(eq(OidcRegistrationProperty.REGISTRATION_ID.getProperty()))).thenReturn(clientRegistration);
 
         final ResponseEntity<String> responseEntity = ResponseEntity.ok().build();
-        when(restOperations.exchange(any(), eq(String.class))).thenReturn(responseEntity);
+        setRequest();
+        when(responseSpec.toEntity(eq(String.class))).thenReturn(responseEntity);
 
         final TokenRevocationResponse revocationResponse = client.getRevocationResponse(revocationRequest);
 
         assertNotNull(revocationResponse);
         assertTrue(revocationResponse.isSuccess());
+    }
+
+    void setRequest() {
+        doReturn(requestBodyUriSpec).when(restClient).post();
+        doReturn(requestBodyUriSpec).when(requestBodyUriSpec).uri(eq(URI.create(REVOCATION_ENDPOINT_URI)));
+        doReturn(requestBodyUriSpec).when(requestBodyUriSpec).headers(any());
+        doReturn(requestBodyUriSpec).when(requestBodyUriSpec).contentType(eq(MediaType.APPLICATION_FORM_URLENCODED));
+        doReturn(requestBodyUriSpec).when(requestBodyUriSpec).body(any(Object.class));
+        doReturn(responseSpec).when(requestBodyUriSpec).retrieve();
     }
 
     ClientRegistration getClientRegistration(final String revocationEndpoint) {

@@ -27,6 +27,7 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.vault.authentication.LifecycleAwareSessionManager;
 import org.springframework.vault.client.ClientHttpRequestFactoryFactory;
+import org.springframework.vault.client.SimpleVaultEndpointProvider;
 import org.springframework.vault.client.VaultClient;
 import org.springframework.vault.client.VaultClients;
 import org.springframework.vault.client.VaultEndpoint;
@@ -38,7 +39,7 @@ import org.springframework.vault.support.Ciphertext;
 import org.springframework.vault.support.ClientOptions;
 import org.springframework.vault.support.Plaintext;
 import org.springframework.vault.support.VaultResponseSupport;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -105,11 +106,11 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
         }
 
         final VaultEndpoint vaultEndpoint = vaultConfiguration.vaultEndpoint();
-        final RestTemplate restTemplate = VaultClients.createRestTemplate(vaultEndpoint, clientHttpRequestFactory);
+        final RestClient restClient = VaultClients.createRestClient(SimpleVaultEndpointProvider.of(vaultEndpoint), clientHttpRequestFactory, builder -> { });
 
         vaultConfiguration.setClientHttpRequestFactory(clientHttpRequestFactory);
 
-        final VaultClient.Builder vaultClientBuilder = VaultClient.builder(restTemplate).endpoint(vaultEndpoint);
+        final VaultClient.Builder vaultClientBuilder = VaultClient.builder(restClient).endpoint(vaultEndpoint);
         final String namespace = vaultConfiguration.getNamespace();
         if (namespace != null && !namespace.isEmpty()) {
             vaultClientBuilder.defaultNamespace(namespace);

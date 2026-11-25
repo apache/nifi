@@ -353,7 +353,7 @@ public class OidcSecurityConfiguration {
      */
     @Bean
     public TokenRevocationResponseClient tokenRevocationResponseClient() {
-        return new StandardTokenRevocationResponseClient(oidcRestOperations, clientRegistrationRepository);
+        return new StandardTokenRevocationResponseClient(oidcRestClient, clientRegistrationRepository);
     }
 
     private OidcAuthenticationSuccessHandler getAuthenticationSuccessHandler() {

@@ -19,10 +19,8 @@ package org.apache.nifi.web.security.oidc.revocation;
 import org.apache.nifi.web.security.oidc.client.web.OidcRegistrationProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
-import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -30,7 +28,7 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestClient;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -38,22 +36,22 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Standard implementation for handling Token Revocation Requests using Spring REST Operations
+ * Standard implementation for handling Token Revocation Requests using Spring REST Client
  */
 public class StandardTokenRevocationResponseClient implements TokenRevocationResponseClient {
     static final String REVOCATION_ENDPOINT = "revocation_endpoint";
 
     private static final Logger logger = LoggerFactory.getLogger(StandardTokenRevocationResponseClient.class);
 
-    private final RestOperations restOperations;
+    private final RestClient restClient;
 
     private final ClientRegistrationRepository clientRegistrationRepository;
 
     public StandardTokenRevocationResponseClient(
-            final RestOperations restOperations,
+            final RestClient restClient,
             final ClientRegistrationRepository clientRegistrationRepository
     ) {
-        this.restOperations = Objects.requireNonNull(restOperations, "REST Operations required");
+        this.restClient = Objects.requireNonNull(restClient, "REST Client required");
         this.clientRegistrationRepository = Objects.requireNonNull(clientRegistrationRepository, "Client Registry Repository required");
     }
 
@@ -74,12 +72,19 @@ public class StandardTokenRevocationResponseClient implements TokenRevocationRes
     }
 
     private ResponseEntity<?> getResponseEntity(final TokenRevocationRequest revocationRequest, final ClientRegistration clientRegistration) {
-        final RequestEntity<?> requestEntity = getRequestEntity(revocationRequest, clientRegistration);
-        if (requestEntity == null) {
+        final URI revocationEndpoint = getRevocationEndpoint(clientRegistration);
+        if (revocationEndpoint == null) {
+            logger.info("OIDC Revocation Endpoint not found");
             return ResponseEntity.ok(null);
         } else {
             try {
-                final ResponseEntity<?> responseEntity = restOperations.exchange(requestEntity, String.class);
+                final ResponseEntity<?> responseEntity = restClient.post()
+                        .uri(revocationEndpoint)
+                        .headers(headers -> headers.setBasicAuth(clientRegistration.getClientId(), clientRegistration.getClientSecret(), StandardCharsets.UTF_8))
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .body(getParameters(revocationRequest))
+                        .retrieve()
+                        .toEntity(String.class);
                 logger.debug("Token Revocation Request processing completed [HTTP {}]", responseEntity.getStatusCode());
                 return responseEntity;
             } catch (final Exception e) {
@@ -89,32 +94,15 @@ public class StandardTokenRevocationResponseClient implements TokenRevocationRes
         }
     }
 
-    private RequestEntity<?> getRequestEntity(final TokenRevocationRequest revocationRequest, final ClientRegistration clientRegistration) {
-        final RequestEntity<?> requestEntity;
-        final URI revocationEndpoint = getRevocationEndpoint(clientRegistration);
-        if (revocationEndpoint == null) {
-            requestEntity = null;
-            logger.info("OIDC Revocation Endpoint not found");
-        } else {
-            final MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
-            parameters.add(OAuth2ParameterNames.TOKEN, revocationRequest.getToken());
+    private MultiValueMap<String, String> getParameters(final TokenRevocationRequest revocationRequest) {
+        final MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
+        parameters.add(OAuth2ParameterNames.TOKEN, revocationRequest.getToken());
 
-            final String tokenTypeHint = revocationRequest.getTokenTypeHint();
-            if (StringUtils.hasLength(tokenTypeHint)) {
-                parameters.add(OAuth2ParameterNames.TOKEN_TYPE_HINT, tokenTypeHint);
-            }
-
-            final HttpHeaders headers = new HttpHeaders(); //NOPMD
-            final String clientId = clientRegistration.getClientId();
-            final String clientSecret = clientRegistration.getClientSecret();
-            headers.setBasicAuth(clientId, clientSecret, StandardCharsets.UTF_8);
-
-            requestEntity = RequestEntity.post(revocationEndpoint)
-                    .headers(headers)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(parameters);
+        final String tokenTypeHint = revocationRequest.getTokenTypeHint();
+        if (StringUtils.hasLength(tokenTypeHint)) {
+            parameters.add(OAuth2ParameterNames.TOKEN_TYPE_HINT, tokenTypeHint);
         }
-        return requestEntity;
+        return parameters;
     }
 
     private URI getRevocationEndpoint(final ClientRegistration clientRegistration) {
