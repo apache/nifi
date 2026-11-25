@@ -39,6 +39,8 @@ public class StandardLifecycleStateManager implements LifecycleStateManager {
 
                 if (existing == null) {
                     break;
+                } else {
+                    continue;
                 }
             } else if (isReplace(lifecycleState, replaceTerminatedState, replaceUnscheduledState)) {
                 final LifecycleState newLifecycleState = new LifecycleState(componentId);
@@ -47,6 +49,8 @@ public class StandardLifecycleStateManager implements LifecycleStateManager {
                 if (replaced) {
                     lifecycleState = newLifecycleState;
                     break;
+                } else {
+                    continue;
                 }
             } else {
                 break;
