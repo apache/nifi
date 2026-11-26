@@ -447,8 +447,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                             + " because it requires Secure Site-to-Site communications, but this instance is not configured for secure communications");
                 }
 
-                final Socket socket = sslContext.getSocketFactory().createSocket(hostname, port);
-                socket.setSoTimeout(commsTimeout);
+                final Socket socket = createSecureSocket(hostname, port);
                 commsSession = new SocketCommunicationsSession(socket);
 
                 final Optional<String> peerIdentity = socketPeerIdentityProvider.getPeerIdentity(socket);
@@ -459,11 +458,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                     throw new IOException(String.format("Site-to-Site Peer [%s] Identity not found", socket.getRemoteSocketAddress()));
                 }
             } else {
-
-                final Socket socket = new Socket();
-                socket.connect(new InetSocketAddress(hostname, port), commsTimeout);
-                socket.setSoTimeout(commsTimeout);
-
+                final Socket socket = connectSocket(new Socket(), hostname, port);
                 commsSession = new SocketCommunicationsSession(socket);
             }
 
@@ -477,6 +472,40 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         }
 
         return commsSession;
+    }
+
+    private Socket createSecureSocket(final String hostname, final int port) throws IOException {
+        // Connect a standard Socket so that the connect is bounded by the communications timeout instead of
+        // blocking for the OS TCP connect timeout against a peer that silently drops packets, then wrap the
+        // connected Socket to avoid relying on unconnected Socket support in alternative SSLSocketFactory implementations
+        final Socket socket = connectSocket(new Socket(), hostname, port);
+        try {
+            final Socket sslSocket = sslContext.getSocketFactory().createSocket(socket, hostname, port, true);
+            sslSocket.setSoTimeout(commsTimeout);
+            return sslSocket;
+        } catch (final IOException e) {
+            closeQuietly(socket, e);
+            throw e;
+        }
+    }
+
+    private Socket connectSocket(final Socket socket, final String hostname, final int port) throws IOException {
+        try {
+            socket.connect(new InetSocketAddress(hostname, port), commsTimeout);
+            socket.setSoTimeout(commsTimeout);
+        } catch (final IOException e) {
+            closeQuietly(socket, e);
+            throw e;
+        }
+        return socket;
+    }
+
+    private void closeQuietly(final Socket socket, final IOException cause) {
+        try {
+            socket.close();
+        } catch (final IOException e) {
+            cause.addSuppressed(e);
+        }
     }
 
     private void cleanupExpiredSockets() {
