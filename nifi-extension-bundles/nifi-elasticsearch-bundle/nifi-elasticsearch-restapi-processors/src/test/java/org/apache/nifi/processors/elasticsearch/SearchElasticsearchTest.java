@@ -22,11 +22,14 @@ import org.apache.nifi.processors.elasticsearch.api.ResultOutputStrategy;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -45,7 +48,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
 
     @Override
     Scope getStateScope() {
-        return Scope.LOCAL;
+        return Scope.CLUSTER;
     }
 
     @Override
@@ -206,6 +209,34 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         testCounts(runner, 0, 2, 0, 0);
         assertState(runner, paginationType, 20, 3, true);
         assertTrue(runner.isYieldCalled());
+    }
+
+    @Test
+    void testPaginationContinuesOnNewPrimaryFromClusterState() throws Exception {
+        if (getProcessor() instanceof ConsumeElasticsearch) {
+            return;
+        }
+
+        final TestRunner runner = createRunner(false);
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.SCROLL);
+        setQuery(runner, matchAllWithSortByMsgWithSizeQuery);
+
+        runOnce(runner);
+        testCounts(runner, 0, 1, 0, 0);
+        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "1");
+
+        final Map<String, String> clusterState = new HashMap<>(runner.getStateManager().getState(Scope.CLUSTER).toMap());
+        assertEquals("scrollId-1", clusterState.get(SearchElasticsearch.STATE_SCROLL_ID));
+        assertEquals("1", clusterState.get(SearchElasticsearch.STATE_PAGE_COUNT));
+
+        final TestRunner nextPrimary = createRunner(false);
+        nextPrimary.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.SCROLL);
+        setQuery(nextPrimary, matchAllWithSortByMsgWithSizeQuery);
+        nextPrimary.getStateManager().setState(clusterState, Scope.CLUSTER);
+
+        runOnce(nextPrimary);
+        testCounts(nextPrimary, 0, 1, 0, 0);
+        nextPrimary.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "2");
     }
 
     private void assertState(final TestRunner runner, final PaginationType paginationType, final int hitCount, final int pageCount, final boolean finished) throws IOException {
